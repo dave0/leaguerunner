@@ -1057,7 +1057,7 @@ class PersonEdit extends Handler
 		if( !validate_nonhtml($edit['addr_street']) ) {
 			$errors .= "\n<li>You must supply a street address.";
 		}
-		$addr_city = var_from_getorpost('addr_city');
+
 		if( !validate_nonhtml($edit['addr_city']) ) {
 			$errors .= "\n<li>You must supply a city.";
 		}

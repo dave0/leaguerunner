@@ -8,20 +8,20 @@ function wlist_dispatch()
 	$op = arg(1);
 	switch($op) {
 		case 'create':
-			return new WaitingListCreate; // TODO
+			return new WaitingListCreate;
 		case 'edit':
-			return new WaitingListEdit; // TODO
+			return new WaitingListEdit;
 		case 'view':
-			return new WaitingListView; // TODO
+			return new WaitingListView;
 		case 'list':
 		case '':
-			return new WaitingListList; // TODO
+			return new WaitingListList;
 		case 'viewperson':
-			return new WaitingListViewPerson; // TODO
+			return new WaitingListViewPerson;
 		case 'join':
 			return new WaitingListJoin; // TODO
 		case 'quit':
-			return new WaitingListQuit; // TODO
+			return new WaitingListQuit;
 	}
 	return null;
 }
@@ -34,86 +34,65 @@ class WaitingListEdit extends Handler
 		$this->title = "Edit Waiting List";
 		$this->_required_perms = array(	
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = 'wlist_edit';
 		$this->section = 'admin';
 		return true;
 	}
 	
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
+		$id = arg(2);
 		
-		switch($step) {
+		$edit = $_POST['edit'];		
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$this->perform( &$id );
-				local_redirect("op=wlist_view&id=$id");
+				$this->perform( &$id, $edit );
+				local_redirect("wlist/view/$id");
 				break;
 			default:
-				$formData = $this->getFormData( $id );
-				$rc = $this->generateForm($id, $formData);
+				/* TODO: waitinglist_load() */
+				$edit = db_fetch_array(db_query( "SELECT * FROM waitinglist WHERE wlist_id = %d", $id));
+				$rc = $this->generateForm($id, $edit);
 		}
+		$this->setLocation(array($edit['name']  => "wlist/view/$id", $this->title => 0));
 		return $rc;
 	}
 	
-	function getFormData ( $id )
+	function generateForm ($id, $edit)
 	{
-		/* TODO: waitinglist_load() */
-		return db_fetch_array(db_query( "SELECT * FROM waitinglist WHERE wlist_id = %d", $id));
-	}
-	
-	function generateForm ($id, $formData)
-	{
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'confirm');
-		$output .= form_hidden("id", $id);
+		$output .= form_hidden("edit[step]", 'confirm');
 
 		$rows = array();
-		$rows[] = array("Waiting List Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The title for this waiting list.  Should describe what it's for."));
+		$rows[] = array("Waiting List Name:", form_textfield('', 'edit[name]', $edit['name'], 35,200, "The title for this waiting list.  Should describe what it's for."));
 		$rows[] = array("Description:", 
-			form_textarea("", 'edit[description]', $formData['description'], 50, 5, "Information about this particular league waitinglist"));
+			form_textarea("", 'edit[description]', $edit['description'], 50, 5, "Information about this particular league waitinglist"));
 		
 		$rows[] = array("Selection process:", 
-			form_select("", "edit[selection]", $formData['selection'], getOptionsFromEnum('waitinglist','selection'), "What type of selection process will be used?"));
-		$rows[] = array("Max Male Players:", form_textfield('', 'edit[max_male]', $formData['max_male'], 4,4, "Total number of male players that will be accepted"));
-		$rows[] = array("Max Female Players:", form_textfield('', 'edit[max_female]', $formData['max_female'], 4,4, "Total number of female players that will be accepted"));
+			form_select("", "edit[selection]", $edit['selection'], getOptionsFromEnum('waitinglist','selection'), "What type of selection process will be used?"));
+		$rows[] = array("Max Male Players:", form_textfield('', 'edit[max_male]', $edit['max_male'], 4,4, "Total number of male players that will be accepted"));
+		$rows[] = array("Max Female Players:", form_textfield('', 'edit[max_female]', $edit['max_female'], 4,4, "Total number of female players that will be accepted"));
 		$rows[] = array("Allow Couples Registration:", 
-			form_select("", "edit[allow_couples_registration]", $formData['allow_couples_registration'], getOptionsFromEnum('waitinglist','allow_couples_registration'), "Can registrants request to be paired with another person?"));
+			form_select("", "edit[allow_couples_registration]", $edit['allow_couples_registration'], getOptionsFromEnum('waitinglist','allow_couples_registration'), "Can registrants request to be paired with another person?"));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
-
-		if($formData['name']) {
-			$this->setLocation(array(
-				$formData['name']  => "op=wlist_view&id=$id",
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => "op=" . $this->op));
-		}
-
 		return form($output);
 	}
 	
-	function generateConfirm ( $id )
+	function generateConfirm ( $id, $edit )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$edit = var_from_getorpost('edit');
-
 		$output = para("Confirm that the data below is correct and click 'Submit'  to make your changes");
-		$output .= form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'perform');
-		$output .= form_hidden("id", $id);
+		$output .= form_hidden("edit[step]", 'perform');
 	
 		$rows = array();
 		$rows[] = array("Waiting List Name:", form_hidden('edit[name]',$edit['name']) .  $edit['name']);
@@ -127,27 +106,16 @@ class WaitingListEdit extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
-		if($team_name) {
-			$this->setLocation(array(
-				$team_name  => "op=wlist_view&id=$id",
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => "op=" . $this->op));
-		}
-		
 		return form($output);
 	}
 
-	
-	function perform ( $id )
+	function perform ( $id, $edit )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$edit = var_from_getorpost('edit');
-
 		db_query("UPDATE waitinglist SET name = '%s', description = '%s', selection = %d, max_male = %d, max_female = %d, allow_couples_registration = '%s' WHERE wlist_id = %d",
 			$edit['name'],
 			$edit['description'],
@@ -165,11 +133,9 @@ class WaitingListEdit extends Handler
 		return true;
 	}
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit )
 	{
 		$errors = "";
-
-		$edit = var_from_getorpost('edit');
 
 		if( !validate_nonhtml($edit['name']) ) {
 			$errors .= "<li>You must enter a valid name";
@@ -201,26 +167,37 @@ class WaitingListCreate extends WaitingListEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = 'wlist_create';
 		$this->section = 'admin';
 		return true;
 	}
 	
-	function getFormData ( $id )
+	function process ()
 	{
-		return array();
+		$id = -1;
+		$edit = $_POST['edit'];		
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm( $id, $edit );
+				break;
+			case 'perform':
+				$this->perform( &$id, $edit );
+				local_redirect("wlist/view/$id");
+				break;
+			default:
+				$edit = array();
+				$rc = $this->generateForm($id, $edit);
+		}
+		$this->setLocation(array($this->title => 0));
+		return $rc;
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit )
 	{
-		global $session;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$edit = var_from_getorpost('edit');
 		$name = trim($edit['name']);
 	
 		db_query("INSERT into waitinglist (name) VALUES ('%s')", $name);
@@ -229,7 +206,7 @@ class WaitingListCreate extends WaitingListEdit
 		}
 		
 		$id = db_result(db_query("SELECT LAST_INSERT_ID() from waitinglist"));
-		return parent::perform( $id );
+		return parent::perform( $id, $edit );
 	}
 }
 
@@ -247,9 +224,8 @@ class WaitingListList extends Handler
 			'admin_sufficient',
 			'allow',
 		);
-		$this->op = 'wlist_list';
 		$this->section = 'admin';
-		$this->setLocation(array("Waiting Lists" => 'op=' . $this->op));
+		$this->setLocation(array("Waiting Lists" => 'wlist/list'));
 		return true;
 	}
 	
@@ -265,26 +241,18 @@ class WaitingListList extends Handler
 		$query = "SELECT name AS value, wlist_id AS id FROM waitinglist ORDER BY name";
 		
 		$ops = array(
-			array(
-				'name' => 'view',
-				'target' => 'op=wlist_view&id='
-			),
+			array( 'name' => 'view', 'target' => 'wlist/view/'),
 		);
+		
 		if($this->_permissions['edit']) {
-			$ops[] = array(
-				'name' => 'edit',
-				'target' => 'op=wlist_edit&id='
-			);
+			$ops[] = array( 'name' => 'edit', 'target' => 'wlist/edit/');
 		}
 		if($this->_permissions['delete']) {
-			$ops[] = array(
-				'name' => 'delete',
-				'target' => 'op=wlist_delete&id='
-			);
+			$ops[] = array( 'name' => 'delete', 'target' => 'wlist/delete/');
 		}
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= l("Create New Waiting List", "op=wlist_create");
+			$output .= l("Create New Waiting List", "wlist/create");
 		}
 		
 		$output .= $this->generateSingleList($query, $ops);
@@ -302,14 +270,11 @@ class WaitingListView extends Handler
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'allow'
 		);
 		$this->title = 'View Waiting List';
 		$this->section = 'admin';
-		$this->op = 'wlist_view';
-
 		return true;
 	}
 	
@@ -322,7 +287,7 @@ class WaitingListView extends Handler
 
 	function process ()
 	{
-		$id = var_from_getorpost('id');
+		$id = arg(2);
 
 		/* TODO: waitinglist_load() */
 		$data = db_fetch_array(db_query(
@@ -332,10 +297,8 @@ class WaitingListView extends Handler
 			$this->error_exit("That is not a valid waitinglist ID");
 		}
 	
-		$output = '';
-		
 		if($this->_permissions['edit']) {
-			$output .= l('edit',"op=wlist_edit&id=$id");
+			$output .= l('edit',"wlist/edit/$id");
 		}
 
 		$rows = array();
@@ -370,13 +333,13 @@ class WaitingListView extends Handler
 			}
 		
 			if( isset($player->partner_id) ) {
-				$partnerInfo = l("$player->partner_firstname $player->partner_lastname", "op=wlist_viewperson&id=$player->partner_id");
+				$partnerInfo = l("$player->partner_firstname $player->partner_lastname", "wlist/viewperson/$player->partner_id");
 			} else {
 				$partnerInfo = '';
 			}
 				
 			$listRows[] = array(
-				array('data' => l("$player->firstname $player->lastname", "op=wlist_viewperson&id=$player->user_id"), 'class' => $class),
+				array('data' => l("$player->firstname $player->lastname", "wlist/viewperson/$player->user_id"), 'class' => $class),
 				array('data' => $player->preference, 'class' => $class),
 				array('data' => $player->date_registered, 'class' => $class),
 				array('data' => $player->gender, 'class' => $class),
@@ -397,7 +360,7 @@ class WaitingListView extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
 		$this->setLocation(array(
-			$data['name'] => "op=wlist_view&id=$id",
+			$data['name'] => "wlist/view/$id",
 			$this->title => 0));
 
 		return $output;
@@ -420,7 +383,6 @@ class WaitingListJoin extends Handler
 		 */
 		$this->max_preference = 0;
 		
-		$this->op = 'wlist_join';
 		$this->section = 'person';
 		return true;
 	}
@@ -428,15 +390,15 @@ class WaitingListJoin extends Handler
 	function process ()
 	{
 		global $session;
-		
-		$step = var_from_getorpost('step');
+	
+		$edit = $_POST['edit'];
 
 		/* First, make sure this person isn't on any lists yet */
 		$numLists = db_result(db_query("SELECT COUNT(*) from waitinglistmembers WHERE user_id = %d", $session->attr_get('user_id')));
 		
 		if($numLists) {
 			return para("You have already made your waiting list selections.")
-				. para("You can view your selections " . l('here',"op=wlist_viewperson&id=" . $session->attr_get('user_id')));
+				. para("You can view your selections " . l('here',"wlist/viewperson/" . $session->attr_get('user_id')));
 		}
 		
 		/* TODO: This should be a config option!  It duplicates info in
@@ -454,16 +416,18 @@ class WaitingListJoin extends Handler
 		}
 
 		
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
-				$rc = $this->perform( );
+				$rc = $this->perform( $edit );
 				break;
 			default:
-				$rc = $this->generateForm();
+				$rc = $this->generateForm( );
 		}
+		
+		$this->setLocation(array( $this->title => "wlist/join"));
 		return $rc;
 	}
 	
@@ -475,12 +439,11 @@ class WaitingListJoin extends Handler
 			$this->max_preference = db_num_rows($result);
 		}
 		
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'confirm');
+		$output .= form_hidden("edit[step]", 'confirm');
 
 		$output .= para(
 				"Enter your preferences for the following waiting lists.  You may
-				select up to " . $this->max_preference . ", ranked in order of
+				select up to $this->max_preference, ranked in order of
 				preference.  Where space and other restrictions allow, you may be
 				given the opportunity to play on more than one night.")
 			. para("Note that you do not need to rank all nights of play if you do not wish to be considered for all of them.  You may either leave columns blank for 3rd, 4th, etc, preference, or select \"No selection\" for that column.")
@@ -512,7 +475,7 @@ class WaitingListJoin extends Handler
 			for($i=1;$i <= $this->max_preference; $i++) {
 				$buttonColumns[] = form_radio('', "edit[preference][$i]", $list->wlist_id);
 			}
-			$buttonColumns[] = "$list->name (" . l('view', "op=wlist_view&id=$list->wlist_id") . ")";
+			$buttonColumns[] = "$list->name (" . l('view', "wlist/view/$list->wlist_id") . ")";
 			
 			if($list->allow_couples_registration == 'Y') {
 				$buttonColumns[] = form_textfield('', "edit[$list->wlist_id][paired_with]", '', 8,8);
@@ -526,24 +489,19 @@ class WaitingListJoin extends Handler
 		$output .= "<div class='waitlist'>" . array($header, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
-		$this->setLocation(array( $this->title => "op=$this->op"));
-
 		return form($output);
 	}
 	
-	function generateConfirm ( )
+	function generateConfirm ( $edit )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$edit = var_from_getorpost('edit');
-
 		$output = para("Confirm that the data below is correct and click 'Submit' if you are satisfied.  Be advised that you <b>cannot</b> change this information later without losing your priority!");
 		
-		$output .= form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'perform');
+		$output .= form_hidden("edit[step]", 'perform');
 		
 		$rows = array();
 		while(list($preference,$wlist_id) = each($edit['preference'])) {
@@ -580,19 +538,15 @@ class WaitingListJoin extends Handler
 		$output .= "<div class=listtable'>" . table(null,$rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
-		$this->setLocation(array( $this->title => "op=" . $this->op));
-		
 		return form($output);
 	}
 
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit )
 	{
 		global $session;
 		$errors = "";
 
-		$edit = var_from_getorpost('edit');
-	
 		$seenPreference = array();
 		$seenWlist = array();
 		while(list($preference,$wlist_id) = each($edit['preference'])) {
@@ -635,16 +589,14 @@ class WaitingListJoin extends Handler
 		}
 	}
 	
-	function perform (  )
+	function perform ( $edit )
 	{
 		global $session;
 
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
-		$edit = var_from_getorpost('edit');
 	
 		while(list($preference,$wlist_id) = each($edit['preference'])) {
 
@@ -679,61 +631,65 @@ class WaitingListQuit extends Handler
 	function initialize ()
 	{
 		$this->title = "Quit Waiting List";
-		$this->_required_perms = array(	
-			'require_valid_session',
-			'require_var:id',
-			'require_var:user',
-			'admin_sufficient',
-			'self_sufficient:user',
-			'deny'
-		);
-
-		$this->op = 'wlist_quit';
 		$this->section = 'person';
 		return true;
 	}
 	
+	function has_permission ()
+	{
+		global $session;
+		if(!$session->is_valid()) {
+			$this->error_exit("You do not have a valid session");
+			return false;
+		}
+		
+		$userID  = arg(3);
+		if(!$userID) {
+			return false;
+		}
+
+		/* Allow user to modify own info, and admin to do anything */
+		if( $session->is_admin() || ($session->attr_get('user_id') == $userID) ) {
+			return true;
+		}
+
+		return false;
+	}
+	
 	function process ()
 	{
-		$step = var_from_getorpost('step');
+		$id     = arg(2);
+		$userID = arg(3);
+		$edit = $_POST['edit'];
 		
-		$id = var_from_getorpost('id');
-		switch($step) {
-			case 'confirm':
-				$rc = $this->generateConfirm( $id );
-				break;
+		switch($edit['step']) {
 			case 'perform':
-				$this->perform( $id );
+				$this->perform( $id, $userID, $edit );
+				local_redirect("wlist/viewperson/$userID");
 				break;
+			case 'confirm':
 			default:
-				$this->error_exit("You cannot perform that operation");
+				$rc = $this->generateConfirm( $id, $userID, $edit );
+				break;
 		}
 		return $rc;
 	}
 	
-	function generateConfirm ( $id )
+	function generateConfirm ( $id, $userID )
 	{
-		global $session;
-
-		if($session->is_admin()) {
-			$user = var_from_getorpost('user');
-			
-			$info = db_fetch_array(db_query("SELECT firstname, lastname FROM person WHERE user_id = %d", $user));
-
-			if( !$info ) {
-				$this->error_exit("That is not a valid user");
-			}
-			$fullName = $info['firstname'] . " " . $info['lastname'];
-		} else {
-			$user = $session->attr_get('user_id');
-			$fullName = $session->attr_get('firstname') . " " . $session->attr_get('lastname');
+	
+		/* TODO: person_load() */
+		$info = db_fetch_array(db_query("SELECT firstname, lastname FROM person WHERE user_id = %d", $userID));
+		if( !$info ) {
+			$this->error_exit("That is not a valid user");
 		}
+		$fullName = $info['firstname'] . " " . $info['lastname'];
 		
 		$this->setLocation(
 			array( $fullName => "person/view/$user", $this->title => 0,));
-		
-		$listName = db_result(db_query("SELECT name from waitinglist WHERE wlist_id = %d", $id));
 
+		/* TODO: waitinglist_load() */
+		$listName = db_result(db_query("SELECT name from waitinglist WHERE wlist_id = %d", $id));
 		if( !$listName ) {
 			$this->error_exit("That is not a valid waiting list.");
 		}
@@ -741,35 +697,18 @@ class WaitingListQuit extends Handler
 		$output = para("Confirm that you wish to remove $fullName from the $listName waiting list.  Note that this will result in a loss of any priority for this list and that you cannot be re-added."
 		);
 		
-		$output .= form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'perform');
-		$output .= form_hidden("id", $id);
-		$output .= form_hidden("user", $user);
-		
+		$output .= form_hidden("edit[step]", 'perform');
 		$output .= para(form_submit("submit"));
-		
 		return form($output);
 	}
 
-	function perform ( $id )
+	function perform ( $id, $userID )
 	{
-		global $session;
-
-		if($session->is_admin()) {
-			$user_id = var_from_getorpost('user');
-		} else {
-			$user_id = $session->attr_get('user_id');
-		}
-
-		db_query("DELETE 
-			 FROM waitinglistmembers 
-			 WHERE wlist_id = %d
-			   AND user_id = %d", $id, $user_id);
-			
+		db_query("DELETE FROM waitinglistmembers WHERE wlist_id = %d AND user_id = %d", $id, $userID);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
-		local_redirect("op=wlist_viewperson&id=$user_id");
+		return true;
 	}
 }
 
@@ -785,30 +724,22 @@ class WaitingListViewPerson extends Handler
 		);
 		$this->title = 'Waiting Lists';
 		$this->section = 'person';
-		$this->op = 'wlist_viewperson';
-
 		return true;
 	}
 
 	function process ()
 	{
-		global $session;
+		$id = arg(2);
+		
+		/* TODO: person_load() */
+		$info = db_fetch_object(db_query("SELECT firstname, lastname, gender FROM person WHERE user_id = %d", $id));
 
-
-		if($session->is_admin()) {
-			$id = var_from_getorpost('id');
-			$info = db_fetch_object(db_query("SELECT firstname, lastname, gender FROM person WHERE user_id = %d", $id));
-
-			if( !$info ) {
-				$this->error_exit("That is not a valid user");
-			}
-			$lcGender = strtolower($info->gender);
-			$fullName = $info->firstname . " " . $info->lastname;
-		} else {
-			$id = $session->attr_get('user_id');
-			$lcGender = strtolower($session->attr_get('gender'));
-			$fullName = $session->attr_get('firstname') . " " . $session->attr_get('lastname');
+		if( !$info ) {
+			$this->error_exit("That is not a valid user");
 		}
+		
+		$lcGender = strtolower($info->gender);
+		$fullName = $info->firstname . " " . $info->lastname;
 		
 		$this->setLocation(array( $fullName => "person/view/$id", $this->title => 0));
 
@@ -873,7 +804,7 @@ Webteam, Coordinating team, and OCUA Management) accept no
 responsibility for user error.
 </p>
 EOM;
-			$output .= para("You are not currently on any waiting lists.  Click <b>" . l('here','op=wlist_join') . "</b> to sign up for one or more divisions.");
+			$output .= para("You are not currently on any waiting lists.  Click <b>" . l('here','wlist/join') . "</b> to sign up for one or more divisions.");
 			return $output;
 		}
 
@@ -895,7 +826,7 @@ EOM;
 		while($data = db_fetch_object($result)) {
 			$rows[] = array(
 				array('data' => $data->name, 'class' => 'subtitle'),
-				array('data' => l("remove from this waitlist", "op=wlist_quit&step=confirm&id=$data->wlist_id &user=$id"), 'class' => 'subtitle')
+				array('data' => l("remove from this waitlist", "wlist/quit/$data->wlist_id/$id?edit[step]=confirm"), 'class' => 'subtitle')
 			);
 
 			$rows[] = array("Registration Preference:", $data->preference);
@@ -945,35 +876,8 @@ EOM;
 		}
 
 		$output .= "<div class='listtable'>" . table(null,$rows) . "</div>";
-		
 		return $output;
 	}
-}
-
-/**
- * Convert a numeric number to an English ordinal number for ease of reading.
- * Rule of thumb is:  If the 'tens' digit is 1, then add 'th'.  Otherwise,
- * check the last digit to determine which suffix to use.  1 == 'st', 2 ==
- * 'nd', 3 == 'rd', 4 through 0 == 'th'
- */
-function numberToOrdinal ( $num )
-{
-	
-	if( (floor( $num / 10 ) % 10) == 1 ) {
-		return $num . "th";
-	}
-
-	switch($num % 10) {
-		case 1:
-			return $num . "st";
-		case 2:
-			return $num . "nd";
-		case 3:
-			return $num . "rd";
-		default:
-			return $num . "th";
-	}
-
 }
 
 ?>

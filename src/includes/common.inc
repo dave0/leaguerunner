@@ -555,78 +555,34 @@ function clean_telephone_number( $string )
 }
 
 /**
+ * Convert a numeric number to an English ordinal number for ease of reading.
+ * Rule of thumb is:  If the 'tens' digit is 1, then add 'th'.  Otherwise,
+ * check the last digit to determine which suffix to use.  1 == 'st', 2 ==
+ * 'nd', 3 == 'rd', 4 through 0 == 'th'
+ */
+function numberToOrdinal ( $num )
+{
+	if( (floor( $num / 10 ) % 10) == 1 ) {
+		return $num . "th";
+	}
+
+	switch($num % 10) {
+		case 1:
+			return $num . "st";
+		case 2:
+			return $num . "nd";
+		case 3:
+			return $num . "rd";
+		default:
+			return $num . "th";
+	}
+}
+
+
+/**
  ** Miscellaneous stuff. 
  ** TODO: Some of this is old code that might be best removed entirely.
  */
-
-/* 
- * To be safe, PHP's auto-global-variable stuff should be turned off, so we
- * will use the functions below to access GET, POST and cookie variables.
- */
-/**
- * Get variable from cookie
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_cookie($name) 
-{
-	global $_COOKIE;
-	if(isset($_COOKIE[$name])) {
-		return $_COOKIE[$name];
-	}
-	return null;
-}
-
-/**
- * Get variable from POST submission.
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_post($name)
-{
-	global $_SERVER, $_POST;
-	
-	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		if(isset($_POST[$name])) {
-			if(is_array($_POST[$name])) {
-				return $_POST[$name];
-			} else {
-				return stripslashes($_POST[$name]);
-			}
-		}
-	} 
-	return null;
-}
-
-/**
- * Get variable from either a GET or a POST submission.
- *
- * We could use the PHP magic array $_REQUEST, but it also includes cookie
- * data, which can confuse things.  We just want GET and POST values, so we'll
- * do it ourselves.
- *
- * TODO: modify function to take optional $flags arg, with available flags:
- * 	ALLOW_HTML
- * 	ALLOW_JAVASCRIPT
- * and add code to strip out otherwise.
- * 
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_getorpost($name)
-{
-	/* Don't want to use $_REQUEST, since that can contain cookie info */
-	global $_SERVER, $_GET, $_POST;
-	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		$vars = &$_GET[$name];
-	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		$vars = &$_POST[$name];
-	} 
-	if(isset($vars)) {
-		return $vars;
-	}
-	return null;
-}
 
 /*
  * Generate a random password

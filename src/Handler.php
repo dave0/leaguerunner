@@ -167,18 +167,6 @@ class Handler
 					$this->set_permission_flags('self');
 					return true;
 				}
-			} else if(strncmp($perm_type,'self_sufficient:',16) == 0) {
-				$id_field = substr($perm_type, 16);
-				// TODO: The following is an evil hack...
-				if($id_field = 'id') {
-					$id_data = arg(2);
-				} else {
-					$id_data = var_from_getorpost($id_field);
-				}
-				if($session->attr_get('user_id') == $id_data) {
-					$this->set_permission_flags('self');
-					return true;
-				}
 			} else if($perm_type == 'require_coordinator') {
 				$id = arg(2);
 				if(!$session->is_coordinator_of($id)) {
@@ -192,49 +180,17 @@ class Handler
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
-			} else if(strncmp($perm_type,'coordinate_league_containing:',28) == 0) {
-				$id_field = substr($perm_type, 29);
-				// TODO: The following is an evil hack...
-				if($id_field = 'id') {
-					$id_data = arg(2);
-				} else {
-					$id_data = var_from_getorpost($id_field);
-				}
-				if($session->coordinates_league_containing($id_data)) {
+			} else if($perm_type == 'coordinate_league_containing') {
+				$id = arg(2);
+				if($session->coordinates_league_containing($id)) {
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
-			} else if(strncmp($perm_type,'coordinate_game:',15) == 0) {
-				$id_field = substr($perm_type, 16);
-				// TODO: The following is an evil hack...
-				if($id_field = 'id') {
-					$id_data = arg(2);
-				} else {
-					$id_data = var_from_getorpost($id_field);
-				}
-				$result = db_query("SELECT league_id FROM schedule WHERE game_id = %d", $id_data);
-				$league_id = db_result($result);
-				if($session->is_coordinator_of($league_id)) {
-					$this->set_permission_flags('coordinator');
-					return true;
-				}
-			} else if(strncmp($perm_type,'captain_of:',10) == 0) {
-				$id_field = substr($perm_type, 11);
-				// TODO: The following is an evil hack...
-				if($id_field = 'id') {
-					$id_data = arg(2);
-				} else {
-					$id_data = var_from_getorpost($id_field);
-				}
-				if($session->is_captain_of($id_data)) {
+			} else if($perm_type == 'captain_of') {
+				$id = arg(2);
+				if($session->is_captain_of($id)) {
 					$this->set_permission_flags('captain');
 					return true;
-				}
-			} else if(strncmp($perm_type,'require_var:',11) == 0) {
-				$wanted_var = substr($perm_type, 12);
-				$got_var = var_from_getorpost($wanted_var);
-				if(is_null($got_var)) {
-					$this->error_exit("Value missing for $wanted_var in URL");
 				}
 			}
 		}

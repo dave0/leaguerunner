@@ -113,7 +113,7 @@ class TeamEdit extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'captain_of:id',
+			'captain_of',
 			'deny'
 		);
 		$this->section = 'team';
@@ -298,7 +298,7 @@ class TeamRosterStatus extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'captain_of:id',
+			'captain_of',
 			'allow'
 		);
 		return true;
@@ -578,7 +578,7 @@ class TeamView extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'captain_of:id',
+			'captain_of',
 			'allow'
 		);
 		$this->title = "View Team";
@@ -778,8 +778,8 @@ class TeamSchedule extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'captain_of:id',
-			'coordinate_league_containing:id',
+			'captain_of',
+			'coordinate_league_containing',
 			'allow'
 		);
 		$this->title = "Schedule";
@@ -926,7 +926,7 @@ class TeamEmails extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'captain_of:id',
+			'captain_of',
 			'deny',
 		);
 		$this->title = 'Player Emails';
