@@ -45,12 +45,10 @@ class FieldCreate extends FieldEdit
 		$edit = $_POST['edit'];
 		$siteID = arg(2);
 	
-		/* TODO: site_load() */
-		$result = db_query("SELECT site_id, name, code FROM site where site_id = %d", $siteID);
-		if( 1 != db_num_rows($result) ) {
+		$site = site_load( array('site_id' => $siteID) );
+		if( !$site ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
-		$site = db_fetch_object($result);
 		
 		switch($edit['step']) {
 			case 'confirm':

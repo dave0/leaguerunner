@@ -113,8 +113,8 @@ class SiteEdit extends Handler
 	
 	function getFormData( $id ) 
 	{
-		/* TODO: site_load() */
-		return db_fetch_array(db_query("SELECT * FROM site WHERE site_id = %d", $id));
+		$site = site_load( array( 'site_id' => $id ) );
+		return object2array($site);
 	}
 
 	function generateForm( $data = array() )
@@ -337,8 +337,7 @@ class SiteView extends Handler
 	{
 		$id = arg(2);
 
-		/* TODO: site_load() ? */
-		$site = db_fetch_object(db_query("SELECT * FROM site WHERE site_id = %d", $id));
+		$site = site_load( array('site_id' => $id) );
 		if(!$site) {
 			$this->error_exit("The site [$id] does not exist");
 		}
@@ -395,5 +394,38 @@ class SiteView extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		return $output;
 	}
+}
+
+/**
+ * Load a single site object from the database using the supplied query
+ * data.  If more than one site matches, we will return only the first one.
+ * If fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the site to be loaded.
+ */
+function site_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if($key == '_extra') {
+			/* Just slap on any extra query fields desired */
+			$query[] = $value;
+		} else {
+			$query[] = "s.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+		s.*
+	 	FROM site s
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	return db_fetch_object($result);
 }
 ?>
