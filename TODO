@@ -1,0 +1,23 @@
+The Main TODO List
+
+Basic Install Needs:
+	- need install instructions
+	- need proper version of current database schema
+	- need 'seed value' database entries for admin user
+
+Refactoring:
+	- move common has_permission() code up into Handler class, have subclasses
+	  call parent first, then implement extras.
+
+Reimplementation:
+	- finish pulling over remaining features from ocua-engine
+	- fix up permissions handling for viewing
+
+Redesign:
+	- Look at redesigning permissions structure
+	- Clean up database schema
+
+New Features:
+	- volunteer info
+	- integrate Tony's score-reminder code
+	- better field management
