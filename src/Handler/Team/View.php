@@ -12,10 +12,6 @@ register_page_handler('team_view', 'TeamView');
  */
 class TeamView extends Handler
 {
-
-	/* Permissions bits for various items of interest */
-	var $_permissions;
-	
 	/** 
 	 * Initializer for PlayerView class
 	 *

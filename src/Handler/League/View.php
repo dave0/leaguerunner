@@ -12,10 +12,6 @@ register_page_handler('league_view', 'LeagueView');
  */
 class LeagueView extends Handler
 {
-
-	/* Permissions bits for various items of interest */
-	var $_permissions;
-	
 	/** 
 	 * Initializer for LeagueView class
 	 *

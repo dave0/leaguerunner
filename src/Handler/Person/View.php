@@ -12,10 +12,6 @@ register_page_handler('person_view', 'PersonView');
  */
 class PersonView extends Handler
 {
-
-	/* Permissions bits for various items of interest */
-	var $_permissions;
-	
 	/** 
 	 * Initializer for PlayerView class
 	 *

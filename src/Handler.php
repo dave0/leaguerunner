@@ -50,6 +50,13 @@ class Handler
 	 * @var string
 	 */
 	var $error_text;
+	
+	/**
+	 * Permissions bits for various items of interest
+	 * @access private
+	 * @var array
+	 */
+	var $_permissions;
 
 	/**
 	 * Constructor.  This is called by every handler.
