@@ -1006,7 +1006,6 @@ class TeamSchedule extends Handler
 		}
 
 		$header = array(
-			'&nbsp;',
 			"Game",
 			"Date",
 			"Time",
@@ -1018,6 +1017,7 @@ class TeamSchedule extends Handler
 			
 		$empty_row_added = 0;
 		$prev_game_id = 0;
+		$update_prev_game_id = 1;
 		while(list(,$game) = each($games)) {
 			$space = '&nbsp;';
 			$dash = '-';
@@ -1057,27 +1057,27 @@ class TeamSchedule extends Handler
 			}
 
 			if ($game->home_id == "" && $game->away_id == "") {
+				$update_prev_game_id = 0;
 				if (!$empty_row_added) {
-					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 					$empty_row_added = 1;
 				}
-				if ($game->home_dependant_game = $prev_game_id) {
+				if ($game->home_dependant_game == $prev_game_id) {
 					if ($game->home_dependant_type == "winner") {
-						$space = "W: ";
+						$score_type = "<b>(if win $prev_game_id)</b>";
 					} else {
-						$space = "L: ";
+						$score_type = "<b>(if lose $prev_game_id)</b>";
 					}
 				}
-				if ($game->away_dependant_game = $prev_game_id) {
+				if ($game->away_dependant_game == $prev_game_id) {
 					if ($game->away_dependant_type == "winner") {
-						$space = "W: ";
+						$score_type = "<b>(if win $prev_game_id)</b>";
 					} else {
-						$space = "L: ";
+						$score_type = "<b>(if lose $prev_game_id)</b>";
 					}
 				}
 			}
 			$rows[] = array(
-				$space,
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
@@ -1088,10 +1088,12 @@ class TeamSchedule extends Handler
 				$score_type
 			);
 
-			$prev_game_id = $game->game_id;
+			if ($update_prev_game_id) {
+				$prev_game_id = $game->game_id;
+			}
 		}
 		// add another row of dashes when you're done.
-		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 
 		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
