@@ -63,7 +63,7 @@ function theme_navbar($breadcrumbs = array())
 		print l("log in", "op=login", array( 'class' => 'topbarlink' ));
 		print "&nbsp;|&nbsp;";
 	}
-	print l("help", "op=help", array( 'class' => 'topbarlink' ));
+	print l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/howto.html", array( 'class' => 'topbarlink' ));
 	print "</td></tr>";
 	print "\n<!-- end navbar -->\n";
 }
