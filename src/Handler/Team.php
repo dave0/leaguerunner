@@ -104,24 +104,26 @@ class TeamCreate extends TeamEdit
 	function process ()
 	{
 		$id = -1;
-		$edit = $_POST['edit'];
+		$edit = &$_POST['edit'];
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
-				$this->perform( &$id, $edit);
-				local_redirect(url("team/view/$id"));
+				$team = new Team;
+				$this->perform( $team, $edit);
+				local_redirect(url("team/view/$team->team_id"));
 				break;
 			default:
-				$rc = $this->generateForm($id, array());
+				$edit = array();
+				$rc = $this->generateForm( $edit );
 		}
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 
-	function perform ( $id, $edit = array() )
+	function perform ( &$team, $edit = array() )
 	{
 		global $session;
 
@@ -130,31 +132,28 @@ class TeamCreate extends TeamEdit
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$team_name = trim($edit['name']);
-		
-		if(db_num_rows(db_query("SELECT name FROM team WHERE name = '%s'",$team_name))) {
-			$err = "A team with that name already exists; please go back and try again";
-			$this->error_exit($err);
+		$existing_team = team_load( array('name' => trim($edit['name'])) );
+		if($existing_team) {
+			$this->error_exit("A team with that name already exists; please go back and try again");
 		}
 
-		db_query("INSERT into team (name) VALUES ('%s')", $team_name);
+		if( ! parent::perform($team, $edit) ) {
+			return false;
+		}
+		
+		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $team->team_id);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 	
-		$id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
-
-		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $id);
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $id, $session->attr_get('user_id'));
+		# TODO: Replace with $team->add_player($session->user,'captain')
+		#       and call before parent::perform()
+		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $team->team_id, $session->attr_get('user_id'));
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 
-		return parent::perform( $id, $edit );
+		return true;
 	}
 }
 
@@ -192,30 +191,29 @@ class TeamEdit extends Handler
 	{
 		$id = arg(2);
 		$edit = &$_POST['edit'];
+
+		$team = team_load( array('team_id' => $id) );
+		if( !$team ) {
+			$this->error_exit("That team does not exist");
+		}
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
-				$this->perform( $id, $edit);
+				$this->perform( $team, $edit);
 				local_redirect(url("team/view/$id"));
 				break;
 			default:
-				$edit = $this->getFormData( $id );
-				$rc = $this->generateForm($id, $edit);
+				$edit = object2array($team);
+				$rc = $this->generateForm($edit);
 		}
 		$this->setLocation(array($edit['name']  => "team/view/$id", $this->title => 0));
 		return $rc;
 	}
 
-	function getFormData ( $id )
-	{
-		$team = team_load( array('team_id' => $id) );
-		return object2array($team);
-	}
-
-	function generateForm ($id, $formData)
+	function generateForm (&$formData)
 	{
 		$output = form_hidden("edit[step]", 'confirm');
 		
@@ -232,7 +230,7 @@ class TeamEdit extends Handler
 		return form($output);
 	}
 
-	function generateConfirm ( $id, $edit = array() )
+	function generateConfirm ($edit = array() )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
@@ -252,22 +250,23 @@ class TeamEdit extends Handler
 		return form($output);
 	}
 
-	function perform ( $id, $edit = array())
+	function perform ( &$team, $edit = array())
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$rc = db_query("UPDATE team SET name = '%s', website = '%s', shirt_colour = '%s', status = '%s' WHERE team_id = %d",
-				$edit['name'],
-				$edit['website'],
-				$edit['shirt_colour'],
-				$edit['status'],
-				$id
-		);
+		$team->set('name', $edit['name']);
+		$team->set('website', $edit['website']);
+		$team->set('shirt_colour', $edit['shirt_colour']);
+		$team->set('status', $edit['status']);
+		
+		if( !$team->save() ) {
+			$this->error_exit("Internal error: couldn't save changes");
+		}
 
-		return ($rc != false);
+		return true;
 	}
 
 	function isDataInvalid ( $edit )

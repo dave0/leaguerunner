@@ -105,7 +105,7 @@ class LeagueCreate extends LeagueEdit
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
 				$league = new League;
@@ -113,7 +113,8 @@ class LeagueCreate extends LeagueEdit
 				local_redirect(url("league/view/" . $league->league_id));
 				break;
 			default:
-				$rc = $this->generateForm( $id, array() );
+				$edit = array();
+				$rc = $this->generateForm( $edit );
 		}
 		$this->setLocation(array($this->title => 0));
 		return $rc;
@@ -171,7 +172,7 @@ class LeagueEdit extends Handler
 	function process ()
 	{
 		$id = arg(2);
-		$edit = $_POST['edit'];
+		$edit = &$_POST['edit'];
 
 		$league = league_load( array('league_id' => $id) );
 		if( !$league ) {
@@ -181,7 +182,7 @@ class LeagueEdit extends Handler
 
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
 				$this->perform( $league, $edit );
@@ -189,7 +190,7 @@ class LeagueEdit extends Handler
 				break;
 			default:
 				$edit = $this->getFormData( $league );
-				$rc = $this->generateForm( $id, $edit );
+				$rc = $this->generateForm( $edit );
 		}
 		$this->setLocation(array( $edit['name'] => "league/view/$id", $this->title => 0));
 
@@ -205,7 +206,7 @@ class LeagueEdit extends Handler
 		return object2array($league);
 	}
 
-	function generateForm ( $id, $formData )
+	function generateForm ( &$formData )
 	{
 		$output .= form_hidden("edit[step]", 'confirm');
 
@@ -237,7 +238,7 @@ class LeagueEdit extends Handler
 		return form($output);
 	}
 
-	function generateConfirm ( $id, $edit )
+	function generateConfirm ( $edit )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
