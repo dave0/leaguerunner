@@ -990,6 +990,7 @@ class TeamScheduleView extends Handler
 			'require_var:id',
 			'admin_sufficient',
 			'captain_of:id',
+			'coordinate_league_containing:id',
 			'allow'
 		);
 		$this->op = 'team_schedule_view';
@@ -1001,6 +1002,8 @@ class TeamScheduleView extends Handler
 	{
 		if($type == 'administrator') {
 			$this->enable_all_perms();
+		} else if ($type == 'coordinator') {
+			$this->_permissions['submit_score'] = true;
 		} else if ($type == 'captain') {
 			$this->_permissions['submit_score'] = true;
 		}
