@@ -112,7 +112,7 @@ class Handler
 	{
 		global $session;
 
-		$this->error_exit("Old permissions code somehow triggered.  You should contact dmo@dmo.ca if you see this error message");
+		error_exit("Old permissions code somehow triggered.  You should contact dmo@dmo.ca if you see this error message");
 	}
 
 	/**
@@ -179,26 +179,6 @@ class Handler
 	}
 
 	/**
-	 * Display the error message and exit.
-	 *
-	 * Generates an error message page with the given error.
-	 *
-	 * @access public
-	 */
-	function error_exit($error = NULL)
-	{
-		$title = "Error";
-		
-		$error = $error ? $error : "An unknown error has occurred.";
-
-		print theme_header($title, $this->breadcrumbs);
-		print "<h1>$title</h1>";
-		print theme_error( $error );
-		print theme_footer();
-		exit;
-	}
-
-	/**
 	 * Generates list output.  Query should generate rows with two
 	 * fields; one named 'id' containing the ID of the object listed,
 	 * and 'value', containing a name or descriptive text for each
@@ -260,17 +240,5 @@ class Handler
 		}
 		return $opsLinks;
 	}
-}
-function error_exit($error = NULL)
-{
-	$title = "Error";
-	
-	$error = $error ? $error : "An unknown error has occurred.";
-
-	print theme_header($title);
-	print "<h1>$title</h1>";
-	print theme_error( $error );
-	print theme_footer();
-	exit;
 }
 ?>

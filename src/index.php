@@ -74,8 +74,7 @@ if(isset($mod) && module_hook($mod, 'dispatch')) {
 }
 
 if(is_null($handler)) {
-	$handler = new Handler;
-	$handler->error_exit("No handler exists for that operation in $mod");
+	error_exit("No handler exists for that operation in $mod");
 	return;
 }
 
@@ -97,7 +96,7 @@ if($handler->initialize()) {
 		/* Process the action */
 		$result = $handler->process();
 		if($result === false) {
-			$handler->error_exit("Uncaught failure in $mod, performing " . arg(1));
+			error_exit("Uncaught failure in $mod, performing " . arg(1));
 		}
 
 		print theme_header($handler->title, $handler->breadcrumbs);
@@ -106,10 +105,23 @@ if($handler->initialize()) {
 		print theme_footer();
 		
 	} else {
-		$handler->error_exit("You do not have permission to perform that operation");
+		error_exit("You do not have permission to perform that operation");
 	}
 } else {
-	$handler->error_exit("Failed to initialize handler for $op");
+	error_exit("Failed to initialize handler for $op");
+}
+
+function error_exit($error = NULL)
+{
+	$title = "Error";
+	
+	$error = $error ? $error : "An unknown error has occurred.";
+
+	print theme_header($title);
+	print "<h1>$title</h1>";
+	print theme_error( $error );
+	print theme_footer();
+	exit;
 }
 
 /* And, that's all, folks.  */

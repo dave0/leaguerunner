@@ -182,11 +182,11 @@ class Person extends LeaguerunnerObject
 		}
 
 		if ($this->is_a_captain) {
-			$this->error_exit("Account cannot be deleted while player is a team captain.");
+			error_exit("Account cannot be deleted while player is a team captain.");
 		}
 
 		if ( $this->is_a_coordinator ) {
-			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
+			error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
 		
 		/* remove user from team rosters.  Don't check for affected
