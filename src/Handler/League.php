@@ -806,7 +806,7 @@ class LeagueView extends Handler
 		foreach( $league->coordinators as $c ) {
 			$coordinator = l($c->fullname, "person/view/$c->user_id");
 			if($this->_permissions['administer_league']) {
-				$coordinator .= "&nbsp;[&nbsp;" . l('remove coordinator', "league/member/$id/$c->user_id?edit[status]=remove") . "&nbsp;]";
+				$coordinator .= "&nbsp;[&nbsp;" . l('remove coordinator', url("league/member/$id/$c->user_id", 'edit[status]=remove')) . "&nbsp;]";
 			}
 			$coordinators[] = $coordinator;
 		}

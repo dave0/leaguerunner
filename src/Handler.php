@@ -336,7 +336,7 @@ class Handler
 			if($curLetter == $letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$letterLinks[] = l($curLetter, "$listOp?letter=$curLetter$query_append");
+				$letterLinks[] = l($curLetter, url("$listOp", "letter=$curLetter$query_append"));
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));

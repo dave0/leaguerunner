@@ -64,8 +64,8 @@ function person_menu()
 	// TODO: same perms as admin_sufficient and volunteer_sufficient... these
 	// checks need to be consolidated when perms are overhauled
 	if($session->is_admin() || $session->attr_get('class') == 'volunteer') {
-		menu_add_child('person','person/list/players',"list players", array('link' => "person/list?class=player"));
-		menu_add_child('person','person/list/visitors',"list visitors", array('link' => "person/list?class=visitor"));
+		menu_add_child('person','person/list/players',"list players", array('link' => url('person/list','class=player')));
+		menu_add_child('person','person/list/visitors',"list visitors", array('link' => url('person/list','class=visitor')));
 	}
 	
 	if($session->is_admin()) {
@@ -1488,13 +1488,13 @@ class PersonList extends Handler
 			case 'visitor':
 				$user_class = " AND class = 'visitor'";
 				$query_append = '&class=visitor';
-				$this->setLocation(array("List Visitors" => 'person/list?class=visitor'));
+				$this->setLocation(array("List Visitors" => url('person/list','class=visitor')));
 				break;
 			case 'player':
 			default:
 				$user_class = " AND (class = 'player' OR class= 'administrator' OR class='volunteer')";
 				$query_append = '&class=player';
-				$this->setLocation(array("List Players" => 'person/list?class=player'));
+				$this->setLocation(array("List Players" => url('person/list','class=player')));
 				break;
 			
 		}
