@@ -19,21 +19,20 @@
     <td class='row_data'>{$username|escape}</td>
   </tr>
 
-  {if $email}
   <tr>
     <td class='row_title'>Email Address:</td> 
     <td class='row_data'><a href="mailto:{$email|escape}">{$email|escape}</a></td>
   </tr>
-  {/if}
 
-  {if $phone}
   <tr>
-    <td class='row_title'>Phone Number:</td> 
-    <td class='row_data'>{$phone|escape}</td>
+    <td class='row_title' valign="top">Phone Numbers:</td> 
+    <td class='row_data'>
+      {if $home_phone}{$home_phone|escape} (home)<br />{/if}
+      {if $work_phone}{$work_phone|escape} (work)<br />{/if}
+      {if $mobile_phone}{$mobile_phone|escape} (mobile)<br />{/if}
+    </td>
   </tr>
-  {/if}
 
-  {if $address}  
   <tr>
     <td class='row_title' valign='top'>Address:</td> 
     <td class='row_data'>
@@ -42,23 +41,17 @@
       {$addr_postalcode|escape}
     </td>
   </tr>
-  {/if}
 
-  {if $birthdate}
   <tr>
     <td class='row_title'>Birthdate:</td> 
     <td class='row_data'>{$birthdate|escape}</td>
   </tr>
-  {/if}
 
-  {if $gender}
   <tr>
     <td class='row_title'>Gender:</td> 
     <td class='row_data'>{$gender|escape}</td>
   </tr>
-  {/if}
 
-  {if $skill}
   <tr>
     <td class='row_title'>Skill Level:</td> 
     <td class='row_data'>{$skill_level|escape}</td>
@@ -67,8 +60,7 @@
     <td class='row_title'>Year Started:</td> 
     <td class='row_data'>{$year_started|escape}</td>
   </tr>
-  {/if}
-  {if $last_login}
+  
   <tr>
     <td class='row_title'>Last Login:</td> 
     <td class='row_data'>{$last_login|escape}</td>
@@ -77,10 +69,9 @@
     <td class='row_title'>Last Login From:</td> 
     <td class='row_data'>{$client_ip|escape}</td>
   </tr>
-  {/if}
 
   <tr>
-    <td class='row_title'>Teams:</td> 
+    <td class='row_title' valign="top">Teams:</td> 
     <td class='row_data'>
       <table border='0'><tdata>
         {foreach name=teamlist from=$teams item=team}
