@@ -1,0 +1,61 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Standings for {$league_name}{if $league_tier} Tier {$league_tier}{/if}</h1>
+
+<table border="1" cellpadding="3" cellspacing="0"><tdata>
+  <tr>
+	  <td class='standings_title' valign='middle' rowspan=2>Team Name</td>
+    {if $want_round}
+      <td class='standings_title' valign='bottom' colspan=7>Current Round ({$current_round})</td>
+    {/if}
+    <td class='standings_title' valign='bottom' colspan=7>Season To Date</td>
+	  <td class='standings_title' valign='middle' rowspan=2>Avg. SOTG</td>
+  </tr>
+  <tr>
+  {if $want_round}
+  	<td class='standings_subtitle' valign='bottom' >Win</td>
+  	<td class='standings_subtitle' valign='bottom' >Loss</td>
+  	<td class='standings_subtitle' valign='bottom' >Tie</td>
+  	<td class='standings_subtitle' valign='bottom' >Dfl</td>
+  	<td class='standings_subtitle' valign='bottom' >PF</td>
+  	<td class='standings_subtitle' valign='bottom' >PA</td>
+  	<td class='standings_subtitle' valign='bottom' >+/-</td>
+  {/if}
+    <td class='standings_subtitle' valign='bottom' >Win</td>
+    <td class='standings_subtitle' valign='bottom' >Loss</td>
+    <td class='standings_subtitle' valign='bottom' >Tie</td>
+    <td class='standings_subtitle' valign='bottom' >Dfl</td>
+    <td class='standings_subtitle' valign='bottom' >PF</td>
+    <td class='standings_subtitle' valign='bottom' >PA</td>
+    <td class='standings_subtitle' valign='bottom' >+/-</td>
+  </tr>
+  {foreach name=standings from=$standings item=team}
+  <tr>
+    <td class='standings_item'>
+    {if $perm_view_team}
+      <a href="{$app_cgi_location}?op=team_view;id={$team.id}">{$team.name}</a>
+    {else}
+      {$team.name}
+    {/if}
+	  </td>
+    {if $want_round}
+    <td class='standings_item'>{$team.round_win}</td>
+    <td class='standings_item'>{$team.round_loss}</td>
+    <td class='standings_item'>{$team.round_tie}</td>
+    <td class='standings_item'>{$team.round_defaults_against}</td>
+    <td class='standings_item'>{$team.round_points_for}</td>
+    <td class='standings_item'>{$team.round_points_against}</td>
+    <td class='standings_item'>{$team.round_plusminus}</td>
+    {/if}
+    <td class='standings_item'>{$team.win}</td>
+    <td class='standings_item'>{$team.loss}</td>
+    <td class='standings_item'>{$team.tie}</td>
+    <td class='standings_item'>{$team.defaults_against}</td>
+    <td class='standings_item'>{$team.points_for}</td>
+    <td class='standings_item'>{$team.points_against}</td>
+    <td class='standings_item'>{$team.plusminus}</td>
+    <td class='standings_item'>{$team.sotg}</td>
+  </tr>
+  {/foreach}
+  </tdata></table>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

@@ -74,9 +74,7 @@ class PersonView extends Handler
 
 		/* Administrator can view all */
 		if($session->attr_get('class') == 'administrator') {
-			while(list($key,) = each($this->_permissions)) {
-				$this->_permissions[$key] = true;
-			}
+			$this->enable_all_perms();
 			return true;
 		}
 

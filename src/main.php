@@ -188,9 +188,13 @@ function var_from_getorpost($name)
 	/* Don't want to use $_REQUEST, since that can contain cookie info */
 	global $_SERVER, $_GET, $_POST;
 	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		return $_GET[$name];
+		if(isset($_GET[$name])) {
+			return $_GET[$name];
+		}
 	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		return $_POST[$name];
+		if(isset($_POST[$name])) {
+			return $_POST[$name];
+		}
 	} 
 	return null;
 }

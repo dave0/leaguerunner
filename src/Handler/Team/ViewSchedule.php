@@ -50,10 +50,7 @@ class TeamScheduleView extends Handler
 
 		/* Administrator can do anything */
 		if($session->attr_get('class') == 'administrator') {
-			while(list($key,) = each($this->_permissions)) {
-				$this->_permissions[$key] = true;
-			}
-			reset($this->_permissions);
+			$this->enable_all_perms();
 			return true;
 		}
 

@@ -50,9 +50,7 @@ class Menu extends Handler
 
 		/* Administrator can do all */
 		if($session->attr_get('class') == 'administrator') {
-			while(list($key,) = each($this->_permissions)) {
-				$this->_permissions[$key] = true;
-			}
+			$this->enable_all_perms();
 		}
 		reset($this->_permissions);
 		
@@ -116,7 +114,6 @@ class Menu extends Handler
 		/* ... and set permissions flags */
 		while(list($key,$val) = each($this->_permissions)) {
 			if($val) {
-				error_log("Set perm for $key to true");
 				$this->tmpl->assign("perm_$key", true);
 			}
 		}

@@ -237,6 +237,17 @@ class Handler
 		
 		return false;
 	}
+
+	/**
+	 * Helper fn to turn on all permissions
+	 */
+	function enable_all_perms()
+	{
+		while(list($key,) = each($this->_permissions)) {
+			$this->_permissions[$key] = true;
+		}
+		reset($this->_permissions);
+	}
 }
 
 ?>

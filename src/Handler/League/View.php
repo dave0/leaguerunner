@@ -49,9 +49,13 @@ class LeagueView extends Handler
 			$this->error_text = gettext("You must provide a league ID");
 			return false;
 		}
+		
+		if($session->attr_get('class') == 'administrator') {
+			$this->enable_all_perms();
+			return true;
+		}
 
 		/* TODO: set administer_league perm if:
-		 * 	- sysadmin
 		 * 	- coordinator or co-coord
 		 */
 
