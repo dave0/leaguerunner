@@ -2,7 +2,7 @@
 
 <h1>{$team_name}</h1>
 <p>
-  [ <a href="{$app_cgi_location}?op=team_schedule_view&id={$team_id}">schedule and scores</a>
+  <a href="{$app_cgi_location}?op=team_schedule_view&id={$team_id}">schedule and scores</a>
   {if $team_status == 'open'}
   | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$user_id}&status=player_request&step=confirm">join team</a>
   {/if}
@@ -11,7 +11,6 @@
   | <a href="{$app_cgi_location}?op=team_addplayer&id={$team_id}">add player</a>
   {/if}
   | <a href="{$app_cgi_location}?op=league_standings&id={$league_id}">view standings</a>
-  ]
 </p>
 
 <table border="0" width="100%">
@@ -57,12 +56,11 @@
           <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.gender}</td>
           <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.skill_level}</td>
           <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">
-            [ <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
+           <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
             {if $perm_edit_team or $player.allow_status_change}
       | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player.id}">change status</a>
       | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player.id}&status=none&step=confirm">remove</a>
             {/if}
-      ]
           </td>
         </tr>
         {/foreach}
