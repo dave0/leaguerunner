@@ -3,6 +3,7 @@ class Game extends LeaguerunnerObject
 {
 
 	var $_score_entries;
+	var $_spirit_entries;
 
 	/**
 	 * Load a single game object from the database using the supplied query
@@ -50,6 +51,37 @@ class Game extends LeaguerunnerObject
 		$fields      = array();
 		$fields_data = array();
 
+		// First, perform some evil.  Depending on game status, we may wish to
+		// override some values. But, we only want to do this when we're
+		// changing the status.
+		if( array_key_exists('status', $this->_modified_fields) ) {
+			switch( $this->status ) {
+				case 'home_default':
+					$this->set('home_score', 0);
+					$this->set('away_score', 6);
+					break;
+				case 'away_default':
+					$this->set('home_score', 6);
+					$this->set('away_score', 0);
+					break;
+				case 'forfeit':
+					$this->set('home_score', 0);
+					$this->set('away_score', 0);
+					break;
+				case 'rescheduled':
+					// TODO: Should we mangle the scores for a rescheduled
+					// game?
+					break;
+				case 'cancelled':
+					$this->set('home_score', null);
+					$this->set('away_score', null);
+					break;
+				case 'normal':
+				default;
+					break;
+			};
+		}
+
 		foreach ( $this->_modified_fields as $key => $value) {
 			if( $key == 'slot_id' ) {
 				continue;
@@ -81,7 +113,7 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		/* Now deal with slot_id */
+		// Now deal with slot_id
 		if( array_key_exists('slot_id', $this->_modified_fields) ) {
 			db_query("UPDATE gameslot SET game_id = %d WHERE slot_id = %d", $this->game_id, $this->slot_id);
 			if(1 != db_affected_rows()) {
@@ -89,9 +121,11 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		/* TODO: And, remove any old score_entry for this game if we've 
-		   entered a final score
-         */
+		// And, remove any old score_entry for this game if we've entered a
+		// final score
+		if( defined($this->home_score) || $defined($this->away_score) ) {
+			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
+		}
 		
 		unset($this->_modified_fields);
 		return true;
@@ -191,7 +225,6 @@ class Game extends LeaguerunnerObject
 	/**
 	 * Load any entered scores for this game.  Returns false if none
 	 * could be loaded, true if one or more loaded.
-	 * TODO: spirit
 	 */
 	function load_score_entries ( )
 	{
@@ -212,7 +245,10 @@ class Game extends LeaguerunnerObject
 			$this->_score_entries[ $entry->team_id ] = $entry;
 		}
 
-		// TODO: load spirit here
+		$result = db_query("SELECT tid_created,qkey,akey FROM team_spirit_answers WHERE gid = %d", $this->game_id);
+		while( $row = db_fetch_array( $result ) ) {
+			$this->_spirit_entries[ $row['tid_created'] ][ $row['qkey'] ] = $row['akey'] ;
+		}
 
 		return true;
 	}
@@ -242,35 +278,118 @@ class Game extends LeaguerunnerObject
 	/**
 	 * Save a score entry for a given team
 	 * This writes directly to the database
-	 * TODO: spirit
 	 */
-	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted, $spirit )
+	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted )
 	{
 		$entry->team_id = $team_id;
 		$entry->entry_id = $this->entry_id;
 		$entry->entered_by = $user_id;
-		$entry->score_for = $score_for;
-		$entry->score_against = $score_against;
 		$entry->defaulted = $defaulted;
 
-		// TODO: Set spirit on entry object here
+		switch ($defaulted) {
+			case 'us':
+				$score_for = 0;
+				$score_against = 6;
+				break;
+			case 'them':
+				$score_against = 0;
+				$score_for = 6;
+				break;
+			case 'no':
+			default:
+				break;
+		}
+		
+		$entry->score_for = $score_for;
+		$entry->score_against = $score_against;
+
 		$this->_score_entries[$team_id] = $entry;
 
-		// TODO Save entry object in DB
-		// TODO Save spirit answers in DB
+		// Save entry object in DB.  Use 'replace into' to handle the case
+		// where one might already exist.
+		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted) VALUES(%d,%d,%d,%d,%d,'%s')",
+			$this->game_id,
+			$entry->team_id,
+			$entry->user_id,
+			$entry->score_for,
+			$entry->score_against,
+			$entry->defaulted);
+			
+	    if( 1 != db_affected_rows() ) {
+	        return false;
+	    }
 
-		/// TODO Should return true on success
-		return false;		
+		return true;		
+	}
+	
+	/** 
+	 * Retrieve spirit entry for given team 
+	 * returns value, or false otherwise
+	 */
+	function get_spirit_entry( $team_id )
+	{
+		if( ! $this->_in_database ) {
+			die( "Cannot get entered spirit for game not in database!");
+		}
+
+		if( !is_array($this->_spirit_entries) ) {
+			// No entries
+			return false;
+		}
+	
+		if( array_key_exists( $team_id, $this->_spirit_entries) ) {
+			return $this->_spirit_entries[$team_id]; 
+		}
+
+		return false;
+	}
+
+	/**
+	 * Save a spirit entry for the given team
+	 */
+	function save_spirit_entry ( $team_id, $spirit )
+	{
+		// Store in object
+		$this->_spirit_entries[$team_id] = $spirit;
+
+		$opponent_id = $this->get_opponent_id( $team_id );
+		
+		// save in DB
+		while( list($qkey, $answer) = each($spirit) ) {
+			db_query("REPLACE INTO team_spirit_answers (tid_created,tid,gid,qkey,akey) VALUES (%d,%d,%d,'%s','%s')", 
+				$team_id,
+				$opponent_id,
+				$this->game_id,
+				$qkey,
+				$answer
+			);
+	    	if( 1 != db_affected_rows() ) {
+	      		return false;
+	    	}
+		}
+		
+		return true;		
+	}
+
+	/**
+	 * Given the ID for one team in this game, return the ID of the other.
+	 */
+	function get_opponent_id ( $team_id )
+	{
+		if( $this->home_id == $team_id ) {
+			return $this->away_id;
+		} else if ( $this->away_id == $team_id ) {
+			return $this->home_id;
+		} else {
+			die("Attempt to identify opponent of a team that didn't play in this game");
+		}
 	}
 
 	/**
 	 * Compare two score entries
 	 */
-	function score_entries_agree ( $team_one_id, $team_two_id )
+	function score_entries_agree ( $one, $two )
 	{
-		$one = $this->get_score_entry($team_one_id);
-		$two = $this->get_score_entry($team_two_id);
-
 		if(
 			($one['defaulted'] == 'us' && $two['defaulted'] == 'them') 
 			||
@@ -279,7 +398,7 @@ class Game extends LeaguerunnerObject
 			return true;
 		} 
 
-		if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
+		if(($one['defaulted'] == 'no' && $two['defaulted'] == 'no') &&  ($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
 			return true;
 		} 
 

@@ -201,7 +201,7 @@ CREATE TABLE team_spirit_answers (
 	tid		int NOT NULL, -- id of team receiving this answer
 	gid		int NOT NULL, -- ID of game this entry relates to
 	qkey		varchar(255), -- Question asked
-	akey		varchar(255), -- Answer provided
+	akey		varchar(255) -- Answer provided
 );
 
 

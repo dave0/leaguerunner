@@ -48,7 +48,7 @@ class FormBuilder
 
 		// Initialise answer validity.  Since none have been given, it's
 		// unknown.
-		$this->_answer_validity = 'unknown';
+		$this->_answer_validity = 'false';
 
 		$this->_answers = array();
 
@@ -71,7 +71,7 @@ class FormBuilder
 		
 		while( list(,$q) = each($this->_questions) ) {
 			if( $want_results ) {
-				$answer = get_answer( $q->qkey );
+				$answer = $this->get_answer( $q->qkey );
 			} else {
 				$answer = null;
 			}
@@ -139,6 +139,15 @@ class FormBuilder
 		while(list($key, $value) = each($answers)) {
 			$this->set_answer( $key, $value );
 		}
+	}
+
+	/**
+	 * Delete stored answers
+	 */
+	function clear_answers()
+	{
+		$this->_answers = array();
+		$this->_answer_validity = 'unknown';
 	}
 
 	/**
@@ -251,7 +260,7 @@ function question_render_editable( $q, $editgroup, $value = '', $formtype = 'aut
 {
 	switch($q->qtype) {
 		case 'multiplechoice':
-			$output .= question_render_editable_multiplechoice( &$q, $editgroup, $answer );
+			$output .= question_render_editable_multiplechoice( &$q, $editgroup, $value );
 			break;
 		default:
 			$output .= "Error: question <i>$q->question</i> is of unsupported type<br />";

@@ -34,7 +34,7 @@ New Features:
 	  provided.
 	- fix the rankings so that three-way ties are dealt with properly.
 	  Possibly use the elo rating system as a tiebreaker instead?
-	- rather than selecting a field and a start time, coordinators should
+	- (DONE) rather than selecting a field and a start time, coordinators should
 	  be able to select a "game slot" (for lack of a better term) that
 	  knows start/end times and field location.  For example, a league
 	  might have assigned to it:
@@ -67,7 +67,7 @@ New Features:
 	  wanted to prevent people from changing their account info to
 	  something bogus.
 
-	- automatic mailing-list generation (for Mailman) from Leaguerunner.
+	- (DONE) automatic mailing-list generation (for Mailman) from Leaguerunner.
 	  We would like to have:
 	     ${season}-captains@lists.ocua.ca
 	     	- goes to all captains and assistants of teams in that season

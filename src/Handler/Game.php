@@ -339,7 +339,6 @@ class GameCreate extends Handler
 
 class GameSubmit extends Handler
 {
-
 	var $game;
 	var $team;
 
@@ -411,7 +410,7 @@ class GameSubmit extends Handler
 			$this->error_exit("The score for your team has already been entered.");
 		}
 
-		if($game->home_id == $this->team->team_id) {
+		if($this->game->home_id == $this->team->team_id) {
 			$opponent->name = $this->game->away_name;
 			$opponent->team_id = $this->game->away_id;
 		} else {
@@ -485,14 +484,19 @@ class GameSubmit extends Handler
 			if( $dataInvalid ) {
 				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
+			
+			// Save the spirit entry if non-default
+			if( !$this->game->save_spirit_entry( $this->team->team_id, $questions->bulk_get_answers()) ) {
+				$this->error_exit("Error saving spirit entry for " . $this->team->team_id);
+			}
 		}
 
 		// Now, we know we haven't finalized the game, so we first
 		// save this team's score entry, as there isn't one already.
-		if( !$this->game->save_score_entry( $this->team->team_id, $session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'], $questions->bulk_get_answers()) ) {
+		if( !$this->game->save_score_entry( $this->team->team_id, $session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'] ) ) {
 			$this->error_exit("Error saving score entry for " . $this->team->team_id);
 		}
-
+		
 		// now, check if the opponent has an entry
 		if( ! $this->game->get_score_entry( $opponent->team_id ) ) {
 			// No, so we just mention that it's been saved and move on
@@ -501,63 +505,37 @@ class GameSubmit extends Handler
 		}
 
 		// Otherwise, both teams have an entry.  So, compare them:
-		if( $this->game->score_entries_agree( $this->team->team_id, $opponent->team_id) ) {
-			// They agree, so we need to:
-			//   - set home/away score in game object
-			//   - set default appropriately
-			//   - if a default exists, set appropriate spirit for both teams
-			//   TODO TODO TODO 
+		$home_entry = $this->game->get_score_entry( $this->game->home_id );
+		$away_entry = $this->game->get_score_entry( $this->game->away_id );
+		if( $this->game->score_entries_agree( $home_entry, $away_entry ) ) {
+			switch( $home_entry->defaulted ) {
+				case 'us':
+					$this->game->set('status', 'home_default');
+					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('winner'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('loser'));
+					break;
+				case 'them':
+					$this->game->set('status', 'away_default');
+					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('loser'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('winner'));
+					break;
+				case 'no':
+				default:
+					// No default.  Just finalize score.
+					$this->game->set('home_score', $home_entry->score_for);
+					$this->game->set('away_score', $home_entry->score_against);
+					$this->game->set('approved_by', -1);
+			}
+
+			if ( ! $this->game->save() ) {
+				$this->error_exit("Could not successfully save game results");
+			}
+			
+			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 		} else {
 			// Or, we have a disagreement.  Since we've already saved the
 			// score, just say so, and continue.
 			$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
-			return para($resultMessage);
-		}
-
-die("TODO: unfinished.  Bug dmo")
-		if( ! $this->game->load_score_entries() ) {
-		} else {
-			// See if we agree with opponent score 
-			if( defaults_agree($edit, $opponent_entry) ) {
-				// Both teams agree that a default has occurred. 
-				if(
-					($teamID == $game->home_id)
-					&& ($edit['defaulted'] == 'us')
-				) {
-					$rc = game_save_score_final( $game, array('defaulted' => 'home') );
-				} else {
-					$rc = game_save_score_final( $game, array('defaulted' => 'away') );
-				}
-
-				if( !$rc ) {
-					return false;
-				}
-				
-				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
-				
-			} else if( scores_agree($edit, $opponent_entry) ) {
-				/* Agree. Make it official */
-				if($teamID == $game->home_id) {
-					$rc = game_save_score_final( $game, array( 
-						'defaulted' => 'no', 
-						'home_score' => $edit['score_for'], 
-						'away_score' => $edit['score_against'],
-						'home_spirit' => $opponent_entry['spirit'],
-						'away_spirit' => $edit['spirit']));
-				} else {
-					$rc = game_save_score_final( $game, array( 
-						'defaulted' => 'no', 
-						'home_score' => $edit['score_against'], 
-						'away_score' => $edit['score_for'],
-						'home_spirit' => $edit['spirit'],
-						'away_spirit' => $opponent_entry['spirit']));
-				}
-				if( !$rc ) {
-					return false;
-				}
-
-				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
-			}
 		}
 		
 		return para($resultMessage);
@@ -627,7 +605,10 @@ die("TODO: unfinished.  Bug dmo")
 	function generateForm ( $opponent )
 	{
 
-		$output = para( "Submit the score for the $game->game_date, $game->game_start game between " . $this->team->name . " and $opponent->name.");
+		$output = para( "For the game of " . $this->game->sprintf('short') . " you have entered:");
+		$output = para( "Submit the score for the " 
+			. $this->game->sprintf('short')
+			. " between " . $this->team->name . " and $opponent->name.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  If the score you enter does not agree with this score, posting of the score will be delayed until your coordinator can confirm the correct score.");
 
 		$output .= form_hidden('edit[step]', 'spirit');
@@ -720,6 +701,15 @@ ENDSCRIPT;
 		$output .= '<div class="pairtable">' 
 			. table(null, $rows) 
 			. "</div>";
+			
+		// now, check if the opponent has an entry
+		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
+		if( $opponent_entry ) {
+			if( ! $this->game->score_entries_agree( $edit, $opponent_entry ) ) {
+				$output .= para("<b>Note:</b> this score does NOT agree with the one provided by your opponent, so coordinator approval will be required if you submit it");
+			}
+		}
+
 
 		if( $edit['defaulted']== 'them' || ($edit['score_for'] > $edit['score_against']) ) {
 			$what = 'win for your team';
@@ -732,10 +722,42 @@ ENDSCRIPT;
 
 		return $output;
 	}
+
+	/** 
+	 * Return spirit to be given to a tean involved in a default
+	 */
+	function default_spirit ( $type )
+	{
+		switch( $type ) {
+			case 'winner':
+				return array(
+					'Timeliness' => 'OnTime',
+					'RulesKnowlege' => 'AcceptableRules',
+					'Sportsmanship' => 'AcceptableSportsmanship',
+					'Enjoyment' => 'MostEnjoyed',
+					'GameOverall' => 'OverallAverage'
+				);
+				break;
+			case 'loser':
+				return array(
+					'Timeliness' => 'MoreThanFive',
+					'RulesKnowlege' => 'AcceptableRules',
+					'Sportsmanship' => 'AcceptableSportsmanship',
+					'Enjoyment' => 'FewEnjoyed',
+					'GameOverall' => 'OverallAverage'
+					
+				);
+				break;
+			default:
+				die("Invalid type $type given to default_spirit()");
+		}
+	}
 }
 
 class GameEdit extends Handler
 {
+	var $game;
+	
 	function initialize ()
 	{
 		$this->title = "Game";
@@ -752,10 +774,10 @@ class GameEdit extends Handler
 	function process ()
 	{
 		global $session;
-		$id = arg(2);
-
-		$game = game_load( array('game_id' => $id) );
-		if(!$game) {
+		$gameID = arg(2);
+		
+		$this->game = game_load( array('game_id' => $gameID) );
+		if(!$this->game) {
 			$this->error_exit("That game does not exist");
 		}
 
@@ -772,26 +794,31 @@ class GameEdit extends Handler
 		}
 		
 		$this->setLocation(array(
-			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
+			"$this->title &raquo; Game " . $this->game->game_id => 0));
 
 		$edit = $_POST['edit'];
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $game, &$edit );
+				$rc = $this->generateConfirm( &$edit );
 				break;
 			case 'perform':
-				$this->perform( $game, &$edit );
-				local_redirect(url("game/view/$game->game_id"));
+				$this->perform( &$edit );
+				local_redirect(url("game/view/" . $this->game->game_id));
 				break;
 			default:
-				$rc = $this->generateForm( $game );
+				$rc = $this->generateForm( );
 		}
 
 		return $rc;
 	}
 	
-	function generateForm ( $game ) 
+	function generateForm ( ) 
 	{
+		# Alias, to avoid typing.  Bleh.
+		$game = &$this->game;
+
+		$game->load_score_entries();
+		
 		$output = form_hidden('edit[step]', 'confirm');
 		
 		$output .= form_item("Game ID", $game->game_id);
@@ -898,12 +925,21 @@ class GameEdit extends Handler
 			$score_group .= form_item( '', "or mark $game->home_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='home' $home_default_checked onclick='defaultCheckboxChanged()'>");
 			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
 			$score_group .= form_item( "", "or mark $game->away_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='away' $away_default_checked onclick='defaultCheckboxChanged()'>");
+
+			$formbuilder = formbuilder_load('team_spirit');
+			$ary = $game->get_spirit_entry( $game->away_id );
+			if( $ary ) {
+				$formbuilder->bulk_set_answers( $ary );
+			}
+			$home_spirit_group = $formbuilder->render_editable( $ary );
+		
+			$formbuilder->clear_answers();
+			$ary = $game->get_spirit_entry( $game->home_id );
+			if( $ary ) {
+				$formbuilder->bulk_set_answers( $ary );
+			}
+			$away_spirit_group = $formbuilder->render_editable( $ary );
 			
-			/* Spirit editing.  TODO: new spirit code goes here */
-			$spirit_group .= form_select("Spirit assigned to home ($game->home_name)", "edit[home_spirit]", $game->home_spirit, getOptionsFromRange(1,10));
-			$spirit_group .= form_select("Spirit assigned to away ($game->away_name)", "edit[away_spirit]", $game->away_spirit, getOptionsFromRange(1,10));
-
-
 			$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
   function defaultCheckboxChanged() {
@@ -912,22 +948,16 @@ class GameEdit extends Handler
         document.forms[0].elements['edit[home_score]'].disabled = true;
         document.forms[0].elements['edit[away_score]'].value = '6';
         document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[home_spirit]'].disabled = true;
-        document.forms[0].elements['edit[away_spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][1].disabled = true;
     } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
         document.forms[0].elements['edit[home_score]'].value = '6';
         document.forms[0].elements['edit[home_score]'].disabled = true;
         document.forms[0].elements['edit[away_score]'].value = '0';
         document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[home_spirit]'].disabled = true;
-        document.forms[0].elements['edit[away_spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][0].disabled = true;
     } else {
         document.forms[0].elements['edit[home_score]'].disabled = false;
         document.forms[0].elements['edit[away_score]'].disabled = false;
-        document.forms[0].elements['edit[home_spirit]'].disabled = false;
-        document.forms[0].elements['edit[away_spirit]'].disabled = false;
         document.forms[0].elements['edit[defaulted]'][0].disabled = false;
         document.forms[0].elements['edit[defaulted]'][1].disabled = false;
     }
@@ -939,7 +969,10 @@ ENDSCRIPT;
 		}
 		
 		$output .= form_group("Scoring", $score_group);
-		$output .= form_group("Spirit", $spirit_group);
+		if ($this->_permissions['edit_game']) {
+			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
+			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
+		}
 
 		game_add_to_menu($this, $league, $game);
 	
@@ -1057,7 +1090,6 @@ function game_score_entry_display( $game )
 		$home = array(
 			'score_for' => 'not entered',
 			'score_against' => 'not entered',
-			'spirit' => 'not entered',
 			'defaulted' => 'no' 
 		);
 	}
@@ -1067,7 +1099,6 @@ function game_score_entry_display( $game )
 		$away = array(
 			'score_for' => 'not entered',
 			'score_against' => 'not entered',
-			'spirit' => 'not entered',
 			'defaulted' => 'no' 
 		);
 	}
@@ -1083,65 +1114,12 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
 	$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
-	$rows[] = array( "Opponent SOTG:", $home['spirit'], $away['spirit'],);
-	
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 
 /*
  * TODO: Things below this line probably belong in game.inc
  */
-
-function scores_agree( $one, $two )
-{
-	if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
-		return true;
-	} 
-	return false;
-}
-
-function defaults_agree( $one, $two )
-{
-	if(
-		($one['defaulted'] == 'us' && $two['defaulted'] == 'them')
-		||
-		($one['defaulted'] == 'them' && $two['defaulted'] == 'us')
-	) {
-		return true;
-	} 
-	return false;
-}
-
-/**
- * Save a score entry for one of a game's participants
- */
-function game_save_score_entry ( $gameID, $teamID, $our_entry ) 
-{
-	global $session;
-
-	if($our_entry['defaulted'] == 'us') {
-		$our_entry['score_for'] = 0;
-		$our_entry['score_against'] = 6;
-		$our_entry['spirit'] = 0;
-	} else if($our_entry['defaulted'] == 'them') {
-		$our_entry['score_for'] = 6;
-		$our_entry['score_against'] = 0;
-		$our_entry['spirit'] = 0;
-	} else {
-		$our_entry['defaulted'] = 'no';
-	} 
-		
-	db_query("INSERT INTO score_entry 
-		(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
-			VALUES(%d,%d,%d,%d,%d,%d,'%s')",
-			$gameID, $teamID, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
-
-	if( 1 != db_affected_rows() ) {
-		return false;
-	}
-	
-	return true;
-}
 
 /**
  * Save final score for a single game
