@@ -72,7 +72,8 @@ class FieldView extends Handler
 		while($slot = db_fetch_object($result)) {
 			$booking = '';
 			$actions = array(
-				l('availability', "slot/availability/$slot->slot_id")
+				l('availability', "slot/availability/$slot->slot_id"),
+				l('delete slot', "slot/delete/$slot->slot_id")
 			);
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );

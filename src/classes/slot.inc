@@ -72,7 +72,7 @@ class GameSlot extends LeaguerunnerObject
 	{
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
-				error_exit("Couldn't create user account");
+				error_exit("Couldn't create gameslot");
 			}
 		}
 		
@@ -96,7 +96,7 @@ class GameSlot extends LeaguerunnerObject
 			
 			$sql = "UPDATE gameslot SET ";
 			$sql .= join(", ", $fields);	
-			$sql .= " WHERE id = %d";
+			$sql .= " WHERE slot_id = %d";
 
 			$fields_data[] = $this->slot_id;
 
@@ -156,6 +156,25 @@ class GameSlot extends LeaguerunnerObject
 		
 		$this->slot_id = db_result(db_query("SELECT LAST_INSERT_ID() from gameslot"));
 		return true;
+	}
+
+	function delete ()
+	{
+		if ( ! $this->_in_database ) {
+			return false;
+		}
+
+		// Check that no games are scheduled
+		if ( $this->game_id ) {
+			return false;
+		}
+
+		// If we have assignments to leagues, remove them
+
+		// Then, delete gameslot from table
+
+		die("TODO DMO");
+		return false;
 	}
 }
 
