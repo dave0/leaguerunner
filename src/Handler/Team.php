@@ -1052,17 +1052,20 @@ class TeamSchedule extends Handler
 					$game_score = "$game->away_score - $game->home_score";
 				}
 			} else {
-				/* Not finalized yet */
+				/* Not finalized yet, so we will either:
+				 *   - display entered score if present
+				 *   - display score entry link if game date has passed
+				 *   - display a blank otherwise
+				 */
 				$entered = $game->get_score_entry( $id );
 				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
 					$game_score = "$entered->score_for - $entered->score_against";
-				} else if($this->_permissions['submit_score']) {
-					if ($opponent_name != "(to be determined)") {
+				} else if($this->_permissions['submit_score'] 
+				    && ($game->timestamp < time()) ) {
 						$score_type = l("submit score", "game/submitscore/$game->game_id/$id");
-					} else {
-						$score_type = "&nbsp;";
-					}
+				} else {
+					$score_type = "&nbsp;";
 				}
 			}
 			if($game->status == 'home_default' || $game->status == 'away_default') {

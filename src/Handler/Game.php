@@ -750,6 +750,11 @@ class GameSubmit extends Handler
 			$this->error_exit("That team does not exist");
 			return false;
 		}
+
+		if( $this->game->timestamp > time() ) {
+			$this->error_exit("That game has not yet occurred!");
+			return false;
+		}
 		
 		if( $teamID != $this->game->home_id && $teamID != $this->game->away_id ) {
 			$this->error_exit("That team did not play in that game!");
