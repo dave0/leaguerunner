@@ -11,6 +11,8 @@ use Getopt::Mixed;
 use IO::Pipe;
 use IO::File;
 
+sub list_sync_members($$);
+
 our($season, $opt_create, $admin_password);
 $opt_create = 0;
 
@@ -90,8 +92,15 @@ if( scalar(@mailing_lists) < 1 ) {
 my $league_sth = $DB->prepare(q{SELECT league_id,name,day,ratio,tier FROM league WHERE season = ?});
 $league_sth->execute($season);
 
+# Per-day lists
+my %day_lists;
+my @season_captains;
+
 # Go through each league
 while( my($league_id, $name, $day, $ratio, $tier) = $league_sth->fetchrow_array()) {
+
+	$day = lc($day);
+
 	# sanity check
 	if( $name !~ /^$season $day( $ratio)?$/i ) {
 		print "Warning: League [$name] has a nonstandard name\n";
@@ -140,21 +149,53 @@ while( my($league_id, $name, $day, $ratio, $tier) = $league_sth->fetchrow_array(
 	while( my($email_addr) = $sth->fetchrow_array() ) {
 		push @user_emails, $email_addr;
 	}
+
+	list_sync_members($list_name, \@user_emails);
 	
-	# dump into a tempfile
-	my $tmpfilename = './temp-address-file';
-	my $fh = new IO::File "> $tmpfilename" or die("Couldn't open tempfile: $!");
-	print $fh join("\n",@user_emails) . "\n";
-	$fh->close;
+	# remove the list from the list of mailing lists to update
+	@mailing_lists = grep { $_ ne $list_name } @mailing_lists;
+
+	# Add the members to the list for this day
+	push @{$day_lists{$day}}, @user_emails;
+	push @season_captains, @user_emails;
 	
-	# run /usr/lib/mailman/bin/sync_members on the list
-	system( $mm_sync_members, qw( --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $list_name ) == 0 or die("$mm_sync_members failed");
+}
+
+## Create per-day captain lists
+foreach my $day (keys %day_lists) {
+	my $list_name = join('-',
+		$season,
+		lc($day),
+		'captains');
+
+	print "Building $list_name\n";
+	list_sync_members($list_name, $day_lists{$day});
 	
 	# remove the list from the list of mailing lists to update
 	@mailing_lists = grep { $_ ne $list_name } @mailing_lists;
 }
 
+## Create global captain list
+list_sync_members("$season-captains", \@season_captains);
+
 # Go through each remaining list and warn that they weren't updated
 foreach my $remaining (@mailing_lists) {
 	print "Warning: list $remaining has no Leaguerunner equivalent\n";
+}
+
+sub list_sync_members($$)
+{
+	my ($listname, $new_members) = @_;
+	
+	# dump into a tempfile
+	my $tmpfilename = './temp-address-file';
+	my $fh = new IO::File "> $tmpfilename" or die("Couldn't open tempfile: $!");
+	print $fh join("\n",@$new_members) . "\n";
+	$fh->close;
+	
+	# run /usr/lib/mailman/bin/sync_members on the list
+	system( $mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listname ) == 0 or die("$mm_sync_members failed");
+
+	unlink($tmpfilename);
+	
 }
