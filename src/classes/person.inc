@@ -340,6 +340,10 @@ function person_query ( $array = array() )
 
 	foreach ($array as $key => $value) {
 		switch( $key ) {
+			case 'lastname_wildcard':
+				$value = strtr( check_query($value), array('*'=>'%') );
+				$query[] = "p.lastname LIKE '$value'";
+				break;
 			case 'password':
 				$query[] = "p.$key = '" . md5($value) . "'";
 				break;
@@ -348,7 +352,10 @@ function person_query ( $array = array() )
 				$query[] = $value;
 				break;
 			case '_order':
-				$order = ' ORDER BY ' . $value;
+				$order = " ORDER BY $value ";
+				break;
+			case '_limit':
+				$limit = " LIMIT $value ";
 				break;
 			default:
 				$query[] = "p.$key = '" . check_query($value) . "'";
@@ -364,7 +371,7 @@ function person_query ( $array = array() )
 		w.city AS ward_city 
 		FROM person p 
 		LEFT JOIN ward w ON (p.ward_id = w.ward_id)
-		WHERE " . implode(' AND ',$query) . $order);
+		WHERE " . implode(' AND ',$query) . $order . $limit);
 }
 
 function person_load( $array = array() )
