@@ -97,7 +97,7 @@ class PersonView extends Handler
 		 * Captains are always allowed to view each other for 
 		 * contact purposes.
 		 */
-		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.status = 'captain' AND a.player_id = ? AND b.status = 'captain' AND b.player_id = ?", array($id, $session->attr_get('user_id')));
+		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE (a.status = 'captain' OR a.status = 'assistant') AND a.player_id = ? AND (b.status = 'captain' OR b.status = 'assistant') AND b.player_id = ?", array($id, $session->attr_get('user_id')));
 		if($this->is_database_error($count)) {
 			return false;
 		}
