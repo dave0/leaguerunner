@@ -1089,10 +1089,11 @@ class LeagueApproveScores extends Handler
 			h.name AS home_name,
 			s.away_team,
 			a.name AS away_name
-			FROM schedule s, gameslot g, score_entry se
+			FROM schedule s, score_entry se
+			    LEFT JOIN gameslot g ON (s.game_id = g.game_id)
 			    LEFT JOIN team h ON (s.home_team = h.team_id)
 			    LEFT JOIN team a ON (s.away_team = a.team_id)
-			WHERE s.gameslot = g.id AND s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
+			WHERE s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
 
 		$header = array(
 			'Game Date',
