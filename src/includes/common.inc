@@ -11,6 +11,11 @@
 function local_redirect($url) 
 {
     $url = str_replace("&amp;", "&", $url);
+	if(preg_match("/^(http|ftp|mailto):/", $url) > 0) {
+		$url = $url;
+	} else {
+		$url = url($url);
+	}
 
     /*
      * It is advised to use "local_redirect()" instead of PHP's
@@ -182,6 +187,23 @@ function form_submit($value, $name = "op")
 }
 
 /*
+ * DB helper functions
+ */
+
+/**
+ * Check for a database error
+ */
+function isDatabaseError( &$res ) 
+{
+	if(DB::isError($res)) {
+		return $res->getMessage() . ": " . $res->getUserinfo();
+	}
+	
+	return false;
+}
+
+
+/*
  * 
  * Miscellaneous stuff. 
  * Most of this is old code that might be best removed entirely.
@@ -271,6 +293,58 @@ function var_from_getorpost($name)
 	return null;
 }
 
+/*
+ * Generate a random password
+ */
+function generate_password()
+{
+	// Note that 0 and 1 are intentionally left out to prevent confusion with
+	// the letters O and l in certain fonts.
+	$chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+	$pass = '';
+	for($i=0;$i<8;$i++) {
+		$pass .= $chars{mt_rand(0,strlen($chars)-1)};
+	}
+	return $pass;
+}
+
+function map_callback($item)
+{
+	return array("output" => $item, "value" => $item);
+}
+
+/** 
+ * Helper fn to generate an option-listable sequence of numbers
+ */
+function get_numeric_options ( $start, $finish )
+{
+	/* Yuck */
+	$foo = array();
+	for($i = $start; $i <= $finish; $i++) {
+		$foo[] = $i;
+	}
+	return array_map("map_callback", $foo);
+}
+
+/**
+ * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
+ * database.
+ */
+function get_enum_options ( $table, $col_name) 
+{
+	global $DB;
+	
+	$row = $DB->getRow("SHOW COLUMNS from $table LIKE ?",
+		array($col_name),
+		DB_FETCHMODE_ASSOC);
+		
+	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
+	$str = str_replace(")","",$str);
+	$str = str_replace("'","",$str);
+	$ary = preg_split("/,/",$str);
+	
+	return array_map("map_callback", $ary);
+}
 
 /* vim: set sw=4 ts=4 et: */
 ?>

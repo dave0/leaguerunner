@@ -33,18 +33,18 @@ class Login extends Handler
 
 		/* Now, if we can, we will create a new user session */
 		if( !(isset($username) || isset($password)) ) {
-			print theme_header($this->title);
+			print $this->get_header();
 			print $this->login_form();
-			print theme_footer();
-			return false;  // display_error
+			print $this->get_footer();
+			return true;  // TODO: remove me when Smarty gone.
 		}
 		
 		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
-			print theme_header($this->title);
+			print $this->get_header();
 			print $this->login_form("Incorrect username or password");
-			print theme_footer();
-			return false; // display_error
+			print $this->get_footer();
+			return true; // TODO: remove me when Smarty gone.
 		}
 	
 		/* 
@@ -54,20 +54,20 @@ class Login extends Handler
 
 		switch($session->attr_get('class')) {
 			case 'new':
-				print theme_header($this->title);
+				print $this->get_header();
 				print $this->login_form("Login Denied.  Account creation is awaiting approval.");
-				print theme_footer();
-				return false;
+				print $this->get_footer();
+				return true;  // TODO Remove when smarty gone.
 				break;
 			case 'locked':
-				print theme_header($this->title);
+				print $this->get_header();
 				print $this->login_form("Login Denied.  Account has been locked by administrator.");
-				print theme_footer();
-				return false;
+				print $this->get_footer();
+				return true;  // TODO Remove when smarty gone.
 				break;
 			case 'inactive':
 				/* Inactive.  Send this person to the revalidation page(s) */
-				local_redirect(url("op=person_activate"));
+				local_redirect("op=person_activate");
 				break;
 			case 'active':
 			case 'volunteer':
@@ -86,7 +86,7 @@ class Login extends Handler
 					setcookie(session_name(), session_id(), FALSE, $path);
 				}
 				
-				local_redirect(url("op=menu"));
+				local_redirect("op=menu");
 				break;
 		}
 		return true;
@@ -94,12 +94,6 @@ class Login extends Handler
 
 	function display ()
 	{	
-		// DELETEME: Remove this once Smarty is gone.
-		return true;
-	}
-
-	function display_error()
-	{
 		// DELETEME: Remove this once Smarty is gone.
 		return true;
 	}
@@ -168,7 +162,7 @@ class Logout extends Handler
 	{
 		global $session;
 		$session->expire();
-		local_redirect(url("op=login"));
+		local_redirect("op=login");
 		return true;
 	}
 

@@ -64,8 +64,7 @@ if( is_null($op) ) {
 $handler = get_page_handler($op);
 if(is_null($handler)) {
 	$handler = new Handler;
-	$handler->error_text = "Sorry, that operation does not exist";
-	$handler->display_error();
+	$handler->error_exit("No handler exists for $op");
 	return;
 }
 
@@ -81,16 +80,13 @@ if($handler->initialize()) {
 			 */
 			$handler->display();
 		} else {
-			$handler->display_error();
+			$handler->error_exit("Uncaught failure performing $op");
 		}
 	} else {
-		if( !isset($handler->error_text) ) {
-			$this->error_text = "You do not have permission to perform that operation";
-		}
-		$handler->display_error();
+		$handler->error_exit("You do not have permission to perform that operation");
 	}
 } else {
-	$handler->display_error();
+	$handler->error_exit("Failed to initialize handler for $op");
 }
 
 $DB->disconnect();

@@ -4,7 +4,7 @@
  * Look and feel for Leaguerunner 
  */
 
-function theme_header($title = "")
+function theme_header($title = "", $breadcrumbs = array())
 {
 	global $session, $APP_NAME;
 	
@@ -22,17 +22,35 @@ function theme_header($title = "")
   </head>
   <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
   <table border='0' cellpadding='3' cellspacing='0' width='760' bgcolor='white'><?php
+  	print tr(
+		td("<h1>$APP_NAME</h1>", array("class" => "toprow", "colspan" => 2))
+	);
 
-?><tr class='toprow'><td colspan='2'><h1><?php print $APP_NAME ?></h1></td></tr><tr class='toprow'><td><?php
+	print theme_navbar($breadcrumbs);
+
+}
+
+function theme_navbar($breadcrumbs = array()) 
+{
+	global $session;
+	print "<tr class='lr_navbar'>" ;
 	if($session->is_valid()) {
-		print "<b>" 
-			. $session->attr_get("firstname") 
-			. " "
-			. $session->attr_get("lastname")
-			. "</b>";
+		$crumbs = array();
+
+		foreach($breadcrumbs as $thiscrumb) {
+			if($thiscrumb['target']) {
+				$crumbs[] = l($thiscrumb['name'], $thiscrumb['target']);
+			} else {
+				$crumbs[] = $thiscrumb['name'];
+			}
+		}
+		print td( "&nbsp;" . theme_links($crumbs, "&nbsp;&raquo;&nbsp;"), array("class" => "lr_navbar"));
+		
+	} else {
+		print td("&nbsp;", array("class" => "lr_navbar"));
 	}
-	/* TODO: put breadcrumbs here */
-?></td><td align='right' valign='top'><font color='white'><?php
+
+?><td class='lr_navbar' align='right' valign='top'><?php
 	if($session->is_valid()) {
 		print l("main menu", "op=menu", array( 'class' => 'topbarlink' ));
 		print "&nbsp;|&nbsp;";
@@ -43,7 +61,7 @@ function theme_header($title = "")
 		print "&nbsp;|&nbsp;";
 	}
 	print l("help", "op=help", array( 'class' => 'topbarlink' ));
-?></font></td></tr><tr><td colspan='2' class='main'>
+?></td></tr><tr><td colspan='2' class='main'>
 
 <?php
 }

@@ -59,14 +59,12 @@ class NEWPersonView extends Handler
 		global $DB, $session, $id;
 
 		if(!$session->is_valid()) {
-			$this->error_text = "You do not have a valid session";
-			return false;
+			$this->error_exit("You do not have a valid session");
 		}
 		
 		$id = var_from_getorpost('id');
 		if(is_null($id)) {
-			$this->error_text = "You must provide a user ID";
-			return false;
+			$this->error_exit("You must provide a user ID");
 		}
 
 		/* Anyone with a valid session can see your name */
@@ -197,14 +195,14 @@ class NEWPersonView extends Handler
 		}
 		
 		if(!isset($row)) {
-			$this->error_text = "That person does not exist";
-			return false;
+			$this->error_exit("That person does not exist");
 		}
 	
 		$fullname = $row['firstname'] . " " . $row['lastname'];
-		print theme_header("View Account - $fullname");
+		$this->set_title("View Account &raquo; $fullname");
+		print $this->get_header();
 		print $this->generate_view($row);
-		print theme_footer();
+		print $this->get_footer();
 		return true;
 	}
 	
@@ -217,6 +215,24 @@ class NEWPersonView extends Handler
 	{
 		$fullname = $person['firstname'] . " " . $person['lastname'];
 		$output =  "<h1>$fullname</h1>";
+		
+		$links = array();
+		
+		if($this->_permissions['user_edit']) {
+			$links[] = l("edit account", "op=person_edit&id=" . $person['user_id'], array('title' => "Edit the currently-displayed account"));
+		}
+		
+		if($this->_permissions['user_change_password']) {
+			$links[] = l("change password", "op=person_changepassword&id=" . $person['user_id'], array('title' => "Change password for the currently-displayed account"));
+		}
+		
+		if($this->_permissions['user_delete']) {
+			$links[] = l("delete account", "op=person_delete&id=" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
+		}
+		if(count($links) > 0) {
+			$output .= simple_tag("blockquote", theme_links($links));
+		}
+		
 		$output .= "<table border='0'>";
 		$output .= simple_row("Name:", $fullname);
 
@@ -238,7 +254,7 @@ class NEWPersonView extends Handler
 		}
 		
 		foreach(array('home','work','mobile') as $type) {
-			if($this->_permissions["${type}_phone"]) {
+			if($this->_permissions["${type}_phone"] && $person["${type}_phone"]) {
 				if($person["publish_${type}_phone"] == 'Y') {
 					$publish_value = " (published)";
 				} else {
@@ -309,6 +325,7 @@ class NEWPersonView extends Handler
 		$output .= simple_row("Teams:", $team_html);
 				
 		$output .= "</table>";
+		
 		return $output;
 	}
 }
@@ -347,8 +364,7 @@ class PersonView extends Handler
 
 	function process ()
 	{	
-		$this->error_text = "This code should never be run";
-		return false;
+		$this->error_exit("This code should never be run");
 	}
 
 	function generate_view ()
@@ -363,8 +379,7 @@ class PersonView extends Handler
 		}
 		
 		if(!isset($row)) {
-			$this->error_text = "That person does not exist";
-			return false;
+			$this->error_exit("That person does not exist");
 		}
 
 		$fullname = $row['firstname'] . " " . $row['lastname'];
@@ -516,8 +531,7 @@ class PersonDelete extends PersonView
 		/* Safety check: Don't allow us to delete ourselves */
 		$id = var_from_getorpost('id');
 		if($session->attr_get('user_id') == $id) {
-			$this->error_text = "You cannot delete the currently logged in user";
-			return false;
+			$this->error_exit("You cannot delete the currently logged in user");
 		}
 		
 		switch($step) {
@@ -541,7 +555,7 @@ class PersonDelete extends PersonView
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=person_list");
+			local_redirect("op=person_list");
 		}
 		return parent::display();
 	}
@@ -565,8 +579,7 @@ class PersonDelete extends PersonView
 			return false;
 		}
 		if($res > 0) {
-			$this->error_text = "Account cannot be deleted while player is a team captain.";
-			return false;
+			$this->error_exit("Account cannot be deleted while player is a team captain.");
 		}
 		
 		/* check if user is league coordinator */
@@ -575,8 +588,7 @@ class PersonDelete extends PersonView
 			return false;
 		}
 		if($res > 0) {
-			$this->error_text = "Account cannot be deleted while player is a league coordinator.";
-			return false;
+			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
 		
 		/* remove user from team rosters  */
@@ -692,7 +704,7 @@ class PersonApproveNewAccount extends PersonView
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=person_listnew");
+			local_redirect("op=person_listnew");
 		}
 		return parent::display();
 	}
@@ -724,8 +736,7 @@ class PersonApproveNewAccount extends PersonView
 		if($DB->affectedRows() == 1) {
 			$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
 			if($this->is_database_error($member_id)) {
-				$this->error_text = "Couldn't get member ID allocation";
-				return false;
+				$this->error_exit("Couldn't get member ID allocation");
 			}
 		} else {
 			/* Possible empty, so fill it */
@@ -736,13 +747,11 @@ class PersonApproveNewAccount extends PersonView
 				. "_lock";
 			$lock = $DB->getOne("SELECT GET_LOCK('${lockname}',10)");
 			if($this->is_database_error($lock)) {
-				$this->error_text = "Couldn't get lock for member_id allocation";
-				return false;
+				$this->error_exit("Couldn't get lock for member_id allocation");
 			}
 			if($lock == 0) {
 				/* Couldn't get lock */
-				$this->error_text = "Couldn't get lock for member_id allocation";
-				return false;
+				$this->error_exit("Couldn't get lock for member_id allocation");
 			}
 			$result = $DB->query(
 				"REPLACE INTO member_id_sequence values(?,?,1)", 
@@ -794,8 +803,7 @@ EOM;
 
 		$rc = mail($person_info['email'], $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 		if($rc == false) {
-			$this->error_text = "Error sending email to " . $person_info['email'];
-			return false;
+			$this->error_exit("Error sending email to " . $person_info['email']);
 		}
 		
 		return true;
@@ -895,7 +903,7 @@ class PersonEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=person_view&id=".$this->_id);
+			local_redirect("op=person_view&id=".$this->_id);
 		}
 		return parent::display();
 	}
@@ -959,7 +967,7 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("has_dog", $row['has_dog']);
 
 		$this->tmpl->assign("class", $row['class']);
-		$this->tmpl->assign("classes", $this->get_enum_options('person','class'));
+		$this->tmpl->assign("classes", get_enum_options('person','class'));
 
 		return true;
 	}
@@ -968,9 +976,9 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$this->tmpl->assign("id", $this->_id);
@@ -1014,9 +1022,9 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 		
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$fields      = array();
@@ -1116,13 +1124,11 @@ class PersonEdit extends Handler
 		}
 
 		if(count($fields_data) != count($fields)) {
-			$this->error_text = "Internal error: Incorrect number of fields set";
-			return false;
+			$this->error_exit("Internal error: Incorrect number of fields set");
 		}
 		
 		if(count($fields) <= 0) {
-			$this->error_text = "You have no permission to edit";
-			return false;
+			$this->error_exit("You have no permission to edit");
 		}
 		
 		$sql = "UPDATE person SET ";
@@ -1141,34 +1147,30 @@ class PersonEdit extends Handler
 		return true;
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
 		global $DB;
-		$rc = true;
-		$this->error_text = "";
+		$errors = "";
 	
 		if($this->_permissions['edit_name']) {
 			$firstname = var_from_getorpost('firstname');
 			$lastname = var_from_getorpost('lastname');
 			if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
-				$rc = false;
-				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 			}
 		}
 
 		if($this->_permissions['edit_username']) {
 			$username = var_from_getorpost('username');
 			if( ! validate_name_input($username) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 		}
 
 		if($this->_permissions['edit_email']) {
 			$email = var_from_getorpost('email');
 			if ( ! validate_email_input($email) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply a valid email address";
+				$errors .= "\n<li>You must supply a valid email address";
 			}
 		}
 
@@ -1179,51 +1181,42 @@ class PersonEdit extends Handler
 			if( !validate_nonblank($home_phone) &&
 				!validate_nonblank($work_phone) &&
 				!validate_nonblank($mobile_phone) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
+				$errors .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
-				$rc = false;
-				$this->error_text .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$errors .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
-				$rc = false;
-				$this->error_text .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$errors .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
-				$rc = false;
-				$this->error_text .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 		}
 
 		if($this->_permissions['edit_address']) {
 			$addr_street = var_from_getorpost('addr_street');
 			if( !validate_nonhtml($addr_street) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply a street address.";
+				$errors .= "\n<li>You must supply a street address.";
 			}
 			$addr_city = var_from_getorpost('addr_city');
 			if( !validate_nonhtml($addr_city) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply a city.";
+				$errors .= "\n<li>You must supply a city.";
 			}
 			$addr_prov = var_from_getorpost('addr_prov');
 			if( !validate_nonhtml($addr_prov) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply a province.";
+				$errors .= "\n<li>You must supply a province.";
 			}
 			$addr_postalcode = var_from_getorpost('addr_postalcode');
 			if( !validate_postalcode($addr_postalcode) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must supply a valid Canadian postal code.";
+				$errors .= "\n<li>You must supply a valid Canadian postal code.";
 			}
 		}
 		
 		if($this->_permissions['edit_gender']) {
 			$gender = var_from_getorpost('gender');
 			if( !preg_match("/^[mf]/i",$gender ) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must select either male or female for gender.";
+				$errors .= "\n<li>You must select either male or female for gender.";
 			}
 		}
 		
@@ -1232,37 +1225,36 @@ class PersonEdit extends Handler
 			$birthmonth = var_from_getorpost('birth_Month');
 			$birthday = var_from_getorpost('birth_Day');
 			if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must provide a valid birthdate";
+				$errors .= "\n<li>You must provide a valid birthdate";
 			}
 		}
 		
 		if($this->_permissions['edit_skill']) {
 			$skill = var_from_getorpost('skill_level');
 			if( $skill < 1 || $skill > 10 ) {
-				$rc = false;
-				$this->error_text .= "\n<li>You must select a skill level between 1 and 5";
+				$errors .= "\n<li>You must select a skill level between 1 and 5";
 			}
 			
 			$year_started = var_from_getorpost('started_Year');
 			$current = localtime(time(),1);
 			$this_year = $current['tm_year'] + 1900;
 			if( $year_started > $this_year ) {
-				$this->error_text .= "\n<li>Year started must be before current year.";
-				$rc = false;
+				$errors .= "\n<li>Year started must be before current year.";
 			}
 
 			if( $year_started < 1986 ) {
-				$this->error_text .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
-				$rc = false;
+				$errors .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
 			}
 			if( $year_started < $birthyear + 8) {
-				$this->error_text .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
-				$rc = false;
+				$errors .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
 			}
 		}
-		
-		return $rc;
+	
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -1331,17 +1323,17 @@ class PersonCreate extends PersonEdit
 		$password_once = var_from_getorpost("password_once");
 		$password_twice = var_from_getorpost("password_twice");
 		if($password_once != $password_twice) {
-			$this->error_text = "First and second entries of password do not match";
-			return false;
+			$this->error_exit("First and second entries of password do not match");
 		}
 		$crypt_pass = md5($password_once);
 		
 		$res = $DB->query("INSERT into person (username,password,class) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
-		if($this->is_database_error($res)) {
-			if(strstr($this->error_text,"already exists: INSERT into person (username,password,class) VALUES")) {
-				$this->error_text = "A user with that username already exists; please go back and try again";
+		$err = isDatabaseError($res);
+		if($err != false) {
+			if(strstr($err,"already exists: INSERT into person (username,password,class) VALUES")) {
+				$err = "A user with that username already exists; please go back and try again";
 			}
-			return false;
+			$this->error_exit($err);
 		}
 		$this->_id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
@@ -1387,8 +1379,7 @@ class PersonActivate extends PersonEdit
 		global $session;
 		if(!$session->is_valid()) {
 			if ($session->attr_get('class') != 'inactive') {
-				$this->error_text = "You do not have a valid session";
-				return false;
+				$this->error_exit("You do not have a valid session");
 			} 
 		}
 
@@ -1474,7 +1465,7 @@ class PersonActivate extends PersonEdit
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=menu");
+			local_redirect("op=menu");
 		}
 		return parent::display();
 	}
@@ -1493,8 +1484,7 @@ class PersonActivate extends PersonEdit
 		
 		if('yes' != $signed) {
 			$this->set_title("Informed Consent Form For League Play");
-			$this->error_text = "Sorry, your account may only be activated by agreeing to the waiver.";
-			return false;
+			$this->error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
 		}
 
 		/* otherwise, it's yes.  Set the user to 'active' and marked the
@@ -1518,8 +1508,7 @@ class PersonActivate extends PersonEdit
 		
 		if('yes' != $signed) {
 			$this->set_title("Informed Consent Form For Dog Owners");
-			$this->error_text = "Sorry, if you wish to bring a dog to the fields, you must sign this waiver.";
-			return false;
+			$this->error_exit("Sorry, if you wish to bring a dog to the fields, you must sign this waiver.");
 		}
 
 		/* otherwise, it's yes.  Set the user to 'active' and marked the
@@ -1779,7 +1768,7 @@ class PersonChangePassword extends Handler
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		if($step == 'perform') {
-			return $this->output_redirect("op=person_view&id=$id");
+			local_redirect("op=person_view&id=$id");
 		}
 		return parent::display();
 	}
@@ -1802,8 +1791,7 @@ class PersonChangePassword extends Handler
 			return false;
 		}
 		if(!isset($row)) {
-			$this->error_text = "That user does not exist";
-			return false;
+			$this->error_exit("That user does not exist");
 		}
 		
 		$this->set_title("Changing Password for " . $row['firstname'] . " " .$row['lastname'] );
@@ -1825,8 +1813,7 @@ class PersonChangePassword extends Handler
 		$pass_two = var_from_getorpost('password_two');
 
 		if($pass_one != $pass_two) {
-			$this->error_text = "You must enter the same password twice.";
-			return false;
+			$this->error_exit("You must enter the same password twice.");
 		}
 
 		
@@ -1897,8 +1884,7 @@ class PersonForgotPassword extends Handler
 		}
 		
 		if( count($fields) < 1 || (count($fields) != count($fields_data))) {
-			$this->error_text = "You must supply at least one of username, member ID, or email address";
-			return false;
+			$this->error_exit("You must supply at least one of username, member ID, or email address");
 		}
 
 		/* Now, try and find the user */
@@ -1911,8 +1897,7 @@ class PersonForgotPassword extends Handler
 		}
 		
 		if(count($users) > 1) {
-			$this->error_text = "You did not supply enough identifying information.  Try filling in more data.";
-			return false;
+			$this->error_exit("You did not supply enough identifying information.  Try filling in more data.");
 		}
 
 		/* Now, we either have one or zero users.  Regardless, we'll present
@@ -1952,8 +1937,7 @@ EOM;
 		/* And fire off an email */
 		$rc = mail($users[0]['email'], $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 		if($rc == false) {
-			$this->error_text = "System was unable to send email to that user.  Please contact system administrator.";
-			return false;
+			$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
 		}
 		
 		return true;

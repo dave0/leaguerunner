@@ -37,8 +37,7 @@ class SystemViewFile extends Handler
 				$rc = true;
 				break;
 			default:
-				$this->error_text = "You cannot view that file";
-				$rc = false;
+				$this->error_exit("You cannot view that file");
 		}
 
 		return $rc;

@@ -217,22 +217,4 @@ function get_field_name($id)
 	return $info;
 }
 
-/*
- * Generate a random password
- */
-function generate_password()
-{
-	$chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-	$pass = '';
-	for($i=0;$i<8;$i++) {
-		$pass .= $chars{mt_rand(0,strlen($chars)-1)};
-	}
-	return $pass;
-}
-
-function map_callback($item)
-{
-	return array("output" => $item, "value" => $item);
-}
-
 ?>

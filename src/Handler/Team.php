@@ -116,19 +116,20 @@ class TeamCreate extends TeamEdit
 	{
 		global $DB, $session;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$team_name = trim(var_from_getorpost("team_name"));
 	
 		$res = $DB->query("INSERT into team (name) VALUES (?)", array($team_name));
-		if($this->is_database_error($res)) {
-			if(strstr($this->error_text,"already exists: INSERT into team (name) VALUES")) {
-				$this->error_text = "A team with that name already exists; please go back and try again";
+		$err = isDatabaseError($res);
+		if($err != false) {
+			if(strstr($err,"already exists: INSERT into team (name) VALUES")) {
+				$err = "A team with that name already exists; please go back and try again";
 			}
-			return false;
+			$this->error_exit($err);
 		}
 		
 		$id = $DB->getOne("SELECT LAST_INSERT_ID() from team");
@@ -219,7 +220,7 @@ class TeamEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=team_view&id=" . $this->_id);
+			local_redirect("op=team_view&id=" . $this->_id);
 		}
 		return parent::display();
 	}
@@ -256,11 +257,11 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-
+		
 		$this->tmpl->assign("team_name", var_from_getorpost('team_name'));
 		$this->tmpl->assign("id", $this->_id);
 		
@@ -274,9 +275,9 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$res = $DB->query("UPDATE team SET name = ?, website = ?, shirt_colour = ?, status = ? WHERE team_id = ?",
@@ -289,41 +290,43 @@ class TeamEdit extends Handler
 			)
 		);
 		
-		if($this->is_database_error($res)) {
-			if(strstr($this->error_text,"uplicate entry ")) {
-				$this->error_text = "A team with that name already exists; please go back and try again";
+		$err = isDatabaseError($res);
+		if($err != false) {
+			if(strstr($err,"uplicate entry ")) {
+				$err = "A team with that name already exists; please go back and try again";
 			}
-			return false;
+			$this->error_exit($err);
 		}
 		
 		return true;
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
-		$rc = true;
-		
+		$errors = "";
+
 		$team_name = var_from_getorpost("team_name");
 		if( !validate_nonhtml($team_name) ) {
-			$this->error_text .= "<li>You must enter a valid team name";
-			$rc = false;
+			$errors .= "<li>You must enter a valid team name";
 		}
 		
 		$shirt_colour = var_from_getorpost("shirt_colour");
 		if( !validate_nonhtml($shirt_colour) ) {
-			$this->error_text .= "<li>Shirt colour cannot be left blank";
-			$rc = false;
+			$errors .= "<li>Shirt colour cannot be left blank";
 		}
 		
 		$team_website = var_from_getorpost("team_website");
 		if(validate_nonblank($team_website)) {
 			if( ! validate_nonhtml($team_website) ) {
-				$this->error_text .= "<li>If you provide a website URL, it must be valid.";
-				$rc = false;
+				$errors .= "<li>If you provide a website URL, it must be valid.";
 			}
 		}
-
-		return $rc;
+		
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -422,20 +425,17 @@ class TeamPlayerStatus extends Handler
 		global $DB, $session, $id, $player_id, $current_status;
 
 		if(!$session->is_valid()) {
-			$this->error_text = "You do not have a valid session";
-			return false;
+			$this->error_exit("You do not have a valid session");
 		}
 		
 		$id = var_from_getorpost('id');
 		if(is_null($id)) {
-			$this->error_text = "You must provide a team ID";
-			return false;
+			$this->error_exit("You must provide a team ID");
 		}
 		
 		$player_id = var_from_getorpost('player_id');
 		if(is_null($player_id)) {
-			$this->error_text = "You must provide a player ID";
-			return false;
+			$this->error_exit("You must provide a player ID");
 		}
 	
 		$is_captain = false;
@@ -453,8 +453,7 @@ class TeamPlayerStatus extends Handler
 		if(!($is_captain  || $is_administrator)) {
 			$allowed_id = $session->attr_get('user_id');
 			if($allowed_id != $player_id) {
-				$this->error_text = "You cannot change status for that player ID";
-				return false;
+				$this->error_exit("You cannot change status for that player ID");
 			}
 		}
 		
@@ -507,8 +506,7 @@ class TeamPlayerStatus extends Handler
 					return false;
 				}
 				if($num_captains <= 1) {
-					$this->error_text = "All teams must have at least one player with captain status.";
-					return false;
+					$this->error_exit("All teams must have at least one player with captain status.");
 				}
 			}
 
@@ -586,16 +584,14 @@ class TeamPlayerStatus extends Handler
 					return false;
 				}
 				if($is_open == 'closed') {
-					$this->error_text = "Sorry, this team is not open for new players to join";
-					return false;
+					$this->error_exit("Sorry, this team is not open for new players to join");
 				}
 				$this->_permissions['set_player_request'] = true;
 			}
 			break;
 		default:
-			$this->error_text = "Internal error in player status";
 			trigger_error("Player status error");
-			return false;	
+			$this->error_exit("Internal error in player status");
 		}
 		return true;
 	}
@@ -640,7 +636,7 @@ class TeamPlayerStatus extends Handler
 		global $id;
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=team_view&id=$id");
+			local_redirect("op=team_view&id=$id");
 		}
 		return parent::display();
 	}
@@ -678,8 +674,10 @@ class TeamPlayerStatus extends Handler
 	function generate_confirm()
 	{
 		global $DB, $id, $player_id, $current_status;
-		if(! $this->validate_data()) {
-			return false;
+		
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid);
 		}
 		
 		$team = $DB->getRow("SELECT name, status FROM team where team_id = ?", 
@@ -715,8 +713,10 @@ class TeamPlayerStatus extends Handler
 	function perform ()
 	{
 		global $session, $DB, $id, $player_id, $current_status;
-		if(! $this->validate_data()) {
-			return false;
+
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid);
 		}
 
 		$status = trim(var_from_getorpost('status'));
@@ -763,11 +763,12 @@ class TeamPlayerStatus extends Handler
 		return true;	
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
 		global $id, $player_id, $session;
 
-		$err = true;
+		$hasPermission = false;
+		$errors = "";
 
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
@@ -777,36 +778,40 @@ class TeamPlayerStatus extends Handler
 		$status = trim(var_from_getorpost('status'));
 		switch($status) {
 		case 'captain':
-			$err = $this->_permissions['set_captain'];
+			$hasPermission = $this->_permissions['set_captain'];
 			break;
 		case 'assistant':
-			$err = $this->_permissions['set_assistant'];
+			$hasPermission = $this->_permissions['set_assistant'];
 			break;
 		case 'player':
-			$err = $this->_permissions['set_player'];
+			$hasPermission = $this->_permissions['set_player'];
 			break;
 		case 'substitute':
-			$err = $this->_permissions['set_substitute'];
+			$hasPermission = $this->_permissions['set_substitute'];
 			break;
 		case 'captain_request':
-			$err = $this->_permissions['set_captain_request'];
+			$hasPermission = $this->_permissions['set_captain_request'];
 			break;
 		case 'player_request':
-			$err = $this->_permissions['set_player_request'];
+			$hasPermission = $this->_permissions['set_player_request'];
 			break;
 		case 'none':
-			$err = $this->_permissions['set_none'];
+			$hasPermission = $this->_permissions['set_none'];
 			break;
 		default:
-			$err = false;
-			$this->error_text = "Invalid status for player";
+			$hasPermission = false;
+			$errors = "Invalid status for player";
 			trigger_error("invalid status");
 		}
-		if(false == $err && (strlen($this->error_text) <= 0)) {
-			$this->error_text = "You do not have permission to set that status.";
+		if( ! $hasPermission ) {
+			$errors = "You do not have permission to set that status.";
 		}
 
-		return $err;
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -815,11 +820,8 @@ class TeamPlayerStatus extends Handler
  */
 class TeamStandings extends Handler
 {
-	var $_league_id;
 	function initialize ()
 	{
-		$this->_league_id = null;
-		
 		$this->_required_perms = array(
 			'require_var:id',
 			'allow'
@@ -833,25 +835,12 @@ class TeamStandings extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$league_info = $DB->getRow("SELECT l.league_id,l.allow_schedule FROM leagueteams t, league l WHERE l.league_id = t.league_id AND t.team_id = ?", array($id),DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_info)) {
-			$this->error_text .= "<br>The team [$id] may not exist";
-			return false;
+		$league_id = $DB->getOne("SELECT league_id FROM leagueteams WHERE team_id = ?", array($id),DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league_id) || !$league_id) {
+			$this->error_exit("There is no team with that ID.");
 		}
 
-		if($league_info['allow_schedule'] == 'N') {
-			$this->error_text .= "<br>This league does not have a schedule.";
-			return false;
-		}
-
-		$this->_league_id = $league_info['league_id'];
-
-		return true;
-	}
-
-	function display()
-	{
-		return $this->output_redirect("op=league_standings&id=" . $this->_league_id);
+		local_redirect("op=league_standings&id=$league_id");
 	}
 }
 
@@ -916,7 +905,7 @@ class TeamView extends Handler
 		}
 
 		if(!isset($row)) {
-			$this->error_text = "That is not a valid team ID";
+			$this->error_exit("That is not a valid team ID");
 			return false;
 		}
 
@@ -1056,7 +1045,7 @@ class TeamScheduleView extends Handler
 		}
 
 		if(!isset($row)) {
-			$this->error_text = "The team [$id] does not exist";
+			$this->error_exit("The team [$id] does not exist");
 			return false;
 		}
 

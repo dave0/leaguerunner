@@ -83,8 +83,17 @@ TABLE {
 	padding-right: 7px;
 }
 
+.lr_navbar {
+	color: black;
+	background-color: white;
+	font-size: 11px;
+	border-top: 1px dotted black;
+	border-bottom: 1px dotted black;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
 .topbarlink:link, .topbarlink:visited {
-  color: white;
   text-decoration: none;
 }
 

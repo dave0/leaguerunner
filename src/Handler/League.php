@@ -65,18 +65,20 @@ class LeagueCreate extends LeagueEdit
 		return parent::perform();
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
-		global $session;
-		$err = true;
+		$errors = "";
 		
 		$league_name = trim(var_from_getorpost("league_name"));
 		if(0 == strlen($league_name)) {
-			$this->error_text .= "League name cannot be left blank<br>";
-			$err = false;
+			$errors .= "League name cannot be left blank<br>";
 		}
-
-		return $err;
+	
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 
 }
@@ -164,7 +166,7 @@ class LeagueEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_view&id=".$this->_id);
+			local_redirect("op=league_view&id=".$this->_id);
 		}
 		return parent::display();
 	}
@@ -237,28 +239,28 @@ class LeagueEdit extends Handler
 				$this->tmpl->assign("volunteers", $volunteers);
 		}
 
-		$days = $this->get_enum_options('league','day');
+		$days = get_enum_options('league','day');
 		if(is_bool($days)) {
 			return $days;
 		}
 		$this->tmpl->assign("days", $days);
 		
-		$ratios = $this->get_enum_options('league','ratio');
+		$ratios = get_enum_options('league','ratio');
 		if(is_bool($ratios)) {
 			return $ratios;
 		}
 		$this->tmpl->assign("ratios", $ratios);
 		
-		$seasons = $this->get_enum_options('league','season');
+		$seasons = get_enum_options('league','season');
 		if(is_bool($seasons)) {
 			return $seasons;
 		}
 		$this->tmpl->assign("seasons", $seasons);
 
 		/* TODO: 10 is a magic number.  Make it a config variable */
-		$this->tmpl->assign("tiers", $this->get_numeric_options(0,10));
+		$this->tmpl->assign("tiers", get_numeric_options(0,10));
 		/* TODO: 4 is a magic number.  Make it a config variable */
-		$this->tmpl->assign("rounds", $this->get_numeric_options(1,4));
+		$this->tmpl->assign("rounds", get_numeric_options(1,4));
 	
 		return true;
 	}
@@ -267,9 +269,9 @@ class LeagueEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$this->tmpl->assign("id", $this->_id);
@@ -308,9 +310,9 @@ class LeagueEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$fields      = array();
@@ -359,39 +361,39 @@ class LeagueEdit extends Handler
 	}
 
 	/* TODO: Properly validate other data */
-	function validate_data ()
+	function isDataInvalid ()
 	{
-		$rc = true;
+		$errors = "";
 
 		$league_name = var_from_getorpost("league_name");
 		if ( ! validate_nonhtml($league_name)) {
-			$this->error_text .= "<li>A valid league name must be entered";
-			$rc = false;
+			$errors .= "<li>A valid league name must be entered";
 		}
 
 		if($this->_permissions['edit_coordinator']) {
 				$coord_id = var_from_getorpost("coordinator_id");
 				if($coord_id <= 0) {
-					$this->error_text .= "<li>A coordinator must be selected";
-					$rc = false;
+					$errors .= "<li>A coordinator must be selected";
 				}
 		}
 		
 		$league_allow_schedule = var_from_getorpost("league_allow_schedule");
 		if( $league_allow_schedule != 'Y' && $league_allow_schedule != 'N' ) {
-			$this->error_text .= "<li>Values for allow schedule are Y and N";
-			$rc = false;
+			$errors .= "<li>Values for allow schedule are Y and N";
 		}
 
 		if($league_allow_schedule == 'Y') {
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
-				$this->error_text .= "<li>One or more days of play must be selected";
-				$rc = false;
+				$errors .= "<li>One or more days of play must be selected";
 			}
 		}
 		
-		return $rc;
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 
 }
@@ -425,8 +427,7 @@ class LeagueList extends Handler
 			$season = 'none';
 		} else {
 			if( !validate_nonhtml($season) ) {
-				$this->error_text = "That is not a valid season"; 
-				return false;
+				$this->error_exit("That is not a valid season"); 
 			}
 		}
 	
@@ -527,7 +528,7 @@ class LeagueScheduleAddWeek extends Handler
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_schedule_view&id=$id");
+			local_redirect("op=league_schedule_view&id=$id");
 		}
 		return parent::display();
 	}
@@ -536,18 +537,17 @@ class LeagueScheduleAddWeek extends Handler
 	 * Validate that date provided is 
 	 * legitimately a valid date (ie: no Jan 32 or Feb 30)
 	 */
-	function validate_data ()
+	function isDataInvalid ()
 	{
 		$year = var_from_getorpost('year');
 		$month = var_from_getorpost('month');
 		$day = var_from_getorpost('day');
 
 		if( !validate_date_input($year, $month, $day) ) {
-			$this->error_text = "That date is not valid";
-			return false;
+			return "That date is not valid";
 		}
 		
-		return true;
+		return false;
 	}
 
 	/**
@@ -635,8 +635,9 @@ class LeagueScheduleAddWeek extends Handler
 		
 		$id = var_from_getorpost('id');
 		
-		if(! $this->validate_data()) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid);
 		}
 		
 		$year = var_from_getorpost('year');
@@ -661,8 +662,9 @@ class LeagueScheduleAddWeek extends Handler
 
 		$id = var_from_getorpost('id');
 		
-		if(! $this->validate_data()) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid);
 		}
 
 		$num_teams = $DB->getOne("SELECT COUNT(*) from leagueteams where league_id = ?", array($id));
@@ -672,7 +674,7 @@ class LeagueScheduleAddWeek extends Handler
 		}
 
 		if($num_teams < 2) {
-			$this->error_text = "Cannot schedule games in a league with less than two teams";
+			$this->error_exit("Cannot schedule games in a league with less than two teams");
 			return false;
 		}
 
@@ -690,7 +692,7 @@ class LeagueScheduleAddWeek extends Handler
 		}
 
 		/* All the game_ date values have already been validated by
-		 * validate_data()
+		 * isDataInvalid()
 		 */
 		$gametime = join("-",array(var_from_getorpost("year"), var_from_getorpost("month"), var_from_getorpost("day")));
 		$gametime .= " " . $row['start_time'];
@@ -753,17 +755,16 @@ class LeagueScheduleEdit extends Handler
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_schedule_view&id=$id");
+			local_redirect("op=league_schedule_view&id=$id");
 		}
 		return parent::display();
 	}
 
-	function validate_data () 
+	function isDataInvalid () 
 	{
 		$games = var_from_post('games');
 		if(!is_array($games) ) {
-			$this->error_text = "Invalid data supplied for games";
-			return false;
+			return "Invalid data supplied for games";
 		}
 	
 		$rc = true;
@@ -777,35 +778,28 @@ class LeagueScheduleEdit extends Handler
 			}
 		
 			if( !validate_number($game['game_id']) ) {
-				$this->error_text = "Game entry missing a game ID";
-				return false;
+				return "Game entry missing a game ID";
 			}
 			if( !validate_number($game['home_id']) ) {
-				$this->error_text = "Game entry missing home team ID";
-				return false;
+				return "Game entry missing home team ID";
 			}
 			if( !validate_number($game['away_id']) ) {
-				$this->error_text = "Game entry missing away team ID";
-				return false;
+				return "Game entry missing away team ID";
 			}
 			if( !validate_number($game['field_id']) ) {
-				$this->error_text = "Game entry missing field ID";
-				return false;
+				return "Game entry missing field ID";
 			}
 
 			if( $game['home_id'] != 0 && ($game['home_id'] == $game['away_id']) ) {
-				$this->error_text = "Cannot schedule a team to play themselves.";
-				return false;
+				return "Cannot schedule a team to play themselves.";
 			}
 			
 			if( in_array( $game['away_id'], $seen_team[$game['start_time']] ) || in_array( $game['home_id'], $seen_team[$game['start_time']] )) {
-				$this->error_text = "Cannot schedule a team to play multple games in the same timeslot.";
-				return false;
+				return "Cannot schedule a team to play multple games in the same timeslot.";
 			}
 
 			if( in_array( $game['field_id'], $seen_field[$game['start_time']] )) {
-				$this->error_text = "Cannot schedule multiple games to play on the same field.";
-				return false;
+				return "Cannot schedule multiple games to play on the same field.";
 			}
 			// Don't push 0 onto the seen list, as it is 'special'
 			if($game['home_id']) {$seen_team[$game['start_time']][] = $game['home_id']; }
@@ -817,7 +811,7 @@ class LeagueScheduleEdit extends Handler
 
 		}
 		
-		return $rc;
+		return false;
 	}
 
 	function generate_confirm () 
@@ -826,8 +820,9 @@ class LeagueScheduleEdit extends Handler
 
 		$id = var_from_getorpost('id');
 		
-		if(! $this->validate_data()) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$games = var_from_post('games');
@@ -865,9 +860,9 @@ class LeagueScheduleEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-		if(! $this->validate_data()) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid);
 		}
 		
 		$games = var_from_post('games');
@@ -982,8 +977,7 @@ class LeagueScheduleView extends Handler
 		     WHERE l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_teams)) {
-			$this->error_text .= "There may be no teams in this league";
-			return false;
+			$this->error_exit("There may be no teams in this league");
 		}
 		/* Pop in a --- element */
 		array_unshift($league_teams, array('value' => 0, 'output' => '---'));
@@ -1004,8 +998,7 @@ class LeagueScheduleView extends Handler
 		    	a.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_fields)) {
-			$this->error_text .= "There may be no fields assigned to this league";
-			return false;
+			$this->error_exit("There are no fields assigned to this league");
 		}
 		/* Pop in a --- element */
 		array_unshift($league_fields, array('value' => 0, 'output' => '---'));
@@ -1065,7 +1058,7 @@ class LeagueScheduleView extends Handler
 			array($id), DB_FETCHMODE_ASSOC);
 			
 		if($this->is_database_error($sched_rows)) {
-			$this->error_text .= "The league [$id] may not exist";
+			$this->error_exit("The league [$id] does not exist");
 			return false;
 		}
 			
@@ -1165,8 +1158,7 @@ class LeagueStandings extends Handler
 			return false;
 		}
 		if($row['allow_schedule'] == 'N') {
-			$this->error_text = "This league does not have a schedule or standings.";
-			return false;
+			$this->error_exit("This league does not have a schedule or standings.");
 		}
 
 		$this->tmpl->assign("league_id", $id);
@@ -1643,12 +1635,10 @@ class LeagueMoveTeam extends Handler
 		$this->_team_id = var_from_getorpost('team_id');
 		
 		if( !validate_number($this->_id) ) {
-			$this->error_text = "You must supply a valid league ID";
-			return false;
+			$this->error_exit("You must supply a valid league ID");
 		}
 		if( !validate_number($this->_team_id) ) {
-			$this->error_text = "You must supply a valid team ID";
-			return false;
+			$this->error_exit("You must supply a valid team ID");
 		}
 		
 		switch($step) {
@@ -1678,7 +1668,7 @@ class LeagueMoveTeam extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_view&id=".$this->_id);
+			local_redirect("op=league_view&id=".$this->_id);
 		}
 		return parent::display();
 	}
@@ -1689,12 +1679,10 @@ class LeagueMoveTeam extends Handler
 
 		$target_id = var_from_getorpost('target_id');
 		if($target_id < 1) {
-			$this->error_text="That is not a valid league to move to";
-			return false;
+			$this->error_exit("That is not a valid league to move to");
 		}
 		if( ! $session->is_coordinator_of($target_id) ) {
-			$this->error_text = "Sorry, you cannot move teams to leagues you do not coordinate";
-			return false;
+			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
 		$res = $DB->query("UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?", array( $target_id, $this->_team_id, $this->_id ));
@@ -1702,7 +1690,7 @@ class LeagueMoveTeam extends Handler
 			return false;
 		}
 		if( $DB->affectedRows() != 1 ) {
-			$this->error_text = "Couldn't move team between leagues";
+			$this->error_exit("Couldn't move team between leagues");
 			return false;
 		}
 
@@ -1715,8 +1703,7 @@ class LeagueMoveTeam extends Handler
 
 		$target_id = var_from_getorpost('target_id');
 		if( ! $session->is_coordinator_of($target_id) ) {
-			$this->error_text = "Sorry, you cannot move teams to leagues you do not coordinate";
-			return false;
+			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
 		$from_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $this->_id ), DB_FETCHMODE_ASSOC);
@@ -1724,8 +1711,7 @@ class LeagueMoveTeam extends Handler
 			return false;
 		}
 		if( ! $from_league ) {
-			$this->error_text = "That is not a valid league to move from";
-			return false;
+			$this->error_exit("That is not a valid league to move from");
 		}
 
 		$to_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $target_id ), DB_FETCHMODE_ASSOC);
@@ -1733,8 +1719,7 @@ class LeagueMoveTeam extends Handler
 			return false;
 		}
 		if( ! $to_league ) {
-			$this->error_text = "That is not a valid league to move to";
-			return false;
+			$this->error_exit("That is not a valid league to move to");
 		}
 
 		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($this->_team_id));
@@ -1742,7 +1727,7 @@ class LeagueMoveTeam extends Handler
 			return false;
 		}
 		if(! $team_name ) {
-			$this->error_text = "That is not a valid team";
+			$this->error_exit("That is not a valid team");
 			return false;
 		}
 
@@ -1788,8 +1773,7 @@ class LeagueMoveTeam extends Handler
 			return false;
 		}
 		if(! $team_name ) {
-			$this->error_text = "That is not a valid team";
-			return false;
+			$this->error_exit("That is not a valid team");
 		}
 
 		$this->set_title("Moving $team_name");
@@ -1829,8 +1813,7 @@ class LeagueVerifyScores extends Handler
 		$this->_id = var_from_getorpost('id');
 		
 		if( !validate_number($this->_id) ) {
-			$this->error_text = "You must supply a valid league ID";
-			return false;
+			$this->error_exit("You must supply a valid league ID");
 		}
 
 		/* Get league info */

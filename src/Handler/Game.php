@@ -42,12 +42,10 @@ class GameSubmit extends Handler
 			return false;
 		}
 		if(is_null($row)) {
-			$this->error_text = "That game does not exist";
-			return false;
+			$this->error_exit("That game does not exist");
 		}
 		if(!is_null($row['home_score']) && !is_null($row['away_score']) ) {
-			$this->error_text = "The score for that game has already been submitted.";
-			return false;
+			$this->error_exit("The score for that game has already been submitted.");
 		}
 		
 		$team_id = var_from_getorpost('team_id');
@@ -59,8 +57,7 @@ class GameSubmit extends Handler
 			return false;
 		}
 		if(count($row) > 0) {
-			$this->error_text = "The score for your team has already been entered.";
-			return false;
+			$this->error_exit("The score for your team has already been entered.");
 		}
 
 		$this->_id = $id;
@@ -95,50 +92,50 @@ class GameSubmit extends Handler
 		return $rc;
 	}
 
-	function validate_data()
+	function isDataInvalid()
 	{
-		$rc = true;
+		$errors = "";
 		
 		$defaulted = var_from_getorpost('defaulted');
 		if( ! (is_null($defaulted) || (strlen($defaulted) == 0))) {
 			switch($defaulted) {
 				case 'us':
 				case 'them':
-					return true;  // Ignore other data in cases of default.
+					return false;  // Ignore other data in cases of default.
 				default:
-					$this->error_text .= "<br>An invalid value was specified for default.";
-					return false;
+					return "An invalid value was specified for default.";
 			}
 		}
 		
 		$score_for = var_from_getorpost('score_for');
 		if( !validate_number($score_for) ) {
-			$this->error_text .= "<br>You must enter a valid number for your score";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for your score";
 		}
 
 		$score_against = var_from_getorpost('score_against');
 		if( !validate_number($score_against) ) {
-			$this->error_text .= "<br>You must enter a valid number for your opponent's score";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for your opponent's score";
 		}
 
 		$sotg = var_from_getorpost('sotg');
 		if( !validate_number($sotg) ) {
-			$this->error_text .= "<br>You must enter a valid number for your opponent's SOTG";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for your opponent's SOTG";
 		}
 		
-		return $rc;	
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 	
 	function perform ()
 	{
 		global $DB, $session;
 
-	
-		if( !$this->validate_data() ) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$schedule_entry = $DB->getRow(
@@ -238,8 +235,9 @@ class GameSubmit extends Handler
 	{
 		global $DB;
 
-		if( !$this->validate_data() ) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$row = $DB->getRow(
@@ -408,44 +406,46 @@ class GameFinalizeScore extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_verifyscores&id=".$this->_league_id);
+			local_redirect("op=league_verifyscores&id=".$this->_league_id);
 		}
 		return parent::display();
 	}
 
-	function validate_data()
+	function isDataInvalid()
 	{
-		$rc = true;
+		$errors = "";
+		
 		$home_score = var_from_getorpost('home_score');
 		if( !validate_number($home_score) ) {
-			$this->error_text .= "<br>You must enter a valid number for the home score";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for the home score";
 		}
 		$away_score = var_from_getorpost('away_score');
 		if( !validate_number($away_score) ) {
-			$this->error_text .= "<br>You must enter a valid number for the away score";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for the away score";
 		}
 		$home_sotg = var_from_getorpost('home_sotg');
 		if( !validate_number($home_sotg) ) {
-			$this->error_text .= "<br>You must enter a valid number for the home SOTG";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for the home SOTG";
 		}
 		$away_sotg = var_from_getorpost('away_sotg');
 		if( !validate_number($away_sotg) ) {
-			$this->error_text .= "<br>You must enter a valid number for the away SOTG";
-			$rc = false;
+			$errors .= "<br>You must enter a valid number for the away SOTG";
 		}
 		
-		return $rc;	
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 	
 	function perform ()
 	{
 		global $DB, $session;
 	
-		if( !$this->validate_data() ) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$res = $DB->query("UPDATE schedule SET 
@@ -479,8 +479,9 @@ class GameFinalizeScore extends Handler
 	{
 		global $DB;
 
-		if( ! $this->validate_data() ) {
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$row = $DB->getRow(

@@ -32,14 +32,12 @@ class FieldCreate extends FieldEdit
 
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
-			$this->error_text .= "You cannot add a field to an invalid site.";
-			return false;
+			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
 		$field = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($field)) {
-			$this->error_text .= "You cannot add a field to an invalid site.";
-			return false;
+			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
 		$field['availability'] = array(
@@ -64,19 +62,17 @@ class FieldCreate extends FieldEdit
 		
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
-			$this->error_text .= "You cannot add a field to an invalid site.";
-			return false;
+			$this->error_exit("You cannot add a field to an invalid site.");
 		}
-
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$site = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($site)) {
-			$this->error_text .= "You cannot add a field to an invalid site.";
-			return false;
+			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
 
@@ -97,15 +93,14 @@ class FieldCreate extends FieldEdit
 	{
 		global $DB, $session;
 		
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
-			$this->error_text .= "You cannot add a field to an invalid site.";
-			return false;
+			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
 		$field = var_from_getorpost("field");
@@ -179,7 +174,7 @@ class FieldEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=field_view&id=". $this->_id);
+			local_redirect("op=field_view&id=". $this->_id);
 		}
 		return parent::display();
 	}
@@ -224,10 +219,10 @@ class FieldEdit extends Handler
 	function generate_confirm ()
 	{
 		global $DB;
-
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$site = $DB->getRow(
@@ -257,13 +252,12 @@ class FieldEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		$field = var_from_getorpost('field');
 
-		
+		$field = var_from_getorpost('field');
 		
 		$res = $DB->query("UPDATE field SET 
 			num = ?, 
@@ -285,17 +279,20 @@ class FieldEdit extends Handler
 		return true;
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
-		$rc = true;
+		$errors = "";
 		
 		$field = var_from_getorpost("field");
 		if( !validate_number($field['num']) ) {
-			$this->error_text .= "<li>Field number cannot be left blank";
-			$rc = false;
+			$errors .= "<li>Field number cannot be left blank";
 		}
-		
-		return $rc;
+	
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -347,7 +344,7 @@ class FieldView extends Handler
 		}
 
 		if(!isset($field)) {
-			$this->error_text = "The field [$id] does not exist";
+			$this->error_exit("The field [$id] does not exist");
 			return false;
 		}
 		
@@ -474,7 +471,7 @@ class FieldAssign extends Handler
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=field_view&id=$id");
+			local_redirect("op=field_view&id=$id");
 		}
 		return parent::display();
 	}
@@ -522,7 +519,7 @@ class FieldAssign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = "You must provide a valid league ID";
+			$this->error_exit("You must provide a valid league ID");
 			return false;
 		}
 
@@ -552,8 +549,7 @@ class FieldAssign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = "You must provide a valid league ID";
-			return false;
+			$this->error_exit("You must provide a valid league ID");
 		}
 
 		/* Looks like it was valid, so proceed */
@@ -620,7 +616,7 @@ class FieldUnassign extends Handler
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=field_view&id=$id");
+			local_redirect("op=field_view&id=$id");
 		}
 		return parent::display();
 	}
@@ -637,8 +633,7 @@ class FieldUnassign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = "You must provide a valid league ID";
-			return false;
+			$this->error_exit("You must provide a valid league ID");
 		}
 
 		$league_name = $league_info['name'];
@@ -667,8 +662,7 @@ class FieldUnassign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = "You must provide a valid league ID";
-			return false;
+			$this->error_exit("You must provide a valid league ID");
 		}
 
 		/* Looks like it was valid, so proceed */

@@ -32,20 +32,17 @@ class Handler
 	var $title;
 
 	/**
+	 * Breadcrumbs
+	 */
+	var $breadcrumbs;
+
+	/**
 	 * Instance of Smarty template file
 	 * 
 	 * @access private
 	 * @var object Smarty
 	 */
 	var $tmpl;
-
-	/**
-	 * Text for error message, if any
-	 *
-	 * @access private
-	 * @var string
-	 */
-	var $error_text;
 
 	/**
 	 * Things to check for general access permission
@@ -65,9 +62,21 @@ class Handler
 	 */
 	function Handler ()
 	{
+		global $session;
 		$this->tmpl = new Smarty;
 		$this->_required_perms = null;
 		$this->_permissions = array();
+		if($session->is_valid()) {
+			$this->breadcrumbs = array(
+				array('name' => "<b>" 
+					. $session->attr_get("firstname") 
+					. " "
+					. $session->attr_get("lastname")
+					. "</b>"),
+				array('name' => "Main Menu",
+					  'target' => "op=menu")
+			);
+		}
 	}
 
 	/**
@@ -91,8 +100,7 @@ class Handler
 		global $session, $DB;
 		
 		if(is_null($this->_required_perms)) {
-			$this->error_text = "You do not have permission to perform that operation";
-			return false;
+			$this->error_exit("You do not have permission to perform that operation");
 		}
 		
 		/* Now check particular items, in order */
@@ -101,12 +109,10 @@ class Handler
 			if($perm_type == 'allow') {
 				return true;
 			} else if($perm_type == 'deny') {
-				$this->error_text = "You do not have permission to perform that operation";
-				return false;
+				$this->error_exit("You do not have permission to perform that operation");
 			} else if($perm_type == 'require_valid_session') {
 				if(!$session->is_valid()) {
-					$this->error_text = "You do not have a valid session";
-					return false;
+					$this->error_exit("You do not have a valid session");
 				}
 			} else if($perm_type == 'admin_sufficient') {
 				if($session->is_admin()) {
@@ -127,8 +133,7 @@ class Handler
 			} else if($perm_type == 'require_coordinator') {
 				$id = var_from_getorpost('id');
 				if(!$session->is_coordinator_of($id)) {
-					$this->error_text = "You do not have permission to perform that operation";
-					return false;
+					$this->error_exit("You do not have permission to perform that operation");
 				} else {
 					$this->set_permission_flags('coordinator');
 				}
@@ -164,14 +169,12 @@ class Handler
 				$wanted_var = substr($perm_type, 12);
 				$got_var = var_from_getorpost($wanted_var);
 				if(is_null($got_var)) {
-					$this->error_text = "Value missing for $wanted_var in URL";
-					return false;
+					$this->error_exit("Value missing for $wanted_var in URL");
 				}
 			}
 		}
 
-		$this->error_text = "You do not have permission to perform that operation";
-		return false;
+		$this->error_exit("You do not have permission to perform that operation");
 	}
 
 	/**
@@ -261,37 +264,39 @@ class Handler
 		$this->tmpl->display($this->tmplfile);
 	}
 
-	/**
-	 * Output a redirect to ourself with the given bits appended
-	 */
-	function output_redirect ( $append )
+	function get_header($title = NULL)
 	{
-		Header(join("",array(
-			"Location: ",
-			$_SERVER['PHP_SELF'],
-			"?",
-			$append
-		)));
-		return true;
+		$title = $title ? $title : $this->title;
+		if($this->breadcrumbs[count($this->breadcrumbs)-1]['name'] != $title) {
+			$this->breadcrumbs[] = array('name' => $title);
+		}
+		return theme_header($title, $this->breadcrumbs);	
 	}
-	
+
+	function get_footer()
+	{
+		return theme_footer();
+	}
+
 	/**
-	 * Display the error message.
+	 * Display the error message and exit.
 	 *
-	 * Generates an error message.
-	 * Caller should fill in $this->error_text before calling.
+	 * Generates an error message page with the given error.
 	 *
 	 * @access public
 	 */
-	function display_error()
+	function error_exit($error = NULL)
 	{
+		global $DB;
 		$title = $this->title ? $this->title : "Error";
-		$error = $this->error_text ? $this->error_text : "An unknown error has occurred.";
+		$error = $error ? $error : "An unknown error has occurred.";
 
-		print theme_header($title);
+		print $this->get_header($title);
 		print "<h1 align='left'>$title</h1>";
 		print "<blockquote>$error</blockquote>";
-		print theme_footer();
+		print $this->get_footer();
+		$DB->disconnect();
+		exit;
 	}
 
 	/** 
@@ -311,17 +316,15 @@ class Handler
 
 	/**
 	 * Check for a database error
+	 * TODO: Delete from Handler.php when cleaned up
 	 */
 	function is_database_error( &$res ) 
 	{
-		global $DB;
-		if(DB::isError($res)) {
-			$this->error_text = $res->getMessage();
-			$this->error_text .= ": " . $res->getUserinfo();
-			return true;
+		$err = isDatabaseError( $res );
+		if($err == false) {
+			return false;
 		}
-		
-		return false;
+		$this->error_exit($err);
 	}
 
 	/**
@@ -335,50 +338,5 @@ class Handler
 		}
 		reset($this->_permissions);
 	}
-
-	/**
-	 * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
-	 * database.
-	 * TODO: put in include/common.inc
-	 */
-	function get_enum_options ( $table, $col_name) 
-	{
-		global $DB;
-		
-		$row = $DB->getRow("SHOW COLUMNS from $table LIKE ?",
-			array($col_name),
-			DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($row)) {
-			return false;
-		}
-
-		$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
-		$str = str_replace(")","",$str);
-		$str = str_replace("'","",$str);
-		$ary = preg_split("/,/",$str);
-		
-		return array_map("map_array_callback", $ary);
-	}
-
-	/** 
-	 * Helper fn to generate an option-listable sequence of numbers
-	 * TODO: put in include/common.inc
-	 */
-	function get_numeric_options ( $start, $finish )
-	{
-		/* Yuck */
-		$foo = array();
-		for($i = $start; $i <= $finish; $i++) {
-			$foo[] = $i;
-		}
-		return array_map("map_array_callback", $foo);
-	}
-
 }
-
-function map_array_callback($a) {
-   	return array ( 'value' => $a, 'output' => $a);
-}
-
 ?>

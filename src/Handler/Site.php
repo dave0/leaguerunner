@@ -40,9 +40,9 @@ class SiteCreate extends SiteEdit
 	{
 		global $DB, $session;
 		
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$site = var_from_getorpost("site");
@@ -71,6 +71,7 @@ class SiteEdit extends Handler
 
 	function initialize ()
 	{
+		$this->set_title("Edit Site");
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -117,7 +118,7 @@ class SiteEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=site_view&id=". $this->_id);
+			local_redirect("op=site_view&id=". $this->_id);
 		}
 		return parent::display();
 	}
@@ -152,11 +153,9 @@ class SiteEdit extends Handler
 
 	function generate_confirm ()
 	{
-		global $DB;
-
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$this->tmpl->assign("site", var_from_getorpost('site'));
@@ -169,9 +168,9 @@ class SiteEdit extends Handler
 	{
 		global $DB;
 
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
+		$dataInvalid = $this->isDataInvalid();
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$site = var_from_getorpost('site');
@@ -204,41 +203,40 @@ class SiteEdit extends Handler
 		return true;
 	}
 
-	function validate_data ()
+	function isDataInvalid ()
 	{
-		$rc = true;
+		$errors = "";
 
 		$site = var_from_getorpost('site');
 		
 		if( !validate_nonhtml($site['name'] ) ) {
-			$this->error_text .= "<li>Name cannot be left blank, and cannot contain HTML";
-			$rc = false;
+			$errors .= "<li>Name cannot be left blank, and cannot contain HTML";
 		}
 		if( !validate_nonhtml($site['code'] ) ) {
-			$this->error_text .= "<li>Code cannot be left blank and cannot contain HTML";
-			$rc = false;
+			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
 		}
 
 		if( ! validate_nonhtml($site['region']) ) {
-			$this->error_text .= "<li>Region cannot be left blank and cannot contain HTML";
-			$rc = false;
+			$errors .= "<li>Region cannot be left blank and cannot contain HTML";
 		}
 		
 		if(validate_nonblank($site['location_url'])) {
 			if( ! validate_nonhtml($site['location_url']) ) {
-				$this->error_text .= "<li>If you provide a location URL, it must be valid.";
-				$rc = false;
+				$errors .= "<li>If you provide a location URL, it must be valid.";
 			}
 		}
 		
 		if(validate_nonblank($site['layout_url'])) {
 			if( ! validate_nonhtml($site['layout_url']) ) {
-				$this->error_text .= "<li>If you provide a site layout URL, it must be valid.";
-				$rc = false;
+				$errors .= "<li>If you provide a site layout URL, it must be valid.";
 			}
 		}
 		
-		return $rc;
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -287,6 +285,7 @@ class SiteView extends Handler
 {
 	function initialize ()
 	{
+		$this->set_title("View Site");
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -322,8 +321,7 @@ class SiteView extends Handler
 		}
 
 		if(!isset($site)) {
-			$this->error_text = "The site [$id] does not exist";
-			return false;
+			$this->error_exit("The site [$id] does not exist");
 		}
 	
 		$this->set_title("View Site: " . $site['name'] . " (" . $site['code'] . ")");

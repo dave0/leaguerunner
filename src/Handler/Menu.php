@@ -164,9 +164,9 @@ class Menu extends Handler
 			}
 		}
 		
-		print theme_header("Main Menu");
+		print $this->get_header();
 		print "<table>$output</table>";
-		print theme_footer();
+		print $this->get_footer();
 		
 		return true;
 	}
