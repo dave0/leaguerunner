@@ -42,6 +42,13 @@ class Handler
 	 */
 	var $tmpl;
 
+	/**
+	 * Text for error message, if any
+	 *
+	 * @access private
+	 * @var string
+	 */
+	var $error_text;
 
 	/**
 	 * Constructor.  This is called by every handler.
@@ -100,7 +107,7 @@ class Handler
 	 */
 	function set_global_template_vars()
 	{
-		global $current_language;
+		global $current_language, $session;
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
 		$this->tmpl->assign("app_cgi_location", $GLOBALS['APP_CGI_LOCATION']);
 		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/$current_language");
@@ -108,8 +115,13 @@ class Handler
 		$this->tmpl->assign("app_template_dir", $current_language);
 		
 		$this->tmpl->assign("page_title", $this->name);
-
-		/* TODO: Get the currently logged in user name */
+	
+		if(isset($session) && $session->is_valid()) {
+			$this->tmpl->assign("page_user_name", join(" ",array(
+				$session->attr_get("firstname"),
+				$session->attr_get("lastname")
+			)));
+		}
 	}
 
 	/**
@@ -129,6 +141,14 @@ class Handler
 	{
 		$this->set_global_template_vars();
 		register_smarty_extensions($this->tmpl);
+		/*      
+		 * The following line needs to be set to 'true' for development
+		 * purposes.  It controls whether or not templates are checked for
+		 * recompilation.  If you don't set this to 'true' when doing
+		 * development, your changes to the templates will not be noticed!
+		 */
+
+		$this->tmpl->compile_check = true;
 		$this->tmpl->display($this->tmplfile);
 	}
 	
@@ -151,7 +171,7 @@ class Handler
 		$this->set_template_file("ErrorMessage.tmpl");
 		$this->name = "Error";
 		
-		if(!$this->error_text) {
+		if(is_null($this->error_text)) {
 			$this->error_text = "Unknown Error";
 		}
 		

@@ -1,7 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<p>
-  Welcome, {$user_name}.
-</p>
+
 <TABLE align="left" cellspacing="0" cellpadding="3" border="0" width="50%">
   {foreach name=list from=$menu_box_rows item=box}
     <TR class="menu_box_head" height="15">
@@ -14,5 +12,6 @@
     </TR>
   {/foreach}
 </TABLE>
+
 {include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}
