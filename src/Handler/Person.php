@@ -113,7 +113,7 @@ class PersonView extends Handler
 		/* If the current user is a team captain, and the requested user is on
 		 * their team, they are allowed to view email/phone
 		 */
-		$is_on_team = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = ? AND a.status <> 'captain_request' AND b.player_id = ? AND b.status = 'captain'",array($id, $session->attr_get('user_id')));
+		$is_on_team = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = ? AND a.status <> 'captain_request' AND b.player_id = ? AND (b.status = 'captain' OR b.status='assistant')",array($id, $session->attr_get('user_id')));
 		if($is_on_team > 0) {
 			$this->_permissions['email'] = true;
 			$this->_permissions['home_phone'] = true;
