@@ -53,160 +53,132 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 
-        function calculate_winner_loser() 
-        {
+	function calculate_winner_loser() 
+	{
 
-          if ((int)$this->home_score > (int)$this->away_score) {
-            $result['winner'] = $this->home_team;
-            $result['loser']  = $this->away_team;
-          }
-          else if ((int)$this->home_score < (int)$this->away_score) {
-            $result['winner'] = $this->away_team;
-            $result['loser']  = $this->home_team;
-          }
-          else if ($this->home_score == $this->away_score) {
+		if ((int)$this->home_score > (int)$this->away_score) {
+			$result['winner'] = $this->home_team;
+			$result['loser']  = $this->away_team;
+		} else if ((int)$this->home_score < (int)$this->away_score) {
+			$result['winner'] = $this->away_team;
+			$result['loser']  = $this->home_team;
+		} else if ($this->home_score == $this->away_score) {
+			// Is this a tie game that wasn't played?
+			if (($this->home_team + $this->away_team) % 2) {
+				$result['winner'] = $this->home_team;
+				$result['loser']  = $this->away_team;
+			} else {
+				$result['winner'] = $this->away_team;
+				$result['loser']  = $this->home_team;
+			}
+		} else {
+			error_exit("Unable to determine a win/loss/tie for this game!");
+		}
+		return $result;
+	}
 
-            // Is this a tie game that wasn't played?
-            if (($this->home_team + $this->away_team) % 2) {
+	// Given a game ID the function updates the home and away teams ranks in
+	// the standings.  The ranks are pulled from the current game (unlike
+	// updatedependantgames() Which uses ranks from tne "next" game.
+	function updateteamranks () 
+	{
 
-              $result['winner'] = $this->home_team;
-              $result['loser']  = $this->away_team;
-            }
-            else {
-              $result['winner'] = $this->away_team;
-              $result['loser']  = $this->home_team;
-            }
-          }
-          else {
-            error_exit("Unable to determine a win/loss/tie for this game!");
-          }
-          return $result;
-             
-        }
 
-        // Given a game ID the function updates the home and away teams ranks in the
-        // standings.  The ranks are pulled from the current game (unlike updatedependantgames()
-        // Which uses ranks from tne "next" game.
-        function updateteamranks () 
-        {
-        
-           
-        }
+	}
 
-        // This function must only be called after a save has
-        // been performed on this game object.
-        // Also where this function is called from must already
-        // confirm that the scores have been finalized.
+	// This function must only be called after a save has been performed on
+	// this game object.
+	// Also where this function is called from must already confirm that the
+	// scores have been finalized.
 
-		// TODO: perhaps call from $game->save() instead of requiring an
-		// explicit call in the handler?
+	// TODO: perhaps call from $game->save() instead of requiring an explicit
+	// call in the handler?
 
-        function updatedependentgames() {
+	function updatedependentgames() 
+	{
+		$league = league_load( array('league_id' => $this->league_id) );
+		if(! $league ) {
+			error_exit("That league does not exist");
+		}
 
-           // Need to make sure this is a ladder league.
-            
-           $league = league_load( array('league_id' => $this->league_id) );
-           if(! $league ) {
-              error_exit("That league does not exist");
-           }
+		// Just fail out with everthing being good if this isn't a ladder
+		// league.
+		if($league->schedule_type != "ladder") {
+			return true;
+		}
 
-           // Just fail out with everthing being good if this
-           // isn't a ladder league.
-           if($league->schedule_type != "ladder") {
-             return true;
-           }
+		//print($this->sprintf("debug"));
 
-           //print($this->sprintf("debug"));
 
-          
-           // Lets get the game objects.
-           $queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d",
-                    $this->game_id,
-                    $this->game_id);
+		// Lets get the game objects.
+		$queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d",
+			$this->game_id,
+			$this->game_id);
 
-			$num_rows = db_num_rows($queryResult);
-			if( $num_rows == 0 ) {
-				// No dependant games; that's OK, nothing more to do
-				return true;
+		$num_rows = db_num_rows($queryResult);
+		if( $num_rows == 0 ) {
+			// No dependant games; that's OK, nothing more to do
+			return true;
+		}
+		
+		// Should only ever get two games;
+		if ($num_rows != 2) {
+			error_exit("Internal error: Found $num_rows dependant games, expecting 2");
+		} 
+
+		// Figure out winner and loser.
+		$winlose = $this->calculate_winner_loser();
+		$winnerTeamId = $winlose['winner'];
+		$loserTeamId  = $winlose['loser'];
+
+		// Now we can figure out which team the
+		// dependant games are looking for. 
+		while( $row = db_fetch_array( $queryResult ) ) {
+			$gameIdToUpdate = $row['game_id']; 
+
+			if ($row['home_dependant_game'] == $this->game_id) {
+				$teamRank = $row['home_dependant_rank'];
+				if ($row['home_dependant_type'] == "winner") {
+					$teamId   = $winnerTeamId;
+				} else if ($row['home_dependant_type'] == "loser") {
+					$teamId   = $loserTeamId;
+				} else {
+					error_exit("Should never get here. Bad dependent type.");
+				}
+				
+				// Update the database.
+				db_query( "UPDATE schedule SET home_team = %d WHERE game_id = %d ",
+				    $teamId, $gameIdToUpdate);
+
+				db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
+				    $teamRank, $league->league_id, $teamId);
 			}
 
-            // Should only ever get two games;
-            if ($num_rows != 2) {
-              error_exit("Internal error: Found $num_rows dependant games, expecting 2");
-            } 
+			if ($row['away_dependant_game'] == $this->game_id) {
 
-            // Figure out winner and loser.
-            $winlose = $this->calculate_winner_loser();
-            $winnerTeamId = $winlose['winner'];
-            $loserTeamId  = $winlose['loser'];
+				$teamRank = $row['away_dependant_rank'];
 
+				if ($row['away_dependant_type'] == "winner") {
+					$teamId   = $winnerTeamId;
+				} else if ($row['away_dependant_type'] == "loser") {
+					$teamId   = $loserTeamId;
+				} else {
+					error_exit("Should never get here. Bad dependent type.");
+				}
 
-            $dbQueryPre  = "UPDATE schedule SET ";
-            $dbQueryPost = " WHERE game_id = ";
-        
-            // Now we can figure out which team the
-            // dependant games are looking for. 
-            while( $row = db_fetch_array( $queryResult ) ) {
+				// Update the database.
+				db_query( "UPDATE schedule SET away_team = %d WHERE game_id = %d ",
+				    $teamId, $gameIdToUpdate);
 
-              $gameIdToUpdate = $row['game_id']; 
-              $dbQuery = $dbQueryPre;
+				db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
+				    $teamRank, $league->league_id, $teamId);
+			}
 
-              if ($row['home_dependant_game'] == $this->game_id) {
+		}
 
-                $teamRank = $row['home_dependant_rank'];
-
-                if ($row['home_dependant_type'] == "winner") {
-                  $teamId   = $winnerTeamId;
-                }
-                else if ($row['home_dependant_type'] == "loser") {
-                  $teamId   = $loserTeamId;
-                }
-                else {
-                  error_exit("Should never get here. Bad dependent type.");
-                }
-
-                // Update the database.
-                db_query(
-                  "UPDATE schedule SET home_team = %d WHERE game_id = %d ",
-                  $teamId, $gameIdToUpdate);
-
-                db_query(
-                  "UPDATE leagueteams SET rank = %d WHERE league_id = %d " . 
-                  "AND team_id = %d",
-                  $teamRank, $league->league_id, $teamId);
-              }
-
-              if ($row['away_dependant_game'] == $this->game_id) {
-
-                $teamRank = $row['away_dependant_rank'];
-
-                if ($row['away_dependant_type'] == "winner") {
-                  $teamId   = $winnerTeamId;
-                }
-                else if ($row['away_dependant_type'] == "loser") {
-                  $teamId   = $loserTeamId;
-                }
-                else {
-                  error_exit("Should never get here. Bad dependent type.");
-                }
-
-                // Update the database.
-                db_query(
-                  "UPDATE schedule SET away_team = %d WHERE game_id = %d ",
-                  $teamId, $gameIdToUpdate);
-
-                db_query(
-                  "UPDATE leagueteams SET rank = %d WHERE league_id = %d " . 
-                  "AND team_id = %d",
-                  $teamRank, $league->league_id, $teamId);
-              }
-
-            }
-
-
-            // It's all good.
-            return true;
-        }
+		// It's all good.
+		return true;
+	}
 
 	/**
 	 * Take what is currently known about the game, and finalize it.
