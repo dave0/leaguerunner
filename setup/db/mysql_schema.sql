@@ -36,10 +36,10 @@ CREATE TABLE person (
 	allow_publish_phone	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 
 	session_cookie varchar(50),
-	class	ENUM('player','volunteer','administrator') DEFAULT 'player' NOT NULL,
+	class   enum('new','inactive','active','locked','volunteer','administrator') DEFAULT 'new' NOT NULL,
 	waiver_signed datetime,
 	last_login datetime,
-	client_ip      varchar(50),
+	client_ip      varchar(50)
 );
 
 -- to be used for player availability
