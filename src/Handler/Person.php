@@ -358,7 +358,8 @@ class PersonView extends Handler
 			$teams[] = array(
 				$rosterPositions[$team->position],
 				"on",
-				l($team->name, "team/view/$team->id")
+				l($team->name, "team/view/$team->id"),
+				"(" . l($team->league_name, "league/view/$team->league_id") . ")"
 			);
 		}
 		reset($person->teams);

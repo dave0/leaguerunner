@@ -40,11 +40,13 @@ class Person extends LeaguerunnerObject
 				r.status AS position,
 				r.team_id,
 				t.name,
-				l.league_id
+				l.league_id,
+				IF(l.tier,CONCAT_WS(' ',l.name,'Tier',l.tier),l.name) as league_name
 			FROM 
 				teamroster r 
 				INNER JOIN team t ON (r.team_id = t.team_id)
-				INNER JOIN leagueteams l ON (l.team_id = t.team_id)
+				INNER JOIN leagueteams lt ON (lt.team_id = t.team_id)
+				INNER JOIN league l ON (lt.league_id = l.league_id)
 			WHERE 
 				r.player_id = %d", $this->user_id);
 
