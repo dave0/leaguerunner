@@ -32,7 +32,7 @@ function game_dispatch()
 class GameCreate extends Handler
 {
 /*
- * This is intended to replace ScheduleViewDay.  It will (in a similar manner
+ * This is intended to replace ScheduleAddDay.  It will (in a similar manner
  * to the gameslot creation)
  *   - present user with a calendar to select a day
  *   - ask user what they want to schedule on that day:
@@ -42,20 +42,6 @@ class GameCreate extends Handler
  *   - if one game, present with form for editing game info
  *   - if round-robin, auto-generate games with random fields and insert them
  *   (no confirmation -- coordinator can fix later if necessary)
- *
- * Possible problems with autogeneration ( needs checking in code, possible
- * bailouts):
- *   - insufficient fields for game(s) wanted
- *   - how to handle gappy scheduling (ie: 3-week round-robin, played on two
- *   consecutive weeks, a week off, and then a third game)
- *   - how to handle selection of days/fields when auto-round-robin is
- *     selected for tiers that play multiple nights (think fall league).
- *     Current guess is that we:
- *       - start at the given day, schedule all games there.  Then find the
- *         next weekday we play on (from league table), and look ahead in the
- *         available fields to see if there are enough fields on the next
- *         matching day.  If so, schedule it then, otherwise look to the next
- *         weekday with matching fields and so on.
  *
  * Need to make some changes to the schedule table, too:
  *   - add support for postponed/rescheduled games.  This should be done by
@@ -100,8 +86,243 @@ class GameCreate extends Handler
  *
  *   - schedule's 'round' field needs to be varchr instead of integer, to
  *   allow for rounds named 'quarter-final', 'semi-final', and 'final', and
- *   pulldown menus updated appropriately.
+ *   pulldown menus updated appropriately. 
+ *   (DONE in db, needs code);
  */
+
+	var $types;
+
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny',
+		);
+
+		$this->title = "Add Game";
+		$this->types = array(
+			'single' => 'single regular-season game',
+			'oneday' => 'day of games for all teams in a tier',
+			'fullround' => 'full-tier round-robin (does not work yet)',
+			'halfround' => 'half-tier round-robin (does not work yet)',
+			'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
+		);
+
+		
+		return true;
+	}
+	
+	function process ()
+	{
+		$league_id = arg(2);
+		$year  = arg(3);
+		$month = arg(4);
+		$day   = arg(5);
+
+		$league = league_load( array('league_id' => $league_id) );
+		if(! $league ) {
+			$this->error_exit("That league does not exist");
+		}
+
+		if ( $day ) {
+			if ( ! validate_date_input($year, $month, $day) ) {
+				$this->error_exit("That date is not valid");
+			}
+			$datestamp = mktime(0,0,0,$month,$day,$year);
+		} else {
+			$this->setLocation(array( 
+				$league->name => "league/view/$league->league_id",
+				$this->title => 0
+			));
+			return $this->datePick($league, $year, $month, $day);
+		}
+		
+		// Make sure we have fields allocated to this league for this date
+		// before we proceed.
+		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $league->league_id, $datestamp);
+		if( db_result($result) == 0) {
+			$this->error_exit("Sorry, there are no fields available for your league on that day");
+		}
+
+		$edit = &$_POST['edit'];
+
+		switch($edit['step']) {
+			case 'perform':
+				return $this->perform( $league, $edit, $datestamp);
+				break;
+			case 'confirm':
+				$this->setLocation(array( 
+					$league->name => "league/view/$league->league_id",
+					$this->title => 0
+				));
+				return $this->generateConfirm($league, $edit, $datestamp);
+				break;
+			default:
+				$this->setLocation(array( 
+					$league->name => "league/view/$league->league_id",
+					$this->title => 0
+				));
+				return $this->generateForm($league, $datestamp);
+				break;
+		}
+		$this->error_exit("Error: This code should never be reached.");
+	}
+
+	
+	function datePick ( &$league, $year, $month, $day)
+	{
+		$output = para("Select a date below to start adding games to this league.  Days on which this league usually plays are highlighted in green.");
+
+		$today = getdate();
+	
+		if(! ctype_digit($month)) {
+			$month = $today['mon'];
+		}
+
+		if(! ctype_digit($year)) {
+			$year = $today['year'];
+		}
+
+		$output .= generateCalendar( $year, $month, $day, "game/create/$league->league_id", "game/create/$league->league_id", split(',',$league->day));
+
+		return $output;
+	}
+	
+	function generateForm ( &$league, $datestamp )
+	{
+		$output = para("Please enter some information about the game(s) to create.");
+		$output .= para("<b>Note</b>: Creating full or half-tier round-robin games does not yet work.");
+		$output .= form_hidden('edit[step]', 'confirm');
+		
+		$group = form_item("Starting on", strftime("%A %B %d %Y", $datestamp));
+
+		$group .= form_radiogroup("Create a", 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
+		$output .= form_group("Game Information", $group);
+		
+		$output .= form_submit('submit') . form_reset('reset');
+
+		return form($output);
+	}
+	
+	function generateConfirm ( &$league, &$edit, $datestamp )
+	{
+
+		if (  ! array_key_exists( $edit['type'], $this->types) ) {
+			$this->error_exit("That is not a valid selection for adding games");
+		}
+
+		// TODO HACK EVIL DMO
+		if( ($edit['type'] != 'single') && ($edit['type'] != 'oneday')) {
+			$this->error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
+		}
+	
+		$output = para("Confirm that this information is correct for the game(s) you wish to create.");
+		$output .= form_hidden('edit[step]', 'perform');
+		
+		$group = form_item("Starting on", strftime("%A %B %d %Y", $datestamp));
+		$group .= form_item("Create a", $this->types[$edit['type']] . form_hidden('edit[type]', $edit['type']));
+
+		$group .= form_radiogroup("What to add", 'edit[type]', 'single', $types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
+		$output .= form_group("Game Information", $group);
+		
+		$output .= form_submit('submit') . form_reset('reset');
+
+		return form($output);
+	}
+
+	function perform ( &$league, &$edit, $timestamp) {
+/*
+ * Possible problems with autogeneration ( needs checking in code, possible
+ * bailouts):
+ *   - insufficient fields for game(s) wanted
+ *   - how to handle gappy scheduling (ie: 3-week round-robin, played on two
+ *   consecutive weeks, a week off, and then a third game)
+ *   - how to handle selection of days/fields when auto-round-robin is
+ *     selected for tiers that play multiple nights (think fall league).
+ *     Current guess is that we:
+ *       - start at the given day, schedule all games there.  Then find the
+ *         next weekday we play on (from league table), and look ahead in the
+ *         available fields to see if there are enough fields on the next
+ *         matching day.  If so, schedule it then, otherwise look to the next
+ *         weekday with matching fields and so on.
+ *
+ */
+		switch( $edit['type'] ) {
+			case 'single':
+				// TODO: 
+				// - create a single game entry, with a single gameslot
+				// allocated to it.  
+				$this->error_exit("That is not a valid option right now.");
+				break;
+			case 'oneday':
+				return $this->createDayOfGames( $league, $edit, $timestamp);
+				break;
+			default:
+				$this->error_exit("That is not a valid option right now.");
+	
+		}
+		$this->error_exit("This line of code should never be reached");
+	}
+
+	function createDayOfGames( &$league, &$edit, $timestamp ) 
+	{
+		if ( ! $league->load_teams() ) {
+			$this->error_exit("Error loading teams for league $league->fullname");
+		}
+		
+		$num_teams = count($league->teams);
+
+		if($num_teams < 2) {
+			$this->error_exit("Cannot schedule games in a league with less than two teams");
+		}
+		
+		/*
+		 * TODO: We only schedule floor($num_teams / 2) games.  This means
+		 * that the odd team out won't show up on the schedule.  Perhaps we
+		 * should schedule ceil($num_teams / 2) and have the coordinator
+		 * explicitly set a bye?
+		 */
+		$num_games = floor($num_teams / 2);
+		
+		/* Now, randomly create our games.  Don't add any teams, or set a
+		 * round, or anything.  Then, use that game ID to randomly allocate us
+		 * a gameslot.
+		 */
+		db_query('START TRANSACTION');
+		for($i = 0; $i < $num_games; $i++) {
+			$g = new Game;
+			$g->set('league_id', $league->league_id);
+			if ( ! $g->save() ) {
+				$this->error_exit("Could not successfully create a new game");
+			}
+
+			// This is how we randomly select a field. 
+			// TODO: Need to switch to transactional tables!  Major breakage!
+			// TODO WARNING DMO: the following is untested.  Check return
+			// codes!
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d ORDER BY RAND() LIMIT 1", $timestamp, $league->league_id);
+			$slot_id = db_result($result);
+			print "Slot ID is $slot_id";
+			if( ! $slot_id ) {
+				db_query('ROLLBACK');			
+				$this->error_exit("Not enough field slots available for that league");
+			}
+
+			db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $g->game_id, $slot_id);
+			if(1 != db_affected_rows() ) {
+				db_query('ROLLBACK');			
+				$this->error_exit("Not enough field slots available for that league");
+			}
+		}
+		db_query('COMMIT');
+	
+		$this->error_exit("Not completed yet");
+		// TODO: schedule/edit should edit a week of the schedule, similar to
+		// how it's done now  (but without all the context?)
+		local_redirect(url("schedule/edit/$league->league_id/$timestamp"));
+	}
 }
 
 class GameSubmit extends Handler

@@ -51,7 +51,7 @@ class GameSlotCreate extends Handler
 		if( !validate_number($field_num) ) {
 			$this->error_exit("That field does not exist");
 		}
-
+		
 		if ( $day ) {
 			if ( ! validate_date_input($year, $month, $day) ) {
 				$this->error_exit("That date is not valid");
@@ -60,11 +60,6 @@ class GameSlotCreate extends Handler
 		} else {
 			return $this->datePick($site, $field_num, $year, $month, $day);
 		}
-
-		$this->setLocation(array( 
-			"$site->name $field_num" => "site/view/$site->site_id",
-			$this->title => 0
-		));
 
 		$edit = &$_POST['edit'];
 		switch($edit['step']) {
@@ -75,15 +70,23 @@ class GameSlotCreate extends Handler
 			#   - insert availability for gameslot into availability table.
 			# the overlap-checking probably belongs in slot.inc
 				if ( $this->perform( $site, $field_num, $edit, $datestamp) ) {
-					local_redirect(url("field/view/$site_id/$field_num"));	
+					local_redirect(url("field/view/$site->site_id/$field_num"));	
 				} else {
 					$this->error_exit("Aieee!  Bad things happened in gameslot create");
 				}
 				break;
 			case 'confirm':
+				$this->setLocation(array( 
+					"$site->name $field_num" => "site/view/$site->site_id",
+					$this->title => 0
+				));
 				return $this->generateConfirm($site, $field_num, $edit, $datestamp);
 				break;
 			default:
+				$this->setLocation(array( 
+					"$site->name $field_num" => "site/view/$site->site_id",
+					$this->title => 0
+				));
 				return $this->generateForm($site, $field_num, $datestamp);
 				break;
 		}
@@ -297,11 +300,6 @@ class GameSlotAvailability extends Handler
 			$this->error_exit("That gameslot does not exist");
 		}
 		
-		$this->setLocation(array(
-			$slot->site->name . ' ' . $slot->field_num => "field/view/$slot->site_id/$field_num",
-			$this->title => 0
-		));
-
 		$edit = &$_POST['edit'];
 
 		switch($edit['step']) {
@@ -317,12 +315,16 @@ class GameSlotAvailability extends Handler
 					}
 				}
 				if( $slot->save() ) {
-					return $this->generateForm( $slot );
 				} else {
 					$this->error_exit("Internal error: couldn't save gameslot");
 				}
+				local_redirect(url("slot/availability/$slot->slot_id"));
 				break;
 			default:
+				$this->setLocation(array(
+					$slot->site->name . ' ' . $slot->field_num => "field/view/$slot->site_id/$field_num",
+					$this->title => 0
+				));
 				return $this->generateForm( $slot );
 		}
 	}

@@ -35,5 +35,7 @@ create table league_gameslot_availability (
 );
 insert into league_gameslot_availability (league_id, slot_id) select s.league_id,g.slot_id from gameslot g, schedule s WHERE g.game_id = s.game_id;
 
--- drop table field_assignment;
--- drop table field;
+drop table field_assignment;
+drop table field;
+
+alter table schedule change round round varchar(10);

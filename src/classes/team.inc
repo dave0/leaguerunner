@@ -51,7 +51,7 @@ class Team extends LeaguerunnerObject
 	 */
 	function add_player( &$player, $status )
 	{
-		if( is_integer($player) ) {
+		if( !is_object($player) ) {
 			$object->user_id = $player;
 			$player = &$object;
 		}
@@ -65,7 +65,7 @@ class Team extends LeaguerunnerObject
 	 */
 	function set_player_status( &$player, $status )
 	{
-		if( is_integer($player) ) {
+		if( !is_object($player) ) {
 			$object->user_id = $player;
 			$player = &$object;
 		}
@@ -79,7 +79,7 @@ class Team extends LeaguerunnerObject
 	 */
 	function remove_player( &$player )
 	{
-		if( is_integer($player) ) {
+		if( !is_object($player) ) {
 			$object->user_id = $player;
 			$player = &$object;
 		}

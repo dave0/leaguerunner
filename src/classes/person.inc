@@ -192,6 +192,10 @@ class Person extends LeaguerunnerObject
 	 */
 	function delete ()
 	{
+		if( ! $this->_in_database ) {
+			return false;
+		}
+
 		if ($this->is_a_captain) {
 			$this->error_exit("Account cannot be deleted while player is a team captain.");
 		}

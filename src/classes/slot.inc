@@ -43,11 +43,11 @@ class GameSlot extends LeaguerunnerObject
 
 	function add_league ( &$thing )
 	{
-		if( is_integer($thing) ) {
+		if( !is_object($thing) ) {
 			$object->league_id = $thing;
 			$thing = &$object;
 		}
-		
+	
 		if( array_key_exists( $thing->league_id, $this->leagues) ) {
 			return false;
 		}
@@ -58,7 +58,7 @@ class GameSlot extends LeaguerunnerObject
 
 	function remove_league( &$thing )
 	{
-		if( is_integer($thing) ) {
+		if( !is_object($thing) ) {
 			$object->league_id = $thing;
 			$thing = &$object;
 		}
@@ -108,6 +108,7 @@ class GameSlot extends LeaguerunnerObject
 			unset($this->_modified_fields);
 		}
 
+		reset($this->leagues);
 		foreach ( $this->leagues as $l ) {
 			switch( $l->league_status ) {
 				case 'add':

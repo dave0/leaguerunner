@@ -37,8 +37,6 @@ class ScheduleAddDay extends Handler
 
 	function process ()
 	{
-		$today = getdate();
-
 		$id    = arg(2);
 		$year  = arg(3);
 		$month = arg(4);

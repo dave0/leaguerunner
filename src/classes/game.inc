@@ -35,7 +35,7 @@ class Game extends LeaguerunnerObject
 
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
-				error_exit("Couldn't create user account");
+				error_exit("Couldn't create new game");
 			}
 		}
 	
@@ -72,12 +72,44 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 
-	/**
-	 * TODO
-	 */
 	function create ()
 	{
-		return false;
+		if( $this->_in_database ) {
+			return false;
+		}
+
+		if( ! $this->league_id ) {
+			return false;
+		}
+		
+		db_query("INSERT into schedule (league_id) VALUES(%d)", $this->league_id);
+		if( 1 != db_affected_rows() ) {
+			return false;
+		}
+
+		$this->game_id = db_result(db_query("SELECT LAST_INSERT_ID() from schedule"));
+		
+		return true;
+	}
+	
+
+	function delete()
+	{
+		if( ! $this->_in_database ) {
+			return false;
+		}
+
+		// TODO: There may be other things that should prevent deletion
+		if( $this->home_score || $this->away_score ) {
+			$this->error_exit("Cannot delete games which have been scored");
+		}
+
+		// Don't check result; there may not be any to change
+		db_query("UPDATE gameslot SET game_id = NULL where game_id = %d", $this->game_id);
+
+		// Remove game from schedule
+		db_query("DELETE FROM schedule WHERE game_id = %d");
+		return (1 == db_affected_rows());
 	}
 }
 
