@@ -510,7 +510,7 @@ class TeamRosterStatus extends Handler
 		$playerId = arg(3);
 
 		if( !$playerId ) {
-			if( !$session->is_captain_of($teamId)) {
+			if( !($session->is_admin() || $session->is_captain_of($teamId))) {
 				$this->error_exit("You cannot add a person to that team!");
 			}
 			
@@ -522,37 +522,40 @@ class TeamRosterStatus extends Handler
 				array( 'name' => 'request player', 'target' => "team/roster/$teamId/")	
 			);
 		
-        	$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
+        	$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
 
 			return
 				para("Select the player you wish to add to the team")
 				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/roster/$teamId", $_GET['letter']);
 		}
 
+		$player = person_load( array('user_id' => $playerId) );
+		if($player->class != 'player') {
+			$this->error_exit("Only OCUA-registered players can be added to a team");
+		}
+
 		$this->loadPermittedStates($teamId, $playerId);
 		$edit = &$_POST['edit'];
 
 		if( $edit['step'] == 'perform' ) {
-				if($this->perform( $teamId, $playerId, $edit )) {
+				if($this->perform( $teamId, $player, $edit )) {
 					local_redirect(url("team/view/$teamId"));
 				} else {
 					return false;
 				}
 		} else {
-				$rc = $this->generateForm( $teamId, $playerId );
+				$rc = $this->generateForm( $teamId, $player );
 		}
 	
 		return $rc;
 	}
 
-	function generateForm ( $teamId, $playerId ) 
+	function generateForm ( $teamId, &$player ) 
 	{
 		$team = team_load( array('team_id' => $teamId) );
 
 		$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
 	
-		$player = person_load( array('user_id' => $playerId) );
-
 		$output .= form_hidden('edit[step]', 'perform');
 		
 		$output .= para("You are attempting to change player status for <b>$player->fullname</b> on team <b>$team->name</b>.");
@@ -572,7 +575,7 @@ class TeamRosterStatus extends Handler
 		return form($output);
 	}
 
-	function perform ( $teamId, $playerId, $edit )
+	function perform ( $teamId, &$player, $edit )
 	{
 		global $session;
 		
@@ -594,10 +597,10 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $teamId, $playerId);
+				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $teamId, $player->user_id);
 				break;
 			case 'none':
-				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $teamId, $playerId);
+				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $teamId, $player->user_id);
 				break;
 			default:
 				$this->error_exit("Cannot set player to that state.");
@@ -613,7 +616,7 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $teamId, $playerId, $edit['status']);
+				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $teamId, $player->user_id, $edit['status']);
 				if( 1 != db_affected_rows() ) {
 					return false;
 				}

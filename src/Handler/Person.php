@@ -64,7 +64,8 @@ function person_menu()
 	// TODO: same perms as admin_sufficient and volunteer_sufficient... these
 	// checks need to be consolidated when perms are overhauled
 	if($session->is_admin() || $session->attr_get('class') == 'volunteer') {
-		menu_add_child('person','person/list',"list players", array('link' => "person/list"));
+		menu_add_child('person','person/list/players',"list players", array('link' => "person/list?class=player"));
+		menu_add_child('person','person/list/visitors',"list visitors", array('link' => "person/list?class=visitor"));
 	}
 	
 	if($session->is_admin()) {
@@ -233,7 +234,7 @@ class PersonView extends Handler
 		
 		$rows[] = array("Name:", $person->fullname);
 	
-		if( ! $session->is_player() ) {
+		if( ! ($session->is_player() || ($session->attr_get('user_id') == $person->user_id)) ) {
 			person_add_to_menu( $this, $person );
 			return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		}
@@ -243,7 +244,11 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['member_id']) {
-			$rows[] = array("OCUA Member ID:", $person->member_id);
+			if($person->member_id) {
+				$rows[] = array("OCUA Member ID:", $person->member_id);
+			} else {
+				$rows[] = array("OCUA Member ID:", "Not an OCUA member");
+			}
 		}
 		
 		if($person->allow_publish_email == 'Y') {
@@ -632,14 +637,25 @@ class PersonApproveNewAccount extends PersonView
 		}
 
 		/* Ok, it's done.  Now send a mail to the user and tell them. */
+
+		if( $full_member_id ) {
+			$memberinfo =<<<EOMEMBER
+			
+Your new permanent member number is
+	$full_member_id
+This number will be used in the future to identify you for member services, 
+discounts, etc, so please do not lose it.
+
+EOMEMBER;
+		} else {
+			$memberinfo = '';
+		}
+		
 		$message = <<<EOM
 Dear $person->firstname $person->lastname,
 
-Your {$GLOBALS['APP_NAME']} account has been approved. Your new permanent
-member number is
-	$full_member_id
-This number will be used in the future to identify you for member services
-discounts, etc, so please do not lose it.
+Your {$GLOBALS['APP_NAME']} account has been approved. 
+$memberinfo
 You may now log in to the system at
 	http://{$_SERVER['SERVER_NAME']}{$_SERVER["PHP_SELF"]}
 with the username
@@ -923,9 +939,7 @@ class PersonEdit extends Handler
 			$rows[] = array("Height:", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
 		}
 	
-		if($this->_permissions['edit_class']) {
-			$rows[] = array("Account Class:", form_hidden('edit[class]',$edit['class']) . $edit['class']);
-		}
+		$rows[] = array("Account Class:", form_hidden('edit[class]',$edit['class']) . $edit['class']);
 		
 		if($this->_permissions['edit_status']) {
 			$rows[] = array("Account Status:", form_hidden('edit[status]',$edit['status']) . $edit['status']);
@@ -951,7 +965,7 @@ class PersonEdit extends Handler
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-
+		
 		$fields      = array();
 		$fields_data = array();
 
@@ -960,10 +974,28 @@ class PersonEdit extends Handler
 			$fields_data[] = $edit['username'];
 		}
 		
+		/* EVIL HACK
+		 * If this person is currently a 'visitor', it does not have an
+		 * OCUA member number, so if we move it to another class, it needs
+		 * to be given one.  We do this by forcing its status to 'new' and
+		 * requiring it be reapproved.  Ugly hack, but since
+		 * we're likely to scrutinize non-player accounts less than player
+		 * accounts, it's necessary.
+		 */
+		$person = person_load( array('user_id' => $id) );
+		if( ($person->class == 'visitor') && ($edit['class'] == 'player') ) {
+			$edit['status'] = 'new';
+			$edit['class'] = 'player';
+			$this->_permissions['edit_status'] = true;
+			$this->_permissions['edit_class'] = true;
+			$status_changed = true;
+		}
+
 		if($this->_permissions['edit_class']) {
 			$fields[] = "class = '%s'";
 			$fields_data[] = $edit['class'];
 		}
+		
 		if($this->_permissions['edit_status']) {
 			$fields[] = "status = '%s'";
 			$fields_data[] = $edit['status'];
@@ -1053,7 +1085,26 @@ class PersonEdit extends Handler
 		$fields_data[] = $id;
 
 		$rc = db_query( $sql, $fields_data);
-		return ($rc != false);
+
+		if($rc == false) {
+			return false;
+		} else {
+			/* EVIL HACK
+			 * If a user changes their own status from visitor to player, they
+			 * will get logged out, so we need to warn them of this fact.
+			 */
+			if($status_changed) {
+			   print theme_header("Edit Account", $this->breadcrumbs);
+		       print "<h1>Edit Account</h1>";
+			   print para(
+				"You have requested to change your account status to 'OCUA Player'.  As such, your account is now being held for one of the administrators to approve.  "
+				. "Once your account is approved, you will receive an email informing you of your new OCUA member number.  "
+				. "You will then be able to log in once again with your username and password.");
+		       print theme_footer();
+			   exit;
+			}
+		}
+		return true;
 	}
 
 	function isDataInvalid ( $edit = array() )
@@ -1527,13 +1578,32 @@ class PersonList extends Handler
 				'target' => 'person/delete/'
 			);
 		}
-		
+
+		$user_class = '';
+		switch( $_GET['class'] ) {
+			case 'all':
+				$user_class = '';
+				$this->setLocation(array("List Users" => 'person/list'));
+				break;
+			case 'visitor':
+				$user_class = " AND class = 'visitor'";
+				$query_append = '&class=visitor';
+				$this->setLocation(array("List Visitors" => 'person/list?class=visitor'));
+				break;
+			case 'player':
+			default:
+				$user_class = " AND class = 'player'";
+				$query_append = '&class=player';
+				$this->setLocation(array("List Players" => 'person/list?class=player'));
+				break;
+			
+		}
+
 		$query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE lastname LIKE '%s%%' ORDER BY lastname,firstname";
+			FROM person WHERE lastname LIKE '%s%%' $user_class ORDER BY lastname,firstname";
 		
-		$this->setLocation(array("List Users" => 'person/list'));
-		return $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $_GET['letter']);
+		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE NOT ISNULL(user_id) $user_class", 'person/list', $_GET['letter'], array(), $query_append);
 	}
 }
 

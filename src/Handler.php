@@ -315,7 +315,7 @@ class Handler
 	 * Generate a list, similar to generateSingleList, but separated into
 	 * pages based on the first letter of a given field.
 	 */
-	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array())
+	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array(), $query_append = '')
 	{
 
 		$letters = array();
@@ -332,7 +332,7 @@ class Handler
 			if($curLetter == $letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$letterLinks[] = l($curLetter, "$listOp?letter=$curLetter");
+				$letterLinks[] = l($curLetter, "$listOp?letter=$curLetter$query_append");
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
