@@ -60,7 +60,7 @@ class TeamAddPlayer extends Handler
 		
         $query = $DB->prepare("SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE lastname LIKE ? ORDER BY lastname");
+			FROM person WHERE (class = 'active' OR class = 'volunteer' OR class='administrator') AND lastname LIKE ? ORDER BY lastname");
 		
 		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op . "&id=$id", $letter);
 		
