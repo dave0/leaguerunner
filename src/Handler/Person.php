@@ -894,95 +894,111 @@ class PersonEdit extends Handler
 	{
 		$rc = true;
 		$this->error_text = "";
-		
-		$firstname = var_from_getorpost('firstname');
-		$lastname = var_from_getorpost('lastname');
-		if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
-			$rc = false;
-			$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+	
+		if($this->_permissions['edit_name']) {
+			$firstname = var_from_getorpost('firstname');
+			$lastname = var_from_getorpost('lastname');
+			if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
+				$rc = false;
+				$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+			}
 		}
 
-		$username = var_from_getorpost('username');
-		if( ! validate_name_input($username) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+		if($this->_permissions['edit_username']) {
+			$username = var_from_getorpost('username');
+			if( ! validate_name_input($username) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+			}
 		}
 
-		$email = var_from_getorpost('email');
-		if ( ! validate_email_input($email) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply a valid email address";
+		if($this->_permissions['edit_email']) {
+			$email = var_from_getorpost('email');
+			if ( ! validate_email_input($email) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply a valid email address";
+			}
 		}
 
-		$home_phone = var_from_getorpost('home_phone');
-		$work_phone = var_from_getorpost('work_phone');
-		$mobile_phone = var_from_getorpost('mobile_phone');
-		if( !validate_nonblank($home_phone) &&
-			!validate_nonblank($work_phone) &&
-			!validate_nonblank($mobile_phone) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
-		}
-		if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
-			$rc = false;
-			$this->error_text .= "\n<br>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
-		}
-		if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
-			$rc = false;
-			$this->error_text .= "\n<br>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
-		}
-		if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
-			$rc = false;
-			$this->error_text .= "\n<br>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
-		}
-
-		$addr_street = var_from_getorpost('addr_street');
-		if( !validate_nonblank($addr_street) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply a street address.";
-		}
-		$addr_city = var_from_getorpost('addr_city');
-		if( !validate_nonblank($addr_city) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply a city.";
-		}
-		$addr_prov = var_from_getorpost('addr_prov');
-		if( !validate_nonblank($addr_prov) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply a province.";
-		}
-		$addr_postalcode = var_from_getorpost('addr_postalcode');
-		if( !validate_postalcode($addr_postalcode) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must supply a valid Canadian postal code.";
-		}
-		
-		$gender = var_from_getorpost('gender');
-		if( !preg_match("/^[mf]/i",$gender ) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must select either male or female for gender.";
+		if($this->_permissions['edit_email']) {
+			$home_phone = var_from_getorpost('home_phone');
+			$work_phone = var_from_getorpost('work_phone');
+			$mobile_phone = var_from_getorpost('mobile_phone');
+			if( !validate_nonblank($home_phone) &&
+				!validate_nonblank($work_phone) &&
+				!validate_nonblank($mobile_phone) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
+			}
+			if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
+				$rc = false;
+				$this->error_text .= "\n<br>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
+			}
+			if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
+				$rc = false;
+				$this->error_text .= "\n<br>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
+			}
+			if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
+				$rc = false;
+				$this->error_text .= "\n<br>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
+			}
 		}
 
-		$skill = var_from_getorpost('skill');
-		if( $skill < 0 || $skill > 5 ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must select a skill level between 0 and 5";
+		if($this->_permissions['edit_address']) {
+			$addr_street = var_from_getorpost('addr_street');
+			if( !validate_nonblank($addr_street) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply a street address.";
+			}
+			$addr_city = var_from_getorpost('addr_city');
+			if( !validate_nonblank($addr_city) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply a city.";
+			}
+			$addr_prov = var_from_getorpost('addr_prov');
+			if( !validate_nonblank($addr_prov) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply a province.";
+			}
+			$addr_postalcode = var_from_getorpost('addr_postalcode');
+			if( !validate_postalcode($addr_postalcode) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must supply a valid Canadian postal code.";
+			}
 		}
 		
-		$year_started = var_from_getorpost('started_Year');
-		$current = localtime(time(),1);
-		$this_year = $current['tm_year'] + 1900;
-		if( $year_started < ($this_year - 30)  || $year_started > $this_year ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must select the year you started playing the sport";
+		if($this->_permissions['edit_gender']) {
+			$gender = var_from_getorpost('gender');
+			if( !preg_match("/^[mf]/i",$gender ) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must select either male or female for gender.";
+			}
 		}
 		
-		$birthyear = var_from_getorpost('birth_Year');
-		$birthmonth = var_from_getorpost('birth_Month');
-		$birthday = var_from_getorpost('birth_Day');
-		if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
-			$rc = false;
-			$this->error_text .= "\n<br>You must provide a valid birthdate";
+		if($this->_permissions['edit_skill']) {
+			$skill = var_from_getorpost('skill');
+			if( $skill < 0 || $skill > 5 ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must select a skill level between 0 and 5";
+			}
+			
+			$year_started = var_from_getorpost('started_Year');
+			$current = localtime(time(),1);
+			$this_year = $current['tm_year'] + 1900;
+			if( $year_started < ($this_year - 30)  || $year_started > $this_year ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must select the year you started playing the sport";
+			}
+		}
+		
+		if($this->_permissions['edit_birthdate']) {
+			$birthyear = var_from_getorpost('birth_Year');
+			$birthmonth = var_from_getorpost('birth_Month');
+			$birthday = var_from_getorpost('birth_Day');
+			if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must provide a valid birthdate";
+			}
 		}
 		
 		return $rc;
@@ -1190,7 +1206,7 @@ class PersonActivate extends PersonEdit
 	 */
 	function process_waiver()
 	{
-		global $DB;
+		global $DB, $session;
 		
 		$id = $session->attr_get('user_id');
 		$signed = var_from_getorpost('signed');
