@@ -438,7 +438,7 @@ class ScheduleView extends Handler
 			if( $game['day_id'] != $prevDayId ) {
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game['timestamp']),
-					$this->_permissions['edit_schedule'], 
+					$this->_permissions['edit_schedule'] && $league->schedule_type != "ladder", 
 					$game['day_id'], $id );
 				$rows[] = schedule_subheading( );
 			}
