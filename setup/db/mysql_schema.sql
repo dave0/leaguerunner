@@ -72,9 +72,15 @@ CREATE TABLE member_id_sequence (
 );
 
 -- to be used for player availability
-CREATE TABLE available (
+CREATE TABLE player_availability (
 	user_id		integer NOT NULL,
-	available 	SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')
+	mon 	enum("Y","N") DEFAULT "N",
+	tue 	enum("Y","N") DEFAULT "N",
+	wed 	enum("Y","N") DEFAULT "N",
+	thu 	enum("Y","N") DEFAULT "N",
+	fri 	enum("Y","N") DEFAULT "N",
+	sat 	enum("Y","N") DEFAULT "N",
+	sun 	enum("Y","N") DEFAULT "N"
 );
 
 CREATE TABLE team (
@@ -83,9 +89,16 @@ CREATE TABLE team (
 	website         varchar(100),
 	shirt_colour    varchar(30),
 	status          ENUM("open","closed"),
-	established     date,
 	PRIMARY KEY (team_id),
 	KEY(name)
+);
+
+CREATE TABLE team_request_player (
+	team_id		integer NOT NULL,
+	day 		SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
+	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
+	men_needed	integer,
+	women_needed	integer
 );
 
 CREATE TABLE teamroster (
@@ -104,8 +117,6 @@ CREATE TABLE league (
 	season		ENUM('none','Spring','Summer','Fall','Winter','Winter Indoor'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
-	active_date     date,  --  Date league starts being in use
-	inactive_date	date,  --  date league is no longer in use
 	coordinator_id	integer,	-- coordinator
 	alternate_id	integer,	-- alternate coordinator
 	max_teams	integer,
@@ -130,9 +141,9 @@ CREATE TABLE leagueteams (
 
 CREATE TABLE schedule (
     game_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	league_id int NOT NULL,
+    league_id int NOT NULL,
 -- This indicates what round this game is in.
-	round int NOT NULL DEFAULT 1,
+    round int NOT NULL DEFAULT 1,
     date_played datetime, -- date and time of game.
     home_team   integer,
     away_team   integer,
@@ -170,6 +181,6 @@ CREATE TABLE field_info (
 CREATE TABLE field_assignment (
     league_id int NOT NULL,
     field_id  int NOT NULL,
-	day	ENUM('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday') NOT NULL
+    day       ENUM('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday') NOT NULL
 );
 

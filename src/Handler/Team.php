@@ -123,7 +123,7 @@ class TeamCreate extends TeamEdit
 
 		$team_name = trim(var_from_getorpost("team_name"));
 	
-		$res = $DB->query("INSERT into team (name,established) VALUES (?, NOW())", array($team_name));
+		$res = $DB->query("INSERT into team (name) VALUES (?)", array($team_name));
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -230,8 +230,7 @@ class TeamEdit extends Handler
 				t.name          AS team_name, 
 				t.website       AS team_website,
 				t.shirt_colour  AS shirt_colour,
-				t.status,
-				t.established
+				t.status
 			FROM team t WHERE t.team_id = ?", 
 			array($this->_id), DB_FETCHMODE_ASSOC);
 
@@ -245,7 +244,6 @@ class TeamEdit extends Handler
 		$this->tmpl->assign("team_website", $row['team_website']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
 		$this->tmpl->assign("status", $row['status']);
-		$this->tmpl->assign("established", $row['established']);
 
 		return true;
 	}
@@ -265,7 +263,6 @@ class TeamEdit extends Handler
 		$this->tmpl->assign("team_website", var_from_getorpost('team_website'));
 		$this->tmpl->assign("shirt_colour", var_from_getorpost('shirt_colour'));
 		$this->tmpl->assign("status", var_from_getorpost('status'));
-		$this->tmpl->assign("established", var_from_getorpost('established'));
 		return true;
 	}
 
