@@ -41,10 +41,6 @@ class Menu extends Handler
 	/**
 	 * Generate the menu
 	 *
-	 * This generates the menu.  Each menu category is generated with
-	 * its own function, which checks if the current user session 
-	 * has permission for those options.  
-	 *
 	 * @access public
 	 * @return boolean success or failure.
 	 */
@@ -87,11 +83,22 @@ class Menu extends Handler
 		if($this->is_database_error($leagues)) {
 			return false;
 		}
-			
+
 		if(count($leagues) > 0) {
 			$this->_permissions['league_admin'] = true;
 			$this->tmpl->assign("leagues", $leagues);
 		}
+		
+		if($session->is_admin()) {
+			/* Fetch count of pending new users */
+			$new_users = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
+			if($this->is_database_error($new_users)) {
+				return false;
+			}
+
+			$this->tmpl->assign("new_user_count", $new_users);
+		}
+			
 		
 		/* ... and set permissions flags */
 		while(list($key,$val) = each($this->_permissions)) {

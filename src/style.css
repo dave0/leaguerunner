@@ -63,6 +63,10 @@ TABLE {
 	font-size: 11px;
 }
 
+.warning {
+	background-color: red;
+	border: 1px solid black;
+}
 
 .toptable {
 	color: white;

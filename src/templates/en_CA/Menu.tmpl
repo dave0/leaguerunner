@@ -93,7 +93,7 @@
   </tr>
   {if $perm_user_admin}
   <tr>
-    <td class="menu_item"><a href='{$app_cgi_location}?op=person_listnew'>List New Users</a></td>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_listnew'>List New Users</a>{if $new_user_count gt 0} ({$new_user_count} awaiting approval){/if}</td>
   </tr>
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_list'>List Users</a></td>

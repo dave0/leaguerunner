@@ -260,7 +260,7 @@ class PersonView extends Handler
 }
 
 /**
- * Approve new account creation
+ * Delete an account
  */
 class PersonDelete extends PersonView
 {
@@ -431,13 +431,54 @@ class PersonApproveNewAccount extends PersonView
 			default:
 				$this->set_template_file("Person/admin_confirm.tmpl");
 				$this->tmpl->assign("page_step", 'perform');
-				$this->tmpl->assign("page_instructions", "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.");
 				$rc = $this->generate_view();
 		}
 		
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 
 		return $rc;
+	}
+
+	function generate_view () 
+	{
+		global $DB;
+		$id = var_from_getorpost('id');
+
+		/* Check to see if there are any duplicate users */
+		$duplicate_info = $DB->getAll("SELECT
+			p.user_id,
+			p.firstname,
+			p.lastname
+			FROM person p, person q 
+			WHERE q.user_id = ?
+				AND p.gender = q.gender
+				AND p.user_id <> q.user_id
+				AND (
+					p.email = q.email
+					OR p.birthdate = q.birthdate
+					OR p.home_phone = q.home_phone
+					OR p.work_phone = q.work_phone
+					OR p.mobile_phone = q.mobile_phone
+					OR p.addr_street = q.addr_street
+					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+				)", array($id), DB_FETCHMODE_ASSOC);
+				
+		if($this->is_database_error($person_info)) {
+			return false;
+		}
+		
+		$instructions = "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.";
+		if(count($duplicate_info) > 0) {
+			$instructions .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
+			foreach($duplicate_info as $row) {
+				$instructions .= "<li>{$row['firstname']} {$row['lastname']} [ <a href='{$_SERVER['PHP_SELF']}?op=person_view&id={$row['user_id']}'>view</a> ]\n";
+			
+			}
+			$instructions .= "</ul></div>";
+		}
+		$this->tmpl->assign("page_instructions", $instructions);
+		
+		return parent::generate_view();
 	}
 
 	/**
@@ -803,12 +844,16 @@ class PersonEdit extends Handler
 		}
 		
 		if($this->_permissions['edit_phone']) {
-			$fields[] = "home_phone = ?";
-			$fields_data[] = clean_telephone_number(var_from_getorpost('home_phone'));
-			$fields[] = "work_phone = ?";
-			$fields_data[] = clean_telephone_number(var_from_getorpost('work_phone'));
-			$fields[] = "mobile_phone = ?";
-			$fields_data[] = clean_telephone_number(var_from_getorpost('mobile_phone'));
+			foreach(array('home_phone','work_phone','mobile_phone') as $type) {
+				$num = var_from_getorpost($type);
+				if(strlen($num) > 0) {
+					$fields[] = "$type = ?";
+					$fields_data[] = clean_telephone_number($num);
+				} else {
+					$fields[] = "$type = ?";
+					$fields_data[] = null;
+				}
+			}
 		}
 		
 		if($this->_permissions['edit_name']) {
