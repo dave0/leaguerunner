@@ -17,6 +17,7 @@ class Menu extends Handler
 	function initialize ()
 	{
 		$this->name = 'LeagueRunner Menu';
+		return true;
 	}
 
 	/**

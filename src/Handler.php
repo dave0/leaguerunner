@@ -50,8 +50,6 @@ class Handler
 	function Handler ()
 	{
 		$this->tmpl = new Smarty;
-		
-		$this->initialize();
 	}
 
 	/**
@@ -105,7 +103,7 @@ class Handler
 		global $current_language;
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
 		$this->tmpl->assign("app_cgi_location", $GLOBALS['APP_CGI_LOCATION']);
-		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_GRAPHICS_DIR'] . "/$current_language");
+		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/$current_language");
 		$this->tmpl->assign("app_stylesheet_file", $GLOBALS['APP_STYLESHEET']);
 		$this->tmpl->assign("app_template_dir", $current_language);
 		

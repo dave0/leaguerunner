@@ -23,6 +23,8 @@ class Login extends Handler
 	function initialize () 
 	{
 		$this->name = "Login";
+
+		return true;
 	}
 
 	/**

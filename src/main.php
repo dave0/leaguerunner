@@ -64,14 +64,19 @@ if( !($session->is_valid() && isset($op)) ) {
 $handler = get_page_handler($op);
 
 /* Set any necessary options for the handler */
-
-if($handler->has_permission()) {
-	if($handler->process()) {
-		/* 
-		 * Display the appropriate output.  This uses the template filled
-		 * by process()
-		 */
-		$handler->display();
+if($handler->initialize()) {
+	/* Ensure we have permission */
+	if($handler->has_permission()) {
+		/* Process the action */
+		if($handler->process()) {
+			/* 
+			 * Display the appropriate output.  This uses the template filled
+			 * by process()
+			 */
+			$handler->display();
+		} else {
+			$handler->display_error();
+		}
 	} else {
 		$handler->display_error();
 	}

@@ -21,6 +21,7 @@ class NotFound extends Handler
 	function initialize ()
 	{
 		$this->name = "Operation Not Found";
+		return true;
 	}
 
 	/**

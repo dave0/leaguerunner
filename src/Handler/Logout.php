@@ -20,6 +20,7 @@ class Logout extends Handler
 	function initialize ()
 	{
 		$this->name = "Logout";
+		return true;
 	}
 
 	/**

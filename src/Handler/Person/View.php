@@ -33,6 +33,8 @@ class PlayerView extends Handler
 			'skill' 	=> false,
 			'name' 		=> false,
 		);
+
+		return true;
 	}
 
 	/**
