@@ -132,6 +132,7 @@ class LeagueEdit extends Handler
 				l.stats_display as stats_display,
 				l.current_round as current_round,
 				l.year,
+				l.allow_schedule,
 				l.start_time as league_start_time
 			FROM league l WHERE l.league_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
@@ -223,6 +224,7 @@ class LeagueEdit extends Handler
 		$this->tmpl->assign("league_tier", var_from_getorpost('league_tier'));
 		$this->tmpl->assign("league_round", var_from_getorpost('league_round'));
 		$this->tmpl->assign("league_ratio", var_from_getorpost('league_ratio'));
+		$this->tmpl->assign("league_allow_schedule", var_from_getorpost('league_allow_schedule'));
 		$this->tmpl->assign("league_start_time_Hour", var_from_getorpost('league_start_time_Hour'));
 		$this->tmpl->assign("league_start_time_Minute", var_from_getorpost('league_start_time_Minute'));
 		
@@ -270,6 +272,8 @@ class LeagueEdit extends Handler
 			$fields_data[] = var_from_getorpost("league_tier");
 			$fields[] = "ratio = ?";
 			$fields_data[] = var_from_getorpost("league_ratio");
+			$fields[] = "allow_schedule = ?";
+			$fields_data[] = var_from_getorpost("league_allow_schedule");
 			$fields[] = "start_time = ?";
 			$fields_data[] = var_from_getorpost("league_start_time_Hour") . ":" . var_from_getorpost("league_start_time_Minute");
 		}
@@ -313,12 +317,21 @@ class LeagueEdit extends Handler
 			$this->error_text .= gettext("A coordinator must be selected") . "<br>";
 			$err = false;
 		}
-
-		$league_day = var_from_getorpost("league_day");
-		if( !isset($league_day) ) {
-			$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
+		
+		$league_allow_schedule = var_from_getorpost("league_allow_schedule");
+		if( $league_allow_schedule != 'Y' && $league_allow_schedule != 'N' ) {
+			$this->error_text .= gettext("Values for allow schedule are Y and N") . "<br>";
 			$err = false;
 		}
+
+		if($league_allow_schedule = 'Y') {
+			$league_day = var_from_getorpost("league_day");
+			if( !isset($league_day) ) {
+				$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
+				$err = false;
+			}
+		}
+		
 		
 		return $err;
 	}

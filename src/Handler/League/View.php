@@ -79,6 +79,7 @@ class LeagueView extends Handler
 				l.coordinator_id,
 				l.alternate_id as co_coordinator_id,
 				l.current_round,
+				l.allow_schedule,
 				l.start_time
 			FROM league l, person c, person co
 			WHERE c.user_id = l.coordinator_id 
@@ -101,6 +102,7 @@ class LeagueView extends Handler
 		$this->tmpl->assign("league_start_time", $row['start_time']);
 		$this->tmpl->assign("coordinator_name", $row['coordinator_name']);
 		$this->tmpl->assign("coordinator_id", $row['coordinator_id']);
+		$this->tmpl->assign("league_allow_schedule", $row['allow_schedule']);
 
 		if( $row['co_coordinator_id'] > 1 ) {
 			$co_name = $DB->getOne("SELECT CONCAT(co.firstname,' ',co.lastname) FROM person co where user_id = ?", array($row['co_coordinator_id'])); 

@@ -91,6 +91,7 @@ class Menu extends Handler
 			SELECT 
 				league_id AS id,
 				name,
+				allow_schedule,
 				tier
 		  	FROM 
 				league 

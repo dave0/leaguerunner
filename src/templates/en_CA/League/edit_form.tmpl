@@ -89,6 +89,19 @@
         {html_select_time display_seconds=false minute_interval=5 prefix=league_start_time_ use_24_hours=true time=$league_start_time}
   		</td>
     </tr>
+
+    <tr>
+      <td class='row_title'>Allow Scheduling:</td>
+      <td class='row_data'>
+      {if $allow_schedule == 'Y'}
+        <input type="radio" name="league_allow_schedule" value="Y" checked> Yes /  
+        <input type="radio" name="league_allow_schedule" value="N"> No <br>
+      {else}
+        <input type="radio" name="league_allow_schedule" value="Y"> Yes /  
+        <input type="radio" name="league_allow_schedule" value="N" checked> No <br>
+      {/if}
+      </td>
+    </tr>
     
 	</table>
 <br>
