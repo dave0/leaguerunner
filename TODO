@@ -10,7 +10,7 @@ Docs:
 
 Code Cleanups and Refactoring:
 	- Clean up database schema
-	- rewrite of permissions code so that it isn't so crusty.
+	- (DONE) rewrite of permissions code so that it isn't so crusty.
 	- (DONE) remove the 'alias' section, as it's been decided that OCUA doesn't
 	  want it and I didn't want to write it in the first place anyway. 
 
@@ -52,16 +52,13 @@ New Features:
 	  7-game full tier).  This depends on the abovementioned "game slot"
 	  support to allow automatic selection of fields.
 	
-	- use Mike Reade's spirit system
+	- (DONE) use Mike Reade's spirit system
 	
 	- send email:
 		+ when account is created
 		+ to captain when player requests to join
 		+ to player, when captain requests them
 		
-	- integrate survey questions into database, rather than having them
-	  hardcoded in an HTML file
-
 	- set up data serialization for user edit, so that all changes can be
 	  logged in a data field for approval/rejection by an admin.  This is
 	  wanted to prevent people from changing their account info to
