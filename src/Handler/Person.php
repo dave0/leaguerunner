@@ -96,10 +96,11 @@ class PersonView extends Handler
 			$this->error_exit("You must provide a user ID");
 		}
 
-		/* Anyone with a valid session can see your name */
+		/* Anyone with a valid session can see your name,
+		 * your skill, your account status, and whether or not you have a dog 
+		 */
 		$this->_permissions['name'] = true;
-
-		/* Also, they can see if you have a dog */
+		$this->_permissions['skill'] = true;
 		$this->_permissions['dog'] = true;
 		
 		/* Administrator can view all and do all */
@@ -165,19 +166,6 @@ class PersonView extends Handler
 				break;
 			case 'active':
 			case 'inactive':
-				if($player->allow_publish_email == 'Y') {
-					$this->_permissions['email'] = true;
-				}
-				if($player->publish_home_phone == 'Y') {
-					$this->_permissions['home_phone'] = true;
-				}
-				if($player->publish_work_phone == 'Y') {
-					$this->_permissions['work_phone'] = true;
-				}
-				if($player->publish_mobile_phone == 'Y') {
-					$this->_permissions['mobile_phone'] = true;
-				}
-				break;
 			default:
 				/* do nothing */
 		}
@@ -234,25 +222,23 @@ class PersonView extends Handler
 			$rows[] = array("OCUA Member ID:", $person->member_id);
 		}
 		
-		if($this->_permissions['email']) {
-			if($person->allow_publish_email == 'Y') {
-				$publish_value = " (published)";
-			} else {
-				$publish_value = " (private)";
+		if($person->allow_publish_email == 'Y') {
+			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
+		} else {
+			if($this->_permissions['email']) {
+				$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (private)");
 			}
-			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . $publish_value);
 		}
 		
 		foreach(array('home','work','mobile') as $type) {
 			$item = "${type}_phone";
-			if($this->_permissions["${type}_phone"] && $person->$item) {
-				$publish = "publish_$item";
-				if($person->$item == 'Y') {
-					$publish_value = " (published)";
-				} else {
-					$publish_value = " (private)";
+			$publish = "publish_$item";
+			if($person->$publish == 'Y') {
+				$rows[] = array("Phone ($type):", $person->$item . " (published)");
+			} else {
+				if($this->_permissions[$item] && isset($person->$item)) {
+					$rows[] = array("Phone ($type):", $person->$item . " (private)");
 				}
-				$rows[] = array("Phone ($type):", $person->$item . $publish_value);
 			}
 		}
 		
