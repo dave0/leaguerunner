@@ -786,7 +786,7 @@ class PersonEdit extends Handler
 
 		$output .= simple_row("Email Address:",
 			form_textfield('', 'email', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
-			. form_checkbox("Allow other players to view my email",'allow_publish_email','Y',($formData['allow_publish_email'] == 'Y')));
+			. form_checkbox("Allow other players to view my email address",'allow_publish_email','Y',($formData['allow_publish_email'] == 'Y')));
 
 		$addrBlock = "<table border='0' cellspacing='3'>";
 		$addrBlock .= simple_row("Street Address:",
