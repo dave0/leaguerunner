@@ -29,6 +29,8 @@ class PersonView extends Handler
 			'skill' 	=> false,
 			'name' 		=> false,
 			'last_login'		=> false,
+			'waiver_signed'		=> false,
+			'class'		=> false,
 			'user_edit'				=> false,
 #			'user_delete'			=> false,
 #			'user_change_perms'		=> false,
@@ -85,14 +87,26 @@ class PersonView extends Handler
 			return true;
 		}
 
-
 		/* 
-		 * TODO: 
-		 * See if we're looking at a volunteer or team captain
+		 * See if we're looking at a team captain.  People who are team
+		 * captains can always have their email and phone number viewed for
+		 * contact purposes.
 		 */
+		$count = $DB->getOne("SELECT COUNT(*) FROM team WHERE captain_id = ? OR assistant_id = ?", array($id, $id));
+		if($this->is_database_error($count)) {
+			return false;
+		}
+		if($count > 0) {
+			/* is captain of at least one team, so we publish email and phone */
+			$this->_permissions['email'] = true;
+			$this->_permissions['phone'] = true;
+			return true; /* since the following checks are now irrelevant */
+		}
 
 		/*
-		 * See if we're looking at a regular player with possible restrictions
+		 * See what the player's class is.  Some classes cannot be viewed
+		 * unless you are 'administrator'.  Also, 'volunteer' class requires
+		 * that email and phone be published.
 		 */
 		$row = $DB->getRow(
 			"SELECT 
@@ -104,12 +118,36 @@ class PersonView extends Handler
 		if($this->is_database_error($row)) {
 			return false;
 		}
-
-		if($row['allow_publish_email'] == 'yes') {
-			$this->_permissions['email'] = true;
-		}
-		if($row['allow_publish_phone'] == 'yes') {
-			$this->_permissions['phone'] = true;
+		
+		switch($row['class']) {
+			case 'new':
+			case 'locked':
+				/* players of class 'new' and 'locked' can only be viewed by
+				 * 'administrator' class, and this case is handled above.
+				 */
+				return false;
+				break;
+			case 'administrator':
+				/* No point in viewing this user's contact info since it's not
+				 * a real person */
+				break;
+			case 'volunteer':
+				/* volunteers have their contact info published */
+				$this->_permissions['email'] = true;
+				$this->_permissions['phone'] = true;
+				break;
+			case 'active':
+			case 'inactive':
+				if($row['allow_publish_email'] == 'yes') {
+					$this->_permissions['email'] = true;
+				}
+				if($row['allow_publish_phone'] == 'yes') {
+					$this->_permissions['phone'] = true;
+				}
+				break;
+			default:
+				/* do nothing */
+				
 		}
 
 		return true;
@@ -146,6 +184,8 @@ class PersonView extends Handler
 				addr_prov, 
 				addr_postalcode, 
 				last_login,
+				class,
+				waiver_signed,
 				client_ip 
 			FROM person WHERE user_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
@@ -196,6 +236,18 @@ class PersonView extends Handler
 			$this->tmpl->assign("skill", true);
 			$this->tmpl->assign("skill_level", $row['skill_level']);
 			$this->tmpl->assign("year_started", $row['year_started']);
+		}
+
+		if($this->_permissions['class']) {
+			$this->tmpl->assign("class", $row['class']);
+		}
+		
+		if($this->_permissions['waiver_signed']) {
+			if($row['waiver_signed']) {
+				$this->tmpl->assign("waiver_signed", $row['waiver_signed']);
+			} else {
+				$this->tmpl->assign("waiver_signed", gettext("Not signed"));
+			}
 		}
 		
 		if($this->_permissions['last_login']) {

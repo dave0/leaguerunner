@@ -77,11 +77,6 @@ class PersonEdit extends Handler
 			return true;
 		}
 
-		/* 
-		 * TODO: 
-		 * See if we're a volunteer with user edit permission
-		 */
-
 		$this->error_text = gettext("You do not have permission to perform that operation");
 		return false;
 	}
@@ -100,6 +95,7 @@ class PersonEdit extends Handler
 				break;
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
+				$this->tmpl->assign("instructions", gettext("Edit any of the following fields and click 'Submit' when done."));
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
@@ -269,7 +265,6 @@ class PersonEdit extends Handler
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Person/edit_form.tmpl");
-			$this->tmpl->assign("error", 'TODO: Real error goes here');
 			$this->tmpl->assign("page_step", 'confirm');
 			return $this->generate_form();
 		}
@@ -369,7 +364,12 @@ class PersonEdit extends Handler
 	function validate_data ()
 	{
 		/* TODO: Actually validate some of our data! */
+		if($some_error) {
+			$this->tmpl->assign("error", 'TODO: Real error goes here');
+			return false;
+		}
 		return true;
+		
 /*
 	## TODO:
 	## Check each form field for appropriateness of data. 

@@ -2,13 +2,16 @@
 
 /*
  * Here, we require_once() each of our handlers for dealing with Person
- * entities.
+ * entities.  The indentation of certain lines below is not mandatory, but is
+ * used to indicate the inheritance structure.  However, it _is_ mandatory
+ * that the inherited classes get require()'ed after their parents.
  */
 require_once("Handler/Person/View.php");
   require_once("Handler/Person/Delete.php");
   require_once("Handler/Person/ApproveAccount.php");
 require_once("Handler/Person/Edit.php");
   require_once("Handler/Person/Create.php");
+  require_once("Handler/Person/ActivateAccount.php");
 require_once("Handler/Person/List.php");
 require_once("Handler/Person/ListNew.php");
 require_once("Handler/Person/ChangePassword.php");

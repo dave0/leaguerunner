@@ -1,10 +1,13 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<h1>{if $id}Editing {$firstname} {$lastname}{else}Create New User{/if}</h1>
+<h1>{$page_title}{if $id}: {$firstname} {$lastname}{/if}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}
 </blockquote>
 {/if}
+<p>
+  {$instructions}
+</p>
 
 <form action="{$app_cgi_location}" method="POST">
 	<input type="hidden" name="op" value="{$page_op}">

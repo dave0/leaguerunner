@@ -104,7 +104,7 @@ class Login extends Handler
 			case 'inactive':
 				/* Inactive.  Send this person to the revalidation page(s) */
 				setcookie($APP_COOKIE_NAME, $session->get_session_key());
-				return $this->output_redirect("op=person_revalidate");
+				return $this->output_redirect("op=person_activate");
 				break;
 			case 'active':
 			case 'volunteer':

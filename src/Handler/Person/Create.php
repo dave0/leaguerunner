@@ -44,6 +44,8 @@ class PersonCreate extends PersonEdit
 
 	function generate_form ()
 	{
+		
+		$this->tmpl->assign("instructions", gettext("To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system."));
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
 		$this->tmpl->assign("provinces",
@@ -51,8 +53,6 @@ class PersonCreate extends PersonEdit
 				array($this, "map_callback"), 
 				array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'))
 		);
-
-/* Here */
 
 		$this->tmpl->assign("gender", "");
 		$this->tmpl->assign("gender_list",
@@ -67,14 +67,6 @@ class PersonCreate extends PersonEdit
 				array($this, "map_callback"),
 				array(1,2,3,4,5))
 		);
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
 
 		return true;
 	}
@@ -106,8 +98,20 @@ class PersonCreate extends PersonEdit
 		}
 		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
+		$this->set_template_file("Person/create_result.tmpl");
+		
 		return parent::perform();
 	}
+	
+	/**
+	 * Override display to avoid redirects.
+	 */
+	function display ()
+	{
+		return Handler::display();
+	}
+
+
 }
 
 ?>

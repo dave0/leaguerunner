@@ -62,6 +62,20 @@
     <td class='row_data'>{$year_started|escape}</td>
   </tr>
   {/if}
+
+  {if $class}
+  <tr>
+    <td class='row_title'>Account Class:</td> 
+    <td class='row_data'>{$class|escape}</td>
+  </tr>
+  {/if}
+
+  {if $waiver_signed}
+  <tr>
+    <td class='row_title'>Waiver Signed:</td> 
+    <td class='row_data'>{$waiver_signed|escape}</td>
+  </tr>
+  {/if}
   {if $last_login}
   <tr>
     <td class='row_title'>Last Login:</td> 

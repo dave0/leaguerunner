@@ -36,9 +36,10 @@ CREATE TABLE person (
 	allow_publish_phone	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 
 	session_cookie varchar(50),
-	client_ip      varchar(50),
 	class	ENUM('player','volunteer','administrator') DEFAULT 'player' NOT NULL,
-	last_login datetime
+	waiver_signed datetime,
+	last_login datetime,
+	client_ip      varchar(50),
 );
 
 INSERT INTO person (username,password,firstname,lastname) VALUES ('admin',MD5('admin'), 'System', 'Administrator');
