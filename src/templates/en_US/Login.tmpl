@@ -1,10 +1,24 @@
 <html>
- <head>
-  <title>{$app_name}: {$page_title}</title>
-  <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
- </head>
-<body bgcolor="#FFFFFF">
-<h1 align="center">{$app_name}</h1>
+  <head>
+    <title>{$app_name}: {$page_title}</title>
+    <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
+  </head>
+  <body bgcolor="#FFFFFF">
+{strip}
+  <table class='toptable' border='0' cellpadding='3' cellspacing='0' bgcolor='black' width='100%'>
+    <tr>
+      <td colspan='2'>
+        <h1>{$app_name}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td colspan='2'>
+		&nbsp;
+      </td>
+    </tr>
+  </table>
+{/strip}
+{* vim: set sw=2 ts=2 et: *}
 {if $error}
 	<P>
 	Login failed:
@@ -13,23 +27,31 @@
 	</blockquote>
 	</P>
 {/if}
+	<p />
+	<form action="{$app_cgi_location}" method="POST">
+	<table align='center' border='0' cellpadding='5' cellspacing='0'>
+		<tr>
+			<td>Username:</td>
+			<td><input type='text' name='username' size='25'></td>
+		</tr>
+		<tr>
+			<td>Password:</td>
+			<td><input type='password' name='password' size='25'></td>
+		</tr>
+		<tr>
+			<td colspan='2' align='center' valign='middle'>
+				<input type='submit' name='submit' value='Log In'>
+			</td>
+		</tr>
+	</table>
+	<input type='hidden' name='op' value='login'>
+	</form>
 	<P>
-	Please log in if you have an account.
+	If you've forgotten your password, you can <a href="{$app_cgi_location}?op=forgot">reset it</a> here. 
+	</P>
+	<P>
     Otherwise, feel free to  <A HREF="{$app_cgi_location}?op=newuser">create a new account</a>.
 	</P>
-	<P>
-	If you already have an account, please DON'T create another one.  If you've forgotten your password, you can <a href="{$app_cgi_location}?op=forgot">reset it</a> here. 
-	</P>
-	<P>
-	<font color='red'><b>NOTE:</b></font><br>
-        <li> This system does NOT use the same accounts as the OCUA Open Forum.  You will need to create an account on this system as well.
-	</P>
-	<form action="{$app_cgi_location}" method="POST">
-	<input type='hidden' name='op' value='login'>
-	Username: <input type='text' name='username' size='25'><br>
-	Password: <input type='password' name='password' size='25'><br>
-	<input type='submit' name='submit' value='Log In'>
-	</form>
 	<P>
 	Please note that this site uses cookies to store authentication information.
 	You must have cookies enabled in your browser to use this site.
