@@ -325,6 +325,10 @@ class GameCreate extends Handler
 			case 'fullladder':
 			case 'oneset':
 				break;
+			case 'fullround':
+			case 'halfround':
+			case 'qplayoff':
+			case 'splayoff':
 			default:
 				error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
 	
@@ -373,6 +377,12 @@ class GameCreate extends Handler
 				break;
 			case 'fullladder':
 				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
+			case 'fullround':
+			case 'halfround':
+			case 'qplayoff':
+				return $this->createPlayoffLadder( $edit, $timestamp, 3 );
+			case 'splayoff':
+				return $this->createPlayoffLadder( $edit, $timestamp, 2 );
 			default:
 				error_exit("That is not a valid option right now.");
 	
@@ -385,7 +395,7 @@ class GameCreate extends Handler
 	 */
 	function createLadderGameSet( $edit, $timestamp )
 	{
-		$league = $this->league;  // shorthand
+		$league = &$this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
 			error_exit("Error loading teams for league $league->fullname");
@@ -426,7 +436,7 @@ class GameCreate extends Handler
 	 */
 	function createLadderSeason( $edit, $timestamp, $end_timestamp )
 	{
-		$league = $this->league;  // shorthand
+		$league = &$this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
 			error_exit("Error loading teams for league $league->fullname");
@@ -514,24 +524,59 @@ class GameCreate extends Handler
 		local_redirect(url("schedule/view/$league->league_id"));
 	}
 
-	/********************************************************************************
-	 *  This function takes in the array of games to delete, and an error message.
-	 *  It will try to delete all the games, and will then exit with the error message
-	 *   passed in.  If there's a problem deleting games, it'll tell you too.
+	/**
+	 * Creates a playoff ladder with the specified number of rounds.  
+	 * 3 rounds gives us quarters, semis, and finals, and requires a
+	 * multiple of 8 teams.
+	 * 2 rounds gives us quarters and semis, and requires a multiple 
+	 * of 4 teams.
+	 * The assumption here is that we're seeding playoffs directly from a
+	 * completed regular season, so we can just use the existing standings
+	 * calculation to determine ordering.
+	 */
+	function createPlayoffLadder( $edit, $timestamp, $rounds )
+	{
+		if( $rounds < 2 || $rounds > 3 ) {
+			error_exit("That is not a valid number of rounds");
+		}
+
+		# TODO load teams
+
+		# TODO ensure we have appropriate number of teams
+		# if( $num_teams % (2 ** $rounds) ) {
+		# 	error_exit("Sorry, you do not have enough teams for a full playoff ladder")
+		# }
+
+		# TODO sort teams for seeding
+
+		# TODO Determine team matchup ordering.  Given N teams, do we:
+		#   - match 1 v N, 2 v N-1, 3 v N-2, etc
+		#   - match 1 v 2, 3 v 4, etc
+		#   - match using either system above in groups of size (2 ** rounds)
+
+		error_exit("TODO");
+			
+	}
+
+	/*
+	 *  This function takes in the array of games to delete, and an error
+	 *  message.  It will try to delete all the games, and will then exit with
+	 *  the error message passed in.  If there's a problem deleting games,
+	 *  it'll tell you too.
 	 */
 	function rollback_games ($games, $error) {
 		foreach ($games as $g) {
 			if (! $g->delete() ) {
-				error_exit("First error: $error ... Then, on top of that, there was a problem deleting the games!!!");
+				error_exit("Error: Couldn't rollback games when trying to recover from error \"$error\"");
 			}
 		}
 		error_exit($error);
 	}
 
-	/********************************************************************************
-	 *  This function takes in the league object, a start date and an end date.
-	 *  The return value is an array of dates for which this league will have games,
-	 *   between the start and end dates (inclusively)
+	/*
+	 * This function takes in the league object, a start date and an end date.
+	 * The return value is an array of dates for which this league will have
+	 * games, between the start and end dates (inclusively)
 	 */
 	function find_game_dates ($league, $start, $end) {
 		$game_dates = array();
@@ -553,10 +598,10 @@ class GameCreate extends Handler
 	}
 
 	/** sorts an array of teams by their rank, from lowest rank (best) to highest rank (worst) **/
-        function sort_teams_by_ranking (&$a, &$b)
-        {
+	function sort_teams_by_ranking (&$a, &$b)
+	{
 		// A first as we want ascending
-                if ($a->rank == $b->rank) {
+		if ($a->rank == $b->rank) {
 			return 0;
 		}
 		return ($a->rank < $b->rank) ? -1 : 1;
@@ -564,7 +609,7 @@ class GameCreate extends Handler
 
 	function createDayOfGames( &$edit, $timestamp ) 
 	{
-		$league = $this->league;  // shorthand
+		$league = &$this->league;  // shorthand
 		
 		if ( ! $league->load_teams() ) {
 			error_exit("Error loading teams for league $league->fullname");
@@ -1330,6 +1375,9 @@ function game_score_entry_display( $game )
 			'score_against' => 'not entered',
 			'defaulted' => 'no' 
 		);
+	} else {
+		$entry_person = person_load( array('user_id' => $home['entered_by']));
+		$home['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 	}
 	
 	$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
@@ -1339,6 +1387,9 @@ function game_score_entry_display( $game )
 			'score_against' => 'not entered',
 			'defaulted' => 'no' 
 		);
+	} else {
+		$entry_person = person_load( array('user_id' => $away['entered_by']));
+		$away['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 	}
 		
 	$header = array(
@@ -1352,6 +1403,7 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
 	$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
+	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 ?>
