@@ -1,5 +1,5 @@
 create table gameslot (
-	id		integer AUTO_INCREMENT,
+	slot_id		integer AUTO_INCREMENT,
 	site_id		integer NOT NULL,
 	field_num	integer NOT NULL,
 	date_played	datetime,
@@ -29,8 +29,11 @@ update site, site_field_count SET site.num_fields = site_field_count.num_fields
 WHERE site.site_id = site_field_count.site_id;
 drop table site_field_count;
 
+create table league_gameslot_availability (
+	league_id 	integer NOT NULL,
+	slot_id		integer NOT NULL
+);
+insert into league_gameslot_availability (league_id, slot_id) select s.league_id,g.slot_id from gameslot g, schedule s WHERE g.game_id = s.game_id;
+
 -- drop table field_assignment;
--- create table league_gameslot_assoc (
--- 	league		integer NOT NULL,
---	gameslot	integer NOT NULL
--- );
+-- drop table field;

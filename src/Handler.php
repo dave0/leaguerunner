@@ -13,6 +13,7 @@ module_register("Handler/Field.php", 'field');
 module_register("Handler/Ward.php", 'ward');
 module_register("Handler/Site.php",'site');
 module_register("Handler/Game.php",'game');
+module_register("Handler/GameSlot.php",'slot');
 /* 
  * Not needed/wanted for summer
 module_register("Handler/WaitingList.php",'wlist');

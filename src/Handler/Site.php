@@ -337,7 +337,7 @@ class SiteView extends Handler
 
 		$site = site_load( array('site_id' => $id) );
 		if(!$site) {
-			$this->error_exit("The site [$id] does not exist");
+			$this->error_exit("That site does not exist");
 		}
 	
 		$rows = array();
@@ -363,7 +363,7 @@ class SiteView extends Handler
 		for( $field_num = 1; $field_num <= $site->num_fields; $field_num++) {
 			$fieldRows[] = array(
 				"$site->code $field_num",
-				l("view field", "site/field/$site->site_id/$field_num", array('title' => "View field details"))
+				l("view field", "field/view/$site->site_id/$field_num", array('title' => "View field details"))
 			);
 		}
 		

@@ -23,11 +23,6 @@ class Game extends LeaguerunnerObject
 			$this->{$key} = $value;
 		}
 
-		/* set derived attributes */
-		if($this->site_id) {
-			$this->site = site_load( array('site_id' => $this->site_id) );
-		}
-
 		return true;
 	}
 	

@@ -8,8 +8,6 @@ function field_dispatch()
 {
 	$op = arg(1);
 	switch($op) {
-		case 'create':
-			return new FieldCreate;
 		case 'edit':
 			return new FieldEdit;
 		case 'view':
@@ -20,71 +18,6 @@ function field_dispatch()
 			return new FieldUnassign;
 	}
 	return null;
-}
-
-/**
- * Field create handler
- */
-class FieldCreate extends FieldEdit
-{
-	function initialize ()
-	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		
-		$this->setLocation(array("Create New Field" => 0));
-		return true;
-	}
-	
-	function process ()
-	{
-		$id = -1;
-		$edit = $_POST['edit'];
-		$siteID = arg(2);
-	
-		$site = site_load( array('site_id' => $siteID) );
-		if( !$site ) {
-			$this->error_exit("You cannot add a field to an invalid site.");
-		}
-		
-		switch($edit['step']) {
-			case 'confirm':
-				$rc = $this->generateConfirm( $id, $site, $edit );
-				break;
-			case 'perform':
-				$this->perform( &$id, $site, $edit );
-				local_redirect("field/view/$id");
-				break;
-			default:
-				$rc = $this->generateForm( $site );
-		}
-		$this->setLocation(array($this->title => 0));
-		return $rc;
-	}
-	
-	function perform ( $id, $site, $edit )
-	{
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		db_query("INSERT into field (site_id,num) VALUES (%d,%d)", $site->site_id, $edit['num']);
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-
-		$result = db_query("SELECT LAST_INSERT_ID() from field");
-		if(!db_num_rows($result)) {
-			return false;
-		}
-		$id = db_result($result);
-		
-		return parent::perform( $id, $edit );
-	}
 }
 
 /**
@@ -253,90 +186,55 @@ class FieldView extends Handler
 			'field_edit'		=> false,
 			'field_assign'		=> false,
 		);
-		
+
 		return true;
 	}
-	
+
 	function set_permission_flags($type) 
 	{
 		if($type == 'administrator') {
 			$this->enable_all_perms();
 		}
 	}
-	
+
 	function process ()
 	{
-		$id = arg(2);
-		
-		$field = field_load( array('field_id' => $id) );
-		if(!$field) {
+		$site_id = arg(2);
+		$field_num = arg(3);
+
+		$site = site_load( array('site_id' => $site_id) );
+		if(!$site) {
+			$this->error_exit("That site does not exist");
+		}
+		if( !validate_number($field_num) ) {
 			$this->error_exit("That field does not exist");
-		}
-
-		$daysAvailable = strlen($field->availability) ? split(",", $field->availability) : array();
-		
-		$allDays = array_values( getOptionsFromEnum('field_assignment', 'day') );
-		
-		$header = array("Day","League",array('data' => '&nbsp;', 'colspan' => 2));
-		$rows = array();	
-		foreach($allDays as $curDay) {
-			if($curDay === '---') {
-				continue;
-			}
-			$thisRow = array( $curDay );
-			
-			if(in_array($curDay, $daysAvailable)) {
-				$result = db_query("SELECT 
-					a.league_id, 
-					IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS name
-				FROM 
-					field_assignment a, league l
-				WHERE 
-					a.day = '%s' AND a.field_id = %d AND a.league_id = l.league_id ORDER BY l.ratio, l.tier",  $curDay, $id);
-				
-				$booking = "";
-				while($ass = db_fetch_object($result)) {
-					$booking .= "&raquo;&nbsp;$ass->name";
-					$booking .= "&nbsp;[&nbsp;" 
-						. l("view league", "league/view/$ass->league_id");
-					if($this->_permissions['field_assign']) {
-						$booking .= "&nbsp;|&nbsp;" 
-							. l("delete booking", "field/unassign/$id/$curDay/$ass->league_id");
-					}
-					$booking .= "&nbsp;]<br />";
-				}
-				$thisRow[] = $booking;
-				if($this->_permissions['field_assign']) {
-					$thisRow[] = l("add new booking", "field/assign/$id/$curDay");
-				}
-			} else {
-				$thisRow[] = array('data' => 'Unavailable', 'colspan' => 2);
-			}
-			$rows[] = $thisRow;
-		}
-		$bookings = '<div class="listtable">' . table($header, $rows) . "</div>";
-
-		$links = array();
-		if($this->_permissions['field_edit']) {
-			$links[] = l("edit field", "field/edit/$id");
 		}
 		
 		$this->setLocation(array(
-			$field->fullname => "field/view/$id",
+			"$site->name $field_num" => "field/view/$site_id/$field_num",
 			$this->title => 0
 		));
 
-		$output = theme_links($links);
-		$output .= "<div class='pairtable'>";
-		$output .= table(null, array(
-			array("Site:", 
-				"$field->name ($field->code)&nbsp;[&nbsp;" 
-				. l("view", "site/view/$field->site_id") . "&nbsp;]"),
-			array("Status:", $field->status),
-			array("Assignments:", $bookings),
-		
-		));
-		$output .= "</div>";
+		$result = db_query("SELECT 
+			g.*
+			FROM gameslot g
+			WHERE site_id = %d AND field_num = %d ORDER BY g.game_date, g.game_start", $site->site_id, $field_num);
+
+		$header = array("Date","Start Time","End Time","Booking", "Actions");
+		$rows = array();
+		while($slot = db_fetch_object($result)) {
+			$booking = '';
+			$actions = array(
+				l('availability', "slot/availability/$slot->slot_id")
+			);
+			if($slot->game_id) {
+				$game = game_load( array('game_id' => $slot->game_id) );
+				$booking = l($game->game_id,"game/view/$game->game_id");
+			}
+			$rows[] = array($slot->game_date, $slot->game_start, $slot->game_end, $booking, theme_links($actions));
+		}
+
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 
 		return $output;
 	}
