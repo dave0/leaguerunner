@@ -18,7 +18,7 @@ class GameSubmit extends Handler
 		);
 
 		$this->op = 'game_submitscore';
-
+		$this->section = 'admin';
 		return true;
 	}
 
@@ -205,12 +205,7 @@ class GameSubmit extends Handler
 
 		}
 		
-		print $this->get_header();
-		print h1($this->title);
-		print para($resultMessage);
-		print $this->get_footer();
-
-		return true;
+		return para($resultMessage);
 	}
 
 	function generateConfirm ($id, $team_id)
@@ -285,12 +280,7 @@ class GameSubmit extends Handler
 		$output .= "</table>";
 		$output .= para(form_submit('submit'));
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-
-		return true;
+		return form($output);
 	}
 
 	function generateForm ( $id, $team_id ) 
@@ -418,15 +408,8 @@ ENDSCRIPT;
 
 		$output .= "</table>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
-		
 
-		print $this->get_header();
-		print $script;
-		print h1($this->title);
-		print form($output, "POST", 0, "name='scoreform'");
-		print $this->get_footer();
-	
-		return true;
+		return $script . form($output, "POST", 0, "name='scoreform'");
 	}
 
 	function save_one_score ( $id, $team_id, $our_entry ) 
@@ -469,7 +452,7 @@ class GameFinalizeScore extends Handler
 			'deny',
 		);
 		$this->op = 'game_finalize';
-
+		$this->section = 'admin';
 		return true;
 	}
 
@@ -668,11 +651,7 @@ class GameFinalizeScore extends Handler
 
 		$output .= para(form_submit('submit'));
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateForm ( $id ) 
@@ -822,12 +801,7 @@ class GameFinalizeScore extends Handler
 </script>
 ENDSCRIPT;
 
-		print $this->get_header();
-		print $script;
-		print h1($this->title);
-		print form($output, "POST", 0, "name='scoreform'");
-		print $this->get_footer();
-		return true;
+		return $script . form($output, "POST", 0, "name='scoreform'");
 	}
 }
 function scores_agree( $one, $two )

@@ -1,6 +1,6 @@
 <?php
 /*
- * Web-based Ultimate league management software
+ * Web-based league management software
  *
  * Copyright (c) 2002 Dave O'Neill
  *
@@ -18,6 +18,7 @@
  * Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Authors: Dave O'Neill <dmo@acm.org>
+ *          Mackenzie King <mackking@canada.com>
  * 
  */
 ini_set('include_path','.:/usr/share/php:/usr/local/lib/php');
@@ -77,16 +78,18 @@ if($possibleRedirect) {
 if($handler->initialize()) {
 	/* Ensure we have permission */
 	if($handler->has_permission()) {
+	
 		/* Process the action */
-		if($handler->process()) {
-			/* 
-			 * Display the appropriate output.  This uses the template filled
-			 * by process()
-			 */
-			$handler->display();
-		} else {
+		$result = $handler->process();
+		if($result === false) {
 			$handler->error_exit("Uncaught failure performing $op");
 		}
+
+		print $handler->get_header();
+		print h1($handler->title);
+		print $result;
+		print $handler->get_footer();
+		
 	} else {
 		$handler->error_exit("You do not have permission to perform that operation");
 	}

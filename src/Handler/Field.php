@@ -23,8 +23,10 @@ class FieldCreate extends FieldEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->set_title("Create New Field");
+		
+		$this->set_title("Create Field");
 		$this->op = 'field_create';
+		$this->section = 'field';
 		return true;
 	}
 
@@ -74,11 +76,7 @@ class FieldCreate extends FieldEdit
 		$output .= "</table>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 	
 	function generateConfirm ( $id )
@@ -123,11 +121,7 @@ class FieldCreate extends FieldEdit
 		$output .= "</table>";
 		$output .= para(form_submit("submit"));
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 	
 	function perform ( $id )
@@ -180,6 +174,7 @@ class FieldEdit extends Handler
 
 		$this->set_title("Edit Field");
 		$this->op = 'field_edit';
+		$this->section = 'field';
 		return true;
 	}
 
@@ -258,11 +253,7 @@ class FieldEdit extends Handler
 
 		$this->set_title($this->title . " &raquo; " . $field['site_name'] . " " . $field['num']);
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateConfirm ( $id )
@@ -311,11 +302,7 @@ class FieldEdit extends Handler
 		
 		$this->set_title($this->title . " &raquo; " . $site['site_name'] . " " . $field['num']);
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function perform ( $id )
@@ -385,6 +372,7 @@ class FieldView extends Handler
 			'allow',
 		);
 		$this->op = 'field_view';	
+		$this->section = 'field';
 		return true;
 	}
 	
@@ -472,7 +460,8 @@ class FieldView extends Handler
 			$links[] = l("edit field", "op=field_edit&id=$id");
 		}
 
-		$output = "<table border='0' width='100%'>";
+		$output = blockquote(theme_links($links));
+		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site:", 
 			$field['name'] 
 			. " (" . $field['code'] . ")&nbsp;[&nbsp;" 
@@ -482,13 +471,7 @@ class FieldView extends Handler
 		
 		$output .= "<table>";
 
-		print $this->get_header();
-		print h1($this->title);
-		print blockquote(theme_links($links));
-		print $output;
-		print $this->get_footer();
-
-		return true;
+		return $output;
 	}
 }
 
@@ -511,6 +494,7 @@ class FieldAssign extends Handler
 			'deny'
 		);
 		$this->op = 'field_assign';
+		$this->section = 'field';
 		return true;
 	}
 	
@@ -574,11 +558,7 @@ class FieldAssign extends Handler
 
 		$output .= form_submit("Submit");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;	
+		return form($output);
 	}
 
 	function generateConfirm ( $id, $league, $day )
@@ -609,11 +589,7 @@ class FieldAssign extends Handler
 
 		$output .= form_submit("Submit");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;	
+		return form($output);
 	}
 }
 
@@ -635,6 +611,7 @@ class FieldUnassign extends Handler
 			'deny',
 		);
 		$this->op = 'field_unassign';
+		$this->section = 'field';
 		return true;
 	}
 	
@@ -699,11 +676,7 @@ class FieldUnassign extends Handler
 
 		$output .= form_submit("Submit");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;	
+		return form($output);
 	}
 }
 

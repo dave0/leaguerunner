@@ -19,6 +19,7 @@ class LeagueScheduleAddWeek extends Handler
 		);
 
 		$this->op = 'league_schedule_addweek';
+		$this->section = 'league';
 		$this->set_title("Schedule &raquo; Add Week");
 
 		return true;
@@ -111,11 +112,7 @@ class LeagueScheduleAddWeek extends Handler
 			$this->set_title($this->title . " Tier " . $league['tier']);
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		return true;
+		return $output;
 	}
 
 	/**
@@ -162,11 +159,7 @@ class LeagueScheduleAddWeek extends Handler
 			}
 		}
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	/**
@@ -241,6 +234,7 @@ class LeagueScheduleEdit extends Handler
 			'coordinator_sufficient',
 		);
 		$this->op = 'league_schedule_edit';
+		$this->section = 'league';
 		return true;
 	}
 	
@@ -382,11 +376,7 @@ class LeagueScheduleEdit extends Handler
 			}
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 	
 	function perform () 
@@ -455,6 +445,7 @@ class LeagueScheduleView extends Handler
 		);
 
 		$this->op = 'league_schedule_view';
+		$this->section = 'league';
 
 		return true;
 	}
@@ -471,11 +462,17 @@ class LeagueScheduleView extends Handler
 	function process ()
 	{
 		global $DB;
-		
-		$output = "<table border='0' cellpadding='3' cellspacing='0'>";
 
 		$id = var_from_getorpost('id');
 		$week_id = var_from_getorpost('week_id');
+
+		$links = array();
+		if($this->_permissions['edit_schedule']) {
+			$links[] = l("add new week", "op=league_schedule_addweek&id=$id");
+		}
+		$output = blockquote(theme_links($links));
+		
+		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
 	
 		$league = $DB->getRow(
 			"SELECT 
@@ -549,18 +546,9 @@ class LeagueScheduleView extends Handler
 		$output .= $this->processOneWeek( $thisWeekGames, $league, $week_id, $id );
 		$output .= "</table>";
 
-		$links = array();
-		if($this->_permissions['edit_schedule']) {
-			$links[] = l("add new week", "op=league_schedule_addweek&id=$id");
-		}
+		$output .= blockquote(theme_links($links));
 
-		print $this->get_header();
-		print h1($this->title);
-		print blockquote(theme_links($links));
-		print form($output);
-		print blockquote(theme_links($links));
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function processOneWeek( &$games, &$league, $week_id, $id )

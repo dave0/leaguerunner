@@ -3,6 +3,7 @@
 register_page_handler('league_create', 'LeagueCreate');
 register_page_handler('league_edit', 'LeagueEdit');
 register_page_handler('league_list', 'LeagueList');
+register_page_handler('league', 'LeagueList');
 register_page_handler('league_standings', 'LeagueStandings');
 register_page_handler('league_view', 'LeagueView');
 register_page_handler('league_captemail', 'LeagueCaptainEmails');
@@ -27,6 +28,7 @@ class LeagueCreate extends LeagueEdit
 		);
 		$this->op = 'league_create';
 		$this->set_title("Create New League");
+		$this->section = 'league';
 		return true;
 	}
 
@@ -97,7 +99,7 @@ class LeagueEdit extends Handler
 		);
 
 		$this->op = 'league_edit';
-
+		$this->section = 'league';
 		return true;
 	}
 
@@ -237,11 +239,7 @@ class LeagueEdit extends Handler
 			}
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateConfirm ( $id )
@@ -316,11 +314,7 @@ class LeagueEdit extends Handler
 			$this->set_title($this->title . " Tier " . $league_tier);
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function perform ( $id )
@@ -432,13 +426,26 @@ class LeagueList extends Handler
 	function initialize ()
 	{
 		$this->set_title("List Leagues");
+		$this->_permissions = array(
+			'delete' => false,
+			'create' => false,
+		);
 		$this->_required_perms = array(
 			'require_valid_session',
+			'admin_sufficient',
 			'allow'
 		);
 
 		$this->op = 'league_list';
+		$this->section = 'league';
 		return true;
+	}
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} 
 	}
 
 	function process ()
@@ -452,13 +459,24 @@ class LeagueList extends Handler
 		
 		/* Fetch league names */
 		$seasonNames = array_values( getOptionsFromEnum('league', 'season') );
+		/* TODO: getOptionsFromEnum prepends the '---' item for 
+		 * denoting a <select> that hasn't had a selection made.
+		 * We need to shift it off the front, as it's not needed here.
+		 */
+		array_shift($seasonNames);
+
+		
 		if( !in_array($wantedSeason, $seasonNames) ) {
 			$this->error_exit("That is not a valid season"); 
 		} else {
 			$this->set_title("List Leagues &raquo; $wantedSeason");
 		}
 
-		$output = "<table border='0'>";
+		$output = "";
+		if($this->_permissions['create']) {
+			$output .= blockquote(l("create league", "op=league_create"));
+		}
+		$output .= "<table border='0'>";
 		$seasonLinks = array();
 		foreach($seasonNames as $curSeason) {
 			if($curSeason == $wantedSeason) {
@@ -474,7 +492,7 @@ class LeagueList extends Handler
 			. td("Ratio", array('class' => 'row_title'))
 			. td("&nbsp;", array('class' => 'row_title')));
 
-		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, ratio, tier, name",
+		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, name, ratio, tier",
 			array($wantedSeason));
 		if($this->is_database_error($result)) {
 			return false;
@@ -491,6 +509,9 @@ class LeagueList extends Handler
 				$links[] = l('schedule', 'op=league_schedule_view&id=' . $league['league_id']);
 				$links[] = l('standings', 'op=league_standings&id=' . $league['league_id']);
 			}
+			if($this->_permissions['delete']) {
+				$links[] = l('standings', 'op=league_standings&id=' . $league['league_id']);
+			}
 			$output .= tr(
 				td($name, array('class' => 'row_data'))
 				. td($league['ratio'], array('class' => 'row_data'))
@@ -500,12 +521,7 @@ class LeagueList extends Handler
 
 		$output .= "</table>";
 		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		
-		return true;
+		return $output;
 	}
 }
 
@@ -527,7 +543,7 @@ class LeagueStandings extends Handler
 		);
 
 		$this->op = 'league_standings';
-
+		$this->section = 'league';
 		return true;
 	}
 
@@ -567,11 +583,8 @@ class LeagueStandings extends Handler
 			$title .= " Tier " . $league['tier'];
 		}
 		$this->set_title("View Standings &raquo; $title");
-		print $this->get_header();
-		print h1("Standings for " . $title);
-		print $this->generate_standings($id, $round);
-		print $this->get_footer();
-		return true;
+		
+		return $this->generate_standings($id, $round);
 	}
 
 	function calculate_sotg( &$stats, $drop_best_worst = false ) 
@@ -899,7 +912,7 @@ class LeagueView extends Handler
 		);
 
 		$this->op = 'league_view';
-
+		$this->section = 'league';
 		return true;
 	}
 
@@ -944,8 +957,10 @@ class LeagueView extends Handler
 			$links[] = l("edit info", "op=league_edit&id=$id");
 			$links[] = l("fetch captain emails", "op=league_captemail&id=$id");
 		}
+		
+		$output =  blockquote(theme_links($links));
 
-		$output = "<table border='0'>";
+		$output .= "<table border='0'>";
 		$output .= simple_row("Coordinator:", 
 			l($league['coordinator_name'], "op=person_view&id=" . $league['coordinator_id']));
 		if($league['alternate_id']) {
@@ -1008,12 +1023,7 @@ class LeagueView extends Handler
 			$title .= " Tier " . $league['tier'];
 		}
 		$this->set_title("View League &raquo; $title");
-		print $this->get_header();
-		print h1($title);
-		print blockquote(theme_links($links));
-		print $output;
-		print $this->get_footer();
-		return true;
+		return $output;
 	}
 }
 
@@ -1028,7 +1038,8 @@ class LeagueCaptainEmails extends Handler
 			'coordinator_sufficient',
 			'deny',
 		);
-
+		$this->section = 'league';
+		$this->title = 'Captain Emails';
 		return true;
 	}
 
@@ -1037,8 +1048,6 @@ class LeagueCaptainEmails extends Handler
 		global $DB;
 
 		$id = var_from_getorpost('id');
-
-		$output = "# League captain email address list\n";
 
 		$addrs = $DB->getAll("SELECT 
 				p.firstname, p.lastname, p.email
@@ -1053,20 +1062,29 @@ class LeagueCaptainEmails extends Handler
 			return false;
 		}
 		if(count($addrs) <= 0) {
-			return true;
+			return false;
 		}
-		
+
 		foreach($addrs as $addr) {
-			$output .= sprintf("\"%s %s\" <%s>,\n",
+			$output .= sprintf("\"%s %s\" &lt;%s&gt;,\n",
 				$addr['firstname'],
 				$addr['lastname'],
 				$addr['email']);
 		}
+
+		/* Get league info */
+		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league)) {
+			return false;
+		}
+		$title = $this->title . " &raquo; " . $league['name'];
+		if($league['tier'] > 0) {
+			$title .= " Tier ". $league['tier'];
+		}
+		$this->set_title($title);
+
 		
-		Header("Content-type: text/plain");
-		print $output;
-		
-		return true;
+		return pre($output);
 	}
 }
 
@@ -1084,7 +1102,7 @@ class LeagueMoveTeam extends Handler
 		);
 
 		$this->op = 'league_moveteam';
-
+		$this->section = 'league';
 		return true;
 	}
 
@@ -1200,11 +1218,7 @@ class LeagueMoveTeam extends Handler
 
 		$output .= form_submit("Submit");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;	
+		return form($output);
 	}
 	
 	function generateForm ( $id, $team_id)
@@ -1246,11 +1260,7 @@ class LeagueMoveTeam extends Handler
 
 		$output .= form_submit("Submit");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 }
 
@@ -1268,7 +1278,7 @@ class LeagueVerifyScores extends Handler
 
 		$this->op = 'league_verifyscores';
 		$this->set_title("Verify Scores");
-
+		$this->section = 'league';
 		return true;
 	}
 
@@ -1378,12 +1388,7 @@ class LeagueVerifyScores extends Handler
 		}
 		$this->set_title($title);
 		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-
-		return true;
+		return $output;
 	}
 }
 

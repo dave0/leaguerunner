@@ -3,6 +3,8 @@
 /*
  * Handlers for dealing with field sites
  */
+register_page_handler('field', 'SiteList');
+
 register_page_handler('site_create', 'SiteCreate');
 register_page_handler('site_edit', 'SiteEdit');
 register_page_handler('site_list', 'SiteList');
@@ -12,13 +14,15 @@ class SiteCreate extends SiteEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create New Field Site");
+		$this->set_title("Create Field Site");
+		$this->breadcrumbs[] = "Create";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
 			'deny'
 		);
 		$this->op = "site_create";
+		$this->section = 'field';
 		return true;
 	}
 	
@@ -37,7 +41,8 @@ class SiteCreate extends SiteEdit
 		if($this->is_database_error($id)) {
 			return false;
 		}
-		
+	
+		/* TODO Make $this->id go away */
 		$this->id = $id;
 		
 		return parent::perform();
@@ -60,6 +65,7 @@ class SiteEdit extends Handler
 			'deny'
 		);
 		$this->op = "site_edit";
+		$this->section = 'field';
 		return true;
 	}
 
@@ -84,13 +90,11 @@ class SiteEdit extends Handler
 						return false;
 					}
 					$this->set_title($this->title . " &raquo; ". $name);
+					$this->breadcrumbs[] = l($name,"op=site_view&id=" . $this->id);
+					$this->breadcrumbs[] = l("Edit","op=site_edit&id=" . $this->id);
 				}
 				
-				print $this->get_header();
-				print h1($this->title);
-				print $this->generateConfirm(var_from_getorpost('site'));
-				print $this->get_footer();
-				exit;
+				return $this->generateConfirm(var_from_getorpost('site'));
 				break;
 			case 'perform':
 				$dataInvalid = $this->isDataInvalid();
@@ -110,17 +114,13 @@ class SiteEdit extends Handler
 						return false;
 					}
 					$this->set_title($this->title . " &raquo; ". $row['name']);
+					$this->breadcrumbs[] = l($row['name'],"op=site_view&id=".$this->id);
+					$this->breadcrumbs[] = l("Edit","op=site_edit&id=" . $this->id);
 				} else {
 					$row = array();
 				}
-				print $this->get_header();
-				print h1($this->title);
-				print $this->generateForm($row);
-				print $this->get_footer();
-				exit;
+				return $this->generateForm($row);
 		}
-	
-		return $rc;
 	}
 
 	function generateForm( $data = array() )
@@ -302,31 +302,77 @@ class SiteList extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("List Field Sites");
+		$this->set_title("Field Sites");
+		
+		$this->_permissions = array(
+			"field_admin"    => false,
+		);
+		
 		$this->_required_perms = array(
+			'admin_sufficient',
+			'volunteer_sufficient',
 			'allow'		/* Allow everyone */
 		);
 		$this->op = "site_list";
+		$this->section = 'field';
 		return true;
+	}
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} 
 	}
 
 	function process ()
 	{
 		global $DB;
+		
+		$links = array();
+		
+		if($this->_permissions['field_admin']) {
+			$links[] = l("create field site", "op=site_create");
+		}
+		
+		$output = blockquote(
+			theme_links( $links ) );
+
+		ob_start();
+		$retval = @readfile("data/field_caution.html");
+		if (false !== $retval) {
+			$output .= blockquote(ob_get_contents());
+		}           
+		ob_end_clean();
 
 		$query = $DB->prepare(
-			"SELECT CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value, 
-				s.site_id AS id FROM site s LEFT JOIN field f ON (f.site_id = s.site_id) 
-			GROUP BY f.site_id ORDER BY s.name");
-	
-		$output = $this->generateSingleList($query,
-			array(array( 'name' => 'view', 'target' => 'op=site_view&id=')));
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		
-		return true;
+			"SELECT s.site_id, s.name, s.region FROM site s
+			ORDER BY s.region,s.name");
+		$result = $DB->execute($query);
+		if($this->is_database_error($result)) {
+			return false;
+		}
+
+		$fieldsByRegion = array();
+		while($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+			if(! array_key_exists( $row['region'], $fieldsByRegion) ) {
+				$fieldsByRegion[$row['region']] = "";
+				$headings .= th(ucfirst($row['region']));
+			}
+			$fieldsByRegion[$row['region']] 
+				.= l($row['name'], 'op=site_view&id=' . $row['site_id']) . " <br />";
+		}
+
+		$output .= "<div class='fieldlist'><table>";
+		$output .= tr($headings);
+		$output .= '<tr>';
+		while(list($region,$fields) = each($fieldsByRegion)) {
+			$output .= td($fields);	
+		}
+		$output .= '</tr>';
+		$output .= "</table></div>";
+
+		return $output;
 	}
 }
 
@@ -334,9 +380,8 @@ class SiteView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View Site");
+		$this->set_title("View Field Site");
 		$this->_required_perms = array(
-			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
 			'allow',
@@ -346,6 +391,7 @@ class SiteView extends Handler
 			'field_create'		=> false,
 		);
 		$this->op = "site_view";
+		$this->section = 'field';
 		return true;
 	}
 	
@@ -402,9 +448,7 @@ class SiteView extends Handler
 		$field_listing .= "</ul>";
 		
 
-		$this->set_title("View Site &raquo; ".$site['name']." (" . $site['code'] . ")");
-		$output = h1($this->title);
-		$output .= blockquote(theme_links($links));
+		$output = blockquote(theme_links($links));
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site Name:", $site['name']);
 		$output .= simple_row("Site Code:", $site['code']);
@@ -423,10 +467,10 @@ class SiteView extends Handler
 		
 		$output .= "</table>";
 		
-		print $this->get_header();
-		print $output;
-		print $this->get_footer();
-		return true;
+		$this->set_title("View Field Site &raquo; ".$site['name']." (" . $site['code'] . ")");
+		$this->breadcrumbs[] = l($site['name'],"op=site_view&id=" . $site['site_id']);
+		
+		return $output;
 	}
 }
 

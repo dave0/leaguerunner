@@ -9,7 +9,6 @@ class Login extends Handler
 {
 	function initialize () 
 	{
-		$this->title = "Login";
 		$this->_required_perms = array(
 			'allow'
 		);
@@ -40,19 +39,13 @@ class Login extends Handler
 			if($session->is_valid()) {
 				return $this->handle_valid();
 			}
-			print $this->get_header();
-			print $this->login_form();
-			print $this->get_footer();
-			return true;
+			return $this->login_form();
 		}
 		
 		/* Now, if we can, we will create a new user session */
 		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
-			print $this->get_header();
-			print $this->login_form("Incorrect username or password");
-			print $this->get_footer();
-			return true;
+			return $this->login_form("Incorrect username or password");
 		}
 	
 		/* 
@@ -70,15 +63,10 @@ class Login extends Handler
 
 		switch($session->attr_get('class')) {
 			case 'new':
-				print $this->get_header();
-				print $this->login_form("Login Denied.  Account creation is awaiting approval.");
-				print $this->get_footer();
-				return true; 
+				return $this->login_form("Login Denied.  Account creation is awaiting approval.");
 				break;
 			case 'locked':
-				print $this->get_header();
-				print $this->login_form("Login Denied.  Account has been locked by administrator.");
-				print $this->get_footer();
+				return $this->login_form("Login Denied.  Account has been locked by administrator.");
 				return true;
 				break;
 			case 'inactive':

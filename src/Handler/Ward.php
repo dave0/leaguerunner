@@ -19,6 +19,7 @@ class WardCreate extends WardEdit
 			'deny'
 		);
 		$this->op = "ward_create";
+		$this->section = 'admin';
 		return true;
 	}
 	
@@ -59,6 +60,7 @@ class WardEdit extends Handler
 			'deny'
 		);
 		$this->op = "ward_edit";
+		$this->section = 'admin';
 		return true;
 	}
 
@@ -78,11 +80,7 @@ class WardEdit extends Handler
 				}
 				
 				$this->set_title($this->title . " &raquo; ". $edit['name']);
-				print $this->get_header();
-				print h1($this->title);
-				print $this->generateConfirm($edit);
-				print $this->get_footer();
-				exit;
+				return $this->generateConfirm($edit);
 				break;
 			case 'perform':
 				$dataInvalid = $this->isDataInvalid();
@@ -105,14 +103,8 @@ class WardEdit extends Handler
 				} else {
 					$row = array();
 				}
-				print $this->get_header();
-				print h1($this->title);
-				print $this->generateForm($row);
-				print $this->get_footer();
-				exit;
+				return $this->generateForm($row);
 		}
-	
-		return $rc;
 	}
 
 	function generateForm( $data = array() )
@@ -262,6 +254,7 @@ class WardList extends Handler
 			'allow'		/* Allow everyone */
 		);
 		$this->op = "ward_list";
+		$this->section = 'admin';
 		return true;
 	}
 
@@ -269,28 +262,24 @@ class WardList extends Handler
 	{
 		global $DB;
 
-		$cities = $DB->getCol("SELECT DISTINCT city FROM ward");
-		if($this->is_database_error($cities)) {
-			return false;
-		}
+		$cities = array('Ottawa','Gatineau');
 		$output = "<table border='0' cellpadding='3' cellspacing='0'><tr>";
 		foreach($cities as $city) {
 			
 			$output .= "<td valign='top'><table border='0' cellpadding='3' cellspacing='0'>";
 			$output .= tr( td($city, array('colspan' => 6, 'class' => 'ward_title')));
-			$result = $DB->query("SELECT * FROM ward WHERE city = ?", array($city));
+			$result = $DB->query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = ? GROUP BY w.ward_id", array($city));
 			if($this->is_database_error($result)) {
 				return false;
 			}
 			while($ward = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
 				$fields = $DB->getOne("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = ?", array($ward['ward_id']));
-				$players = $DB->getOne("SELECT COUNT(*) FROM person WHERE ward_id = ?", array($ward['ward_id']));
 				$output .= tr( 
 					td("&nbsp;", array('width' => 10))
 					. td("Ward " . $ward['num'], array('class'=>'ward_item'))
 					. td($ward['name'], array('class'=>'ward_item'))
 					. td($fields . (($fields == 1) ? " field" : " fields"), array('class'=>'ward_item', 'align' => 'right'))
-					. td($players . (($players == 1) ? " player" : " players"), array('class'=>'ward_item', 'align' => 'right'))
+					. td($ward['players'] . (($ward['players'] == 1) ? " player" : " players"), array('class'=>'ward_item', 'align' => 'right'))
 					. td(l('view', 'op=ward_view&id=' . $ward['ward_id']), array('class'=>'ward_item'))
 				);
 			}
@@ -308,12 +297,7 @@ class WardList extends Handler
 		}
 		$output .= "</tr></table>";
 
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		
-		return true;
+		return $output;
 	}
 }
 
@@ -332,6 +316,7 @@ class WardView extends Handler
 			'ward_edit'			=> false,
 		);
 		$this->op = "ward_view";
+		$this->section = 'admin';
 		return true;
 	}
 	
@@ -396,10 +381,7 @@ class WardView extends Handler
 		
 		$output .= "</table>";
 		
-		print $this->get_header();
-		print $output;
-		print $this->get_footer();
-		return true;
+		return $output;
 	}
 }
 ?>

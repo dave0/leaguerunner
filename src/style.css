@@ -1,34 +1,28 @@
-body            { background-color: white; font-size: 12px;
+body            { background-color: white; font-size: 10pt;
                   font-family:  verdana, arial, helvetica, sans-serif; }
-h1              { font-size: 25px; font-variant: small-caps; }
-pre             { font-family: monospace; font-size: 12px; }
-table           { font-size: 12px; }
+h1              { font-size: 25pt; font-variant: small-caps; }
+pre             { font-family: monospace; font-size: 12pt; }
+table           { font-size: 10pt; }
 
-.row_title      { color: black; font-weight: bold; font-size: 12px; }
+.row_title      { color: black; font-weight: bold; font-size: 12pt; }
 .warning        { background-color: red; border: 1px solid black; }
 
 .toprow         { color: white; background-color: black; border: 1px solid black;
                   padding-left: 7px; padding-right: 7px; }
 
-.lr_navbar      { color: black; background-color: white; font-size: 11px;
-                  border-top: 1px dotted black; border-bottom: 1px dotted black;
-                  padding-left: 5px; padding-right: 5px;
-}
-
 a               { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
-.topbarlink:active  { color: red; }
 
 
-.ward_title, .booking_title, .standings_title, .menu_title, .schedule_title, .teamlist_title, .roster_title {
+.ward_title, .booking_title, .standings_title, .schedule_title, .teamlist_title, .roster_title {
     background-color:    black;
     color:               white;
     font-weight:         bold;
     border-bottom-width: 1px;
     border-bottom-color: black;
     border-bottom-style: solid;
-    font-size: 11px;
+    font-size: 10pt;
 }
 
 .standings_subtitle, .standings_subtitle_lb, .schedule_subtitle, .roster_subtitle {
@@ -36,14 +30,14 @@ a:hover         { text-decoration: underline; }
     border-bottom-width: 1px;
     border-bottom-color: black;
     border-bottom-style: solid;
-    font-size: 11px;
+    font-size: 10pt;
 }
 
-.ward_item, .booking_item, .standings_item, .standings_item_lb, .menu_item, .schedule_item, .teamlist_item, .roster_item {
+.ward_item, .booking_item, .standings_item, .standings_item_lb, .schedule_item, .teamlist_item, .roster_item {
     border-bottom-width: 1px;
     border-bottom-color: gray;
     border-bottom-style: solid;
-    font-size: 11px;
+    font-size: 10pt;
 }
 
 .standings_subtitle_lb, .standings_item_lb {
@@ -57,14 +51,40 @@ a:hover         { text-decoration: underline; }
     border-bottom-color: gray;
     border-bottom-style: solid;
     background-color: red;
-    font-size: 11px;
+    font-size: 10pt;
 }
+
+.myteams table { border-collapse: collapse; width: 100% }
+.myteams th { text-align: left; background-color: black; color: white; 
+              font-size: 12pt; }
+.myteams td { vertical-align: top; font-size: 10pt; }
+
+
+.oldmenu table { border-collapse: collapse; }
+.oldmenu th { text-align: left; background-color: black; color: white; 
+              font-size: 12pt; }
+.oldmenu td { vertical-align: top; border-bottom-width: 1px;
+              border-bottom-color: gray; border-bottom-style: solid;
+	      font-size: 9pt; }
+
 
 .calendar .row-week td a  { display: block; }
 .calendar .row-week td a:hover { background-color: #888; color: #fff; }
-.calendar a               { text-decoration: none; }
-.calendar a:hover         { text-decoration: none; }
 .calendar table           { border-collapse: collapse; width: 100%; }
 .calendar td              { text-align: center; border: 1px solid #000;
                             padding: 1px; margin: 0; font-size: 0.8em; }
 .calendar .highlighted-day { background-color: #CC0; }
+.calendar .current-day     { background-color: #C00; }
+
+.lr_topbar td    { color: black; font-size: 10pt; border: 0px; }
+.lr_topbar table { border-collapse: collapse; width: 100%; }
+.lr_topbar a:active  { color: red; }
+.lr_topbar .nav  { background-color: lightgray; 
+                   padding-left: 5px; padding-right: 5px; }
+.lr_topbar .off  { background-color: darkgray; text-align: center }
+.lr_topbar .on   { background-color: white; font-weight: bold; text-align: center }
+
+.fieldlist table { border-collapse: collapse; width: 100%; }
+.fieldlist th    { background-color: black; color: white; font-weight: bold;
+                   font-size: 12pt; }
+.fieldlist td    { vertical-align: top; font-size: 9pt; }

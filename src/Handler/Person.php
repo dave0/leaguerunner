@@ -12,6 +12,7 @@ register_page_handler('person_survey', 'PersonSurvey');
 register_page_handler('person_signwaiver', 'PersonSignWaiver');
 register_page_handler('person_signdogwaiver', 'PersonSignDogWaiver');
 register_page_handler('person_list', 'PersonList');
+register_page_handler('person', 'PersonList');
 register_page_handler('person_listnew', 'PersonListNewAccounts');
 register_page_handler('person_changepassword', 'PersonChangePassword');
 register_page_handler('person_forgotpassword', 'PersonForgotPassword');
@@ -44,7 +45,8 @@ class PersonView extends Handler
 #			'user_delete'			=> false,
 			'user_change_password'	=> false,
 		);
-
+		$this->op = 'person_view';
+		$this->section = 'person';
 		return true;
 	}
 
@@ -222,12 +224,7 @@ class PersonView extends Handler
 			$links_html .= blockquote(theme_links($links));
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print $links_html;
-		print $this->generateView($person);
-		print $this->get_footer();
-		return true;
+		return $links_html . $this->generateView($person);
 	}
 	
 	function generateView (&$person)
@@ -364,6 +361,7 @@ class PersonDelete extends PersonView
 			'deny',
 		);
 		$this->op = 'person_delete';
+		$this->section = 'person';
 		return true;
 	}
 
@@ -409,20 +407,15 @@ class PersonDelete extends PersonView
 			$this->error_exit("That person does not exist");
 		}
 		
-		$instructions = "Confirm that you wish to delete this user from the system.";
-		print $this->get_header();
-		print h1($this->title);
-		print para($instructions);
-		print $this->generateView($person);
-		print form( 
-			form_hidden('op', $this->op)
-			. form_hidden('step', 'perform')
-			. form_hidden('id', $id)
-			. form_submit("Delete")
-		);
-		print $this->get_footer();
-
-		return true;
+		return 
+			para("Confirm that you wish to delete this user from the system.")
+			. $this->generateView($person)
+			. form( 
+				form_hidden('op', $this->op)
+				. form_hidden('step', 'perform')
+				. form_hidden('id', $id)
+				. form_submit("Delete")
+			);
 	}
 
 	/**
@@ -488,6 +481,7 @@ class PersonApproveNewAccount extends PersonView
 			'deny',
 		);
 		$this->op = 'person_approvenew';
+		$this->section = 'person';
 		return true;
 	}
 
@@ -565,19 +559,14 @@ class PersonApproveNewAccount extends PersonView
 			$instructions .= "</ul></div>";
 		}
 		
-		print $this->get_header();
-		print h1($this->title);
-		print para($instructions);
-		print $this->generateView($person);
-		print form( 
+		return para($instructions)
+			. $this->generateView($person)
+			. form( 
 			form_hidden('op', $this->op)
 			. form_hidden('step', 'perform')
 			. form_hidden('id', $id)
 			. form_submit("Approve")
 		);
-		print $this->get_footer();
-
-		return true;
 	}
 
 	function perform ()
@@ -703,7 +692,7 @@ class PersonEdit extends Handler
 		);
 
 		$this->op = "person_edit";
-
+		$this->section = 'person';
 		return true;
 	}
 
@@ -853,11 +842,7 @@ class PersonEdit extends Handler
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateConfirm ( $id )
@@ -971,11 +956,7 @@ class PersonEdit extends Handler
 
 		$this->set_title($this->title . " &raquo; " . $firstname . " " . $lastname);
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function perform ( $id )
@@ -1201,7 +1182,7 @@ class PersonCreate extends PersonEdit
 		$this->_required_perms = array( 'allow' );
 
 		$this->op = 'person_create';
-
+		$this->section = 'person';
 		return true;
 	}
 
@@ -1256,17 +1237,16 @@ class PersonCreate extends PersonEdit
 		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
 		$rc = parent::perform( $id );
-		
-		print $this->get_header();
-		print h1($this->title);
-		print blockquote(para(
-			"Thank you for creating an account.  It is now being held for one of the administrators to approve.  "
-			. "Once your account is approved, you will receive an email informing you.  "
-			. "You will then be able to log in with your username and password."
-		));
-		print $this->get_footer();
 
-		return $rc;
+		if( $rc === false ) {
+			return false;
+		} else {
+			return blockquote(para(
+				"Thank you for creating an account.  It is now being held for one of the administrators to approve.  "
+				. "Once your account is approved, you will receive an email informing you.  "
+				. "You will then be able to log in with your username and password."
+			));
+		}
 	}
 }
 
@@ -1284,7 +1264,7 @@ class PersonActivate extends PersonEdit
 		$this->set_title("Activate Account");
 
 		$this->op = 'person_activate';
-
+		$this->section = 'person';
 		return true;
 	}
 
@@ -1367,6 +1347,7 @@ class PersonSurvey extends PersonSignWaiver
 			'allow',
 		);
 		$this->op = 'person_survey';
+		$this->section = 'person';
 
 		$this->formFile = 'member_survey.html';
 
@@ -1443,6 +1424,7 @@ class PersonSignWaiver extends Handler
 			'allow',
 		);
 		$this->op = 'person_signwaiver';
+		$this->section = 'person';
 
 		$this->formFile = 'waiver_form.html';
 
@@ -1513,11 +1495,7 @@ class PersonSignWaiver extends Handler
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 }
 
@@ -1533,6 +1511,7 @@ class PersonSignDogWaiver extends PersonSignWaiver
 			'allow',
 		);
 		$this->op = 'person_signdogwaiver';
+		$this->section = 'person';
 
 		$this->formFile = 'dog_waiver_form.html';
 
@@ -1579,15 +1558,17 @@ class PersonList extends Handler
 		$this->set_title("List Users");
 		$this->_permissions = array(
 			'delete' => false,
+			'create' => false,
 		);
 
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
 			'volunteer_sufficient',
-			'deny',
+			'allow',
 		);
 		$this->op = 'person_list';
+		$this->section = 'person';
 
 		return true;
 	}
@@ -1595,7 +1576,7 @@ class PersonList extends Handler
 	function set_permission_flags($type)
 	{
 		if($type == 'administrator') {
-			$this->_permissions['delete'] = true;
+			$this->enable_all_perms();
 		} 
 	}
 
@@ -1617,19 +1598,18 @@ class PersonList extends Handler
 				'target' => 'op=person_delete&id='
 			);
 		}
+		$output = "";
+		if($this->_permissions['create']) {
+			$output .= blockquote(l("Create New User", "op=person_create"));
+		}
 
         $query = $DB->prepare("SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE ? ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
-		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		
-		return true;
+		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
+
+		return $output;
 	}
 }
 
@@ -1647,6 +1627,7 @@ class PersonListNewAccounts extends Handler
 			'deny'
 		);
 		$this->op = 'person_listnew';
+		$this->section = 'admin';
 		return true;
 	}
 
@@ -1681,14 +1662,7 @@ class PersonListNewAccounts extends Handler
 			 	lastname LIKE ? 
 			 ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
-		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		
-		return true;
+		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
 	}
 }
 
@@ -1707,7 +1681,15 @@ class PersonChangePassword extends Handler
 			'deny',
 		);
 		$this->op = 'person_changepassword';
+		$this->section = 'person';
 		return true;
+	}
+
+	function set_permission_flags($type) 
+	{
+		if($type == 'self') {
+			$this->section = 'myaccount';
+		}
 	}
 
 	function process()
@@ -1756,12 +1738,7 @@ class PersonChangePassword extends Handler
 		$output .= "</table>";
 		$output .= form_submit("Submit") . form_reset("Reset");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-
-		return true;
+		return form($output);
 	}
 
 	function perform ()
@@ -1806,6 +1783,7 @@ class PersonForgotPassword extends Handler
 		);
 		$this->title = "Request New Password";
 		$this->op = 'person_forgotpassword';
+		$this->section = 'person';
 		return true;
 	}
 
@@ -1848,12 +1826,7 @@ END_TEXT;
 		$output .= "</table>";
 		$output .= form_submit("Submit") . form_reset("Reset");
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-
-		return true;
+		return form($output);
 	}
 
 	function perform ()
@@ -1946,12 +1919,7 @@ EOM;
 	problems.
 </p>
 END_TEXT;
-		print $this->get_header();
-		print h1($this->title);
-		print blockquote($output);
-		print $this->get_footer();
-		
-		return true;
+		return blockquote($output);
 	}
 }
 ?>

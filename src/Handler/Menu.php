@@ -1,32 +1,23 @@
 <?php
-register_page_handler('menu','Menu');
-/**
- * Handler for the menu operation
- *
- * @package Leaguerunner
- * @access public
- * @author Dave O'Neill <dmo@acm.org>
- * @copyright GPL
- */
-class Menu extends Handler
+register_page_handler('myaccount','MainMenu');
+register_page_handler('menu','MainMenu');
+register_page_handler('admin','AdminMenu');
+
+class MainMenu extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Main Menu");
-
 		$this->_permissions = array(
 			"league_admin"  => false,
 			"league_create" => false,
-			"user_list"    => false,
-			"user_admin"    => false,
-			"field_admin"    => false,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'volunteer_sufficient',
 			'allow'
 		);
+		$this->op = 'myaccount';
+		$this->section = 'myaccount';
 		return true;
 	}
 	
@@ -35,138 +26,228 @@ class Menu extends Handler
 		if($type == 'administrator') {
 			$this->enable_all_perms();
 		} 
-
-		if($type == 'volunteer') {
-			$this->_permissions['user_list'] = true;
-		}
 	}
 
-	function menu_title($title)
-	{
-		return "<tr><td class='menu_title'>$title</td</tr>";
-	}
-	function menu_item($value)
-	{
-		return "<tr><td class='menu_item'>$value</td</tr>";
-	}
-
-	/**
-	 * Generate the menu
-	 *
-	 * @access public
-	 * @return boolean success or failure.
-	 */
 	function process ()
 	{
 		global $session, $DB;
-		$output = "";
+		$id = $session->attr_get("user_id");
+		$this->set_title(
+			$session->attr_get('firstname') 
+			. " " . $session->attr_get('lastname'));
 
-		$id =  $session->attr_get("user_id");
 		
-		/* General Account Info */
-		$output .= $this->menu_title("My Account");
-		$output .= $this->menu_item(
-			l("View/Edit My Account", "op=person_view&id=$id"));
-		$output .= $this->menu_item(
-			l("Change My Password", "op=person_changepassword&id=$id"));
-		$output .= $this->menu_item(
-			l("View Player Waiver", "op=person_signwaiver"));
-		$output .= $this->menu_item(
-			l("View Dog Waiver", "op=person_signdogwaiver"));
-		$output .= $this->menu_item( l("Log Out", "op=logout"));
+		$accountMenu = "<table>";
 
-		$output .= $this->menu_title("Teams");
+		/* General Account Info */
+		$accountMenu .= tr(th("Account Settings"));
+		$accountMenu .= tr(td(
+			l("View/Edit My Account", "op=person_view&id=$id")));
+		$accountMenu .= tr(td(
+			l("Change My Password", "op=person_changepassword&id=$id")));
+		$accountMenu .= tr(td(
+			l("View/Sign Player Waiver", "op=person_signwaiver")));
+
+		if( $session->attr_get('has_dog') == 'Y' ) {
+			$accountMenu .= tr(td(
+				l("View/Sign Dog Waiver", "op=person_signdogwaiver")));
+		}
+				
+		$accountMenu .= "</table>";
+
+		$accountMenu = div($accountMenu, array('class' => 'oldmenu'));
+		
+
+		$teamsAndLeagues = "<div class='myteams'><table border='0'>";
+		$teamsAndLeagues .= tr(th("My Teams", array('colspan' => 4)));
+		
 		$teams = get_teams_for_user($id);
 		if($this->is_database_error($teams)) {
 			return false;
 		}
 		if(count($teams) > 0) {
-			$data = "<table border='0' cellpadding='3' cellspacing='0'>";
-			foreach($teams as $team) { $data .= "<tr><td class='menu_item'>" . $team['name'] . "</td>";
-				$data .= "<td class='menu_item'>(" . $team['position'] . ")</td>";
-				$data .= "<td class='menu_item'>" . l("info", "op=team_view&id=" . $team['id']) . "</td>";
-				$data .= "<td class='menu_item'>" . l("scores and schedules", "op=team_schedule_view&id=" . $team['id']) . "</td>";
-				$data .= "<td class='menu_item'>" . l("standings", "op=team_standings&id=" . $team['id']) . "</td>";
-				$data .= "</tr>";
-			}
-			$data .= "</table>";
-			$output .= $this->menu_item( $data );
-		}
-		
-		$output .= $this->menu_item( l("List Other Teams", "op=team_list"));
-		$output .= $this->menu_item( l("Create New Team", "op=team_create"));
-	
-
-		$output .= $this->menu_title("Leagues");
-		/* Fetch leagues coordinated */
-		$leagues = $DB->getAll("
-			SELECT 
-				league_id AS id,
-				name,
-				allow_schedule,
-				tier
-		  	FROM 
-				league 
-		    WHERE 
-				coordinator_id = ? OR (alternate_id <> 1 AND alternate_id = ?)
-		  	ORDER BY name, tier",
-			array($id,$id), 
-			DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($leagues)) {
-			return false;
-		}
-		if(count($leagues) > 0) {
-			$data = "<table border='0' cellpadding='3' cellspacing='0'>";
-			foreach($leagues as $league) {
-				$name = $league['name'];
-				if($league['tier']) {
-					$name .= " Tier " . $league['tier'];
-				}
-				$data .= "<tr><td class='menu_item'>$name</td>";
-				$links = array(
-					l("view", "op=league_view&id=" . $league['id']),
-					l("edit", "op=league_edit&id=" . $league['id'])
-				);
-				if($league['allow_schedule'] == 'Y') {
-					$links[] = l("schedule", "op=league_schedule_view&id=" . $league['id']);
-					$links[] = l("standings", "op=league_standings&id=" . $league['id']);
-					$links[] = l("approve scores", "op=league_verifyscores&id=" . $league['id']);
-				}
-				$data .= "<td class='menu_item'>" . theme_links($links) . "</td></tr>";
-			}
-			$data .= "</table>";
-			$output .= $this->menu_item( $data );
-		}
-		$output .= $this->menu_item( l("List Leagues", "op=league_list"));
-		
-		$output .= $this->menu_title("Fields");
-#		$output .= $this->menu_item(
-#			l("List City Wards", "op=ward_list"));
-		$output .= $this->menu_item(
-			l("List Field Sites", "op=site_list"));
-		if($this->_permissions['field_admin']) {
-			$output .= $this->menu_item( l("Create New Field Site", "op=site_create"));
-		}
-				
-		if($this->_permissions['user_list']) {
-			$output .= $this->menu_title("Users");
-			$output .= $this->menu_item( l("List Users", "op=person_list"));
-			if($this->_permissions['user_admin']) {
-				$new_users = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
-				if($this->is_database_error($new_users)) {
+			$queryString = "SELECT 
+					s.game_id, s.home_score, s.away_score,
+					DATE_FORMAT(s.date_played, '%a %b %d %Y %H:%i') as date, 
+					s.home_team, h.name AS home_name, 
+					s.away_team, a.name AS away_name, 
+					site.site_id AS site_id, site.code AS site_code, 
+					f.num AS site_num
+				  FROM schedule s 
+				  LEFT JOIN team h ON (h.team_id = s.home_team) 
+				  LEFT JOIN team a ON (a.team_id = s.away_team) 
+				  LEFT JOIN field f ON (f.field_id = s.field_id) 
+				  LEFT JOIN site ON (f.site_id = site.site_id) ";
+			foreach($teams as $team) { 
+				$nextGame = $DB->getRow( $queryString . " WHERE s.date_played > NOW()
+				    AND ( s.home_team = ? OR s.away_team = ? ) 
+				  ORDER BY date_played desc LIMIT 1",array($team['id'],$team['id']), DB_FETCHMODE_ASSOC);
+				if($this->is_database_error($nextGame)) {
 					return false;
 				}
-				$output .= $this->menu_item( l("List New Users", "op=person_listnew") . " ($new_users awaiting approval)");
-				$output .= $this->menu_item( l("Create New User", "op=person_create"));
+
+				$prevGame = $DB->getRow($queryString . " WHERE s.date_played < NOW() 
+				    AND (s.home_team = ? OR s.away_team = ?) 
+				  ORDER BY date_played desc LIMIT 1",array($team['id'],$team['id']), DB_FETCHMODE_ASSOC);
+				if($this->is_database_error($nextGame)) {
+					return false;
+				}
+
+				$teamsAndLeagues .= tr(
+					td( bold($team['name']) . " (" . $team['position'] . ")", array('colspan' => 3))
+				);
+				$teamsAndLeagues .= tr(
+					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
+					. td(theme_links(array(
+						l("info", "op=team_view&id=" . $team['id']),
+						l("scores and schedules", "op=team_schedule_view&id=" . $team['id']),
+						l("standings", "op=team_standings&id=" . $team['id']))), array('colspan' => 2))
+				);
+				$teamsAndLeagues .= tr(
+					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
+					. td( 
+						bold("Most recent game:") . " " . getPrintableGameData($prevGame, $team['id']),
+						array('colspan' => '2'))
+				);
+				$teamsAndLeagues .= tr(
+					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
+					. td( 
+						bold("Next game:") . " " . getPrintableGameData($nextGame, $team['id']),
+						array('colspan' => '2'))
+				);
 			}
 		}
+
+		if( $session->may_coordinate_league() ) {
+			/* Fetch leagues coordinated */
+			$leagues = $DB->getAll("
+				SELECT 
+					league_id AS id, name, allow_schedule, tier
+				FROM 
+					league 
+				WHERE 
+					coordinator_id = ? OR (alternate_id <> 1 AND alternate_id = ?)
+				ORDER BY name, tier",
+				array($id,$id), 
+				DB_FETCHMODE_ASSOC);
+				
+			if($this->is_database_error($leagues)) {
+				return false;
+			}
+
+			if(count($leagues) > 0) {
+				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 3)));
+				$data = "<table border='0' cellpadding='3' cellspacing='0'>";
+				// TODO: For each league, need to display # of missing scores,
+				// pending scores, etc.
+				foreach($leagues as $league) {
+					$name = $league['name'];
+					if($league['tier']) {
+						$name .= " Tier " . $league['tier'];
+					}
+					$data .= "<tr><td>$name</td>";
+					$links = array(
+						l("view", "op=league_view&id=" . $league['id']),
+						l("edit", "op=league_edit&id=" . $league['id'])
+					);
+					if($league['allow_schedule'] == 'Y') {
+						$links[] = l("schedule", "op=league_schedule_view&id=" . $league['id']);
+						$links[] = l("standings", "op=league_standings&id=" . $league['id']);
+						$links[] = l("approve scores", "op=league_verifyscores&id=" . $league['id']);
+					}
+					$data .= "<td>" . theme_links($links) . "</td></tr>";
+				}
+				$data .= "</table>";
+				$teamsAndLeagues .= tr(td( $data, array('colspan' => '3' )));
+			}
+		}
+				
+		$teamsAndLeagues .= "</table></div>";
+
+		$output = "<table border='0' cellpadding='0' cellspacing='2' width='100%'>";
+		$output .= tr(
+			td($accountMenu, array('align' => 'left', 'valign' => 'top'))
+			. td($teamsAndLeagues, array('align' => 'left', 'valign' => 'top')));
+		$output .= "</table>";
 		
-		print $this->get_header();
-		print "<table>$output</table>";
-		print $this->get_footer();
 		
+		return $output;
+	}
+}
+
+class AdminMenu extends Handler
+{
+	function initialize ()
+	{
+		$this->set_title("Admin Tools");
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'deny'
+		);
+		$this->op = 'admin';
+		$this->section = 'admin';
 		return true;
 	}
+
+	function process ()
+	{
+		global $DB;
+		$newUsers = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
+		if($this->is_database_error($newUsers)) {
+			return false;
+		}
+				
+		$links = array(
+			l("List City Wards", "op=ward_list"),
+			l("Approve New Accounts", "op=person_listnew") . " ($newUsers awaiting approval)",
+		);
+		$left = "<table>";
+		$left .= tr(th("Admin Tools"));
+		while(list(,$link) = each($links)) {
+			$left .= tr(td( $link ));
+		}
+		$left .= "</table>";
+
+		$left = div($left, array('class' => 'oldmenu'));
+		
+		$right = para("Administrative tools for managing the league are available here.");
+		
+		$output = "<table border='0' cellpadding='0' cellspacing='2'>";
+		$output .= tr(
+			td($left, array('align' => 'left', 'valign' => 'top'))
+			. td($right, array('align' => 'left', 'valign' => 'top')));
+		$output .= "</table>";
+		
+		return $output;
+	}
+}
+
+function getPrintableGameData( &$game, $teamId )
+{
+	if(count($game) < 1) {
+		return "n/a";
+	}
+
+	$data = $game['date'];
+	$data .= " vs. ";
+	if( $game['home_team'] == $teamId ) {
+		$data .= l($game['away_name'], 'op=team_view&id=' . $game['away_team']);
+		if($game['home_score'] || $game['away_score']) {
+			$score = " (" . $game['home_score'] . " - " . $game['away_score'] . ")";
+		}
+	} else if( $game['away_team'] == $teamId ) {
+		$data .= l($game['home_name'], 'op=team_view&id=' . $game['home_team']);
+		if($game['home_score'] || $game['away_score']) {
+			$score = " (" . $game['away_score'] . " - " . $game['home_score'] . ")";
+		}
+	}
+
+	$data .= " at " . l($game['site_code'] . " " . $game['site_num'], 'op=site_view&id=' . $game['site_id']);
+
+	$data .= $score;
+
+	return $data;
 }
 ?>

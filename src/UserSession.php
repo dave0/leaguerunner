@@ -351,6 +351,18 @@ class UserSession
 		return false;
 	}
 
+	/** 
+	 * Check if this session might coordinate a league.  Used 
+	 * as a preliminary check to avoid db queries.
+	 */
+	function may_coordinate_league()
+	{
+		return (
+			($this->attr_get('class') == 'administrator')
+			|| ($this->attr_get('class') == 'volunteer')
+		);
+	}
+
 	/**
 	 * See if this session user is the coordinator of a league containing
 	 * this team

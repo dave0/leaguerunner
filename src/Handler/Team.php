@@ -7,6 +7,7 @@ register_page_handler('team_addplayer', 'TeamAddPlayer');
 register_page_handler('team_create', 'TeamCreate');
 register_page_handler('team_edit', 'TeamEdit');
 register_page_handler('team_list', 'TeamList');
+register_page_handler('team', 'TeamList');
 register_page_handler('team_playerstatus', 'TeamPlayerStatus');
 register_page_handler('team_standings', 'TeamStandings');
 register_page_handler('team_view', 'TeamView');
@@ -38,6 +39,7 @@ class TeamAddPlayer extends Handler
 		);
 
 		$this->op = 'team_addplayer';
+		$this->section = 'team';
 
 		return true;
 	}
@@ -62,13 +64,7 @@ class TeamAddPlayer extends Handler
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE (class = 'active' OR class = 'volunteer' OR class='administrator') AND lastname LIKE ? ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op . "&id=$id", $letter);
-		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-		return true;
+		return $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op . "&id=$id", $letter);
 	}
 }
 
@@ -87,6 +83,7 @@ class TeamCreate extends TeamEdit
 		);
 
 		$this->op = 'team_create';
+		$this->section = 'team';
 
 		return true;
 	}
@@ -154,6 +151,7 @@ class TeamEdit extends Handler
 			'deny'
 		);
 		$this->op = "team_edit";
+		$this->section = 'team';
 		return true;
 	}
 
@@ -218,11 +216,7 @@ class TeamEdit extends Handler
 			$this->set_title($this->title . " &raquo; " . $formData['name']);
 		}
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateConfirm ( $id )
@@ -256,11 +250,7 @@ class TeamEdit extends Handler
 			$this->set_title($this->title . " &raquo; " . $team_name);
 		}
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function perform ( $id )
@@ -335,12 +325,25 @@ class TeamList extends Handler
 	function initialize ()
 	{
 		$this->set_title("List Teams");
+		$this->_permissions = array(
+			'delete' => false,
+			'create' => false,
+		);
 		$this->_required_perms = array(
 			'require_valid_session',
+			'admin_sufficient',
 			'allow',
 		);
 		$this->op = 'team_list';
+		$this->section = 'team';
 		return true;
+	}
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} 
 	}
 	
 	function process ()
@@ -359,15 +362,19 @@ class TeamList extends Handler
 				'target' => 'op=team_view&id='
 			),
 		);
+		if($this->_permissions['delete']) {
+			$ops[] = array(
+				'name' => 'delete',
+				'target' => 'op=team_delete&id='
+			);
+		}
+		$output = "";
+		if($this->_permissions['create']) {
+			$output .= blockquote(l("Create New Team", "op=team_create"));
+		}
 		
-		$output =  $this->generateAlphaList($query, $ops, 'name', 'team', $this->op, $letter);
-		
-		print $this->get_header();
-		print h1($this->title);
-		print $output;
-		print $this->get_footer();
-
-		return true;
+		$output .= $this->generateAlphaList($query, $ops, 'name', 'team', $this->op, $letter);
+		return $output;
 	}
 }
 
@@ -383,6 +390,7 @@ class TeamPlayerStatus extends Handler
 		$this->positions = getRosterPositions();
 
 		$this->op = 'team_playerstatus';
+		$this->section = 'team';
 
 		return true;
 	}
@@ -611,11 +619,7 @@ class TeamPlayerStatus extends Handler
 		$output .= "</table>";
 		$output .= para( form_submit('submit') . form_reset('reset') );
 
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 	function generateConfirm()
@@ -660,11 +664,7 @@ class TeamPlayerStatus extends Handler
 
 		$output .= form_submit('submit');
 		
-		print $this->get_header();
-		print h1($this->title);
-		print form($output);
-		print $this->get_footer();
-		return true;
+		return form($output);
 	}
 
 
@@ -748,6 +748,7 @@ class TeamStandings extends Handler
 			'require_var:id',
 			'allow'
 		);
+		$this->section = 'team';
 		return true;
 	}
 
@@ -783,6 +784,8 @@ class TeamView extends Handler
 			'captain_of:id',
 			'allow'
 		);
+		$this->section = 'team';
+		$this->op = 'team_view';
 
 		return true;
 	}
@@ -965,17 +968,15 @@ class TeamView extends Handler
 		
 		$rosterdata .= "</table>";
 
-		print $this->get_header();
-		print h1($team_name);
-		print blockquote(theme_links($links));
-		print "<table border='0'>";
-		print tr(
+		$output = blockquote(theme_links($links));
+		$output .= "<table border='0'>";
+		$output .= tr(
 			td($teamdata, array('align' => 'left', 'valign' => 'top'))
 			. td($rosterdata, array('align' => 'left', 'valign' => 'top'))
 		);
-		print "</table>";
-		print $this->get_footer();
-		return true;
+		$output .= "</table>";
+		
+		return $output;
 	}
 }
 
@@ -999,6 +1000,7 @@ class TeamScheduleView extends Handler
 			'allow'
 		);
 		$this->op = 'team_schedule_view';
+		$this->section = 'team';
 
 		return true;
 	}
@@ -1042,9 +1044,11 @@ class TeamScheduleView extends Handler
 		$links[] = l("view league", "op=league_view&id=" . $team['league_id']);
 		$links[] = l("view league schedule", "op=league_schedule_view&id=" . $team['league_id']);
 
+
 		$this->set_title("View Schedule &raquo; " . $team['team_name']);
 
-		$output = "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output = blockquote(theme_links($links));
+		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
 		$output .= tr(
 			td("Date", array('class' => 'schedule_title'))
 			. td("Time", array('class' => 'schedule_title'))
@@ -1142,12 +1146,7 @@ class TeamScheduleView extends Handler
 
 		$output .= "</table>";
 
-		print $this->get_header();
-		print h1($this->title);
-		print blockquote(theme_links($links));
-		print $output;
-		print $this->get_footer();
-		return true;
+		return $output;
 	}
 }
 
@@ -1162,6 +1161,9 @@ class TeamEmails extends Handler
 			'captain_of:id',
 			'deny',
 		);
+		$this->title = 'Player Emails';
+		$this->op = 'team_emails';
+		$this->section = 'team';
 
 		return true;
 	}
@@ -1171,8 +1173,6 @@ class TeamEmails extends Handler
 		global $DB;
 
 		$id = var_from_getorpost('id');
-
-		$output = "# Team email address list\n";
 
 		$addrs = $DB->getAll("SELECT 
 				p.firstname, p.lastname, p.email
@@ -1186,20 +1186,25 @@ class TeamEmails extends Handler
 			return false;
 		}
 		if(count($addrs) <= 0) { 
-			return true;
+			return false;
 		}
 		
 		foreach($addrs as $addr) {
-			$output .= sprintf("\"%s %s\" <%s>,\n",
+			$output .= sprintf("\"%s %s\" &lt;%s&gt;,\n",
 				$addr['firstname'],
 				$addr['lastname'],
 				$addr['email']);
 		}
+
+		/* Get team info */
+		$team = $DB->getRow("SELECT name FROM team WHERE team_id = ?", array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league)) {
+			return false;
+		}
+		$title = $this->title . " &raquo; " . $team['name'];
+		$this->set_title($title);
 		
-		Header("Content-type: text/plain");
-		print $output;
-		
-		return true;
+		return pre($output);
 	}
 }
 ?>

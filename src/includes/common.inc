@@ -62,9 +62,19 @@ function para($text, $attributes = array())
 	return simple_tag("p", $text, $attributes);
 }
 
+function bold($text, $attributes = array())
+{
+	return simple_tag("b", $text, $attributes);
+}
+
 function pre($text, $attributes = array())
 {
 	return simple_tag("pre", $text, $attributes);
+}
+
+function div($text, $attributes = array())
+{
+	return simple_tag("div", $text, $attributes);
 }
 
 function blockquote($text, $attributes = array())
@@ -80,6 +90,11 @@ function tr($text, $attributes = array())
 function td($text, $attributes = array())
 {
 	return simple_tag("td",$text, $attributes);
+}
+
+function th($text, $attributes = array())
+{
+	return simple_tag("th",$text, $attributes);
 }
 
 function simple_row($left, $right)
@@ -730,8 +745,10 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 		}
 
 
-		/* Check for columns to highlight */
-		if(!(false === array_search($curColumn, $highlightWeekdays))) {
+		/* Check for days to highlight */
+		if($curDate == $day) {
+			$attributes = array( 'class' => 'current-day' );
+		} else if(!(false === array_search($curColumn, $highlightWeekdays))) {
 			$attributes = array( 'class' => 'highlighted-day' );
 		} else {
 			$attributes = array();

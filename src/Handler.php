@@ -25,7 +25,7 @@ require_once("Handler/Game.php");
 class Handler 
 {
 	/**
-	 * The page name to display.
+	 * The page title, for display
 	 * 
 	 * @access private
 	 * @var string
@@ -33,12 +33,20 @@ class Handler
 	var $title;
 
 	/**
-	 * The operation this handler deals with
+	 * The operation this handler deals with.  Used for generating
+	 * self-referential links, form submission targets, etc.
 	 */
 	var $op;
 
+	/** 
+	 * The section of Leaguerunner under which this handler belongs.
+	 * This is used to determine which tab it will appear under.
+	 */
+	var $section;
+
 	/**
-	 * Breadcrumbs
+	 * Breadcrumbs.  Used for creating a trail of actions so that
+	 * users can backtrack.
 	 */
 	var $breadcrumbs;
 
@@ -63,17 +71,8 @@ class Handler
 		global $session;
 		$this->_required_perms = null;
 		$this->_permissions = array();
-		if($session->is_valid()) {
-			$this->breadcrumbs = array(
-				array('name' => "<b>" 
-					. $session->attr_get("firstname") 
-					. " "
-					. $session->attr_get("lastname")
-					. "</b>"),
-				array('name' => "Main Menu",
-					  'target' => "op=menu")
-			);
-		}
+
+		$this->section = 'myaccount';
 	}
 
 	/**
@@ -266,10 +265,8 @@ class Handler
 	function get_header($title = NULL)
 	{
 		$title = $title ? $title : $this->title;
-		if($this->breadcrumbs[count($this->breadcrumbs)-1]['name'] != $title) {
-			$this->breadcrumbs[] = array('name' => $title);
-		}
-		return theme_header($title, $this->breadcrumbs);	
+
+		return theme_header($title, $this->section, $this->breadcrumbs);	
 	}
 
 	function get_footer()
