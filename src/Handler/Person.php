@@ -847,7 +847,7 @@ class PersonEdit extends Handler
 			$fields_data[] = var_from_getorpost('addr_prov');
 			
 			$fields[] = "addr_postalcode = ?";
-			$fields_data[] = var_from_getorpost('addr_postalcode');
+			$fields_data[] = str_replace(" ","",var_from_getorpost('addr_postalcode'));
 		}
 		
 		if($this->_permissions['edit_birthdate']) {
