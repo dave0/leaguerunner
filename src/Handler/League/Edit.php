@@ -144,6 +144,11 @@ class LeagueEdit extends Handler
 			return false;
 		}
 
+		/* Deal with multiple days */
+		if(strpos($row['league_day'], ",")) {
+			$row['league_day'] = split(",",$row['league_day']);
+		}
+
 		$this->tmpl->assign($row);
 		$this->tmpl->assign("id", $id);
 		
@@ -214,7 +219,7 @@ class LeagueEdit extends Handler
 
 		$this->tmpl->assign("league_name", var_from_getorpost('league_name'));
 		$this->tmpl->assign("league_season", var_from_getorpost('league_season'));
-		$this->tmpl->assign("league_day", var_from_getorpost('league_day'));
+		$this->tmpl->assign("league_day", join(",",var_from_getorpost('league_day')));
 		$this->tmpl->assign("league_tier", var_from_getorpost('league_tier'));
 		$this->tmpl->assign("league_round", var_from_getorpost('league_round'));
 		$this->tmpl->assign("league_ratio", var_from_getorpost('league_ratio'));
@@ -306,6 +311,12 @@ class LeagueEdit extends Handler
 		$coord_id = var_from_getorpost("coordinator_id");
 		if($coord_id <= 0) {
 			$this->error_text .= gettext("A coordinator must be selected") . "<br>";
+			$err = false;
+		}
+
+		$league_day = var_from_getorpost("league_day");
+		if( !isset($league_day) ) {
+			$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
 			$err = false;
 		}
 		

@@ -72,6 +72,7 @@ class LeagueView extends Handler
 				l.name,
 				l.tier,
 				l.ratio,
+				l.day,
 				l.season,
 				l.max_teams,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
@@ -92,6 +93,7 @@ class LeagueView extends Handler
 		$this->tmpl->assign("league_id", $id);
 		$this->tmpl->assign("league_name",   $row['name']);
 		$this->tmpl->assign("league_tier",   $row['tier']);
+		$this->tmpl->assign("league_day",   $row['day']);
 		$this->tmpl->assign("league_ratio",  $row['ratio']);
 		$this->tmpl->assign("league_season", $row['season']);
 		$this->tmpl->assign("league_maxteams", $row['max_teams']);

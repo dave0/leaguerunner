@@ -1,0 +1,44 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Add games to {$league_name}</h1>
+
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+<table border="0">
+  <tr>
+    <td class='row_title'>Season:</td> 
+    <td class='row_data'>{$league_season}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title'>Day(s):</td> 
+    <td class='row_data'>{$league_day}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title'>Current Round:</td> 
+    <td class='row_data'>{$league_current_round}</a></td>
+  </tr>
+</table>
+<p>
+  Select a date below to add a new set of games to the schedule
+</p>
+<table border="1">
+  <tr>
+    <td align="left"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$current_month}&year={php}print $year - 1{/php}">&lt;--</a></td>
+    <td align="middle">{$year}</td>
+    <td align="right"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$current_month}&year={php}print $year + 1{/php}">--&gt;</a></td>
+  </tr>
+  <tr>
+    <td align="left"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$prev_month}">&lt;--</a></td>
+    <td align="middle">{$month_name}</td>
+    <td align="right"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$next_month}">--&gt;</a></td>
+  </tr>
+  <tr>
+    <td colspan="3">
+      <pre>{$calendar_data}</pre>
+    </td>
+  </tr>
+</table>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

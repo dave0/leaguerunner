@@ -103,25 +103,59 @@ class LeagueScheduleAddWeek extends Handler
 	 */
 	function validate_data ()
 	{
-		$err = true;
-	
 		/* TODO: Validate that date provided is 
 		 * 	a) legitimately a valid date (ie: no Jan 32 or Feb 30)
 		 * 	b) Valid for the user to add.  Only administrator can add weeks in
 		 * 	past.
 		 */
-
-		return $err;
 		
 	}
 
 	/**
 	 * Generate the calendar for selecting day to add to schedule.
-	 * TODO: Write this.  See drupal's archive.module for a better way.
+	 * TODO: Fix this.  See drupal's archive.module for a better way.
 	 */
 	function generate_form ()
 	{
 		global $DB, $id;
+
+		$today = getdate();
+		
+		$month = var_from_getorpost("month");
+		if(! ctype_digit($month)) {
+			$month = $today['mon'];
+		}
+
+		$month_name = date("F", mktime (0,0,0,$month,1,0));
+	
+		$year = var_from_getorpost("year");
+		if(! ctype_digit($year)) {
+			$year = $today['year'];
+		}
+
+		$page_op = var_from_getorpost('op');
+
+		$cal_info = shell_exec("cal $month $year");
+		
+		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$GLOBALS['APP_CGI_LOCATION']."?op=$page_op&step=confirm&id=$id&year=$year;month=$month;day=$1'>$1</a>", $cal_info);
+
+		$this->tmpl->assign("calendar_data", $cal_info);
+		$this->tmpl->assign("year", $year);
+		$this->tmpl->assign("current_month", $month);
+		if($month == 1) {
+			$next_month = $month + 1;
+			$prev_month = "12&year=" . ($year - 1);
+		} else if ($month == 12) {
+			$next_month = "1&year=" . ($year + 1);
+			$prev_month = $month - 1;
+		} else {
+			$next_month = $month + 1;
+			$prev_month = $month - 1;
+		}
+		$this->tmpl->assign("next_month", $next_month);
+		$this->tmpl->assign("prev_month", $prev_month);
+		$this->tmpl->assign("month_name", $month_name);
+		$this->tmpl->assign("league_id", $id);
 
 		return true;
 	}

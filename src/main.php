@@ -162,7 +162,11 @@ function var_from_post($name)
 	
 	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		if(isset($_POST[$name])) {
-			return stripslashes($_POST[$name]);
+			if(is_array($_POST[$name])) {
+				return $_POST[$name];
+			} else {
+				return stripslashes($_POST[$name]);
+			}
 		}
 	} 
 	return null;
@@ -189,11 +193,19 @@ function var_from_getorpost($name)
 	global $_SERVER, $_GET, $_POST;
 	if($_SERVER['REQUEST_METHOD'] == 'GET') {
 		if(isset($_GET[$name])) {
-			return stripslashes($_GET[$name]);
+			if(is_array($_GET[$name])) {
+				return $_GET[$name];
+			} else {
+				return stripslashes($_GET[$name]);
+			}
 		}
 	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		if(isset($_POST[$name])) {
-			return stripslashes($_POST[$name]);
+			if(is_array($_POST[$name])) {
+				return $_POST[$name];
+			} else {
+				return stripslashes($_POST[$name]);
+			}
 		}
 	} 
 	return null;
