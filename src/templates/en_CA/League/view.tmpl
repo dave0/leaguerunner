@@ -19,18 +19,22 @@
     <td class='row_title'>Day(s):</td> 
     <td class='row_data'>{$league_day}</a></td>
   </tr>
+  {if $league_allow_schedule == 'Y'}
   <tr>
     <td class='row_title'>Current Round:</td> 
     <td class='row_data'>{$league_current_round}</a></td>
   </tr>
+  {/if}
   <tr>
     <td class='row_title'>Maximum teams:</td> 
     <td class='row_data'>{$league_maxteams}</a></td>
   </tr>
+  {if $league_allow_schedule == 'Y'}
   <tr>
     <td class='row_title'>Usual Start Time:</td> 
     <td class='row_data'>{$league_start_time|date_format:"%H:%M"}</a></td>
   </tr>
+  {/if}
 </table>
 
 	<p>

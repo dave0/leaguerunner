@@ -125,7 +125,7 @@ class LeagueEdit extends Handler
 
 		$step = var_from_getorpost('step');
 
-		$id = var_from_getorpost('id');
+		$this->_id = var_from_getorpost('id');
 		
 		switch($step) {
 			case 'confirm':
@@ -376,7 +376,7 @@ class LeagueEdit extends Handler
 			$rc = false;
 		}
 
-		if($league_allow_schedule = 'Y') {
+		if($league_allow_schedule == 'Y') {
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
 				$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
