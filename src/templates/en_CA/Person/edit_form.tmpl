@@ -162,7 +162,7 @@
     
     <tr>
       <td colspan=2>May we list your email address for other members to see?  
-      {if $allow_publish_email}
+      {if $allow_publish_email == "Y"}
         <input type="radio" name="allow_publish_email" value="Y" checked> Yes /  
         <input type="radio" name="allow_publish_email" value="N"> No <br>
       {else}
@@ -173,7 +173,7 @@
     </tr>
     <tr>
       <td colspan=2>May we list your phone number for other members to see?  
-      {if $allow_publish_phone}
+      {if $allow_publish_phone == "Y"}
         <input type="radio" name="allow_publish_phone" value="Y" checked> Yes /  
         <input type="radio" name="allow_publish_phone" value="N"> No <br>
       {else}

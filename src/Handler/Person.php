@@ -34,6 +34,7 @@ class PersonView extends Handler
 			'waiver_signed'		=> false,
 			'member_id'		=> false,
 			'class'		=> false,
+			'publish'			=> false,
 			'user_edit'				=> false,
 #			'user_delete'			=> false,
 #			'user_change_perms'		=> false,
@@ -171,36 +172,18 @@ class PersonView extends Handler
 	{
 		global $DB, $id;
 		$row = $DB->getRow(
-			"SELECT 
-				CONCAT(firstname,' ',lastname) AS fullname, 
-				username, 
-				member_id,
-				email, 
-				gender, 
-				home_phone, 
-				work_phone, 
-				mobile_phone, 
-				birthdate, 
-				skill_level, 
-				year_started, 
-				addr_street, 
-				addr_city, 
-				addr_prov, 
-				addr_postalcode, 
-				last_login,
-				class,
-				waiver_signed,
-				client_ip 
-			FROM person WHERE user_id = ?", 
+			"SELECT * FROM person WHERE user_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
 			return false;
 		}
-	
-		$this->_page_title .= ": ". $row['fullname'];
 
-		$this->tmpl->assign("full_name", $row['fullname']);
+		$fullname = $row['firstname'] . " " . $row['lastname'];
+		
+		$this->_page_title .= ": $fullname". 
+
+		$this->tmpl->assign("full_name", $fullname);
 		$this->tmpl->assign("user_id", $id);
 
 		if($this->_permissions['username']) {
@@ -262,6 +245,11 @@ class PersonView extends Handler
 			} else {
 				$this->tmpl->assign("last_login", gettext("Never logged in"));
 			}
+		}
+
+		if($this->_permissions['publish']) {
+			$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
+			$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
 		}
 
 		/* Now, fetch teams */
@@ -584,6 +572,7 @@ class PersonEdit extends Handler
 			'edit_gender'		=> false,
 			'edit_skill' 		=> false,
 			'edit_class' 		=> false,
+			'edit_publish'		=> false,
 		);
 
 		$this->_required_perms = array(
@@ -609,6 +598,7 @@ class PersonEdit extends Handler
 			$this->_permissions['edit_address']		= true;
 			$this->_permissions['edit_gender']		= true;
 			$this->_permissions['edit_skill'] 		= true;
+			$this->_permissions['edit_publish']		= true;
 		} 
 	}
 
@@ -739,8 +729,8 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("birthdate",  $row['birthdate']);
 		
-		$this->tmpl->assign("allow_publish_email",  ($row['allow_publish_email'] == 'Y'));
-		$this->tmpl->assign("allow_publish_phone",  ($row['allow_publish_phone'] == 'Y'));
+		$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
+		$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
 
 		$this->tmpl->assign("class", $row['class']);
 		$this->tmpl->assign("classes", $this->get_enum_options('person','class'));
@@ -875,6 +865,13 @@ class PersonEdit extends Handler
 			$fields_data[] = var_from_getorpost('skill_level');
 			$fields[] = "year_started = ?";
 			$fields_data[] = var_from_getorpost('started_Year');
+		}
+
+		if($this->_permissions['edit_publish']) {
+			$fields[] = "allow_publish_email = ?";
+			$fields_data[] = var_from_getorpost('allow_publish_email');
+			$fields[] = "allow_publish_phone = ?";
+			$fields_data[] = var_from_getorpost('allow_publish_phone');
 		}
 
 		if(count($fields_data) != count($fields)) {
