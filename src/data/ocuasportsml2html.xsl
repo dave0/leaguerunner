@@ -68,14 +68,11 @@
 	</td></tr></table>
 	-->
 
-	<div class='listtable'><table border="0" cellpadding="3" cellspacing="0"><tdata>
-  	<tr>
-	  <th colspan='2' rowspan='2'>Team Name</th>
-          <th colspan='7'>Season To Date</th>
-	  <th rowspan='2'>Avg. SOTG</th>
-	</tr>
+	<div class='listtable'><table border="0" cellpadding="3" cellspacing="0">
 
 	<tr>
+	  <td class='subtitle'>Rank</td>
+	  <td class='subtitle'>Team Name</td>
 	  <td class='subtitle'>Win</td>
 	  <td class='subtitle'>Loss</td>
 	  <td class='subtitle'>Tie</td>
@@ -83,6 +80,7 @@
 	  <td class='subtitle'><span title="Points For">PF</span></td>
 	  <td class='subtitle'><span title="Points Against">PA</span></td>
 	  <td class='subtitle'><span title="Plus/Minus ranking">+/-</span></td>
+	  <td class='subtitle'>Avg. SOTG</td>
 	</tr>
 
 	<xsl:for-each select="team">             <!--process all teams-->
@@ -90,7 +88,7 @@
 			<xsl:with-param name="oneteam" select="."/>
 		</xsl:call-template>
 	</xsl:for-each>
-	</tdata></table></div>
+	</table></div>
 </xsl:template>
 <!-- end template for standing -->
 
