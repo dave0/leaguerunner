@@ -21,10 +21,32 @@ function site_dispatch()
 
 function site_menu()
 {
+	global $session;
 	menu_add_child('_root','site','Field Sites');
 	menu_add_child('site','site/list','list fields', array('link' => 'site/list') );
+
+	
+	if($session->is_admin()) {
+		menu_add_child('site','site/create','create field site', array('weight' => 5, 'link' => 'site/create') );
+	}
 }
 
+/**
+ * Add view/edit/delete links to the menu for the given site
+ * TODO: fix ugly evil things like SiteEdit so that this can be called to add
+ * site being edited to the menu.
+ */
+function site_add_to_menu( &$site, $parent = 'site' ) 
+{
+	global $session;
+	
+	menu_add_child($parent, $site->name, $site->name, array('weight' => -10, 'link' => "site/view/$site->site_id"));
+	
+	if($session->is_admin()) {
+		menu_add_child($site->name, "$site->name/edit",'edit site', array('weight' => 1, 'link' => "site/edit/$site->site_id"));
+		menu_add_child($site->name, "$site->name/create", "add field", array('link' => "field/create/$site->site_id", 'weight' => 2));
+	}
+}	
 
 class SiteCreate extends SiteEdit
 {
@@ -62,7 +84,7 @@ class SiteCreate extends SiteEdit
 	
 	function perform ( $id, $edit )
 	{
-		db_query("INSERT into site (name,code) VALUES ('%s','%s')", $site['name'], $site['code']);
+		db_query("INSERT into site (name,code) VALUES ('%s','%s')", $edit['name'], $edit['code']);
 		if(1 != db_affected_rows() ) {
 			return false;
 		}
@@ -272,18 +294,11 @@ class SiteList extends Handler
 
 	function process ()
 	{
-		$links = array();
-		
-		if($this->_permissions['field_admin']) {
-			$links[] = l("create field site", "site/create");
-		}
-		
-		$output = theme_links( $links );
 
 		ob_start();
 		$retval = @readfile("data/field_caution.html");
 		if (false !== $retval) {
-			$output .= ob_get_contents();
+			$output = ob_get_contents();
 		}           
 		ob_end_clean();
 
@@ -342,14 +357,6 @@ class SiteView extends Handler
 			$this->error_exit("The site [$id] does not exist");
 		}
 	
-		$links = array();
-		if($this->_permissions['site_edit']) {
-			$links[] = l('edit site', "site/edit/$id", array("title" => "Edit this field site"));
-		}
-		if($this->_permissions['field_create']) {
-			$links[] = l('add field', "field/create/$id", array("title" => "Add a new field to this site"));
-		}
-		
 		/* and list fields at this site */
 		$result = db_query("SELECT * FROM field WHERE site_id = %d ORDER BY num", $id);
 
@@ -389,10 +396,9 @@ class SiteView extends Handler
 			$site->name => "site/view/$site->site_id",
 			$this->title => 0
 		));
-		
-		$output = theme_links($links);
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		return $output;
+	
+		site_add_to_menu($site);
+		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
 
