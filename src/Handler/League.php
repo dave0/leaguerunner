@@ -135,7 +135,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
                                'seed ladder', array('link' => "league/ladder/$league->league_id"));
 
 			menu_add_child($league->fullname . "/admin/ladder", "$league->fullname/admin/ladder/byskill", 
-                               'seed by average skill', array('link' => "league/ladder/$league->league_id" . "/byskill"));
+                               'seed by average skill', array('link' => "league/ladder/$league->league_id/byskill"));
 		}
 		menu_add_child($league->fullname, "$league->fullname/graph/rank",'graph ranks', array('weight' => 4, 'link' => "graph/leaguerank/$league->league_id"));
 	}
@@ -939,7 +939,7 @@ class LeagueView extends Handler
 				$team_links[] = l('join', "team/roster/$team->team_id/" . $session->attr_get('user_id'));
 			}
 			if($session->has_permission('league','edit',$this->league->league_id)) {
-				$team_links[] = l('move', "league/moveteam/$id/$team->team_id");
+				$team_links[] = l('move', "league/moveteam/" . $this->league->league_id . "/$team->team_id");
 			}
 			if($this->league->league_id == 1 && $session->has_permission('team','delete',$team->team_id)) {
 				$team_links[] = l('delete', "team/delete/$team->team_id");
@@ -1522,7 +1522,7 @@ class LeagueLadder extends Handler
 			if( !$team ) {
 				error_exit("A team must be provided for that operation.");
 			}
-			if (! $league->contains_team ($team->team_id) ) {
+			if (! $this->league->contains_team ($team->team_id) ) {
 				error_exit("That team is not in this league!");
 			}
 
