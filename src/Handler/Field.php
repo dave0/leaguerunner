@@ -362,7 +362,7 @@ class FieldView extends Handler
 		$rows = $DB->getAll("
 			SELECT 
 				a.league_id,
-				IF(l.tier,CONCAT(l.season,' ',l.name, ' Tier ',l.tier),CONCAT(l.season,' ',l.name)) AS name,
+				IF(l.tier,CONCAT(l.name, ' Tier ',l.tier),l.name) AS name,
 				a.day
 		  	FROM 
 				field_assignment a,

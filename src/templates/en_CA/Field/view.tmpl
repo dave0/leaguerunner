@@ -29,7 +29,7 @@
       {if $booking.avail}
         <td class='booking_item'>
           {foreach name=leagues from=$booking.leagues item=league}
-            &raquo;&nbsp;{$league.name} [&nbsp;<a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">view league</a> {if $perm_field_assign}
+            &raquo;&nbsp;{$league.name}&nbsp;[&nbsp;<a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">view league</a> {if $perm_field_assign}
 				    | <A href="{$app_cgi_location}?op=field_unassign&id={$field.field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a>
             {/if}
           ]<br>
