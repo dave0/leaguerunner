@@ -59,7 +59,7 @@ if(isset($mod) && module_hook($mod, 'dispatch')) {
 
 if(is_null($handler)) {
 	$handler = new Handler;
-	$handler->error_exit("No handler exists for $op");
+	$handler->error_exit("No handler exists for that operation in $mod");
 	return;
 }
 
@@ -81,7 +81,7 @@ if($handler->initialize()) {
 		/* Process the action */
 		$result = $handler->process();
 		if($result === false) {
-			$handler->error_exit("Uncaught failure performing $op");
+			$handler->error_exit("Uncaught failure in $mod, performing " . arg(1));
 		}
 
 		print theme_header($handler->title, $handler->section, $handler->breadcrumbs);
