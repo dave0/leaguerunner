@@ -193,9 +193,33 @@ class Person
 		return true;
 	}
 
+	/**
+	 * Delete a user account from the system.
+	 *
+	 * Here, we need to not only remove the user account, but
+	 * 	- ensure user is not a team captain or assistant
+	 * 	- ensure user is not a league coordinator
+	 * 	- remove user from all team rosters
+	 */
 	function delete ()
 	{
-		// TODO
+		if ($this->is_a_captain) {
+			$this->error_exit("Account cannot be deleted while player is a team captain.");
+		}
+
+		if ( $this->is_a_coordinator ) {
+			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
+		}
+		
+		/* remove user from team rosters.  Don't check for affected
+		 * rows, as there may not be any
+		 */
+		db_query("DELETE from teamroster WHERE player_id = %d",$this->user_id);
+		
+		/* remove user account */
+		db_query("DELETE from person WHERE user_id = %d", $this->user_id);
+		
+		return (1 == db_affected_rows());
 	}
 
 	function get_placeholder( $key, $value )

@@ -416,19 +416,18 @@ class PersonDelete extends PersonView
 		if($session->attr_get('user_id') == $id) {
 			$this->error_exit("You cannot delete your own account!");
 		}
-
-		if($edit['step'] == 'perform') {
-			$this->perform( $id );
-			local_redirect(url("person/list"));
-			return $rc;
-		}
-
-		/* Otherwise... */
+		
 		$person = person_load( array( 'user_id' => $id ) );
 		if( ! $person ) {
 			$this->error_exit("That person does not exist");
 		}
-		
+
+		if($edit['step'] == 'perform') {
+			$this->perform( $person );
+			local_redirect(url("person/list"));
+			return $rc;
+		}
+
 		$this->setLocation(array(
 			$person->fullname => "person/view/$id",
 			$this->title => 0));
@@ -442,39 +441,9 @@ class PersonDelete extends PersonView
 			);
 	}
 
-	/**
-	 * Delete a user account from the system.
-	 *
-	 * Here, we need to not only remove the user account, but
-	 * 	- ensure user is not a team captain or assistant
-	 * 	- ensure user is not a league coordinator
-	 * 	- remove user from all team rosters
-	 */
-	function perform ( $id )
+	function perform ( &$person )
 	{
-	
-		/* check if user is team captain       */
-		$numTeams = db_result(db_query("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = %d", $id));
-		
-		if($numTeams > 0) {
-			$this->error_exit("Account cannot be deleted while player is a team captain.");
-		}
-		
-		/* check if user is league coordinator */
-		$numLeagues = db_result(db_query("SELECT COUNT(*) from league where coordinator_id = %d OR alternate_id = %d", $id, $id));
-		if($numLeagues > 0) {
-			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
-		}
-		
-		/* remove user from team rosters.  Don't check for affected
-		 * rows, as there may not be any
-		 */
-		db_query("DELETE from teamroster WHERE player_id = %d",$id);
-		
-		/* remove user account */
-		db_query("DELETE from person WHERE user_id = %d", $id);
-		
-		return (1 == db_affected_rows());
+		return $person->delete();
 	}
 }
 
@@ -584,6 +553,8 @@ class PersonApproveNewAccount extends PersonView
 
 	function perform ( $id, $edit )
 	{
+		global $session; 
+
 		$disposition = $edit['disposition'];
 		
 		if($disposition == '---') {
@@ -646,12 +617,40 @@ class PersonApproveNewAccount extends PersonView
 				return true;	
 				
 			case 'delete':
-				$this->error_exit("Delete silently");
-				break;
+				if( ! $person->delete() ) {
+					$this->error_exit("Delete of user $person->fullname failed.");
+				}
+				return true;
 				
 			case 'delete_duplicate':
-				$this->error_exit("Delete as dup of $dup_id");
-				break;
+				$existing = person_load( array('user_id' => $dup_id) );
+				$message = _person_mail_text('dup_delete_body', array( 
+					'%fullname' => "$person->firstname $person->lastname",
+					'%username' => $person->username,
+					'%existingusername' => $existing->username,
+					'%existingemail' => $existing->email,
+					'%passwordurl' => url("person/forgotpassword"),
+					'%adminname' => $session->user->fullname,
+					'%site' => $GLOBALS['APP_NAME']));
+
+				if($person->email != $existing->email) {
+					$to_addr = join(',',$person->email,$existing->email);
+				} else { 
+					$to_addr = $person->email;
+				}
+				
+				if( ! $person->delete() ) {
+					$this->error_exit("Delete of user $person->fullname failed.");
+				}
+					
+				$rc = mail($to_addr, 
+					_person_mail_text('dup_delete_subject', array( '%site' => $GLOBALS['APP_NAME'] )), 
+					$message, 
+					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+				if($rc == false) {
+					$this->error_exit("Error sending email to " . $person->email);
+				}
+				return true;	
 				
 			default:
 				$this->error_exit("You must select a disposition for this account");
