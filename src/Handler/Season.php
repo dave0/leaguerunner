@@ -38,7 +38,8 @@ class SeasonStandings extends Handler
 
 		$year = variable_get('current_year', '2004');
 
-		print "OCUA $season League $year Standings\n\n";
+		print "OCUA $season League $year Standings\n";
+		print "Current as of: " . strftime("%c") . "\n\n";
 		
 		$result = db_query("SELECT distinct league_id from league where season = '%s'", $season);
 		while( $foo = db_fetch_array($result)) {
@@ -49,9 +50,9 @@ class SeasonStandings extends Handler
 				continue;
 			}
 
-			$days = $league->day;
-			$days = str_replace(',','/', $days);
-			print "OCUA Fall $days Division\n";
+			$name = $league->name;
+			$name = str_replace('2004','Division', $name);
+			print "OCUA $name\n";
 			
 			print $this->generate_standings($league, 0);
 
