@@ -738,6 +738,21 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
+		$output = <<<END_TEXT
+<script language="JavaScript" type="text/javascript">
+<!--
+function popup(url)
+{
+	newwindow=window.open(url,'Leaguerunner Skill Rating Form','height=350,width=400,resizable=yes,scrollbars=yes')
+	if (window.focus) {newwindow.focus()}
+	return false;
+}
+
+function doNothing() {}
+
+// -->
+// </script>
+END_TEXT;
 		$output .= form_hidden('edit[step]', 'confirm');
 
 		$output .= para($instructions);
@@ -828,8 +843,10 @@ class PersonEdit extends Handler
 			form_select('', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
 			
 		$rows[] = array("Skill Level:",
-			form_radiogroup('', 'edit[skill_level]', $formData['skill_level'],
-				getOptionsForSkill()));
+			form_select('', 'edit[skill_level]', $formData['skill_level'], 
+				getOptionsFromRange(1, 10), 
+				"Please use the questionnare to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
+		));
 
 		$thisYear = strftime("%Y", time());
 
@@ -1177,7 +1194,7 @@ class PersonEdit extends Handler
 		}
 		
 		if( $edit['skill_level'] < 1 || $edit['skill_level'] > 10 ) {
-			$errors .= "\n<li>You must select a skill level between 1 and 10";
+			$errors .= "\n<li>You must select a skill level between 1 and 10. You entered " .  $edit['skill_level'];
 		}
 		
 		$current = localtime(time(),1);
