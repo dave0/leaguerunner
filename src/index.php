@@ -48,8 +48,8 @@ if(!valid_input_data($_REQUEST)) {
 require_once "Handler.php";
 require_once "UserSession.php";
 
-/* Build up menus */
-menu_build('system');
+/* Build menus */
+menu_build();
 
 /* Instantiate a handler of the appropriate class to handle this 
  * operation 

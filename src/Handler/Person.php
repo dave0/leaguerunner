@@ -16,7 +16,6 @@ function person_dispatch()
 		case 'delete':
 			return new PersonDelete;
 		case 'list':
-		case '':
 			return new PersonList;
 		case 'approve':
 			return new PersonApproveNewAccount;
@@ -41,22 +40,25 @@ function person_dispatch()
 function person_menu() 
 {
 	global $session;
-	
-	menu("person", "Players", -4, 1);
-	menu("person/view/" . $session->attr_get('user_id'), "my account", 0);
-	menu("person/changepassword/" . $session->attr_get('user_id'), "change password",1);
-	menu("person/signwaiver", "view/sign player waiver",2);
+
+	$id = $session->attr_get('user_id');
+
+	menu_add_child('_root', 'myaccount','My Account', array('weight' => -10, 'link' => "person/view/$id"));
+	menu_add_child('myaccount', 'myaccount/edit','edit account', array('weight' => -10, 'link' => "person/edit/$id"));
+	menu_add_child('myaccount', 'myaccount/pass', 'change password', array( 'link' => "person/changepassword/$id"));
+	menu_add_child('myaccount', 'myaccount/signwaiver', 'view/sign player waiver', array( 'link' => "person/signwaiver", 'weight' => 3));
 	
 	if($session->attr_get('has_dog') == 'Y') {
-	  menu("person/signdogwaiver", "view/sign dog waiver",3);
+		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
 	}
 	
-	menu("person/list", "list players", 5);
-
+	menu_add_child('_root','person',"Players", array('weight' => -9));
+	menu_add_child('person','person/list',"list players", array('link' => "person/list"));
+	
 	if($session->is_admin()) {
 		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
 		if($newUsers) {
-			menu("person/listnew", "approve new accounts ($newUsers pending)");
+			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
 		}
 	}
 }
@@ -198,39 +200,17 @@ class PersonView extends Handler
 
 	function process ()
 	{	
-
 		$id = arg(2);
-
 		$person = person_load( array('user_id' => $id ) );
 
 		if( !$person ) {
 			$this->error_exit("That person does not exist");
 		}
-		
-		$links = array();
-		
-		if($this->_permissions['user_edit']) {
-			$links[] = l("edit account", "person/edit/$id", array('title' => "Edit the currently-displayed account"));
-		}
-		
-		if($this->_permissions['user_change_password']) {
-			$links[] = l("change password", "person/changepassword/$id", array('title' => "Change password for the currently-displayed account"));
-		}
-		
-		if($this->_permissions['user_delete']) {
-			$links[] = l("delete account", "person/delete/$id", array('title' => "Delete the currently-displayed account"));
-		}
-
 		$this->setLocation(array(
 			$person->fullname => "person/view/$id",
 			$this->title => 0));
-			
-		$links_html =  "";
-		if(count($links) > 0) {
-			$links_html .= theme_links($links);
-		}
 
-		return $links_html . $this->generateView($person);
+		return $this->generateView($person);
 	}
 	
 	function generateView (&$person)
@@ -341,6 +321,8 @@ class PersonView extends Handler
 		}
 		
 		$rows[] = array("Teams:", table( null, $teams) );
+		
+		person_add_to_menu( $this, $person );
 				
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
@@ -367,6 +349,7 @@ class PersonDelete extends PersonView
 			'last_login'		=> false,
 			'user_edit'				=> false,
 			'user_change_password'	=> false,
+			'user_delete'	=> false,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -1559,8 +1542,20 @@ class PersonChangePassword extends Handler
 			'self_sufficient',
 			'deny',
 		);
+		$this->_permissions = array(
+			'user_change_password'	=> false,
+			'user_edit'		=> false,
+			'user_delete'	=> false,
+		);
 		$this->section = 'person';
 		return true;
+	}
+	
+	function set_permission_flags($type) 
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		}
 	}
 
 	function process()
@@ -1610,6 +1605,8 @@ class PersonChangePassword extends Handler
 		$output .= "</div>";
 		
 		$output .= form_submit("Submit") . form_reset("Reset");
+		
+		person_add_to_menu( $this, $user );
 
 		return form($output);
 	}
@@ -1809,5 +1806,31 @@ function person_load ( $array = array() )
 
 	return $user;
 }
+
+/**
+ * Add view/edit/delete links to the menu for the given person
+ * TODO: when permissions are fixed, remove the evil passing of $this
+ */
+function person_add_to_menu( $this, &$person ) 
+{
+	global $session;
+	$id = $person->user_id;
+	if( ! ($session->attr_get('user_id') == $id) ) {
+		// These links already exist in the 'My Account' section if we're
+		// looking at ourself
+		menu_add_child('person', $person->fullname, $person->fullname, array('weight' => -10, 'link' => "person/view/$id"));
+		if($this->_permissions['user_edit']) {
+			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$id"));
+		}
+	
+		if($this->_permissions['user_change_password']) {
+			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$id"));
+		}
+		
+		if($this->_permissions['user_delete']) {
+			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$id"));
+		}
+	}
+}	
 
 ?>

@@ -11,7 +11,7 @@ function logout_dispatch()
 
 function login_menu()
 {
-	menu("logout","Log Out", 20);
+	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => 20));
 }
 
 /**

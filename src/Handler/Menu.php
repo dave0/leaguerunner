@@ -7,8 +7,7 @@ function home_dispatch()
 
 function home_menu() 
 {
-	global $session;
-	menu("home", "Home",0 -5);
+	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
 }
 
 class MainMenu extends Handler

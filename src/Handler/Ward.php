@@ -14,7 +14,6 @@ function ward_dispatch()
 		case 'view':
 			return new WardView;
 		case 'list':
-		case '':
 			return new WardList;
 	}
 	return null;
@@ -24,8 +23,8 @@ function ward_menu()
 {
 	global $session;
 	if($session->is_admin()) {
-		menu("ward", "City Wards", 0,1);
-		menu("ward/list", "list wards");
+		menu_add_child('_root','ward','City Wards', array('weight' => 5));
+		menu_add_child('ward','ward/list','list wards', array('link' => 'ward/list') );
 	}
 }
 

@@ -14,7 +14,6 @@ function site_dispatch()
 		case 'view':
 			return new SiteView;
 		case 'list':
-		case '':
 			return new SiteList;
 	}
 	return null;
@@ -22,8 +21,8 @@ function site_dispatch()
 
 function site_menu()
 {
-	menu("site", "Field Sites", 0,1);
-	menu("site/list", "list fields");
+	menu_add_child('_root','site','Field Sites');
+	menu_add_child('site','site/list','list fields', array('link' => 'site/list') );
 }
 
 

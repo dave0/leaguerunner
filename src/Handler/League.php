@@ -14,7 +14,6 @@ function league_dispatch()
 		case 'view':
 			return new LeagueView;
 		case 'list':
-		case '':
 			return new LeagueList;
 		case 'standings':
 			return new LeagueStandings;
@@ -30,8 +29,8 @@ function league_dispatch()
 
 function league_menu()
 {
-	menu('league', "Leagues", -2, 1);
-	menu('league/list', "list leagues");
+	menu_add_child('_root','league','Leagues');
+	menu_add_child('league','league/list','list leagues', array('link' => 'league/list') );
 }
 
 /**

@@ -15,7 +15,6 @@ function team_dispatch()
 		case 'delete':
 			return new TeamDelete; // TODO: CREATE 
 		case 'list':
-		case '':
 			return new TeamList;
 		case 'roster':
 			return new TeamRosterStatus;
@@ -29,8 +28,8 @@ function team_dispatch()
 
 function team_menu()
 {
-	menu("team", "Teams", -3, 1);
-	menu("team/list", "list teams");
+	menu_add_child('_root','team','Teams');
+	menu_add_child('team','team/list','list teams', array('link' => 'team/list') );
 }
 
 

@@ -14,7 +14,6 @@ function wlist_dispatch()
 		case 'view':
 			return new WaitingListView;
 		case 'list':
-		case '':
 			return new WaitingListList;
 		case 'viewperson':
 			return new WaitingListViewPerson;
@@ -30,17 +29,17 @@ function wlist_menu()
 {
 	global $session;
 
-	menu('wlist', "Waiting Lists", 0,1);
+	menu_add_child('_root','wlist','Waiting Lists');
 	
 	/* TODO: This should be a config option */
 	$signupTime = mktime(9,0,0,10,22,2003);
 	if(	time() >= $signupTime) {
-		menu("wlist/viewperson/" . $session->attr_get('user_id'), "winter indoor signup");
+		menu_add_child('wlist','wlist/viewperson','winter indoor signup', array('link' => "wlist/viewperson/" . $session->attr_get('user_id')));
 	}
 	
 	if($session->is_admin()) {
-		menu("wlist/create", "create waitlist");
-		menu("wlist/list", "list waitlists");
+		menu_add_child('wlist','wlist/create','create waitlist', array('link' => "wlist/create"));
+		menu_add_child('wlist','wlist/list','list waitlists', array('link' => "wlist/list"));
 	}
 }
 

@@ -36,11 +36,13 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
 	 * above.  Instead, all should be merged in one table, the breadcrumbs
 	 * fixed, and the top menubar removed.
 	 */
-	print "<table width='100%'><tr><td>";
+	print "<table width='100%'><tr>";
 	if ($session->is_valid()) {
-		print "<div class='menu'>" . menu_tree() . "</div>";
+		print "<td width='160'><div class='menu'>" . menu_render('_root') . "</div></td>";
+	} else {
+		print "<td></td>";
 	}
-	print "</td><td class='main'>";
+	print "<td class='main'>";
 	/* DMO: TODO: end evil hack */
 }
 
