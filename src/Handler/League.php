@@ -27,6 +27,8 @@ function league_dispatch()
 			return new LeagueMemberStatus;
 		case 'ladder':
 			return new LeagueLadder;
+		case 'admin':
+			return new LeagueAdmin;
 	}
 	return null;
 }
@@ -74,8 +76,24 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 	
 	if($league->schedule_type == 'ladder') {
 		if($this->_permissions['administer_league']) {
-			menu_add_child($league->fullname, "$league->fullname/ladder", 'seed ladder', array('link' => "league/ladder/$league->league_id"));
-			menu_add_child("$league->fullname/ladder", "$league->fullname/ladder/byskill", 'seed by average skill', array('link' => "league/ladder/$league->league_id" . "/byskill"));
+
+			menu_add_child($league->fullname, "$league->fullname/admin", 
+                               'league admin', array('link' => "league/admin/top/$league->league_id"));
+
+			menu_add_child($league->fullname . "/admin", "$league->fullname/admin/clearround", 
+                               'clear round', array('link' => "league/admin/cleanround/$league->league_id/confirm"));
+ 
+			menu_add_child($league->fullname . "/admin", "$league->fullname/admin/cancelround", 
+                               'cancel round', array('link' => "league/admin/cancelround/$league->league_id/confirm"));
+
+			menu_add_child($league->fullname . "/admin", "$league->fullname/admin/finalizeround", 
+                               'finalize round', array('link' => "league/admin/finalizeround/$league->league_id/confirm"));
+
+			menu_add_child($league->fullname . "/admin", "$league->fullname/admin/ladder", 
+                               'seed ladder', array('link' => "league/ladder/$league->league_id"));
+
+			menu_add_child($league->fullname . "/admin/ladder", "$league->fullname/admin/ladder/byskill", 
+                               'seed by average skill', array('link' => "league/ladder/$league->league_id" . "/byskill"));
 		}
 	}
 	
@@ -1310,6 +1328,201 @@ class LeagueMemberStatus extends Handler
 		
 		local_redirect(url("league/view/$league->league_id"));
 	}
+}
+
+////////////////////////////////////////////////////////////////
+//  Contains admin functions for the league.
+////////////////////////////////////////////////////////////////
+class LeagueAdmin extends Handler
+{
+
+        var $league;
+        var $leagueID;
+
+	function initialize ()
+	{
+		$this->title = "League Administration";
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny',
+		);
+		return true;
+	}
+
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->_permissions['administer_league'] = true;
+		} else if($type == 'coordinator') {
+			$this->_permissions['administer_league'] = true;
+		} 
+	}
+
+	function process ()
+	{
+             
+                $operation = arg(2); 
+		$this->leagueID  = arg(3);
+
+		$this->league = league_load( array('league_id' => $this->leagueID ));
+
+                // Load our league up.
+		if( !$this->league ) {
+			$this->error_exit("That league does not exist.");
+		}
+
+		$this->setLocation(array(
+			$this->league->fullname => "league/admin",
+			$this->title => 0));
+		league_add_to_menu($this, $this->league);
+                
+                switch($operation) {
+			case 'cleanround':
+                                return($this->cleanround());
+                                break;
+			case 'cancelround':
+                                return($this->cancelround());
+				break;
+			case 'finalizeround':
+                                return($this->finalizeround());
+				break;
+			case 'top':
+				return($this->viewrounds());
+				break;
+			default:
+				return($this->viewrounds());
+		}
+        }
+
+        function viewrounds() 
+        {
+
+		$output = para("This is the league adminstration page.  " . 
+                               "You can perform several highly destructive operations here.");
+
+	        $header = array("Round", "Date", "&nbsp", "&nbsp", "Operations", "&nbsp");
+
+                $row = array();
+
+                $dbQuery = "SELECT DISTINCT round, game_date FROM schedule, gameslot WHERE " .
+                          "league_id = " . $this->league->league_id .
+                          " AND schedule.game_id = gameslot.game_id ORDER BY game_date ASC"; 
+
+                // TBD:  Need some error checking here.
+                $allRounds = db_query($dbQuery);
+
+                
+		while($round = db_fetch_object($allRounds)) {
+
+                  $row[] = array(
+                             $round->round, 
+                             $round->game_date, 
+                             "&nbsp", 
+                             l("clean",   "league/admin/cleanround/" . $this->league->league_id . "/confirm/" . $round->round ),
+                             l("cancel",  "league/admin/cancelround/" . $this->league->league_id . "/confirm/" . $round->round),
+                             l("finalize","league/admin/finalizeround/" . $this->league->league_id . "/confirm/" . $round->round) );
+                }
+
+                $output = $output . "<div class='listtable'>" . table( $header, $row ) . "</div>";
+
+		return $output;
+        }
+
+        function cleanround()
+        {
+            $suboperation = arg(4);
+
+            switch($suboperation) {
+		case 'confirm':
+                     return($this->cleanroundconfirm());
+			break;
+		case 'doit':
+                     return($this->cleanrounddoit());
+			break;
+                default:
+            }
+        }
+
+        function cancelround()
+        {
+            $suboperation = arg(4);
+
+            switch($suboperation) {
+		case 'confirm':
+                     return($this->cancelroundconfirm());
+			break;
+		case 'doit':
+                     return($this->cancelrounddoit());
+			break;
+                default:
+            }
+        }
+
+        function finalizeround()
+        {
+            $suboperation = arg(4);
+
+            switch($suboperation) {
+		case 'confirm':
+                     return($this->finalizeroundconfirm());
+			break;
+		case 'doit':
+                     return($this->finalizerounddoit());
+			break;
+                default:
+            }
+        }
+
+        function cleanroundconfirm()
+        {
+		$output = para("This operation will remove all game data from the select round!!");
+		$output .= para("Are you sure you want to proceed!?!");
+
+                $output .= form_submit("Clean Round"); 
+                return form($output,"post", url("league/admin/cleanround/$this->leagueID/doit"));
+        }
+
+        function cleanrounddoit()
+        {
+          $this->league->cleanround(arg(5));
+
+          return("Round cleaned.");
+        }
+     
+        function cancelroundconfirm()
+        {
+		$output = para("This operation will remove ALL GAMES from the select round!!");
+		$output .= para("Are you sure you want to proceed!?!");
+
+                $output .= form_submit("Cancel Round"); 
+                return form($output,"post", url("league/admin/cancelround/$this->leagueID/doit"));
+        }
+
+        function cancelrounddoit()
+        {
+          $this->league->cleanround(arg(5));
+
+          return("Round cancelled.");
+        }
+
+        function finalizeroundconfirm()
+        {
+		$output = para("This operation will finalize the selected round.");
+		$output .= para("Are you sure you want to proceed?");
+
+                $output .= form_submit("Finalize Round"); 
+                return form($output,"post", url("league/admin/finalizeround/$this->leagueID/doit"));
+        }
+
+        function finalizerounddoit()
+        {
+          $this->league->cleanround(arg(5));
+
+          return("Round finalize.");
+        }
 }
 
 class LeagueLadder extends Handler

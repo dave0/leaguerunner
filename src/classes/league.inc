@@ -171,6 +171,20 @@ class League extends LeaguerunnerObject
 		return false;
 	}
 
+        function cleanupgames ()
+        {
+           return true;
+         
+
+        }
+
+        //  This function clears all of the scores and rankings in a given round.
+        //
+        function cleanround( $roundNumber ) {
+
+           
+        }
+
 	# TODO: add_team and remove_team, same as add and remove coordinator.
 
 	function save ()
