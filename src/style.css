@@ -96,20 +96,30 @@ fieldset {
 .calendar .highlighted-day { background-color: #CC0; }
 .calendar .current-day     { background-color: #C00; }
 
-.lr_topbar td    { color: black; font-size: 9pt; border: 0px; }
-.lr_topbar table { border-collapse: collapse; width: 100%; }
+.lr_topbar td    { color: black; font-size: 9pt; border: 0; 
+	padding: 0;
+	margin: 0;
+}
+.lr_topbar table { border-collapse: collapse; width: 100%; 
+	padding: 0;
+	margin: 0;
+}
 .lr_topbar a:active  { color: red; }
 .lr_topbar .nav  { background-color: lightgray; 
-                   padding-left: 5px; padding-right: 5px; }
+                   padding-left: 0.25em; padding-right: 1em; }
 
 .error { color: red }
+
+.main {
+  border-left: 1px solid blue;
+  padding-left: .5em;
+}
 
 /* Menu styles */
 .menu {
   margin: 0;
-  padding: 0.25em 0 0.25em 0.25em;
-  background-color: #CCCCFF;
-  border: none;
+  padding: 0;
+  background-color: #FFF;
   text-align:left;
 }
 .menu td {
@@ -122,7 +132,7 @@ fieldset {
 }
 .menu td.active {
   color: #000;
-  background-color: #FFF;
+  background-color: #CCF;
   font-weight: bold;
 }
 .menu a:hover {

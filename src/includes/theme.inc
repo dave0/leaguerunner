@@ -26,19 +26,11 @@ function theme_header($title = "", $breadcrumbs = array())
 	</style>
   </head>
   <body bgcolor="#FFFFFF">
-  <table border='0' cellpadding='1' cellspacing='0' width="99%" bgcolor='white'><?php
+  <table border='0' cellpadding='0' cellspacing='0' width="99%" bgcolor='white'><?php
   	print "<tr><td colspan='2' class='toprow'><h1>$app_name</h1></td></tr>\n";
-
 	print theme_navbar($breadcrumbs);
-	print "<tr><td colspan='2' class='main'>";
-	print "\n<!-- end header -->\n";
-	
-	/* DMO: TODO: fix this evil hack 
-	 * Here we nest another table to not screw up the column widths, etc,
-	 * above.  Instead, all should be merged in one table, the breadcrumbs
-	 * fixed, and the top menubar removed.
-	 */
-	print "<table width='100%'><tr>";
+?></table>
+  <table border='0' cellpadding='0' cellspacing='0' width="99%" bgcolor='white'><tr><?php
 	if ($session->is_valid()) {
 		print "<td width='180'><div class='menu'>" . menu_render('_root') . "</div></td>";
 	} else {
@@ -54,7 +46,7 @@ function theme_navbar($breadcrumbs = array())
 
 	print "\n<!-- start navbar -->\n";
 	print "<tr><td colspan='2'>" ;
-	print "<div class='lr_topbar'><table>";
+	print "<div class='lr_topbar'><table cellpadding='0' cellspacing='0'>";
 	$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
 
 	$trail = menu_get_trail();
@@ -101,6 +93,9 @@ function theme_footer()
 	/* DMO: TODO: end evil hack */
 ?>
 <!-- start footer -->
+    </td>  
+  </tr>
+</table>
 <p />
 <hr noshade />
 <table border="0" width="100%">
@@ -108,9 +103,6 @@ function theme_footer()
 <td align="right">
 <i>Powered by <a href="http://www.dmo.ca/projects/leaguerunner/">Leaguerunner</a></i>
 </td></tr></table>
-    </td>  
-  </tr>
-</table>
 </body>
 </html>
 <!-- end footer -->
