@@ -72,9 +72,6 @@
     {if $perm_administer_league}
       | <a href="{$app_cgi_location}?op=league_moveteam&id={$league_id}&team_id={$team.id}">move team</a>
       | <a href="{$app_cgi_location}?op=league_moveteam&id={$league_id}&team_id={$team.id}&target_id=1&step=confirm">deactivate team</a>
-      {if $team.league_status != 'confirmed'}
-        | <a href="{$app_cgi_location}?op=league_addteam&id={$league_id}&team_id={$team.id}">confirm</a>
-      {/if}
     {/if}
     ]
     </td> 
