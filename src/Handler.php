@@ -161,6 +161,20 @@ class Handler
 		$this->tmpl->compile_check = true;
 		$this->tmpl->display($this->tmplfile);
 	}
+
+	/**
+	 * Output a redirect to ourself with the given bits appended
+	 */
+	function output_redirect ( $append )
+	{
+		Header(join("",array(
+			"Location: ",
+			$GLOBALS['APP_CGI_LOCATION'],
+			"?",
+			$append
+		)));
+		return true;
+	}
 	
 	/**
 	 * Display the error message.
