@@ -97,3 +97,9 @@ Field Management:
                 (ii)6:30-8:30pm
                 (iii)After 8:30pm
         - administrative notes
+
+Bugs:
+	- player selecting "join team" rather than "change status" gets told
+	  that they don't have permission.  This should be fixed so that they
+	  get the changestatus page if they're already on the roster in some
+	  capacity.
