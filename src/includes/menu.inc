@@ -190,7 +190,6 @@ function menu_get_trail( $path = 0)
 	}
 	$trail = array_reverse($trail);
 	$trail[] = $_menu[_menu_get_active($path)];
-	print_r($trail);
 	return $trail;
 }
 
