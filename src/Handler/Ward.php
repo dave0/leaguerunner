@@ -28,21 +28,31 @@ function ward_menu()
 	}
 }
 
+function ward_permissions( &$user, $action, $id )
+{
+	switch($action) {
+		case 'list':
+		case 'view':
+			return ($user->is_player());
+		case 'create':
+		case 'edit':
+			// Admin-only
+			break;
+	}
+	return false;
+}
+
 class WardCreate extends WardEdit
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Create Ward";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->has_permission('ward','create');
 	}
 	
 	function process ()
 	{
+		$this->title = "Create Ward";
 		$id = -1;
 		$edit = $_POST['edit'];
 
@@ -86,19 +96,17 @@ class WardCreate extends WardEdit
 
 class WardEdit extends Handler
 {
-	function initialize ()
+	var $ward;
+	
+	function has_permission ()
 	{
-		$this->title = "Edit Ward";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->has_permission('ward','edit', $this->ward->ward_id);
 	}
 
 	function process ()
 	{
+		$this->title = "Edit Ward";
 		$id = arg(2);
 		$edit = $_POST['edit'];
 
@@ -229,19 +237,15 @@ class WardEdit extends Handler
 
 class WardList extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'allow'		/* Allow everyone */
-		);
-		$this->setLocation(array('List Wards' => 'ward/list'));
-		return true;
+		global $session;
+		return $session->has_permission('ward','list');
 	}
 
 	function process ()
 	{
+		$this->setLocation(array('List Wards' => 'ward/list'));
 		$cities = array('Ottawa','Gatineau');
 		$columns = array();
 		foreach($cities as $city) {
@@ -283,30 +287,18 @@ class WardList extends Handler
 
 class WardView extends Handler
 {
-	function initialize ()
-	{
-		$this->title = "View Ward";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'allow',
-		);
-		$this->_permissions = array(
-			'ward_edit'			=> false,
-		);
-		return true;
-	}
+	var $ward;
 	
-	function set_permission_flags($type) 
+	function has_permission ()
 	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		}
+		global $session;
+		return $session->has_permission('ward','view', $this->ward->ward_id);
 	}
 
 	function process ()
 	{
+		global $session;
+		$this->title = "View Ward";
 		$id = arg(2);
 
 		$ward = ward_load( array('ward_id' => $id) );
@@ -315,7 +307,7 @@ class WardView extends Handler
 		}
 
 		$links = array();
-		if($this->_permissions['ward_edit']) {
+		if($session->has_permission('ward','edit', $ward->ward_id)) {
 			$links[] = l('edit ward', "ward/edit/$id", array("title" => "Edit this ward"));
 		}
 		
