@@ -516,19 +516,11 @@ class LeagueScheduleAddWeek extends Handler
 		$month = var_from_getorpost('month');
 		$day = var_from_getorpost('day');
 
-		/* Need a year check, since checkdate() considers any year between 1
-		 * and 32767 to be valid
-		 */
-
-		if($year < 1990) {
-			$this->error_text = gettext("That year does not appear to be valid");
-			return false;
-		}
-
-		if(!checkdate($month, $day, $year) ) {
+		if( !validate_date_input($year, $month, $day) ) {
 			$this->error_text = gettext("That date is not valid");
 			return false;
 		}
+		
 		return true;
 	}
 

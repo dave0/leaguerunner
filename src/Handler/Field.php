@@ -345,15 +345,14 @@ class FieldEdit extends Handler
 
 	function validate_data ()
 	{
-		$err = true;
+		$rc = true;
 		
-		$field_name = trim(var_from_getorpost("field_name"));
-		if(0 == strlen($field_name)) {
+		if( !validate_name_input($field_name) ) {
 			$this->error_text .= gettext("Field name cannot be left blank") . "<br>";
-			$err = false;
+			$rc = false;
 		}
 		
-		return $err;
+		return $rc;
 	}
 }
 

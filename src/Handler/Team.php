@@ -335,21 +335,21 @@ class TeamEdit extends Handler
 
 	function validate_data ()
 	{
-		$err = true;
+		$rc = true;
 		
-		$team_name = trim(var_from_getorpost("team_name"));
-		if(0 == strlen($team_name)) {
-			$this->error_text .= gettext("Team name cannot be left blank") . "<br>";
-			$err = false;
+		$team_name = var_from_getorpost("team_name");
+		if( !validate_name_input($team_name) ) {
+			$this->error_text .= "Team name cannot be left blank<br>";
+			$rc = false;
 		}
 		
-		$shirt_colour = trim(var_from_getorpost("shirt_colour"));
-		if(0 == strlen($shirt_colour)) {
-			$this->error_text .= gettext("Shirt colour cannot be left blank") . "<br>";
-			$err = false;
+		$shirt_colour = var_from_getorpost("shirt_colour");
+		if( !validate_name_input($shirt_colour) ) {
+			$this->error_text .= "Shirt colour cannot be left blank<br>";
+			$rc = false;
 		}
 
-		return $err;
+		return $rc;
 	}
 }
 

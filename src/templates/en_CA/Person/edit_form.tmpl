@@ -95,15 +95,16 @@
     </tr>
     
     <tr>
-      <td class='row_title'>Phone Number:</td> 
+      <td class='row_title' valign='top'>Phone Numbers:</td> 
       <td class='row_data'>
         {if $perm_edit_phone}
-		    (<input type="text" name="phone_areacode" size=3 maxlength=3 value="{$phone_areacode}">)
-		<input type="text" name="phone_prefix" size=3 maxlength=3 value="{$phone_prefix}"> - 
-		<input type="text" name="phone_number" size=4 maxlengt=4 value="{$phone_number}">
-		x <input type="text" name="phone_extension" size=4 value="{$phone_extension}">
+		    <input type='text' name='home_phone' size='25' value='{$home_phone}'> (home)<br />
+		    <input type='text' name='work_phone' size='25' value='{$work_phone}'> (work)<br />
+		    <input type='text' name='mobile_phone' size='25' value='{$mobile_phone}'> (mobile)<br />
         {else}
-          ({$phone_areacode}) {$phone_prefix}-{$phone_number} {if $phone_extension}x{$phone_extension}{/if}
+		      {$home_phone} (home)<br />
+		      {$work_phone} (work)<br />
+		      {$mobile_phone} (mobile)<br />
         {/if}
       </td>
     </tr>

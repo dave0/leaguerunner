@@ -27,10 +27,14 @@
   </tr>
   {/if}
 
-  {if $phone}
+  {if $perm_phone}
   <tr>
-    <td class='row_title'>Phone Number:</td> 
-    <td class='row_data'>{$phone|escape}</td>
+    <td class='row_title' valign="top">Phone Numbers:</td> 
+    <td class='row_data'>
+      {if $home_phone}{$home_phone} (home)<br />{/if}
+      {if $work_phone}{$work_phone} (work)<br />{/if}
+      {if $mobile_phone}{$mobile_phone} (mobile)<br />{/if}
+    </td>
   </tr>
   {/if}
 

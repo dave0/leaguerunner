@@ -21,6 +21,7 @@
  * 
  */
 require_once("lib/variables.php");
+require_once("lib/common.inc");
 
 $APP_PAGE_MAP = array();
 

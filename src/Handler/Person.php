@@ -127,7 +127,9 @@ class PersonView extends Handler
 				break;
 			case 'administrator':
 				/* No point in viewing this user's contact info since it's not
-				 * a real person */
+				 * a real person, but... */
+				$this->_permissions['email'] = true;
+				$this->_permissions['phone'] = true;
 				break;
 			case 'volunteer':
 				/* volunteers have their contact info published */
@@ -174,7 +176,9 @@ class PersonView extends Handler
 				member_id,
 				email, 
 				gender, 
-				telephone, 
+				home_phone, 
+				work_phone, 
+				mobile_phone, 
 				birthdate, 
 				skill_level, 
 				year_started, 
@@ -211,12 +215,9 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['phone']) {
-			$ary = explode(" ", $row['telephone']);
-			$new_phone = "($ary[0]) $ary[1]-$ary[2]";
-			if(isset($ary[3])) {
-				$new_phone .= " x $ary[3]";
-			}
-			$this->tmpl->assign("phone", $new_phone);
+			$this->tmpl->assign("home_phone", $row['home_phone']);
+			$this->tmpl->assign("work_phone", $row['work_phone']);
+			$this->tmpl->assign("mobile_phone", $row['mobile_phone']);
 		}
 		
 		if($this->_permissions['address']) {
@@ -634,7 +635,9 @@ class PersonEdit extends Handler
 				username, 
 				email, 
 				gender, 
-				telephone, 
+				home_phone, 
+				work_phone, 
+				mobile_phone, 
 				birthdate, 
 				skill_level, 
 				year_started, 
@@ -658,14 +661,10 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("email", $row['email']);
 		
-		$ary = explode(" ", $row['telephone']);
-		$this->tmpl->assign("phone_areacode", $ary[0]);
-		$this->tmpl->assign("phone_prefix", $ary[1]);
-		$this->tmpl->assign("phone_number", $ary[2]);
-		if(isset($ary[3])) {
-			$this->tmpl->assign("phone_extension", $ary[3]);
-		}
-		
+		$this->tmpl->assign("home_phone", $row['home_phone']);
+		$this->tmpl->assign("work_phone", $row['work_phone']);
+		$this->tmpl->assign("mobile_phone", $row['mobile_phone']);
+	
 		$this->tmpl->assign("addr_street", $row['addr_street']);
 		$this->tmpl->assign("addr_city", $row['addr_city']);
 		$this->tmpl->assign("addr_prov", $row['addr_prov']);
@@ -716,6 +715,8 @@ class PersonEdit extends Handler
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Person/edit_form.tmpl");
 			$this->tmpl->assign("page_step", 'confirm');
+			$this->tmpl->assign("error_message", $this->error_text);
+			$this->tmpl->assign("instructions", gettext("Edit any of the following fields and click 'Submit' when done."));
 			return $this->generate_form();
 		}
 
@@ -733,10 +734,9 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("addr_prov", var_from_getorpost('addr_prov'));
 		$this->tmpl->assign("addr_postalcode", var_from_getorpost('addr_postalcode'));
 
-		$this->tmpl->assign("phone_areacode", var_from_getorpost('phone_areacode'));
-		$this->tmpl->assign("phone_prefix", var_from_getorpost('phone_prefix'));
-		$this->tmpl->assign("phone_number", var_from_getorpost('phone_number'));
-		$this->tmpl->assign("phone_extension", var_from_getorpost('phone_extension'));
+		$this->tmpl->assign("home_phone", var_from_getorpost('home_phone'));
+		$this->tmpl->assign("work_phone", var_from_getorpost('work_phone'));
+		$this->tmpl->assign("mobile_phone", var_from_getorpost('mobile_phone'));
 
 		$this->tmpl->assign("gender", var_from_getorpost('gender'));
 		$this->tmpl->assign("skill_level", var_from_getorpost('skill_level'));
@@ -780,13 +780,12 @@ class PersonEdit extends Handler
 		}
 		
 		if($this->_permissions['edit_phone']) {
-			$fields[] = "telephone = ?";
-			$fields_data[] = join(" ",array(
-				var_from_getorpost('phone_areacode'),
-				var_from_getorpost('phone_prefix'),
-				var_from_getorpost('phone_number'),
-				var_from_getorpost('phone_extension'))
-			);
+			$fields[] = "home_phone = ?";
+			$fields_data[] = var_from_getorpost('home_phone');
+			$fields[] = "work_phone = ?";
+			$fields_data[] = var_from_getorpost('work_phone');
+			$fields[] = "mobile_phone = ?";
+			$fields_data[] = var_from_getorpost('mobile_phone');
 		}
 		
 		if($this->_permissions['edit_name']) {
@@ -860,102 +859,101 @@ class PersonEdit extends Handler
 
 	function validate_data ()
 	{
-		/* TODO: Actually validate some of our data! */
-		return true;
+		$rc = true;
+		$this->error_text = "";
 		
-/*
-	## TODO:
-	## Check each form field for appropriateness of data. 
-	## If something is wrong, set $validity to 0, and append an HTML
-	## error to $error_string.
+		$firstname = var_from_getorpost('firstname');
+		$lastname = var_from_getorpost('lastname');
+		if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
+			$rc = false;
+			$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+		}
 
-	## Names can only have letters, numbers spaces, and '-. in them.
-	if (($q->param('firstname') !~ m/^[\w][\d\w-\. ']+$/) || ($q->param('lastname') !~ m/^[\w][\d\w-\. ']+$/)) {
-		$validity = 0;
-		$error_string .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in your name.";
-	}
+		$username = var_from_getorpost('username');
+		if( ! validate_name_input($username) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+		}
 
-	## username
-	##	- only allow [\d\w-_. ]
-	if ($q->param('username') !~ m/^[\d\w][\d\w-_\. ]+$/) {
-		$validity = 0;
-		$error_string .= "\n<br>You can only use letters, numbers, spaces, and the characters - _ and . in your username.  Also, it must start with a letter or a number.";
-	}
+		$email = var_from_getorpost('email');
+		if ( ! validate_email_input($email) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply a valid email address";
+		}
 
-	## email
-	##	- in format user@domain, where domain contains at least one . 
-	##    character.  We may also want to check for valid toplevel domains.
-	if ($q->param('primary_email') !~ m/^[\d\w-_\.]+\@([\d\w-_]+\.)+[\d\w-_]+$/) {
-		$validity = 0;
-		$error_string .= "\n<br>You must supply a valid email address";
-	}
+		$home_phone = var_from_getorpost('home_phone');
+		$work_phone = var_from_getorpost('work_phone');
+		$mobile_phone = var_from_getorpost('mobile_phone');
+		if( !validate_nonblank($home_phone) &&
+			!validate_nonblank($work_phone) &&
+			!validate_nonblank($mobile_phone) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
+			$rc = false;
+			$this->error_text .= "\n<br>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
+			$rc = false;
+			$this->error_text .= "\n<br>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
+			$rc = false;
+			$this->error_text .= "\n<br>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
 
-	## phone
-	if (!$accept_short && $q->param('primary_areacode') !~ m/^\d{3}$/) {
-		$validity = 0;
-		$error_string .= "\n<br>You must supply a 3-digit area code.";
-			
-	}
-	if (!$accept_short && ($q->param('primary_prefix') !~ m/^\d{3}$/ ||
-	   $q->param('primary_number') !~ m/^\d{4}$/)) {
-		$validity = 0;
-		$error_string .= "\n<br>You must supply a valid phone number.";
-			
-	}
+		$addr_street = var_from_getorpost('addr_street');
+		if( !validate_nonblank($addr_street) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply a street address.";
+		}
+		$addr_city = var_from_getorpost('addr_city');
+		if( !validate_nonblank($addr_city) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply a city.";
+		}
+		$addr_prov = var_from_getorpost('addr_prov');
+		if( !validate_nonblank($addr_prov) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply a province.";
+		}
+		$addr_postalcode = var_from_getorpost('addr_postalcode');
+		if( !validate_postalcode($addr_postalcode) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must supply a valid Canadian postal code.";
+		}
+		
+		$gender = var_from_getorpost('gender');
+		if( !preg_match("/^[mf]/i",$gender ) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must select either male or female for gender.";
+		}
 
-	## address (addr_street, addr_city, addr_prov, addr_postalcode)
-	if (!defined($q->param('addr_street')) || ($q->param('addr_street') =~ m/^\s*$/)) {
-		$validity = 0;
-		$error_string .= "\n<br>Your street address cannot be blank.";
+		$skill = var_from_getorpost('skill');
+		if( $skill < 0 || $skill > 5 ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must select a skill level between 0 and 5";
+		}
+		
+		$year_started = var_from_getorpost('started_Year');
+		$current = localtime(time(),1);
+		$this_year = $current['tm_year'] + 1900;
+		if( $year_started < ($this_year - 30)  || $year_started > $this_year ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must select the year you started playing the sport";
+		}
+		
+		$birthyear = var_from_getorpost('birth_Year');
+		$birthmonth = var_from_getorpost('birth_Month');
+		$birthday = var_from_getorpost('birth_Day');
+		if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
+			$rc = false;
+			$this->error_text .= "\n<br>You must provide a valid birthdate";
+		}
+		
+		return $rc;
 	}
-	if (!defined($q->param('addr_city')) || ($q->param('addr_city') =~ m/^\s*$/)) {
-		$validity = 0;
-		$error_string .= "\n<br>Your city cannot be blank.";
-	}
-	if (!defined($q->param('addr_prov')) || ($q->param('addr_prov') =~ m/^\s*$/)) {
-		$validity = 0;
-		$error_string .= "\n<br>Your province cannot be blank.";
-	}
-	if (!$accept_short && $q->param('addr_postalcode') !~ m/^[a-zA-z]\d[a-zA-z]\d[a-zA-z]\d$/i) {
-		$validity = 0;
-		$error_string .= "\n<br>Postal code must be in X0X0X0 format (no spaces).";
-	}
-
-	## gender
-	##	- must be either 'male' or 'female'
-	if ($q->param('gender') !~ m/^[MmFf]/) {
-		$validity = 0;
-		$error_string .= "\n<br>Gender must be either male or female";
-	}
-	
-	## skill
-	##  - should be between 0 and 5
-#	if (!$accept_short && $q->param('skill_level') !~ m/^[012345]/) {
-#		$validity = 0;
-#		$error_string .= "\n<br>Skill level must be between 0 and 5";
-#	}
-
-	## allow_publish
-	
-	## birthyear		
-	##	- should be four digits
-	if (!$accept_short && $q->param('birthyear') !~ m/^\d{4}$/) {
-		$validity = 0;
-		$error_string .= "\n<br>Birth year must be in YYYY format.";
-	}
-	if (!$accept_short && $q->param('birthmonth') !~ m/^\d{1,2}$/)  {
-		$validity = 0;
-		$error_string .= "\n<br>Birth month must be in MM format.";
-	}
-	if (!$accept_short && $q->param('birthday') !~ m/^\d{1,2}$/) {
-		$validity = 0;
-		$error_string .= "\n<br>Birth day must be in DD format.";
-	}
-
-	return($validity, $error_string);
-*/
-	}
-
 }
 
 /**
@@ -1023,7 +1021,6 @@ class PersonCreate extends PersonEdit
 	{
 		global $DB, $id;
 
-		/* TODO: Validate passwords here */
 		$password_once = var_from_getorpost("password_once");
 		$password_twice = var_from_getorpost("password_twice");
 		if($password_once != $password_twice) {
@@ -1458,5 +1455,4 @@ function map_callback($item)
 {
 	return array("output" => $item, "value" => $item);
 }
-
 ?>
