@@ -144,6 +144,7 @@ class TeamView extends Handler
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
 				p.gender,
+				p.skill_level,
 				r.status
 			FROM
 				person p,

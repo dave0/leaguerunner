@@ -127,6 +127,15 @@ class LeagueView extends Handler
 			return false;
 		}
 		$this->tmpl->assign("teams", $rows);
+
+		/* ... and set permissions flags */
+		reset($this->_permissions);
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
+
 		
 
 		return true;

@@ -11,11 +11,6 @@ register_page_handler('team_create', 'TeamCreate');
  */
 class TeamCreate extends TeamEdit
 {
-	/** 
-	 * Initializer for TeamEdit class
-	 *
-	 * @access public
-	 */
 	function initialize ()
 	{
 		$this->name = "Create New Team";

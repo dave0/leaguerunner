@@ -5,7 +5,6 @@ register_page_handler('person_edit', 'PersonEdit');
  * Player edit handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -13,7 +12,7 @@ register_page_handler('person_edit', 'PersonEdit');
 class PersonEdit extends Handler
 {
 	/** 
-	 * Initializer for PersonEdit class
+	 * Initializer
 	 *
 	 * @access public
 	 */
@@ -212,8 +211,8 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("birthdate",  $row['birthdate']);
 		
-		$this->tmpl->assign("allow_publish_email",  $row['allow_publish_email']);
-		$this->tmpl->assign("allow_publish_phone",  $row['allow_publish_phone']);
+		$this->tmpl->assign("allow_publish_email",  ($row['allow_publish_email'] == 'Y'));
+		$this->tmpl->assign("allow_publish_phone",  ($row['allow_publish_phone'] == 'Y'));
 
 		return true;
 	}

@@ -45,23 +45,25 @@
         </tr>
       </table>
     </td>
-    <td>
+    <td valign="top">
       {if $roster}
       <table cellpadding="3" cellspacing="0">
         <tr>
-          <td colspan="4" class="roster_title">Team Roster</td>
+          <td colspan="5" class="roster_title">Team Roster</td>
         </tr>
         <tr>
           <td class="roster_subtitle">Name</td>
           <td class="roster_subtitle">Status</td>
           <td class="roster_subtitle">M/F</td>
+          <td class="roster_subtitle">Skill</td>
           <td class="roster_subtitle">&nbsp;</td>
         </tr>
         {foreach name=teamroster from=$roster item=player}
         <tr>
-          <td class="roster_item">{$player.fullname}</td>
-          <td class="roster_item">{$player.status}</td>
-          <td class="roster_item">{$player.gender}</td>
+          <td class="roster_item">&nbsp;{$player.fullname}</td>
+          <td class="roster_item">&nbsp;{$player.status}</td>
+          <td class="roster_item">&nbsp;{$player.gender}</td>
+          <td class="roster_item">&nbsp;{$player.skill_level}</td>
           <td class="roster_item">
             [ <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
             {if $perm_edit_team}
