@@ -1867,9 +1867,6 @@ class LeagueMoveTeam extends Handler
 
 class LeagueVerifyScores extends Handler
 {
-
-	var $_id;
-	
 	function initialize ()
 	{
 		$this->_required_perms = array(
@@ -1881,6 +1878,7 @@ class LeagueVerifyScores extends Handler
 		);
 
 		$this->op = 'league_verifyscores';
+		$this->set_title("Verify Scores");
 
 		return true;
 	}
@@ -1889,28 +1887,17 @@ class LeagueVerifyScores extends Handler
 	{
 		global $DB;
 
-		$step = var_from_getorpost('step');
-		$this->_id = var_from_getorpost('id');
+		$id = var_from_getorpost('id');
 		
-		if( !validate_number($this->_id) ) {
+		if( !validate_number($id) ) {
 			$this->error_exit("You must supply a valid league ID");
 		}
 
 		/* Get league info */
-		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($this->_id), DB_FETCHMODE_ASSOC);
+		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league)) {
 			return false;
 		}
-
-		$title = "Verify Scores for " . $league['name'];
-		if($league['tier'] > 0) {
-			$title .= " Tier ". $league['tier'];
-		}
-
-		$this->set_title($title);
-		$this->set_template_file("League/review_scores.tmpl");
-		$this->tmpl->assign("league_info",$league);
-		$this->tmpl->assign("id",$this->_id);
 
 		/* Now fetch games in need of verification */
 		$games = $DB->query("SELECT DISTINCT
@@ -1924,54 +1911,95 @@ class LeagueVerifyScores extends Handler
 			    LEFT JOIN team h ON (s.home_team = h.team_id)
 			    LEFT JOIN team a ON (s.away_team = a.team_id)
 			WHERE s.league_id = ? AND s.game_id = se.game_id ORDER BY timestamp", 
-			array($this->_id));
+			array($id));
 		if($this->is_database_error($games)) {
 			return false;
 		}
 
+		$output = blockquote("The following games have not been finalized.");
+		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
+		$output .= tr(
+			td('Game Date')
+			. td('Home Team Submission', array('colspan' => 2))
+			. td('Away Team Submission', array('colspan' => 2))
+			. td('&nbsp;'),
+		array('class' => 'schedule_title'));
+
+		
 		$game_data = array();
 		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = ? AND game_id = ?";
 		
 		while($game = $games->fetchRow(DB_FETCHMODE_ASSOC)) {
-			$one_game = array(
-				'id' => $game['game_id'],
-				'date'    => strftime("%A %B %d %Y, %H%Mh",$game['timestamp']),
-				'home_name' => $game['home_name'],
-				'home_id' => $game['home_team'],
-				'away_name' => $game['away_name'],
-				'away_id' => $game['away_team']);
-				
+			$output .= tr(
+				td(strftime("%A %B %d %Y, %H%Mh",$game['timestamp']),
+					array('rowspan' => 4))
+				. td($game['home_name'], array('colspan' => 2))
+				. td($game['away_name'], array('colspan' => 2))
+				. td( l("finalize score", "op=game_finalize&id=" . $game['game_id']), array('rowspan' => 4)),
+			array('class' => 'schedule_item'));
+			
 			$home = $DB->getRow($se_query,
 				array($game['home_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
-			if(isset($home)) {
-				$one_game['home_self_score'] = $home['score_for'];
-				$one_game['home_opp_score'] = $home['score_against'];
-				$one_game['home_opp_sotg'] = $home['spirit'];
-			} else {
-				$one_game['home_self_score'] = "not entered";
-				$one_game['home_opp_score'] = "not entered";
-				$one_game['home_opp_sotg'] = "not entered";
+			if(!isset($home)) {
+				$home = array(
+					'score_for' => 'not entered',
+					'score_against' => 'not entered',
+					'spirit' => 'not entered',
+				);
 			}
 			$away = $DB->getRow($se_query,
 				array($game['away_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
-			if(isset($away)) {
-				$one_game['away_self_score'] = $away['score_for'];
-				$one_game['away_opp_score'] = $away['score_against'];
-				$one_game['away_opp_sotg'] = $away['spirit'];
-			} else {
-				$one_game['away_self_score'] = "not entered";
-				$one_game['away_opp_score'] = "not entered";
-				$one_game['away_opp_sotg'] = "not entered";
+			if(!isset($away)) {
+				$away = array(
+					'score_for' => 'not entered',
+					'score_against' => 'not entered',
+					'spirit' => 'not entered',
+				);
 			}
-			$game_data[] = $one_game;
-			$home = null;
-			$away = null;
+
+			$output .= tr(
+				td("Home Score:")
+				. td( $home['score_for'] )
+				. td("Home Score:")
+				. td( $away['score_against'] ),
+			array('class' => 'schedule_item'));
+			
+			$output .= tr(
+				td("Away Score:")
+				. td( $home['score_against'] )
+				. td("Away Score:")
+				. td( $away['score_for'] ),
+			array('class' => 'schedule_item'));
+			
+			$output .= tr(
+				td("Away SOTG:")
+				. td( $home['spirit'] )
+				. td("Home SOTG:")
+				. td( $away['spirit'] ),
+			array('class' => 'schedule_item'));
+		
 		}
 		$games->free();
 		
-		$this->tmpl->assign("games", $game_data);	
-		$this->tmpl->assign("page_op", $this->op);
+		$output .= "</table>";
 
+		$title = $this->title . " &raquo; " . $league['name'];
+		if($league['tier'] > 0) {
+			$title .= " Tier ". $league['tier'];
+		}
+		$this->set_title($title);
+		
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
+
+		return true;
+	}
+
+	/* TODO: Remove when Smarty is gone */
+	function display( )
+	{
 		return true;
 	}
 }
