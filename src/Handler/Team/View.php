@@ -144,7 +144,8 @@ class TeamView extends Handler
 		/* Now, fetch assistant info if needed */
 		if(isset($row['assistant_id'])) {
 			$this->tmpl->assign("assistant_id", $row['assistant_id']);
-			$ass = $DB->getRow("SELECT firstname, lastname from person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
+			
+			$ass = $DB->getRow("SELECT firstname, lastname from person where user_id = ?", array($row['assistant_id']), DB_FETCHMODE_ASSOC);
 			if($this->is_database_error($ass)) {
 				return false;
 			}
