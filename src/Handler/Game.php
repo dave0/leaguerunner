@@ -757,7 +757,6 @@ class GameSubmit extends Handler
 		}
 		
 		if( $teamID != $this->game->home_id && $teamID != $this->game->away_id ) {
-			/
 			$this->error_exit("That team did not play in that game!");
 		}
 		
