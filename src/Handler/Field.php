@@ -35,7 +35,6 @@ class FieldCreate extends FieldEdit
 			'deny'
 		);
 		
-		$this->section = 'field';
 		$this->setLocation(array("Create New Field" => 0));
 		return true;
 	}
@@ -105,7 +104,6 @@ class FieldEdit extends Handler
 		);
 
 		$this->title = "Edit Field";
-		$this->section = 'field';
 		return true;
 	}
 
@@ -260,7 +258,6 @@ class FieldView extends Handler
 			'field_assign'		=> false,
 		);
 		
-		$this->section = 'field';
 		return true;
 	}
 	
@@ -365,7 +362,6 @@ class FieldAssign extends Handler
 			'volunteer_sufficient',
 			'deny'
 		);
-		$this->section = 'field';
 		return true;
 	}
 	
@@ -464,7 +460,6 @@ class FieldUnassign extends Handler
 			'volunteer_sufficient',
 			'deny',
 		);
-		$this->section = 'field';
 		return true;
 	}
 	

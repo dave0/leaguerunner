@@ -29,7 +29,6 @@ class MainMenu extends Handler
 			'admin_sufficient',
 			'allow'
 		);
-		$this->section = 'home';
 		return true;
 	}
 	

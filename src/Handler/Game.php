@@ -24,7 +24,6 @@ class GameSubmit extends Handler
 	function initialize ()
 	{
 		$this->title = "Submit Game Score";
-		$this->section = 'admin';
 		return true;
 	}
 
@@ -442,7 +441,6 @@ class GameView extends Handler
 			'view_entered_scores' => false,
 		);
 		
-		$this->section = 'league';
 		return true;
 	}
 	

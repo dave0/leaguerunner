@@ -49,7 +49,6 @@ class LeagueCreate extends LeagueEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'league';
 		return true;
 	}
 	
@@ -113,7 +112,6 @@ class LeagueEdit extends Handler
 			'coordinator_sufficient',
 			'deny',
 		);
-		$this->section = 'league';
 		return true;
 	}
 
@@ -384,7 +382,6 @@ class LeagueList extends Handler
 			'admin_sufficient',
 			'allow'
 		);
-		$this->section = 'league';
 		return true;
 	}
 	
@@ -477,7 +474,6 @@ class LeagueStandings extends Handler
 			'coordinator_sufficient',
 			'allow',
 		);
-		$this->section = 'league';
 		return true;
 	}
 
@@ -876,7 +872,6 @@ class LeagueView extends Handler
 			'coordinator_sufficient',
 			'allow',
 		);
-		$this->section = 'league';
 		return true;
 	}
 
@@ -988,7 +983,6 @@ class LeagueCaptainEmails extends Handler
 			'deny',
 		);
 		$this->title = 'Captain Emails';
-		$this->section = 'league';
 		return true;
 	}
 
@@ -1047,7 +1041,6 @@ class LeagueMoveTeam extends Handler
 			'coordinator_sufficient',
 			'deny'
 		);
-		$this->section = 'league';
 		$this->title = "Move Team";
 		return true;
 	}
@@ -1175,7 +1168,6 @@ class LeagueApproveScores extends Handler
 			'deny'
 		);
 		$this->title = "Approve Scores";
-		$this->section = 'league';
 		return true;
 	}
 

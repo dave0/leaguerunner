@@ -38,7 +38,6 @@ class WardCreate extends WardEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'admin';
 		return true;
 	}
 	
@@ -95,7 +94,6 @@ class WardEdit extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'admin';
 		return true;
 	}
 
@@ -241,7 +239,6 @@ class WardList extends Handler
 			'require_valid_session',
 			'allow'		/* Allow everyone */
 		);
-		$this->section = 'admin';
 		$this->setLocation(array('List Wards' => 'ward/list'));
 		return true;
 	}
@@ -300,7 +297,6 @@ class WardView extends Handler
 		$this->_permissions = array(
 			'ward_edit'			=> false,
 		);
-		$this->section = 'admin';
 		return true;
 	}
 	

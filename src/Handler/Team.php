@@ -88,7 +88,6 @@ class TeamCreate extends TeamEdit
 			'require_valid_session',
 			'allow',
 		);
-		$this->section = 'team';
 		return true;
 	}
 	
@@ -167,7 +166,6 @@ class TeamEdit extends Handler
 			'captain_of',
 			'deny'
 		);
-		$this->section = 'team';
 		return true;
 	}
 
@@ -303,7 +301,6 @@ class TeamList extends Handler
 			'admin_sufficient',
 			'allow',
 		);
-		$this->section = 'team';
 		return true;
 	}
 	
@@ -348,7 +345,6 @@ class TeamRosterStatus extends Handler
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
 		
-		$this->section = 'team';
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
@@ -637,7 +633,6 @@ class TeamView extends Handler
 			'allow'
 		);
 		$this->title = "View Team";
-		$this->section = 'team';
 		return true;
 	}
 
@@ -794,7 +789,6 @@ class TeamSchedule extends Handler
 			'allow'
 		);
 		$this->title = "Schedule";
-		$this->section = 'team';
 
 		return true;
 	}
@@ -927,7 +921,6 @@ class TeamEmails extends Handler
 			'deny',
 		);
 		$this->title = 'Player Emails';
-		$this->section = 'team';
 		return true;
 	}
 

@@ -4,7 +4,7 @@
  * Look and feel for Leaguerunner 
  */
 
-function theme_header($title = "", $section = "", $breadcrumbs = array())
+function theme_header($title = "", $breadcrumbs = array())
 {
 	global $session, $APP_NAME, $BASE_URL;
 	
@@ -27,7 +27,7 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
   <table border='0' cellpadding='0' cellspacing='0' width='760' bgcolor='white'><?php
   	print "<tr><td colspan='2' class='toprow'><h1>$APP_NAME</h1></td></tr>\n";
 
-	print theme_navbar($section, $breadcrumbs);
+	print theme_navbar($breadcrumbs);
 	print "<tr><td colspan='2' class='main'>";
 	print "\n<!-- end header -->\n";
 	
@@ -46,7 +46,7 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
 	/* DMO: TODO: end evil hack */
 }
 
-function theme_navbar($section, $breadcrumbs = array()) 
+function theme_navbar($breadcrumbs = array()) 
 {
 	global $session;
 
@@ -54,11 +54,13 @@ function theme_navbar($section, $breadcrumbs = array())
 	print "<tr><td colspan='2'>" ;
 	print "<div class='lr_topbar'><table>";
 	$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
-	
+
+	$trail = menu_get_trail();
+	$section = $trail[1]['title'];
 	if($session->is_valid()) {
 		$crumbs = array(
 			"<b>" . $session->attr_get("fullname") . "</b>",
-			l($section, $section)
+			$section
 		);
 
 		$crumbs = array_merge($crumbs, $breadcrumbs);

@@ -31,7 +31,6 @@ class ScheduleAddDay extends Handler
 			'deny',
 		);
 
-		$this->section = 'league';
 		$this->title = "Add Day";
 		return true;
 	}
@@ -172,7 +171,6 @@ class ScheduleViewDay extends Handler
 {
 	function initialize ()
 	{
-		$this->section = 'league';
 		$this->title = "View Day";
 
 		$this->_permissions = array(
@@ -298,7 +296,6 @@ class ScheduleEdit extends Handler
 			'coordinator_sufficient',
 			'deny'
 		);
-		$this->section = 'league';
 		return true;
 	}
 	
@@ -611,7 +608,6 @@ class ScheduleView extends Handler
 			'coordinator_sufficient',
 			'allow',
 		);
-		$this->section = 'league';
 
 		return true;
 	}

@@ -170,4 +170,28 @@ function menu_build( ) {
 	module_invoke_all('menu');
 }
 
+/**
+ * Get the parent menu items that lead to a given page
+ */
+function menu_get_trail( $path = 0)
+{
+	global $_menu;
+	
+	if(!$path) {
+		$path = $_GET["q"];
+	}
+
+	$trail = array();
+	$parents = _menu_get_parents($path);	
+	while( list(,$key) = each($parents) ) {
+		if(!is_null($_menu[$key])) {
+			$trail[] = $_menu[$key];
+		}
+	}
+	$trail = array_reverse($trail);
+	$trail[] = $_menu[_menu_get_active($path)];
+	print_r($trail);
+	return $trail;
+}
+
 ?>

@@ -36,7 +36,6 @@ class SiteCreate extends SiteEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'field';
 		return true;
 	}
 	
@@ -88,7 +87,6 @@ class SiteEdit extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'field';
 		return true;
 	}
 	
@@ -261,7 +259,6 @@ class SiteList extends Handler
 			'volunteer_sufficient',
 			'allow'		/* Allow everyone */
 		);
-		$this->section = 'field';
 		$this->setLocation(array('List Field Sites' => 'field/list'));
 		return true;
 	}
@@ -326,7 +323,6 @@ class SiteView extends Handler
 			'site_edit'			=> false,
 			'field_create'		=> false,
 		);
-		$this->section = 'field';
 		return true;
 	}
 	

@@ -39,12 +39,6 @@ class Handler
 	 */
 	var $op;
 
-	/** 
-	 * The section of Leaguerunner under which this handler belongs.
-	 * This is used to determine which tab it will appear under.
-	 */
-	var $section;
-
 	/**
 	 * Breadcrumbs.  Used for creating a trail of actions so that
 	 * users can backtrack.
@@ -72,8 +66,6 @@ class Handler
 		global $session;
 		$this->_required_perms = null;
 		$this->_permissions = array();
-
-		$this->section = 'myaccount';
 	}
 
 	/**
@@ -274,7 +266,7 @@ class Handler
 		
 		$error = $error ? $error : "An unknown error has occurred.";
 
-		print theme_header($title, $this->section, $this->breadcrumbs);
+		print theme_header($title, $this->breadcrumbs);
 		print "<h1>$title</h1>";
 		print theme_error( $error );
 		print theme_footer();

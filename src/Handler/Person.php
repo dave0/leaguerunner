@@ -100,7 +100,6 @@ class PersonView extends Handler
 #			'user_delete'			=> false,
 			'user_change_password'	=> false,
 		);
-		$this->section = 'person';
 		return true;
 	}
 
@@ -354,7 +353,6 @@ class PersonDelete extends PersonView
 			'admin_sufficient',
 			'deny',
 		);
-		$this->section = 'person';
 		return true;
 	}
 
@@ -457,7 +455,6 @@ class PersonApproveNewAccount extends PersonView
 			'admin_sufficient',
 			'deny',
 		);
-		$this->section = 'person';
 		return true;
 	}
 
@@ -639,7 +636,6 @@ class PersonEdit extends Handler
 			'deny',
 		);
 
-		$this->section = 'person';
 		return true;
 	}
 
@@ -1094,7 +1090,6 @@ class PersonCreate extends PersonEdit
 
 		$this->_required_perms = array( 'allow' );
 
-		$this->section = 'person';
 		return true;
 	}
 
@@ -1179,7 +1174,6 @@ class PersonActivate extends PersonEdit
 		parent::initialize();
 		$this->title = "Activate Account";
 
-		$this->section = 'person';
 		return true;
 	}
 
@@ -1254,7 +1248,6 @@ class PersonSurvey extends PersonSignWaiver
 			'require_valid_session',
 			'allow',
 		);
-		$this->section = 'person';
 		$this->formFile = 'member_survey.html';
 		return true;
 	}
@@ -1325,7 +1318,6 @@ class PersonSignWaiver extends Handler
 			'require_valid_session',
 			'allow',
 		);
-		$this->section = 'person';
 		$this->formFile = 'waiver_form.html';
 
 		$this->querystring = "UPDATE person SET waiver_signed=NOW() where user_id = %d";
@@ -1404,7 +1396,6 @@ class PersonSignDogWaiver extends PersonSignWaiver
 			'require_valid_session',
 			'allow',
 		);
-		$this->section = 'person';
 		$this->formFile = 'dog_waiver_form.html';
 		$this->querystring = "UPDATE person SET dog_waiver_signed=NOW() where user_id = %d";
 		return true;
@@ -1430,7 +1421,6 @@ class PersonList extends Handler
 			'volunteer_sufficient',
 			'deny',
 		);
-		$this->section = 'person';
 		
 		return true;
 	}
@@ -1479,7 +1469,6 @@ class PersonListNewAccounts extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'admin';
 		return true;
 	}
 
@@ -1536,7 +1525,6 @@ class PersonChangePassword extends Handler
 			'user_edit'		=> false,
 			'user_delete'	=> false,
 		);
-		$this->section = 'person';
 		return true;
 	}
 	
@@ -1627,7 +1615,6 @@ class PersonForgotPassword extends Handler
 			'allow',
 		);
 		$this->title = "Request New Password";
-		$this->section = 'person';
 		return true;
 	}
 

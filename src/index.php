@@ -88,7 +88,7 @@ if($handler->initialize()) {
 			$handler->error_exit("Uncaught failure in $mod, performing " . arg(1));
 		}
 
-		print theme_header($handler->title, $handler->section, $handler->breadcrumbs);
+		print theme_header($handler->title, $handler->breadcrumbs);
 		print "<h1>$handler->title</h1>";
 		print $result;
 		print theme_footer();

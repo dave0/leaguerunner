@@ -54,7 +54,6 @@ class WaitingListEdit extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'admin';
 		return true;
 	}
 	
@@ -184,7 +183,6 @@ class WaitingListCreate extends WaitingListEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->section = 'admin';
 		return true;
 	}
 	
@@ -241,7 +239,6 @@ class WaitingListList extends Handler
 			'admin_sufficient',
 			'allow',
 		);
-		$this->section = 'admin';
 		$this->setLocation(array("Waiting Lists" => 'wlist/list'));
 		return true;
 	}
@@ -291,7 +288,6 @@ class WaitingListView extends Handler
 			'allow'
 		);
 		$this->title = 'View Waiting List';
-		$this->section = 'admin';
 		return true;
 	}
 	
@@ -400,7 +396,6 @@ class WaitingListJoin extends Handler
 		 */
 		$this->max_preference = 0;
 		
-		$this->section = 'person';
 		return true;
 	}
 	
@@ -648,7 +643,6 @@ class WaitingListQuit extends Handler
 	function initialize ()
 	{
 		$this->title = "Quit Waiting List";
-		$this->section = 'person';
 		return true;
 	}
 	
@@ -737,7 +731,6 @@ class WaitingListViewPerson extends Handler
 			'deny'
 		);
 		$this->title = 'Waiting Lists';
-		$this->section = 'person';
 		return true;
 	}
 
