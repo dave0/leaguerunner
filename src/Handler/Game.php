@@ -51,13 +51,19 @@ function game_dispatch()
 	return $obj;
 }
 
-function game_permissions ( &$user, $action, &$game, $field )
+function game_permissions ( &$user, $action, &$game, $extra )
 {
 	switch($action)
 	{
 		case 'submit score':
+			if($extra && $user->is_captain_of($extra->team_id)) {
+				// If we have a specific team in mind, this user must be a
+				// captain.
+				return true;
+			}
 			if( $user->is_captain_of( $game->home_team )
-			    || $user->is_captain_of( $game->away_team )) {
+			    || $user->is_captain_of($game->away_team )) {
+				// Otherwise, check that user is captain of one of the teams
 				return true;
 			}
 			if($user->is_coordinator_of($game->league_id)) {
@@ -68,10 +74,10 @@ function game_permissions ( &$user, $action, &$game, $field )
 			return ($user->is_coordinator_of($game->league_id));
 			break; // unreached
 		case 'view':
-			if( $field == 'spirit' ) { 
+			if( $extra == 'spirit' ) { 
 				return ($user->is_coordinator_of($game->league_id));
 			}
-			if( $field == 'submission' ) { 
+			if( $extra == 'submission' ) { 
 				return ($user->is_coordinator_of($game->league_id));
 			}
 			return ($user->status == 'active');
@@ -671,7 +677,7 @@ class GameSubmit extends Handler
 	{
 		global $session;
 	
-		return $session->has_permission('game','submit score', $this->game);
+		return $session->has_permission('game','submit score', $this->game, $this->team);
 	}
 
 	function process ()
@@ -680,10 +686,6 @@ class GameSubmit extends Handler
 		
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");
-		}
-		
-		if(!$session->is_captain_of($team->team_id)) {
-			error_exit("You may not submit a score for that team!");
 		}
 		
 		if( $this->game->timestamp > time() ) {
