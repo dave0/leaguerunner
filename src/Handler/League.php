@@ -934,7 +934,7 @@ class LeagueScheduleView extends Handler
 			 FROM 
 			 	leagueteams l 
 			    LEFT JOIN team t ON (l.team_id = t.team_id) 
-		     WHERE l.league_id = ? AND l.status = 'confirmed'",
+		     WHERE l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_teams)) {
 			$this->error_text .= "There may be no teams in this league";
@@ -1467,8 +1467,7 @@ class LeagueView extends Handler
 				t.team_id AS id,
 				t.name,
 				t.shirt_colour,
-				t.status AS team_status,
-				l.status AS league_status
+				t.status AS team_status
 			 FROM
 				leagueteams l
 				LEFT JOIN team t ON (l.team_id = t.team_id)
@@ -1733,7 +1732,7 @@ class LeagueManageTeam extends Handler
 					return false;
 				}
 				
-				$res = $DB->query("INSERT INTO leagueteams VALUES(?,?,'confirmed')", array($this->_id, $this->_team_id));
+				$res = $DB->query("INSERT INTO leagueteams VALUES(?,?)", array($this->_id, $this->_team_id));
 				if($this->is_database_error($res)) {
 					if(strstr($this->error_text,"already exists: INSERT")) {
 						$this->error_text = "That team is already part of this league.";

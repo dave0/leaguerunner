@@ -133,7 +133,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		$res = $DB->query("INSERT INTO leagueteams (league_id, team_id, status) VALUES(1, ?, 'requested')", array($id));
+		$res = $DB->query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, ?)", array($id));
 		if($this->is_database_error($res)) {
 			return false;
 		}

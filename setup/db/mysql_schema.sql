@@ -106,7 +106,6 @@ CREATE TABLE league (
 CREATE TABLE leagueteams (
 	league_id 	integer NOT NULL,
 	team_id		integer NOT NULL,
-	status		ENUM("confirmed","requested"),
 	PRIMARY KEY (team_id,league_id)
 );
 
