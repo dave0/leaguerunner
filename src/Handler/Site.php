@@ -137,7 +137,12 @@ class SiteEdit extends Handler
 		}
 
 		// TODO: This should be populated from database.
-		$this->tmpl->assign("regions", array( "Central","East", "South", "West"));
+		$this->tmpl->assign("regions", array(
+			array( 'value' => "Central", output => "Central" ), 
+			array( 'value' => "East", output => "East" ),  
+			array( 'value' => "South", output => "South" ),  
+			array( 'value' => "West", output => "West" ), 
+		));
 
 		$this->tmpl->assign("site", $row);
 		
@@ -257,9 +262,9 @@ class SiteList extends Handler
 
 		$found = $DB->getAll(
 			"SELECT 
-				CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value,
-				s.site_id AS id_val
-				FROM field f LEFT JOIN site s ON (f.site_id = s.site_id) GROUP BY f.site_id",
+				CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value, 
+				s.site_id AS id_val from site s LEFT JOIN field f ON (f.site_id = s.site_id) 
+			GROUP BY f.site_id ORDER BY s.name",
 			array(), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($found)) {
 			return false;
