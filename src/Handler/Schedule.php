@@ -91,7 +91,7 @@ class ScheduleViewDay extends Handler
 			schedule_subheading( ),
 		);
 		while($game = db_fetch_array($result)) {
-			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
+			$rows[] = schedule_render_viewable($game);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
 		return $output;
@@ -241,7 +241,7 @@ class ScheduleEdit extends Handler
 			if($timestamp == $game['day_id']) {
 				$rows[] = schedule_render_editable($game, $league);
 			} else {
-				$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
+				$rows[] = schedule_render_viewable($game);
 			}
 			$prevDayId = $game['day_id'];	
 		}
@@ -518,14 +518,22 @@ function schedule_render_editable( &$game, &$league )
 function schedule_render_viewable( &$game )
 {
 	if($game['home_name']) {
-		$homeTeam = l($game['home_name'], "team/view/" . $game['home_id']);
+		$short = sprintf("%.20s", $game['home_name']);
+		if(strlen($short) != strlen($game['home_name']) ) {
+			$short .= "...";
+		}
+		$homeTeam = l($short, "team/view/" . $game['home_id']);
 	} else {
-		$homeTeam = "Not yet scheduled.";
+		$homeTeam = "Not scheduled";
 	}
 	if($game['away_name']) {
-		$awayTeam = l($game['away_name'], "team/view/" . $game['away_id']);
+		$short = sprintf("%.20s", $game['away_name']);
+		if(strlen($short) != strlen($game['away_name']) ) {
+			$short .= "...";
+		}
+		$awayTeam = l($short, "team/view/" . $game['away_id']);
 	} else {
-		$awayTeam = "Not yet scheduled.";
+		$awayTeam = "Not scheduled";
 	}
 	
 	$gameRow = array(
