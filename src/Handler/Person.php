@@ -976,6 +976,7 @@ class PersonEdit extends Handler
 
 	function validate_data ()
 	{
+		global $DB;
 		$rc = true;
 		$this->error_text = "";
 	
@@ -994,6 +995,15 @@ class PersonEdit extends Handler
 				$rc = false;
 				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
+
+			$exists = $DB->getOne("SELECT COUNT(*) from person where username = ?",array($username));
+			if($this->is_database_error($exists)) {
+				return false;
+			}
+			if($exists > 0) {
+				$rc = false;
+				$this->error_text .= "\n<li>You cannot use that username; a user by that name already exists.";
+			}
 		}
 
 		if($this->_permissions['edit_email']) {
@@ -1004,7 +1014,7 @@ class PersonEdit extends Handler
 			}
 		}
 
-		if($this->_permissions['edit_email']) {
+		if($this->_permissions['edit_phone']) {
 			$home_phone = var_from_getorpost('home_phone');
 			$work_phone = var_from_getorpost('work_phone');
 			$mobile_phone = var_from_getorpost('mobile_phone');

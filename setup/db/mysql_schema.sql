@@ -53,7 +53,7 @@ CREATE TABLE person (
 
 	last_login datetime,
 	client_ip      varchar(50),
-	KEY(username)
+	UNIQUE(username)
 );
 
 CREATE TABLE demographics (
