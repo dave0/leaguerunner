@@ -334,6 +334,20 @@ function get_numeric_options ( $start, $finish )
 	return array_map("map_callback", $foo);
 }
 
+/** 
+ * Helper fn to set up allowed values for an option list.
+ * Use in preference to get_numeric_options, as that fn is deprecated
+ */
+function getOptionsFromRange( $start, $finish )
+{
+	$result = array();
+	$result["---"] = "---";
+	for($i = $start; $i <= $finish; $i++) {
+		$result[$i] = $i;
+	}
+	return $result;
+}
+
 /**
  * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
  * database.
