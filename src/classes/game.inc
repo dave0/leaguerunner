@@ -45,6 +45,160 @@ class Game extends LeaguerunnerObject
 
 		return true;
 	}
+
+        function calculate_winner_loser() 
+        {
+          if ($this->home_score > $this->away_score) {
+            $result['winner'] = $this->home_team;
+            $result['loser']  = $this->away_team;
+          }
+          else if ($this->home_score < $this->away_score) {
+            $result['winner'] = $this->home_team;
+            $result['loser']  = $this->away_team;
+          }
+          else if ($this->home_score == $this->away_score) {
+
+            // Is this a tie game that wasn't played?
+            if (($this->home_score == 0) &&
+                ($this->away_score == 0) ) {
+              $r = rand(0,1);
+              if($r == 1) {
+                $result['winner'] = $this->home_team;
+                $result['loser']  = $this->away_team;
+              }
+              else {
+                $result['winner'] = $this->away_team;
+                $result['loser']  = $this->home_team;
+              }
+            }
+            // This a legitimate tie game.
+            else {
+              //TBD: The team DB object needs a method
+              // to calculate average spirit.
+              //This requires a spirit calculation, then
+              //random if that fails.
+              
+              // For now we always pick the away team.
+                $result['winner'] = $this->away_team;
+                $result['loser']  = $this->home_team;
+            }
+          }
+          else {
+            error_exit("Unable to determine a win/loss/tie for this game!");
+          }
+          return $result;
+             
+        }
+
+        // This function must only be called after a save has
+        // been performed on this game object.
+        // Also where this function is called from must already
+        // confirm that the scores have been finalized.
+
+        function updatedependentgames() {
+
+           // Need to make sure this is a ladder league.
+            
+           $league = league_load( array('league_id' => $this->league_id) );
+           if(! $league ) {
+              error_exit("That league does not exist");
+           }
+
+           // Just fail out with everthing being good if this
+           // isn't a ladder league.
+           if($league->schedule_type != "ladder") {
+             return 1;
+           }
+
+           //print($this->sprintf("debug"));
+
+          
+           // Lets get the game objects.
+           $queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d",
+                    $this->game_id,
+                    $this->game_id);
+
+            // Should only ever get two games;
+            if (db_num_rows($queryResult) != 2) {
+              error_exit("Found too many dependent games!");
+            } 
+
+            // Figure out winner and looser.
+            $winlose = $this->calculate_winner_loser();
+            $winnerTeamId = $winlose['winner'];
+            $loserTeamId  = $winlose['loser'];
+
+            $dbQueryPre  = "UPDATE schedule SET ";
+            $dbQueryPost = " WHERE game_id = ";
+
+       
+        
+            // Now we can figure out which team the
+            // dependant games are looking for. 
+            while( $row = db_fetch_array( $queryResult ) ) {
+
+              $gameIdToUpdate = $row['game_id']; 
+              $dbQuery = $dbQueryPre;
+
+              if ($row['home_dependant_game'] == $this->game_id) {
+
+                if ($row['home_dependant_type'] == "winner") {
+                  $dbQuery = $dbQuery . "home_team = " . $winnerTeamId;
+                  $winnerRank = $row['home_dependant_rank'];
+                }
+                else if ($row['home_dependant_type'] == "loser") {
+                  $dbQuery = $dbQuery . "home_team = " . $loserTeamId;
+                  $loserRank = $row['home_dependant_rank'];
+                }
+                else {
+                  error_exit("Should never get here. Bad dependent type.");
+                }
+              }
+
+              if ($row['away_dependant_game'] == $this->game_id) {
+                if ($row['home_dependant_type'] == "winner") {
+                  $dbQuery = $dbQuery . "away_team = " . $winnerTeamId;
+                  $winnerRank = $row['home_dependant_rank'];
+                }
+                else if ($row['home_dependant_type'] == "loser") {
+                  $dbQuery = $dbQuery . "away_team = " . $loserTeamId;
+                  $loserRank = $row['home_dependant_rank'];
+                }
+                else {
+                  error_exit("Should never get here. Bad dependent type.");
+                }
+              }
+
+              $dbQuery = $dbQuery . $dbQueryPost . $gameIdToUpdate;
+
+              // TBD:  affectedRows doesn't always seem to be
+              // correct.
+              $affectedRows = db_query($dbQuery);
+              //if(db_affected_rows($affectedRows) !=1 ) {
+              //  error_exit("Problem while updating the dependant games.");
+              //}
+            }
+
+            // Do the rankings.
+            $rankWinner = "UPDATE leagueteams SET rank = " .
+                       $winnerRank . 
+                      " WHERE league_id = " . 
+                       $league->league_id . 
+                       " AND team_id = " . $winnerTeamId;
+
+            $rankLoser = "UPDATE leagueteams SET rank = " .
+                       $loserRank . 
+                      " WHERE league_id = " . 
+                       $league->league_id . 
+                       " AND team_id = " . $loserTeamId;
+
+            $affectedRows = db_query($rankWinner);
+            $affectedRows = db_query($rankLoser);
+
+
+            // It's all good.
+            return true;
+        }
 	
 	function save ()
 	{
@@ -646,6 +800,9 @@ function game_query ( $array = array() )
 			case 'either_team':
 				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';
 				break;
+			case 'dependant_game':
+				$query[] = '(s.home_dependant_game = ' . check_query($value) . ' OR s.away_dependant_game = ' . check_query($value) . ')';
+				break;
 			case '_extra':
 				/* Just slap on any extra query fields desired */
 				$query[] = $value;
@@ -709,10 +866,22 @@ function game_load_many( $array = array() )
 		return false;
 	}
 
+	$g = new Game;
 	$games = array();
 	while($ary = db_fetch_array($result)) {
 		$g = new Game;
 		if( $g->load_from_query_result( $ary ) ) {
+			$games[$g->game_id] = $g;
+		}
+	}
+
+	// take the LAST game, and check for dependent games
+	$last_game = $g;
+	$dep_array = array( 'dependant_game' => $last_game->game_id, '_order' => 'g.game_date');
+	$result = game_query( &$dep_array );
+	while ($ary = db_fetch_array($result) ) {
+		$g = new Game;
+		if ($g->load_from_query_result($ary) ) {
 			$games[$g->game_id] = $g;
 		}
 	}

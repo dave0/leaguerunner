@@ -905,6 +905,12 @@ class GameSubmit extends Handler
 			if ( ! $this->game->save() ) {
 				$this->error_exit("Could not successfully save game results");
 			}
+
+                        // Game has been saved to database.  Now we can update the dependant games.
+                        //if (! $this->game->updatedependentgames()) {
+                        $this->game->updatedependentgames();
+  		        //  $this->error_exit("Could not update dependant games.");
+                       // }
 			
 			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 		} else {
@@ -1187,6 +1193,7 @@ class GameEdit extends Handler
 			"$this->title &raquo; Game " . $this->game->game_id => 0));
 
 		$edit = $_POST['edit'];
+
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm( $this->game, &$edit );
@@ -1476,6 +1483,11 @@ class GameEdit extends Handler
 		if ( ! $this->game->save() ) {
 			$this->error_exit("Could not successfully save game results");
 		}
+
+                // Game has been saved to database.  Now we can update the dependant games.
+                if (! $this->game->updatedependentgames()) {
+			$this->error_exit("Ckould not update dependant games.");
+                }
 
 		return true;
 	}
