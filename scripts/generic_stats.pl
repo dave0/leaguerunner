@@ -1,31 +1,44 @@
 #!/usr/bin/perl -w
-##
+#
 ## Retrieve generic aggregate statistics from system.
 ## Dave O'Neill <dmo@dmo.ca> Wed, 23 Apr 2003 22:50:31 -0400 
+##
+## Usage: generic_stats.pl [-m address@host]
 
 use strict;
 use DBI;
 use POSIX;
+use Leaguerunner;
+use Getopt::Mixed;
+use IO::Handle;
+use IO::Pipe;
 
-my $print_only = shift || 0;
+our(@addresses, $addresses);
 
-my $database_name = 'leaguerunner';
-my $database_host = 'localhost';
-my $database_user = 'leaguerunner';
-my $database_pass = 'ocuaweb';
-my $from_addr = 'dmo@acm.org';
-my $to_addr = 'dmo@acm.org';
+Getopt::Mixed::init("m=s mailto>m");
+my $optarg;
+while( ($_, $optarg) = Getopt::Mixed::nextOption()) {
+	/^m$/ && do {
+		## TODO: validation?
+		push(@addresses, $optarg);
+	};
+	
+}
+Getopt::Mixed::cleanup();
+
+my $config = Leaguerunner::parseConfigFile("../src/leaguerunner.conf");
 
 ## Initialise database handle.
-my $dsn = "DBI:mysql:database=${database_name}:host=${database_host}";
+my $dsn = join("",
+	"DBI:mysql:database=", $config->{db_name}, 
+	":host=", $config->{db_host});
 
-my $DB = DBI->connect($dsn, $database_user, $database_pass) || die("Error establishing database connect; $DBI::errstr\n");
+my $DB = DBI->connect($dsn, $config->{db_user}, $config->{db_password}) || die("Error establishing database connect; $DBI::errstr\n");
 
 $DB->{RaiseError} = 1;
 
 ## We must remember to disconnect on exit.  Use the magical END sub.
 sub END { $DB->disconnect() if defined($DB); }
-
 
 ## Now, retrieve stats
 my $sth;
@@ -44,7 +57,14 @@ $sth->execute();
 $ary  = $sth->fetchrow_arrayref();
 $stats .= "\tNumber of players (total):      " . $ary->[0]."\n";
 
-$stats .= "\tPlayers by current status:\n";
+$stats .= "\tPlayers by current account status \n";
+$sth = $DB->prepare(q{SELECT status,COUNT(*) from person group by status});
+$sth->execute();
+while($ary  = $sth->fetchrow_arrayref()) {
+	$stats .= "\t\t" . print_evenly($ary->[0], $ary->[1], 24);
+}
+
+$stats .= "\tPlayers by current account class \n";
 $sth = $DB->prepare(q{SELECT class,COUNT(*) from person group by class});
 $sth->execute();
 while($ary  = $sth->fetchrow_arrayref()) {
@@ -128,15 +148,15 @@ while($ary  = $sth->fetchrow_arrayref()) {
 
 $sth = $DB->prepare(q{
 	SELECT t.team_id,t.name, COUNT(r.player_id) as size 
-	FROM teamroster r, league l, leagueteams lt
+	FROM teamroster r , league l, leagueteams lt
 	LEFT JOIN team t ON (t.team_id = r.team_id) 
-	WHERE
+ 	WHERE 
 		lt.team_id = r.team_id
-		AND l.league_id = lt.league_id
-		AND l.allow_schedule = 'Y'
+		AND l.league_id = lt.league_id 
+		AND l.allow_schedule = 'Y' 
 		AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
 	GROUP BY t.team_id 
-	HAVING size < 12 
+	HAVING size < 12
 	ORDER BY size desc});
 $sth->execute();
 my $subs = $DB->prepare(q{SELECT COUNT(*) FROM teamroster r WHERE r.team_id = ? AND r.status = 'substitute'});
@@ -150,28 +170,37 @@ while(($ary = $sth->fetchrow_arrayref())) {
 }
 my $num_rows = scalar(@$teams_under);
 $stats .= "\tTeams with rosters under the required 12 confirmed players: $num_rows\n";
-if($num_rows < 25) {
+my $num_team_threshold = 50;
+if($num_rows < $num_team_threshold) {
 	while(my $row = shift(@$teams_under)) {
 		$stats .= "\t\t" . print_evenly($row, "", 30);
 	}
 } else {
-	$stats .= "\t\t[ list suppressed; longer than 25 teams ]\n";
+	$stats .= "\t\t[ list suppressed; longer than $num_team_threshold teams ]\n";
 }
 
-if($print_only ne 0) {
-	print $stats;
-} else {
-	open(SENDMAIL, "|/usr/sbin/sendmail -oi -t")
+my $fh;
+if(scalar(@addresses)) {
+	$fh = new IO::Pipe;
+	$fh->writer(qw(/usr/sbin/sendmail -oi -t))
 	    || die "Couldn't exec sendmail: $!";
-	print SENDMAIL<<EOF;
-From: $from_addr
-To: $to_addr
-Subject: OCUA Leaguerunner Stats Update
+	$addresses = join(",",@addresses);
+} else {
+	$fh = new IO::Handle;
+	$fh->fdopen(fileno(STDOUT),"w");
+	$addresses = "Not sent via email";
+}
+
+print $fh <<EOF;
+From: Leaguerunner Stats Harvester <$config->{admin_email}>
+To: $addresses
+Subject: Leaguerunner Stats Update
 
 $stats
 
 EOF
-}
+
+$fh->close();
 
 sub print_evenly
 {

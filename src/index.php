@@ -21,7 +21,20 @@
  *          Mackenzie King <mackking@canada.com>
  * 
  */
-require_once("includes/config.inc");
+require_once("includes/compatibility.inc");
+
+/* 
+ * First, read in the configuration data.
+ * The data is in a file formatted as PHP/Perl variable assignments.
+ * It's done this way to allow the same configfile to be used for both
+ * PHP and Perl without:
+ *   - writing Yet Another Config Parser
+ *   - requiring extra unnecessary library dependancies from CPAN 
+ *     or PEAR
+ */
+$phpCode = file_get_contents("./leaguerunner.conf");
+eval($phpCode);
+
 require_once("includes/common.inc");
 require_once("includes/theme.inc");
 
@@ -86,7 +99,7 @@ if($handler->initialize()) {
 		print $handler->get_header();
 		print h1($handler->title);
 		print $result;
-		print $handler->get_footer();
+		print theme_footer();
 		
 	} else {
 		$handler->error_exit("You do not have permission to perform that operation");

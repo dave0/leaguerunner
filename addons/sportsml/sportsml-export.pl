@@ -8,34 +8,33 @@ use strict;
 use Carp;
 use DBI;
 use POSIX;
+use Leaguerunner;
 use Pod::Usage;
+use Getopt::Mixed;
 use XML::Writer;
 use IO;
-use Getopt::Long;
-
-my $database = {
-	'name' => 'leaguerunner',
-	'host' => 'localhost',
-	'user' => 'leaguerunner',
-	'pass' => 'ocuaweb'
-};
-my $league_name = "Ottawa-Carleton Ultimate Association";
 
 use constant TIER_PAGE => 1;
 use constant DIVISION_PAGE => 2;
 
+my $league_name = "Ottawa-Carleton Ultimate Association";
+
 my $grouping = TIER_PAGE;
 #my $grouping = DIVISION_PAGE;
 
-my $location = "./export";
-my $season = '';
-my $combined = 0;
+our($location,$season);
 
-GetOptions(
-	"location=s" => \$location,
-	"season=s" =>   \$season,
-	"combined" => \$combined,
-);
+Getopt::Mixed::init("l=s s=s location>l season>s");
+my $optarg;
+while( ($_, $optarg) = Getopt::Mixed::nextOption()) {
+	/^l$/ && do {
+		$location = $optarg;
+	};
+	/^s$/ && do {
+		$season = $optarg;
+	};
+}
+Getopt::Mixed::cleanup();
 
 if (! -d $location ) {
 	pod2usage("Must specify a valid location directory");
@@ -45,27 +44,25 @@ if ( length($season) == 0 ) {
 	pod2usage("Must specify a season");
 }
 
-my $DB = init_DB_handle($database);
+my $config = Leaguerunner::parseConfigFile("../..//src/leaguerunner.conf");
 
+## Initialise database handle.
+my $dsn = join("",
+	"DBI:mysql:database=", $config->{db_name}, 
+	":host=", $config->{db_host});
+
+my $DB = DBI->connect($dsn, $config->{db_user}, $config->{db_password}) || die("Error establishing database connect; $DBI::errstr\n");
+
+$DB->{RaiseError} = 1;
+
+## We must remember to disconnect on exit.  Use the magical END sub.
+sub END { $DB->disconnect() if defined($DB); }
 my $leagues = get_leagues_for_season($season);
 
-if( $combined ) {
-	export_to_files($location,$leagues, 
-		\&export_tier_schedule,
-		\&export_tier_standing,
-	);
-	## TODO Generate index page
-} else {
-	mkdir("$location/schedule", 0755);
-	export_to_files($location . '/schedule',$leagues, 
-		\&export_tier_schedule,
-	);
-	mkdir("$location/standings", 0755);
-	export_to_files($location . '/standings',$leagues, 
-		\&export_tier_standings,
-	);
-	## TODO Generate index page
-}
+export_to_files($location,$leagues, 
+	\&export_tier_schedule,
+	\&export_tier_standing,
+);
 
 sub export_to_files
 {
@@ -111,7 +108,6 @@ sub export_tier_schedule
 	## Fetch our schedules	
 	my $sth = $DB->prepare(
 		q{SELECT DISTINCT
-			s.game_id,
 			UNIX_TIMESTAMP(s.date_played) as game_date,
 			s.home_team, 
 			s.away_team, 
@@ -119,32 +115,23 @@ sub export_tier_schedule
 			s.away_score,
 			h.name AS home_name,
 			a.name AS away_name,
-			s.field_id
+			t.site_id,
+			CONCAT(t.name,' ',f.num) AS field_name
 		  FROM
-		  	schedule s
+		  	schedule s, field f, site t
 			LEFT JOIN team h ON (h.team_id = s.home_team)
 			LEFT JOIN team a ON (a.team_id = s.away_team)
 		  WHERE 
-		  	s.league_id = ? ORDER BY s.date_played});
+               f.field_id = s.field_id
+               AND t.site_id = f.site_id
+		  	AND s.league_id = ? ORDER BY s.date_played});
 	$sth->execute($league->{league_id}) or croak();
-
-	my $field_sth = $DB->prepare(
-		q{SELECT t.site_id, CONCAT(t.name,' ',f.num) AS field_name FROM field f, site t WHERE t.site_id = f.site_id AND f.field_id = ?});
-
 	my $row;
 	my $currentTime = time();
 	while ($row = $sth->fetchrow_hashref) {
 
 		## Skip weeks without teams	
 		next if(!defined($row->{'home_team'}) || !defined($row->{'away_team'}));
-
-		## Get field
-		my($site_id, $field_name) = ("","");
-		if($row->{'field_id'}) {
-			$field_sth->execute($row->{'field_id'});
-			($site_id, $field_name) = $field_sth->fetchrow_array();
-		}
-
 
 		my $event_status = "pre-event";
 
@@ -155,8 +142,8 @@ sub export_tier_schedule
 		
 		$x->startTag("sports-event");
 		  $x->startTag("event-metadata",
-			'site-name' => $field_name,
-			'site-id' => $site_id,
+			'site-name' => $row->{'field_name'},
+			'site-id' => $row->{'site_id'},
 			'start-date-time' => strftime("%Y-%m-%dT%H:%M",localtime($row->{'game_date'})),
 			'event-status' => $event_status
 		  );
@@ -196,15 +183,15 @@ sub sort_standings
    		if($rc != 0)  { return $rc; }
 	}
 
+	## If still tied, use +/-
+	$rc = (($sort_data->{$b}->{points_for} - $sort_data->{$b}->{points_against}) <=> ($sort_data->{$a}->{points_for} - $sort_data->{$a}->{points_against}));
+	if($rc != 0)  { return $rc; }
+
 	## Ties after +/- are to be broken by SOTG.
 	if($sort_data->{$b}->{games} > 0 && $sort_data->{$a}->{games} > 0) {
 		$rc = (calculate_sotg($sort_data->{$b},1) <=> calculate_sotg($sort_data->{$a},1));
 		if($rc != 0)  { return $rc; }
 	}
-
-	## If still tied, use +/-
-	$rc = (($sort_data->{$b}->{points_for} - $sort_data->{$b}->{points_against}) <=> ($sort_data->{$a}->{points_for} - $sort_data->{$a}->{points_against}));
-	if($rc != 0)  { return $rc; }
 
 	## If still tied, check losses.  This is to ensure that teams without
 	## a score on their sheet appear above teams who have lost a game.
@@ -417,11 +404,11 @@ sub record_game
 			$sref->{$home_id}->{defaults_for}++;
 		} else {
 			$sref->{$home_id}->{spirit} += $home_sotg;
-			if($sref->{$home_id}->{worst_spirit} > $home_sotg) {
-				$sref->{$home_id}->{worst_spirit} = $home_sotg
-			}
 			if($sref->{$home_id}->{best_spirit} < $home_sotg) {
-				$sref->{$home_id}->{best_spirit} = $home_sotg
+				$sref->{$home_id}->{best_spirit} = $home_sotg;
+			}
+			if($sref->{$home_id}->{worst_spirit} > $home_sotg) {
+				$sref->{$home_id}->{worst_spirit} = $home_sotg;
 			}
 		}
 
@@ -519,26 +506,6 @@ sub need_new_page
 	return 0;
 }
 
-## Initialise the database handle
-sub init_DB_handle
-{
-	my $dbinfo = shift || croak("No database info provided");
-	my $dsn = "DBI:mysql:database=" 
-		. $dbinfo->{'name'}
-		. ":host="
-		. $dbinfo->{'host'};
-
-	my $handle = DBI->connect($dsn, $dbinfo->{'user'}, $dbinfo->{'pass'}) 
-		|| die("Error establishing database connect; $DBI::errstr\n");
-
-	$handle->{RaiseError} = 1;
-
-	## We must remember to disconnect on exit.  Use the magical END sub.
-	sub END { $handle->disconnect() if defined($handle); }
-
-	return $handle;
-}
-
 sub get_leagues_for_season
 {
 	my $season = shift;
@@ -556,14 +523,17 @@ sub get_leagues_for_season
 sub league_make_filename
 {
 	my ($filebase, $league) = @_;
-	my $file = $filebase;
+	my $suffix;
 	my $ratio = $league->{'ratio'};
 	$ratio =~ s/\///g;
 	if($grouping == TIER_PAGE) {
-		return $filebase . lc("/" .  join("_",$league->{'season'}, $league->{'day'}, $ratio, $league->{'tier'})) . ".xml";
+		$suffix = lc("/" .  join("_",$league->{'season'}, $league->{'name'}, $ratio, $league->{'tier'})) . ".xml";
 	} else {
-		return $filebase . lc("/" .  join("_",$league->{'season'}, $league->{'day'}, $ratio)) . ".xml";
+		$suffix = lc("/" .  join("_",$league->{'season'}, $league->{'name'}, $ratio)) . ".xml";
 	}
+
+	$suffix =~ s/ /_/g;
+	return $filebase . $suffix;
 }
 
 sub league_make_title
