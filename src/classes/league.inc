@@ -326,11 +326,7 @@ class League extends LeaguerunnerObject
 	// TODO: fix the bug properly when you get time!
 	function cancelround ( $round ) {
 
-		// TONY::: for now, call fix_dependant_games, just so that you don't have to update 
-		// the GUI in order to be able to call the function...  Delete this after using it 
-		// to fix the bugs on www.ocua.ca that you created with this messed up function!
-		$this->fix_dependant_games($round);
-		return true;
+		error_exit("This function has a bug, fix it before you try to use it!!!");
 
 		// make sure the teams are loaded
 		if (! $this->load_teams() ) {
