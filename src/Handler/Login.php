@@ -139,7 +139,7 @@ password emailed to you (click on "Forgot your password?").</i>
 document.lrlogin.username.focus();
 </script>
 EOF;
-		return form($output);
+		return form($output, 'post', 0, " name='lrlogin'");
 	}
 }
 
