@@ -1158,8 +1158,8 @@ class GameEdit extends Handler
 			$this->_permissions['edit_game'] = $want_edit;
 			$this->_permissions['view_spirit'] = true;
 		}
-		
-		if( $session->is_coordinator_of($game->league_id)) {
+	
+		if( $session->is_coordinator_of($this->game->league_id)) {
 			$this->_permissions['edit_game'] = $want_edit;
 			$this->_permissions['view_spirit'] = true;
 		}
@@ -1298,6 +1298,7 @@ class GameEdit extends Handler
 		}
 		
 		$output .= form_group("Scoring", $score_group);
+	
 		if ($this->_permissions['view_spirit']) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
