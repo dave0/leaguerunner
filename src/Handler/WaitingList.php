@@ -26,8 +26,6 @@ class WaitingListEdit extends Handler
 	
 	function process ()
 	{
-		global $DB;
-		
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		
@@ -48,17 +46,8 @@ class WaitingListEdit extends Handler
 	
 	function getFormData ( $id )
 	{
-		global $DB;
-
-		$data = $DB->getRow(
-			"SELECT * FROM waitinglist WHERE wlist_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($data)) {
-			return false;
-		}
-
-		return $data;
+		/* TODO: waitinglist_load() */
+		return db_fetch_array(db_query( "SELECT * FROM waitinglist WHERE wlist_id = %d", $id));
 	}
 	
 	function generateForm ($id, $formData)
@@ -94,8 +83,6 @@ class WaitingListEdit extends Handler
 	
 	function generateConfirm ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -133,8 +120,6 @@ class WaitingListEdit extends Handler
 	
 	function perform ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -142,24 +127,18 @@ class WaitingListEdit extends Handler
 		
 		$edit = var_from_getorpost('edit');
 
-		$res = $DB->query("UPDATE waitinglist SET name = ?, description = ?, selection = ?, max_male = ?, max_female = ?, allow_couples_registration = ? WHERE wlist_id = ?",
-			array(
-				$edit['name'],
-				$edit['description'],
-				$edit['selection'],
-				$edit['max_male'],
-				$edit['max_female'],
-				$edit['allow_couples_registration'],
-				$id,
-			)
+		db_query("UPDATE waitinglist SET name = '%s', description = '%s', selection = %d, max_male = %d, max_female = %d, allow_couples_registration = '%s' WHERE wlist_id = %d",
+			$edit['name'],
+			$edit['description'],
+			$edit['selection'],
+			$edit['max_male'],
+			$edit['max_female'],
+			$edit['allow_couples_registration'],
+			$id
 		);
-		
-		$err = isDatabaseError($res);
-		if($err != false) {
-			if(strstr($err,"uplicate entry ")) {
-				$err = "A team with that name already exists; please go back and try again";
-			}
-			$this->error_exit($err);
+
+		if( 1 != db_affected_rows() ) {
+			return false;
 		}
 		
 		return true;
@@ -213,7 +192,7 @@ class WaitingListCreate extends WaitingListEdit
 
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -223,20 +202,12 @@ class WaitingListCreate extends WaitingListEdit
 		$edit = var_from_getorpost('edit');
 		$name = trim($edit['name']);
 	
-		$res = $DB->query("INSERT into waitinglist (name) VALUES (?)", array($name));
-		$err = isDatabaseError($res);
-		if($err != false) {
-			if(strstr($err,"already exists: INSERT into")) {
-				$err = "A waiting list with that name already exists; please go back and try again";
-			}
-			$this->error_exit($err);
-		}
-		
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from waitinglist");
-		if($this->is_database_error($id)) {
+		db_query("INSERT into waitinglist (name) VALUES ('%s')", $name);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
-
+		
+		$id = db_result(db_query("SELECT LAST_INSERT_ID() from waitinglist"));
 		return parent::perform( $id );
 	}
 }
@@ -270,11 +241,7 @@ class WaitingListList extends Handler
 	
 	function process ()
 	{
-		global $DB;
-
-		$query = $DB->prepare("SELECT 
-			name AS value, wlist_id AS id
-			FROM waitinglist ORDER BY name");
+		$query = "SELECT name AS value, wlist_id AS id FROM waitinglist ORDER BY name";
 		
 		$ops = array(
 			array(
@@ -334,19 +301,13 @@ class WaitingListView extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 
-		$data = $DB->getRow(
-			"SELECT * FROM waitinglist WHERE wlist_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
+		/* TODO: waitinglist_load() */
+		$data = db_fetch_object(db_query(
+			"SELECT * FROM waitinglist WHERE wlist_id = %d",$id));
 
-		if($this->is_database_error($data)) {
-			return false;
-		}
-
-		if(!isset($data)) {
+		if(!$data) {
 			$this->error_exit("That is not a valid waitinglist ID");
 		}
 	
@@ -357,12 +318,12 @@ class WaitingListView extends Handler
 		}
 	
 		$output .= "<table border='0'>";
-		$output .= simple_row("Waiting List Name:", $data['name']);
-		$output .= simple_row("Description:", $data['description']);
-		$output .= simple_row("Selection Process:", $data['selection']);
-		$output .= simple_row("Max Male Players:", $data['max_male']);
-		$output .= simple_row("Max Female Players:", $data['max_female']);
-		$output .= simple_row("Allow Couples Registration:", $data['allow_couples_registration']);
+		$output .= simple_row("Waiting List Name:", $data->name);
+		$output .= simple_row("Description:", $data->description);
+		$output .= simple_row("Selection Process:", $data->selection);
+		$output .= simple_row("Max Male Players:", $data->max_male);
+		$output .= simple_row("Max Female Players:", $data->max_female);
+		$output .= simple_row("Allow Couples Registration:", $data->allow_couples_registration);
 		$output .= "</table>";
 		if($this->_permissions['viewmembers']) {
 			$listContents .= "<div class='waitlist'><table border='0'>";
@@ -375,50 +336,47 @@ class WaitingListView extends Handler
 				. th( 'Height' )
 				. th( 'Partner' )
 			);
-			$listMembers = $DB->query(
+			
+			$result = db_query(
 				"SELECT p.firstname,p.lastname,p.gender,p.skill_level,p.height,m.*,partner.firstname as partner_firstname, partner.lastname as partner_lastname, partner.user_id AS partner_id
 				 FROM waitinglistmembers m
 				   LEFT JOIN person p ON (p.user_id = m.user_id)
 				   LEFT JOIN person partner ON (partner.member_id = m.paired_with)
-				 WHERE m.wlist_id = ? 
-				 ORDER BY m.date_registered", array($id));
+				 WHERE m.wlist_id = %d 
+				 ORDER BY m.date_registered", $id);
 				 
-			if($this->is_database_error($listMembers)) {
-				return false;
-			}
-		
 			$position = 1;
 			$genderCount = array(
 				'male' => 0,
 				'female' => 0,
 			);
-			while($row = $listMembers->fetchRow(DB_FETCHMODE_ASSOC)) {
+			while($player = db_fetch_object($result)) {
 
-				$lcGender = strtolower($row['gender']);
+				$lcGender = strtolower($player->gender);
 				if(++$genderCount[$lcGender] <= $data["max_$lcGender"]) {
 					$style = array('class' => 'highlight');	
 				} else {
 					$style = array();
 				}
 			
-				if( isset($row['partner_id']) ) {
-					$partnerInfo = l($row['partner_firstname'] . ' ' . $row['partner_lastname'], 'op=wlist_viewperson&id='.$row['partner_id']);
+				if( isset($player->partner_id) ) {
+					$partnerInfo = l("$player->partner_firstname $player->partner_lastname", "op=wlist_viewperson&id=$player->partner_id");
 				} else {
 					$partnerInfo = '';
 				}
 				$listContents .= tr(
-					td(l($row['firstname'] . ' ' . $row['lastname'], 'op=wlist_viewperson&id='.$row['user_id']), $style)
-					. td($row['preference'], $style)
-					. td($row['date_registered'], $style)
-					. td($row['gender'], $style )
-					. td($row['skill_level'], $style )
-					. td($row['height'], $style )
+					td(l("$player->firstname $player->lastname", "op=wlist_viewperson&id=$player->user_id"), $style)
+					. td($player->preference, $style)
+					. td($player->date_registered, $style)
+					. td($player->gender, $style )
+					. td($player->skill_level, $style )
+					. td($player->height, $style )
 					. td($partnerInfo, $style)
 				);
 				$position++;
 				
 			}
-			$listMembers->free();
+			
 			$listContents .= "</table></div>";
 			$output .= simple_row('Current Males Registered:', $genderCount['male']);
 			$output .= simple_row('Current Females Registered:', $genderCount['female']);
@@ -426,7 +384,7 @@ class WaitingListView extends Handler
 		}
 		
 		$this->setLocation(array(
-			$data['name'] => "op=wlist_view&id=$id",
+			$data->name => "op=wlist_view&id=$id",
 			$this->title => 0));
 		$output .= "</table></div>";
 
@@ -457,16 +415,14 @@ class WaitingListJoin extends Handler
 	
 	function process ()
 	{
-		global $DB, $session;
+		global $session;
 		
 		$step = var_from_getorpost('step');
 
 		/* First, make sure this person isn't on any lists yet */
-		$numLists = $DB->getOne("SELECT COUNT(*) from waitinglistmembers WHERE user_id = ?", array($session->attr_get('user_id')));
-		if($this->is_database_error($numLists)) {
-			return false;
-		}
-		if($numLists > 0) {
+		$numLists = db_result(db_query("SELECT COUNT(*) from waitinglistmembers WHERE user_id = %d", $session->attr_get('user_id')));
+		
+		if($numLists) {
 			return para("You have already made your waiting list selections.")
 				. para("You can view your selections " . l('here',"op=wlist_viewperson&id=" . $session->attr_get('user_id')));
 		}
@@ -501,15 +457,10 @@ class WaitingListJoin extends Handler
 	
 	function generateForm ( )
 	{
-		global $DB;
-		
-		$dbResult = $DB->query("SELECT * from waitinglist");
-		if($this->is_database_error($dbResult)) {
-			return false;
-		}
+		$result = db_query("SELECT * from waitinglist");
 
 		if( ! $this->max_preference) {
-			$this->max_preference = $dbResult->numRows();
+			$this->max_preference = db_num_rows($result);
 		}
 		
 		$output = form_hidden("op", $this->op);
@@ -546,16 +497,16 @@ class WaitingListJoin extends Handler
 		$output .= "</tr>";
 		
 		$rowCount = 0;
-		while($list = $dbResult->fetchRow(DB_FETCHMODE_ASSOC)) {
+		while($list = db_fetch_object($result)) {
 			$output .= "<tr>";
 			for($i=1;$i <= $this->max_preference; $i++) {
 				$output .= td(
-					form_radio('', "edit[preference][$i]", $list['wlist_id']));
+					form_radio('', "edit[preference][$i]", $list->wlist_id));
 				
 			}
-			$output .= td( $list['name'] . " (" . l('view', 'op=wlist_view&id=' . $list['wlist_id']) . ")");
-			if($list['allow_couples_registration'] == 'Y') {
-				$output .= td(form_textfield('', 'edit[' . $list['wlist_id'] . '][paired_with]', '', 8,8));
+			$output .= td( "$list->name (" . l('view', 'op=wlist_view&id=' . $list->wlist_id) . ")");
+			if($list->allow_couples_registration == 'Y') {
+				$output .= td(form_textfield('', "edit[$list->wlist_id][paired_with]", '', 8,8));
 			} else {
 				$output .= td('');
 			}
@@ -568,15 +519,13 @@ class WaitingListJoin extends Handler
 		$output .= "</table></div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
-		$this->setLocation(array( $this->title => "op=" . $this->op));
+		$this->setLocation(array( $this->title => "op=$this->op"));
 
 		return form($output);
 	}
 	
 	function generateConfirm ( )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -596,25 +545,22 @@ class WaitingListJoin extends Handler
 				continue;
 			}
 
-			$list = $DB->getRow("SELECT * from waitinglist WHERE wlist_id = ?", array($wlist_id), DB_FETCHMODE_ASSOC);
-			if($this->is_database_error($list)) {
-				return false;
+			$list = db_fetch_object(db_query("SELECT * from waitinglist WHERE wlist_id = %d", $wlist_id));
+			if(!$list) {
+				$this->error_exit("An invalid waitinglist was specified; please go back and try again");		
 			}
 
 			$output .= tr(
-				th( $list['name'], array('colspan' => 2) )
+				th( $list->name, array('colspan' => 2) )
 			);
 			
 			$output .= simple_row("Registration Preference:", form_hidden("edit[preference][$preference]", $wlist_id) . numberToOrdinal($preference));
 
 			$paired_with = $edit[$wlist_id]['paired_with'];
-			if($paired_with && $list['allow_couples_registration'] == 'Y') {
-				$partnerName = $DB->getOne("SELECT CONCAT(firstname,' ',lastname) FROM person WHERE member_id = ?", array($paired_with));
-				if($this->is_database_error($partnerName)) {
-					return false;
-				}
+			if($paired_with && $list->allow_couples_registration == 'Y') {
+				$partnerName = db_result(db_query("SELECT CONCAT(firstname,' ',lastname) FROM person WHERE member_id = %d", $paired_with));
 				
-				if(!isset($partnerName)) {
+				if(!$partnerName) {
 					$this->error_exit("An invalid partner member ID was specified; please go back and try again");		
 				}
 				
@@ -683,7 +629,7 @@ class WaitingListJoin extends Handler
 	
 	function perform (  )
 	{
-		global $DB, $session;
+		global $session;
 
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -698,16 +644,14 @@ class WaitingListJoin extends Handler
 				continue;
 			}
 
-			$result = $DB->query("INSERT INTO waitinglistmembers (wlist_id,user_id,paired_with,preference,date_registered) VALUES(?,?,?,?,NOW())",
-				array(
-					$wlist_id,
-					$session->attr_get('user_id'),
-					$edit[$wlist_id]['paired_with'],
-					$preference
-				)
+			db_query("INSERT INTO waitinglistmembers (wlist_id,user_id,paired_with,preference,date_registered) VALUES(%d,%d,%d,%d,NOW())",
+				$wlist_id,
+				$session->attr_get('user_id'),
+				$edit[$wlist_id]['paired_with'],
+				$preference
 			);
 			
-			if($this->is_database_error($result)) {
+			if(1 != db_affected_rows() ) {
 				return false;
 			}
 		}
@@ -743,8 +687,6 @@ class WaitingListQuit extends Handler
 	
 	function process ()
 	{
-		global $DB;
-		
 		$step = var_from_getorpost('step');
 		
 		$id = var_from_getorpost('id');
@@ -763,15 +705,14 @@ class WaitingListQuit extends Handler
 	
 	function generateConfirm ( $id )
 	{
-		global $DB, $session;
+		global $session;
 
 		if($session->is_admin()) {
 			$user = var_from_getorpost('user');
-			$info = $DB->getRow("SELECT firstname, lastname FROM person WHERE user_id = ?", array($user), DB_FETCHMODE_ASSOC);
-			if($this->is_database_error($info)) {
-				return false;
-			}
-			if(is_null($info)) {
+			
+			$info = db_fetch_array(db_query("SELECT firstname, lastname FROM person WHERE user_id = %d", $user));
+
+			if( !$info ) {
 				$this->error_exit("That is not a valid user");
 			}
 			$fullName = $info['firstname'] . " " . $info['lastname'];
@@ -783,17 +724,13 @@ class WaitingListQuit extends Handler
 		$this->setLocation(
 			array( $fullName => "op=person_view&id=$user", $this->title => 0,));
 		
-		$list = $DB->getRow("SELECT * from waitinglist WHERE wlist_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($list)) {
-			return false;
-		}
-		if(is_null($list)) {
+		$listName = db_result(db_query("SELECT name from waitinglist WHERE wlist_id = %d", $id));
+
+		if( !$listName ) {
 			$this->error_exit("That is not a valid waiting list.");
 		}
 
-		$output = para("Confirm that you wish to remove $fullName from the " 
-			. $list['name'] 
-			. " waiting list.  Note that this will result in a loss of any priority for this list and that you cannot be re-added."
+		$output = para("Confirm that you wish to remove $fullName from the $listName waiting list.  Note that this will result in a loss of any priority for this list and that you cannot be re-added."
 		);
 		
 		$output .= form_hidden("op", $this->op);
@@ -808,25 +745,23 @@ class WaitingListQuit extends Handler
 
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 
 		if($session->is_admin()) {
-			$user = var_from_getorpost('user');
+			$user_id = var_from_getorpost('user');
 		} else {
-			$user = $session->attr_get('user_id');
+			$user_id = $session->attr_get('user_id');
 		}
 
-		$result = $DB->query(
-			"DELETE 
+		db_query("DELETE 
 			 FROM waitinglistmembers 
-			 WHERE wlist_id = ?
-			   AND user_id = ?",
-			array( $id, $user));
+			 WHERE wlist_id = %d
+			   AND user_id = %d", $id, $user_id);
 			
-		if($this->is_database_error($result)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
-		local_redirect("op=wlist_viewperson&id=$user");
+		local_redirect("op=wlist_viewperson&id=$user_id");
 	}
 }
 
@@ -849,20 +784,18 @@ class WaitingListViewPerson extends Handler
 
 	function process ()
 	{
-		global $DB, $session;
+		global $session;
 
 
 		if($session->is_admin()) {
 			$id = var_from_getorpost('id');
-			$info = $DB->getRow("SELECT firstname, lastname, gender FROM person WHERE user_id = ?", array($id), DB_FETCHMODE_ASSOC);
-			if($this->is_database_error($info)) {
-				return false;
-			}
-			if(is_null($info)) {
+			$info = db_fetch_object(db_query("SELECT firstname, lastname, gender FROM person WHERE user_id = %d", $id));
+
+			if( !$info ) {
 				$this->error_exit("That is not a valid user");
 			}
-			$lcGender = strtolower($info['gender']);
-			$fullName = $info['firstname'] . " " . $info['lastname'];
+			$lcGender = strtolower($info->gender);
+			$fullName = $info->firstname . " " . $info->lastname;
 		} else {
 			$id = $session->attr_get('user_id');
 			$lcGender = strtolower($session->attr_get('gender'));
@@ -871,19 +804,14 @@ class WaitingListViewPerson extends Handler
 		
 		$this->setLocation(array( $fullName => "op=person_view&id=$id", $this->title => 0));
 
-
-		$dbResult = $DB->query(
+		$result = db_query(
 			"SELECT w.*, m.preference,m.paired_with
 			 FROM waitinglist w, waitinglistmembers m
 			 WHERE w.wlist_id = m.wlist_id 
-			   AND m.user_id = ?
-			 ORDER BY m.preference",array($id));
+			   AND m.user_id = %d
+			 ORDER BY m.preference",$id);
 
-		if($this->is_database_error($dbResult)) {
-			return false;
-		}
-
-		if($dbResult->numRows() < 1) {
+		if(db_num_rows($result) < 1) {
 			$signupTime = mktime(9,0,0,10,31,2003);
 			if(	time() > $signupTime) {
 				return para("Online indoor signup is now closed.")
@@ -956,40 +884,36 @@ EOM;
 		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
 		$output .= "<div class='waitlist'><table border='0'>";
-		while($data = $dbResult->fetchRow(DB_FETCHMODE_ASSOC)) {
-
+		while($data = db_fetch_object($result)) {
 			$output .= tr(
-				th( $data['name'] )
-				. th( l("remove from this waitlist", "op=wlist_quit&step=confirm&id=" . $data['wlist_id'] . "&user=$id"), array('class' => 'thlinks') )
+				th( $data->name )
+				. th( l("remove from this waitlist", "op=wlist_quit&step=confirm&id=$data->wlist_id &user=$id"), array('class' => 'thlinks') )
 			);
 
-			$output .= simple_row("Registration Preference:", $data['preference']);
+			$output .= simple_row("Registration Preference:", $data->preference);
 
 			/* The following is a very ugly way to find this person's
 			 * position in the waiting list; however there doesn't
 			 * appear to be a nicer way to do it
 			 */
-			$findPosResult = $DB->query(
+			$posResult = db_query(
 				"SELECT w.user_id, p.gender
 				 FROM waitinglistmembers w, person p
 				 WHERE p.user_id = w.user_id
-				   AND wlist_id = ? 
-				 ORDER BY date_registered", array($data['wlist_id']));
-			if($this->is_database_error($findPosResult)) {
-				return false;
-			}
-			$totalRows = $findPosResult->numRows();
+				   AND wlist_id = %d
+				 ORDER BY date_registered", array($data->wlist_id));
+				 
+			$totalRows = db_num_rows($posResult);
 			$position = array(
 				'male' => 1,
 				'female' => 1 
 			);
-			while($row = $findPosResult->fetchRow(DB_FETCHMODE_ASSOC)) {
+			while($row = db_fetch_array($posResult)) {
 				if($row['user_id'] == $id) {
 					break;
 				}
 				$position[ strtolower($row['gender']) ]++;
 			}
-			$findPosResult->free();
 
 			$waitlistPosition = "Currently ".numberToOrdinal($position[$lcGender]) . " $lcGender of $totalRows total registrants.<br/>";
 
@@ -998,24 +922,19 @@ EOM;
 			} else {
 				$waitlistPosition .= "Waiting for an available spot";
 			}
-			$waitlistPosition .= " (limit is " . $data['max_male'] . " men, ". $data['max_female'] . " women)";
+			$waitlistPosition .= " (limit is $data->max_male men, $data->max_female women)";
 			
 			$output .= simple_row("Waitlist Position:", $waitlistPosition);
-			if($data['paired_with']) {
-				$partnerName = $DB->getOne("SELECT CONCAT(firstname,' ',lastname) FROM person WHERE member_id = ?", array($data['paired_with']));
-				if($this->is_database_error($partnerName)) {
-					return false;
-				}
-				
-				if(!isset($partnerName)) {
+			if($data->paired_with) {
+				$partnerName = db_result(db_query("SELECT CONCAT(firstname,' ',lastname) FROM person WHERE member_id = %d", $data->paired_with));
+				if(! $partnerName ) {
 					$this->error_exit("An invalid partner member ID was specified; please go back and try again");		
 				}
 				
 				$output .= simple_row("Partner:", 
-					form_hidden("edit[$wlist_id][paired_with]", $data['paired_with']) . "$partnerName (OCUA Member Number " . $data['paired_with'] . ")");
+					form_hidden("edit[$wlist_id][paired_with]", $data->paired_with) . "$partnerName (OCUA Member Number $data->paired_with)");
 			}
 		}
-		$dbResult->free();
 
 		$output .= "</table></div>";
 		

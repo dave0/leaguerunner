@@ -27,23 +27,16 @@ class SiteCreate extends SiteEdit
 	
 	function perform ()
 	{
-		global $DB;
-
 		$site = var_from_getorpost("site");
-		
-		$res = $DB->query("INSERT into site (name,code) VALUES (?,?)", array($site['name'], $site['code']));
-		if($this->is_database_error($res)) {
-			return false;
-		}
 	
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from site");
-		if($this->is_database_error($id)) {
+		db_query("INSERT into site (name,code) VALUES ('%s','%s')", $site['name'], $site['code']);
+		if(1 != db_affected_rows() ) {
 			return false;
 		}
 	
 		/* TODO Make $this->id go away */
-		$this->id = $id;
-		
+		$this->id = db_result(db_query("SELECT LAST_INSERT_ID() from site"));
+	
 		return parent::perform();
 	}
 
@@ -70,8 +63,6 @@ class SiteEdit extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$this->id = var_from_getorpost('id');
 
@@ -81,15 +72,7 @@ class SiteEdit extends Handler
 				if($dataInvalid) {
 					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 				}
-				
-				if($this->id) {
-					$name = $DB->getOne("SELECT name FROM site where site_id = ?", array($this->id));
 
-					if($this->is_database_error($name)) {
-						return false;
-					}
-				}
-				
 				return $this->generateConfirm(var_from_getorpost('site'));
 				break;
 			case 'perform':
@@ -102,13 +85,14 @@ class SiteEdit extends Handler
 				break;
 			default:
 				if($this->id) {
-					$row = $DB->getRow(
-						"SELECT * FROM site WHERE site_id = ?", 
-						array($this->id), DB_FETCHMODE_ASSOC);
-
-					if($this->is_database_error($row)) {
+					
+					$result = db_query(
+						"SELECT * FROM site WHERE site_id = %d", $this->id);
+					if( 1 != db_num_rows($result) ) {
 						return false;
 					}
+					$row = db_fetch_array($result);
+
 				} else {
 					$row = array();
 				}
@@ -178,7 +162,6 @@ class SiteEdit extends Handler
 
 	function generateConfirm ($data)
 	{
-		global $DB;
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", "perform");
 		$output .= form_hidden("id", $this->id);
@@ -232,20 +215,15 @@ class SiteEdit extends Handler
 
 	function perform ()
 	{
-		global $DB;
-
 		$site = var_from_getorpost('site');
 		
-		$res = $DB->query("UPDATE site SET 
-			name = ?, 
-			code = ?, 
-			region = ?, 
-			ward_id = ?,
-			location_url = ?, 
-			layout_url = ?, 
-			directions = ?, 
-			instructions = ? 
-			WHERE site_id = ?",
+		db_query("UPDATE site SET 
+			name = '%s', code = '%s', 
+			region = '%s', ward_id = %d,
+			location_url = '%s', layout_url = '%s', 
+			directions = '%s', 
+			instructions = '%s' 
+			WHERE site_id = %d",
 			array(
 				$site['name'],
 				$site['code'],
@@ -258,8 +236,8 @@ class SiteEdit extends Handler
 				$this->id,
 			)
 		);
-		
-		if($this->is_database_error($res)) {
+	
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -335,8 +313,6 @@ class SiteList extends Handler
 
 	function process ()
 	{
-		global $DB;
-		
 		$links = array();
 		
 		if($this->_permissions['field_admin']) {
@@ -352,22 +328,18 @@ class SiteList extends Handler
 		}           
 		ob_end_clean();
 
-		$query = $DB->prepare(
+		$result = db_query(
 			"SELECT s.site_id, s.name, s.region FROM site s
 			ORDER BY s.region,s.name");
-		$result = $DB->execute($query);
-		if($this->is_database_error($result)) {
-			return false;
-		}
 
 		$fieldsByRegion = array();
-		while($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
-			if(! array_key_exists( $row['region'], $fieldsByRegion) ) {
-				$fieldsByRegion[$row['region']] = "";
-				$headings .= th(ucfirst($row['region']));
+		while($field = db_fetch_object($result)) {
+			if(! array_key_exists( $field->region, $fieldsByRegion) ) {
+				$fieldsByRegion[$field->region] = "";
+				$headings .= th(ucfirst($field->region));
 			}
-			$fieldsByRegion[$row['region']] 
-				.= l($row['name'], 'op=site_view&id=' . $row['site_id']) . " <br />";
+			$fieldsByRegion[$field->region] 
+				.= l($field->name, "op=site_view&id=$field->site_id") . "<br />";
 		}
 
 		$output .= "<div class='fieldlist'><table>";
@@ -411,27 +383,17 @@ class SiteView extends Handler
 
 	function process ()
 	{
-		global $session, $DB;
+		global $session;
 
 		$id = var_from_getorpost('id');
 
-		$site = $DB->getRow("SELECT * FROM site WHERE site_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
-			return false;
-		}
+		/* TODO: site_load() ? */
+		$site = db_fetch_object(db_query("SELECT * FROM site WHERE site_id = %d", $id));
 
-		if(!isset($site)) {
+		if(!$site) {
 			$this->error_exit("The site [$id] does not exist");
 		}
 	
-		/* and list fields at this site */
-		$fields = $DB->getAll("SELECT * FROM field WHERE site_id = ? ORDER BY num",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($site['fields'])) {
-			return false;
-		}
-
 		$links = array();
 		if($this->_permissions['site_edit']) {
 			$links[] = l('edit site', "op=site_edit&id=$id", array("title" => "Edit this field site"));
@@ -439,16 +401,19 @@ class SiteView extends Handler
 		if($this->_permissions['field_create']) {
 			$links[] = l('add field', "op=field_create&site_id=$id", array("title" => "Add a new field to this site"));
 		}
+		
+		/* and list fields at this site */
+		$result = db_query("SELECT * FROM field WHERE site_id = %d ORDER BY num", $id);
 
 		$field_listing = "<ul>";
-		foreach ($fields as $field) {
-			$field_listing .= "<li>" . $site['code'] . " " . $field['num'] . " (" . $field['status'] . ")  ";
+		while($field = db_fetch_object($result)) {
+			$field_listing .= "<li>$site->code $field->num ($field->status)";
 			$field_listing .= l("view", 
-				"op=field_view&id=" . $field['field_id'], 
+				"op=field_view&id=$field->field_id", 
 				array('title' => "View field entry"));
 			if($this->_permissions["site_edit"]) {
 				$field_listing .= " | " . l("edit", 
-					"op=field_edit&id=" . $field['field_id'], 
+					"op=field_edit&id=$field->field_id", 
 					array('title' => "Edit field entry"));
 			}
 		}
@@ -457,25 +422,25 @@ class SiteView extends Handler
 
 		$output = theme_links($links);
 		$output .= "<table border='0' width='100%'>";
-		$output .= simple_row("Site Name:", $site['name']);
-		$output .= simple_row("Site Code:", $site['code']);
-		$output .= simple_row("Site Region:", $site['region']);
-		$output .= simple_row("City Ward:", l(getWardName($site['ward_id']), "op=ward_view&id=" . $site['ward_id']));
+		$output .= simple_row("Site Name:", $site->name);
+		$output .= simple_row("Site Code:", $site->code);
+		$output .= simple_row("Site Region:", $site->region);
+		$output .= simple_row("City Ward:", l(getWardName($site->ward_id), "op=ward_view&id=$site->ward_id"));
 		$output .= simple_row("Site Location Map:", 
-			$site['location_url'] ? l("Click for map in new window", $site['location_url'], array('target' => '_new'))
+			$site->location_url ? l("Click for map in new window", $site->location_url, array('target' => '_new'))
 				: "No Map");
 		$output .= simple_row("Field Layout Map:", 
-			$site['layout_url'] ? l("Click for map in new window", $site['layout_url'], array('target' => '_new'))
+			$site->layout_url ? l("Click for map in new window", $site->layout_url, array('target' => '_new'))
 				: "No Map");
-		$output .= simple_row("Directions:", $site['directions']);
-		$output .= simple_row("Special Instrutions:", $site['instructions']);
+		$output .= simple_row("Directions:", $site->directions);
+		$output .= simple_row("Special Instrutions:", $site->instructions);
 		
 		$output .= simple_row("Fields:", $field_listing);
 		
 		$output .= "</table>";
 		
 		$this->setLocation(array(
-			$site['name'] => "op=site_view&id=" . $site['site_id'],
+			$site->name => "op=site_view&id=$site->site_id",
 			$this->title => 0
 		));
 		

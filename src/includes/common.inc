@@ -124,6 +124,10 @@ function check_form($input, $quotes = ENT_QUOTES)
 	return htmlspecialchars($input, $quotes);
 }
 
+function check_query($text) {
+    return addslashes($text);
+}
+
 /*
  * Form-generation functions
  */
@@ -370,23 +374,6 @@ function clean_telephone_number( $string )
 }
 
 /**
- ** DB helper functions
- **/
-
-/**
- * Check for a database error
- */
-function isDatabaseError( &$res ) 
-{
-	if(DB::isError($res)) {
-		return $res->getMessage() . ": " . $res->getUserinfo();
-	}
-	
-	return false;
-}
-
-
-/**
  ** Miscellaneous stuff. 
  ** TODO: Some of this is old code that might be best removed entirely.
  */
@@ -560,50 +547,43 @@ function getOptionsFromTimeRange( $start, $finish, $increment )
  */
 function getOptionsFromEnum( $table, $col_name )
 {
-	global $DB;
-	
-	$row = $DB->getRow("SHOW COLUMNS from $table LIKE ?",
-		array($col_name),
-		DB_FETCHMODE_ASSOC);
-	if(isDatabaseError($row)) {
-		return $result;
-	}
+	$result = db_query("SHOW COLUMNS from $table LIKE '%s'", $col_name);
+	$row = db_fetch_array($result);
 		
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
 	$str = str_replace(")","",$str);
 	$str = str_replace("'","",$str);
 	$ary = preg_split("/,/",$str);
 
-	$result = array();
-	$result["---"] = "---";
+	$options = array();
+	$options["---"] = "---";
 	foreach($ary as $val) {
-		$result[$val] = $val;
+		$options[$val] = $val;
 	}
 	
-	return $result;
+	return $options;
 }
 
+/**
+ * Fetch options using the given query.
+ * TODO: Fix this!  It should instead take a $result arg produced by db_query,
+ * not the raw sql.
+ */
 function getOptionsFromQuery( $sql, $data = array() )
 {
-	global $DB;
+	$result = db_query($sql,$data);
 
-	$result = array();
-	$res = $DB->query($sql, $data);
-	if(isDatabaseError($res)) {
-		return $result;
+	$options[0] = "-- select from list --"	;
+	while($row = db_fetch_array($result)) {
+		$options[$row[0]] = $row[1];	
 	}
-
-	$result[0] = "-- select from list --"	;
-	while($row = $res->fetchRow()) {
-		$result[$row[0]] = $row[1];	
-	}
-	return $result;
+	return $options;
 }
 
 function getWardName($id)
 {
-	global $DB;
-	return $DB->getOne("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = ?", array($id));
+	$result = db_query("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = %d", $id);
+	return db_result($result);
 }
 
 /**
@@ -614,8 +594,7 @@ function getWardName($id)
  */
 function get_teams_for_user($userid) 
 {
-	global $DB;
-	$rows = $DB->getAll(
+	$result = db_query(
 		"SELECT 
 			r.status AS position,
             r.team_id AS id,
@@ -623,12 +602,16 @@ function get_teams_for_user($userid)
         FROM 
             teamroster r LEFT JOIN team t USING(team_id)
         WHERE 
-            r.player_id = ?",
-	array($userid), DB_FETCHMODE_ASSOC);
+            r.player_id = %d", $userid);
+			
 	$rosterPositions = getRosterPositions();
-	for($i=0; $i < count($rows); $i++) {
-		$rows[$i]['position'] = $rosterPositions[$rows[$i]['position']];
+
+	$rows = array();
+	while($row = db_fetch_array($result)) {
+		$row['position'] = $rosterPositions[$row['position']];
+		$rows[] = $row;
 	}
+	
 	return $rows;
 }
 
@@ -637,12 +620,12 @@ function get_teams_for_user($userid)
  */
 function get_field_name($id)
 {
-	global $DB;
-	return $DB->getOne("SELECT
+	$result = db_query("SELECT
 		CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')')
 		FROM field f
 		LEFT JOIN site s ON (f.site_id = s.site_id)
-		WHERE f.field_id = ?", array($id));
+		WHERE f.field_id = %d", $id);
+	return db_result($result);
 }
 
 

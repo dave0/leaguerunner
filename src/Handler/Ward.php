@@ -25,21 +25,22 @@ class WardCreate extends WardEdit
 	
 	function perform ()
 	{
-		global $DB;
-
 		$edit = var_from_getorpost("edit");
-		
-		$res = $DB->query("INSERT into ward (name,num) VALUES (?,?)", array($edit['name'], $edit['num']));
-		if($this->is_database_error($res)) {
-			return false;
-		}
+
+		/* TODO: should use a sequence table here instead of LAST_INSERT_ID()
+		 */
 	
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from ward");
-		if($this->is_database_error($id)) {
+		db_query("INSERT into ward (name,num) VALUES ('%s',%d)", $edit['name'], $edit['num']);
+
+		if(1 != db_affected_rows() ) {
 			return false;
 		}
 		
-		$this->id = $id;
+		$result = "SELECT LAST_INSERT_ID() from ward";
+		if( !db_num_rows($result) ) {
+			return false;
+		}
+		$this->id = db_result($result);
 		
 		return parent::perform();
 	}
@@ -66,8 +67,6 @@ class WardEdit extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$edit = var_from_getorpost('edit');
 		$this->id = var_from_getorpost('id');
@@ -91,13 +90,8 @@ class WardEdit extends Handler
 				break;
 			default:
 				if($this->id) {
-					$row = $DB->getRow(
-						"SELECT * FROM ward WHERE ward_id = ?", 
-						array($this->id), DB_FETCHMODE_ASSOC);
-
-					if($this->is_database_error($row)) {
-						return false;
-					}
+					$result = db_query("SELECT * FROM ward WHERE ward_id = %d", $this->id);
+					$row = db_fetch_array($result);
 				} else {
 					$row = array();
 				}
@@ -156,7 +150,6 @@ class WardEdit extends Handler
 
 	function generateConfirm ($data)
 	{
-		global $DB;
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", "perform");
 		$output .= form_hidden("id", $this->id);
@@ -197,28 +190,17 @@ class WardEdit extends Handler
 
 	function perform ()
 	{
-		global $DB;
-
 		$edit = var_from_getorpost('edit');
 		
-		$res = $DB->query("UPDATE ward SET 
-			name = ?, 
-			num = ?, 
-			region = ?, 
-			city = ?,
-			url = ?
-			WHERE ward_id = ?",
-			array(
-				$edit['name'],
-				$edit['num'],
-				$edit['region'],
-				$edit['city'],
-				$edit['url'],
-				$this->id,
-			)
-		);
+		$res = db_query("UPDATE ward SET 
+			name = '%s', 
+			num = %d, 
+			region = '%s', 
+			city = '%s',
+			url = '%s'
+			WHERE ward_id = %d", $edit['name'], $edit['num'], $edit['region'], $edit['city'], $edit['url'], $this->id);
 		
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -274,30 +256,29 @@ class WardList extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$cities = array('Ottawa','Gatineau');
 		$output = "<table border='0' cellpadding='3' cellspacing='0'><tr>";
 		foreach($cities as $city) {
 			
 			$output .= "<td valign='top'><div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 			$output .= tr( th($city, array('colspan' => 6)));
-			$result = $DB->query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = ? GROUP BY w.ward_id", array($city));
-			if($this->is_database_error($result)) {
-				return false;
-			}
-			while($ward = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
-				$fields = $DB->getOne("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = ?", array($ward['ward_id']));
+			$result = db_query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = '%s' GROUP BY w.ward_id", $city);
+			
+			while($ward = db_fetch_object($result) ) {
+			
+				$fieldQuery = db_query("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = %d", $ward->ward_id);
+				$fields = db_result($fieldQuery);
 				$output .= tr( 
 					td("&nbsp;", array('width' => 10))
-					. td("Ward " . $ward['num'])
-					. td($ward['name'])
+					. td("Ward $ward->num")
+					. td($ward->name)
 					. td($fields . (($fields == 1) ? " field" : " fields"), array('align' => 'right'))
-					. td($ward['players'] . (($ward['players'] == 1) ? " player" : " players"), array('align' => 'right'))
-					. td(l('view', 'op=ward_view&id=' . $ward['ward_id']))
+					. td($ward->players . (($ward->players == 1) ? " player" : " players"), array('align' => 'right'))
+					. td(l('view', "op=ward_view&id=$ward->ward_id"))
 				);
 			}
-			$players = $DB->getOne("SELECT COUNT(*) FROM person WHERE ISNULL(ward_id) AND addr_city = ?", array($city));
+			$playerQuery = db_query("SELECT COUNT(*) FROM person WHERE ISNULL(ward_id) AND addr_city = '%s'", $city);
+			$players = db_result($playerQuery);
 			$output .= tr( 
 				td("&nbsp;", array('width' => 10))
 				. td("&nbsp;")
@@ -343,54 +324,46 @@ class WardView extends Handler
 
 	function process ()
 	{
-		global $session, $DB;
+		global $session;
 
 		$id = var_from_getorpost('id');
 
-		$ward = $DB->getRow("SELECT * FROM ward WHERE ward_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
-			return false;
-		}
+		$result = db_query("SELECT * FROM ward WHERE ward_id = %d", $id);
+		$ward = db_fetch_object($result);
 
 		if(!isset($ward)) {
 			$this->error_exit("That ward does not exist");
 		}
-	
+
 		$links = array();
 		if($this->_permissions['ward_edit']) {
 			$links[] = l('edit ward', "op=ward_edit&id=$id", array("title" => "Edit this ward"));
 		}
 		
 		/* and list field sites in this ward */
-		$sites = $DB->getAll("SELECT * FROM site WHERE ward_id = ? ORDER BY site_id",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($sites)) {
-			return false;
-		}
+		$fieldSites = db_query("SELECT * FROM site WHERE ward_id = %d ORDER BY site_id", $id);
 
 		$site_listing = "<ul>";
-		foreach ($sites as $site) {
-			$field_listing .= "<li>" . $site['name'] . " (" . $site['code'] . ") &nbsp;";
+		while($site = db_fetch_object($fieldSites)) {
+			$field_listing .= "<li>$site->name ($site->code) &nbsp;";
 			$field_listing .= l("view", 
-				"op=site_view&id=" . $site['site_id'], 
+				"op=site_view&id=$site->site_id", 
 				array('title' => "View site"));
 		}
 		$field_listing .= "</ul>";
 		
-		$this->setLocation(array(
-			$ward['name'] => "op=ward_view&id=$id",
-			$this->title => 0));
+		$this->setLocation(array( $ward->name => "op=ward_view&id=$id", $this->title => 0));
 		
-		$output .= theme_links($links);
+		$output = theme_links($links);
 		$output .= "<table border='0' width='100%'>";
-		$output .= simple_row("Ward Name:", $ward['name']);
-		$output .= simple_row("Ward Number:", $ward['num']);
-		$output .= simple_row("Ward City:", $ward['city']);
+		$output .= simple_row("Ward Name:", $ward->name);
+		$output .= simple_row("Ward Number:", $ward->num);
+		$output .= simple_row("Ward City:", $ward->city);
 		$output .= simple_row("Information URL:", 
-			$ward['url'] ? l( $ward['url'], $ward['url'], array('target' => '_new')) . " (opens in new window)"
+			$ward->url ? l( $ward->url, $ward->url, array('target' => '_new')) . " (opens in new window)"
 				: "No Link");
 				
+	
 		$output .= simple_row("Field Sites:", $field_listing);
 		
 		$output .= "</table>";

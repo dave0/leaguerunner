@@ -30,7 +30,8 @@ class MainMenu extends Handler
 
 	function process ()
 	{
-		global $session, $DB;
+		global $session;
+
 		$id = $session->attr_get("user_id");
 		$this->setLocation(array( $session->attr_get('firstname') . " " . $session->attr_get('lastname') => 0 ));
 
@@ -72,11 +73,10 @@ class MainMenu extends Handler
 				
 		
 		$teams = get_teams_for_user($id);
-		if($this->is_database_error($teams)) {
-			return false;
-		}
+		
 		if(count($teams) > 0) {
 			foreach($teams as $team) { 
+
 				$teamData = $team['name'] . " (" . $team['position'] . ")";
 				$teamsAndLeagues .= tr(
 					td( $teamData, array('colspan' => 3, 'class' => 'highlight'))
@@ -104,38 +104,33 @@ class MainMenu extends Handler
 
 		if( $session->may_coordinate_league() ) {
 			/* Fetch leagues coordinated */
-			$leagues = $DB->getAll("
-				SELECT 
+			$result = db_query(
+				"SELECT 
 					league_id AS id, name, allow_schedule, tier
 				FROM 
 					league 
 				WHERE 
-					coordinator_id = ? OR (alternate_id <> 1 AND alternate_id = ?)
-				ORDER BY name, tier",
-				array($id,$id), 
-				DB_FETCHMODE_ASSOC);
+					coordinator_id = %d OR (alternate_id <> 1 AND alternate_id = %d)
+				ORDER BY name, tier", $id, $id);
 				
-			if($this->is_database_error($leagues)) {
-				return false;
-			}
 
-			if(count($leagues) > 0) {
+			if(db_num_rows($result) > 0) {
 				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 4)));
 				// TODO: For each league, need to display # of missing scores,
 				// pending scores, etc.
-				foreach($leagues as $league) {
-					$name = $league['name'];
-					if($league['tier']) {
-						$name .= " Tier " . $league['tier'];
+				while($league = db_fetch_object($result)) {
+					$name = $league->name;
+					if($league->tier) {
+						$name .= " Tier " . $league->tier;
 					}
 					$links = array(
-						l("view", "op=league_view&id=" . $league['id']),
-						l("edit", "op=league_edit&id=" . $league['id'])
+						l("view", "op=league_view&id=$league->id"),
+						l("edit", "op=league_edit&id=$league->id")
 					);
-					if($league['allow_schedule'] == 'Y') {
-						$links[] = l("schedule", "op=league_schedule_view&id=" . $league['id']);
-						$links[] = l("standings", "op=league_standings&id=" . $league['id']);
-						$links[] = l("approve scores", "op=league_verifyscores&id=" . $league['id']);
+					if($league->allow_schedule == 'Y') {
+						$links[] = l("schedule", "op=league_schedule_view&id=$league->id");
+						$links[] = l("standings", "op=league_standings&id=$league->id");
+						$links[] = l("approve scores", "op=league_verifyscores&id=$league->id");
 					}
 
 					$teamsAndLeagues .= tr(
@@ -178,11 +173,8 @@ class AdminMenu extends Handler
 
 	function process ()
 	{
-		global $DB;
-		$newUsers = $DB->getOne("SELECT COUNT(*) FROM person WHERE status = 'new'");
-		if($this->is_database_error($newUsers)) {
-			return false;
-		}
+		$result = db_query("SELECT COUNT(*) FROM person WHERE status = 'new'");
+		$newUsers = db_result($result);
 				
 		$links = array(
 			l("List City Wards", "op=ward_list"),
@@ -213,7 +205,6 @@ class AdminMenu extends Handler
 
 function getPrintableGameData( $which, $teamId )
 {
-	global $DB;
 	if($which == 'next') {
 		$dateCompare = "s.date_played > NOW()";
 		$dateSort = 'asc';
@@ -223,9 +214,11 @@ function getPrintableGameData( $which, $teamId )
 	} else if ($which == 'today') {
 		$dateCompare = "(CURDATE() == DATE(s.date_played))"; 
 	}
-	$game = $DB->getRow( "SELECT
+
+	$result = db_query(
+		"SELECT
 			s.game_id, s.home_score, s.away_score,
-			DATE_FORMAT(s.date_played, '%a %b %d %Y %H:%i') as date, 
+			DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y %%H:%%i') as date, 
 			s.home_team, h.name AS home_name, 
 			s.away_team, a.name AS away_name, 
 			site.site_id AS site_id, site.code AS site_code, 
@@ -236,32 +229,30 @@ function getPrintableGameData( $which, $teamId )
 		  LEFT JOIN field f ON (f.field_id = s.field_id) 
 		  LEFT JOIN site ON (f.site_id = site.site_id) 
 		  WHERE $dateCompare
-		    AND ( s.home_team = ? OR s.away_team = ? ) 
-		  ORDER BY date_played $dateSort LIMIT 1",array($teamId,$teamId), DB_FETCHMODE_ASSOC);
-	$err = isDatabaseError($game);
-	if($err != false) {
-		$this->error_exit($err);
-	}
+		    AND ( s.home_team = %d OR s.away_team = %d ) 
+		  ORDER BY date_played $dateSort LIMIT 1",$teamId,$teamId);
 
-	if(count($game) < 1) {
+	if( ! db_num_rows($result) ) {
 		return "n/a";
 	}
 
-	$data = $game['date'];
-	$data .= " vs. ";
-	if( $game['home_team'] == $teamId ) {
-		$data .= l($game['away_name'], 'op=team_view&id=' . $game['away_team']);
-		if($game['home_score'] || $game['away_score']) {
-			$score = " (" . $game['home_score'] . " - " . $game['away_score'] . ")";
+	$game = db_fetch_object($result);
+
+	$data = "$game->date vs. ";
+	
+	if( $game->home_team == $teamId ) {
+		$data .= l($game->away_name, "op=team_view&id=$game->away_team");
+		if($game->home_score || $game->away_score) {
+			$score = " ($game->home_score  - $game->away_score )";
 		}
-	} else if( $game['away_team'] == $teamId ) {
-		$data .= l($game['home_name'], 'op=team_view&id=' . $game['home_team']);
-		if($game['home_score'] || $game['away_score']) {
-			$score = " (" . $game['away_score'] . " - " . $game['home_score'] . ")";
+	} else if( $game->away_team == $teamId ) {
+		$data .= l($game->home_name, "op=team_view&id=$game->home_team");
+		if($game->home_score || $game->away_score) {
+			$score = " ($game->away_score - $game->home_score )";
 		}
 	}
 
-	$data .= " at " . l($game['site_code'] . " " . $game['site_num'], 'op=site_view&id=' . $game['site_id']);
+	$data .= " at " . l("$game->site_code $game->site_num", "op=site_view&id=$game->site_id");
 
 	$data .= $score;
 

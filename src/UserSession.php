@@ -31,7 +31,7 @@ function sess_write($key, $value)
 
 function sess_destroy($key)
 {
-	db_query("UPDATE person SET session_cookie = '' WHERE session_cookie = '$key'");
+	db_query("UPDATE person SET session_cookie = '' WHERE session_cookie = '%s'", $key);
 }
 
 function sess_gc($lifetime)
@@ -67,8 +67,6 @@ class UserSession
 	 */
 	function create_from_cookie ($cookie, $client_ip)
 	{
-		global $DB;
-		
 		if( !isset($cookie) ) {
 			return false;
 		}
@@ -77,16 +75,9 @@ class UserSession
 			return false;
 		}
 
-		$sth = $DB->prepare("SELECT *, UNIX_TIMESTAMP(waiver_signed) as waiver_timestamp, UNIX_TIMESTAMP(dog_waiver_signed) as dog_waiver_timestamp FROM person WHERE session_cookie = ? AND client_ip = ?");
-		$res = $DB->execute($sth, array($cookie, $client_ip));
-		if(DB::isError($res)) {
-			error_log( "Error: Couldn't fetch user info from db: " . $res->getMessage() );
-			return false;
-		}
-		
-		## So, we assume that the first username we get back is the only one =)
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC,0);
-		$res->free();
+		$result = db_query("SELECT *, UNIX_TIMESTAMP(waiver_signed) as waiver_timestamp, UNIX_TIMESTAMP(dog_waiver_signed) as dog_waiver_timestamp FROM person WHERE session_cookie = '%s' AND client_ip = '%s'", $cookie, $client_ip);
+
+		$row = db_fetch_array($result);
 
 		if( $cookie != $row['session_cookie']) {
 			/* Failed sanity check - either we didn't get a row, or the row
@@ -111,30 +102,22 @@ class UserSession
 	 *
 	 * @return boolean status of session creation
 	 */
-	function create_from_login($user,$pass,$client_ip)
+	function create_from_login($username,$password,$client_ip)
 	{
-		global $DB;
-
-		if( !isset($user) ) {
+		if( !isset($username) ) {
 			return false;
 		}
 		
-		if( !isset($pass) ) {
+		if( !isset($password) ) {
 			return false;
 		}
-		
-		$sth = $DB->prepare("SELECT * FROM person WHERE username = ?");
-		$res = $DB->execute($sth,$user);
-		if(DB::isError($res)) {
-			error_log( "Error: Couldn't fetch user info from db: " . $res->getMessage() );
-			return false;
-		}
+	
+		$result = db_query("SELECT * FROM person WHERE username = '%s'",$username);
 		
 		## So, we assume that the first username we get back is the only one =)
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC,0);
-		$res->free();
+		$row = db_fetch_array($result);
 
-		if( $user != $row['username']) {
+		if( $username != $row['username']) {
 			/* Failed sanity check - either we didn't get a row, or the row
 			 * contains crap.
 			 */
@@ -142,7 +125,7 @@ class UserSession
 		}
 
 		/* Now, check password */
-		$cryptpass = md5($pass);
+		$cryptpass = md5($password);
 		if ($cryptpass != $row['password']) {
 			return false;
 		}
@@ -164,21 +147,13 @@ class UserSession
 	 */
 	function expire ()
 	{
-		global $DB;
-
 		$user_id = $this->attr_get('user_id');
 		if(is_null($user_id)) {
 			return false;
 		}
-		
-		$sth = $DB->prepare("UPDATE person SET session_cookie = NULL WHERE user_id = ?");
-		$res = $DB->execute($sth,$user_id);
-		if(DB::isError($res)) {
-			/* TODO: Handle database error */
-			error_log( "Error: Couldn't expire user session due to DB error: " . $res->getMessage() );
-			return false;
-		}
-		
+	
+	    db_query("UPDATE person SET session_cookie = NULL WHERE user_id = %d", $user_id);
+
 		return true;
 	}
 
@@ -215,14 +190,11 @@ class UserSession
 	 */
 	function set_session_key ( $client_ip )
 	{
-		global $DB;
-		
 		$sesskey = session_id();
-		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = NOW(), client_ip = ? WHERE user_id = ?");
-		$res = $DB->execute($sth,array($sesskey,$client_ip,$this->data['user_id']));
-		if(DB::isError($res)) {
-			/* TODO: Handle database error */
-			echo "Error: ", $res->getMessage();
+
+		$result = db_query("UPDATE person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sesskey, $client_ip, $this->data['user_id']);
+		if(!db_affected_rows()) {
+			echo "Error: ", db_error();
 			return false;
 		}
 		
@@ -284,17 +256,11 @@ class UserSession
 	 */
 	function is_captain_of ($team_id)
 	{
-		global $DB;
+		$result = db_query("SELECT status FROM teamroster where player_id = %d AND team_id = %d",$this->data['user_id'], $team_id);
 
-		$res = $DB->getOne("SELECT status FROM teamroster where player_id = ? AND team_id = ?",
-			array($this->data['user_id'], $team_id),
-			DB_FETCHMODE_ASSOC
-		);
-		if(DB::isError($res)) {
-			return false;
-		}
+		$status = db_result($result);
 
-		if( $res == 'captain' || $res == 'assistant') {
+		if( $status == 'captain' || $status == 'assistant') {
 			return true;
 		}
 		
@@ -310,8 +276,6 @@ class UserSession
 	 */
 	function is_coordinator_of ($league_id)
 	{
-		global $DB;
-
 		if($this->is_admin()) { return true; }
 
 		if($league_id == 1) {
@@ -321,15 +285,11 @@ class UserSession
 			}
 		}
 
-		$res = $DB->getRow("SELECT coordinator_id, alternate_id from league where league_id = ?",
-			array($league_id),
-			DB_FETCHMODE_ASSOC
-		);
-		if(DB::isError($res)) {
-			return false;
-		}
+		$result = db_query("SELECT coordinator_id, alternate_id from league where league_id = %d", $league_id);
 
-		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['alternate_id'])) {
+		$coordInfo = db_fetch_object($result);
+
+		if( ($this->data['user_id'] == $coordInfo->coordinator_id) || ($this->data['user_id'] == $coordInfo->alternate_id)) {
 			return true;
 		}
 		
@@ -354,23 +314,21 @@ class UserSession
 	 */
 	function coordinates_league_containing($team_id)
 	{
-		global $DB;
-		
 		if($this->is_admin()) { return true; }
 
-		$res = $DB->getRow("SELECT l.league_id, l.coordinator_id, l.alternate_id FROM league l, leagueteams t WHERE t.team_id = ? and t.league_id = l.league_id", array($team_id), DB_FETCHMODE_ASSOC);
-		if(DB::isError($res)) {
-			return false;
-		}
+		$result = db_query("SELECT l.league_id, l.coordinator_id, l.alternate_id FROM league l, leagueteams t WHERE t.team_id = %d and t.league_id = l.league_id", $team_id);
 
-		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['alternate_id'])) {
-			return true;
-		}
-
-		if($res['league_id'] == 1) {
+		$league = db_fetch_object($result);	
+		
+		if($league->league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
 			return true;
 		}
+
+		if( ($this->data['user_id'] == $league->coordinator_id) || ($this->data['user_id'] == $league->alternate_id)) {
+			return true;
+		}
+
 		return false;
 	}
 }

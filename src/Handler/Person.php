@@ -64,7 +64,7 @@ class PersonView extends Handler
 	 */
 	function has_permission ()
 	{
-		global $DB, $session, $id;
+		global $session, $id;
 
 		if(!$session->is_valid()) {
 			$this->error_exit("You do not have a valid session");
@@ -102,10 +102,9 @@ class PersonView extends Handler
 		 * Captains are always allowed to view each other for 
 		 * contact purposes.
 		 */
-		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE (a.status = 'captain' OR a.status = 'assistant') AND a.player_id = ? AND (b.status = 'captain' OR b.status = 'assistant') AND b.player_id = ?", array($id, $session->attr_get('user_id')));
-		if($this->is_database_error($count)) {
-			return false;
-		}
+		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE (a.status = 'captain' OR a.status = 'assistant') AND a.player_id = %d AND (b.status = 'captain' OR b.status = 'assistant') AND b.player_id = %d",$id, $session->attr_get('user_id'));
+
+		$count = db_result($result);
 		if($count > 0) {
 			/* is captain of at least one team, so we publish email and phone */
 			$this->_permissions['email'] = true;
@@ -118,7 +117,8 @@ class PersonView extends Handler
 		/* If the current user is a team captain, and the requested user is on
 		 * their team, they are allowed to view email/phone
 		 */
-		$is_on_team = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = ? AND a.status <> 'captain_request' AND b.player_id = ? AND (b.status = 'captain' OR b.status='assistant')",array($id, $session->attr_get('user_id')));
+		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = %d AND a.status <> 'captain_request' AND b.player_id = %d AND (b.status = 'captain' OR b.status='assistant')",$id, $session->attr_get('user_id'));
+		$is_on_team = db_result($result);
 		if($is_on_team > 0) {
 			$this->_permissions['email'] = true;
 			$this->_permissions['home_phone'] = true;
@@ -131,18 +131,16 @@ class PersonView extends Handler
 		 * See what the player's status is.  Some cannot be viewed unless you
 		 * are 'administrator'.  
 		 */
-		$row = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				status, 
 				allow_publish_email, 
 				publish_home_phone,
 				publish_work_phone,
 				publish_mobile_phone
-			FROM person WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
-			return false;
-		}
+			FROM person WHERE user_id = %d", $id);
+
+		$row = db_fetch_array($result);
 		
 		switch($row['status']) {
 			case 'new':
@@ -177,14 +175,12 @@ class PersonView extends Handler
 
 	function process ()
 	{	
-		global $DB, $id;
-		$person = $DB->getRow(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+		global $id;
+		
+		$result = db_query(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
 
-		if($this->is_database_error($person)) {
-			return false;
-		}
+		$person = db_fetch_array($result);
 		
 		if(!isset($person)) {
 			$this->error_exit("That person does not exist");
@@ -375,7 +371,7 @@ class PersonDelete extends PersonView
 
 	function process ()
 	{
-		global $DB, $session;
+		global $session;
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 
@@ -391,14 +387,10 @@ class PersonDelete extends PersonView
 		}
 
 		/* Otherwise... */
-		$person = $DB->getRow(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+		$result = db_query(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
+		$person = db_fetch_array($result);
 
-		if($this->is_database_error($person)) {
-			return false;
-		}
-		
 		if(!isset($person)) {
 			$this->error_exit("That person does not exist");
 		}
@@ -428,36 +420,33 @@ class PersonDelete extends PersonView
 	 */
 	function perform ()
 	{
-		global $DB;
 		$id = var_from_getorpost('id');
 
 		/* check if user is team captain       */
-		$res = $DB->getOne("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = ?", array($id, $id));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		if($res > 0) {
+		$result = db_query("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = %d", $id);
+
+		$numTeams = db_result($result);
+		
+		if($numTeams > 0) {
 			$this->error_exit("Account cannot be deleted while player is a team captain.");
 		}
 		
 		/* check if user is league coordinator */
-		$res = $DB->getOne("SELECT COUNT(*) from league where coordinator_id = ? OR alternate_id = ?", array($id, $id));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		if($res > 0) {
+		$result = db_query("SELECT COUNT(*) from league where coordinator_id = %d OR alternate_id = %d", $id, $id);
+		$numLeagues = db_result($result);	
+		if($numLeagues > 0) {
 			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
 		
 		/* remove user from team rosters  */
-		$res = $DB->query("DELETE from teamroster WHERE player_id = ?", array($id));
-		if($this->is_database_error($res)) {
+		db_query("DELETE from teamroster WHERE player_id = %d",$id);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
 		/* remove user account */
-		$res = $DB->query("DELETE from person WHERE user_id = ?", array($id));
-		if($this->is_database_error($res)) {
+		db_query("DELETE from person WHERE user_id = %d", $id);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -499,7 +488,6 @@ class PersonApproveNewAccount extends PersonView
 
 	function process ()
 	{
-		global $DB;
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 
@@ -511,14 +499,11 @@ class PersonApproveNewAccount extends PersonView
 		} 
 
 		/* Otherwise... */
-		$person = $DB->getRow(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+		$result = db_query(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d",  $id);
+			
+		$person = db_fetch_array($result);
 
-		if($this->is_database_error($person)) {
-			return false;
-		}
-		
 		if(!isset($person)) {
 			$this->error_exit("That person does not exist");
 		}
@@ -527,13 +512,15 @@ class PersonApproveNewAccount extends PersonView
 			$this->error_exit("That account has already been approved");
 		}
 		
+		$text = "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.";
+		
 		/* Check to see if there are any duplicate users */
-		$duplicate_info = $DB->getAll("SELECT
+		$result = db_query("SELECT
 			p.user_id,
 			p.firstname,
 			p.lastname
 			FROM person p, person q 
-			WHERE q.user_id = ?
+			WHERE q.user_id = %d
 				AND p.gender = q.gender
 				AND p.user_id <> q.user_id
 				AND (
@@ -543,20 +530,15 @@ class PersonApproveNewAccount extends PersonView
 					OR p.mobile_phone = q.mobile_phone
 					OR p.addr_street = q.addr_street
 					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-				)", array($id), DB_FETCHMODE_ASSOC);
+				)", $id);
 				
-		if($this->is_database_error($person_info)) {
-			return false;
-		}
-		
-		$instructions = "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.";
-		if(count($duplicate_info) > 0) {
-			$instructions .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
-			foreach($duplicate_info as $row) {
-				$instructions .= "<li>{$row['firstname']} {$row['lastname']}";
-				$instructions .= "[&nbsp;" . l("view", "op=person_view&id=" . $row['user_id']) . "&nbsp;]";
+		if(db_num_rows($result) > 0) {
+			$text .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
+			while($user = db_fetch_object($result)) {
+				$text .= "<li>$user->firstname $user->lastname";
+				$text .= "[&nbsp;" . l("view", "op=person_view&id=$user->user_id") . "&nbsp;]";
 			}
-			$instructions .= "</ul></div>";
+			$text .= "</ul></div>";
 		}
 
 		$this->setLocation(array(
@@ -575,79 +557,64 @@ class PersonApproveNewAccount extends PersonView
 
 	function perform ()
 	{
-		global $DB;
 
 		$id = var_from_getorpost('id');
 
-		$person_info = $DB->getRow("SELECT 
-			firstname,
-			lastname,
-			username,
-			email,
-			year_started,
-			gender 
-		    FROM person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($person_info)) {
-			return false;
-		}
+		$result = db_query("SELECT * FROM person where user_id = %d", $id);
+		$person = db_fetch_object($result);
 
-		$result = $DB->query('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ? AND gender = ?', 
-			array($person_info['year_started'], $person_info['gender']));
-		if($this->is_database_error($result)) {
-			return false;
-		}
-
-		if($DB->affectedRows() == 1) {
-			$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
-			if($this->is_database_error($member_id)) {
+		$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
+			$person->year_started, $person->gender);
+		$rows = db_affected_rows();
+		if($rows == 1) {
+		
+			$result = db_query("SELECT LAST_INSERT_ID() from member_id_sequence");
+			$member_id = db_result($result);
+			if( !isset($member_id)) {
 				$this->error_exit("Couldn't get member ID allocation");
 			}
-		} else {
+		} else if($rows == 0) {
 			/* Possible empty, so fill it */
 			$lockname = "member_id_" 
-				. $person_info['year_started'] 
+				. $person->year_started
 				. "_" 
-				. $person_info['gender'] 
+				. $person->gender 
 				. "_lock";
-			$lock = $DB->getOne("SELECT GET_LOCK('${lockname}',10)");
-			if($this->is_database_error($lock)) {
-				$this->error_exit("Couldn't get lock for member_id allocation");
-			}
-			if($lock == 0) {
+			$result = db_query("SELECT GET_LOCK('$lockname',10)");
+			$lock = db_result($result);
+			
+			if(!isset($lock) || $lock == 0) {
 				/* Couldn't get lock */
 				$this->error_exit("Couldn't get lock for member_id allocation");
 			}
-			$result = $DB->query(
-				"REPLACE INTO member_id_sequence values(?,?,1)", 
-				array($person_info['year_started'], $person_info['gender']));
-			$lock = $DB->getOne("SELECT RELEASE_LOCK('${lockname}')");
-			if($this->is_database_error($lock)) {
-				return false;
-			}
-			/* Check the result error after releasing the lock */
-			if($this->is_database_error($result)) {
-				return false;
-			}
+			db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
+				$person->year_started, $person->gender);
+
+			db_query("SELECT RELEASE_LOCK('${lockname}')");
+			
 			$member_id = 1;
+		} else {
+			/* Something bad happened */
+			return false;
 		}
 
 		/* Now, that's really not the full member ID.  We need to build that
 		 * from other info too.
 		 */
 		$full_member_id = sprintf("%.4d%.1d%03d", 
-			$person_info['year_started'],
-			($person_info['gender'] == "Male") ? 0 : 1,
+			$person->year_started,
+			($person->gender == "Male") ? 0 : 1,
 			$member_id);
-		
-		$res = $DB->query("UPDATE person SET status = 'inactive', member_id = ?  where user_id = ?", array($full_member_id, $id));
-		
-		if($this->is_database_error($res)) {
+	
+		db_query("UPDATE person SET status = 'inactive', member_id = %d  where user_id = %d", $full_member_id, $id);
+	
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 
 		/* Ok, it's done.  Now send a mail to the user and tell them. */
 		$message = <<<EOM
-Dear {$person_info['firstname']} {$person_info['lastname']},
+Dear $person->firstname $person->lastname,
 
 Your {$GLOBALS['APP_NAME']} account has been approved. Your new permanent
 member number is
@@ -657,7 +624,7 @@ discounts, etc, so please do not lose it.
 You may now log in to the system at
 	http://{$_SERVER['SERVER_NAME']}{$_SERVER["PHP_SELF"]}
 with the username
-	{$person_info['username']}
+	$person->username
 and the password you specified when you created your account.  You will be
 asked to confirm your account information and sign a waiver form before
 your account will be activated.
@@ -665,9 +632,9 @@ Thanks,
 {$GLOBALS['APP_ADMIN_NAME']}
 EOM;
 
-		$rc = mail($person_info['email'], $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+		$rc = mail($person->email, $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 		if($rc == false) {
-			$this->error_exit("Error sending email to " . $person_info['email']);
+			$this->error_exit("Error sending email to " . $person->email);
 		}
 		
 		return true;
@@ -732,23 +699,11 @@ class PersonEdit extends Handler
 
 	function getFormData( $id ) 
 	{
-		global $DB;
-
-		$person = $DB->getRow( 
-			"SELECT * FROM person WHERE user_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($person)) {
-			return false;
-		}
-	
-		return $person;
+		return db_fetch_array(db_query("SELECT * FROM person WHERE user_id = %d", $id));
 	}
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		global $DB;
-
 		$output = form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('id', $id);
@@ -862,8 +817,6 @@ class PersonEdit extends Handler
 
 	function generateConfirm ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -988,8 +941,6 @@ class PersonEdit extends Handler
 
 	function perform ( $id )
 	{
-		global $DB;
-		
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -999,46 +950,46 @@ class PersonEdit extends Handler
 		$fields_data = array();
 
 		if($this->_permissions['edit_username']) {
-			$fields[] = "username = ?";
+			$fields[] = "username = '%s'";
 			$fields_data[] = var_from_getorpost('username');
 		}
 		
 		if($this->_permissions['edit_class']) {
-			$fields[] = "class = ?";
+			$fields[] = "class = '%s'";
 			$fields_data[] = var_from_getorpost('class');
 		}
 		if($this->_permissions['edit_status']) {
-			$fields[] = "status = ?";
+			$fields[] = "status = '%s'";
 			$fields_data[] = var_from_getorpost('status');
 		}
 		
-		$fields[] = "email = ?";
+		$fields[] = "email = '%s'";
 		$fields_data[] = var_from_getorpost('email');
 		
 		foreach(array('home_phone','work_phone','mobile_phone') as $type) {
 			$num = var_from_getorpost($type);
 			if(strlen($num) > 0) {
-				$fields[] = "$type = ?";
+				$fields[] = "$type = '%s'";
 				$fields_data[] = clean_telephone_number($num);
 			} else {
-				$fields[] = "$type = ?";
+				$fields[] = "$type = '%s'";
 				$fields_data[] = null;
 			}
 		}
 		
-		$fields[] = "firstname = ?";
+		$fields[] = "firstname = '%s'";
 		$fields_data[] = var_from_getorpost('firstname');
 		
-		$fields[] = "lastname = ?";
+		$fields[] = "lastname = '%s'";
 		$fields_data[] = var_from_getorpost('lastname');
 		
-		$fields[] = "addr_street = ?";
+		$fields[] = "addr_street = '%s'";
 		$fields_data[] = var_from_getorpost('addr_street');
 		
-		$fields[] = "addr_city = ?";
+		$fields[] = "addr_city = '%s'";
 		$fields_data[] = var_from_getorpost('addr_city');
 		
-		$fields[] = "addr_prov = ?";
+		$fields[] = "addr_prov = '%s'";
 		$fields_data[] = var_from_getorpost('addr_prov');
 		
 		$postcode = var_from_getorpost('addr_postalcode');
@@ -1046,10 +997,10 @@ class PersonEdit extends Handler
 			$foo = substr($postcode,0,3) . " " . substr($postcode,3);
 			$postcode = $foo;
 		}
-		$fields[] = "addr_postalcode = ?";
+		$fields[] = "addr_postalcode = '%s'";
 		$fields_data[] = strtoupper($postcode);
 		
-		$fields[] = "birthdate = ?";
+		$fields[] = "birthdate = '%s'";
 		$fields_data[] = join("-",array(
 			var_from_getorpost('birth_year'),
 			var_from_getorpost('birth_month'),
@@ -1057,28 +1008,28 @@ class PersonEdit extends Handler
 		
 		$height = var_from_getorpost('height');
 		if($height) {
-			$fields[] = "height = ?";
+			$fields[] = "height = %d";
 			$fields_data[] = $height;
 		}
 		
-		$fields[] = "gender = ?";
+		$fields[] = "gender = '%s'";
 		$fields_data[] = var_from_getorpost('gender');
 		
-		$fields[] = "skill_level = ?";
+		$fields[] = "skill_level = '%s'";
 		$fields_data[] = var_from_getorpost('skill_level');
-		$fields[] = "year_started = ?";
+		$fields[] = "year_started = '%s'";
 		$fields_data[] = var_from_getorpost('year_started');
 
-		$fields[] = "allow_publish_email = ?";
+		$fields[] = "allow_publish_email = '%s'";
 		$fields_data[] = var_from_getorpost('allow_publish_email');
-		$fields[] = "publish_home_phone = ?";
+		$fields[] = "publish_home_phone = '%s'";
 		$fields_data[] = var_from_getorpost('publish_home_phone') ? 'Y' : 'N';
-		$fields[] = "publish_work_phone = ?";
+		$fields[] = "publish_work_phone = '%s'";
 		$fields_data[] = var_from_getorpost('publish_work_phone') ? 'Y' : 'N';
-		$fields[] = "publish_mobile_phone = ?";
+		$fields[] = "publish_mobile_phone = '%s'";
 		$fields_data[] = var_from_getorpost('publish_mobile_phone') ? 'Y' : 'N';
 		
-		$fields[] = "has_dog = ?";
+		$fields[] = "has_dog = '%s'";
 		$fields_data[] = var_from_getorpost('has_dog');
 
 		if(count($fields_data) != count($fields)) {
@@ -1091,14 +1042,13 @@ class PersonEdit extends Handler
 		
 		$sql = "UPDATE person SET ";
 		$sql .= join(", ", $fields);	
-		$sql .= "WHERE user_id = ?";
+		$sql .= "WHERE user_id = %d";
 		
 		$fields_data[] = $id;
+
+		db_query( $sql, $fields_data);
 		
-		$handle = $DB->prepare($sql);
-		$res = $DB->execute($handle, $fields_data);
-		
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -1107,7 +1057,6 @@ class PersonEdit extends Handler
 
 	function isDataInvalid ()
 	{
-		global $DB;
 		$errors = "";
 	
 		$firstname = var_from_getorpost('firstname');
@@ -1261,24 +1210,26 @@ class PersonCreate extends PersonEdit
 
 	function perform ( $id )
 	{
-		global $DB;
-
 		$password_once = var_from_getorpost("password_once");
 		$password_twice = var_from_getorpost("password_twice");
 		if($password_once != $password_twice) {
 			$this->error_exit("First and second entries of password do not match");
 		}
 		$crypt_pass = md5($password_once);
-		
-		$res = $DB->query("INSERT into person (username,password,status) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
-		$err = isDatabaseError($res);
-		if($err != false) {
-			if(strstr($err,"already exists: INSERT into person (username,password,status) VALUES")) {
-				$err = "A user with that username already exists; please go back and try again";
-			}
+
+		$username = var_from_getorpost('username');
+
+		if(db_num_rows(db_query("SELECT username FROM person WHERE username = '%s'",$username))) {
+			$err = "A user with that username already exists; please go back and try again";
 			$this->error_exit($err);
 		}
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
+	
+		db_query("INSERT into person (username,password,status) VALUES '%s','%s','new')", $username, $crypt_pass);
+		if( 1 != db_affected_rows() ) {
+			return false;
+		}
+
+		$id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
 
 		$rc = parent::perform( $id );
 
@@ -1360,16 +1311,14 @@ class PersonActivate extends PersonEdit
 	
 	function perform( $id )
 	{
-		global $DB;
-
 		$rc = parent::perform( $id );
 		if( ! $rc ) {
 			return false;
 		}
-		
-		$res = $DB->query("UPDATE person SET status = 'active' where user_id = ?", array($id));
+	
+		db_query("UPDATE person SET status = 'active' where user_id = %d", $id);
 
-		if($this->is_database_error($res)) {
+		if(1 != db_affected_rows()) {
 			return false;
 		}
 		
@@ -1400,7 +1349,7 @@ class PersonSurvey extends PersonSignWaiver
 
 	function perform()
 	{
-		global $DB, $session;
+		global $session;
 		$dem = var_from_getorpost('demographics');
 		$items = array( 'income','num_children','education','field','language','other_sports');
 
@@ -1430,19 +1379,18 @@ class PersonSurvey extends PersonSignWaiver
 			$sql .= join(",", $fields);	
 			$sql .= ") VALUES(";
 			for($i=0; $i< (count($fields) - 1); $i++) {
-				$sql .= "?,";
+				$sql .= "'%s',";
 			}
-			$sql .= "?)";
+			$sql .= "'%s')";
 			
-			$res = $DB->query($sql, $fields_data);
-			if($this->is_database_error($res)) {
+			db_query($sql, $fields_data);
+			if( 1 != db_affected_rows() ) {
 				return false;
 			}
 		}
 		
-		$res = $DB->query("UPDATE person SET survey_completed = 'Y' where user_id = ?", array($session->attr_get('user_id')));
-
-		if($this->is_database_error($res)) {
+		db_query("UPDATE person SET survey_completed = 'Y' where user_id = %d", $session->attr_get('user_id'));
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -1477,7 +1425,6 @@ class PersonSignWaiver extends Handler
 
 	function process ()
 	{
-		global $DB;
 		$step   = var_from_getorpost('step');
 		$next = var_from_getorpost('next');
 		if(is_null($next)) {
@@ -1506,7 +1453,7 @@ class PersonSignWaiver extends Handler
 	 */
 	function perform()
 	{
-		global $DB, $session;
+		global $session;
 		
 		$id = $session->attr_get('user_id');
 		$signed = var_from_getorpost('signed');
@@ -1517,9 +1464,9 @@ class PersonSignWaiver extends Handler
 
 		/* otherwise, it's yes.  Mark the signed_waiver field to the current
 		 * date */
-		$res = $DB->query("UPDATE person SET waiver_signed=NOW() where user_id = ?", array($id));
+		db_query("UPDATE person SET waiver_signed=NOW() where user_id = %d", $id);
 
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows()) {
 			return false;
 		}
 		
@@ -1572,7 +1519,7 @@ class PersonSignDogWaiver extends PersonSignWaiver
 	 */
 	function perform()
 	{
-		global $DB, $session;
+		global $$session;
 		
 		$id = $session->attr_get('user_id');
 		$signed = var_from_getorpost('signed');
@@ -1583,9 +1530,9 @@ class PersonSignDogWaiver extends PersonSignWaiver
 
 		/* otherwise, it's yes.  Set the user to 'active' and marked the
 		 * signed_waiver field to the current date */
-		$res = $DB->query("UPDATE person SET dog_waiver_signed=NOW() where user_id = ?", array($id));
+		db_query("UPDATE person SET dog_waiver_signed=NOW() where user_id = %d",$id);
 
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -1629,8 +1576,6 @@ class PersonList extends Handler
 
 	function process ()
 	{
-		global $DB;
-		
 		$letter = var_from_getorpost("letter");
 		
 		$ops = array(
@@ -1650,10 +1595,10 @@ class PersonList extends Handler
 			$output .= l("Create New User", "op=person_create");
 		}
 
-        $query = $DB->prepare("SELECT 
+
+		$query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE lastname LIKE ? ORDER BY lastname,firstname");
-		
+			FROM person WHERE lastname LIKE '%s%%' ORDER BY lastname,firstname";
 		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
 
 		return $output;
@@ -1680,8 +1625,6 @@ class PersonListNewAccounts extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$letter = var_from_getorpost("letter");
 
 		$ops = array(
@@ -1699,15 +1642,15 @@ class PersonListNewAccounts extends Handler
 			),
 		);
 
-        $query = $DB->prepare("SELECT 
+        $query = "SELECT 
 				CONCAT(lastname,', ',firstname) AS value, 
 				user_id AS id 
 			 FROM person 
 			 WHERE
 			 	status = 'new'
 			 AND
-			 	lastname LIKE ? 
-			 ORDER BY lastname, firstname");
+			 	lastname LIKE '%s%%'
+			 ORDER BY lastname, firstname";
 
 		$this->setLocation(array( $this->title => 'op=person_listnew' ));
 		
@@ -1752,15 +1695,11 @@ class PersonChangePassword extends Handler
 	
 	function generateForm( $id )
 	{
-		global $DB;
 
-		$user = $DB->getRow(
-			"SELECT firstname, lastname, username 
-			 FROM person WHERE user_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($user)) {
-			return false;
-		}
+		$result = db_query( "SELECT firstname, lastname, username FROM person WHERE user_id = %d", $id);
+
+		$user = db_fetch_array($result);
+			
 		if(!isset($user)) {
 			$this->error_exit("That user does not exist");
 		}
@@ -1788,8 +1727,6 @@ class PersonChangePassword extends Handler
 
 	function perform ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 		$pass_one = var_from_getorpost('password_one');
 		$pass_two = var_from_getorpost('password_two');
@@ -1798,14 +1735,10 @@ class PersonChangePassword extends Handler
 			$this->error_exit("You must enter the same password twice.");
 		}
 		
-		$sth = $DB->prepare("UPDATE person set password = ? WHERE user_id = ?");
-		if($this->is_database_error($sth)) {
-			return false;
-		}
-		
-		$res = $DB->execute($sth, array(md5($pass_one), $id));
-		
-		if($this->is_database_error($res)) {
+		db_query("UPDATE person set password = '%s' WHERE user_id = %d",
+			md5($pass_one), $id);
+	
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -1876,8 +1809,6 @@ END_TEXT;
 
 	function perform ()
 	{
-		global $DB;
-
 		$username = var_from_getorpost('username');
 		$member_id = var_from_getorpost('member_id');
 		$email = var_from_getorpost('email');
@@ -1885,15 +1816,15 @@ END_TEXT;
 		$fields = array();
 		$fields_data = array();
 		if(validate_nonblank($username)) {
-			$fields[] = "username = ?";
+			$fields[] = "username = '%s'";
 			$fields_data[] = $username;
 		}
 		if(validate_nonblank($email)) {
-			$fields[] = "email = ?";
+			$fields[] = "email = '%s'";
 			$fields_data[] = $email;
 		}
 		if(validate_nonblank($member_id)) {
-			$fields[] = "member_id = ?";
+			$fields[] = "member_id = %d";
 			$fields_data[] = $member_id;
 		}
 		
@@ -1905,12 +1836,9 @@ END_TEXT;
 		$sql = "SELECT user_id,firstname,lastname,username,email FROM person WHERE ";
 		$sql .= join(" AND ",$fields);
 
-		$users = $DB->getAll($sql, $fields_data, DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($users)) {
-			return false;
-		}
+		$result = db_query($sql, $fields_data);
 		
-		if(count($users) > 1) {
+		if(db_num_rows($result) > 1) {
 			$this->error_exit("You did not supply enough identifying information.  Try filling in more data.");
 		}
 
@@ -1918,13 +1846,16 @@ END_TEXT;
 		 * the user with the same output; that prevents them from using this
 		 * to guess valid usernames.
 		 */
-		if(count($users) == 1) {
+		if(db_num_rows($result) == 1) {
+			$user = db_fetch_object($result);
 	
 			/* Generate a password */
 			$pass = generate_password();
 			$cryptpass = md5($pass);
-			$res = $DB->query("UPDATE person SET password = ? WHERE user_id = ?", array($cryptpass, $users[0]['user_id']));
-			if($this->is_database_error($res)) {
+
+			db_query("UPDATE person SET password = '%s' WHERE user_id = %d", $cryptpass, $user->user_id);
+
+			if( 1 != db_affected_rows() ) {
 				return false;
 			}
 

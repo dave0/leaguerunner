@@ -41,19 +41,16 @@ class LeagueCreate extends LeagueEdit
 
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 		$league_name = trim(var_from_getorpost("league_name"));
 		
-		$res = $DB->query("INSERT into league (name,coordinator_id) VALUES (?,?)", array($league_name, $session->data['user_id']));
-		if($this->is_database_error($res)) {
+		db_query("INSERT into league (name,coordinator_id) VALUES ('%s',%d)", $league_name, $session->data['user_id']);
+		
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from league");
-		if($this->is_database_error($id)) {
-			return false;
-		}
-
+		$id = db_result(db_query("SELECT LAST_INSERT_ID() from league"));
 		return parent::perform( $id );
 	}
 
@@ -136,9 +133,7 @@ class LeagueEdit extends Handler
 
 	function getFormData ( $id )
 	{
-		global $DB;
-
-		$formData = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				l.name as league_name,
 				l.day  as league_day,
@@ -153,13 +148,10 @@ class LeagueEdit extends Handler
 				l.year,
 				l.allow_schedule as league_allow_schedule,
 				l.start_time as league_start_time
-			FROM league l WHERE l.league_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			FROM league l WHERE l.league_id = %d", $id);
 
-		if($this->is_database_error($formData)) {
-			return false;
-		}
-		
+		$formData = db_fetch_array($result);
+
 		/* Deal with multiple days */
 		if(strpos($formData['league_day'], ",")) {
 			$formData['league_day'] = split(",",$formData['league_day']);
@@ -169,8 +161,6 @@ class LeagueEdit extends Handler
 
 	function generateForm ( $id, $formData )
 	{
-		global $DB;
-
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'confirm');
 		$output .= form_hidden("id", $id);
@@ -179,25 +169,22 @@ class LeagueEdit extends Handler
 		
 		if($this->_permissions['edit_coordinator']) {
 
-			$volunteers = $DB->getAssoc(
+			$volunteers = array();
+			$volunteers[0] = "---";
+
+			$result = db_query(
 				"SELECT
 					p.user_id,
-					CONCAT(p.firstname,' ',p.lastname)
+					CONCAT(p.firstname,' ',p.lastname) as name
 				 FROM
 					person p
 				 WHERE
 					p.class = 'volunteer'
 					OR p.class = 'administrator'
 				 ORDER BY p.lastname");
-				
-			if($this->is_database_error($volunteers)) {
-				return false;
+			while($vol = db_fetch_object($result)) {
+				$volunteers[$vol->user_id] = $vol->name;
 			}
-			/* Pop in a --- element.  Can't use unshift() or array_merge() on
-			 * the assoc array, unfortunately. */
-    		$volunteers = array_reverse($volunteers, true);
-	    	$volunteers["0"] = "---";
-		    $volunteers = array_reverse($volunteers, true); 
 
 			$output .= simple_row("Coordinator",
 				form_select("", "coordinator_id", $formData['coordinator_id'], $volunteers, "League Coordinator.  Must be set."));
@@ -249,8 +236,6 @@ class LeagueEdit extends Handler
 
 	function generateConfirm ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -275,14 +260,14 @@ class LeagueEdit extends Handler
 		
 		if($this->_permissions['edit_coordinator']) {
 				$c_id = var_from_getorpost('coordinator_id');
-				$c_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($c_id));
+				$c_name = db_result(db_query("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = %d",$c_id));
 				
 				$output .= simple_row("Coordinator:",
 					form_hidden("coordinator_id", $c_id) . $c_name);
 			
 				$a_id = var_from_getorpost('alternate_id');
 				if($a_id > 0) {
-					$a_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($a_id));
+					$a_name = db_result(db_query("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = %d",$a_id));
 				} else {
 					$a_name = "N/A";
 				}
@@ -327,8 +312,6 @@ class LeagueEdit extends Handler
 
 	function perform ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -338,41 +321,40 @@ class LeagueEdit extends Handler
 		$fields_data = array();
 
 		if($this->_permissions['edit_info']) {
-			$fields[] = "name = ?";
+			$fields[] = "name = '%s'";
 			$fields_data[] = var_from_getorpost("league_name");
-			$fields[] = "day = ?";
+			$fields[] = "day = '%s'";
 			$fields_data[] = var_from_getorpost("league_day");
-			$fields[] = "season = ?";
+			$fields[] = "season = '%s'";
 			$fields_data[] = var_from_getorpost("league_season");
-			$fields[] = "tier = ?";
+			$fields[] = "tier = %d";
 			$fields_data[] = var_from_getorpost("league_tier");
-			$fields[] = "ratio = ?";
+			$fields[] = "ratio = '%s'";
 			$fields_data[] = var_from_getorpost("league_ratio");
-			$fields[] = "current_round = ?";
+			$fields[] = "current_round = %d";
 			$fields_data[] = var_from_getorpost("league_round");
-			$fields[] = "allow_schedule = ?";
+			$fields[] = "allow_schedule = '%s'";
 			$fields_data[] = var_from_getorpost("league_allow_schedule");
-			$fields[] = "start_time = ?";
+			$fields[] = "start_time = '%s'";
 			$fields_data[] = var_from_getorpost("league_start_time");
 		}
 		
 		if($this->_permissions['edit_coordinator']) {
-			$fields[] = "coordinator_id = ?";
+			$fields[] = "coordinator_id = '%d'";
 			$fields_data[] = var_from_getorpost("coordinator_id");
-			$fields[] = "alternate_id = ?";
+			$fields[] = "alternate_id = '%d'";
 			$fields_data[] = var_from_getorpost("alternate_id");
 		}
 			
 		$sql = "UPDATE league SET ";
 		$sql .= join(",", $fields);	
-		$sql .= "WHERE league_id = ?";
+		$sql .= "WHERE league_id = %d";
 
-		$sth = $DB->prepare($sql);
-		
 		$fields_data[] = $id;
-		$res = $DB->execute($sth, $fields_data);
 
-		if($this->is_database_error($res)) {
+		db_query($sql, $fields_data);
+
+		if(1 != db_affected_rows() ) {
 			return false;
 		}
 
@@ -458,8 +440,6 @@ class LeagueList extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$wantedSeason = var_from_getorpost('season');
 		if( ! isset($wantedSeason) ) {
 			$wantedSeason = 'none';
@@ -503,13 +483,9 @@ class LeagueList extends Handler
 			. td("Ratio", array('class' => 'row_title'))
 			. td("&nbsp;", array('class' => 'row_title')));
 
-		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, ratio, tier, name",
-			array($wantedSeason));
-		if($this->is_database_error($result)) {
-			return false;
-		}
+		$result = db_query("SELECT * FROM league WHERE season = '%s' ORDER BY day, ratio, tier, name", $wantedSeason);
 
-		while($league = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+		while($league = db_fetch_array($result)) {
 			$name = $league['name'];
 			if($league['tier']) { 
 				$name .= " Tier " . $league['tier'];
@@ -569,29 +545,28 @@ class LeagueStandings extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 	
-		$league = $DB->getRow(
-			"SELECT * FROM league l WHERE l.league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
+		$result = db_query("SELECT * FROM league l WHERE l.league_id = %d", $id);
 
-		if($this->is_database_error($league)) {
+		if(1 != db_num_rows($result)) {
 			return false;
 		}
-		if($league['allow_schedule'] == 'N') {
+		
+		$league = db_fetch_object($result);
+		
+		if($league->allow_schedule == 'N') {
 			$this->error_exit("This league does not have a schedule or standings.");
 		}
 
 		$round = var_from_getorpost('round');
 		if(! isset($round) ) {
-			$round = $league['current_round'];
+			$round = $league->current_round;
 		}
 		
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
+		$leagueName = $league->name;
+		if($league->tier) {
+			$leagueName .= " Tier $league->tier";
 		}
 		$this->setLocation(array(
 			$leagueName => "op=league_view&id=$id",
@@ -618,29 +593,27 @@ class LeagueStandings extends Handler
 
 	function generate_standings ($id, $current_round = 0)
 	{
-		global $DB;
-		$teams = $DB->getAll(
+		$result = db_query(
 				"SELECT
 					t.team_id AS id, t.name
 				 FROM leagueteams l
 				 LEFT JOIN team t ON (l.team_id = t.team_id)
 				 WHERE
-					league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($teams)) {
-			return false;
-		}
+					league_id = %d", $id);
+					
 		$season = array();
 		$round  = array();
-		
-		$this->init_season_array($season, $teams);
-		$this->init_season_array($round, $teams);
 
+		while($team = db_fetch_object($result)) {
+			$this->seasonAddTeam($season, $team);
+			$this->seasonAddTeam($round, $team);
+		}
+	
 		/* Now, fetch the schedule.  Get all games played by anyone who is
 		 * currently in this league, regardless of whether or not their
 		 * opponents are still here
 		 */
-		$games = $DB->getAll(
+		$result = db_query(
 			"SELECT DISTINCT 
 				s.game_id, 
 				s.home_team, 
@@ -654,15 +627,11 @@ class LeagueStandings extends Handler
 			 FROM
 			  	schedule s, leagueteams t
 			 WHERE 
-				t.league_id = ?
+				t.league_id = %d 
 				AND (s.home_team = t.team_id OR s.away_team = t.team_id)
-		 		ORDER BY s.game_id",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($games)) {
-			return false;
-		}
+		 		ORDER BY s.game_id", $id);
 
-		while(list(,$game) = each($games)) {
+		while($game = db_fetch_array($result) ) {
 			if(is_null($game['home_score']) || is_null($game['away_score'])) {
 				/* Skip unscored games */
 				continue;
@@ -679,11 +648,12 @@ class LeagueStandings extends Handler
 		 * only sorting on the spirit scores received in the current 
 		 * round.
 		 */
-		while(list(,$team) = each($teams))
+		while(list($id,$info) = each($season))
 		{
-			$round[$team['id']]['spirit'] = $season[$team['id']]['spirit'];
-			$round[$team['id']]['games'] = $season[$team['id']]['games'];
+			$round[$id]['spirit'] = $info['spirit'];
+			$round[$id]['games'] = $info['games'];
 		}
+		reset($season);
 		
 		/* Now, sort it all */
 		if($current_round) {
@@ -693,12 +663,11 @@ class LeagueStandings extends Handler
 			uasort($season, array($this, 'sort_standings'));	
 			$sorted_order = &$season;
 		}
-
+		
 		$output = "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 
 		/* Build up header */
-		$header = th("Teams");
-		$subheader = td("");
+		$header = th("Teams", array('rowspan' => 2));
 		if($current_round) {
 			$header .= th("Current Round ($current_round)", array( 'colspan' => 7));
 			$subheader .= td("Win", array('class'=>'subtitle', 'style' => 'border-left: 1px solid gray;', 'valign'=>'bottom'));
@@ -757,31 +726,27 @@ class LeagueStandings extends Handler
 	}
 	
 	/*
-	 * Initialise an empty array of season info
+	 * Add initial team info to a season.
 	 */
-	function init_season_array(&$season, &$teams) 
+	function seasonAddTeam(&$season, &$team) 
 	{
-		while(list(,$team) = each($teams)) {
-			$season[$team['id']] = array(
-				'name' => $team['name'],
-				'id' => $team['id'],
-				'points_for' => 0,
-				'points_against' => 0,
-				'spirit' => 0,
-				'worst_spirit' => 99999,
-				'best_spirit' => 0,
-				'win' => 0,
-				'loss' => 0,
-				'tie' => 0,
-				'defaults_for' => 0,
-				'defaults_against' => 0,
-				'games' => 0,
-				'rating' => 1500,
-				'vs' => array()
-			);
-		}
-		reset($teams);
-
+		$season[$team->id] = array(
+			'name' => $team->name,
+			'id' => $team->id,
+			'points_for' => 0,
+			'points_against' => 0,
+			'spirit' => 0,
+			'worst_spirit' => 99999,
+			'best_spirit' => 0,
+			'win' => 0,
+			'loss' => 0,
+			'tie' => 0,
+			'defaults_for' => 0,
+			'defaults_against' => 0,
+			'games' => 0,
+			'rating' => 1500,
+			'vs' => array()
+		);
 	}
 
 	function record_game(&$season, &$game)
@@ -993,11 +958,11 @@ class LeagueView extends Handler
 
 	function process ()
 	{
-		global $DB, $session;
+		global $session;
 
 		$id = var_from_getorpost('id');
-		
-		$league = $DB->getRow(
+	
+		$result = db_query(
 			"SELECT l.*,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
 				CONCAT(co.firstname,' ',co.lastname) AS alternate_name
@@ -1006,15 +971,16 @@ class LeagueView extends Handler
 				LEFT JOIN person c ON (l.coordinator_id = c.user_id) 
 				LEFT JOIN person co ON (l.alternate_id = co.user_id)
 			WHERE 
-				l.league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($league)) {
+				l.league_id = %d", $id);
+				
+		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
-		
+				
+		$league = db_fetch_object($result);
+
 		$links = array();
-		if($league['allow_schedule'] == 'Y') {
+		if($league->allow_schedule == 'Y') {
 			$links[] = l("schedule", "op=league_schedule_view&id=$id");
 			$links[] = l("standings", "op=league_standings&id=$id");
 			if($this->_permissions['administer_league']) {
@@ -1030,40 +996,35 @@ class LeagueView extends Handler
 
 		$output .= "<table border='0'>";
 		$output .= simple_row("Coordinator:", 
-			l($league['coordinator_name'], "op=person_view&id=" . $league['coordinator_id']));
-		if($league['alternate_id']) {
+			l($league->coordinator_name, "op=person_view&id=$league->coordinator_id"));
+		if($league->alternate_id) {
 			$output .= simple_row("Co-Coordinator:", 
-				l($league['alternate_name'], "op=person_view&id=" . $league['alternate_id']));
+				l($league->alternate_name, "op=person_view&id=$league->alternate_id"));
 		}
-		$output .= simple_row("Season:", $league['season']);
-		$output .= simple_row("Day(s):", $league['day']);
-		if($league['tier']) {
-			$output .= simple_row("Tier:", $league['tier']);
+		$output .= simple_row("Season:", $league->season);
+		$output .= simple_row("Day(s):", $league->day);
+		if($league->tier) {
+			$output .= simple_row("Tier:", $league->tier);
 		}
 
 		# Now, if this league should contain schedule info, grab it
-		if($league['allow_schedule'] == 'Y') {
-			$output .= simple_row("Current Round:", $league['current_round']);
-			$output .= simple_row("Usual Start Time:", $league['start_time']);
-			$output .= simple_row("Maximum teams:", $league['max_teams']);
+		if($league->allow_schedule == 'Y') {
+			$output .= simple_row("Current Round:", $league->current_round);
+			$output .= simple_row("Usual Start Time:", $league->start_time);
+			$output .= simple_row("Maximum teams:", $league->max_teams);
 		}
 		$output .= "</table>";
 
 		/* Now, fetch teams */
-		$teams = $DB->getAll(
+		$result = db_query(
 			"SELECT t.* FROM
 				leagueteams l
 				INNER JOIN team t ON (l.team_id = t.team_id)
 			 WHERE
-				l.league_id = ?
+				l.league_id = %d
 			 ORDER BY 
-			 	t.name",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($teams)) {
-			return false;
-		}
-
+			 	t.name", $id);
+		
 		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 		$output .= tr( 
 		   th("Team Name")
@@ -1071,43 +1032,39 @@ class LeagueView extends Handler
 		   . th("Avg. Skill")
 		   . th("&nbsp;")
 		);
-		$count = count($teams);
-		for($i = 0; $i < $count; $i++) {
-			$teamSkill = $DB->getOne(
+
+		while($team = db_fetch_object($result)) {
+			$teamSkill = db_result(db_query(
 				"SELECT 
 				  AVG(p.skill_level)
 				 FROM
 				  teamroster r
 				  INNER JOIN person p ON (r.player_id = p.user_id)
 				 WHERE 
-				  r.team_id = ?",
-				array($teams[$i]['team_id']), DB_FETCHMODE_ASSOC);
+				  r.team_id = %d", $team->team_id));
 
-			if($this->is_database_error($teamSkill)) {
-				return false;
-			}
-			$team_links = array();
-			$team_links[] = l('view', 'op=team_view&id=' . $teams[$i]['team_id']);
-			if($teams[$i]['status'] == 'open') {
-				$team_links[] = l('join team', 'op=team_playerstatus&id=' . $teams[$i]['team_id'] . "&status=player_request&step=confirm");
+			$team_links = array(
+				l('view', "op=team_view&id=$team->team_id"),
+			);
+			if($team->status == 'open') {
+				$team_links[] = l('join team', "op=team_playerstatus&id=$team->team_id&status=player_request&step=confirm");
 			}
 			if($this->_permissions['administer_league']) {
-				$team_links[] = l('move team', "op=league_moveteam&id=$id&team_id=" . $teams[$i]['team_id']);
+				$team_links[] = l('move team', "op=league_moveteam&id=$id&team_id=$team->team_id");
 			}
 			
-			
 			$output .= tr(
-				td(check_form($teams[$i]['name']))
-				. td(check_form($teams[$i]['shirt_colour']))
+				td(check_form($team->name))
+				. td(check_form($team->shirt_colour))
 				. td(sprintf('%.02f',$teamSkill))
 				. td(theme_links($team_links))
 			);
 		}
 		$output .= "</table></div>";
 
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
+		$leagueName = $league->name;
+		if($league->tier) {
+			$leagueName .= " Tier " . $league->tier;
 		}
 		
 		$this->setLocation(array(
@@ -1135,45 +1092,40 @@ class LeagueCaptainEmails extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 
-		$addrs = $DB->getAll("SELECT 
+		$result = db_query(
+		   "SELECT 
 				p.firstname, p.lastname, p.email
 			FROM 
 				leagueteams l, teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				l.league_id = ?
+				l.league_id = %d
 				AND l.team_id = r.team_id
-				AND (r.status = 'captain' OR r.status = 'assistant')",array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($addrs)) {
-			return false;
-		}
-		if(count($addrs) <= 0) {
+				AND (r.status = 'captain' OR r.status = 'assistant')",$id);
+				
+		if( db_num_rows($result) <= 0 ) {
 			return false;
 		}
 		
 		$emails = array();
 		$nameAndEmails = array();
-		foreach($addrs as $addr) {
-			$output .= 
+		while($user = db_fetch_object($result)) {
 			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
-				$addr['firstname'],
-				$addr['lastname'],
-				$addr['email']);
-			$emails[] = $addr['email'];
+				$user->firstname,
+				$user->lastname,
+				$user->email);
+			$emails[] = $user->email;
 		}
 
 		/* Get league info */
-		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league)) {
-			return false;
-		}
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier ". $league['tier'];
+		/* TODO: create a league_load() instead */
+		$league = db_fetch_object(db_query("SELECT name,tier,season,ratio,year FROM league WHERE league_id = %d", $id));
+		
+		$leagueName = $league->name;
+		if($league->tier) {
+			$leagueName .= " Tier ". $league->tier;
 		}
 		$this->setLocation(array(
 			$leagueName => "op=league_view&id=$id",
@@ -1208,8 +1160,6 @@ class LeagueMoveTeam extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 
 		$id = var_from_getorpost('id');
@@ -1239,7 +1189,7 @@ class LeagueMoveTeam extends Handler
 	
 	function perform ( $id, $team_id )
 	{
-		global $DB, $session;
+		global $session;
 
 		$target_id = var_from_getorpost('target_id');
 		if($target_id < 1) {
@@ -1249,11 +1199,9 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
-		$res = $DB->query("UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?", array( $target_id, $team_id, $id ));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		if( $DB->affectedRows() != 1 ) {
+		db_query("UPDATE leagueteams SET league_id = %d WHERE team_id = %d AND league_id = %d", $target_id, $team_id, $id);
+		
+		if( 1 != db_affected_rows() ) {
 			$this->error_exit("Couldn't move team between leagues");
 			return false;
 		}
@@ -1263,29 +1211,30 @@ class LeagueMoveTeam extends Handler
 
 	function generateConfirm ( $id, $team_id )
 	{
-		global $DB, $session;
+		global $session;
 
 		$target_id = var_from_getorpost('target_id');
 		if( ! $session->is_coordinator_of($target_id) ) {
 			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
-		$from_league = $DB->getRow("SELECT * FROM league WHERE league_id = ?", array( $id ), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($from_league)) {
-			return false;
-		}
+		/* TODO: create a league_load() instead */
+		$result = db_query("SELECT * FROM league WHERE league_id = %d", $id);
+		$from_league = db_fetch_array($result);
+		
 		if( ! $from_league ) {
 			$this->error_exit("That is not a valid league to move from");
 		}
+		
 		$from_name = $from_league['name'];
 		if($from_league['tier']) {
 			$from_name .= " Tier " . $from_league['tier'];
 		}
 
-		$to_league = $DB->getRow("SELECT * FROM league WHERE league_id = ?", array( $target_id ), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($to_league)) {
-			return false;
-		}
+		/* TODO: create a league_load() instead */
+		$result = db_query("SELECT * FROM league WHERE league_id = %d", $target_id);
+		$to_league = db_fetch_array($result);
+		
 		if( ! $to_league ) {
 			$this->error_exit("That is not a valid league to move to");
 		}
@@ -1294,10 +1243,8 @@ class LeagueMoveTeam extends Handler
 			$to_name .= " Tier " . $to_league['tier'];
 		}
 
-		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($team_id));
-		if($this->is_database_error($team_name)) {
-			return false;
-		}
+		$team_name = db_result(db_query("SELECT name FROM team WHERE team_id = %d",$team_id));
+		
 		if(! $team_name ) {
 			$this->error_exit("That is not a valid team");
 		}
@@ -1326,32 +1273,34 @@ class LeagueMoveTeam extends Handler
 	
 	function generateForm ( $id, $team_id)
 	{
-		global $DB, $session;
+		global $session;
 
 		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM
 		  		league l,
 				person p
 			WHERE
 				l.league_id = 1 
-				OR l.coordinator_id = ?
-				OR l.alternate_id = ?
-				OR (p.class = 'administrator' AND p.user_id = ?)
+				OR l.coordinator_id = %d
+				OR l.alternate_id = %d 
+				OR (p.class = 'administrator' AND p.user_id = %d)
 			ORDER BY l.season,l.day,l.name,l.tier",
 			array( $session->attr_get('user_id'), $session->attr_get('user_id'), $session->attr_get('user_id')));
 
-		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($team_id));
-		if($this->is_database_error($team_name)) {
-			return false;
-		}
+		$team_name = db_result(db_query("SELECT name FROM team WHERE team_id = %d",$team_id));
+		
 		if(! $team_name ) {
 			$this->error_exit("That is not a valid team");
 		}
 
-		$from_league = $DB->getRow("SELECT name,tier FROM league WHERE league_id = ?",array($id), DB_FETCHMODE_ASSOC);
+		/* TODO: create a league_load() instead */
+		$result = db_query("SELECT * FROM league WHERE league_id = %d", $id);
+		$from_league = db_fetch_array($result);
+		
 		$from_name = $from_league['name'];
 		if($from_league['tier']) {
 			$from_name .= " Tier " . $from_league['tier'];
 		}
+		
 		$this->setLocation(array(
 			$from_name => "op=league_view&id=$id",
 			$this->title => 0));
@@ -1393,7 +1342,6 @@ class LeagueVerifyScores extends Handler
 
 	function process ()
 	{
-		global $DB;
 
 		$id = var_from_getorpost('id');
 		
@@ -1401,14 +1349,12 @@ class LeagueVerifyScores extends Handler
 			$this->error_exit("You must supply a valid league ID");
 		}
 
-		/* Get league info */
-		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league)) {
-			return false;
-		}
+		/* TODO: create a league_load() instead */
+		$result = db_query("SELECT * FROM league WHERE league_id = %d", $id);
+		$league = db_fetch_array($result);
 
 		/* Now fetch games in need of verification */
-		$games = $DB->query("SELECT DISTINCT
+		$result = db_query("SELECT DISTINCT
 			se.game_id,
 			UNIX_TIMESTAMP(s.date_played) as timestamp,
 			s.home_team,
@@ -1418,46 +1364,39 @@ class LeagueVerifyScores extends Handler
 			FROM schedule s, score_entry se
 			    LEFT JOIN team h ON (s.home_team = h.team_id)
 			    LEFT JOIN team a ON (s.away_team = a.team_id)
-			WHERE s.league_id = ? AND s.game_id = se.game_id ORDER BY timestamp", 
-			array($id));
-		if($this->is_database_error($games)) {
-			return false;
-		}
+			WHERE s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
 
 		$output = para("The following games have not been finalized.");
-		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
+		$output .= "<div class='listtable'><table border='1' cellpadding='3' cellspacing='0'>";
 		$output .= tr(
-			td('Game Date')
-			. td('Home Team Submission', array('colspan' => 2))
-			. td('Away Team Submission', array('colspan' => 2))
-			. td('&nbsp;'),
-		array('class' => 'schedule_title'));
+			th('Game Date')
+			. th('Home Team Submission', array('colspan' => 2))
+			. th('Away Team Submission', array('colspan' => 2))
+			. th('&nbsp;'));
 
-		
 		$game_data = array();
-		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = ? AND game_id = ?";
+		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = %d AND game_id = %d";
 		
-		while($game = $games->fetchRow(DB_FETCHMODE_ASSOC)) {
+		while($game = db_fetch_object($result)) {
 			$output .= tr(
-				td(strftime("%A %B %d %Y, %H%Mh",$game['timestamp']),
+				td(strftime("%A %B %d %Y, %H%Mh",$game->timestamp),
 					array('rowspan' => 4))
-				. td($game['home_name'], array('colspan' => 2))
-				. td($game['away_name'], array('colspan' => 2))
-				. td( l("finalize score", "op=game_finalize&id=" . $game['game_id']), array('rowspan' => 4)),
-			array('class' => 'schedule_item'));
+				. td($game->home_name, array('colspan' => 2))
+				. td($game->away_name, array('colspan' => 2))
+				. td( l("finalize score", "op=game_finalize&id=" . $game->game_id), array('rowspan' => 4)));
+		
+			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
 			
-			$home = $DB->getRow($se_query,
-				array($game['home_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
-			if(!isset($home)) {
+			if(!$home) {
 				$home = array(
 					'score_for' => 'not entered',
 					'score_against' => 'not entered',
 					'spirit' => 'not entered',
 				);
 			}
-			$away = $DB->getRow($se_query,
-				array($game['away_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
-			if(!isset($away)) {
+			
+			$away = db_fetch_array(db_query($se_query, $game->away_team, $game->game_id));
+			if(!$away) {
 				$away = array(
 					'score_for' => 'not entered',
 					'score_against' => 'not entered',
@@ -1469,27 +1408,22 @@ class LeagueVerifyScores extends Handler
 				td("Home Score:")
 				. td( $home['score_for'] )
 				. td("Home Score:")
-				. td( $away['score_against'] ),
-			array('class' => 'schedule_item'));
+				. td( $away['score_against'] ));
 			
 			$output .= tr(
 				td("Away Score:")
 				. td( $home['score_against'] )
 				. td("Away Score:")
-				. td( $away['score_for'] ),
-			array('class' => 'schedule_item'));
+				. td( $away['score_for'] ));
 			
 			$output .= tr(
 				td("Away SOTG:")
 				. td( $home['spirit'] )
 				. td("Home SOTG:")
-				. td( $away['spirit'] ),
-			array('class' => 'schedule_item'));
-		
+				. td( $away['spirit'] ));
 		}
-		$games->free();
 		
-		$output .= "</table>";
+		$output .= "</table></div>";
 
 		$leagueName = $league['name'];
 		if($league['tier'] > 0) {

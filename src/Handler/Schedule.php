@@ -27,8 +27,6 @@ class LeagueScheduleAddWeek extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		switch($step) {
@@ -69,19 +67,20 @@ class LeagueScheduleAddWeek extends Handler
 	 */
 	function generateForm ( $id )
 	{
-		global $DB;
-		
-		$league = $DB->getRow(
+
+		/* TODO: league_load() */
+		$result = db_query(
 			"SELECT 
 				name,
 				tier,
 				day
-			 FROM league WHERE league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($league)) {
+			 FROM league WHERE league_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result)) {
 			return false;
 		}
+		
+		$league = db_fetch_array($result);
 
 		$league['day'] = split(',',$league['day']);
 
@@ -123,21 +122,24 @@ class LeagueScheduleAddWeek extends Handler
 	 */
 	function generateConfirm ( $id )
 	{
-		global $DB;
-		
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid);
 		}
 		
-		$league = $DB->getRow(
-			"SELECT name, tier FROM league WHERE league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($league)) {
+		/* TODO: league_load() */
+		$result = db_query(
+			"SELECT 
+				name,
+				tier,
+				day
+			 FROM league WHERE league_id = %d", $id);
+		if( 1 != db_num_rows($result)) {
 			return false;
 		}
 		
+		$league = db_fetch_array($result);
+
 		$year = var_from_getorpost('year');
 		$month = var_from_getorpost('month');
 		$day = var_from_getorpost('day');
@@ -170,18 +172,12 @@ class LeagueScheduleAddWeek extends Handler
 	 */
 	function perform ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid);
 		}
 
-		$num_teams = $DB->getOne("SELECT COUNT(*) from leagueteams where league_id = ?", array($id));
-
-		if($this->is_database_error($num_teams)) {
-			return false;
-		}
+		$num_teams = db_result(db_query( "SELECT COUNT(*) from leagueteams where league_id = %d", $id));
 
 		if($num_teams < 2) {
 			$this->error_exit("Cannot schedule games in a league with less than two teams");
@@ -195,11 +191,18 @@ class LeagueScheduleAddWeek extends Handler
 		 * explicitly set a bye?
 		 */
 		$num_games = floor($num_teams / 2);
-
-		$league = $DB->getRow("SELECT current_round, start_time from league where league_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league)) {
+		
+		/* TODO: league_load() */
+		$result = db_query(
+			"SELECT 
+				current_round,
+				start_time
+			 FROM league WHERE league_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result)) {
 			return false;
 		}
+		$league = db_fetch_array($result);
 
 		/* Use the first start time in the list, by default */
 		$startTimes = split(",", $league['start_time']);
@@ -210,10 +213,10 @@ class LeagueScheduleAddWeek extends Handler
 		$gametime = join("-",array(var_from_getorpost("year"), var_from_getorpost("month"), var_from_getorpost("day")));
 		$gametime .= " " . $startTimes[0];
 
-		$sth = $DB->prepare("INSERT INTO schedule (league_id,date_played,round) values (?,?,?)");
 		for($i = 0; $i < $num_games; $i++) {
-			$res = $DB->execute($sth, array($id, $gametime, $league['current_round']));
-			if($this->is_database_error($res)) {
+			db_query("INSERT INTO schedule (league_id,date_played,round) values (%d,'%s',%d)", $id, $gametime, $league['current_round']);
+			
+			if(1 != db_affected_rows() ) {
 				return false;
 			}
 		}
@@ -243,8 +246,6 @@ class LeagueScheduleEdit extends Handler
 	
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		switch($step) {
@@ -316,8 +317,6 @@ class LeagueScheduleEdit extends Handler
 
 	function generateConfirm ( $id ) 
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 		
 		$dataInvalid = $this->isDataInvalid();
@@ -327,13 +326,18 @@ class LeagueScheduleEdit extends Handler
 		
 		$games = var_from_post('games');
 		
-		$league = $DB->getRow(
-			"SELECT name, tier FROM league WHERE league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($league)) {
+		/* TODO: league_load() */
+		$result = db_query(
+			"SELECT 
+				name,
+				tier
+			 FROM league WHERE league_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result)) {
 			return false;
 		}
+		
+		$league = db_fetch_array($result);
 
 		$output = para(
 			"Confirm that the changes below are correct, and click 'Submit' to proceed.");
@@ -358,10 +362,10 @@ class LeagueScheduleEdit extends Handler
 				. td( form_hidden("games[$game_id][round]", $game_info['round']) . $game_info['round'])
 				. td( form_hidden("games[$game_id][start_time]", $game_info['start_time']) . $game_info['start_time'])
 				. td( form_hidden("games[$game_id][home_id]", $game_info['home_id']) 
-					. $DB->getOne("SELECT name from team where team_id = ?", array($game_info['home_id']))
+					. db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id']))
 				)
 				. td( form_hidden("games[$game_id][away_id]", $game_info['away_id']) 
-					. $DB->getOne("SELECT name from team where team_id = ?", array($game_info['away_id']))
+					. db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id']))
 				)
 				. td( form_hidden("games[$game_id][field_id]", $game_info['field_id']) 
 					. get_field_name($game_info['field_id'])
@@ -385,8 +389,6 @@ class LeagueScheduleEdit extends Handler
 	
 	function perform () 
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid);
@@ -394,8 +396,6 @@ class LeagueScheduleEdit extends Handler
 		
 		$games = var_from_post('games');
 
-		$sth = $DB->prepare("UPDATE schedule SET home_team = ?, away_team = ?, field_id = ?, round = ?, date_played = ? WHERE game_id = ?");
-		
 		while (list ($game_id, $game_info) = each ($games) ) {
 
 			/* 
@@ -404,19 +404,16 @@ class LeagueScheduleEdit extends Handler
 			 * two fields, in order to allow them to be easily set
 			 * independantly.
 			 */
-			$date = $DB->getOne('SELECT DATE_FORMAT(date_played, "%Y-%m-%d") FROM schedule WHERE game_id = ?', array($game_id));
-			if($this->is_database_error($date)) {
-				return false;
-			}
+			$date = db_result(db_query('SELECT DATE_FORMAT(date_played, "%%Y-%%m-%%d") FROM schedule WHERE game_id = %d', $game_id));
 
-			$res = $DB->execute($sth, array(
+			db_query("UPDATE schedule SET home_team = %d, away_team = %d, field_id = %d, round = %d, date_played = '%s' WHERE game_id = %d",
 				$game_info['home_id'],
 				$game_info['away_id'],
 				$game_info['field_id'],
 				$game_info['round'],
 				$date . " " . $game_info['start_time'],
-				$game_id));
-			if($this->is_database_error($res)) {
+				$game_id);
+			if( 1 != db_affected_rows() ) {
 				return false;
 			}
 		}
@@ -465,8 +462,6 @@ class LeagueScheduleView extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 		$week_id = var_from_getorpost('week_id');
 
@@ -477,19 +472,21 @@ class LeagueScheduleView extends Handler
 		$output = theme_links($links);
 		
 		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
-	
-		$league = $DB->getRow(
+		
+		/* TODO: league_load() */
+		$result = db_query(
 			"SELECT 
 				name, 
 				tier,
 				start_time,
 				current_round
-			 FROM league WHERE league_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($league)) {
+			 FROM league WHERE league_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result)) {
 			return false;
 		}
+		
+		$league = db_fetch_array($result);
 
 		$leagueName = $league['name'];
 		if($league['tier']) {
@@ -502,12 +499,12 @@ class LeagueScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$sched_rows = $DB->getAll(
+		$result = db_query(
 			"SELECT 
 				s.game_id     AS id, 
 				s.league_id,
-				DATE_FORMAT(s.date_played, '%a %b %d %Y') as date, 
-				TIME_FORMAT(s.date_played,'%H:%i') as time,
+				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
+				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
 				s.home_team   AS home_id,
 				s.away_team   AS away_id, 
 				s.field_id, 
@@ -524,11 +521,10 @@ class LeagueScheduleView extends Handler
 			  	schedule s
 				LEFT JOIN field f ON (s.field_id = f.field_id)
 			  WHERE 
-				s.league_id = ? 
-			  ORDER BY s.date_played",
-			array($id), DB_FETCHMODE_ASSOC);
+				s.league_id =  %d
+			  ORDER BY s.date_played", $id);
 			
-		if($this->is_database_error($sched_rows)) {
+		if( ! $result ) {
 			$this->error_exit("The league [$id] does not exist");
 			return false;
 		}
@@ -536,7 +532,7 @@ class LeagueScheduleView extends Handler
 		$prevWeekId = 0;
 		$thisWeekGames = array();
 		/* For each game in the schedule for this league */
-		while(list(,$game) = each($sched_rows)) {
+		while($game = db_fetch_array($result)) {
 
 			if( ($prevWeekId != 0) && ($game['week_id'] != $prevWeekId) ) {	
 
@@ -610,8 +606,6 @@ class LeagueScheduleView extends Handler
 
 	function createEditableWeek( &$games, &$league, $weekId, $id )
 	{
-		global $DB;
-
 # This is too cumbersome for fall league.
 # Possibly reactivate for summer?
 #		$leagueStartTimes = split(",", $league['start_time']);
@@ -621,41 +615,39 @@ class LeagueScheduleView extends Handler
 #		}
 		$startTimes = getOptionsFromTimeRange(900,2400,15);
 		
-		$leagueTeams = $DB->getAssoc(
+		$result = db_query(
 			"SELECT t.team_id, t.name 
 			 FROM leagueteams l
 			 LEFT JOIN team t ON (l.team_id = t.team_id) 
-		     WHERE l.league_id = ?", false,
-			array($id));
-		if($this->is_database_error($leagueTeams)) {
+		     WHERE l.league_id = %s", $id);
+			 
+		if( ! db_num_rows($result) ) {
 			$this->error_exit("There may be no teams in this league");
 		}
-		/* Pop in a --- element.  Can't use unshift() or array_merge() on
-		 * the assoc array, unfortunately. */
-		$leagueTeams = array_reverse($leagueTeams, true);
-		$leagueTeams["0"] = "---";
-		$leagueTeams = array_reverse($leagueTeams, true); 
+		$leagueTeams[0] = "---";
+		while($team = db_fetch_object($result)) {
+			$leagueTeams[$team->team_id] = $team->name;
+		}
 
-
-		$leagueFields = $DB->getAssoc(
+		$result = db_query(
 			"SELECT DISTINCT
 				f.field_id,
-				CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')')
+				CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')') as name
 			  FROM
 			    field_assignment a
 				LEFT JOIN field f ON (a.field_id = f.field_id)
 				LEFT JOIN site s ON (f.site_id = s.site_id)
 		 	  WHERE
-		    	a.league_id = ?", false,
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($leagueFields)) {
+		    	a.league_id = %d", $id);
+				
+		if( ! db_num_rows($result) ) {
 			$this->error_exit("There are no fields assigned to this league");
 		}
-		/* Pop in a --- element.  Can't use unshift() or array_merge() on
-		 * the assoc array, unfortunately. */
-		$leagueFields = array_reverse($leagueFields, true);
-		$leagueFields["0"] = "---";
-		$leagueFields = array_reverse($leagueFields, true); 
+		
+		$leagueFields[0] = "---";
+		while($field = db_fetch_object($result)) {
+			$leagueFields[$field->field_id] = $field->name;
+		}
 
 		/* 
 		 * Rounds
@@ -697,19 +689,18 @@ class LeagueScheduleView extends Handler
 	
 	function createViewableWeek( &$games, &$league )
 	{
-		global $DB;
 		$output = "";
 		while(list(,$game) = each($games)) {
 		
 			if($game['home_id']) {
-				$homeName = $DB->getOne("SELECT name FROM team WHERE team_id = ?", array($game['home_id']));
+				$homeName = db_result(db_query("SELECT name FROM team WHERE team_id = %d",$game['home_id']));
 				$homeTeam = l($homeName, "op=team_view&id=" . $game['home_id']);
 			} else {
 				$homeTeam = "Not yet scheduled.";
 			}
 			
 			if($game['away_id']) {
-				$awayName = $DB->getOne("SELECT name FROM team WHERE team_id = ?", array($game['away_id']));
+				$awayName = db_result(db_query("SELECT name FROM team WHERE team_id = %d",$game['away_id']));
 				$awayTeam = l($awayName, "op=team_view&id=" . $game['away_id']);
 			} else {
 				$awayTeam = "Not yet scheduled.";

@@ -37,15 +37,9 @@ eval($phpCode);
 
 require_once("includes/common.inc");
 require_once("includes/theme.inc");
+require_once("includes/database.inc");
 
 $APP_PAGE_MAP = array();
-
-require_once('DB.php');
-/* Connect to the database */
-$DB = DB::connect($DB_URL, true);
-if (DB::isError($DB)) {
-	die($DB->getMessage());
-}
 
 require_once "UserSession.php";
 require_once "Handler.php";
@@ -98,7 +92,6 @@ if($handler->initialize()) {
 	$handler->error_exit("Failed to initialize handler for $op");
 }
 
-$DB->disconnect();
 /* And, that's all, folks.  */
 
 /**

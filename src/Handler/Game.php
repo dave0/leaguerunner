@@ -24,17 +24,12 @@ class GameSubmit extends Handler
 
 	function process ()
 	{
-		global $DB;
-		
 		$id = var_from_getorpost('id');
-		$row = $DB->getRow(
-			"SELECT home_score, away_score FROM schedule WHERE game_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+		$result = db_query(
+			"SELECT home_score, away_score FROM schedule WHERE game_id = %d",  $id);
+		$row = db_fetch_array($result);
 
-		if($this->is_database_error($row)) {
-			return false;
-		}
-		if(is_null($row)) {
+		if(!isset($row)) {
 			$this->error_exit("That game does not exist");
 		}
 		if(!is_null($row['home_score']) && !is_null($row['away_score']) ) {
@@ -42,14 +37,10 @@ class GameSubmit extends Handler
 		}
 		
 		$team_id = var_from_getorpost('team_id');
-		$row = $DB->getRow(
-			"SELECT entered_by FROM score_entry WHERE game_id = ? AND team_id = ?", 
-			array($id,$team_id), DB_FETCHMODE_ASSOC);
+		$result = db_query(
+			"SELECT entered_by FROM score_entry WHERE game_id = %d AND team_id = %d", $id,$team_id);
 
-		if($this->is_database_error($row)) {
-			return false;
-		}
-		if(count($row) > 0) {
+		if(db_num_rows($result) > 0) {
 			$this->error_exit("The score for your team has already been entered.");
 		}
 
@@ -109,29 +100,25 @@ class GameSubmit extends Handler
 	
 	function perform ($id, $team_id)
 	{
-		global $DB, $session;
+		global $session;
 
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$schedule_entry = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				s.home_team AS home_id,
 				s.away_team AS away_id
 			 FROM schedule s 
-			 WHERE s.game_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($schedule_entry)) {
+			 WHERE s.game_id = %d",$id);
+
+		if( ! db_num_rows($result) ) {
 			return false;
 		}
-
-		$opponent_entry = $DB->getRow("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = ?", array($id),DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($opponent_entry)) {
-			return false;
-		}
-
+		$schedule_entry = db_fetch_array($result);
+		
 		$our_entry = array(
 			'score_for' => var_from_getorpost('score_for'),
 			'score_against' => var_from_getorpost('score_against'),
@@ -139,7 +126,10 @@ class GameSubmit extends Handler
 			'defaulted' => var_from_getorpost('defaulted'),
 		);
 		
-		if( count($opponent_entry) <= 0 ) {
+		$result = $db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$id);
+		$opponent_entry = db_fetch_array($result);
+
+		if( ! db_num_rows($result) ) {
 			// No opponent entry, so just add to the score_entry table
 			if($this->save_one_score($id, $team_id, $our_entry) == false) {
 				return false;
@@ -158,15 +148,16 @@ class GameSubmit extends Handler
 					$data = array( 6, 0, 'away', $id);
 				}
 
-				$res = $DB->query("UPDATE schedule SET home_score = ?, away_score = ?, defaulted = ?, approved_by = -1 WHERE game_id = ?", $data);
-				if($this->is_database_error($res)) {
+				db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', approved_by = -1 WHERE game_id = %d", $data);
+				if(1 != db_affected_rows()) {
 					return false;
 				}
 
-				$res = $DB->query("DELETE FROM score_entry WHERE game_id = ?", array($id));
-				if($this->is_database_error($res)) {
+				db_query("DELETE FROM score_entry WHERE game_id = %d",$id);
+				if(2 != db_affected_rows()) {
 					return false;
 				}
+				
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 			} else if( scores_agree($our_entry, $opponent_entry) ) {
 				/* Agree. Make it official */
@@ -186,13 +177,13 @@ class GameSubmit extends Handler
 						$id);
 				}
 
-				$res = $DB->query("UPDATE schedule SET home_score = ?, away_score = ?, home_spirit = ?, away_spirit = ?, approved_by = -1 WHERE game_id = ?", $data);
-				if($this->is_database_error($res)) {
+				db_query("UPDATE schedule SET home_score = %d, away_score = %d, home_spirit = %d, away_spirit = %d, approved_by = -1 WHERE game_id = %d", $data);
+				if(1 != db_affected_rows()) {
 					return false;
 				}
 
-				$res = $DB->query("DELETE FROM score_entry WHERE game_id = ?", array($id));
-				if($this->is_database_error($res)) {
+				db_query("DELETE FROM score_entry WHERE game_id = %d",$id);
+				if(2 != db_affected_rows()) {
 					return false;
 				}
 
@@ -211,14 +202,12 @@ class GameSubmit extends Handler
 
 	function generateConfirm ($id, $team_id)
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
-		$gameInfo = $DB->getRow(
+	
+		$result = db_query(
 			"SELECT 
 				UNIX_TIMESTAMP(s.date_played) as timestamp, 
 				s.home_team AS home_id,
@@ -228,12 +217,13 @@ class GameSubmit extends Handler
 			 FROM schedule s 
 			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($gameInfo)) {
+			 WHERE s.game_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
+
+		$gameInfo = db_fetch_array($result);
 
 		if($gameInfo['home_id'] == $team_id) {
 			$myName = $gameInfo['home_name'];
@@ -286,9 +276,7 @@ class GameSubmit extends Handler
 
 	function generateForm ( $id, $team_id ) 
 	{
-		global $DB;
-		
-		$gameInfo = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				UNIX_TIMESTAMP(s.date_played) as timestamp, 
 				s.home_team AS home_id,
@@ -298,12 +286,13 @@ class GameSubmit extends Handler
 			 FROM schedule s 
 			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($gameInfo)) {
+			 WHERE s.game_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
+
+		$gameInfo = db_fetch_array($result);
 
 		$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
@@ -357,17 +346,16 @@ ENDSCRIPT;
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('team_id', $team_id);
 		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
-		
-		$opponent = $DB->getRow(
+	
+		$result = db_query(
 			"SELECT 
 				score_for, score_against, defaulted
-				FROM score_entry WHERE game_id = ? AND team_id = ?", 
-			array($id,$opponentId), DB_FETCHMODE_ASSOC);
+				FROM score_entry WHERE game_id = %d AND team_id = %d", 
+				$id, $opponentId);
+				
+		$opponent = db_fetch_array($result);
 
-		if($this->is_database_error($opponent)) {
-			return false;
-		}
-		if(!is_null($opponent)) {
+		if(!$opponent) {
 			$opponentScoreFor = $opponent['score_for'];
 			$opponentScoreAgainst = $opponent['score_against'];
 			
@@ -415,7 +403,7 @@ ENDSCRIPT;
 
 	function save_one_score ( $id, $team_id, $our_entry ) 
 	{
-		global $DB, $session;
+		global $session;
 
 		if($our_entry['defaulted'] == 'us') {
 			$our_entry['score_for'] = 0;
@@ -429,11 +417,12 @@ ENDSCRIPT;
 			$our_entry['defaulted'] = 'no';
 		} 
 		
-		$res = $DB->query("INSERT INTO score_entry 
+		db_query("INSERT INTO score_entry 
 			(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
-				VALUES(?,?,?,?,?,?,?)",
-				array($id, $team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']));
-		if($this->is_database_error($res)) {
+				VALUES(%d,%d,%d,%d,%d,%d,'%s')",
+				$id, $team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
+
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		return true;
@@ -459,8 +448,6 @@ class GameFinalizeScore extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		
@@ -511,7 +498,7 @@ class GameFinalizeScore extends Handler
 	
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 	
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -521,60 +508,43 @@ class GameFinalizeScore extends Handler
 		$defaulted = var_from_getorpost('defaulted');
 
 		if($defaulted == 'home') {
-			$res = $DB->query("UPDATE schedule SET 
-				home_score = ?, away_score = ?, 
-				defaulted = ?, approved_by = ? 
-				WHERE game_id = ?", array( 
-					0, 6, 'home', 
-					$session->attr_get('user_id'), $id)
-			);
+		
+			$data = array( 0, 6, 'home', $session->attr_get('user_id'), $id);
+			db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', approved_by = %d WHERE game_id = %d", $data);
 		} else if($defaulted == 'away') { 
-			$res = $DB->query("UPDATE schedule SET 
-				home_score = ?, away_score = ?, 
-				defaulted = ?, approved_by = ? 
-				WHERE game_id = ?", array( 
-					6, 0, 'away', 
-					$session->attr_get('user_id'), $id)
-			);
+			$data = array( 6, 0, 'away', $session->attr_get('user_id'), $id);
+			db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', approved_by = %d WHERE game_id = %d", $data);
 		} else {
-			$res = $DB->query("UPDATE schedule SET 
-				home_score = ?, away_score = ?,
-				home_spirit = ?, away_spirit = ?, 
-				approved_by = ? WHERE game_id = ?",
-				array(
+			$data = array(
 					var_from_getorpost('home_score'),
 					var_from_getorpost('away_score'),
 					var_from_getorpost('home_sotg'),
 					var_from_getorpost('away_sotg'),
 					$session->attr_get('user_id'),
 					$id
-			));
+			);
+			db_query("UPDATE schedule SET home_score = %d, away_score = %d, home_spirit = %d, away_spirit = %d, approved_by = %d WHERE game_id = %d", $data);
 		}
 
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 
 		/* And remove any score_entry fields */
-		$res = $DB->query("DELETE FROM score_entry WHERE game_id = ?", array($id));
-		if($this->is_database_error($res)) {
-			return false;
-		}
+		db_query("DELETE FROM score_entry WHERE game_id = %d", $id);
 
-		$league_id = $DB->getOne("SELECT league_id FROM schedule WHERE game_id = ?", array($id));
+		$league_id = db_result(db_query("SELECT league_id FROM schedule WHERE game_id = %d", $id));
 		local_redirect("op=league_verifyscores&id=$league_id");
 	}
 
 	function generateConfirm( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$gameInfo = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				UNIX_TIMESTAMP(s.date_played) as timestamp, 
 				s.home_team AS home_id,
@@ -584,15 +554,11 @@ class GameFinalizeScore extends Handler
 			 FROM schedule s 
 			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
+			 WHERE s.game_id = %d", $id);
+			 
+		$gameInfo = db_fetch_array($result);
 
-		if($this->is_database_error($gameInfo)) {
-			return false;
-		}
-		
 		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$gameInfo['timestamp']);
-		
 		$home_score = var_from_getorpost('home_score');
 		$away_score = var_from_getorpost('away_score');
 		$home_sotg = var_from_getorpost('home_sotg');
@@ -657,9 +623,7 @@ class GameFinalizeScore extends Handler
 
 	function generateForm ( $id ) 
 	{
-		global $DB;
-		
-		$gameInfo = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				UNIX_TIMESTAMP(s.date_played) as timestamp, 
 				s.home_team AS home_id,
@@ -669,17 +633,18 @@ class GameFinalizeScore extends Handler
 			 FROM schedule s 
 			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($gameInfo)) {
+			 WHERE s.game_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
+
+		$gameInfo = db_fetch_array($result);
+
 		
-		$se_query = "SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE team_id = ? AND game_id = ?";
-		$home = $DB->getRow($se_query,
-			array($gameInfo['home_id'],$id),DB_FETCHMODE_ASSOC);
-		if(!isset($home)) {
+		$se_query = "SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE team_id = %d AND game_id = %d";
+		$home = db_fetch_array(db_query($se_query,$gameInfo['home_id'],$id));
+		if(!$home) {
 			$home = array(
 				'score_for' => 'not entered',
 				'score_against' => 'not entered',
@@ -687,9 +652,8 @@ class GameFinalizeScore extends Handler
 				'defaulted' => 'no' 
 			);
 		}
-		$away = $DB->getRow($se_query,
-			array($gameInfo['away_id'],$id),DB_FETCHMODE_ASSOC);
-		if(!isset($away)) {
+		$away = db_fetch_array(db_query($se_query,$gameInfo['away_id'],$id));
+		if(!$away) {
 			$away = array(
 				'score_for' => 'not entered',
 				'score_against' => 'not entered',

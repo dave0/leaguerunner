@@ -31,17 +31,16 @@ class FieldCreate extends FieldEdit
 
 	function generateForm ( $id )
 	{
-		global $DB;
-		
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
-		$field = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($field)) {
+		$result = db_query("SELECT name as site_name, code as site_code FROM site where site_id = %d", $site_id);
+		if( !db_num_rows($result) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
+		$field = db_fetch_array($result);
 
 		$field['availability'] = array(
 			'Sunday' => false,
@@ -80,8 +79,6 @@ class FieldCreate extends FieldEdit
 	
 	function generateConfirm ( $id )
 	{
-		global $DB;
-		
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
@@ -92,10 +89,11 @@ class FieldCreate extends FieldEdit
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$site = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($site)) {
+		$result = db_query("SELECT name as site_name, code as site_code FROM site where site_id = %d", $site_id);
+		if( !db_num_rows($result) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
+		$site = db_fetch_array($result);
 
 		$field = var_from_getorpost('field');
 
@@ -125,7 +123,7 @@ class FieldCreate extends FieldEdit
 	
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 		
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -138,16 +136,17 @@ class FieldCreate extends FieldEdit
 		}
 
 		$field = var_from_getorpost("field");
-		
-		$res = $DB->query("INSERT into field (site_id,num) VALUES (?,?)", array($site_id,$field['num']));
-		if($this->is_database_error($res)) {
-			return false;
-		}
 	
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from field");
-		if($this->is_database_error($id)) {
+		db_query("INSERT into field (site_id,num) VALUES (%d,%d)", $site_id,$field['num']);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
+
+		$result = db_query("SELECT LAST_INSERT_ID() from field");
+		if(1 != db_num_rows($result)) {
+			return false;
+		}
+		$id = db_result($result);
 		
 		return parent::perform( $id );
 	}
@@ -179,8 +178,6 @@ class FieldEdit extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		
@@ -201,18 +198,14 @@ class FieldEdit extends Handler
 
 	function generateForm ( $id )
 	{
-		global $DB;
-
-		$field = $DB->getRow(
+	
+		$result = db_query(
 			"SELECT 
 				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-			 WHERE f.field_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($field)) {
-			return false;
-		}
+			 WHERE f.field_id = %d",  $id);
+			 
+		$field = db_fetch_array($result);
 		
 		$days_available = strlen($field['availability']) ? split(",", $field['availability']) : array();
 		$field['availability'] = array(
@@ -260,23 +253,17 @@ class FieldEdit extends Handler
 
 	function generateConfirm ( $id )
 	{
-		global $DB;
-		
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$site = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				f.site_id, s.name as site_name, s.code as site_code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-			 WHERE f.field_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($site)) {
-			return false;
-		}
+			 WHERE f.field_id = %d", $id);
+		$site = db_fetch_array($result);
 
 		$field = var_from_getorpost('field');
 
@@ -311,8 +298,6 @@ class FieldEdit extends Handler
 
 	function perform ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -320,20 +305,15 @@ class FieldEdit extends Handler
 
 		$field = var_from_getorpost('field');
 		
-		$res = $DB->query("UPDATE field SET 
-			num = ?, 
-			status = ?,
-			availability = ?
-			WHERE field_id = ?",
-			array(
-				$field['num'],
-				$field['status'],
-				$field['availability'],
-				$id,
-			)
+		db_query("UPDATE field SET 
+			num = %d, 
+			status = %s,
+			availability = %s 
+			WHERE field_id = %d",
+			$field['num'], $field['status'], $field['availability'], $id
 		);
 		
-		if($this->is_database_error($res)) {
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
@@ -390,31 +370,26 @@ class FieldView extends Handler
 	
 	function process ()
 	{
-		global $DB;
-		
 		$id = var_from_getorpost('id');
 
-		$field = $DB->getRow(
+		$result = db_query(
 			"SELECT 
 				f.*, s.name, s.code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-			 WHERE f.field_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			 WHERE f.field_id = %d", $id);
 
-		if($this->is_database_error($field)) {
-			return false;
-		}
+		$field = db_fetch_object($result);
 
 		if(!isset($field)) {
 			$this->error_exit("That field does not exist");
 		}
 		
 		$this->setLocation(array(
-			$field['name'] . " " . $field['num'] => "op=field_view&id=$id",
+			"$field->name $field->num" => "op=field_view&id=$id",
 			$this->title => 0
 		));
 
-		$daysAvailable = strlen($field['availability']) ? split(",", $field['availability']) : array();
+		$daysAvailable = strlen($field->availability) ? split(",", $field->availability) : array();
 		
 		$allDays = array_values( getOptionsFromEnum('field_assignment', 'day') );
 		$bookings = "<table cellpadding='3' cellspacing='0' width='100%'>";
@@ -427,27 +402,24 @@ class FieldView extends Handler
 			$bookings .= "<tr>";
 			$bookings .= td($curDay);
 			if(in_array($curDay, $daysAvailable)) {
-				$result = $DB->query("SELECT 
+				$result = db_query("SELECT 
 					a.league_id, l.name, l.tier
 				FROM 
 					field_assignment a, league l
 				WHERE 
-					a.day = ? AND a.field_id = ? AND a.league_id = l.league_id ORDER BY l.ratio, l.tier", 
-					array($curDay, $id));
-				if($this->is_database_error($result)) {
-					return false;
-				}
+					a.day = '%s' AND a.field_id = %d AND a.league_id = l.league_id ORDER BY l.ratio, l.tier",  $curDay, $id);
+					
 				$bookings .= "<td>";
-				while($ass = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
-					$bookings .= "&raquo;&nbsp;" . $ass['name'];
-					if($ass['tier']) {
-						$bookings .= " Tier " . $ass['tier'];
+				while($ass = db_fetch_object($result)) {
+					$bookings .= "&raquo;&nbsp;$ass->name";
+					if($ass->tier) {
+						$bookings .= " Tier " . $ass->tier;
 					}
 					$bookings .= "&nbsp;[&nbsp;" 
-						. l("view league", "op=league_view&id=" . $ass['league_id']);
+						. l("view league", "op=league_view&id=$ass->league_id");
 					if($this->_permissions['field_assign']) {
 						$bookings .= "&nbsp;|&nbsp;" 
-							. l("delete booking", "op=field_unassign&id=$id&day=$curDay&league_id=" . $ass['league_id']);
+							. l("delete booking", "op=field_unassign&id=$id&day=$curDay&league_id=$ass->league_id");
 					}
 					$bookings .= "&nbsp;]<br />";
 				}
@@ -471,10 +443,9 @@ class FieldView extends Handler
 		$output = theme_links($links);
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site:", 
-			$field['name'] 
-			. " (" . $field['code'] . ")&nbsp;[&nbsp;" 
-			. l("view", "op=site_view&id=" . $field['site_id']) . "&nbsp;]");
-		$output .= simple_row("Status:", $field['status']);
+			"$field->name ($field->code)&nbsp;[&nbsp;" 
+			. l("view", "op=site_view&id=$field->site_id") . "&nbsp;]");
+		$output .= simple_row("Status:", $field->status);
 		$output .= simple_row("Assignments:", "<div class='listtable'>$bookings</div>");
 		
 		$output .= "</table>";
@@ -508,8 +479,6 @@ class FieldAssign extends Handler
 	
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		$day = var_from_getorpost('day');
@@ -518,22 +487,22 @@ class FieldAssign extends Handler
 		if($step != 'confirm' && $step != 'perform') {
 			$rc = $this->generateForm($id, $day);
 		} else {
-			$league = $DB->getRow("SELECT league_id, name, tier FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?,day) > 0) AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-			if($this->is_database_error($league)) {
-				return false;
-			}
-			if(sizeof($league) < 1) {
+			$result = db_query("SELECT league_id, name, tier FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET('%s',day) > 0) AND league_id = %d", $day, $league_id);
+			
+			if( db_num_rows($result) < 1) {
 				$this->error_exit("You must provide a valid league ID");
 				return false;
 			}
+			
+			$league = db_fetch_array($result);
 		
 			switch($step) {
 				case 'confirm':
 					$rc = $this->generateConfirm($id, $league, $day);
 					break;
 				case 'perform':
-					$res = $DB->query("INSERT INTO field_assignment VALUES(?,?,?)", array($league_id, $id, $day));
-					if($this->is_database_error($res)) {
+					db_query("INSERT INTO field_assignment VALUES(%d,%d,'%s')", $league_id, $id, $day);
+					if( 1 != db_affected_rows() ) {
 						return false;
 					}
 					local_redirect("op=field_view&id=$id");
@@ -545,8 +514,6 @@ class FieldAssign extends Handler
 	}
 
 	function generateForm( $id, $day ) {
-		global $DB;
-		
 		$field_name = get_field_name($id);
 		$this->setLocation(array(
 			$field_name => "op=field_view&id=$id",
@@ -572,8 +539,6 @@ class FieldAssign extends Handler
 
 	function generateConfirm ( $id, $league, $day )
 	{
-		global $DB;
-		
 		$league_name = $league['name'];
 		if($league['tier']) {
 			$league_name .= " Tier " . $league['tier'];
@@ -627,20 +592,18 @@ class FieldUnassign extends Handler
 	
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 		$league_id = var_from_getorpost('league_id');
 		$day = var_from_getorpost('day');
 		
-		$league = $DB->getRow("SELECT name, tier, league_id FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?,day) > 0) AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league)) {
-			return false;
-		}
-		if(sizeof($league) < 1) {
+		$result = db_query("SELECT name, tier, league_id FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET('%s',day) > 0) AND league_id = %d", $day, $league_id);
+		
+		if(db_num_rows($result) < 1) {
 			$this->error_exit("You must provide a valid league ID");
 		}
+		
+		$league = db_fetch_array($result);
 		
 		switch($step) {
 			default:
@@ -648,10 +611,8 @@ class FieldUnassign extends Handler
 				$rc = $this->generateConfirm( $id, $league, $day );
 				break;
 			case 'perform':
-				$res = $DB->query("DELETE FROM field_assignment WHERE league_id = ? AND field_id = ? AND day = ?", array($league['league_id'], $id, $day));
-				if($this->is_database_error($res)) {
-					return false;
-				}
+				db_query("DELETE FROM field_assignment WHERE league_id = %d AND field_id = %d AND day = '%s'",$league['league_id'], $id, $day);
+
 				local_redirect("op=field_view&id=$id");
 				break;
 		}
@@ -661,8 +622,6 @@ class FieldUnassign extends Handler
 
 	function generateConfirm ( $id, $league, $day )
 	{
-		global $DB;
-		
 		$league_name = $league['name'];
 		if($league['tier']) {
 			$league_name .= " Tier " . $league_info['tier'];

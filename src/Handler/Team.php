@@ -35,8 +35,6 @@ class TeamAddPlayer extends Handler
 
 	function process ()
 	{
-		global $DB;
-		
 		$id = var_from_getorpost("id");
 		$letter = var_from_getorpost("letter");
 		
@@ -49,9 +47,9 @@ class TeamAddPlayer extends Handler
 			)	
 		);
 		
-        $query = $DB->prepare("SELECT 
+        $query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE status = 'active' AND lastname LIKE ? ORDER BY lastname, firstname");
+			FROM person WHERE status = 'active' AND lastname LIKE %d ORDER BY lastname, firstname";
 
 		$this->setLocation(array( $this->title => 0));
 		
@@ -89,7 +87,7 @@ class TeamCreate extends TeamEdit
 
 	function perform ( $id )
 	{
-		global $DB, $session;
+		global $session;
 
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -97,28 +95,26 @@ class TeamCreate extends TeamEdit
 		}
 
 		$team_name = trim(var_from_getorpost("team_name"));
-	
-		$res = $DB->query("INSERT into team (name) VALUES (?)", array($team_name));
-		$err = isDatabaseError($res);
-		if($err != false) {
-			if(strstr($err,"already exists: INSERT into team (name) VALUES")) {
-				$err = "A team with that name already exists; please go back and try again";
-			}
+		
+		if(db_num_rows(db_query("SELECT name FROM team WHERE name = '%s'",$team_name))) {
+			$err = "A team with that name already exists; please go back and try again";
 			$this->error_exit($err);
 		}
-		
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from team");
-		if($this->is_database_error($id)) {
-			return false;
-		}
 
-		$res = $DB->query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, ?)", array($id));
-		if($this->is_database_error($res)) {
+		db_query("INSERT into team (name) VALUES ('%s')", $team_name);
+		if( 1 != db_affected_rows() ) {
+			return false;
+		}
+	
+		$id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
+
+		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $id);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 		
-		$res = $DB->query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, 'captain', NOW())", array($id, $session->data['user_id']));
-		if($this->is_database_error($res)) {
+		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $id, $session->data['user_id']);
+		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 
@@ -148,8 +144,6 @@ class TeamEdit extends Handler
 
 	function process ()
 	{
-		global $DB;
-		
 		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		
@@ -170,22 +164,9 @@ class TeamEdit extends Handler
 
 	function getFormData ( $id )
 	{
-		global $DB;
-
-		$team = $DB->getRow(
-			"SELECT 
-				name,
-				website,
-				shirt_colour,
-				status
-			FROM team WHERE team_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($team)) {
-			return false;
-		}
-
-		return $team;
+		/* TODO: team_load() */
+		return db_fetch_array(db_query(
+			"SELECT * FROM team WHERE team_id = %d", $id));
 	}
 
 	function generateForm ($id, $formData)
@@ -216,8 +197,6 @@ class TeamEdit extends Handler
 
 	function generateConfirm ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -254,29 +233,25 @@ class TeamEdit extends Handler
 
 	function perform ( $id )
 	{
-		global $DB;
-
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
+		if(db_num_rows(db_query("SELECT name FROM team WHERE name = '%s'",var_from_getorpost('team_name')))) {
+			$err = "A team with that name already exists; please go back and try again";
+			$this->error_exit($err);
+		}
 
-		$res = $DB->query("UPDATE team SET name = ?, website = ?, shirt_colour = ?, status = ? WHERE team_id = ?",
-			array(
+		db_query("UPDATE team SET name = '%s', website = '%s', shirt_colour = '%s', status = '%s' WHERE team_id = %d",
 				var_from_getorpost('team_name'),
 				var_from_getorpost('team_website'),
 				var_from_getorpost('shirt_colour'),
 				var_from_getorpost('status'),
-				$id,
-			)
+				$id
 		);
 		
-		$err = isDatabaseError($res);
-		if($err != false) {
-			if(strstr($err,"uplicate entry ")) {
-				$err = "A team with that name already exists; please go back and try again";
-			}
-			$this->error_exit($err);
+		if( 1 != db_affected_rows() ) {
+			return false;
 		}
 		
 		return true;
@@ -347,13 +322,9 @@ class TeamList extends Handler
 	
 	function process ()
 	{
-		global $DB;
-
 		$letter = var_from_getorpost("letter");
 		
-		$query = $DB->prepare("SELECT 
-			name AS value, team_id AS id
-			FROM team WHERE name LIKE ? ORDER BY name");
+		$query = "SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name";
 		
 		$ops = array(
 			array(
@@ -396,7 +367,7 @@ class TeamPlayerStatus extends Handler
 
 	function has_permission ()
 	{
-		global $DB, $session, $id, $player_id, $current_status;
+		global $session, $id, $player_id, $current_status;
 
 		if(!$session->is_valid()) {
 			$this->error_exit("You do not have a valid session");
@@ -434,13 +405,9 @@ class TeamPlayerStatus extends Handler
 		/* Now, check for the player's status, or set 'none' if
 		 * not currently on team.
 		 */
-		$current_status = $DB->getOne("SELECT status FROM teamroster WHERE team_id = ? and player_id = ?",
-			array($id, $player_id));
-		if($this->is_database_error($current_status)) {
-			trigger_error("Database error");
-			return false;
-		}
-		if(! isset($current_status)) {
+		$current_status = db_result(db_query("SELECT status FROM teamroster WHERE team_id = %d and player_id = %d", $id, $player_id));
+		
+		if(!$current_status) {
 			$current_status = 'none';
 		}
 
@@ -477,15 +444,10 @@ class TeamPlayerStatus extends Handler
 	
 	function getStatesForCaptain($id, $curState)
 	{
-		global $DB;
-
 		switch($curState) {
 		case 'captain':
-
-			$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
-			if($this->is_database_error($num_captains)) {
-				return false;
-			}
+			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
+			
 			if($num_captains <= 1) {
 				$this->error_exit("All teams must have at least one player with captain status.");
 			}
@@ -513,14 +475,10 @@ class TeamPlayerStatus extends Handler
 
 	function getStatesForPlayer($id, $curState)
 	{
-		global $DB;
-
 		switch($curState) {
 		case 'captain':
-			$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
-			if($this->is_database_error($num_captains)) {
-				return false;
-			}
+			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
+			
 			if($num_captains <= 1) {
 				$this->error_exit("All teams must have at least one player with captain status.");
 			}
@@ -537,12 +495,9 @@ class TeamPlayerStatus extends Handler
 		case 'player_request':
 			return array( 'none' );
 		case 'none':
-			$is_open = $DB->getOne("SELECT status from team where team_id = ?",array($id));
-			if($this->is_database_error($is_open)) {
-				trigger_error("Database error");
-				return false;
-			}
-			if($is_open == 'closed') {
+			$is_open = db_result(db_query("SELECT status from team where team_id = %d",$id));
+			
+			if($is_open != 'open') {
 				$this->error_exit("Sorry, this team is not open for new players to join");
 			}
 			return array( 'player_request' );
@@ -553,7 +508,7 @@ class TeamPlayerStatus extends Handler
 	
 	function process ()
 	{
-		global $id, $DB;
+		global $id;
 
 		$step = var_from_getorpost('step');
 		switch($step) {
@@ -571,28 +526,20 @@ class TeamPlayerStatus extends Handler
 	function generateForm () 
 	{
 		/* TODO: These shouldn't all be global variables */
-		global $DB, $id, $player_id, $current_status;
+		global $id, $player_id, $current_status;
 
-		$team = $DB->getRow("SELECT name, status FROM team where team_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($team)) {
-			trigger_error("Database error");
-			return false;
-		}
+		/* TODO: team_load() */
+		$team = db_fetch_array(db_query("SELECT * FROM team where team_id = %d", $id));
 
 		$this->setLocation(array(
 			$team['name'] => "op=team_view&id=$id",
 			$this->title => 0));
-		
-		$player = $DB->getRow("SELECT 
+	
+		/* TODO: load_user() or load_person() */
+		$player = db_fetch_array(db_query("SELECT
 			p.firstname, p.lastname, p.member_id
 			FROM person p
-			WHERE p.user_id = ?",
-			array($player_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($player)) {
-			trigger_error("Database error");
-			return false;
-		}
+			WHERE p.user_id = %d", $player_id));
 
 		$output = form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
@@ -624,7 +571,7 @@ class TeamPlayerStatus extends Handler
 
 	function perform ()
 	{
-		global $session, $DB, $id, $player_id, $current_status;
+		global $session, $id, $player_id, $current_status;
 
 		$dataInvalid = $this->isDataInvalid();
 		if($dataInvalid) {
@@ -641,16 +588,14 @@ class TeamPlayerStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				$res = $DB->query("UPDATE teamroster SET status = ? WHERE team_id = ? AND player_id = ?", array($status, $id, $player_id));
-				if($this->is_database_error($res)) {
-					trigger_error("Database error");
+				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $status, $id, $player_id);
+				if( 1 != db_affected_rows() ) {
 					return false;
 				}
 				break;
 			case 'none':
-				$res = $DB->query("DELETE FROM teamroster WHERE team_id = ? AND player_id = ?", array($id, $player_id));
-				if($this->is_database_error($res)) {
-					trigger_error("Database error");
+				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $id, $player_id);
+				if( 1 != db_affected_rows() ) {
 					return false;
 				}
 				break;
@@ -663,9 +608,8 @@ class TeamPlayerStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				$res = $DB->query("INSERT INTO teamroster VALUES(?,?,?,NOW())", array($id, $player_id, $status));
-				if($this->is_database_error($res)) {
-					trigger_error("Database error");
+				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $id, $player_id, $status);
+				if( 1 != db_affected_rows() ) {
 					return false;
 				}
 				break;
@@ -708,12 +652,10 @@ class TeamStandings extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 
-		$league_id = $DB->getOne("SELECT league_id FROM leagueteams WHERE team_id = ?", array($id),DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_id) || !$league_id) {
+		$league_id = db_result(db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $id));
+		if(!$league_id) {
 			$this->error_exit("There is no team with that ID.");
 		}
 
@@ -756,12 +698,13 @@ class TeamView extends Handler
 
 	function process ()
 	{
-		global $DB, $session;
+		global $session;
 
 		$id = var_from_getorpost('id');
 
-		$team = $DB->getRow("
-			SELECT 
+		/* TODO: team_load() */
+		$team = db_fetch_object(db_query(
+			"SELECT 
 				t.team_id as id, 
 				t.name AS name, 
 				t.website AS website, 
@@ -776,69 +719,65 @@ class TeamView extends Handler
 				leagueteams s 
 				LEFT JOIN team t ON (s.team_id = t.team_id) 
 				LEFT JOIN league l ON (s.league_id = l.league_id) 
-			WHERE s.team_id = ?", 
-		array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($team)) {
-			return false;
-		}
+			WHERE s.team_id = %d", $id));
 
-		if(!isset($team)) {
+		if(!$team) {
 			$this->error_exit("That is not a valid team ID");
 		}
 
 		// Team names might have HTML in them, so we need to nuke it.
-		$team_name = check_form($team['name']);
+		$team_name = check_form($team->name);
 		$this->setLocation(array(
 			$team_name => "op=team_view&id=$id",
 			$this->title => 0));
 
 		$links = array();
 		$links[] = l('schedule and scores', 
-			'op=team_schedule_view&id=' . $team['id'], 
+			"op=team_schedule_view&id=$team->id", 
 			array('title' => 'View schedule and scores'));
-		if($team['status'] == 'open') {
+		if($team->status == 'open') {
 			$links[] = l('join team', 
-				'op=team_playerstatus&id=' . $team['id'] . "&player_id=" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
+				"op=team_playerstatus&id=$team->id&player_id=" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
 				array('title' => 'Request to join this team'));
 		}
 		if($this->_permissions['edit_team']) {
 			$links[] = l('edit info', 
-				'op=team_edit&id=' . $team['id'], 
+				"op=team_edit&id=$team->id", 
 				array('title' => "Edit team information"));
 			$links[] = l('add player', 
-				'op=team_addplayer&id=' . $team['id'], 
+				"op=team_addplayer&id=$team->id", 
 				array('title' => "Request a player for this team"));
             $links[] = l('player emails',
-				'op=team_emails&id=' . $team['id'],
+				"op=team_emails&id=$team->id",
 				array('title' => "Get team email addresses"));
 
 		}
 		$links[] = l('view standings', 
-			'op=league_standings&id=' . $team['league_id'], 
+			"op=league_standings&id=$team->league_id", 
 			array('title' => 'View league standings'));
 
 
 		/* Now build up team data */
 		$teamdata = "<table border'0'>";
-		if($team['website']) {
-			if(strncmp($team['website'], "http://", 7) != 0) {
-				$team['website'] = "http://" . $team['website'];
+		if($team->website) {
+			if(strncmp($team->website, "http://", 7) != 0) {
+				$team->website = "http://$team->website";
 			}
-			$teamdata .= simple_row("Website:", l($team['website'], $team['website']));
+			$teamdata .= simple_row("Website:", l($team->website, $team->website));
 		}
-		$teamdata .= simple_row("Shirt Colour:", check_form($team['shirt_colour']));
-		$league_name = $team['league_name'];
-		if($team['league_tier']) {
-			$league_name .= " Tier " . $team['league_tier'];
+		$teamdata .= simple_row("Shirt Colour:", check_form($team->shirt_colour));
+		$league_name = $team->league_name;
+		if($team->league_tier) {
+			$league_name .= " Tier $team->league_tier";
 		}
-		$teamdata .= simple_row("League/Tier:", l($league_name, "op=league_view&id=" . $team['league_id']));
-		$teamdata .= simple_row("Team Status:", $team['status']);
+		$teamdata .= simple_row("League/Tier:", l($league_name, "op=league_view&id=$team->league_id"));
+		$teamdata .= simple_row("Team Status:", $team->status);
 
 		$teamdata .= "</table>";
 
 		/* and, grab roster */
-		$roster = $DB->getAll("
-			SELECT 
+		$result = db_query(
+			"SELECT 
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
 				p.gender,
@@ -848,25 +787,18 @@ class TeamView extends Handler
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = ?
-			ORDER BY r.status, p.gender, p.lastname",
-			array($id),
-			DB_FETCHMODE_ASSOC);
+				r.team_id = %d
+			ORDER BY r.status, p.gender, p.lastname", $id);
 			
-		if($this->is_database_error($roster)) {
-			return false;
-		}
-
 		$rosterdata = "<div class='listtable'><table cellpadding='3' cellspacing='0' border='0'>";
 		$rosterdata .= tr(
 			th("Team Roster", array('colspan' => 5))
 		);
-		$count = count($roster);
-
+		
 		$totalSkill = 0;
-
+		$count = db_num_rows($result);
 		$rosterPositions = getRosterPositions();
-		for($i = 0; $i < $count; $i++) {
+		while($player = db_fetch_object($result)) {
 	
 			/* 
 			 * Now check for conflicts.  Players who are subs get
@@ -874,40 +806,37 @@ class TeamView extends Handler
 			 *
 			 * TODO: This is time-consuming and resource-inefficient.
 			 */
-			$conflict = $DB->getOne("SELECT COUNT(*) from
+			$conflict = db_result(db_query("SELECT COUNT(*) from
 					league l, leagueteams t, teamroster r
 				WHERE
-					l.season = ? AND l.day = ?
+					l.season = '%s' AND l.day = '%s' 
 					AND l.allow_schedule = 'Y'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
-					AND r.player_id = ?
-					",array($team['league_season'],$team['league_day'],$roster[$i]['id']));
+					AND r.player_id = %d",$team->league_season,$team->league_day,$player->id));
+					
 			if($conflict > 1) {
 				$conflictText = "<div class='roster_conflict'>(roster conflict)</div>";
 			} else {
-				$conflictText = '';
+				$conflictText = "";
 			}
-
-			$player_links = array();
-
-			$player_links[] = l('view',
-				'op=person_view&id=' . $roster[$i]['id']);
 			
-			if($this->_permissions['edit_team'] || ($roster[$i]['id'] == $session->attr_get("user_id"))) {
+
+			$player_links = array( l('view', "op=person_view&id=$player->id") );
+			if($this->_permissions['edit_team'] || ($player->id == $session->attr_get("user_id"))) {
 				$player_links[] = l('change status',
-					"op=team_playerstatus&id=$id&player_id=" . $roster[$i]['id']);
+					"op=team_playerstatus&id=$id&player_id=$player->id");
 			}
 			
 			$rosterdata .= tr(
-				td($roster[$i]['fullname'].$conflictText)
-				. td($rosterPositions[$roster[$i]['status']])
-				. td($roster[$i]['gender'])
-				. td($roster[$i]['skill_level'])
+				td($player->fullname.$conflictText)
+				. td($rosterPositions[$player->status])
+				. td($player->gender)
+				. td($player->skill_level)
 				. td(theme_links($player_links))
 			);
 
-			$totalSkill += $roster[$i]['skill_level'];
+			$totalSkill += $player->skill_level;
 		}
 
 		if($count > 0) {
@@ -973,35 +902,31 @@ class TeamScheduleView extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 
-		$team = $DB->getRow("SELECT
+		/* TODO: team_load() */
+		
+		$team = db_fetch_object(db_query("SELECT
 				lt.league_id, 
-				t.name AS team_name
+				t.name
 		  	FROM
 		  		leagueteams lt, team t
 			WHERE
 				t.team_id = lt.team_id 
-				AND lt.team_id = ? ", 
-		array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($team)) {
-			return false;
-		}
+				AND lt.team_id = %d", $id));
 		
-		if(!isset($team)) {
+		if(!$team) {
 			$this->error_exit("That team does not exist");
 		}
 
 		$links = array();
 		$links[] = l("view team", "op=team_view&id=$id");
-		$links[] = l("view league", "op=league_view&id=" . $team['league_id']);
-		$links[] = l("view league schedule", "op=league_schedule_view&id=" . $team['league_id']);
+		$links[] = l("view league", "op=league_view&id=$team->league_id");
+		$links[] = l("view league schedule", "op=league_schedule_view&id=$team->league_id");
 
 
 		$this->setLocation(array(
-			$team['team_name'] => "op=team_view&id=$id",
+			$team->name => "op=team_view&id=$id",
 			$this->title => 0));
 
 		$output = theme_links($links);
@@ -1018,7 +943,7 @@ class TeamScheduleView extends Handler
 		 * Grab schedule info 
 		 * This select is still evil, but not as evil as it could be.
 		 */
-		$result = $DB->query(
+		$result = db_query(
 			"SELECT 
 				s.game_id, 
 				DATE_FORMAT(s.date_played, '%a %b %d %Y') as date,
@@ -1038,62 +963,53 @@ class TeamScheduleView extends Handler
 				LEFT JOIN team a ON (s.away_team = a.team_id) 
 				LEFT JOIN field f ON (s.field_id = f.field_id) 
 				LEFT JOIN site t ON (t.site_id = f.site_id) 
-			WHERE (s.home_team = ? OR s.away_team = ?) 
-			ORDER BY s.date_played",
-		array($id, $id));
+			WHERE (s.home_team = %d OR s.away_team = %d) 
+			ORDER BY s.date_played", $id, $id);
 			
-		if($this->is_database_error($result)) {
-			return false;
-		}
-
-		while($game = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+		while($game = db_fetch_object($result)) {
 		
-			if($game['home_id'] == $id) {
-				$opponent_id = $game['away_id'];
-				$opponent_name = $game['away_name'];
+			if($game->home_id == $id) {
+				$opponent_id = $game->away_id;
+				$opponent_name = $game->away_name;
 				$home_away = '(home)';
 			} else {
-				$opponent_id = $game['home_id'];
-				$opponent_name = $game['home_name'];
+				$opponent_id = $game->home_id;
+				$opponent_name = $game->home_name;
 				$home_away = '(away)';
 			}
 
 			$game_score = "&nbsp;";
 			$score_type = "&nbsp;";
 			
-			if(!(is_null($game['home_score']) && is_null($game['away_score']))) {
+			if($game->home_score && $game->away_score) {
 				/* Already entered */
 				$score_type = '(accepted final)';
-				if($game['home_id'] == $id) {
-					$game_score = $game['home_score']." - ".$game['away_score'];
+				if($game->home_id == $id) {
+					$game_score = "$game->home_score - $game->away_score";
 				} else {
-					$game_score = $game['away_score']." - ".$game['home_score'];
+					$game_score = "$game->away_score - $game->home_score";
 				}
 			} else {
 				/* Not finalized yet */
-				$entered = $DB->getRow(
-					"SELECT score_for, score_against FROM score_entry WHERE game_id = ? AND team_id = ?",
-				array($game['game_id'], $id), DB_FETCHMODE_ASSOC);
+				$entered = db_fetch_array(db_query(
+					"SELECT score_for, score_against FROM score_entry WHERE game_id = %d AND team_id = %d",$game->game_id, $id));
 				
-				if($this->is_database_error($entered) ) {
-					return false;
-				}
-				if(isset($entered)) {
+				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
 					$game_score = $entered['score_for']." - ".$entered['score_against'];
 				} else if($this->_permissions['submit_score']) {
-					$score_type = l("submit score", "op=game_submitscore&team_id=$id&id=" . $game['game_id']);
+					$score_type = l("submit score", "op=game_submitscore&team_id=$id&id=$game->game_id");
 				}
 			}
-			if($game['defaulted'] != 'no') {
+			if($game->defaulted != 'no') {
 				$score_type .= " (default)";
 			}
 
 			$output .= tr(
-				td($game['date'], array('class' => 'schedule_item'))
-				. td($game['time'], array('class' => 'schedule_item'))
+				td($game->date, array('class' => 'schedule_item'))
+				. td($game->time, array('class' => 'schedule_item'))
 				. td(l($opponent_name, "op=team_view&id=$opponent_id"), array('class' => 'schedule_item'))
-				. td(l($game['field_code'], "op=site_view&id=". $game['site_id']), array('class' => 'schedule_item'))
+				. td(l($game->field_code, "op=site_view&id=". $game->site_id), array('class' => 'schedule_item'))
 				. td($home_away, array('class' => 'schedule_item'))
 				. td($game_score, array('class' => 'schedule_item'))
 				. td($score_type, array('class' => 'schedule_item'))
@@ -1127,43 +1043,37 @@ class TeamEmails extends Handler
 
 	function process ()
 	{
-		global $DB;
-
 		$id = var_from_getorpost('id');
 
-		$addrs = $DB->getAll("SELECT 
+		$result = db_query(
+			"SELECT
 				p.firstname, p.lastname, p.email
 			FROM 
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = ?",
-				array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($addrs)) {
+				r.team_id = %d",$id);
+				
+		if( db_num_rows($result) <= 0 ) {
 			return false;
 		}
-		if(count($addrs) <= 0) { 
-			return false;
-		}
+		
 		$emails = array();
 		$nameAndEmails = array();
-		foreach($addrs as $addr) {
-			$output .= 
+		while($user = db_fetch_object($result)) {
 			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
-				$addr['firstname'],
-				$addr['lastname'],
-				$addr['email']);
-			$emails[] = $addr['email'];
+				$user->firstname,
+				$user->lastname,
+				$user->email);
+			$emails[] = $user->email;
 		}
 
 		/* Get team info */
-		$team = $DB->getRow("SELECT name FROM team WHERE team_id = ?", array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league)) {
-			return false;
-		}
+		/* TODO: team_load() */
+		$team = db_fetch_object(db_query("SELECT name FROM team WHERE team_id = %d", $id));
 
 		$this->setLocation(array(
-			$team['name'] => "op=team_view&id=$id",
+			$team->name => "op=team_view&id=$id",
 			$this->title => 0));
 
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");

@@ -132,7 +132,7 @@ class Handler
 	 */
 	function has_permission() 
 	{
-		global $session, $DB;
+		global $session;
 		
 		if(is_null($this->_required_perms)) {
 			$this->error_exit("You do not have permission to perform that operation");
@@ -195,7 +195,8 @@ class Handler
 			} else if(strncmp($perm_type,'coordinate_game:',15) == 0) {
 				$id_field = substr($perm_type, 16);
 				$id_data = var_from_getorpost($id_field);
-				$league_id = $DB->getOne("SELECT league_id FROM schedule WHERE game_id = ?", array($id_data));
+				$result = db_query("SELECT league_id FROM schedule WHERE game_id = %d", $id_data);
+				$league_id = db_result($result);
 				if($session->is_coordinator_of($league_id)) {
 					$this->set_permission_flags('coordinator');
 					return true;
@@ -291,8 +292,6 @@ class Handler
 	 */
 	function error_exit($error = NULL)
 	{
-		global $DB;
-		
 		$title = "Error";
 		
 		$error = $error ? $error : "An unknown error has occurred.";
@@ -301,21 +300,7 @@ class Handler
 		print "<h1>$title</h1>";
 		print theme_error( $error );
 		print theme_footer();
-		$DB->disconnect();
 		exit;
-	}
-
-	/**
-	 * Check for a database error
-	 * TODO: Delete from Handler.php when cleaned up
-	 */
-	function is_database_error( &$res ) 
-	{
-		$err = isDatabaseError( $res );
-		if($err == false) {
-			return false;
-		}
-		$this->error_exit($err);
 	}
 
 	/**
@@ -336,15 +321,11 @@ class Handler
 	 * and 'value', containing a name or descriptive text for each
 	 * object
 	 */
-	function generateSingleList($preparedQuery, $ops, $dbParams = array())
+	function generateSingleList($query, $ops, $dbParams)
 	{
-		global $DB;
-		$result = $DB->execute($preparedQuery, $dbParams);
-		if($this->is_database_error($result)) {
-			return false;
-		}
 		$output = "<table border='0'>";
-		while($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+		$result = db_query($query, $dbParams);
+		while($row = db_fetch_array($result)) {
 			$opsLinks = $this->generateOpsLinks($ops, $row['id']);
 			$output .= tr( td($row['value']) . td(theme_links($opsLinks)) );
 		}
@@ -358,10 +339,10 @@ class Handler
 	 */
 	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array())
 	{
-		global $DB;
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING($letterField,1,1)) as letter from $fromWhere ORDER BY letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
+	
+		$letterQuery = db_query("select distinct UPPER(SUBSTRING($letterField,1,1)) as letter from $fromWhere ORDER BY letter asc");
+		while($l = db_fetch_object($letterQuery)) {
+			$letters[] = $l->letter;
 		}
 		if(!isset($letter)) {
 			$letter = $letters[0];
@@ -376,7 +357,7 @@ class Handler
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
-		$dbParams[] = "$letter%";
+		$dbParams[] = $letter;
 		$output .= $this->generateSingleList($query, $ops, $dbParams);
 		return $output;
 	

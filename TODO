@@ -13,7 +13,7 @@ Code Cleanups and Refactoring:
 	- (DONE) de-templateify this code; Smarty is too much of a pain in the ass.
 	- (DONE) change includes/config.inc to be some sort of parsed configfile
 	  so that both Perl and PHP code can use it for db settings, etc.
-	- better DB code -- use wrapper code similar to Drupal's.  Rewrite
+	- (DONE) better DB code -- use wrapper code similar to Drupal's.  Rewrite
 	  some of the looping algorithms to fetch rows one at a time for
 	  processing rather than stuffing into an array.
 
