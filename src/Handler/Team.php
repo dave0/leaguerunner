@@ -141,11 +141,8 @@ class TeamCreate extends TeamEdit
 		global $DB, $session;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Team/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$team_name = trim(var_from_getorpost("team_name"));
@@ -282,11 +279,8 @@ class TeamEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Team/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$this->tmpl->assign("team_name", var_from_getorpost('team_name'));
@@ -304,11 +298,8 @@ class TeamEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Team/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$res = $DB->query("UPDATE team SET name = ?, website = ?, shirt_colour = ?, status = ? WHERE team_id = ?",
@@ -335,20 +326,20 @@ class TeamEdit extends Handler
 		
 		$team_name = var_from_getorpost("team_name");
 		if( !validate_nonhtml($team_name) ) {
-			$this->error_text .= "You must enter a valid team name<br>";
+			$this->error_text .= "<li>You must enter a valid team name";
 			$rc = false;
 		}
 		
 		$shirt_colour = var_from_getorpost("shirt_colour");
 		if( !validate_nonhtml($shirt_colour) ) {
-			$this->error_text .= "Shirt colour cannot be left blank<br>";
+			$this->error_text .= "<li>Shirt colour cannot be left blank";
 			$rc = false;
 		}
 		
 		$team_website = var_from_getorpost("team_website");
 		if(validate_nonblank($team_website)) {
 			if( ! validate_nonhtml($team_website) ) {
-				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
+				$this->error_text .= "<li>If you provide a website URL, it must be valid.";
 				$rc = false;
 			}
 		}

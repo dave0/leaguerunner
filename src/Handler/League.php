@@ -263,11 +263,8 @@ class LeagueEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("League/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 		
 		$this->tmpl->assign("id", $this->_id);
@@ -305,11 +302,8 @@ class LeagueEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("League/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 		
 		$fields      = array();
@@ -362,26 +356,26 @@ class LeagueEdit extends Handler
 
 		$league_name = var_from_getorpost("league_name");
 		if ( ! validate_nonhtml($league_name)) {
-			$this->error_text .= "A valid league name must be entered<br>";
+			$this->error_text .= "<li>A valid league name must be entered";
 			$rc = false;
 		}
 
 		$coord_id = var_from_getorpost("coordinator_id");
 		if($coord_id <= 0) {
-			$this->error_text .= "A coordinator must be selected<br>";
+			$this->error_text .= "<li>A coordinator must be selected";
 			$rc = false;
 		}
 		
 		$league_allow_schedule = var_from_getorpost("league_allow_schedule");
 		if( $league_allow_schedule != 'Y' && $league_allow_schedule != 'N' ) {
-			$this->error_text .= "Values for allow schedule are Y and N<br>";
+			$this->error_text .= "<li>Values for allow schedule are Y and N";
 			$rc = false;
 		}
 
 		if($league_allow_schedule == 'Y') {
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
-				$this->error_text .= "One or more days of play must be selected<br>";
+				$this->error_text .= "<li>One or more days of play must be selected";
 				$rc = false;
 			}
 		}

@@ -742,12 +742,8 @@ class PersonEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Person/edit_form.tmpl");
-			$this->tmpl->assign("page_step", 'confirm');
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$this->tmpl->assign("id", $this->_id);
@@ -789,10 +785,8 @@ class PersonEdit extends Handler
 		global $DB;
 		
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Person/edit_form.tmpl");
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$fields      = array();
@@ -908,7 +902,7 @@ class PersonEdit extends Handler
 			$lastname = var_from_getorpost('lastname');
 			if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
 				$rc = false;
-				$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 			}
 		}
 
@@ -916,7 +910,7 @@ class PersonEdit extends Handler
 			$username = var_from_getorpost('username');
 			if( ! validate_name_input($username) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 		}
 
@@ -924,7 +918,7 @@ class PersonEdit extends Handler
 			$email = var_from_getorpost('email');
 			if ( ! validate_email_input($email) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply a valid email address";
+				$this->error_text .= "\n<li>You must supply a valid email address";
 			}
 		}
 
@@ -936,19 +930,19 @@ class PersonEdit extends Handler
 				!validate_nonblank($work_phone) &&
 				!validate_nonblank($mobile_phone) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
+				$this->error_text .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
 				$rc = false;
-				$this->error_text .= "\n<br>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$this->error_text .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
 				$rc = false;
-				$this->error_text .= "\n<br>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$this->error_text .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 			if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
 				$rc = false;
-				$this->error_text .= "\n<br>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
+				$this->error_text .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 			}
 		}
 
@@ -956,22 +950,22 @@ class PersonEdit extends Handler
 			$addr_street = var_from_getorpost('addr_street');
 			if( !validate_nonhtml($addr_street) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply a street address.";
+				$this->error_text .= "\n<li>You must supply a street address.";
 			}
 			$addr_city = var_from_getorpost('addr_city');
 			if( !validate_nonhtml($addr_city) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply a city.";
+				$this->error_text .= "\n<li>You must supply a city.";
 			}
 			$addr_prov = var_from_getorpost('addr_prov');
 			if( !validate_nonhtml($addr_prov) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply a province.";
+				$this->error_text .= "\n<li>You must supply a province.";
 			}
 			$addr_postalcode = var_from_getorpost('addr_postalcode');
 			if( !validate_postalcode($addr_postalcode) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must supply a valid Canadian postal code.";
+				$this->error_text .= "\n<li>You must supply a valid Canadian postal code.";
 			}
 		}
 		
@@ -979,7 +973,7 @@ class PersonEdit extends Handler
 			$gender = var_from_getorpost('gender');
 			if( !preg_match("/^[mf]/i",$gender ) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must select either male or female for gender.";
+				$this->error_text .= "\n<li>You must select either male or female for gender.";
 			}
 		}
 		
@@ -989,7 +983,7 @@ class PersonEdit extends Handler
 			$birthday = var_from_getorpost('birth_Day');
 			if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must provide a valid birthdate";
+				$this->error_text .= "\n<li>You must provide a valid birthdate";
 			}
 		}
 		
@@ -997,18 +991,18 @@ class PersonEdit extends Handler
 			$skill = var_from_getorpost('skill_level');
 			if( $skill < 1 || $skill > 5 ) {
 				$rc = false;
-				$this->error_text .= "\n<br>You must select a skill level between 1 and 5";
+				$this->error_text .= "\n<li>You must select a skill level between 1 and 5";
 			}
 			
 			$year_started = var_from_getorpost('started_Year');
 			$current = localtime(time(),1);
 			$this_year = $current['tm_year'] + 1900;
 			if( $year_started > $this_year ) {
-				$this->error_text .= "\n<br>Year started must be before current year.";
+				$this->error_text .= "\n<li>Year started must be before current year.";
 				$rc = false;
 			}
 			if( $year_started < $birthyear + 8) {
-				$this->error_text .= "\n<br>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
+				$this->error_text .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
 				$rc = false;
 			}
 		}

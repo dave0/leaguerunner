@@ -185,11 +185,8 @@ class FieldCreate extends FieldEdit
 		global $DB, $session;
 		
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Field/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 		
 		$field_name = trim(var_from_getorpost("field_name"));
@@ -299,11 +296,8 @@ class FieldEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Field/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 
 		$this->tmpl->assign("field_name", var_from_getorpost('field_name'));
@@ -318,11 +312,8 @@ class FieldEdit extends Handler
 		global $DB;
 
 		if(! $this->validate_data()) {
-			/* Oops... invalid data.  Redisplay the confirmation page */
-			$this->set_template_file("Field/edit_form.tmpl");
-			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("page_step", 'confirm');
-			return $this->generate_form();
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
 		}
 		
 		$res = $DB->query("UPDATE field_info SET name = ?, url = ? WHERE field_id = ?",
@@ -346,14 +337,14 @@ class FieldEdit extends Handler
 		
 		$field_name = var_from_getorpost("field_name");
 		if( !validate_nonhtml($field_name) ) {
-			$this->error_text .= "Field name cannot be left blank<br>";
+			$this->error_text .= "<li>Field name cannot be left blank";
 			$rc = false;
 		}
 		
 		$field_website = var_from_getorpost("field_website");
 		if(validate_nonblank($field_website)) {
 			if( ! validate_nonhtml($field_website) ) {
-				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
+				$this->error_text .= "<li>If you provide a website URL, it must be valid.";
 				$rc = false;
 			}
 		}
