@@ -5,6 +5,7 @@
 #
 # Dave O'Neill May 23, 2003
 use strict;
+use lib qw(../../scripts);
 use Carp;
 use DBI;
 use POSIX;
