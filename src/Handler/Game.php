@@ -140,7 +140,7 @@ class GameSubmit extends Handler
 		
 		if( count($opponent_entry) <= 0 ) {
 			// No opponent entry, so just add to the score_entry table
-			if($this->save_one_score($our_entry) == false) {
+			if($this->save_one_score($id, $team_id, $our_entry) == false) {
 				return false;
 			}
 			$resultMessage ="This score has been saved.  Once your opponent has entered their score, it will be officially posted";
@@ -197,7 +197,7 @@ class GameSubmit extends Handler
 
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 			} else {
-				if($this->save_one_score($our_entry) == false) {
+				if($this->save_one_score($id, $team_id, $our_entry) == false) {
 					return false;
 				}
 				$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
@@ -265,11 +265,6 @@ class GameSubmit extends Handler
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('team_id', $team_id);
-		if($defaulted == 'no') {
-			$output .= form_hidden('score_for', $scoreFor);
-			$output .= form_hidden('score_against', $scoreAgainst);
-			$output .= form_hidden('sotg', $sotg);
-		}
 		$output .= form_hidden('defaulted', $defaulted);
 		
 		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
@@ -281,9 +276,9 @@ class GameSubmit extends Handler
 			$output .= simple_row($myName .":", 6);
 			$output .= simple_row($opponentName .":", "0 (defaulted)");
 		} else {
-			$output .= simple_row($myName .":", $scoreFor);
-			$output .= simple_row($opponentName .":", $scoreAgainst);
-			$output .= simple_row("SOTG for $opponentName:", $sotg);
+			$output .= simple_row($myName .":", $scoreFor . form_hidden('score_for', $scoreFor));
+			$output .= simple_row($opponentName .":", $scoreAgainst . form_hidden('score_against', $scoreAgainst));
+			$output .= simple_row("SOTG for $opponentName:", $sotg . form_hidden('sotg', $sotg));
 		}
 
 
@@ -434,7 +429,7 @@ ENDSCRIPT;
 		return true;
 	}
 
-	function save_one_score ( $our_entry ) 
+	function save_one_score ( $id, $team_id, $our_entry ) 
 	{
 		global $DB, $session;
 
