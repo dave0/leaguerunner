@@ -186,12 +186,13 @@ function league_splash ()
 			),
 			array(
 				'data' => theme_links($links), 
+				'align' => 'right'
 			)
 		);
 	}
 	reset($session->user->leagues);
 			
-	return "<div class='myteams'>" . table( $header, $rows ) . "</div>";
+	return table( $header, $rows );
 }
 
 /**

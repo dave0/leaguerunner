@@ -90,6 +90,37 @@ function game_permissions ( &$user, $action, &$game, $extra )
 }
 
 /**
+ * Generate view of teams for initial login splash page.
+ */
+function game_splash ()
+{
+	global $session;
+
+	$games = db_query("SELECT s.game_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
+        AND g.game_date < CURDATE() ORDER BY g.game_date desc LIMIT 4", $session->user->user_id);
+	$rows = array();
+	while($row = db_fetch_object($games) ) {
+		$game = game_load( array('game_id' => $row->game_id) );
+		array_unshift($rows, array( 
+			"$game->game_date $game->game_start-$game->game_end",
+			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 2),
+			"$game->home_score - $game->away_score"	
+		));
+	}
+	
+	 $games = db_query("SELECT s.game_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
+        AND g.game_date >= CURDATE() ORDER BY g.game_date asc LIMIT 4", $session->user->user_id);
+	while($row = db_fetch_object($games) ) {
+		$game = game_load( array('game_id' => $row->game_id) );
+		$rows[] = array( 
+			"$game->game_date $game->game_start-$game->game_end",
+			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 3)
+		);
+	}
+	return table(array(  array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows);
+}
+
+/**
  * Add game information to menu
  */
 function game_add_to_menu( &$league, &$game )

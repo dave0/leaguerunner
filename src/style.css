@@ -82,11 +82,11 @@ fieldset {
 .fieldlist td    { vertical-align: top; font-size: 8pt; }
 
 
-.myteams table { border-collapse: collapse; width: 100% }
-.myteams th { text-align: left; background-color: black; color: white; 
-              font-size: 9pt; }
-.myteams td { vertical-align: top; font-size: 9pt; }
-.myteams .highlight { background-color: lightblue; }
+.splash table { border-collapse: collapse; width: 100% }
+.splash th { text-align: left; background-color: black; color: white;
+              font-weight: bold; font-size: 9pt; }
+.splash td { vertical-align: top; font-size: 8pt; }
+.splash .highlight { background-color: lightblue; }
 
 .calendar .row-week td a  { display: block; }
 .calendar .row-week td a:hover { background-color: #888; color: #fff; }

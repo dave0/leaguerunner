@@ -90,6 +90,10 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			}
 			break;
 		case 'delete':
+			if( $user->is_captain_of( $id ) ) {
+				return true;
+			}
+			break;
 		case 'statistics':
 			// admin-only
 			break;
@@ -158,13 +162,7 @@ function team_add_to_menu( &$team )
 function team_splash ()
 {
 	global $session;
-
-	$header = array(
-		array('data' => 'My Teams', 'width' => 90 ),
-		array('data' => '&nbsp', 'colspan' => 3 )
-	);
 	$rows = array();
-		
 	$rows[] = array('','', array( 'data' => '','width' => 90), '');
 		
 	$rosterPositions = getRosterPositions();
@@ -174,39 +172,16 @@ function team_splash ()
 		
 		$rows[] = 
 			array(
-				array('data' => "$team->name ($team->position)", 
-				      'colspan' => 3, 'class' => 'highlight'),
+				l($team->name, "team/view/$team->id") . " ($team->position)",
 				array('data' => theme_links(array(
-						l("info", "team/view/$team->id"),
-						l("scores and schedules", "team/schedule/$team->id"),
+						l("schedules", "team/schedule/$team->id"),
 						l("standings", "league/standings/$team->league_id"))),
-					  'align' => 'right', 'class' => 'highlight')
+					  'align' => 'right')
 		);
 
-		$game = game_load( array('either_team' => $team->id, 'game_date_past' => 'CURDATE()', '_order' => 'g.game_date desc LIMIT 1'));
-		$game_text = 'n/a';
-		if( $game ) {
-			$game_text = $game->sprintf('vs', $team->id);
-		}
-		$rows[] = array(
-			'&nbsp;', 
-			"Last game:",
-			array( 'data' => $game_text, 'colspan' => 2)
-		);
-		$game = game_load( array('either_team' => $team->id, 'game_date_future' => 'CURDATE()', '_order' => 'g.game_date asc LIMIT 1'));
-		$game_text = 'n/a';
-		if( $game ) {
-			$game_text = $game->sprintf('vs', $team->id);
-		}
-		$rows[] = array(
-			'&nbsp;', 
-			"Next game:",
-			array( 'data' => $game_text, 'colspan' => 2)
-		);
 	}
 	reset($session->user->teams);
-		
-	return "<div class='myteams'>" . table( $header, $rows ) . "</div>";
+	return table( array( array('data' => 'My Teams', colspan => 4),), $rows);
 }
 
 

@@ -22,7 +22,7 @@ class MainMenu extends Handler
 	{
 		global $session;
 		$this->setLocation(array( $session->attr_get('fullname') => 0 ));
-		return join("",module_invoke_all('splash'));
+		return "<div class='splash'>" . join("",module_invoke_all('splash')) . "</div>";
 	}
 }
 ?>
