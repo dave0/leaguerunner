@@ -603,7 +603,6 @@ class ScheduleView extends Handler
 		);
 		
 		$this->_required_perms = array(
-			'require_valid_session',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'allow',
@@ -768,7 +767,7 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 			
 	$gameRow = array(
 		$game['round'],
-		$game['time'],
+		l($game['time'], 'game/view/' . $game['id']),
 		$homeTeam,
 		$awayTeam,
 		l( get_field_name($game['field_id']), "site/view/" . $game['site_id']),
@@ -784,8 +783,6 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 			$gameRow[] = $game['away_spirit'];
 		}
 	}
-
-	$gameRow[] = l('view game', 'game/view/' . $game['id']);
 
 	return $gameRow;
 }

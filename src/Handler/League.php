@@ -502,7 +502,6 @@ class LeagueStandings extends Handler
 		);
 
 		$this->_required_perms = array(
-			'require_valid_session',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'allow',
