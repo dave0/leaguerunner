@@ -502,7 +502,7 @@ class TeamRosterStatus extends Handler
 		$playerId = arg(3);
 
 		if( !$playerId ) {
-			if( !$session->is_captain_of($team_id)) {
+			if( !$session->is_captain_of($teamId)) {
 				$this->error_exit("You cannot add a person to that team!");
 			}
 			
