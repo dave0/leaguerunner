@@ -1161,7 +1161,7 @@ END_TEXT;
 		}
 
 		if( validate_nonblank($edit['height']) ) {
-			if( ($edit['height'] < 36) || ($edit['height'] > 84) ) {
+			if( !$session->is_admin() && ( ($edit['height'] < 36) || ($edit['height'] > 84) )) {
 				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
 			}
 		}
