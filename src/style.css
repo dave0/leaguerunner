@@ -83,7 +83,7 @@ TABLE {
   text-decoration: none;
 }
 
-.standings_title, .menu_title, .schedule_title, .teamlist_title, .roster_title {
+.booking_title, .standings_title, .menu_title, .schedule_title, .teamlist_title, .roster_title {
 	background-color:    black;
 	color:               white;
 	font-weight:         bold;
@@ -101,16 +101,7 @@ TABLE {
 	font-size: 11px;
 }
 
-.standings_item, .menu_item, .schedule_item, .teamlist_item, .roster_item {
-	border-bottom-width: 1px;
-	border-bottom-color: gray;
-	border-bottom-style: solid;
-	font-size: 11px;
-}
-.booking_item {
-	font-size: 11px;
-}
-.booking_item_ul {
+.booking_item, .standings_item, .menu_item, .schedule_item, .teamlist_item, .roster_item {
 	border-bottom-width: 1px;
 	border-bottom-color: gray;
 	border-bottom-style: solid;

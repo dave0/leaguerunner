@@ -104,14 +104,18 @@ class FieldView extends Handler
 			return false;
 		}
 		$daynum = array( 'Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6);
-		$assignments = array();
-		while(list(,$booking) = each($rows)) {
-
-			$num = $daynum[$booking['day']];
+		$assignments = array(
+			array( 'day' => "Sunday", 'leagues' => array()),
+			array( 'day' => "Monday", 'leagues' => array()),
+			array( 'day' => "Tuesday", 'leagues' => array()),
+			array( 'day' => "Wednesday", 'leagues' => array()),
+			array( 'day' => "Thursday", 'leagues' => array()),
+			array( 'day' => "Friday", 'leagues' => array()),
+			array( 'day' => "Saturday", 'leagues' => array()),
+		);
 		
-			if(!isset($assignments[$num])) {
-				$assignments[$num] = array ( 'day' => $booking['day'], 'leagues' => array() );
-			}
+		while(list(,$booking) = each($rows)) {
+			$num = $daynum[$booking['day']];
 			$assignments[$num]['leagues'][] = $booking;
 		}
 

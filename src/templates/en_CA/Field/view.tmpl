@@ -11,36 +11,34 @@
     <td class='row_title' valign='top'>Assignments:</td>
     <td class='row_data'>
       <table width="100%" cellspacing="0" cellpadding="3">
-      {foreach name=assignments from=$field_assignments item=booking}
-      {foreach name=leagues from=$booking.leagues item=league}
-      {assign var=row_style value=booking_item}
-      {if $smarty.foreach.leagues.last}
-        {assign var=row_style value=booking_item_ul}
-      {/if}
-      <tr>
-        <td class='{$row_style}' valign='top'>
-          {if $smarty.foreach.leagues.first}
-            {$booking.day}
-          {/if}
-          &nbsp;
-        </td>
-        <td class="{$row_style}"><a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">{$league.name}</a></td>
-        <td class="{$row_style}">
-        {if $perm_field_edit}
-				  [ <A href="{$app_cgi_location}?op=field_unassign&id={$field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a> ]
-        {/if}
-        </td>
-        {if $perm_field_edit}
-        <td class='{$row_style}'>
-          {if $smarty.foreach.leagues.first}
-					[ <A href="{$app_cgi_location}?op=field_assign&id={$field_id}&day={$booking.day}">add new booking</a> ]
-          {else}
-          &nbsp;
-          {/if}
-        </td>
-        {/if}
+      <tr class='booking_title'>
+        <td>Day</td>
+        <td>League</td>
+        <td colspan="2">&nbsp;</td>
       </tr>
+      {foreach name=assignments from=$field_assignments item=booking}
+      <tr>
+        <td class='booking_item' valign='top'>
+           {$booking.day}
+        </td>
+        <td class='booking_item'>
+      {foreach name=leagues from=$booking.leagues item=league}
+         &raquo;&nbsp;{$league.name} [&nbsp;<a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">view league</a> {if $perm_field_edit}
+				  | <A href="{$app_cgi_location}?op=field_unassign&id={$field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a>
+        {/if}
+        ]<br>
+      {foreachelse}
+        &nbsp;
       {/foreach}
+        </td>
+        <td class='booking_item' valign="top">
+        {if $perm_field_edit}
+					[ <A href="{$app_cgi_location}?op=field_assign&id={$field_id}&day={$booking.day}">add new booking</a> ]
+        {else}
+          &nbsp;
+        {/if}
+        </td>
+      </tr>
       {/foreach}
       </table>
     </td>
