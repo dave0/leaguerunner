@@ -103,33 +103,35 @@ class PersonApproveNewAccount extends PersonView
 
 		$year_started = $person_info['year_started'];
 
-		/* TODO Here is where we should generate the member number */
 		$result = $DB->query('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ?', array($year_started));
 		if($this->is_database_error($result)) {
 			return false;
 		}
-		$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
-		if($this->is_database_error($member_id)) {
-			$this->error_text = gettext("Couldn't get member ID allocation");
-			return false;
-		}
-		if($member_id == 0) {
+
+		if($DB->affectedRows() == 1) {
+			$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
+			if($this->is_database_error($member_id)) {
+				$this->error_text = gettext("Couldn't get member ID allocation");
+				return false;
+			}
+		} else {
 			/* Possible empty, so fill it */
-			$result = $DB->getOne("SELECT GET_LOCK('member_id_${year_started}_lock',10)");
-			if($this->is_database_error($result)) {
+			$lock = $DB->getOne("SELECT GET_LOCK('member_id_${year_started}_lock',10)");
+			if($this->is_database_error($lock)) {
 				$this->error_text = gettext("Couldn't get lock for member_id allocation");
 				return false;
 			}
-			if($result == 0) {
+			if($lock == 0) {
 				/* Couldn't get lock */
 				$this->error_text = gettext("Couldn't get lock for member_id allocation");
 				return false;
 			}
-			$result = $DB->query("REPLACE INTO member_id_sequence values(?,0)", array($year_started));
-			if($this->is_database_error($result)) {
+			$result = $DB->query("REPLACE INTO member_id_sequence values(?,1)", array($year_started));
+			$lock = $DB->getOne("SELECT RELEASE_LOCK('member_id_${year_started}_lock')");
+			if($this->is_database_error($lock)) {
 				return false;
 			}
-			$result = $DB->getOne("SELECT RELEASE_LOCK('member_id_${year_started}_lock')");
+			/* Check the result error after releasing the lock */
 			if($this->is_database_error($result)) {
 				return false;
 			}
