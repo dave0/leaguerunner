@@ -104,7 +104,7 @@ function arg($index) {
 
 function array2object($ary) {
 
-  if (is_array($aru)) {
+  if (is_array($ary)) {
     foreach ($ary as $key => $value) {
       $object->$key = $value; 
     }
