@@ -1230,7 +1230,7 @@ class PersonCreate extends PersonEdit
 				
 			default:
 				$edit = array();
-				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
+				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.  <br /><br /><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href='http://www.ocua.ca/leaguerunner/person/forgotpassword'>follow these instructions</a> to gain access to your account.");
 		}
 		$this->setLocation(array( $this->title => 0));
 		return $rc;
@@ -1704,21 +1704,24 @@ class PersonForgotPassword extends Handler
 	{
 		$output = <<<END_TEXT
 <p>
-	If you've forgotten your password, please enter as much information
-	as you can in the following fields.   If you can only remember one
-	or two things, that's OK... we'll try and figure it out.  Member ID 
-	or username are required if you are sharing an email address with
-	another registered player.
-</p><p>
-	<b>NOTE!</b> Please follow the instructions!  If you only know your
-	username and not your member ID, DON'T enter the member ID!  If you don't
-	remember which email address you used, DON'T enter an email address with
-	your userid.  If you don't remember your userid but do remember your
-	email, DON'T try and guess.  Randomly guessing at userids will NOT work.
-	Randomly guessing at email addresses will NOT work.  Randomly guessing at member numbers will NOT work.
-</p><p>
+	If you'd like to reset your password, please enter ANY ONE OF:
+	<ul>
+		<li>Your username 
+		<li>Your email address
+		<li>Your member number
+	</ul>
+	in the form below.  You only need to provide multiple pieces of
+	information if you are sharing an email account with another OCUA player.
+</p>
+<p>
+	If the information you provide matches an account, an email will be sent
+	to the address on file, containing login information and a new password.
 	If you don't receive an email within a few hours, you may not have
-	remembered correctly.
+	remembered your information correctly.
+</p>
+<p>
+  If you really can't remember any of these, you can mail <a
+  href="mailto:leaguerunner@ocua.ca">leaguerunner@ocua.ca</a> for support.  <b>DO NOT CREATE A NEW ACCOUNT!</b>
 </p>
 END_TEXT;
 
@@ -1727,7 +1730,7 @@ END_TEXT;
 		$output .= table(null, array(
 			array("Username:", form_textfield('', 'edit[username]', '', 25, 100)),
 			array("Member ID Number:", form_textfield('', 'edit[member_id]', '', 25, 100)),
-			array("Email Address:", form_textfield('', 'edit[email]', '', 40, 100))
+			array("Email Address:", form_textfield('', 'edit[email]', '', 40, 100, "(please enter only ONE email address in this box)"))
 		));
 		$output .= "</div>";
 		$output .= form_submit("Submit") . form_reset("Reset");
@@ -1779,7 +1782,8 @@ END_TEXT;
 					'%password' => $pass,
 					'%site' => variable_get('app_name','Leaguerunner')
 				)),
-				"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
+			 	"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
+				"-f " . variable_get('app_admin_email','webmaster@localhost'));
 			if($rc == false) {
 				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
