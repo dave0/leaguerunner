@@ -194,23 +194,25 @@ class Game extends LeaguerunnerObject
 	{
 		switch($format) {
 			case 'debug':
-				$output = "<pre>--- <br>\n"
-					. "GAME_ID: $this->game_id <br>\n"
-					. "LEAGUE_ID: $this->league_id <br>\n"
-					. "ROUND: $this->round <br>\n"
-					. "DATE: $this->game_date <br>\n"
-					. "START: $this->game_start <br>\n"
-					. "FIELDCODE: $this->field_code <br>\n"
-					. "HOME_TEAM: $this->home_team <br>\n"
-					. "HOME_NAME: $this->home_name <br>\n"
-					. "HOME_SCORE: $this->home_score <br>\n"
-					. "HOME_DEP_GAME: $this->home_dependant_game <br>\n"
-					. "HOME_DEP_TYPE: $this->home_dependant_type <br>\n"
-					. "AWAY_TEAM: $this->away_team <br>\n"
-					. "AWAY_NAME: $this->away_name <br>\n"
-					. "AWAY_SCORE: $this->away_score <br>\n"
-					. "AWAY_DEP_GAME: $this->away_dependant_game <br>\n"
-					. "AWAY_DEP_TYPE: $this->away_dependant_type <br>\n</pre>";
+				$output = "<pre>--- \n"
+					. "GAME_ID:       $this->game_id \n"
+					. "LEAGUE_ID:     $this->league_id \n"
+					. "ROUND:         $this->round \n"
+					. "DATE:          $this->game_date \n"
+					. "START:         $this->game_start \n"
+					. "FIELDCODE:     $this->field_code \n"
+					. "HOME_TEAM:     $this->home_team \n"
+					. "HOME_NAME:     $this->home_name \n"
+					. "HOME_SCORE:    $this->home_score \n"
+					. "HOME_DEP_GAME: $this->home_dependant_game \n"
+					. "HOME_DEP_TYPE: $this->home_dependant_type \n"
+					. "HOME_DEP_RANK: $this->home_dependant_rank \n"
+					. "AWAY_TEAM:     $this->away_team \n"
+					. "AWAY_NAME:     $this->away_name \n"
+					. "AWAY_SCORE:    $this->away_score \n"
+					. "AWAY_DEP_GAME: $this->away_dependant_game \n"
+					. "AWAY_DEP_TYPE: $this->away_dependant_type \n"
+					. "AWAY_DEP_RANK: $this->away_dependant_rank \n</pre>\n";
 				break;
 			case 'vs':
 				$output = "$this->game_date $this->game_start at " 

@@ -169,7 +169,7 @@ class GameCreate extends Handler
 		// before we proceed.
 		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $this->league->league_id, $datestamp);
 		if( db_result($result) == 0) {
-			$this->error_exit("Sorry, there are no fields available for your league on that day.  Check that fields have been allocated before attempting to proceed.");
+			$this->error_exit("Sorry, there are no fields available for your league on " . date("Y",$datestamp) . "-" . date("m",$datestamp) . "-" . date("d",$datestamp) . ".  Check that fields have been allocated before attempting to proceed.");
 		}
 
 		// Set up our menu
@@ -186,8 +186,8 @@ class GameCreate extends Handler
 				break;
 			case 'ladder':
 				$this->types = array(
-					'ladder' => 'ladder-style two-week shuffle "hold and move" system',
-					'fullladder' => 'full season of games using ladder-style two-week shuffle "hold and move" system',
+					'ladder' => 'One set of games, ladder-style, 1vs2, 3vs4, etc...',
+					'fullladder' => 'A <b>full season</b> of games using ladder-style two-week shuffle "hold and move" system',
 					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
 					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
 				);
@@ -325,7 +325,7 @@ class GameCreate extends Handler
 				return $this->createDayOfGames( $edit, $timestamp);
 				break;
 			case 'ladder':
-				return $this->createLadderRound( $edit, $timestamp );
+				return $this->createLadderGameSet( $edit, $timestamp );
 				break;
 			case 'fullladder':
 				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
@@ -337,10 +337,9 @@ class GameCreate extends Handler
 	}
 
 	/**
-	 * Create a single "round" for the ladder system consisting of a hold week
-	 * and a move week.
+	 * Create a single "round" for the ladder system
 	 */
-	function createLadderRound( $edit, $timestamp )
+	function createLadderGameSet( $edit, $timestamp )
 	{
 		$league = $this->league;  // shorthand
 
@@ -357,12 +356,10 @@ class GameCreate extends Handler
 		usort($league->teams, array($this, 'sort_teams_by_ranking'));
 		$sorted_order = &$league->teams;
 
-		//print "<pre>SORTED ORDER:</pre>\n";
-		//foreach ( $sorted_order as $value ) {
- 			//print "<pre>VALUE = $value->team_id $value->name</pre>\n";
-		//}
-
 		$num_games = $num_teams / 2;
+
+		// the array of games:
+		$array_of_games = array();
 
 		for($i = 0; $i < $num_games*2; $i=$i+2) {
 			$ii = $i+1;
@@ -371,14 +368,12 @@ class GameCreate extends Handler
 			$g->set('home_team', $sorted_order[$i]->team_id);
 			$g->set('away_team', $sorted_order[$ii]->team_id);
 			if ( ! $g->save() ) {
-				$this->error_exit("Could not successfully create a new game");
+				$this->rollback_games($array_of_games, "Could not successfully create a new game");
 			}
+			array_push($array_of_games,$g);
 			if ( $g->select_random_gameslot($timestamp) ) {
-				print "<pre>Success...</pre>\n";
-			} else {
-				print "<pre>Failure...</pre>\n";
+				$this->rollback_games($array_of_games, "Could not assign a randome gameslot!");
 			}
-			//print "<pre>SCHEDULE: " . $g->game_id . " IS " .$sorted_order[$i]->rank ." vs ". $sorted_order[$ii]->rank ." AT " . $g->slot_id . "</pre>\n\n";
 		}
 	}
 	
@@ -424,6 +419,9 @@ class GameCreate extends Handler
 			if ( ! $g->save() ) {
 				$this->error_exit("Could not successfully create a new game");
 			}
+			if( ! $g->select_random_gameslot($timestamp) ) {
+				$this->rollback_games($all_games, "Sorry, could not assign a gameslot for " . date("Y",$timestamp) . "-" . date("m",$timestamp) . "-" . date("d",$timestamp));
+			}
 
 			array_push ( $all_games, $g );
 		}
@@ -432,11 +430,21 @@ class GameCreate extends Handler
 		// figure out how many games there are between the start and end dates (inclusively)
 		$game_dates = $this->find_game_dates($league, $timestamp, $end_timestamp);
 
+		// ensure that there are enough game slots on each of these days!
+		foreach ($game_dates as $date) {
+			$date_string = date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date);
+			$foundGameSlot = db_query("SELECT COUNT(*) FROM league_gameslot_availability a LEFT JOIN gameslot g ON (a.slot_id = g.slot_id) WHERE game_date = '$date_string' AND league_id = $league->league_id");
+			if (db_result($foundGameSlot) < $num_games) {
+				$this->rollback_games($all_games, "Could not schedule games!  Not enough gameslots found for: " . date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date));
+			}
+		}
+		reset($game_dates);
+
 		// now, prepare the subsequent games
 		foreach ($game_dates as $date) {
 			// skip first set of games, which we've already created!
 			if ($date == $timestamp) {
-				next;
+				continue;
 			}
 			$round++;
 			for($i = 0; $i < $num_games; $i++) {
@@ -444,43 +452,34 @@ class GameCreate extends Handler
 				$g->set('league_id', $league->league_id);
 				$g->set('round', $round);
 				if ( ! $g->save() ) {
-					$this->error_exit("Could not successfully create a new game");
+					$this->rollback_games($all_games, "Could not successfully create a new game");
+				}
+				if( ! $g->select_random_gameslot($date) ) {
+					$this->rollback_games($all_games, "Could not assign a gameslot for " . date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date));
 				}
 				
 				array_push ( $all_games, $g );
 			}
 		}
 
-	/*
-		// repeat the loop, but prepare the far games
-		for($i = 0; $i < $num_games*2; $i=$i+2) {
-			$ii = $i+1;
-			$g = new Game;
-			$g->set('league_id', $league->league_id);
-			$g->set('round', $round+2);
-			if ( ! $g->save() ) {
-				$this->error_exit("Could not successfully create a new game");
-			}
-
-			array_push ( $all_games, $g );
-		}
-	*/
-
 		$all_games = $this->set_dependents($all_games, $num_teams);
 		
-		// print out all the games so that I can see them! (and delete them so that they're not stored in the db!)
-		print "<pre>--------------</pre>\n";
-		foreach ($all_games as $game) {
-			print $game->sprintf('debug');
-			//if ( ! $game->delete() ) {
-				//$this->error_exit("PROBLEM HERE");
-			//}
-		}
-		print "<pre>--------------</pre>\n";
-
-		$this->error_exit("TODO: Tony is working on this!  The output above is indicative of what WOULD have been scheduled had this function been finished.");
+		local_redirect(url("schedule/view/$league->league_id"));
 	}
 
+	/********************************************************************************
+	 *  This function takes in the array of games to delete, and an error message.
+	 *  It will try to delete all the games, and will then exit with the error message
+	 *   passed in.  If there's a problem deleting games, it'll tell you too.
+	 */
+	function rollback_games ($games, $error) {
+		foreach ($games as $g) {
+			if (! $g->delete() ) {
+				$this->error_exit("First error: $error ... Then, on top of that, there was a problem deleting the games!!!");
+			}
+		}
+		$this->error_exit($error);
+	}
 
 	/********************************************************************************
 	 *  This function takes in the league object, a start date and an end date.
@@ -527,6 +526,7 @@ class GameCreate extends Handler
 		$count = 1;
 		$wlflag = 0;
 		$game_set = 1;
+		$rankings = 1;
 		foreach ($games as $g) {
 			// don't do anything for the first game set
 			if ($count <= $games_per_set) {
@@ -536,14 +536,22 @@ class GameCreate extends Handler
 			}
 			// first game will always be winners of first 2 "prev" games
 			if ( $count - ($games_per_set*$game_set) == 1 ) {
+				// you ALWAYS want to start the rankings at 1 here!
+				$rankings = 1;
 				$get = $count - $games_per_set - 1;
 				$game = $games[ $get ];
 				$g->set('home_dependant_game', $game->game_id);
 				$g->set('home_dependant_type', "winner");
+				$g->set('home_dependant_rank', $rankings);
+				$rankings++;
 				$game = $games[ $get+1 ];
 				$g->set('away_dependant_game', $game->game_id);
 				$g->set('away_dependant_type', "winner");
-				$g->save();
+				$g->set('away_dependant_rank', $rankings);
+				$rankings++;
+				if ( !$g->save() ) {
+					$this->rollback_games($return_games, "Could not save a game!");
+				}
 				array_push ( $return_games, $g );
 				$count++;
 				continue;
@@ -554,10 +562,16 @@ class GameCreate extends Handler
 				$game = $games[ $get ];
 				$g->set('home_dependant_game', $game->game_id);
 				$g->set('home_dependant_type', "loser");
+				$g->set('home_dependant_rank', $rankings);
+				$rankings++;
 				$game = $games[ $get+1 ];
 				$g->set('away_dependant_game', $game->game_id);
 				$g->set('away_dependant_type', "loser");
-				$g->save();
+				$g->set('away_dependant_rank', $rankings);
+				$rankings++;
+				if ( !$g->save() ) {
+					$this->rollback_games($return_games, "Could not save a game!");
+				}
 				array_push ( $return_games, $g );
 				$count++;
 				$game_set++;
@@ -581,20 +595,30 @@ class GameCreate extends Handler
 					$game = $games[ $get ];
 					$g->set('home_dependant_game', $game->game_id);
 					$g->set('home_dependant_type', "winner");
+					$g->set('home_dependant_rank', $rankings);
+					$rankings++;
 					$game = $games[ $get+1 ];
 					$g->set('away_dependant_game', $game->game_id);
 					$g->set('away_dependant_type', "winner");
+					$g->set('away_dependant_rank', $rankings);
+					$rankings++;
 				} else {
 					// do losers:
 					$get = $count - $games_per_set - 2;
 					$game = $games[ $get ];
 					$g->set('home_dependant_game', $game->game_id);
 					$g->set('home_dependant_type', "loser");
+					$g->set('home_dependant_rank', $rankings);
+					$rankings++;
 					$game = $games[ $get+1 ];
 					$g->set('away_dependant_game', $game->game_id);
 					$g->set('away_dependant_type', "loser");
+					$g->set('away_dependant_rank', $rankings);
+					$rankings++;
 				}
-				$g->save();
+				if ( !$g->save() ) {
+					$this->rollback_games($return_games, "Could not save a game!");
+				}
 				array_push ( $return_games, $g );
 				$count++;
 				$wlflag = !$wlflag;
@@ -605,11 +629,17 @@ class GameCreate extends Handler
 				$game = $games[ $get ];
 				$g->set('home_dependant_game', $game->game_id);
 				$g->set('home_dependant_type', "loser");
+				$g->set('home_dependant_rank', $rankings);
+				$rankings++;
 				// get the winner:
 				$game = $games[ $get+2 ];
 				$g->set('away_dependant_game', $game->game_id);
 				$g->set('away_dependant_type', "winner");
-				$g->save();
+				$g->set('away_dependant_rank', $rankings);
+				$rankings++;
+				if ( !$g->save() ) {
+					$this->rollback_games($return_games, "Could not save a game!");
+				}
 				array_push ( $return_games, $g );
 				$count++;
 			}
@@ -625,12 +655,6 @@ class GameCreate extends Handler
 			return 0;
 		}
 		return ($a->rank < $b->rank) ? -1 : 1;
-	}
-
-	/** returns the unix timestamp for the next day **/
-	function get_next_day_timestamp ($timestamp) {
-		// there are 86400 seconds per day, so just return the old timestamp plus that number
-		return $timestamp + 86400 ;
 	}
 
 	function createDayOfGames( &$edit, $timestamp ) 

@@ -425,9 +425,7 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		// TODO: Tony changed this ordering... but, it needs to be changed back once he starts assigning game slots!
-		$result = game_query ( array( 'league_id' => $id, '_order' => 's.game_id') );
-		//$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}
