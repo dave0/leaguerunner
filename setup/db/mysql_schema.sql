@@ -20,10 +20,16 @@ CREATE TABLE person (
 	lastname        varchar(100),
 
 	email	        varchar(100),
+	allow_publish_email	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 	
 	home_phone      varchar(30),
+	publish_home_phone	ENUM("Y","N") DEFAULT 'N',
+
 	work_phone      varchar(30),
+	publish_work_phone	ENUM("Y","N") DEFAULT 'N',
+
 	mobile_phone    varchar(30),
+	publish_mobile_phone	ENUM("Y","N") DEFAULT 'N',
 
 	addr_street     varchar(50),
 	addr_city       varchar(50),
@@ -36,9 +42,6 @@ CREATE TABLE person (
 
 	skill_level  integer DEFAULT 0,  -- 1-5 scale
 	year_started integer DEFAULT 0,  -- years playing
-
-	allow_publish_email	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
-	allow_publish_phone	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 
 	session_cookie varchar(50),
 	class   enum('new','inactive','active','locked','volunteer','administrator') DEFAULT 'new' NOT NULL,

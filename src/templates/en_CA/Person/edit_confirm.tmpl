@@ -48,6 +48,12 @@
         {$email}
       </td>
     </tr>
+    <tr>
+      <td class="row_title">Show email:</td>
+      <td class="row_data">
+        <input type="hidden" name="allow_publish_email" value="{$allow_publish_email}">{$allow_publish_email}
+      </td>
+    </tr>
     
     <tr>
       <td class='row_title' valign="top">Address:</td> 
@@ -68,18 +74,21 @@
       <td class='row_title' valign="top">Phone Numbers:</td> 
       <td class='row_data'>
         {if $perm_edit_phone}
-        <input type='hidden' name='work_phone' value='{$work_phone}'>
         <input type='hidden' name='home_phone' value='{$home_phone}'>
+        <input type="hidden" name="publish_home_phone" value="{$publish_home_phone}">
+        <input type='hidden' name='work_phone' value='{$work_phone}'>
+        <input type="hidden" name="publish_work_phone" value="{$publish_work_phone}">
         <input type='hidden' name='mobile_phone' value='{$mobile_phone}'>
+        <input type="hidden" name="publish_mobile_phone" value="{$publish_mobile_phone}">
         {/if}
         {if $home_phone}
-          {$home_phone} (home)<br />
+          Home: {$home_phone} {if $publish_home_phone == 'Y'}(published){else}(private){/if}<br />
         {/if}
         {if $work_phone}
-          {$work_phone} (work)<br />
+          Work: {$work_phone} {if $publish_work_phone == 'Y'}(published){else}(private){/if}<br />
         {/if}
         {if $mobile_phone}
-          {$mobile_phone} (mobile)<br />
+          Mobile: {$mobile_phone} {if $publish_mobile_phone == 'Y'}(published){else}(private){/if}<br />
         {/if}
       </td>
     </tr>
@@ -143,18 +152,6 @@
     </tr>
     {/if}
     
-    <tr>
-      <td class="row_title">Show email:</td>
-      <td class="row_data">
-        <input type="hidden" name="allow_publish_email" value="{$allow_publish_email}">{$allow_publish_email}
-      </td>
-    </tr>
-    <tr>
-      <td class="row_title">Show phone:</td>
-      <td class="row_data">
-        <input type="hidden" name="allow_publish_phone" value="{$allow_publish_phone}">{$allow_publish_phone}
-      </td>
-    </tr>
 	</table>
 <br>
 <input type="submit" name="submit" value="Submit">

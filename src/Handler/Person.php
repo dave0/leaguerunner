@@ -20,10 +20,12 @@ class PersonView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View Account:");
+		$this->set_title("View Account");
 		$this->_permissions = array(
 			'email'		=> false,
-			'phone'		=> false,
+			'home_phone'		=> false,
+			'work_phone'		=> false,
+			'mobile_phone'		=> false,
 			'username'	=> false,
 			'birthdate'	=> false,
 			'address'	=> false,
@@ -102,7 +104,9 @@ class PersonView extends Handler
 		if($count > 0) {
 			/* is captain of at least one team, so we publish email and phone */
 			$this->_permissions['email'] = true;
-			$this->_permissions['phone'] = true;
+			$this->_permissions['home_phone'] = true;
+			$this->_permissions['work_phone'] = true;
+			$this->_permissions['mobile_phone'] = true;
 			return true; /* since the following checks are now irrelevant */
 		}
 
@@ -112,7 +116,9 @@ class PersonView extends Handler
 		$is_on_team = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = ? AND a.status <> 'captain_request' AND b.player_id = ? AND b.status = 'captain'",array($id, $session->attr_get('user_id')));
 		if($is_on_team > 0) {
 			$this->_permissions['email'] = true;
-			$this->_permissions['phone'] = true;
+			$this->_permissions['home_phone'] = true;
+			$this->_permissions['work_phone'] = true;
+			$this->_permissions['mobile_phone'] = true;
 			/* we must continue, since this player could be 'locked' */
 		}
 
@@ -125,7 +131,9 @@ class PersonView extends Handler
 			"SELECT 
 				class, 
 				allow_publish_email, 
-				allow_publish_phone
+				publish_home_phone,
+				publish_work_phone,
+				publish_mobile_phone
 			FROM person WHERE user_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
@@ -144,20 +152,30 @@ class PersonView extends Handler
 				/* No point in viewing this user's contact info since it's not
 				 * a real person, but... */
 				$this->_permissions['email'] = true;
-				$this->_permissions['phone'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
 				break;
 			case 'volunteer':
 				/* volunteers have their contact info published */
 				$this->_permissions['email'] = true;
-				$this->_permissions['phone'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
 				break;
 			case 'active':
 			case 'inactive':
-				if($row['allow_publish_email'] == 'yes') {
+				if($row['allow_publish_email'] == 'Y') {
 					$this->_permissions['email'] = true;
 				}
-				if($row['allow_publish_phone'] == 'yes') {
-					$this->_permissions['phone'] = true;
+				if($row['publish_home_phone'] == 'Y') {
+					$this->_permissions['home_phone'] = true;
+				}
+				if($row['publish_work_phone'] == 'Y') {
+					$this->_permissions['work_phone'] = true;
+				}
+				if($row['publish_mobile_phone'] == 'Y') {
+					$this->_permissions['mobile_phone'] = true;
 				}
 				break;
 			default:
@@ -211,9 +229,13 @@ class PersonView extends Handler
 			$this->tmpl->assign("email", $row['email']);
 		}
 		
-		if($this->_permissions['phone']) {
+		if($this->_permissions['home_phone']) {
 			$this->tmpl->assign("home_phone", $row['home_phone']);
+		}
+		if($this->_permissions['work_phone']) {
 			$this->tmpl->assign("work_phone", $row['work_phone']);
+		}
+		if($this->_permissions['mobile_phone']) {
 			$this->tmpl->assign("mobile_phone", $row['mobile_phone']);
 		}
 		
@@ -272,7 +294,9 @@ class PersonView extends Handler
 
 		if($this->_permissions['publish']) {
 			$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
-			$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
+			$this->tmpl->assign("publish_home_phone", $row['publish_home_phone']);
+			$this->tmpl->assign("publish_work_phone", $row['publish_work_phone']);
+			$this->tmpl->assign("publish_mobile_phone", $row['publish_mobile_phone']);
 		}
 
 		$this->tmpl->assign("has_dog", $row['has_dog']);
@@ -757,7 +781,9 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("birthdate",  $row['birthdate']);
 		
 		$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
-		$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
+		$this->tmpl->assign("publish_home_phone", $row['publish_home_phone']);
+		$this->tmpl->assign("publish_work_phone", $row['publish_work_phone']);
+		$this->tmpl->assign("publish_mobile_phone", $row['publish_mobile_phone']);
 		$this->tmpl->assign("has_dog", $row['has_dog']);
 
 		$this->tmpl->assign("class", $row['class']);
@@ -804,7 +830,9 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("class", var_from_getorpost('class'));
 		
 		$this->tmpl->assign("allow_publish_email", var_from_getorpost('allow_publish_email'));
-		$this->tmpl->assign("allow_publish_phone", var_from_getorpost('allow_publish_phone'));
+		$this->tmpl->assign("publish_home_phone", var_from_getorpost('publish_home_phone'));
+		$this->tmpl->assign("publish_work_phone", var_from_getorpost('publish_work_phone'));
+		$this->tmpl->assign("publish_mobile_phone", var_from_getorpost('publish_mobile_phone'));
 		$this->tmpl->assign("has_dog", var_from_getorpost('has_dog'));
 
 		return true;
@@ -902,8 +930,12 @@ class PersonEdit extends Handler
 		if($this->_permissions['edit_publish']) {
 			$fields[] = "allow_publish_email = ?";
 			$fields_data[] = var_from_getorpost('allow_publish_email');
-			$fields[] = "allow_publish_phone = ?";
-			$fields_data[] = var_from_getorpost('allow_publish_phone');
+			$fields[] = "publish_home_phone = ?";
+			$fields_data[] = var_from_getorpost('publish_home_phone') ? 'Y' : 'N';
+			$fields[] = "publish_work_phone = ?";
+			$fields_data[] = var_from_getorpost('publish_work_phone') ? 'Y' : 'N';
+			$fields[] = "publish_mobile_phone = ?";
+			$fields_data[] = var_from_getorpost('publish_mobile_phone') ? 'Y' : 'N';
 		}
 		
 		if($this->_permissions['edit_dog']) {

@@ -27,16 +27,21 @@
   </tr>
   {/if}
 
-  {if $perm_phone}
   <tr>
     <td class='row_title' valign="top">Phone Numbers:</td> 
     <td class='row_data'>
-      {if $home_phone}{$home_phone} (home)<br />{/if}
-      {if $work_phone}{$work_phone} (work)<br />{/if}
-      {if $mobile_phone}{$mobile_phone} (mobile)<br />{/if}
+      {if $perm_home_phone and $home_phone}
+        Home: {$home_phone} {if $perm_publish}{if $publish_home_phone == 'Y'}(published){else}(private){/if}{/if}<br />
+      {/if}
+      {if $perm_work_phone and $work_phone}
+        Work: {$work_phone} {if $perm_publish}{if $publish_work_phone == 'Y'}(published){else}(private){/if}{/if}<br />
+      {/if}
+      {if $perm_mobile_phone and $mobile_phone}
+        Mobile: {$mobile_phone} {if $perm_publish}{if $publish_mobile_phone == 'Y'}(published){else}(private){/if}{/if}<br />
+      {/if}
+      
     </td>
   </tr>
-  {/if}
 
   {if $address}  
   <tr>

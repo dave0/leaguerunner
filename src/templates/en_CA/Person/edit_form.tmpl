@@ -9,6 +9,12 @@
   {$instructions}
 </p>
 <p>
+  Note that email and phone publish settings below only apply to regular
+  players.  Captains will always have access to view the phone numbers and
+  email addresses of their confirmed players.  Also, team captains will have
+  their phone numbers and emails viewable by other players.
+</p>
+<p>
 If you have concerns about the data OCUA collects, please see our 
 <b><font color=red><a href="http://www.ocua.ca/ocua/policy/privacy_policy.html" target="_new">Privacy Policy</a></font></b>
 </p>
@@ -58,6 +64,7 @@ If you have concerns about the data OCUA collects, please see our
       <td class='row_data'>
         {if $perm_edit_email}
         <input type="text" name="email" size="25" value="{$email}">
+        <input type='checkbox' name='allow_publish_email' value='Y' {if $allow_publish_email == "Y"}checked{/if} />Allow other players to view my email
         {else}
           <a href="mailto:{$email}">{$email}</a>
         {/if}
@@ -101,18 +108,40 @@ If you have concerns about the data OCUA collects, please see our
     <tr>
       <td class='row_title' valign='top'>Phone Numbers:</td>
       <td class='row_data'>
-        Please enter in the format of <b>(NNN) NNN-NNNN</b> or <b>(NNN) NNN-NNNN x NNN</b><br /> 
-        {if $perm_edit_phone}
-		    <input type='text' name='home_phone' size='25' value='{$home_phone}'> (home)<br />
-		    <input type='text' name='work_phone' size='25' value='{$work_phone}'> (work)<br />
-		    <input type='text' name='mobile_phone' size='25' value='{$mobile_phone}'> (mobile)<br />
-        {else}
-		      {$home_phone} (home)<br />
-		      {$work_phone} (work)<br />
-		      {$mobile_phone} (mobile)<br />
-        {/if}
+        Please enter in the format of <b>(NNN) NNN-NNNN</b> or <b>(NNN) NNN-NNNN x NNN</b>
       </td>
     </tr>
+    {if $perm_edit_phone}
+    <tr>
+      <td align='right' class='row_data'>Home:</td>
+      <td class='row_data'>
+		    <input type='text' name='home_phone' size='25' value='{$home_phone}'>
+        <input type='checkbox' name='publish_home_phone' value='Y' {if $publish_home_phone == "Y"}checked{/if} />Allow other players to view this number
+      </td>
+    </tr>
+    <tr>
+      <td align='right' class='row_data'>Work:</td>
+      <td class='row_data'>
+		    <input type='text' name='work_phone' size='25' value='{$work_phone}'>
+        <input type='checkbox' name='publish_work_phone' value='Y' {if $publish_work_phone == "Y"}checked{/if} />Allow other players to view this number
+      </td>
+    </tr>
+    <tr>
+      <td align='right' class='row_data'>Mobile:</td>
+      <td class='row_data'>
+		    <input type='text' name='mobile_phone' size='25' value='{$mobile_phone}'>
+        <input type='checkbox' name='publish_mobile_phone' value='Y' {if $publish_mobile_phone == "Y"}checked{/if} />Allow other players to view this number
+    </tr>
+    {else}
+    <tr>
+      <td> </td>
+      <td class='row_data'>
+		  Home: {$home_phone}<br />
+		  Work: {$work_phone}<br />
+		  Mobile: {$mobile_phone}<br />
+      </td>
+    </tr>
+    {/if}
     
     <tr>
       <td class='row_title'>Gender:</td> 
@@ -184,35 +213,6 @@ If you have concerns about the data OCUA collects, please see our
       </td>
     </tr>
     {/if}
-    <tr>
-      <td colspan=2>May we list your email address for other members to see?  
-      {if $allow_publish_email == "Y"}
-        <input type="radio" name="allow_publish_email" value="Y" checked> Yes /  
-        <input type="radio" name="allow_publish_email" value="N"> No <br>
-      {else}
-        <input type="radio" name="allow_publish_email" value="Y"> Yes /  
-        <input type="radio" name="allow_publish_email" value="N" checked> No <br>
-      {/if}
-      </td>
-    </tr>
-    <tr>
-      <td colspan=2>May we list your phone number for other members to see?  
-      {if $allow_publish_phone == "Y"}
-        <input type="radio" name="allow_publish_phone" value="Y" checked> Yes /  
-        <input type="radio" name="allow_publish_phone" value="N"> No <br>
-      {else}
-        <input type="radio" name="allow_publish_phone" value="Y"> Yes /  
-        <input type="radio" name="allow_publish_phone" value="N" checked> No <br>
-      {/if}
-      </td>
-    </tr>
-    <tr>
-      <td colspan='2'>Note that the above settings only apply to regular
-      members.  Your team captain will always be able to see your email address
-      and telephone numbers.  As well, if you are a team captain, your email
-      and telephone numbers will be available to other players.
-      </td>
-    </tr>
 	</table>
 <br>
 <input type="submit" name="submit" value="Submit">
