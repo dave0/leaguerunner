@@ -93,11 +93,11 @@ class PersonView extends Handler
 		}
 
 		/* 
-		 * See if we're looking at a team captain.  People who are team
-		 * captains can always have their email and phone number viewed for
+		 * See if we're a captain looking at another team captain.  
+		 * Captains are always allowed to view each other for 
 		 * contact purposes.
 		 */
-		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster WHERE status = 'captain' AND player_id = ?", array($id, $id));
+		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.status = 'captain' AND a.player_id = ? AND b.status = 'captain' AND b.player_id = ?", array($id, $session->attr_get('user_id')));
 		if($this->is_database_error($count)) {
 			return false;
 		}
