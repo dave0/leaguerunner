@@ -324,7 +324,7 @@ class LeagueEdit extends Handler
 		$rows[] = array("Current Round:", 
 			form_hidden('edit[current_round]', $edit['current_round']) . $edit['current_round']);
 
-		$rows[] = array("Allow Scheduling:",
+		$rows[] = array("Scheduling Type:",
 			form_hidden('edit[schedule_type]', $edit['schedule_type']) . $edit['schedule_type']);
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
