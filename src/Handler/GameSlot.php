@@ -61,7 +61,6 @@ class GameSlotCreate extends Handler
 			return $this->datePick($site, $field_num, $year, $month, $day);
 		}
 
-		
 		$this->setLocation(array( 
 			"$site->name $field_num" => "site/view/$site->site_id",
 			$this->title => 0
@@ -201,7 +200,7 @@ class GameSlotDelete extends Handler
 {
 	function initialize ()
 	{
-		$this->title = "Create Game Slot";
+		$this->title = "Delete Game Slot";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
@@ -219,6 +218,12 @@ class GameSlotDelete extends Handler
 		if(!$slot) {
 			$this->error_exit("That game slot does not exist");
 		}
+		
+		$this->setLocation(array( 
+			$slot->site->name . " $slot->field_num" => "site/view/" . $slot->site->site_id,
+			$this->title => 0
+		));
+
 
 		switch($_POST['edit']['step']) {
 			case 'perform':
@@ -232,8 +237,7 @@ class GameSlotDelete extends Handler
 				break;
 			case 'confirm':
 			default:
-				return $this->generateConfirm($site);
-				break;
+				return $this->generateConfirm($slot);
 				break;
 		}
 		$this->error_exit("Error: This code should never be reached.");
@@ -242,8 +246,28 @@ class GameSlotDelete extends Handler
 	function generateConfirm ( &$slot )
 	{
 		// Check that the slot has no games scheduled
+		if ($slot->game_id) {
+			$this->error_exit("Cannot delete a gameslot with a currently-scheduled game");
+		}
+		
 		// Print confirmation info
-		die("TODO DMO");
+		$output = form_hidden('edit[step]', 'perform');
+		
+		$group = form_item("Date", strftime("%A %B %d %Y", $slot->date_timestamp));
+		$group .= form_item('Game Start Time', $slot->game_start);
+		$group .= form_item('Game End Time', $slot->game_end);
+		$output .= form_group("Gameslot Information", $group);
+
+		$group = '';
+		foreach( $slot->leagues as $l ) {
+			$league = league_load( array('league_id' => $l->league_id) );
+			$group .= $league->fullname . "<br />";
+		}
+		$output .= form_group('Available To:', $group);
+	
+		$output .= form_submit('submit');
+
+		return form($output);
 	}
 }
 

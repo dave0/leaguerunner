@@ -158,6 +158,9 @@ class GameSlot extends LeaguerunnerObject
 		return true;
 	}
 
+	/*
+	 * Wow, this would be so much safer if we used transactions...
+	 */
 	function delete ()
 	{
 		if ( ! $this->_in_database ) {
@@ -170,11 +173,11 @@ class GameSlot extends LeaguerunnerObject
 		}
 
 		// If we have assignments to leagues, remove them
+		db_query("DELETE FROM league_gameslot_availability WHERE slot_id = %d", $this->slot_id);
 
 		// Then, delete gameslot from table
-
-		die("TODO DMO");
-		return false;
+		db_query("DELETE FROM gameslot WHERE slot_id = %d", $this->slot_id);
+		return true;
 	}
 }
 
