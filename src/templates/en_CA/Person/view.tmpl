@@ -73,7 +73,8 @@
     <td class='row_data'>{$year_started|escape}</td>
   </tr>
   {/if}
-  
+ 
+  {if $perm_publish} 
   <tr>
     <td class="row_title">Show email:</td>
     <td class="row_data">
@@ -86,6 +87,7 @@
       {$allow_publish_phone}
     </td>
   </tr>
+  {/if}
 
   {if $class}
   <tr>
