@@ -45,12 +45,13 @@ class FieldCreate extends FieldEdit
 		$id = -1;
 		$edit = $_POST['edit'];
 		$siteID = arg(2);
-		
-		$result = db_query("SELECT site_id, name as site_name, code as site_code FROM site where site_id = %d", $siteID);
+	
+		/* TODO: site_load() */
+		$result = db_query("SELECT site_id, name, code FROM site where site_id = %d", $siteID);
 		if( 1 != db_num_rows($result) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
-		$site = db_fetch_array($result);
+		$site = db_fetch_object($result);
 		
 		switch($edit['step']) {
 			case 'confirm':
@@ -74,7 +75,7 @@ class FieldCreate extends FieldEdit
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		db_query("INSERT into field (site_id,num) VALUES (%d,%d)", $site['site_id'], $edit['num']);
+		db_query("INSERT into field (site_id,num) VALUES (%d,%d)", $site->site_id, $edit['num']);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
@@ -116,13 +117,8 @@ class FieldEdit extends Handler
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$result = db_query(
-					"SELECT 
-						f.site_id, s.name as site_name, s.code as site_code
-					 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-					 WHERE f.field_id = %d", $id);
-				$site = db_fetch_array($result);
-				$rc = $this->generateConfirm( $id, $site, $edit );
+				$field = field_load( array('field_id' => $id) );
+				$rc = $this->generateConfirm( $id, $field, $edit );
 				break;
 			case 'perform':
 				$this->perform( &$id, $edit );
@@ -139,23 +135,15 @@ class FieldEdit extends Handler
 
 	function getFormData( $id )
 	{
-		$result = db_query(
-			"SELECT 
-				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
-			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-			 WHERE f.field_id = %d",  $id);
-			 
-		$field = db_fetch_array($result);
-		
-		return $field;
+		return field_load( array('field_id' => $id) );
 	}
 
 	function generateForm ( $field )
 	{
 		$output .= form_hidden('edit[step]', 'confirm');
 		
-		$days_available = strlen($field['availability']) ? split(",", $field['availability']) : array();
-		$field['availability'] = array(
+		$days_available = strlen($field->availability) ? split(",", $field->availability) : array();
+		$field->availability = array(
 			'Sunday' => false,
 			'Monday' => false,
 			'Tuesday' => false,
@@ -165,19 +153,19 @@ class FieldEdit extends Handler
 			'Saturday' => false,
 		);
 		while(list(,$day) = each($days_available)) {
-			$field['availability'][$day] = true;
+			$field->availability[$day] = true;
 		}
 
 		$rows = array();
-		$rows[] = array('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
+		$rows[] = array('Site Name:', "$field->name ($field->code)");
 		$rows[] = array('Field Number:', 
-			form_textfield('', 'edit[num]', $field['num'], 2, 2, "Number for this field at the given site"));
+			form_textfield('', 'edit[num]', $field->num, 2, 2, "Number for this field at the given site"));
 			
 		$rows[] = array('Field Status:', 
-			form_select('', 'edit[status]', $field['status'], getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
+			form_select('', 'edit[status]', $field->status, getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
 
 		$availability = '';
-		while(list($day,$isAvailable) = each($field['availability'])) {
+		while(list($day,$isAvailable) = each($field->availability)) {
 			$availability .= form_checkbox($day,'edit[availability][]', $day, $isAvailable);
 		}
 
@@ -202,7 +190,7 @@ class FieldEdit extends Handler
 		$output .= form_hidden('edit[step]', 'perform');
 
 		$rows[] = array();
-		$rows[] = array('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
+		$rows[] = array('Site Name:', "$site->name ($site->code)");
 		$rows[] = array('Field Number:', 
 			form_hidden('edit[num]', $edit['num']) . $edit['num']);
 		$rows[] = array('Field Status:', 
@@ -286,18 +274,11 @@ class FieldView extends Handler
 	function process ()
 	{
 		$id = arg(2);
-		/* TODO: field_load() ? */
-		$result = db_query(
-			"SELECT 
-				f.*, s.name, s.code
-			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
-			 WHERE f.field_id = %d", $id);
-			 
-		if(1 != db_num_rows($result) ) {
+		
+		$field = field_load( array('field_id' => $id) );
+		if(!$field) {
 			$this->error_exit("That field does not exist");
 		}
-
-		$field = db_fetch_object($result);
 
 		$daysAvailable = strlen($field->availability) ? split(",", $field->availability) : array();
 		
@@ -348,7 +329,7 @@ class FieldView extends Handler
 		}
 		
 		$this->setLocation(array(
-			"$field->name $field->num" => "field/view/$id",
+			$field->fullname => "field/view/$id",
 			$this->title => 0
 		));
 
@@ -446,13 +427,14 @@ class FieldAssign extends Handler
 		
 		if( ! $league ) {
 			$this->error_exit("You must provide a valid league ID");
-			return false;
 		}
 	
-		/* TODO: field_load */
-		$field_name = get_field_name($id);
+		$field = field_load( array( 'field_id' => $id) );
+		if(!$field) {
+			$this->error_exit("You must provide a valid field ID");
+		}
 		$this->setLocation(array(
-			$field_name => "field/view/$id",
+			"$field->fullname ($field->abbrev)" => "field/view/$id",
 			$this->title => 0
 		));
 		
@@ -508,10 +490,12 @@ class FieldUnassign extends Handler
 		switch($edit['step']) {
 			default:
 			case 'confirm':
-				/* TODO: field_load */
-				$field_name = get_field_name($id);
+				$field = field_load( array( 'field_id' => $id) );
+				if(!$field) {
+					$this->error_exit("You must provide a valid field ID");
+				}
 				$this->setLocation(array(
-					$field_name => "field/view/$id",
+					"$field->fullname ($field->abbrev)" => "field/view/$id",
 					$this->title => 0
 				));
 
@@ -532,4 +516,42 @@ class FieldUnassign extends Handler
 	}
 }
 
+/**
+ * Load a single field object from the database using the supplied query
+ * data.  If more than one field matches, we will return only the first one.
+ * If fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the field to be loaded.
+ */
+function field_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if($key == '_extra') {
+			/* Just slap on any extra query fields desired */
+			$query[] = $value;
+		} else {
+			$query[] = "f.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+		f.*, s.name, s.code
+	 	FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	$field = db_fetch_object($result);
+
+	/* set derived attributes */
+	$field->fullname = "$field->name $field->num";
+	$field->abbrev = "$field->code $field->num";
+
+	return $field;
+}
 ?>
