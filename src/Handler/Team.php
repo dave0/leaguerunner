@@ -35,46 +35,37 @@ class TeamAddPlayer extends Handler
 			'deny',
 		);
 
+		$this->op = 'team_addplayer';
+
 		return true;
 	}
 
 	function process ()
 	{
 		global $DB;
-
-		$this->set_template_file("Team/add_player_list.tmpl");
-
+		
 		$id = var_from_getorpost("id");
 		$letter = var_from_getorpost("letter");
-		$letters = $DB->getCol("SELECT DISTINCT UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
 		
-		if(!isset($letter)) {
-			$letter = $letters[0]; 
-		}
-
-		$found = $DB->getAll(
-			"SELECT 
-				CONCAT(lastname,', ',firstname) AS value, 
-				user_id AS id_val 
-			 FROM person
-			 WHERE lastname LIKE ? ORDER BY lastname",
-			array($letter . "%"), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
+		$ops = array(
+			array(
+				'name' => 'view', 'target' => 'op=person_view&id='
+			),
+			array(
+				'name' => 'request player', 'target' => "op=team_playerstatus&id=$id&step=confirm&status=captain_request&player_id="
+			)	
+		);
 		
-		$letter = strtoupper($letter);
-		$this->tmpl->assign("letter", $letter);
+        $query = $DB->prepare("SELECT 
+			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
+			FROM person WHERE lastname LIKE ? ORDER BY lastname");
 		
-		$this->tmpl->assign("letters", $letters);
-		$this->tmpl->assign("list", $found);
-		$this->tmpl->assign("id", $id);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
 		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-		
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
 		return true;
 	}
 }
@@ -338,7 +329,7 @@ class TeamList extends Handler
 			'require_valid_session',
 			'allow',
 		);
-
+		$this->op = 'team_list';
 		return true;
 	}
 	
@@ -359,7 +350,7 @@ class TeamList extends Handler
 			),
 		);
 		
-		$output =  $this->generateAlphaList($query, $ops, 'name', 'team', 'team_list', $letter);
+		$output =  $this->generateAlphaList($query, $ops, 'name', 'team', $this->op, $letter);
 		
 		print $this->get_header();
 		print h1($this->title);
@@ -977,8 +968,8 @@ class TeamView extends Handler
 				'op=person_view&id=' . $roster[$i]['id']);
 			
 			if($this->_permissions['edit_team'] || ($roster[$i]['id'] == $session->attr_get("user_id"))) {
-				$player_links[] = l('change_status',
-					"op=team_playerstatus&id=$id&player_id" . $roster[$i]['id']);
+				$player_links[] = l('change status',
+					"op=team_playerstatus&id=$id&player_id=" . $roster[$i]['id']);
 			}
 			
 			$rosterdata .= tr(
@@ -995,7 +986,7 @@ class TeamView extends Handler
 
 		print $this->get_header();
 		print h1($team_name);
-		print simple_tag("blockquote", theme_links($links));
+		print blockquote(theme_links($links));
 		print "<table border='0'>";
 		print tr(
 			td($teamdata, array('align' => 'left', 'valign' => 'top'))
@@ -1030,6 +1021,7 @@ class TeamScheduleView extends Handler
 			'captain_of:id',
 			'allow'
 		);
+		$this->op = 'team_schedule_view';
 
 		return true;
 	}
@@ -1049,47 +1041,48 @@ class TeamScheduleView extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$this->set_template_file("Team/schedule_view.tmpl");
-		
-		$row = $DB->getRow("
-			SELECT
-				l.name AS league_name, 
-				l.tier,
-				l.league_id, 
+		$team = $DB->getRow("SELECT
+				lt.league_id, 
 				t.name AS team_name
 		  	FROM
-		  		league l, leagueteams lt, team t
+		  		leagueteams lt, team t
 			WHERE
-		  		l.league_id = lt.league_id 
-				AND t.team_id = lt.team_id 
+				t.team_id = lt.team_id 
 				AND lt.team_id = ? ", 
 		array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($team)) {
 			return false;
 		}
-
-		if(!isset($row)) {
-			$this->error_exit("The team [$id] does not exist");
-			return false;
+		
+		if(!isset($team)) {
+			$this->error_exit("That team does not exist");
 		}
 
-		$this->set_title("View Schedule for " . $row['team_name']);
+		$links = array();
+		$links[] = l("view team", "op=team_view&id=$id");
+		$links[] = l("view league", "op=league_view&id=" . $team['league_id']);
+		$links[] = l("view league schedule", "op=league_schedule_view&id=" . $team['league_id']);
 
-		$this->tmpl->assign("team_name", $row['team_name']);
-		$this->tmpl->assign("team_id", $id);
-		$this->tmpl->assign("league_name", $row['league_name']);
-		$this->tmpl->assign("league_tier", $row['tier']);
-		$this->tmpl->assign("league_id", $row['league_id']);
+		$this->set_title("View Schedule &raquo; " . $team['team_name']);
+
+		$output = "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= tr(
+			td("Date", array('class' => 'schedule_title'))
+			. td("Time", array('class' => 'schedule_title'))
+			. td("Opponent", array('class' => 'schedule_title'))
+			. td("Location", array('colspan' => 2, 'class' => 'schedule_title'))
+			. td("Score", array('colspan' => 2, 'class' => 'schedule_title'))
+		);
 
 		/*
 		 * Grab schedule info 
 		 * This select is still evil, but not as evil as it could be.
 		 */
-		$rows = $DB->getAll(
+		$result = $DB->query(
 			"SELECT 
 				s.game_id, 
-				DATE_FORMAT(s.date_played, '%a %b %d %Y') as game_date,
-				TIME_FORMAT(s.date_played,'%l:%i %p') as game_time,
+				DATE_FORMAT(s.date_played, '%a %b %d %Y') as date,
+				TIME_FORMAT(s.date_played,'%l:%i %p') as time,
 				s.home_team AS home_id, 
 				s.away_team AS away_id, 
 				s.field_id, 
@@ -1107,77 +1100,80 @@ class TeamScheduleView extends Handler
 				LEFT JOIN site t ON (t.site_id = f.site_id) 
 			WHERE (s.home_team = ? OR s.away_team = ?) 
 			ORDER BY s.date_played",
-		array($id, $id),
-		DB_FETCHMODE_ASSOC);
+		array($id, $id));
 			
-		if($this->is_database_error($rows)) {
+		if($this->is_database_error($result)) {
 			return false;
 		}
 
-		$games = array();
-		$schedule = array();
-		while(list(,$this_row) = each($rows)) {
-			/* Grab game info.  We will assume that we're away, and correct
-			 * for it if we're not
-			 */
-			$week = array(
-				'id' => $this_row['game_id'],
-				'date' => $this_row['game_date'],
-				'time' => $this_row['game_time'],
-				'opponent_id' => $this_row['away_id'],
-				'opponent_name' => $this_row['away_name'],
-				'field_id' => $this_row['field_id'],
-				'site_id' => $this_row['site_id'],
-				'field_code' => $this_row['field_code'],
-				'home_away' => 'home'
-			);
-			/* now, fix it */
-			if($this_row['away_id'] == $id) {
-				$week['opponent_id'] = $this_row['home_id'];
-				$week['opponent_name'] = $this_row['home_name'];
-				$week['home_away'] = 'away';
+		while($game = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+		
+			if($game['home_id'] == $id) {
+				$opponent_id = $game['away_id'];
+				$opponent_name = $game['away_name'];
+				$home_away = '(home)';
+			} else {
+				$opponent_id = $game['home_id'];
+				$opponent_name = $game['home_name'];
+				$home_away = '(away)';
 			}
 
-			/* Now, look for a score entry */
-			if(!(is_null($this_row['home_score']) && is_null($this_row['away_score']))) {
+			$game_score = "&nbsp;";
+			$score_type = "&nbsp;";
+			
+			if(!(is_null($game['home_score']) && is_null($game['away_score']))) {
 				/* Already entered */
-				$week['score_type'] = 'final';
-				if($week['home_away'] == 'home') {
-					$week['score_us'] = $this_row['home_score'];
-					$week['score_them'] = $this_row['away_score'];
+				$score_type = '(accepted final)';
+				if($home_away == 'home') {
+					$game_score = $game['home_score']." - ".$game['away_score'];
 				} else {
-					$week['score_us'] = $this_row['away_score'];
-					$week['score_them'] = $this_row['home_score'];
+					$game_score = $game['away_score']." - ".$game['home_score'];
 				}
 			} else {
 				/* Not finalized yet */
 				$entered = $DB->getRow(
 					"SELECT score_for, score_against FROM score_entry WHERE game_id = ? AND team_id = ?",
-				array($week['id'], $id), DB_FETCHMODE_ASSOC);
+				array($game['game_id'], $id), DB_FETCHMODE_ASSOC);
 				
 				if($this->is_database_error($entered) ) {
 					return false;
 				}
 				if(isset($entered)) {
-					$week['score_type'] = 'entered';
-					$week['score_us'] = $entered['score_for'];
-					$week['score_them'] = $entered['score_against'];
+					$score_type = '(unofficial, waiting for opponent)';
+					$game_score = $entered['score_for']." - ".$entered['score_against'];
+				} else if($this->_permissions['submit_score']) {
+					$score_type = l("submit score", "op=game_submitscore&team_id=$id&id=" . $game['game_id']);
 				}
-				
 			}
-			$schedule[] = $week;
-		}
-		
-		$this->tmpl->assign("schedule", $schedule);
-
-		/* ... and set permissions flags */
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
+			if($game['defaulted'] != 'no') {
+				$score_type .= " (default)";
 			}
+
+			$output .= tr(
+				td($game['date'], array('class' => 'schedule_item'))
+				. td($game['time'], array('class' => 'schedule_item'))
+				. td(l($opponent_name, "op=team_view&id=$opponent_id"), array('class' => 'schedule_item'))
+				. td(l($game['field_code'], "op=site_view&id=". $game['site_id']), array('class' => 'schedule_item'))
+				. td($home_away, array('class' => 'schedule_item'))
+				. td($game_score, array('class' => 'schedule_item'))
+				. td($score_type, array('class' => 'schedule_item'))
+			);
+
 		}
 
+		$output .= "</table>";
+
+		print $this->get_header();
+		print h1($this->title);
+		print blockquote(theme_links($links));
+		print $output;
+		print $this->get_footer();
 		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 ?>

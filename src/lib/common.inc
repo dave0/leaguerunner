@@ -46,10 +46,7 @@ function validate_number ( $string )
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	if ( ! preg_match("/^\d+$/", $string) ) {
-		return false;
-	}
-	return true;
+	return ctype_digit($string);
 }
 
 function validate_name_input ( $string )

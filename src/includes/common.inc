@@ -48,6 +48,16 @@ function h1($text, $attributes = array())
 	return simple_tag("h1", $text, $attributes);
 }
 
+function para($text, $attributes = array())
+{
+	return simple_tag("p", $text, $attributes);
+}
+
+function blockquote($text, $attributes = array())
+{
+	return simple_tag("blockquote", $text, $attributes);
+}
+
 function tr($text, $attributes = array())
 {
 	return simple_tag("tr",$text, $attributes);
@@ -71,7 +81,7 @@ function l($text, $query = NULL, $attributes = array())
 	} else {
 		$attributes['href'] = url($query);
 	}
-	return simple_tag("a", $text, $attributes);
+	return simple_tag("a", check_form($text), $attributes);
 }
 
 function url($query = NULL) 

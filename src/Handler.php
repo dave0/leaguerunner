@@ -278,7 +278,7 @@ class Handler
 
 		print $this->get_header($title);
 		print h1($title, array('align' => 'left'));
-		print simple_tag("blockquote",$error);
+		print blockquote($error);
 		print $this->get_footer();
 		$DB->disconnect();
 		exit;
@@ -353,16 +353,16 @@ class Handler
 		if(!isset($letter)) {
 			$letter = $letters[0];
 		}
-		$output = "<p>";
+
+		$letterLinks = array();
 		foreach($letters as $curLetter) {
 			if($curLetter == $letter) {
-				$output .= $curLetter;
+				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$output .= l($curLetter, "op=$listOp&letter=$curLetter");
+				$letterLinks[] = l($curLetter, "op=$listOp&letter=$curLetter");
 			}
-			$output .= "&nbsp;";
 		}
-		$output .= "</p>\n";
+		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
 		$dbParams[] = "$letter%";
 		$output .= $this->generateSingleList($query, $ops, $dbParams);
 		return $output;
@@ -377,7 +377,7 @@ class Handler
 	{
 		$opsLinks = array();
 		foreach($opsList as $op) {
-			$opsLinks[] = l($op['name'], $op['target'] . "&id=$idValue");			
+			$opsLinks[] = l($op['name'], $op['target'] . $idValue);			
 		}
 		return $opsLinks;
 	}

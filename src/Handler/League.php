@@ -28,6 +28,7 @@ class LeagueCreate extends LeagueEdit
 			'admin_sufficient',
 			'deny'
 		);
+		$this->op = 'league_create';
 		return true;
 	}
 
@@ -109,6 +110,8 @@ class LeagueEdit extends Handler
 			'deny',
 		);
 
+		$this->op = 'league_edit';
+
 		return true;
 	}
 
@@ -147,7 +150,7 @@ class LeagueEdit extends Handler
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 		
 		/* ... and set permissions flags */
 		reset($this->_permissions);
@@ -400,9 +403,11 @@ class LeagueList extends Handler
 	{
 		$this->set_title("List Leagues");
 		$this->_required_perms = array(
+			'require_valid_session',
 			'allow'
 		);
 
+		$this->op = 'league_list';
 		return true;
 	}
 
@@ -410,47 +415,72 @@ class LeagueList extends Handler
 	{
 		global $DB;
 
-		$season = var_from_getorpost('season');
-		if(!isset($season)) {
-			$season = 'none';
+		$wantedSeason = var_from_getorpost('season');
+		if( ! isset($wantedSeason) ) {
+			$wantedSeason = 'none';
+		}
+		
+		/* Fetch league names */
+		$seasonNames = array_values( getOptionsFromEnum('league', 'season') );
+		if( !in_array($wantedSeason, $seasonNames) ) {
+			$this->error_exit("That is not a valid season"); 
 		} else {
-			if( !validate_nonhtml($season) ) {
-				$this->error_exit("That is not a valid season"); 
+			$this->set_title("List Leagues &raquo; $wantedSeason");
+		}
+
+		$output = "<table border='0'>";
+		$seasonLinks = array();
+		foreach($seasonNames as $curSeason) {
+			if($curSeason == $wantedSeason) {
+				$seasonLinks[] = $curSeason;
+			} else {
+				$seasonLinks[] = l($curSeason, "op=$this->op&season=$curSeason");
 			}
 		}
-	
-		if($season != 'none') {
-			$this->set_title("List $season Leagues");
-		}
-		
-		$this->set_template_file("League/list.tmpl");
-	
-		/* Fetch league names */
-		$row = $DB->getRow("SHOW COLUMNS from league LIKE 'season'", array(), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
+		$output .= tr(td(theme_links($seasonLinks), array('colspan' => 3)));
+
+		$output .= tr(
+			td("Name", array('class' => 'row_title'))
+			. td("Ratio", array('class' => 'row_title'))
+			. td("&nbsp;", array('class' => 'row_title')));
+
+		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, ratio, tier, name",
+			array($wantedSeason));
+		if($this->is_database_error($result)) {
 			return false;
 		}
-		$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
-		$str = str_replace(")","",$str);
-		$str = str_replace("'","",$str);
-		$ary = preg_split("/,/",$str);
-		$this->tmpl->assign('season_names', $ary);
-		$this->tmpl->assign("current_season", $season);
-		
-		$found = $DB->getAll(
-			"SELECT 
-				league_id AS id, name, tier, ratio
-			 FROM league
-			 WHERE season = ? ORDER BY day,name,tier",
-			array($season), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
+
+		while($league = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+			$name = $league['name'];
+			if($league['tier']) { 
+				$name .= " Tier " . $league['tier'];
+			}
+			$links = array();
+			$links[] = l('view', 'op=league_view&id=' . $league['league_id']);
+			if($league['allow_schedule'] == 'Y') {
+				$links[] = l('schedule', 'op=league_schedule_view&id=' . $league['league_id']);
+				$links[] = l('standings', 'op=league_standings&id=' . $league['league_id']);
+			}
+			$output .= tr(
+				td($name, array('class' => 'row_data'))
+				. td($league['ratio'], array('class' => 'row_data'))
+				. td(theme_links($links), array('class' => 'row_data'))
+			);
 		}
+
+		$output .= "</table>";
 		
-		$this->tmpl->assign("page_op", "league_list");
-		$this->tmpl->assign("leagues", $found);
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
 		
 		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -473,6 +503,8 @@ class LeagueScheduleAddWeek extends Handler
 			'coordinator_sufficient',
 			'deny',
 		);
+
+		$this->op = 'league_schedule_addweek';
 
 		return true;
 	}
@@ -505,7 +537,7 @@ class LeagueScheduleAddWeek extends Handler
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 		
 		return $rc;
 	}
@@ -569,11 +601,9 @@ class LeagueScheduleAddWeek extends Handler
 			$year = $today['year'];
 		}
 
-		$page_op = var_from_getorpost('op');
-
 		$cal_info = shell_exec("cal $month $year");
 		
-		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$_SERVER['PHP_SELF']."?op=$page_op&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
+		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$_SERVER['PHP_SELF']."?op=$this->op&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
 
 		$this->tmpl->assign("calendar_data", $cal_info);
 		$this->tmpl->assign("year", $year);
@@ -700,6 +730,7 @@ class LeagueScheduleEdit extends Handler
 			'admin_sufficient',
 			'coordinator_sufficient',
 		);
+		$this->op = 'league_schedule_edit';
 		return true;
 	}
 	
@@ -721,7 +752,7 @@ class LeagueScheduleEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 		}
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 		
 		return $rc;
 	}
@@ -887,6 +918,8 @@ class LeagueScheduleView extends Handler
 			'coordinator_sufficient',
 			'allow',
 		);
+
+		$this->op = 'league_schedule_view';
 
 		return true;
 	}
@@ -1080,6 +1113,8 @@ class LeagueStandings extends Handler
 			'coordinator_sufficient',
 			'allow',
 		);
+
+		$this->op = 'league_standings';
 
 		return true;
 	}
@@ -1458,6 +1493,8 @@ class LeagueView extends Handler
 			'allow',
 		);
 
+		$this->op = 'league_view';
+
 		return true;
 	}
 
@@ -1568,7 +1605,7 @@ class LeagueView extends Handler
 		$this->set_title("View League &raquo; $title");
 		print $this->get_header();
 		print h1($title);
-		print simple_tag("blockquote", theme_links($links));
+		print blockquote(theme_links($links));
 		print $output;
 		print $this->get_footer();
 		return true;
@@ -1652,6 +1689,8 @@ class LeagueMoveTeam extends Handler
 			'deny'
 		);
 
+		$this->op = 'league_moveteam';
+
 		return true;
 	}
 
@@ -1687,7 +1726,7 @@ class LeagueMoveTeam extends Handler
 				$rc = $this->generate_form();
 		}
 		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 
 		return $rc;
 	}
@@ -1821,6 +1860,8 @@ class LeagueVerifyScores extends Handler
 			'deny'
 		);
 
+		$this->op = 'league_verifyscores';
+
 		return true;
 	}
 
@@ -1909,7 +1950,7 @@ class LeagueVerifyScores extends Handler
 		$games->free();
 		
 		$this->tmpl->assign("games", $game_data);	
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 
 		return true;
 	}

@@ -325,7 +325,7 @@ class SiteList extends Handler
 			GROUP BY f.site_id ORDER BY s.name");
 	
 		$output = $this->generateSingleList($query,
-			array(array( 'name' => 'view', 'target' => 'op=site_view')));
+			array(array( 'name' => 'view', 'target' => 'op=site_view&id=')));
 		print $this->get_header();
 		print h1($this->title);
 		print $output;
@@ -414,9 +414,7 @@ class SiteView extends Handler
 
 		$this->set_title("View Site &raquo; ".$site['name']." (" . $site['code'] . ")");
 		$output = h1($this->title);
-		if(count($links) > 0) {
-			$output .= simple_tag("blockquote", theme_links($links));
-		}
+		$output .= blockquote(theme_links($links));
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site Name:", $site['name']);
 		$output .= simple_row("Site Code:", $site['code']);

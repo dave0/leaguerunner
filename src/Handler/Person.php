@@ -216,7 +216,7 @@ class PersonView extends Handler
 		$this->set_title("View Account &raquo; " . $person['firstname'] . " " . $person['lastname']);
 		$links_html =  "";
 		if(count($links) > 0) {
-			$links_html .= simple_tag("blockquote", theme_links($links));
+			$links_html .= blockquote(theme_links($links));
 		}
 
 		print $this->get_header();
@@ -413,7 +413,7 @@ class PersonDelete extends PersonView
 		$instructions = "Confirm that you wish to delete this user from the system.";
 		print $this->get_header();
 		print h1($this->title);
-		print simple_tag("p", $instructions);
+		print para($instructions);
 		print $this->generateView($person);
 		print form( 
 			form_hidden('op', $this->op)
@@ -568,7 +568,7 @@ class PersonApproveNewAccount extends PersonView
 		
 		print $this->get_header();
 		print h1($this->title);
-		print simple_tag("p", $instructions);
+		print para($instructions);
 		print $this->generateView($person);
 		print form( 
 			form_hidden('op', $this->op)
@@ -1441,6 +1441,7 @@ class PersonList extends Handler
 			'volunteer_sufficient',
 			'deny',
 		);
+		$this->op = 'person_list';
 
 		return true;
 	}
@@ -1461,13 +1462,13 @@ class PersonList extends Handler
 		$ops = array(
 			array(
 				'name' => 'view',
-				'target' => 'op=person_view'
+				'target' => 'op=person_view&id='
 			),
 		);
 		if($this->_permissions['delete']) {
 			$ops[] = array(
 				'name' => 'delete',
-				'target' => 'op=person_delete'
+				'target' => 'op=person_delete&id='
 			);
 		}
 
@@ -1475,7 +1476,7 @@ class PersonList extends Handler
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE ? ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person_list', $letter);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
 		
 		print $this->get_header();
 		print h1($this->title);
@@ -1505,6 +1506,7 @@ class PersonListNewAccounts extends Handler
 			'admin_sufficient',
 			'deny'
 		);
+		$this->op = 'person_listnew';
 		return true;
 	}
 
@@ -1517,15 +1519,15 @@ class PersonListNewAccounts extends Handler
 		$ops = array(
 			array(
 				'name' => 'view',
-				'target' => 'op=person_view'
+				'target' => 'op=person_view&id='
 			),
 			array(
 				'name' => 'approve',
-				'target' => 'op=person_approvenew'
+				'target' => 'op=person_approvenew&id='
 			),
 			array(
 				'name' => 'delete',
-				'target' => 'op=person_delete'
+				'target' => 'op=person_delete&id='
 			),
 		);
 
@@ -1539,7 +1541,7 @@ class PersonListNewAccounts extends Handler
 			 	lastname LIKE ? 
 			 ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", 'person_listnew', $letter);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
 		
 		print $this->get_header();
 		print h1($this->title);

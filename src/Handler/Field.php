@@ -138,6 +138,7 @@ class FieldEdit extends Handler
 			'admin_sufficient',
 			'deny'
 		);
+		$this->op = 'field_edit';
 		return true;
 	}
 
@@ -163,7 +164,7 @@ class FieldEdit extends Handler
 				$rc = $this->generate_form();
 		}
 
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		$this->tmpl->assign("page_op", $this->op);
 
 		return $rc;
 	}
@@ -302,7 +303,7 @@ class FieldView extends Handler
 			'admin_sufficient',
 			'allow',
 		);
-		
+		$this->op = 'field_view';	
 		return true;
 	}
 	
@@ -317,88 +318,101 @@ class FieldView extends Handler
 	{
 		global $DB;
 		
-		$this->_id = var_from_getorpost('id');
-		$this->set_template_file("Field/view.tmpl");
+		$id = var_from_getorpost('id');
 
 		$field = $DB->getRow(
 			"SELECT 
-				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
+				f.*, s.name, s.code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
 			 WHERE f.field_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
+			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($field)) {
 			return false;
 		}
 
 		if(!isset($field)) {
-			$this->error_exit("The field [$id] does not exist");
-			return false;
+			$this->error_exit("That field does not exist");
 		}
 		
-		$this->set_title("View Field: " . $field['site_name'] . " " . $field['num']);
+		$this->set_title("View Field &raquo; " . $field['name'] . " " . $field['num']);
 
-		$field['availability'] = strlen($field['availability']) ? split(",", $field['availability']) : array();
-
-		$this->tmpl->assign("field", $field);
-		$this->tmpl->assign("id", $this->_id);
-
-		/* and, grab bookings */
-		$rows = $DB->getAll("
-			SELECT 
-				a.league_id,
-				IF(l.tier,CONCAT(l.name, ' Tier ',l.tier),l.name) AS name,
-				a.day
-		  	FROM 
-				field_assignment a,
-				league l
-		  	WHERE 
-				a.field_id = ?
-				AND a.league_id = l.league_id",
-			array($this->_id),
-			DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($rows)) {
-			return false;
-		}
+		$daysAvailable = strlen($field['availability']) ? split(",", $field['availability']) : array();
 		
-		$daynum = array( 'Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6);
-
-		$assignments = array(
-			array( 'day' => "Sunday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Monday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Tuesday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Wednesday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Thursday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Friday", 'leagues' => array(), 'avail' => false),
-			array( 'day' => "Saturday", 'leagues' => array(), 'avail' => false),
+		$allDays = array_values( getOptionsFromEnum('field_assignment', 'day') );
+		$bookings = "<table cellpadding='3' cellspacing='0' width='100%'>";
+		$bookings .= tr(
+			td("Day", array('class' => 'booking_title'))
+			. td("League", array('class' => 'booking_title'))
+			. td("&nbsp;", array('colspan' => 2, 'class' => 'booking_title'))
 		);
-
-		/* Now, show only available days on booking list */
-		if($field['status'] == 'open') {
-			while(list(,$day) = each($field['availability'])) {
-				$assignments[$daynum[$day]]['avail'] = true;
+		foreach($allDays as $curDay) {
+			$bookings .= "<tr>";
+			$bookings .= td($curDay, array('valign' => 'top',  'class' => 'booking_item'));
+			if(in_array($curDay, $daysAvailable)) {
+				$result = $DB->query("SELECT 
+					a.league_id, l.name, l.tier
+				FROM 
+					field_assignment a, league l
+				WHERE 
+					a.day = ? AND a.field_id = ? AND a.league_id = l.league_id ORDER BY l.ratio, l.tier", 
+					array($curDay, $id));
+				if($this->is_database_error($result)) {
+					return false;
+				}
+				$bookings .= "<td class='booking_item'>";
+				while($ass = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+					$bookings .= "&raquo;&nbsp;" . $ass['name'];
+					if($ass['tier']) {
+						$bookings .= " Tier " . $ass['tier'];
+					}
+					$bookings .= "&nbsp;[&nbsp;" 
+						. l("view league", "op=league_view&id=" . $ass['league_id']);
+					if($this->_permissions['field_assign']) {
+						$bookings .= "&nbsp;|&nbsp;" 
+							. l("delete booking", "op=field_unassign&id=$id&day=$curDay&league_id=" . $ass['league_id']);
+					}
+					$bookings .= "&nbsp;]<br />";
+				}
+				$bookings .= "</td>";
+				if($this->_permissions['field_assign']) {
+					$bookings .= td(l("add new booking", "op=field_assign&id=$id&day=$curDay"), array('class' => 'booking_item', 'valign' => 'top'));
+				}
+			} else {
+				$bookings .= td("Unavailable", array('class' => 'booking_item', 'colspan' => 2));
 			}
+			
+			$bookings .= "</tr>";
 		}
-		
-		while(list(,$booking) = each($rows)) {
-			$num = $daynum[$booking['day']];
-			$assignments[$num]['leagues'][] = $booking;
+		$bookings .= "</table>";
+
+		$links = array();
+		if($this->_permissions['field_edit']) {
+			$links[] = l("edit field", "op=field_edit&id=$id");
 		}
 
-		/* Argh.  Need to resort array */
-		ksort($assignments);
+		$output = "<table border='0' width='100%'>";
+		$output .= simple_row("Site:", 
+			$field['name'] 
+			. " (" . $field['code'] . ")&nbsp;[&nbsp;" 
+			. l("view", "op=site_view&id=" . $field['site_id']) . "&nbsp;]");
+		$output .= simple_row("Status:", $field['status']);
+		$output .= simple_row("Assignments:", $bookings);
 		
-		$this->tmpl->assign("field_assignments", $assignments);
+		$output .= "<table>";
 
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
+		print $this->get_header();
+		print h1($this->title);
+		print blockquote(theme_links($links));
+		print $output;
+		print $this->get_footer();
 
 		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -420,6 +434,7 @@ class FieldAssign extends Handler
 			'volunteer_sufficient',
 			'deny'
 		);
+		$this->op = 'field_assign';
 		return true;
 	}
 	
@@ -429,121 +444,110 @@ class FieldAssign extends Handler
 
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
-		switch($step) {
-			case 'confirm':
-				$this->set_template_file("Field/assign_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
-				break;
-			case 'perform':
-				$this->perform();
-				local_redirect("op=field_view&id=$id");
-				break;
-			default:
-				$this->set_template_file("Field/assign_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+		$day = var_from_getorpost('day');
+		$league_id = var_from_getorpost('league_id');
+
+		if($step != 'confirm' && $step != 'perform') {
+			$rc = $this->generateForm($id, $day);
+		} else {
+			$league = $DB->getRow("SELECT league_id, name, tier FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?,day) > 0) AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
+			if($this->is_database_error($league)) {
+				return false;
+			}
+			if(sizeof($league) < 1) {
+				$this->error_exit("You must provide a valid league ID");
+				return false;
+			}
+		
+			switch($step) {
+				case 'confirm':
+					$rc = $this->generateConfirm($id, $league, $day);
+					break;
+				case 'perform':
+					$res = $DB->query("INSERT INTO field_assignment VALUES(?,?,?)", array($league_id, $id, $day));
+					if($this->is_database_error($res)) {
+						return false;
+					}
+					local_redirect("op=field_view&id=$id");
+					break;
+			}
 		}
 		
-		$field_name = get_field_name($id);
-		if($this->is_database_error($field_name)) {
-			return false;
-		}
-		$this->set_title("Assign Field: $field_name");
-		$this->tmpl->assign("field_name", $field_name);
-	
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		return $rc;
 	}
 
-	function generate_form()
-	{
+	function generateForm( $id, $day ) {
 		global $DB;
 		
-		$id = var_from_getorpost('id');
-		$day = var_from_getorpost('day');
-		$leagues = $DB->getAll("SELECT league_id, name, tier FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?,day) > 0)", array($day), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($leagues)) {
-			return false;
-		}
+		$field_name = get_field_name($id);
+		$this->set_title("Assign Field &raquo; $field_name");
 
-		$for_form = array();
-		for($i= 0; $i < count($leagues); $i++) {
-			$name = $leagues[$i]['name'];
-			if($leagues[$i]['tier'] > 0) {
-				$name .= " Tier " . $leagues[$i]['tier'];
-			}
-			$for_form[] = array(
-				'value' => $leagues[$i]['league_id'],
-				'output' => $name
-			);
-		}
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('day', $day);
+		
+		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?, day) > 0)", array($day));
 
-		$this->tmpl->assign("leagues", $for_form);
-		$this->tmpl->assign("id", $id);
-		$this->tmpl->assign("day", $day);
-			
+		$output .= blockquote( 
+			para("Select a league to assign field <b>"
+				. $field_name . "</b> to for <b>"
+				. $day . "</b>")
+			. form_select('', 'league_id', '', $leagues)
+		);
+
+		$output .= form_submit("Submit");
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;	
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id, $league, $day )
 	{
 		global $DB;
 		
-		$id = var_from_getorpost('id');
-		$day = var_from_getorpost('day');
-		
-		$league_id = var_from_getorpost('league_id');
-		$league_info = $DB->getRow("SELECT name, tier FROM league WHERE allow_schedule = 'Y' AND day = ? AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_info)) {
-			return false;
-		}
-		if(sizeof($league_info) < 1) {
-			$this->error_exit("You must provide a valid league ID");
-			return false;
-		}
-
-		$league_name = $league_info['name'];
-		if($league_info['tier'] > 0) {
+		$league_name = $league['name'];
+		if($league['tier']) {
 			$league_name .= " Tier " . $league_info['tier'];
 		}
+		
+		$field_name = get_field_name($id);
+		$this->set_title("Assign Field &raquo; $field_name");
+		
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('league_id', $league['league_id']);
+		$output .= form_hidden('day', $day);
 
-		$this->tmpl->assign("league_id", $league_id);
-		$this->tmpl->assign("league_name", $league_name);
-		$this->tmpl->assign("id", $id);
-		$this->tmpl->assign("day", $day);
-			
+		$output .= blockquote( 
+			para("You have chosen to assign field <b>"
+				. $field_name . "</b> to <b>"
+				. $league_name. "</b> for <b>"
+				. $day . "</b>")
+			. para("If this is correct, please click 'Submit' below to proceed")
+		);
+
+		$output .= form_submit("Submit");
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;	
 	}
 	
-	function perform ()
+	function display() 
 	{
-		global $DB;
-		
-		$id = var_from_getorpost('id');
-		$day = var_from_getorpost('day');
-		
-		$league_id = var_from_getorpost('league_id');
-		$league_info = $DB->getRow("SELECT name, tier FROM league WHERE allow_schedule = 'Y' AND day = ? AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_info)) {
-			return false;
-		}
-		if(sizeof($league_info) < 1) {
-			$this->error_exit("You must provide a valid league ID");
-		}
-
-		/* Looks like it was valid, so proceed */
-		$res = $DB->query("INSERT INTO field_assignment VALUES(?,?,?)", array($league_id, $id, $day));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		return true;	
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
 /**
  * Un-assign a field
- * This code is messy and should be combined with the assign code.
  */
 class FieldUnassign extends Handler
 {
@@ -559,6 +563,7 @@ class FieldUnassign extends Handler
 			'volunteer_sufficient',
 			'deny',
 		);
+		$this->op = 'field_unassign';
 		return true;
 	}
 	
@@ -568,81 +573,71 @@ class FieldUnassign extends Handler
 
 		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
+		$league_id = var_from_getorpost('league_id');
+		$day = var_from_getorpost('day');
+		
+		$league = $DB->getRow("SELECT name, tier, league_id FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?,day) > 0) AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league)) {
+			return false;
+		}
+		if(sizeof($league) < 1) {
+			$this->error_exit("You must provide a valid league ID");
+		}
+		
 		switch($step) {
 			default:
 			case 'confirm':
-				$this->set_template_file("Field/unassign_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id, $league, $day );
 				break;
 			case 'perform':
-				$this->perform();
+				$res = $DB->query("DELETE FROM field_assignment WHERE league_id = ? AND field_id = ? AND day = ?", array($league['league_id'], $id, $day));
+				if($this->is_database_error($res)) {
+					return false;
+				}
 				local_redirect("op=field_view&id=$id");
 				break;
 		}
 		
-		$id = var_from_getorpost('id');
-		$field_name = get_field_name(var_from_getorpost('id'));
-		if($this->is_database_error($field_name)) {
-			return false;
-		}
-		$this->set_title("Unassign Field: $field_name");
-		$this->tmpl->assign("field_name", $field_name);
-	
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		return $rc;
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id, $league, $day )
 	{
 		global $DB;
 		
-		$id = var_from_getorpost('id');
-		$league_id = var_from_getorpost('league_id');
-		$day = var_from_getorpost('day');
-		$league_info = $DB->getRow("SELECT name, tier FROM league WHERE allow_schedule = 'Y' AND day = ? AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_info)) {
-			return false;
-		}
-		if(sizeof($league_info) < 1) {
-			$this->error_exit("You must provide a valid league ID");
-		}
-
-		$league_name = $league_info['name'];
-		if($league_info['tier'] > 0) {
+		$league_name = $league['name'];
+		if($league['tier']) {
 			$league_name .= " Tier " . $league_info['tier'];
 		}
+		$field_name = get_field_name($id);
+		$this->set_title("Unassign Field &raquo; $field_name");
 
-		$this->tmpl->assign("league_id", $league_id);
-		$this->tmpl->assign("league_name", $league_name);
-		$this->tmpl->assign("id", $id);
-		$this->tmpl->assign("day", $day);
-			
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('league_id', $league['league_id']);
+		$output .= form_hidden('day', $day);
+
+		$output .= blockquote( 
+			para("You have chosen to remove the assignment of <b>"
+				. $field_name . "</b> from <b>"
+				. $league_name. "</b> for <b>"
+				. $day . "</b>")
+			. para("If this is correct, please click 'Submit' below to proceed")
+		);
+
+		$output .= form_submit("Submit");
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;	
 	}
 	
-	function perform ()
+	function display() 
 	{
-		global $DB;
-		
-		$id = var_from_getorpost('id');
-		$league_id = var_from_getorpost('league_id');
-		$day = var_from_getorpost('day');
-		
-		$league_info = $DB->getRow("SELECT name, tier FROM league WHERE allow_schedule = 'Y' AND day = ? AND league_id = ?", array($day, $league_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($league_info)) {
-			return false;
-		}
-		if(sizeof($league_info) < 1) {
-			$this->error_exit("You must provide a valid league ID");
-		}
-
-		/* Looks like it was valid, so proceed */
-		$res = $DB->query("DELETE FROM field_assignment WHERE league_id = ? AND field_id = ? AND day = ?", array($league_id, $id, $day));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		return true;	
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 

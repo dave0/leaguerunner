@@ -21,6 +21,8 @@ class GameSubmit extends Handler
 			'deny',
 		);
 
+		$this->op = 'game_submitscore';
+
 		return true;
 	}
 
@@ -88,7 +90,7 @@ class GameSubmit extends Handler
 				$rc = $this->generate_form();
 		}
 		
-		$this->tmpl->assign('page_op',var_from_getorpost('op'));
+		$this->tmpl->assign('page_op',$this->op);
 		return $rc;
 	}
 
@@ -372,6 +374,7 @@ class GameFinalizeScore extends Handler
 			'coordinate_game:id',
 			'deny',
 		);
+		$this->op = 'game_finalize';
 
 		return true;
 	}
@@ -399,7 +402,7 @@ class GameFinalizeScore extends Handler
 				$rc = $this->generate_form();
 		}
 		
-		$this->tmpl->assign('page_op',var_from_getorpost('op'));
+		$this->tmpl->assign('page_op', $this->op);
 		return $rc;
 	}
 	
