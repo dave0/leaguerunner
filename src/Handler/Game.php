@@ -1017,11 +1017,13 @@ class GameEdit extends Handler
 		}
 		if( $session->is_admin() ) {
 			$this->_permissions['edit_game'] = $want_edit;
+			$this->_permissions['view_score_submission'] = true;
 			$this->_permissions['view_spirit'] = true;
 		}
 	
 		if( $session->is_coordinator_of($this->game->league_id)) {
 			$this->_permissions['edit_game'] = $want_edit;
+			$this->_permissions['view_score_submission'] = true;
 			$this->_permissions['view_spirit'] = true;
 		}
 		
@@ -1154,7 +1156,7 @@ class GameEdit extends Handler
 			
 			
 			$score_group .= form_item('',"Score not yet finalized");
-			if( $this->_permissions['edit_game'] ) {
+			if( $this->_permissions['view_score_submission'] ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
 				
 			}
