@@ -77,6 +77,16 @@ class Team extends LeaguerunnerObject
 		return false;
 	}
 
+	function count_players()
+	{
+		$result = db_query("SELECT COUNT(r.player_id) as size
+			FROM teamroster r
+			WHERE 
+                (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
+				AND r.team_id = %d", $this->team_id);
+		return db_result($result);
+	}
+
 	function save ()
 	{
 		if(! count($this->_modified_fields)) {
