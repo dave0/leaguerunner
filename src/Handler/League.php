@@ -53,8 +53,8 @@ class LeagueCreate extends LeagueEdit
 		if($this->is_database_error($id)) {
 			return false;
 		}
-		/* Override GET and POST value, so edit() will work */
-		set_getandpost('id',$id);	
+
+		$this->_id = $id;
 		
 		$this->tmpl->assign("perm_edit_info", true);
 		$this->tmpl->assign("perm_edit_coordinator", true);
@@ -83,9 +83,11 @@ class LeagueCreate extends LeagueEdit
  */
 class LeagueEdit extends Handler
 {
+
+	var $_id;
+
 	function initialize ()
 	{
-	
 		$this->set_title("Edit League");
 
 		$this->_permissions = array(
@@ -122,6 +124,9 @@ class LeagueEdit extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
+
+		$id = var_from_getorpost('id');
+		
 		switch($step) {
 			case 'confirm':
 				$this->set_template_file("League/edit_confirm.tmpl");
@@ -154,10 +159,9 @@ class LeagueEdit extends Handler
 	 */
 	function display ()
 	{
-		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=league_view&id=$id");
+			return $this->output_redirect("op=league_view&id=".$this->_id);
 		}
 		return parent::display();
 	}
@@ -167,7 +171,6 @@ class LeagueEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
 		$row = $DB->getRow(
 			"SELECT 
 				l.name as league_name,
@@ -184,7 +187,7 @@ class LeagueEdit extends Handler
 				l.allow_schedule,
 				l.start_time as league_start_time
 			FROM league l WHERE l.league_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			array($this->_id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
 			return false;
@@ -200,7 +203,7 @@ class LeagueEdit extends Handler
 		}
 
 		$this->tmpl->assign($row);
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 		
 		return true;
 	}
@@ -256,7 +259,6 @@ class LeagueEdit extends Handler
 	function generate_confirm ()
 	{
 		global $DB;
-		$id = var_from_getorpost('id');
 
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
@@ -266,7 +268,7 @@ class LeagueEdit extends Handler
 			return $this->generate_form();
 		}
 		
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 
 		$this->tmpl->assign("league_name", var_from_getorpost('league_name'));
 		$this->tmpl->assign("league_season", var_from_getorpost('league_season'));
@@ -299,8 +301,6 @@ class LeagueEdit extends Handler
 	function perform ()
 	{
 		global $DB;
-
-		$id = var_from_getorpost('id');
 
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
@@ -343,7 +343,7 @@ class LeagueEdit extends Handler
 
 		$sth = $DB->prepare($sql);
 		
-		$fields_data[] = $id;
+		$fields_data[] = $this->_id;
 		$res = $DB->execute($sth, $fields_data);
 
 		if($this->is_database_error($res)) {

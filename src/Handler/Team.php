@@ -170,7 +170,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		set_getandpost('id',$id);
+		$this->_id = $id;
 		
 		return parent::perform();
 	}
@@ -181,6 +181,8 @@ class TeamCreate extends TeamEdit
  */
 class TeamEdit extends Handler
 {
+	var $_id;
+	
 	function initialize ()
 	{
 		$this->_permissions = array(
@@ -202,7 +204,8 @@ class TeamEdit extends Handler
 	function process ()
 	{
 		global $DB;
-
+		
+		$this->_id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'confirm':
@@ -219,8 +222,8 @@ class TeamEdit extends Handler
 				$rc = $this->generate_form();
 		}
 	
-		if(var_from_getorpost('id')) {
-			$this->set_title("Edit Team: ". $DB->getOne("SELECT name FROM team where team_id = ?", array(var_from_getorpost('id'))));
+		if($this->_id) {
+			$this->set_title("Edit Team: ". $DB->getOne("SELECT name FROM team where team_id = ?", array($this->_id)));
 		}
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		
@@ -237,10 +240,9 @@ class TeamEdit extends Handler
 
 	function display ()
 	{
-		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=team_view&id=$id");
+			return $this->output_redirect("op=team_view&id=" . $this->_id);
 		}
 		return parent::display();
 	}
@@ -250,7 +252,6 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
 		$row = $DB->getRow(
 			"SELECT 
 				t.name          AS team_name, 
@@ -259,14 +260,14 @@ class TeamEdit extends Handler
 				t.status,
 				t.established
 			FROM team t WHERE t.team_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			array($this->_id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
 			return false;
 		}
 
 		$this->tmpl->assign("team_name", $row['team_name']);
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 		
 		$this->tmpl->assign("team_website", $row['team_website']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
@@ -280,8 +281,6 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Team/edit_form.tmpl");
@@ -291,7 +290,7 @@ class TeamEdit extends Handler
 		}
 
 		$this->tmpl->assign("team_name", var_from_getorpost('team_name'));
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 		
 		$this->tmpl->assign("team_website", var_from_getorpost('team_website'));
 		$this->tmpl->assign("shirt_colour", var_from_getorpost('shirt_colour'));
@@ -304,8 +303,6 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Team/edit_form.tmpl");
@@ -313,7 +310,6 @@ class TeamEdit extends Handler
 			$this->tmpl->assign("page_step", 'confirm');
 			return $this->generate_form();
 		}
-		
 
 		$res = $DB->query("UPDATE team SET name = ?, website = ?, shirt_colour = ?, status = ? WHERE team_id = ?",
 			array(
@@ -321,7 +317,7 @@ class TeamEdit extends Handler
 				var_from_getorpost('team_website'),
 				var_from_getorpost('shirt_colour'),
 				var_from_getorpost('status'),
-				$id,
+				$this->_id,
 			)
 		);
 		
@@ -347,6 +343,14 @@ class TeamEdit extends Handler
 		if( !validate_name_input($shirt_colour) ) {
 			$this->error_text .= "Shirt colour cannot be left blank<br>";
 			$rc = false;
+		}
+		
+		$team_website = var_from_getorpost("team_website");
+		if(validate_nonblank($team_website)) {
+			if( ! validate_url_input($team_website) ) {
+				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
+				$rc = false;
+			}
 		}
 
 		return $rc;
@@ -915,9 +919,6 @@ class TeamView extends Handler
 		$this->set_title("View Team: " . $row['team_name']);
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
-		if( !strstr($row['team_website'], "http://") && (strlen($row['team_website']) > 0 ) ) {
-			$row['team_website'] = "http://" . $row['team_website'];
-		}
 		$this->tmpl->assign("team_website", $row['team_website']);
 		$this->tmpl->assign("team_status", $row['team_status']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
@@ -1040,30 +1041,30 @@ class TeamScheduleView extends Handler
 		$this->tmpl->assign("league_tier", $row['tier']);
 		$this->tmpl->assign("league_id", $row['league_id']);
 
-		/* Grab schedule info */
-		/* TODO: this is evil. multi-table joins suck */
+		/*
+		 * Grab schedule info 
+		 * This select is still evil, but not as evil as it could be.
+		 */
 		$rows = $DB->getAll(
-			"SELECT 
+			'SELECT 
 				s.game_id, 
-				DATE_FORMAT(s.date_played, \"%a %b %d %Y\") as game_date, 
-				TIME_FORMAT(s.date_played,\"%l:%i %p\") as game_time,
+				DATE_FORMAT(s.date_played, "%a %b %d %Y") as game_date,
+				TIME_FORMAT(s.date_played,"%l:%i %p") as game_time,
 				s.home_team AS home_id, 
 				s.away_team AS away_id, 
 				s.field_id, 
 				s.home_score, 
-				s.away_score,
-				h.name AS home_name,
-				a.name AS away_name,
-				f.name AS field_name,
-				s.defaulted
-	  		FROM
-	  			schedule s, team h, team a, field_info f
-			WHERE 
-				h.team_id = s.home_team 
-				AND a.team_id = s.away_team
-				AND f.field_id = s.field_id
-				AND (s.home_team = ? OR s.away_team = ?) 
-			ORDER BY s.date_played",
+				s.away_score, 
+				h.name AS home_name, 
+				a.name AS away_name, 
+				f.name AS field_name, 
+				s.defaulted 
+			FROM schedule s 
+				LEFT JOIN team h ON (s.home_team = h.team_id) 
+				LEFT JOIN team a ON (s.away_team = a.team_id) 
+				LEFT JOIN field_info f ON (s.field_id = f.field_id) 
+			WHERE (s.home_team = ? OR s.away_team = ?) 
+			ORDER BY s.date_played',
 		array($id, $id),
 		DB_FETCHMODE_ASSOC);
 			

@@ -247,7 +247,7 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['waiver_signed']) {
-			if($row['waiver_signed']) {
+			if(array_key_exists('waiver_signed', $row)) {
 				$this->tmpl->assign("waiver_signed", $row['waiver_signed']);
 			} else {
 				$this->tmpl->assign("waiver_signed", gettext("Not signed"));
@@ -310,6 +310,7 @@ class PersonDelete extends PersonView
 
 	function process ()
 	{
+		global $session;
 		$step = var_from_getorpost('step');
 
 		/* Safety check: Don't allow us to delete ourselves */
@@ -469,7 +470,14 @@ class PersonApproveNewAccount extends PersonView
 
 		$id = var_from_getorpost('id');
 
-		$person_info = $DB->getRow("SELECT year_started,gender FROM person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
+		$person_info = $DB->getRow("SELECT 
+			firstname,
+			lastname,
+			username,
+			email,
+			year_started,
+			gender 
+		    FROM person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($person_info)) {
 			return false;
 		}
@@ -524,6 +532,26 @@ class PersonApproveNewAccount extends PersonView
 		if($this->is_database_error($res)) {
 			return false;
 		}
+
+		/* Ok, it's done.  Now send a mail to the user and tell them. */
+		$message = "Dear " . $person_info['firstname'] . " " . $person_info['lastname'] . ",\n\n";
+		$message .= "Your " . $GLOBALS['APP_NAME'] . " account has been approved. Your new permanent\n";
+		$message .= "member number is\n\t$full_member_id\n";
+		$message .= "This number will be used in the future to identify you for member\n";
+		$message .= "services, discounts, etc, so please do not lose it.\n\n";
+		$message .= "You may now log in to the system at\n";
+		$message .= "\thttp://" . $GLOBALS['APP_SERVER'].$_SERVER["PHP_SELF"] . "\n";
+		$message .= "with the username\n\t" . $person_info['username'];
+		$message .= "\nand the password you specified when you created your account.  You will\n";
+		$message .= "be asked to confirm your account information and sign a waiver form,\n";
+		$message .= "before your account will be activated.\n";
+		$message .= "\nThanks,\n". $GLOBALS['APP_ADMIN_NAME'] ."\n";
+
+		$rc = mail($person_info['email'], $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+		if($rc == false) {
+			$this->error_text = "Error sending email to " . $person_info['email'];
+			return false;
+		}
 		
 		return true;
 	}
@@ -534,6 +562,8 @@ class PersonApproveNewAccount extends PersonView
  */
 class PersonEdit extends Handler
 {
+	var $_id;
+	
 	function initialize ()
 	{
 		$this->set_title("Edit Account");
@@ -577,6 +607,9 @@ class PersonEdit extends Handler
 	function process ()
 	{
 		$step = var_from_getorpost('step');
+
+		$this->_id = var_from_getorpost('id');
+		
 		switch($step) {
 			case 'confirm':
 				$this->set_template_file("Person/edit_confirm.tmpl");
@@ -611,10 +644,9 @@ class PersonEdit extends Handler
 	 */
 	function display ()
 	{
-		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=person_view&id=$id");
+			return $this->output_redirect("op=person_view&id=".$this->_id);
 		}
 		return parent::display();
 	}
@@ -624,7 +656,6 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
 		$row = $DB->getRow(
 			"SELECT 
 				firstname,
@@ -647,7 +678,7 @@ class PersonEdit extends Handler
 				addr_postalcode, 
 				last_login 
 			FROM person WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			array($this->_id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
 			return false;
@@ -655,7 +686,7 @@ class PersonEdit extends Handler
 
 		$this->tmpl->assign("firstname", $row['firstname']);
 		$this->tmpl->assign("lastname", $row['lastname']);
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 
 		$this->tmpl->assign("username", $row['username']);
 		
@@ -709,8 +740,6 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Person/edit_form.tmpl");
@@ -720,7 +749,7 @@ class PersonEdit extends Handler
 			return $this->generate_form();
 		}
 
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 
 		$this->tmpl->assign("firstname", var_from_getorpost('firstname'));
 		$this->tmpl->assign("lastname", var_from_getorpost('lastname'));
@@ -757,8 +786,6 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 		
-		$id = var_from_getorpost('id');
-
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
 			$this->set_template_file("Person/edit_form.tmpl");
@@ -847,7 +874,7 @@ class PersonEdit extends Handler
 
 		$sth = $DB->prepare($sql);
 		
-		$fields_data[] = $id;
+		$fields_data[] = $this->_id;
 		$res = $DB->execute($sth, $fields_data);
 		
 		if($this->is_database_error($res)) {
@@ -1019,7 +1046,7 @@ class PersonCreate extends PersonEdit
 
 	function perform ()
 	{
-		global $DB, $id;
+		global $DB;
 
 		$password_once = var_from_getorpost("password_once");
 		$password_twice = var_from_getorpost("password_twice");
@@ -1033,7 +1060,7 @@ class PersonCreate extends PersonEdit
 		if($this->is_database_error($res)) {
 			return false;
 		}
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
+		$this->_id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
 		$this->set_template_file("Person/create_result.tmpl");
 		
@@ -1082,12 +1109,7 @@ class PersonActivate extends PersonEdit
 			} 
 		}
 
-		$id = $session->attr_get('user_id');
-
-		/* Also override the get/post vars for reuse of edit code
-		 * TODO This is evil and should be fixed.
-		 */
-		set_getandpost('id',$id);
+		$this->_id = $session->attr_get('user_id');
 		
 		$this->_permissions['edit_email'] 		= true;
 		$this->_permissions['edit_phone']		= true;
@@ -1148,7 +1170,6 @@ class PersonActivate extends PersonEdit
 	 */
 	function display ()
 	{
-		$id = $session->attr_get('user_id');
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
 			return $this->output_redirect("op=menu");
@@ -1384,6 +1405,10 @@ class PersonChangePassword extends Handler
 			 	person WHERE user_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
+			return false;
+		}
+		if(!isset($row)) {
+			$this->error_text = "That user does not exist";
 			return false;
 		}
 		

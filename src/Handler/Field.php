@@ -203,8 +203,7 @@ class FieldCreate extends FieldEdit
 			return false;
 		}
 		
-		/* Override GET and POST value, so edit() will work */
-		set_getandpost('id',$id);	
+		$this->_id = $id;
 		
 		return parent::perform();
 	}
@@ -216,6 +215,9 @@ class FieldCreate extends FieldEdit
  */
 class FieldEdit extends Handler
 {
+
+	var $_id;
+
 	function initialize ()
 	{
 		$this->_required_perms = array(
@@ -232,6 +234,7 @@ class FieldEdit extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
+		$this->_id = var_from_getorpost('id');
 		switch($step) {
 			case 'confirm':
 				$this->set_template_file("Field/edit_confirm.tmpl");
@@ -247,8 +250,8 @@ class FieldEdit extends Handler
 				$rc = $this->generate_form();
 		}
 	
-		if(var_from_getorpost('id')) {
-			$this->set_title("Edit Field: " . $DB->getOne("SELECT name FROM field_info where field_id = ?", array(var_from_getorpost('id'))));
+		if($this->_id) {
+			$this->set_title("Edit Field: " . $DB->getOne("SELECT name FROM field_info where field_id = ?", array($this->_id)));
 		}
 
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
@@ -262,9 +265,8 @@ class FieldEdit extends Handler
 	function display ()
 	{
 		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
 		if($step == 'perform') {
-			return $this->output_redirect("op=field_view&id=$id");
+			return $this->output_redirect("op=field_view&id=". $this->_id);
 		}
 		return parent::display();
 	}
@@ -273,32 +275,28 @@ class FieldEdit extends Handler
 	function generate_form ()
 	{
 		global $DB;
-		$id = var_from_getorpost('id');
 
 		$row = $DB->getRow(
 			"SELECT 
 				f.name          AS field_name, 
 				f.url           AS field_website
 			FROM field_info f  WHERE f.field_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
+			array($this->_id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
 			return false;
 		}
 
 		$this->tmpl->assign("field_name", $row['field_name']);
-		$this->tmpl->assign("id", $id);
-		
 		$this->tmpl->assign("field_website", $row['field_website']);
 		
+		$this->tmpl->assign("id", $this->_id);
 		return true;
 	}
 
 	function generate_confirm ()
 	{
 		global $DB;
-
-		$id = var_from_getorpost('id');
 
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
@@ -309,7 +307,7 @@ class FieldEdit extends Handler
 		}
 
 		$this->tmpl->assign("field_name", var_from_getorpost('field_name'));
-		$this->tmpl->assign("id", $id);
+		$this->tmpl->assign("id", $this->_id);
 		$this->tmpl->assign("field_website", var_from_getorpost('field_website'));
 
 		return true;
@@ -318,7 +316,6 @@ class FieldEdit extends Handler
 	function perform ()
 	{
 		global $DB;
-		$id = var_from_getorpost('id');
 
 		if(! $this->validate_data()) {
 			/* Oops... invalid data.  Redisplay the confirmation page */
@@ -332,7 +329,7 @@ class FieldEdit extends Handler
 			array(
 				var_from_getorpost('field_name'),
 				var_from_getorpost('field_website'),
-				$id,
+				$this->_id,
 			)
 		);
 		
@@ -347,9 +344,18 @@ class FieldEdit extends Handler
 	{
 		$rc = true;
 		
+		$field_name = var_from_getorpost("field_name");
 		if( !validate_name_input($field_name) ) {
 			$this->error_text .= gettext("Field name cannot be left blank") . "<br>";
 			$rc = false;
+		}
+		
+		$field_website = var_from_getorpost("field_website");
+		if(validate_nonblank($field_website)) {
+			if( ! validate_url_input($field_website) ) {
+				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
+				$rc = false;
+			}
 		}
 		
 		return $rc;

@@ -213,15 +213,4 @@ function var_from_getorpost($name)
 	return null;
 }
 
-/**
- * Set variable for both GET and POST
- *
- * This is used for overriding certain values when necessary.
- *
- */
-function set_getandpost($name, $value)
-{
-	$_POST[$name] = $value;
-	$_GET[$name] = $value;
-}
 ?>
