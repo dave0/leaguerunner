@@ -185,7 +185,7 @@ class LeagueEdit extends Handler
 				l.coordinator_id,
 				l.alternate_id,
 				l.stats_display as stats_display,
-				l.current_round as current_round,
+				l.current_round as league_round,
 				l.year,
 				l.allow_schedule,
 				l.start_time as league_start_time
@@ -214,24 +214,28 @@ class LeagueEdit extends Handler
 	function populate_pulldowns ( )
 	{
 		global $DB;
-		$volunteers = $DB->getAll(
-			"SELECT
-				p.user_id AS value,
-				CONCAT(p.firstname,' ',p.lastname) AS output
-			 FROM
-			 	person p
-			 WHERE
-			 	p.class = 'volunteer'
-				OR p.class = 'administrator'
-			 ORDER BY p.lastname",
-			DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($volunteers)) {
-			return false;
+
+
+		if($this->_permissions['edit_coordinator']) {
+				$volunteers = $DB->getAll(
+					"SELECT
+						p.user_id AS value,
+						CONCAT(p.firstname,' ',p.lastname) AS output
+					 FROM
+						person p
+					 WHERE
+						p.class = 'volunteer'
+						OR p.class = 'administrator'
+					 ORDER BY p.lastname",
+					DB_FETCHMODE_ASSOC);
+					
+				if($this->is_database_error($volunteers)) {
+					return false;
+				}
+				/* Pop in a --- element */
+				array_unshift($volunteers, array('value' => 0, 'output' => '---'));
+				$this->tmpl->assign("volunteers", $volunteers);
 		}
-		/* Pop in a --- element */
-		array_unshift($volunteers, array('value' => 0, 'output' => '---'));
-		$this->tmpl->assign("volunteers", $volunteers);
 
 		$days = $this->get_enum_options('league','day');
 		if(is_bool($days)) {
@@ -280,19 +284,21 @@ class LeagueEdit extends Handler
 		$this->tmpl->assign("league_start_time_Hour", var_from_getorpost('league_start_time_Hour'));
 		$this->tmpl->assign("league_start_time_Minute", var_from_getorpost('league_start_time_Minute'));
 		
-		$c_id = var_from_getorpost('coordinator_id');
-		$c_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($c_id));
-		$this->tmpl->assign("coordinator_id",   $c_id);
-		$this->tmpl->assign("coordinator_name", $c_name);
-	
-		$a_id = var_from_getorpost('alternate_id');
-		if($a_id > 0) {
-			$a_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($a_id));
-			$this->tmpl->assign("alternate_id",   $a_id);
-			$this->tmpl->assign("alternate_name", $a_name);
-		} else {
-			$this->tmpl->assign("alternate_id",   $a_id);
-			$this->tmpl->assign("alternate_name", "N/A");
+		if($this->_permissions['edit_coordinator']) {
+				$c_id = var_from_getorpost('coordinator_id');
+				$c_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($c_id));
+				$this->tmpl->assign("coordinator_id",   $c_id);
+				$this->tmpl->assign("coordinator_name", $c_name);
+			
+				$a_id = var_from_getorpost('alternate_id');
+				if($a_id > 0) {
+					$a_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($a_id));
+					$this->tmpl->assign("alternate_id",   $a_id);
+					$this->tmpl->assign("alternate_name", $a_name);
+				} else {
+					$this->tmpl->assign("alternate_id",   $a_id);
+					$this->tmpl->assign("alternate_name", "N/A");
+				}
 		}
 
 		return true;
@@ -321,6 +327,8 @@ class LeagueEdit extends Handler
 			$fields_data[] = var_from_getorpost("league_tier");
 			$fields[] = "ratio = ?";
 			$fields_data[] = var_from_getorpost("league_ratio");
+			$fields[] = "current_round = ?";
+			$fields_data[] = var_from_getorpost("league_round");
 			$fields[] = "allow_schedule = ?";
 			$fields_data[] = var_from_getorpost("league_allow_schedule");
 			$fields[] = "start_time = ?";
@@ -361,10 +369,12 @@ class LeagueEdit extends Handler
 			$rc = false;
 		}
 
-		$coord_id = var_from_getorpost("coordinator_id");
-		if($coord_id <= 0) {
-			$this->error_text .= "<li>A coordinator must be selected";
-			$rc = false;
+		if($this->_permissions['edit_coordinator']) {
+				$coord_id = var_from_getorpost("coordinator_id");
+				if($coord_id <= 0) {
+					$this->error_text .= "<li>A coordinator must be selected";
+					$rc = false;
+				}
 		}
 		
 		$league_allow_schedule = var_from_getorpost("league_allow_schedule");
@@ -1384,20 +1394,6 @@ class LeagueStandings extends Handler
 		if($rc != 0) {
 			return $rc;
 		}
-
-		/* Next, check +/- */
-		$rc = cmp($b['points_for'] - $b['points_against'], $a['points_for'] - $a['points_against']);
-		if($rc != 0) {
-			return $rc;
-		}
-		
-		/* Check SOTG */
-		if($a['games'] > 0 && $b['games'] > 0) {
-			$rc = cmp( $b['spirit'] / $b['games'], $a['spirit'] / $a['games']);
-			if($rc != 0) {
-				return $rc;
-			}
-		}
 		
 		/* Then, check head-to-head wins */
 		if(isset($b['vs'][$a['id']]) && isset($a['vs'][$b['id']])) {
@@ -1407,6 +1403,20 @@ class LeagueStandings extends Handler
 			}
 		}
 
+		/* Check SOTG */
+		if($a['games'] > 0 && $b['games'] > 0) {
+			$rc = cmp( $b['spirit'] / $b['games'], $a['spirit'] / $a['games']);
+			if($rc != 0) {
+				return $rc;
+			}
+		}
+		
+		/* Next, check +/- */
+		$rc = cmp($b['points_for'] - $b['points_against'], $a['points_for'] - $a['points_against']);
+		if($rc != 0) {
+			return $rc;
+		}
+		
 		/* 
 		 * Finally, check losses.  This ensures that teams with no record
 		 * appear above teams who have losses.

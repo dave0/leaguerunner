@@ -273,7 +273,7 @@ class UserSession
 
 		if($league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
-			if ($this->attr_get('class') == 'volunteer') {
+			if ($this->data['class'] == 'volunteer') {
 				return true;
 			}
 		}
@@ -308,7 +308,7 @@ class UserSession
 			return false;
 		}
 
-		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['coordinator_id'])) {
+		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['alternate_id'])) {
 			return true;
 		}
 
