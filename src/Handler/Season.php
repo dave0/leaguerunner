@@ -75,7 +75,7 @@ class SeasonStandings extends Handler
 		$league->load_teams();
 
 		if( count($league->teams) < 1 ) {
-			$this->error_exit("Cannot generate standings for a league with no teams");
+			error_exit("Cannot generate standings for a league with no teams");
 		}
 
 		while(list($id,) = each($league->teams)) {

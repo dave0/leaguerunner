@@ -4,28 +4,96 @@
  */
 function team_dispatch() 
 {
+	global $session;
 	$op = arg(1);
+	$id = arg(2);
 	switch($op) {
 		case 'create':
-			return new TeamCreate;
+			$obj = new TeamCreate;
+			break;
 		case 'edit':
-			return new TeamEdit;
+			$obj = new TeamEdit;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
+		case 'history':
+			$obj = new TeamHistory;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
 		case 'view':
-			return new TeamView;
+			$obj = new TeamView;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
 		case 'delete':
-			return new TeamDelete;
+			$obj = new TeamDelete;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
 		case 'list':
-			return new TeamList;
+			$obj = new TeamList;
+			break;
 		case 'roster':
-			return new TeamRosterStatus;
+			$obj = new TeamRosterStatus;
+			$obj->team = team_load( array('team_id' => $id) );
+			$player_id = arg(3);
+			if( $player_id ) {
+				$obj->player = person_load( array('user_id' => arg(3)) );
+			}
+			break;
 		case 'schedule':
-			return new TeamSchedule;
+			$obj = new TeamSchedule;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
 		case 'spirit':
-			return new TeamSpirit;
+			$obj = new TeamSpirit;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
 		case 'emails':
-			return new TeamEmails;
+			$obj = new TeamEmails;
+			$obj->team = team_load( array('team_id' => $id) );
+			break;
+		default:
+			$obj = null;
 	}
-	return null;
+	if( $obj->team ) {
+		team_add_to_menu( $obj->team );
+	}
+	return $obj;
+}
+
+function team_permissions ( &$user, $action, $id, $data_field )
+{
+	if( $user->status != 'active') {
+		return false;
+	}
+	
+	switch( $action )
+	{
+		case 'create':
+			// Players can create teams at-will
+			return ($user->is_player());
+		case 'list':
+		case 'view schedule':
+		case 'view':
+			// Everyone can list, view, and view schedule if they're a player
+			return ($user->is_player());
+		case 'edit':
+		case 'email':
+			return ($user->is_captain_of( $id ) );
+		case 'player status':
+			if( $user->is_captain_of( $id ) ) {	
+				// Captain can adjust status of other players
+				return true;
+			} 
+			if( $user->user_id == $data_field ) {
+				// Player can adjust status of self
+				return true;
+			}
+			break;
+		case 'delete':
+		case 'statistics':
+			// admin-only
+			break;
+	}
+	return false;
 }
 
 function team_menu()
@@ -42,47 +110,40 @@ function team_menu()
 
 	if( $session->is_valid() ) {
 		while(list(,$team) = each($session->user->teams) ) {
-			## TODO: permissions hack must die!
-			if( $session->is_captain_of($team->team_id) ) {
-				$this->_permissions['edit_team'] = true;
-			}
-			team_add_to_menu($this, $team);
+			team_add_to_menu($team);
 		}
 		reset($session->user->teams);
 	}
 	
-	if($session->is_admin()) {
+	if($session->has_permission('team','statistics')) {
 		menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));
 	}
 }
 
 /**
  * Add view/edit/delete links to the menu for the given team
- * TODO: when permissions are fixed, remove the evil passing of $this
- * TODO: fix ugly evil things like TeamEdit so that this can be called to add
- * team being edited to the menu.
  */
-function team_add_to_menu( $this, &$team, $parent = 'team' ) 
+function team_add_to_menu( &$team ) 
 {
 	global $session;
 	
-	menu_add_child($parent, $team->name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
+	menu_add_child('team', $team->name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
 	menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id"));
 	menu_add_child($team->name, "$team->name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
 
-	if( ! array_key_exists( $team->team_id, $session->user->teams ) ) {
+	if( $session && !array_key_exists( $team->team_id, $session->user->teams ) ) {
 		if($team->status != 'closed') {
 			menu_add_child($team->name, "$team->name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $session->attr_get('user_id')));
 		}
 	} 
 	
-	if($this->_permissions['edit_team']) {
+	if( $session->has_permission('team','edit',$team->team_id)) {
 		menu_add_child($team->name, "$team->name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
 		menu_add_child($team->name, "$team->name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
 		menu_add_child($team->name, "$team->name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
 	}
 		
-	if($this->_permissions['delete_team']) {
+	if( $session->has_permission('team','delete',$team->team_id)) {
 		menu_add_child($team->name, "$team->name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
 	}
 }
@@ -150,20 +211,15 @@ function team_splash ()
  */
 class TeamCreate extends TeamEdit
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Create Team";
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'allow',
-		);
-		return true;
+		global $session;
+		return $session->has_permission('team','create');
 	}
 	
 	function process ()
 	{
+		$this->title = "Create Team";
 		$id = -1;
 		$edit = &$_POST['edit'];
 		
@@ -172,9 +228,9 @@ class TeamCreate extends TeamEdit
 				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
-				$team = new Team;
-				$this->perform( $team, $edit);
-				local_redirect(url("team/view/$team->team_id"));
+				$this->team = new Team;
+				$this->perform($edit);
+				local_redirect(url("team/view/" . $this->team->team_id));
 				break;
 			default:
 				$edit = array();
@@ -184,25 +240,25 @@ class TeamCreate extends TeamEdit
 		return $rc;
 	}
 
-	function perform ( &$team, $edit = array() )
+	function perform ($edit = array() )
 	{
 		global $session;
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$existing_team = team_load( array('name' => trim($edit['name'])) );
 		if($existing_team) {
-			$this->error_exit("A team with that name already exists; please go back and try again");
+			error_exit("A team with that name already exists; please go back and try again");
 		}
 
-		if( ! parent::perform($team, $edit) ) {
+		if( ! parent::perform($edit) ) {
 			return false;
 		}
 		
-		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $team->team_id);
+		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $this->team->team_id);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
@@ -223,39 +279,19 @@ class TeamCreate extends TeamEdit
  */
 class TeamEdit extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_permissions = array(
-			'edit_team'	  => false,
-			'delete_team' => false,
-		);
-		$this->title = "Edit Team";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'captain_of',
-			'deny'
-		);
-		return true;
-	}
-
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if ($type == 'captain') {
-			$this->_permissions['edit_team'] = true;
-		}
+		global $session;
+		return $session->has_permission('team','edit',$this->team->team_id);
 	}
 
 	function process ()
 	{
-		$id = arg(2);
+		$this->title = "Edit Team";
 		$edit = &$_POST['edit'];
 
-		$team = team_load( array('team_id' => $id) );
-		if( !$team ) {
-			$this->error_exit("That team does not exist");
+		if( !$this->team ) {
+			error_exit("That team does not exist");
 		}
 		
 		switch($edit['step']) {
@@ -263,14 +299,14 @@ class TeamEdit extends Handler
 				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
-				$this->perform( $team, $edit);
-				local_redirect(url("team/view/$id"));
+				$this->perform($edit);
+				local_redirect(url("team/view/" . $this->team->team_id));
 				break;
 			default:
-				$edit = object2array($team);
+				$edit = object2array($this->team);
 				$rc = $this->generateForm($edit);
 		}
-		$this->setLocation(array($edit['name']  => "team/view/$id", $this->title => 0));
+		$this->setLocation(array($edit['name']  => "team/view/" . $this->team->team_id, $this->title => 0));
 		return $rc;
 	}
 
@@ -295,7 +331,7 @@ class TeamEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$output = para("Confirm that the data below is correct and click'Submit'  to make your changes");
@@ -311,20 +347,20 @@ class TeamEdit extends Handler
 		return form($output);
 	}
 
-	function perform ( &$team, $edit = array())
+	function perform ($edit = array())
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$team->set('name', $edit['name']);
-		$team->set('website', $edit['website']);
-		$team->set('shirt_colour', $edit['shirt_colour']);
-		$team->set('status', $edit['status']);
+		$this->team->set('name', $edit['name']);
+		$this->team->set('website', $edit['website']);
+		$this->team->set('shirt_colour', $edit['shirt_colour']);
+		$this->team->set('status', $edit['status']);
 		
-		if( !$team->save() ) {
-			$this->error_exit("Internal error: couldn't save changes");
+		if( !$this->team->save() ) {
+			error_exit("Internal error: couldn't save changes");
 		}
 
 		return true;
@@ -361,64 +397,57 @@ class TeamEdit extends Handler
  */
 class TeamDelete extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Delete Team";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->has_permission('team','delete',$this->team->team_id);
 	}
 
 	function process ()
 	{
-		$team_id = arg(2);
-
-		$team = team_load( array('team_id' => $team_id) );
-		if(!$team) {
-			$this->error_exit("That team does not exist");
+		$this->title = "Delete Team";
+		if(!$this->team) {
+			error_exit("That team does not exist");
 		}
 		
 		$this->setLocation(array( 
-			$team->name => "team/view/" . $team->team_id,
+			$this->team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0
 		));
 
 		switch($_POST['edit']['step']) {
 			case 'perform':
-				if ( $team->delete() ) {
+				if ( $this->team->delete() ) {
 					local_redirect(url("league/view/1"));	
 				} else {
-					$this->error_exit("Failure deleting team");
+					error_exit("Failure deleting team");
 				}
 				break;
 			case 'confirm':
 			default:
-				return $this->generateConfirm($team);
+				return $this->generateConfirm();
 				break;
 		}
-		$this->error_exit("Error: This code should never be reached.");
+		error_exit("Error: This code should never be reached.");
 	}
 
-	function generateConfirm ( &$team )
+	function generateConfirm ()
 	{
 		$rows = array();
-		$rows[] = array("Team Name:", check_form($team->name));
-		if($team->website) {
-			if(strncmp($team->website, "http://", 7) != 0) {
-				$team->website = "http://$team->website";
+		$rows[] = array("Team Name:", check_form($this->team->name));
+		if($this->team->website) {
+			if(strncmp($this->team->website, "http://", 7) != 0) {
+				$this->team->website = "http://" . $this->team->website;
 			}
-			$rows[] = array("Website:", l($team->website, $team->website));
+			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
-		$rows[] = array("Shirt Colour:", check_form($team->shirt_colour));
-		$rows[] = array("League/Tier:", l($team->league_name, "league/view/$team->league_id"));
+		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
+		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 		
-		$rows[] = array("Team Status:", $team->status);
+		$rows[] = array("Team Status:", $this->team->status);
 
 		/* and, grab roster */
-		$result = db_query( "SELECT COUNT(r.player_id) as num_players FROM teamroster r WHERE r.team_id = %d", $team->team_id);
+		$result = db_query( "SELECT COUNT(r.player_id) as num_players FROM teamroster r WHERE r.team_id = %d", $this->team->team_id);
 
 		$rows[] = array("Num. players on roster:", db_result($result));
 
@@ -426,8 +455,6 @@ class TeamDelete extends Handler
 		$output .= "<p>Do you really wish to delete this team?</p>";
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= form_submit('submit');
-	
-		team_add_to_menu($this, $team);
 	
 		return form($output);
 	}
@@ -438,46 +465,32 @@ class TeamDelete extends Handler
  */
 class TeamList extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_permissions = array(
-			'delete' => false,
-		);
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'allow',
-		);
-		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} 
+		global $session;
+		return $session->has_permission('team','list');
 	}
 	
 	function process ()
 	{
+		global $session;
 		$ops = array(
 			array(
 				'name' => 'view',
 				'target' => 'team/view/'
 			),
 		);
-		if($this->_permissions['delete']) {
+		if($session->has_permission('team','delete')) {
 			$ops[] = array(
 				'name' => 'delete',
 				'target' => 'team/delete/'
 			);
 		}
 		
-		$query = "SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name";
-		
 		$this->setLocation(array("List Teams" => 'team/list'));
-		return $this->generateAlphaList($query, $ops, 'name', 'team', 'team/list', $_GET['letter']);
+		return $this->generateAlphaList($query,
+			"SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name",
+			$ops, 'name', 'team', 'team/list', $_GET['letter']);
 	}
 }
 
@@ -486,21 +499,10 @@ class TeamList extends Handler
  */
 class TeamRosterStatus extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Roster Status";
-		
-		$this->positions = getRosterPositions();
-		$this->currentStatus = null;
-		
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'captain_of',
-			'allow'
-		);
-		return true;
+		global $session;
+		return $session->has_permission('team','player status',$this->team->team_id, $this->person->user_id);
 	}
 
 	/**
@@ -526,7 +528,7 @@ class TeamRosterStatus extends Handler
 		if(!($is_captain  || $is_administrator)) {
 			$allowed_id = $session->attr_get('user_id');
 			if($allowed_id != $playerId) {
-				$this->error_exit("You cannot change status for that player ID");
+				error_exit("You cannot change status for that player ID");
 			}
 		}
 		
@@ -577,7 +579,7 @@ class TeamRosterStatus extends Handler
 			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
 			
 			if($num_captains <= 1) {
-				$this->error_exit("All teams must have at least one player with captain status.");
+				error_exit("All teams must have at least one player with captain status.");
 			}
 
 			return array( 'none', 'assistant', 'player', 'substitute');
@@ -597,7 +599,7 @@ class TeamRosterStatus extends Handler
 		case 'none':
 			return array( 'captain_request' );
 		default:
-			$this->error_exit("Internal error in player status");
+			error_exit("Internal error in player status");
 		}
 	}
 
@@ -608,7 +610,7 @@ class TeamRosterStatus extends Handler
 			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
 			
 			if($num_captains <= 1) {
-				$this->error_exit("All teams must have at least one player with captain status.");
+				error_exit("All teams must have at least one player with captain status.");
 			}
 
 			return array( 'none', 'assistant', 'player', 'substitute');
@@ -626,11 +628,11 @@ class TeamRosterStatus extends Handler
 			$is_open = db_result(db_query("SELECT status from team where team_id = %d",$id));
 			
 			if($is_open != 'open') {
-				$this->error_exit("Sorry, this team is not open for new players to join");
+				error_exit("Sorry, this team is not open for new players to join");
 			}
 			return array( 'player_request' );
 		default:
-			$this->error_exit("Internal error in player status");
+			error_exit("Internal error in player status");
 		}
 	}
 	
@@ -638,66 +640,63 @@ class TeamRosterStatus extends Handler
 	{
 		global $session;
 		
-		$team_id   = arg(2);
+		$this->title = "Roster Status";
 		
-		$team = team_load( array('team_id' => $team_id) );
-		if( !$team ) {
-			$this->error_exit("That is not a valid team ID");
+		$this->positions = getRosterPositions();
+		$this->currentStatus = null;
+		
+		if( !$this->team ) {
+			error_exit("That is not a valid team ID");
 		}
-		
-		$playerId = arg(3);
-
-		if( !$playerId ) {
+		if( !$this->person ) {
 			if( !($session->is_admin() || $session->is_captain_of($team->team_id))) {
-				$this->error_exit("You cannot add a person to that team!");
+				error_exit("You cannot add a person to that team!");
 			}
 
-			$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
+			$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
 			$ops = array(
 				array( 'name' => 'view', 'target' => 'person/view/'),
-				array( 'name' => 'request player', 'target' => "team/roster/$team->team_id/")	
+				array( 'name' => 'request player', 'target' => "team/roster/" . $this->team->team_id . "/")	
 			);
 	
 			$query = "SELECT IF( status != 'active', CONCAT(lastname,', ',firstname, ' (inactive)'), CONCAT(lastname, ', ', firstname)) AS value, user_id AS id FROM person WHERE (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
-        	#$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
 
 			return
 				para("Select the player you wish to add to the team")
-				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/roster/$team->team_id", $_GET['letter']);
+				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/roster/" . $team->team_id, $_GET['letter']);
 		}
 
-		$player = person_load( array('user_id' => $playerId) );
-		if($player->class != 'player' && $player->class != 'volunteer' && $player->class != 'administrator') {
-			$this->error_exit("Only OCUA-registered players can be added to a team");
+		if(!$this->person->is_player()) {
+			error_exit("Only OCUA-registered players can be added to a team");
 		}
 		
-		$this->loadPermittedStates($team->team_id, $playerId);
+		$this->loadPermittedStates($this->team->team_id, $this->person->person_id);
 		$edit = &$_POST['edit'];
 		
-		if($player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
-			$this->error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
+		if($this->player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
+			error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
 		}
 
 		if( $edit['step'] == 'perform' ) {
-				if($this->perform( $team, $player, $edit )) {
-					local_redirect(url("team/view/$team->team_id"));
+				if($this->perform($edit)) {
+					local_redirect(url("team/view/" . $this->team->team_id));
 				} else {
 					return false;
 				}
 		} else {
-				$rc = $this->generateForm( $team, $player );
+				$rc = $this->generateForm();
 		}
 	
 		return $rc;
 	}
 
-	function generateForm ( &$team, &$player ) 
+	function generateForm () 
 	{
-		$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
+		$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
 	
 		$output .= form_hidden('edit[step]', 'perform');
 		
-		$output .= para("You are attempting to change player status for <b>$player->fullname</b> on team <b>$team->name</b>.");
+		$output .= para("You are attempting to change player status for <b>" . $this->player->fullname . "</b> on team <b>" . $this->team->name . "</b>.");
 		
 		$output .= para("Current status: <b>" . $this->positions[$this->currentStatus] . "</b>");
 
@@ -714,7 +713,7 @@ class TeamRosterStatus extends Handler
 		return form($output);
 	}
 
-	function perform ( &$team, &$player, $edit )
+	function perform ( $edit )
 	{
 		global $session;
 		
@@ -724,7 +723,7 @@ class TeamRosterStatus extends Handler
 		 *  - status variable set to a valid value
 		 */
 		if( ! in_array($edit['status'], $this->permittedStates) ) {
-			$this->error_exit("You do not have permission to set that status.");
+			error_exit("You do not have permission to set that status.");
 		}
 
 		/* Perms already checked, so just do it */
@@ -736,13 +735,13 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $team->team_id, $player->user_id);
+				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $this->team->team_id, $this->player->user_id);
 				break;
 			case 'none':
-				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $team->team_id, $player->user_id);
+				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $this->team->team_id, $this->player->user_id);
 				break;
 			default:
-				$this->error_exit("Cannot set player to that state.");
+				error_exit("Cannot set player to that state.");
 			}
 			if( 1 != db_affected_rows() ) {
 				return false;
@@ -755,13 +754,13 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $team->team_id, $player->user_id, $edit['status']);
+				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $this->team->team_id, $this->player->user_id, $edit['status']);
 				if( 1 != db_affected_rows() ) {
 					return false;
 				}
 				break;
 			default:
-				$this->error_exit("Cannot set player to that state.");
+				error_exit("Cannot set player to that state.");
 			}
 		}
 
@@ -769,91 +768,65 @@ class TeamRosterStatus extends Handler
 	}
 }
 
-/**
- * Team viewing handler
- */
 class TeamView extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_permissions = array(
-			'edit_team'	  => false,
-			'delete_team' => false,
-		);
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'captain_of',
-			'allow'
-		);
-		$this->title = "View Team";
-		return true;
-	}
-
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if ($type == 'captain') {
-			$this->_permissions['edit_team'] = true;
-		}
+		global $session;
+		return $session->has_permission('team','view', $this->team->team_id);
 	}
 
 	function process ()
 	{
 		global $session;
 
-		$id = arg(2);
-
-		$team = team_load( array('team_id' => $id) );
-
-		if(!$team) {
-			$this->error_exit("That is not a valid team ID");
+		if( ! $this->team ) {
+			error_exit("That is not a valid team");
 		}
-
+		
 		// Team names might have HTML in them, so we need to nuke it.
-		$team_name = check_form($team->name);
+		$team_name = check_form($this->team->name);
 		$this->setLocation(array(
-			$team_name => "team/view/$id",
-			$this->title => 0));
+			$team_name => "team/view/" . $this->team->team_id,
+			"View Team" => 0));
 
 		/* Now build up team data */
 		$rows = array();
-		if($team->website) {
-			if(strncmp($team->website, "http://", 7) != 0) {
-				$team->website = "http://$team->website";
+		if($this->team->website) {
+			if(strncmp($this->team->website, "http://", 7) != 0) {
+				$this->team->website = "http://" .$this->team->website;
 			}
-			$rows[] = array("Website:", l($team->website, $team->website));
+			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
-		$rows[] = array("Shirt Colour:", check_form($team->shirt_colour));
-		$rows[] = array("League/Tier:", l($team->league_name, "league/view/$team->league_id"));
+		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
+		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 
-		if($team->rank) {
-			$rows[] = array("Ranked:", $team->rank);
+		if($this->team->rank) {
+			$rows[] = array("Ranked:", $this->team->rank);
 		}
 		
-		$rows[] = array("Team Status:", $team->status);
+		$rows[] = array("Team Status:", $this->team->status);
 
 		/* Spence Balancing Factor:
 		 * Average of all score differentials.  Lower SBF means more
 		 * evenly-matched games.
 		 */
-		$teamSBF = $team->calculate_sbf( );
+		$teamSBF = $this->team->calculate_sbf( );
 		if( $teamSBF ) {
-			$league = league_load( array('league_id' => $team->league_id) );
+			$league = league_load( array('league_id' => $this->team->league_id) );
 			$leagueSBF = $league->calculate_sbf();
 			if( $leagueSBF ) {
 				$teamSBF .= " (league $leagueSBF)";
 			} 
 			$rows[] = array("Team SBF:", $teamSBF);
 		}
-		$rows[] = array("Rating:", $team->rating);
+		$rows[] = array("Rating:", $this->team->rating);
 		
 
 		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		/* and, grab roster */
+		// TODO: turn this into $team->get_roster() 
 		$result = db_query(
 			"SELECT 
 				p.user_id as id,
@@ -867,7 +840,7 @@ class TeamView extends Handler
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
 				r.team_id = %d
-			ORDER BY r.status, p.gender, p.lastname", $id);
+			ORDER BY r.status, p.gender, p.lastname", $this->team->team_id);
 		
 		$header = array( array( 'data' => 'Team Roster', 'colspan' => 5));
 		$rows = array();	
@@ -881,6 +854,7 @@ class TeamView extends Handler
 			 * conflicts ignored, but not others.
 			 *
 			 * TODO: This is time-consuming and resource-inefficient.
+			 * TODO: Turn this into $team->check_roster_conflicts()
 			 */
 			$conflict = db_result(db_query("SELECT COUNT(*) from
 					league l, leagueteams t, teamroster r
@@ -889,7 +863,7 @@ class TeamView extends Handler
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
-					AND r.player_id = %d",$team->league_season,$team->league_day,$player->id));
+					AND r.player_id = %d",$this->team->league_season,$this->team->league_day,$player->id));
 					
 			if($conflict > 1) {
 				$conflictText = "(roster conflict)";
@@ -911,9 +885,8 @@ class TeamView extends Handler
 			
 
 			$player_links = array( l('view', "person/view/$player->id") );
-			if($this->_permissions['edit_team'] || ($player->id == $session->attr_get("user_id"))) {
-				$player_links[] = l('change status',
-					"team/roster/$id/$player->id");
+			if($session->has_permission('team','player status', $this->team->team_id, $player->id) ) {
+				$player_links[] = l('change status', "team/roster/" . $this->team->team_id . "/$player->id");
 			}
 			
 			$rows[] = array(
@@ -939,13 +912,49 @@ class TeamView extends Handler
 		);
 		
 		$rosterdata = "<div class='listtable'>" . table($header, $rows) . "</div>";
-
-
-		team_add_to_menu($this, $team);
 		
 		return table(null, array(
 			array( $teamdata, $rosterdata ),
 		));
+	}
+}
+
+class TeamHistory extends Handler
+{
+	function has_permission ()
+	{
+		global $session;
+		if( ! $this->team ) {
+			error_exit("That is not a valid team");
+		}
+		return $session->has_permission('team','view', $this->team->team_id);
+	}
+
+	function process ()
+	{
+		global $session;
+
+		// Get games
+		$games = game_load_many( array('either_team' => $this->team->team_id) );
+		if($games) {
+			$output = '<pre>';
+			foreach($games as $game) {
+				if( ! $game->is_finalized() ) {
+					continue;
+				}
+				$rank = '';
+				if( $game->home_team == $this->team->team_id ) {
+					$rank = $game->home_dependant_rank;
+				} else {
+					$rank = $game->away_dependant_rank;
+				}
+				$output .= "$game->game_id $game->game_date:  $rank\n";
+			}
+			$output .= '<pre>';
+		} else {
+			$output = 'No Info';
+		}
+		return $output;
 	}
 }
 
@@ -954,57 +963,31 @@ class TeamView extends Handler
  */
 class TeamSchedule extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_permissions = array(
-			'submit_score'	=> false,
-		);
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'captain_of',
-			'coordinate_league_containing',
-			'allow'
-		);
-		$this->title = "Schedule";
-
-		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if ($type == 'coordinator') {
-			$this->_permissions['submit_score'] = true;
-		} else if ($type == 'captain') {
-			$this->_permissions['submit_score'] = true;
-		}
+		global $session;
+		return $session->has_permission('team','view schedule', $this->team->team_id);
 	}
 
 	function process ()
 	{
-		$id = arg(2);
-
-		$team = team_load( array('team_id' => $id) );
-		
-		if(!$team) {
-			$this->error_exit("That team does not exist");
+		global $session;
+		$this->title = "Schedule";
+		if(!$this->team) {
+			error_exit("That team does not exist");
 		}
 
 		$this->setLocation(array(
-			$team->name => "team/view/$id",
+			$this->team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0));
 
 		/*
 		 * Grab schedule info 
 		 */
-		$games = game_load_many( array( 'either_team' => $id, '_order' => 'g.game_date') );
+		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
 		if( !is_array($games) ) {
-			$this->error_exit("There are no games scheduled for this team");
+			error_exit("There are no games scheduled for this team");
 		}
 
 		$header = array(
@@ -1060,13 +1043,13 @@ class TeamSchedule extends Handler
 				 *   - display score entry link if game date has passed
 				 *   - display a blank otherwise
 				 */
-				$entered = $game->get_score_entry( $id );
+				$entered = $game->get_score_entry( $this->team->team_id );
 				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
 					$game_score = "$entered->score_for - $entered->score_against";
-				} else if($this->_permissions['submit_score'] 
+				} else if($session->has_permission('game','submit score', $game) 
 				    && ($game->timestamp < time()) ) {
-						$score_type = l("submit score", "game/submitscore/$game->game_id/$id");
+						$score_type = l("submit score", "game/submitscore/$game->game_id/" . $this->team->team_id);
 				} else {
 					$score_type = "&nbsp;";
 				}
@@ -1116,7 +1099,6 @@ class TeamSchedule extends Handler
 		// add another row of dashes when you're done.
 		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 
-		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
 	}
 }
@@ -1125,53 +1107,30 @@ class TeamSpirit extends Handler
 {
 	function initialize ()
 	{
-		$this->_permissions = array(
-			'view_detailed_spirit'	=> false,
-		);
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'captain_of',
-			'coordinate_league_containing',
-			'allow'
-		);
-		$this->title = "Schedule";
-
-		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if ($type == 'coordinator') {
-			$this->_permissions['view_detailed_spirit'] = true;
-		}
+		global $session;
+		return $session->has_permission('team','view', $this->team->team_id);
 	}
 
 	function process ()
 	{
-		$id = arg(2);
-
-		$team = team_load( array('team_id' => $id) );
+		global $session;
+		$this->title = "Schedule";
 		
-		if(!$team) {
-			$this->error_exit("That team does not exist");
+		if(!$this->team) {
+			error_exit("That team does not exist");
 		}
 
 		$this->setLocation(array(
-			$team->name => "team/spirit/$id",
+			$this->team->name => "team/spirit/". $this->team->team_id,
 			$this->title => 0));
 
 		/*
 		 * Grab schedule info 
 		 */
-		$games = game_load_many( array( 'either_team' => $id, '_order' => 'g.game_date') );
+		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
 		if( !is_array($games) ) {
-			$this->error_exit("There are no games scheduled for this team");
+			error_exit("There are no games scheduled for this team");
 		}
 
 		$header = array(
@@ -1197,7 +1156,7 @@ class TeamSpirit extends Handler
 				continue;
 			}
 			
-			if($game->home_id == $id) {
+			if($game->home_id == $this->team->team_id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
 				$home_away = '(home)';
@@ -1215,7 +1174,7 @@ class TeamSpirit extends Handler
 
 			
 			# Fetch spirit answers for games
-			$entry = $game->get_spirit_entry( $id );
+			$entry = $game->get_spirit_entry( $this->team->team_id );
 			if( !$entry ) {
 				continue;
 			}
@@ -1240,8 +1199,8 @@ class TeamSpirit extends Handler
 			}
 
 			$num_games++;
-			
-			if( ! $this->_permissions['view_detailed_spirit'] ) {
+		
+			if( !$session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
 				continue;
 			}
 
@@ -1264,28 +1223,24 @@ class TeamSpirit extends Handler
 		}
 		$rows[] = $thisrow;
 
-		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
 	}
 }
 
 class TeamEmails extends Handler 
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'captain_of',
-			'deny',
-		);
-		$this->title = 'Player Emails';
-		return true;
+		global $session;
+		return $session->has_permission('team','email',$this->team->team_id);
 	}
 
 	function process ()
 	{
-		$id = arg(2);
+		$this->title = 'Player Emails';
+		if( !$this->team ) {
+			error_exit('That team does not exist');
+		}
 
 		$result = db_query(
 			"SELECT
@@ -1294,7 +1249,7 @@ class TeamEmails extends Handler
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = %d",$id);
+				r.team_id = %d",$this->team->team_id);
 				
 		if( db_num_rows($result) <= 0 ) {
 			return false;
@@ -1310,10 +1265,10 @@ class TeamEmails extends Handler
 			$emails[] = $user->email;
 		}
 
-		$team = team_load( array('team_id' => $id) );
+		$team = team_load( array('team_id' => $this->team->team_id) );
 
 		$this->setLocation(array(
-			$team->name => "team/view/$id",
+			$team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0));
 
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");

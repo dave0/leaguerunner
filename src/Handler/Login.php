@@ -19,11 +19,8 @@ function login_menu()
  */
 class Login extends Handler 
 {
-	function initialize () 
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'allow'
-		);
 		return true;
 	}
 
@@ -160,11 +157,8 @@ EOF;
  */
 class Logout extends Handler 
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'allow'
-		);
 		return true;
 	}
 

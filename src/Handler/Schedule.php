@@ -19,32 +19,16 @@ function schedule_dispatch()
  */
 class ScheduleViewDay extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "View Day";
-
-		$this->_permissions = array(
-			"administer_league" => false,
-		);
-		
-		$this->_required_perms = array(
-			'allow',
-		);
-
+		// Everyone gets to see the schedule
 		return true;
-	}
-
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if($type == 'coordinator') {
-			$this->enable_all_perms();
-		} 
 	}
 
 	function process ()
 	{
+		$this->title = "View Day";
+
 		$today = getdate();
 
 		$year  = arg(2);
@@ -83,7 +67,7 @@ class ScheduleViewDay extends Handler
 		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
 		
 		if( ! $result ) {
-			$this->error_exit("That league does not have a schedule");
+			error_exit("That league does not have a schedule");
 		}
 
 		$rows = array( 
@@ -106,9 +90,6 @@ class ScheduleEdit extends Handler
 	function initialize ()
 	{
 		$this->title = "Edit Schedule";
-		$this->_permissions = array(
-			"administer_league" => false,
-		);
 
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -117,15 +98,6 @@ class ScheduleEdit extends Handler
 			'deny'
 		);
 		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} else if($type == 'coordinator') {
-			$this->enable_all_perms();
-		} 
 	}
 	
 	function process ()
@@ -153,7 +125,7 @@ class ScheduleEdit extends Handler
 	{
 		$league = league_load( array( 'league_id' => $id ) );
 		if( ! $league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
 
 		$this->setLocation(array(
@@ -164,7 +136,7 @@ class ScheduleEdit extends Handler
 		/* Grab data for pulldowns if we need an edit form */
 		$teams = $league->teams_as_array();
 		if( ! count($teams) ) {
-			$this->error_exit("There may be no teams in this league");
+			error_exit("There may be no teams in this league");
 		}
 		$teams[0] = "---";
 		 
@@ -173,7 +145,7 @@ class ScheduleEdit extends Handler
 		// get the game slots for this league and this day
 		$gameslots = get_gameslots($id,$timestamp);
 		if( count($gameslots) <= 1 ) {
-			$this->error_exit("There are no fields assigned to this league");
+			error_exit("There are no fields assigned to this league");
 		}
 		$league->gameslots = $gameslots;
 
@@ -183,7 +155,7 @@ class ScheduleEdit extends Handler
 		
 			
 		if( ! $result ) {
-			$this->error_exit("That league does not have a schedule");
+			error_exit("That league does not have a schedule");
 		}
 
 		$prevDayId = -1;
@@ -287,18 +259,18 @@ class ScheduleEdit extends Handler
 		// first, load the league
 		$league = league_load( array('league_id' => $id) );
 		if( !$league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
 
 		// now check if the data is valid...
 		$dataInvalid = $this->isDataInvalid( $edit['games'] , $league->schedule_type == "ladder" );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$gameslots = get_gameslots($id,$dayId);
 		if( count($gameslots) <= 1 ) {
-			$this->error_exit("There are no fields assigned to this league!");
+			error_exit("There are no fields assigned to this league!");
 		}
 
 		$output = para(
@@ -350,19 +322,19 @@ class ScheduleEdit extends Handler
 		// first, load the league
 		$league = league_load( array('league_id' => $id) );
 		if( !$league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
 
 		// now check if the data is valid...
 		$dataInvalid = $this->isDataInvalid( $edit['games'] , $league->schedule_type == "ladder" );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid);
+			error_exit($dataInvalid);
 		}
 
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 			$game = game_load( array('game_id' => $game_id) );
 			if( !$game ) {
-				$this->error_exit("Attempted to edit game info for a nonexistant game!");
+				error_exit("Attempted to edit game info for a nonexistant game!");
 			}
 
 			if ($league->schedule_type != "ladder") {
@@ -376,7 +348,7 @@ class ScheduleEdit extends Handler
 			$game->set('slot_id', $game_info['slot_id']);
 
 			if( !$game->save() ) {
-				$this->error_exit("Couldn't save game information!");
+				error_exit("Couldn't save game information!");
 			}
 
 			// there can be more gameslots than games, so it is important
@@ -401,7 +373,6 @@ class ScheduleView extends Handler
 		$this->title = "View Schedule";
 		$this->_permissions = array(
 			"edit_schedule" => false,
-			"administer_league" => false,
 		);
 		
 		$this->_required_perms = array(
@@ -424,12 +395,14 @@ class ScheduleView extends Handler
 
 	function process ()
 	{
+		global $session;
+		
 		$id = arg(2);
 		
 		$league = league_load( array('league_id' => $id) );
 		
 		if( !$league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
 
 		$this->setLocation(array(
@@ -441,7 +414,7 @@ class ScheduleView extends Handler
 		 */
 		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
 		if( ! $result ) {
-			$this->error_exit("That league does not have a schedule");
+			error_exit("That league does not have a schedule");
 		}
 
 		$prevDayId = -1;
@@ -452,7 +425,7 @@ class ScheduleView extends Handler
 			if( $game['day_id'] != $prevDayId ) {
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game['timestamp']),
-					$this->_permissions['edit_schedule'],
+					$session->has_permission('league','edit schedule', $league->league_id),
 					$game['day_id'], $id );
 				$rows[] = schedule_subheading( );
 			}
@@ -461,7 +434,7 @@ class ScheduleView extends Handler
 			$prevDayId = $game['day_id'];	
 		}
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
-		league_add_to_menu($this, $league);
+		league_add_to_menu($league);
 		return form($output);
 	}
 }
