@@ -1064,17 +1064,13 @@ class LeagueScheduleView extends Handler
 	}
 }
 
-/**
- * League standings handler
- */
 class LeagueStandings extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View League Standings");
+		$this->set_title("View Standings");
 		$this->_permissions = array(
 			"view_spirit" => false,
-			"view_team" => true,
 		);
 
 		$this->_required_perms = array(
@@ -1102,61 +1098,71 @@ class LeagueStandings extends Handler
 		global $DB;
 
 		$id = var_from_getorpost('id');
-
-		$this->set_template_file("League/standings.tmpl");
 	
-		$row = $DB->getRow(
+		$league = $DB->getRow(
 			"SELECT * FROM league l WHERE l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($league)) {
 			return false;
 		}
-		if($row['allow_schedule'] == 'N') {
+		if($league['allow_schedule'] == 'N') {
 			$this->error_exit("This league does not have a schedule or standings.");
 		}
 
-		$this->tmpl->assign("league_id", $id);
-		$this->tmpl->assign("league_name",   $row['name']);
-		$this->tmpl->assign("league_tier",   $row['tier']);
-		$this->tmpl->assign("league_ratio",  $row['ratio']);
-		$this->tmpl->assign("league_season", $row['season']);
-		$this->tmpl->assign("league_current_round", $row['current_round']);
-
 		$round = var_from_getorpost('round');
 		if(! isset($round) ) {
-			$round = $row['current_round'];
+			$round = $league['current_round'];
 		}
 		
-		/* ... and set permissions flags */
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
+		$title = $league['name'];
+		if($league['tier']) {
+			$title .= " Tier " . $league['tier'];
+		}
+		$this->set_title("View Standings &raquo; $title");
+		print $this->get_header();
+		print h1("Standings for " . $title);
+		print $this->generate_standings($id, $round);
+		print $this->get_footer();
+		return true;
+	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
+
+	function calculate_sotg( &$stats, $drop_best_worst = false ) 
+	{	
+		$raw = $stats['spirit'];
+		$games = $stats['games'] - ($stats['defaults_for'] + $stats['defaults_against']);
+		if($drop_best_worst && ($games > 3)) {
+			$raw = $raw - ($stats['best_spirit'] + $stats['worst_spirit']);
+			$games = $games - 2;
 		}
 
-		$this->tmpl->assign("current_round", $round);
-		
-		/* Now, crunch the stats */
-		return $this->fill_standings($id, $round);
+		if($games > 0) {
+			return $raw / $games;
+		} else {
+			return 0;
+		}
 	}
-	
-	function fill_standings ($id, $current_round)
+		
+
+	function generate_standings ($id, $current_round = 0)
 	{
 		global $DB;
 		$teams = $DB->getAll(
 				"SELECT
 					t.team_id AS id, t.name
-				FROM
-					leagueteams l
-					LEFT JOIN team t ON (l.team_id = t.team_id)
-				WHERE
+				 FROM leagueteams l
+				 LEFT JOIN team t ON (l.team_id = t.team_id)
+				 WHERE
 					league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($teams)) {
 			return false;
 		}
-
 		$season = array();
 		$round  = array();
 		
@@ -1168,7 +1174,7 @@ class LeagueStandings extends Handler
 		 * opponents are still here
 		 */
 		$games = $DB->getAll(
-			"SELECT DISTINCT
+			"SELECT DISTINCT 
 				s.game_id, 
 				s.home_team, 
 				s.away_team, 
@@ -1209,11 +1215,11 @@ class LeagueStandings extends Handler
 		while(list(,$team) = each($teams))
 		{
 			$round[$team['id']]['spirit'] = $season[$team['id']]['spirit'];
-			$round[$team['id']]['games'] = $reason[$team['id']]['games'];
+			$round[$team['id']]['games'] = $season[$team['id']]['games'];
 		}
 		
 		/* Now, sort it all */
-		if($current_round > 0) {
+		if($current_round) {
 			uasort($round, array($this, 'sort_standings'));	
 			$sorted_order = &$round;
 		} else {
@@ -1221,36 +1227,66 @@ class LeagueStandings extends Handler
 			$sorted_order = &$season;
 		}
 
-		/* and display */
-		$standings = array();
-		while(list(, $data) = each($sorted_order)) {
-			$id = $data['id'];
-			$srow = $season[$id];
-			if($season[$id]['games'] > 2) {
-				$srow['sotg'] = sprintf("%.2f", $season[$id]['spirit'] / ($season[$id]['games'] - ($season[$id]['defaults_for'] + $season[$id]['defaults_against'])));
-				
-			} else {
-				$srow['sotg'] = "---";
+		$output = "<table border='0' cellpadding='3' cellspacing='0'>";
+
+		/* Build up header */
+		$header = td("Team Name", array( 'class' => 'standings_title', 'valign'=>'middle', 'rowspan' => 2));
+		$subheader = "";
+		if($current_round) {
+			$header .= td("Current Round ($current_round)", array( 'class' => 'standings_title', 'valign'=>'middle', 'colspan' => 7));
+			$subheader .= td("Win", array('class'=>'standings_subtitle_lb', 'valign'=>'bottom'));
+			foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+				$subheader .= td($text, array('class'=>'standings_subtitle', 'valign'=>'bottom'));
 			}
-			$srow['plusminus'] = $srow['points_for'] - $srow['points_against'];
-			
-			/* TODO: round standings */
-			$srow['round_win'] = $round[$id]['win'];
-			$srow['round_loss'] = $round[$id]['loss'];
-			$srow['round_tie'] = $round[$id]['tie'];
-			$srow['round_defaults_against'] = $round[$id]['defaults_against'];
-			$srow['round_defaults_for'] = $round[$id]['defaults_for'];
-			$srow['round_points_for'] = $round[$id]['points_for'];
-			$srow['round_points_against'] = $round[$id]['points_against'];
-			$srow['round_plusminus'] = $round[$id]['points_for'] - $round[$id]['points_against'];
-
-			$standings[] = $srow;
 		}
-		$this->tmpl->assign("standings", $standings);
-		$this->tmpl->assign("want_round", true);
-		return true;
-	}
+		
+		$header .= td("Season To Date", array( 'class' => 'standings_title', 'valign'=>'middle', 'colspan' => 7)); 
+		$subheader .= td("Win", array('class'=>'standings_subtitle_lb', 'valign'=>'bottom'));
+		foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			$subheader .= td($text, array('class'=>'standings_subtitle', 'valign'=>'bottom'));
+		}
+		
+		$header .= td("Avg.<br>SOTG", array( 'class' => 'standings_title', 'valign'=>'middle', 'rowspan' => 2));
+		
+		$output .= tr( $header );
+		$output .= tr( $subheader );
 
+		while(list(, $data) = each($sorted_order)) {
+
+			$id = $data['id'];
+			$row = td(l($data['name'], "op=team_view&id=$id"), array('class' => 'standings_item'));
+
+			if($current_round) {
+				$row .= td($round[$id]['win'], array('class' => 'standings_item_lb'));
+				$row .= td($round[$id]['loss'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['tie'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['defaults_against'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['points_for'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['points_against'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['points_for'] - $round[$id]['points_against'], array('class' => 'standings_item'));
+			}
+			$row .= td($season[$id]['win'], array('class' => 'standings_item_lb'));
+			$row .= td($season[$id]['loss'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['tie'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['defaults_against'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['points_for'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['points_against'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['points_for'] - $season[$id]['points_against'], array('class' => 'standings_item'));
+		
+			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
+				 $sotg = "---";
+			} else {
+				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id]));
+			}
+			
+			$row .= td($sotg, array('class' => 'standings_item_lb'));
+			$output .= tr( $row );
+		}
+		$output .= "</table>";
+
+		return $output;
+	}
+	
 	/*
 	 * Initialise an empty array of season info
 	 */
@@ -1263,6 +1299,8 @@ class LeagueStandings extends Handler
 				'points_for' => 0,
 				'points_against' => 0,
 				'spirit' => 0,
+				'worst_spirit' => 99999,
+				'best_spirit' => 0,
 				'win' => 0,
 				'loss' => 0,
 				'tie' => 0,
@@ -1297,6 +1335,12 @@ class LeagueStandings extends Handler
 				$data['defaults_for']++;
 			} else {
 				$data['spirit'] += $game['home_spirit'];
+				if($data['worst_spirit'] > $game['home_spirit']) {
+					$data['worst_spirit'] = $game['home_spirit'];
+				}
+				if($data['best_spirit'] < $game['home_spirit']) {
+					$data['best_spirit'] = $game['home_spirit'];
+				}
 			}
 
 			if($game['home_score'] == $game['away_score']) {
@@ -1328,6 +1372,12 @@ class LeagueStandings extends Handler
 				$data['defaults_for']++;
 			} else {
 				$data['spirit'] += $game['away_spirit'];
+				if($data['worst_spirit'] > $game['away_spirit']) {
+					$data['worst_spirit'] = $game['away_spirit'];
+				}
+				if($data['best_spirit'] < $game['away_spirit']) {
+					$data['best_spirit'] = $game['away_spirit'];
+				}
 			}
 
 			if($game['away_score'] == $game['home_score']) {
@@ -1364,7 +1414,8 @@ class LeagueStandings extends Handler
 
 		/* Check SOTG */
 		if($a['games'] > 0 && $b['games'] > 0) {
-			$rc = cmp( $b['spirit'] / $b['games'], $a['spirit'] / $a['games']);
+			# TODO: use calculate_sotg() here!
+			$rc = cmp( $this->calculate_sotg($b), $this->calculate_sotg($b));
 			if($rc != 0) {
 				return $rc;
 			}
