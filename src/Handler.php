@@ -5,7 +5,9 @@ require_once("Handler/Login.php");
 require_once("Handler/Logout.php");
 require_once("Handler/Menu.php");
 require_once("Handler/NotFound.php");
+
 require_once("Handler/Person.php");
+require_once("Handler/Team.php");
 
 require_once("lib/smarty_extensions.php");
 
