@@ -24,8 +24,8 @@ class Game extends LeaguerunnerObject
 		}
 
 		/* set derived attributes */
-		if($this->field_id) {
-			$this->field = field_load( array('field_id' => $this->field_id) );
+		if($this->site_id) {
+			$this->site = site_load( array('site_id' => $this->site_id) );
 		}
 
 		return true;
@@ -121,15 +121,14 @@ function game_query ( $array = array() )
 		a.rating AS away_rating,
 		g.game_date,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
-		f.site_id,
+		g.site_id,
 		CONCAT(YEAR(g.game_date),DAYOFYEAR(g.game_date)) as day_id,
-		CONCAT(t.code, ' ', f.num) AS field_code,
+		CONCAT(t.code, ' ', g.field_num) AS field_code,
 		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp
 	FROM
 		schedule s,
 		gameslot g
-		LEFT JOIN field f ON (g.field = f.field_id)
-		LEFT JOIN site t ON (t.site_id = f.site_id)
+		LEFT JOIN site t ON (t.site_id = g.site_id)
 		LEFT JOIN team h ON (h.team_id = s.home_team) 
 		LEFT JOIN team a ON (a.team_id = s.away_team)
 	WHERE " . implode(' AND ',$query) .  $order);

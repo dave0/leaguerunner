@@ -232,7 +232,7 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
-		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, f.site_id, s.field_id') );
+		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, g.site_id, g.field_num') );
 		
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
@@ -328,6 +328,7 @@ class ScheduleEdit extends Handler
 			$league->teams[$team->team_id] = $team->name;
 		}
 
+		# TODO: This code will die a painful death in the future.
 		$result = db_query(
 			"SELECT DISTINCT
 				f.field_id,
