@@ -323,12 +323,7 @@ class League extends LeaguerunnerObject
 	}
 
 	/** DELETE GAMES FUNCTION **/
-	// there is a bug inside this function, so I'm adding a hack to fix the dependant games
-	// once this function has done it's mangling... 
-	// TODO: fix the bug properly when you get time!
 	function cancelround ( $round ) {
-
-		error_exit("This function has a bug, fix it before you try to use it!!!");
 
 		// make sure the teams are loaded
 		if (! $this->load_teams() ) {
@@ -347,6 +342,7 @@ class League extends LeaguerunnerObject
 		// Super important!  We make a back-up copy of all the game objects in case we have to rollback!
 		$backup_games = array();
 		$games = array();
+		$changed_games = array();
 		while($game = db_fetch_array($result)) {
 			if ($game['round'] >= $round) {
 				$game = game_load( array('game_id' => $game['game_id']) );
@@ -365,27 +361,21 @@ class League extends LeaguerunnerObject
 			$game = $games[$i];
 			if ( ($i - $game_set) >= 0 ) {
 				$prev_game = $games[$i-$game_set];
-				// assign the previous game's dependant info to this game
+
 				$game->set('round', $prev_game->round);
-				// if there's a home team to move...
-				if ($prev_game->home_team) {
-					$game->set('home_team', $prev_game->home_team);
-				}
-				// if there's an away team to move...
-				if ($prev_game->away_team) {
-					$game->set('away_team', $prev_game->away_team);
-				}
-				// be careful about when you move the dependant games (game id's)!!!
-				if ( ($i-$game_set) < $game_set ) {
+
+				$game->set('home_team', $prev_game->home_team);
+				$game->set('away_team', $prev_game->away_team);
+
+				// the only dependant info that you need to update is for the
+				// game_set AFTER the game_set you're deleting!
+				if ($prev_game->round == $round) {
 					$game->set('home_dependant_game', $prev_game->home_dependant_game);
 					$game->set('away_dependant_game', $prev_game->away_dependant_game);
+					$game->set('home_dependant_type', $prev_game->home_dependant_type);
+					$game->set('away_dependant_type', $prev_game->away_dependant_type);
 				}
-				// always move the dependant types
-				$game->set('home_dependant_type', $prev_game->home_dependant_type);
-				$game->set('away_dependant_type', $prev_game->away_dependant_type);
-				// TODO: I don't think that we need to move the ranks, do we??  No because of assumption of array order?
-				//$game->set('home_dependant_rank', $prev_game->home_dependant_rank);
-				//$game->set('away_dependant_rank', $prev_game->away_dependant_rank);
+
 				if (! $game->save() ) {
 					// there was a problem, rollback!
 					foreach ($backup_games as $bgame) {
@@ -394,6 +384,9 @@ class League extends LeaguerunnerObject
 						}
 					}
 					error_exit("Could not save the game info during cancelround($round)! The changes made here have been reverted! Whew!");
+				} else {
+					// save the changed game (use unshift because here we are looping backwards!)
+					array_unshift($changed_games, $game);
 				}
 			} else {
 				if (! $game->delete() ) {
@@ -407,47 +400,13 @@ class League extends LeaguerunnerObject
 				}
 			}
 		}
-		reset($games);
 
-		// TONY HACK: There is an error in the above code... the dependant games get messed up
-		// for all game sets after the games that replace the deleted round.  So, to fix it, 
-		// let's call the set_dependants() function to do it.
-		// TODO: Remove this horrible hack and fix whatever errors are in the cancel function!
-		$this->set_dependants($games, $number_of_teams);
+		// now fix all of the dependant game info!
+		$this->set_dependants($changed_games, $number_of_teams);
 
 		return true;
 	}
 
-	/** TONY: delete this function once you've fixed the bugs that you created with the schedule
-		on www.ocua.ca!  This function is no longer needed once you run it once to fix your
-		mistakes... **/
-	function fix_dependant_games ( $round ) {
-
-		// make sure the teams are loaded
-		if (! $this->load_teams() ) {
-			return false;
-		}
-
-		$number_of_teams = count($this->teams);
-		$game_set = $number_of_teams / 2;
-
-		// get the schedule
-		$result = game_query ( array( 'league_id' => $this->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
-		if( ! $result ) {
-			return false;
-		}
-
-		$games = array();
-		while($game = db_fetch_array($result)) {
-			if ($game['round'] >= $round) {
-				$game = game_load( array('game_id' => $game['game_id']) );
-				array_push($games, $game);
-			}
-		}
-		reset($games);
-
-		$this->set_dependants($games, $number_of_teams);
-	}
 
 	/********************************************************************************
 	 *  This function expects one ORDERED array with any number of sets of games, and will return a copy
