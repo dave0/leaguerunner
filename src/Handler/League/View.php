@@ -74,13 +74,11 @@ class LeagueView extends Handler
 				l.season,
 				l.max_teams,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
-				c.user_id AS coordinator_id, 
-				CONCAT(co.firstname,' ',co.lastname) AS co_coordinator_name, 
-				co.user_id AS co_coordinator_id, 
+				l.coordinator_id,
+				l.alternate_id as co_coordinator_id,
 				l.current_round
 			FROM league l, person c, person co
 			WHERE c.user_id = l.coordinator_id 
-				AND (co.user_id = (if(ISNULL(l.alternate_id),1,l.alternate_id)))
 				AND l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
@@ -104,8 +102,9 @@ class LeagueView extends Handler
 		$this->tmpl->assign("coordinator_name", $row['coordinator_name']);
 		$this->tmpl->assign("coordinator_id", $row['coordinator_id']);
 
-		if( $row['co_coordinator_id'] != 1 ) {
-			$this->tmpl->assign("co_coordinator_name", $row['co_coordinator_name']);
+		if( $row['co_coordinator_id'] > 1 ) {
+			$co_name = $DB->getOne("SELECT CONCAT(co.firstname,' ',co.lastname) FROM person co where user_id = ?", array($row['co_coordinator_id'])); 
+			$this->tmpl->assign("co_coordinator_name", $co_name);
 			$this->tmpl->assign("co_coordinator_id", $row['co_coordinator_id']);
 		}
 

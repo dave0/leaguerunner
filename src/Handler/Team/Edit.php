@@ -301,11 +301,6 @@ class TeamEdit extends Handler
 		
 		return $err;
 	}
-
-	function map_callback($item)
-	{
-		return array("output" => $item, "value" => $item);
-	}
 }
 
 ?>

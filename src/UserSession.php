@@ -249,6 +249,32 @@ class UserSession
 		
 		return false;
 	}
+	
+	/** 
+	 * See if this session user is coordinator of a given league
+	 *
+	 * @param team_id League identifier.
+	 *
+	 * @return boolean 
+	 */
+	function is_coordinator_of ($league_id)
+	{
+		global $DB;
+
+		$res = $DB->getRow("SELECT coordinator_id, alternate_id from league where league_id = ?",
+			array($league_id),
+			DB_FETCHMODE_ASSOC
+		);
+		if(DB::isError($res)) {
+			return false;
+		}
+
+		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['coordinator_id'])) {
+			return true;
+		}
+		
+		return false;
+	}
 
 
 	/**

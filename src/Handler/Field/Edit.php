@@ -45,7 +45,7 @@ class FieldEdit extends Handler
 		
 		$id = var_from_getorpost('id');
 		if(is_null($id)) {
-			$this->error_text = gettext("You must provide a team ID");
+			$this->error_text = gettext("You must provide a field ID");
 			return false;
 		}
 

@@ -273,6 +273,48 @@ class Handler
 		}
 		reset($this->_permissions);
 	}
+
+	/**
+	 * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
+	 * database.
+	 */
+	function get_enum_options ( $table, $col_name) 
+	{
+		global $DB;
+		
+		$row = $DB->getRow("SHOW COLUMNS from $table LIKE ?",
+			array($col_name),
+			DB_FETCHMODE_ASSOC);
+			
+		if($this->is_database_error($row)) {
+			return false;
+		}
+
+		$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
+		$str = str_replace(")","",$str);
+		$str = str_replace("'","",$str);
+		$ary = preg_split("/,/",$str);
+		
+		return array_map("map_array_callback", $ary);
+	}
+
+	/** 
+	 * Helper fn to generate an option-listable sequence of numbers
+	 */
+	function get_numeric_options ( $start, $finish )
+	{
+		/* Yuck */
+		$foo = array();
+		for($i = $start; $i <= $finish; $i++) {
+			$foo[] = $i;
+		}
+		return array_map("map_array_callback", $foo);
+	}
+
+}
+
+function map_array_callback($a) {
+   	return array ( 'value' => $a, 'output' => $a);
 }
 
 ?>

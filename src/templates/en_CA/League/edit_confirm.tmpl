@@ -1,0 +1,64 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$page_title}{if $id}: {$league_name}{/if}</h1>
+<p>
+	Confirm that the data below is correct, and hit continue to make your changes.
+</p>
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="perform">
+{if $id}
+	<input type="hidden" name="id" value="{$id}">
+{/if}
+	<table border="0">
+    <tr>
+      <td class='row_title'>League Name:</td> 
+      <td class='row_data'><input type="hidden" name="league_name" value="{$league_name}">{$league_name}</td>
+    </tr>
+	
+    <tr>
+  		<td class='row_title'>Coordinator:</td>
+  		<td class='row_data'>
+			<input type="hidden" name="coordinator_id" value="{$coordinator_id}">{$coordinator_name}
+  		</td>
+  	</tr>
+	
+    <tr>
+  		<td class='row_title'>Assistant Coordinator:</td>
+  		<td class='row_data'>
+			<input type="hidden" name="alternate_id" value="{$alternate_id}">{$alternate_name}
+  		</td>
+  	</tr>
+	
+    <tr>
+      <td class='row_title'>Season:</td> 
+      <td class='row_data'><input type="hidden" name="league_season" value="{$league_season}">{$league_season}</td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Day(s) of week:</td> 
+      <td class='row_data'><input type="hidden" name="league_day" value="{$league_day}">{$league_day}</td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Tier:</td> 
+      <td class='row_data'><input type="hidden" name="league_tier" value="{$league_tier}">{$league_tier}</td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Ratio:</td> 
+      <td class='row_data'><input type="hidden" name="league_ratio" value="{$league_ratio}">{$league_ratio}</td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Current Round:</td> 
+      <td class='row_data'><input type="hidden" name="league_round" value="{$league_round}">{$league_round}</td>
+    </tr>
+	
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
