@@ -9,7 +9,6 @@ class SystemViewFile extends Handler
 	function initialize ()
 	{
 		$this->_required_perms = array(
-			'require_valid_session',
 			'allow'
 		);
 		return true;
