@@ -18,6 +18,10 @@ define("LR_GRAPH_TIMEOUT",240);   # timeout is 4 hours per image
 function graph_dispatch() 
 {
 	$op = arg(1);
+
+	if(!$_GET['image'] == 'yes') {
+		return new GraphWrapper;	
+	}
 	switch($op) {
 		case 'teamrank':
 			$obj = new GraphTeamRank;
@@ -39,6 +43,47 @@ function graph_dispatch()
 			$obj = null;
 	}
 	return $obj;
+}
+
+class GraphWrapper extends Handler
+{
+	function has_permission()
+	{
+		return true;
+	}
+
+	function process ()
+	{
+		$op = arg(1);
+		switch($op) {
+			case 'leaguerank':
+				$league = league_load( array( 'league_id' => arg(2)));
+				league_add_to_menu( $league );
+				break;	
+			case 'teamrank':
+				$team_ids = explode("/", $_GET["q"]);
+				array_shift($team_ids);  // Remove handler
+				array_shift($team_ids);  // remove op
+				foreach($team_ids as $id) {
+					$team = team_load( array('team_id' => $id) );
+					if( !$team ) {
+						continue;
+					}
+					team_add_to_menu($team);
+				}
+				break;
+			default:
+				break;
+		}
+	
+		$uri = request_uri();
+		if(preg_match("/\?/", $uri) ) {
+			$uri .= "&image=yes";
+		} else {
+			$uri .= "?image=yes";
+		}
+		return "<img src='$uri' />";
+	}
 }
 
 class GraphTeamRank extends Handler
@@ -72,19 +117,19 @@ class GraphTeamRank extends Handler
 		array_shift($team_ids);  // remove op
 
 		foreach($team_ids as $id) {
-			$this->add_to_graph($graph, $id);
+			$team = team_load( array('team_id' => $id) );
+			if( !$team ) {
+				continue;
+			}
+			$this->add_to_graph($graph, $team);
 		}
 		header("Content-type: image/png");
 		$graph->Stroke();
 		exit;
 	}
 	
-	function add_to_graph( &$graph, $team_id) 
+	function add_to_graph( &$graph, &$team) 
 	{
-		$team = team_load( array('team_id' => $team_id) );
-		if( !$team ) {
-			return;
-		}
 		// Get games
 		$games = game_load_many( array('either_team' => $team->team_id) );
 		if($games) {
