@@ -52,9 +52,16 @@ class PersonView extends Handler
 	 */
 	function has_permission ()
 	{
-		global $DB, $session, $userid;
+		global $DB, $session, $id;
+
 		if(!$session->is_valid()) {
 			$this->error_text = gettext("You do not have a valid session");
+			return false;
+		}
+		
+		$id = var_from_getorpost('id');
+		if(is_null($id)) {
+			$this->error_text = gettext("You must provide a user ID");
 			return false;
 		}
 
@@ -62,7 +69,7 @@ class PersonView extends Handler
 		$this->_permissions['name'] = true;
 
 		/* Can always view self */
-		if($session->attr_get('user_id') == $userid) {
+		if($session->attr_get('user_id') == $id) {
 			while(list($key,) = each($this->_permissions)) {
 				$this->_permissions[$key] = true;
 			}
@@ -86,7 +93,7 @@ class PersonView extends Handler
 		 * See if we're looking at a regular player with possible restrictions
 		 */
 		$sth = $DB->prepare( "SELECT class, allow_publish_email, allow_publish_phone, FROM person WHERE user_id = ?");
-		$res = $DB->execute($sth,$userid);
+		$res = $DB->execute($sth,$id);
 		if(DB::isError($res)) {
 		 	/* TODO: Handle database error */
 			return false;
@@ -105,12 +112,12 @@ class PersonView extends Handler
 
 	function process ()
 	{
-		global $DB, $userid;
+		global $DB, $id;
 
 		$this->set_template_file("Person/view.tmpl");
 		
 		$sth = $DB->prepare("SELECT CONCAT(firstname,' ',lastname) AS fullname, username, primary_email, gender, primary_phone, birthdate, skill_level, year_started, addr_street, addr_city, addr_prov, addr_postalcode, last_login FROM person WHERE user_id = ?");
-		$res = $DB->execute($sth,$userid);
+		$res = $DB->execute($sth,$id);
 		if(DB::isError($res)) {
 		 	/* TODO: Handle database error */
 			return false;
@@ -119,11 +126,11 @@ class PersonView extends Handler
 		$res->free();
 
 		if(!isset($row)) {
-			$this->error_text = gettext("The user [$user_id] does not exist");
+			$this->error_text = gettext("The user [$id] does not exist");
 		}
 
 		$this->tmpl->assign("full_name", $row['fullname']);
-		$this->tmpl->assign("user_id", $userid);
+		$this->tmpl->assign("user_id", $id);
 
 		if($this->_permissions['username']) {
 			$this->tmpl->assign("username", $row['username']);
@@ -174,7 +181,7 @@ class PersonView extends Handler
 
 		/* Now, fetch teams */
 		$this->tmpl->assign("teams",
-			get_teams_for_user($userid));
+			get_teams_for_user($id));
 
 		return true;
 	}
