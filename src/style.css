@@ -18,6 +18,13 @@ TABLE {
 	font-size: 12px;
 }
 
+.main {
+	background-color: white;
+	color: black;
+	font-size: 12px;
+	font-family:  verdana, arial, helvetica, sans-serif;
+}
+
 .list_head {
 	background-color: #999999;
 	color: black;
@@ -68,7 +75,7 @@ TABLE {
 	border: 1px solid black;
 }
 
-.toptable {
+.toprow {
 	color: white;
 	background-color: black;
 	border: 1px solid black;

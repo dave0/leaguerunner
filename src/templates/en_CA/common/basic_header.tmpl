@@ -5,13 +5,13 @@
   </head>
   <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
 {strip}
-  <table class='toptable' border='0' cellpadding='3' cellspacing='0' bgcolor='black' width='100%'>
-    <tr>
+  <table border='0' cellpadding='3' cellspacing='0' width='760' bgcolor='white'>
+    <tr class='toprow'>
       <td colspan='2'>
         <h1>{$app_name}</h1>
       </td>
     </tr>
-    <tr>
+    <tr class='toprow'>
       <td>
         {if $page_user_name}
         Welcome <b>{$page_user_name}</b>.  You are at: <b>{$page_title}</b>
@@ -29,6 +29,7 @@
         </font>
       </td>
     </tr>
-  </table>
+    <tr>
+      <td colspan='2' class='main'>
 {/strip}
 {* vim: set sw=2 ts=2 et: *}
