@@ -1418,7 +1418,7 @@ class LeagueView extends Handler
 
 	function process ()
 	{
-		global $DB;
+		global $DB, $session;
 
 		$this->set_template_file("League/view.tmpl");
 
@@ -1452,6 +1452,7 @@ class LeagueView extends Handler
 		}
 		
 
+		$this->tmpl->assign("person_id", $session->attr_get("user_id"));
 		$this->tmpl->assign("league_id", $id);
 		$this->tmpl->assign("league_name",   $row['name']);
 		$this->tmpl->assign("league_tier",   $row['tier']);
@@ -1498,8 +1499,6 @@ class LeagueView extends Handler
 				$this->tmpl->assign("perm_$key", true);
 			}
 		}
-
-		
 
 		return true;
 	}
