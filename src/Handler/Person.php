@@ -8,6 +8,7 @@ require_once("Handler/Person/View.php");
 require_once("Handler/Person/Edit.php");
 require_once("Handler/Person/List.php");
 require_once("Handler/Person/Create.php");
+require_once("Handler/Person/ChangePassword.php");
 
 /*
  * Helper functions for person.  These are used amongst multiple handlers.

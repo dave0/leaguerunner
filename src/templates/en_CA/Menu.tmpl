@@ -12,7 +12,7 @@
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_view&id={$user_id}'>View/Edit My Account</a></td>
   </tr>
   <tr>
-    <td class="menu_item"><a href='{$app_cgi_location}?op=person_password'>Change Password</a></td>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_changepassword'>Change Password</a></td>
   </tr>
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=logout'>Log Out</a></td>
@@ -76,11 +76,21 @@
     {/if}
 
   {* General system junk *}
+  {if $perm_field_admin}
   <tr>
-    <td class="menu_title">System</td>
+    <td class="menu_title">Fields</td>
   </tr>
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=field_list'>List Fields</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=field_create'>Create New Field</a></td>
+  </tr>
+  {/if}
+
+  {* General system junk *}
+  <tr>
+    <td class="menu_title">System</td>
   </tr>
   {if $perm_user_admin}
   <tr>
