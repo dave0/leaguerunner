@@ -1381,9 +1381,6 @@ class LeagueAdmin extends Handler
 		$operation = arg(2); 
 		$this->leagueID  = arg(3);
 
-		// TODO: remove this when this code is safe and tested
-		$this->error_exit("This function is still being developed");
-
 		$this->league = league_load( array('league_id' => $this->leagueID ));
 
 		// Load our league up.
@@ -1398,12 +1395,16 @@ class LeagueAdmin extends Handler
                 
 		switch($operation) {
 			case 'cleanround':
+				// TODO: remove this when this code is safe and tested
+				$this->error_exit("This function is still being developed");
 				return($this->cleanround());
 				break;
 			case 'cancelround':
 				return($this->cancelround());
 				break;
 			case 'finalizeround':
+				// TODO: remove this when this code is safe and tested
+				$this->error_exit("This function is still being developed");
 				return($this->finalizeround());
 				break;
 			case 'top':
@@ -1418,7 +1419,13 @@ class LeagueAdmin extends Handler
 	{
 
 		$output = para("This is the league adminstration page.  " . 
-			       "You can perform several highly destructive operations here.");
+			       "You can perform several highly destructive operations here. " .
+			       "If you mess up here, your only recourse may be to restore the database from a previous backup! " .
+			       "<b>You have been warned!</b>");
+
+		$output .= para("Use <b>clean</b> to reset games (ie: deletes the home/away teams)");
+		$output .= para("Use <b>cancel</b> to delete the entire round of games (ie: physically removes games from the system, adjusting all dependent game info)");
+		$output .= para("Use <b>finalize</b> to force a result for all games in the round (ie: automatically approve partial score entries, assign 0-0 ties to games with no results)");
 
 		$header = array("Round", "Date", "&nbsp", "&nbsp", "Operations", "&nbsp");
 
@@ -1506,13 +1513,13 @@ class LeagueAdmin extends Handler
 	{
 		$this->league->cleanround(arg(5));
 
-		 return("Round cleaned.");
+		 return("Round <b>" . arg(5) . "</b> cleaned.");
 	}
      
 	function cancelroundconfirm()
 	{
-		$output = para("This operation will remove ALL GAMES from the select round!!");
-		$output .= para("Are you sure you want to proceed!?!");
+		$output = para("This operation will remove ALL GAMES from the selected round!!");
+		$output .= para("Are you sure you want to proceed with cancelling round <b>" . arg(5) . "</b> ?!?!");
 
 		$output .= form_submit("Cancel Round"); 
 		return form($output,"post", url("league/admin/cancelround/$this->leagueID/doit/" . arg(5)));
@@ -1520,9 +1527,11 @@ class LeagueAdmin extends Handler
 
 	function cancelrounddoit()
 	{
-		$this->league->cancelround(arg(5));
-
-		return("Round cancelled.");
+		if ( $this->league->cancelround(arg(5)) ) {
+			return("Round <b>" . arg(5) . "</b> cancelled.");
+		} else {
+			return("Problem cancelling round <b>" . arg(5) . "</b> !!!");
+		}
 	}
 
 	function finalizeroundconfirm()
@@ -1538,7 +1547,7 @@ class LeagueAdmin extends Handler
 	{
 		//$this->league->finalizeround(arg(5));
 
-		return("Round finalize.");
+		return("Round <b>" . arg(5) . "</b> finalized.");
 	}
 }
 

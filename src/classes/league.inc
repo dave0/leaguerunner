@@ -198,7 +198,7 @@ class League extends LeaguerunnerObject
 	//  This function clears all of the scores and rankings in a given round.
 	function cleanround( $roundNumber ) 
 	{
-
+		return false;
 	}
 
 	# TODO: add_team and remove_team, same as add and remove coordinator.
@@ -319,6 +319,62 @@ class League extends LeaguerunnerObject
 
 		return $sbf;
 	}
+
+	/** DLETE GAMES FUNCTION **/
+	function cancelround ( $round ) {
+
+		// make sure the teams are loaded
+		if (! $this->load_teams() ) {
+			return false;
+		}
+
+		$number_of_teams = count($this->teams);
+		$game_set = $number_of_teams / 2;
+
+		// get the schedule
+		$result = game_query ( array( 'league_id' => $this->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+		if( ! $result ) {
+			return false;
+		}
+
+		$games = array();
+		while($game = db_fetch_array($result)) {
+			if ($game['round'] >= $round) {
+				$game = game_load( array('game_id' => $game['game_id']) );
+				array_push($games, $game);
+			}
+		}
+		reset($games);
+
+		// ASSUMPTION: the array is properly sorted such that games that swap info are "$game_set" apart
+		for ($i = count($games)-1; $i >= 0; $i--) {
+			$game = $games[$i];
+			if ( ($i - $game_set) >= 0 ) {
+				$prev_game = $games[$i-$game_set];
+				// assign the previous game's dependant info to this game
+				if ($prev_game->home_team) {
+					$game->set('home_team', $prev_game->home_team);
+				}
+				$game->set('home_dependant_game', $prev_game->home_dependant_game);
+				$game->set('home_dependant_type', $prev_game->home_dependant_type);
+				$game->set('home_dependant_rank', $prev_game->home_dependant_rank);
+				if ($prev_game->away_team) {
+					$game->set('away_team', $prev_game->away_team);
+				}
+				$game->set('away_dependant_game', $prev_game->away_dependant_game);
+				$game->set('away_dependant_type', $prev_game->away_dependant_type);
+				$game->set('away_dependant_rank', $prev_game->away_dependant_rank);
+				if (! $game->save() ) {
+					error_exit("Oh Crap! Could not save the game info during cancelround($round)! This is VERY bad!  You schedule is most likely HOSED now, you should revert to a backed up copy!");
+				}
+			} else {
+				$game->delete();
+			}
+		}
+
+		return true;
+	}
+
 }
 
 /**
