@@ -503,7 +503,7 @@ class LeagueList extends Handler
 			. td("Ratio", array('class' => 'row_title'))
 			. td("&nbsp;", array('class' => 'row_title')));
 
-		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, name, ratio, tier",
+		$result = $DB->query("SELECT * FROM league WHERE season = ? ORDER BY day, ratio, tier, name",
 			array($wantedSeason));
 		if($this->is_database_error($result)) {
 			return false;

@@ -42,6 +42,7 @@ class PersonView extends Handler
 			'member_id'		=> false,
 			'dog'		=> false,
 			'class'		=> false,
+			'status'		=> false,
 			'publish'			=> false,
 			'user_edit'				=> false,
 #			'user_delete'			=> false,
@@ -127,13 +128,12 @@ class PersonView extends Handler
 		}
 
 		/*
-		 * See what the player's class is.  Some classes cannot be viewed
-		 * unless you are 'administrator'.  Also, 'volunteer' class requires
-		 * that email and phone be published.
+		 * See what the player's status is.  Some cannot be viewed unless you
+		 * are 'administrator'.  
 		 */
 		$row = $DB->getRow(
 			"SELECT 
-				class, 
+				status, 
 				allow_publish_email, 
 				publish_home_phone,
 				publish_work_phone,
@@ -144,28 +144,13 @@ class PersonView extends Handler
 			return false;
 		}
 		
-		switch($row['class']) {
+		switch($row['status']) {
 			case 'new':
 			case 'locked':
-				/* players of class 'new' and 'locked' can only be viewed by
+				/* players of status 'new' and 'locked' can only be viewed by
 				 * 'administrator' class, and this case is handled above.
 				 */
 				return false;
-				break;
-			case 'administrator':
-				/* No point in viewing this user's contact info since it's not
-				 * a real person, but... */
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				break;
-			case 'volunteer':
-				/* volunteers have their contact info published */
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
 				break;
 			case 'active':
 			case 'inactive':
@@ -302,6 +287,8 @@ class PersonView extends Handler
 		if($this->_permissions['class']) {
 			$output .= simple_row("Account Class:", $person['class']);
 		}
+		
+		$output .= simple_row("Account Status:", $person['status']);
 		
 		if($this->_permissions['dog']) {
 			$output .= simple_row("Has Dog:",($person['has_dog'] == 'Y') ? "yes" : "no");
@@ -536,7 +523,7 @@ class PersonApproveNewAccount extends PersonView
 			$this->error_exit("That person does not exist");
 		}
 		
-		if($person['class'] != 'new') {
+		if($person['status'] != 'new') {
 			$this->error_exit("That account has already been approved");
 		}
 		
@@ -652,7 +639,7 @@ class PersonApproveNewAccount extends PersonView
 			($person_info['gender'] == "Male") ? 0 : 1,
 			$member_id);
 		
-		$res = $DB->query("UPDATE person SET class = 'inactive', member_id = ?  where user_id = ?", array($full_member_id, $id));
+		$res = $DB->query("UPDATE person SET status = 'inactive', member_id = ?  where user_id = ?", array($full_member_id, $id));
 		
 		if($this->is_database_error($res)) {
 			return false;
@@ -698,6 +685,7 @@ class PersonEdit extends Handler
 		$this->_permissions = array(
 			'edit_username'		=> false,
 			'edit_class' 		=> false,
+			'edit_status' 		=> false,
 		);
 
 		$this->_required_perms = array(
@@ -849,6 +837,11 @@ class PersonEdit extends Handler
 			$output .= simple_row("Account Class:",
 				form_select('','class', $formData['class'], getOptionsFromEnum('person','class')));
 		}
+		
+		if($this->_permissions['edit_status']) {
+			$output .= simple_row("Account Status:",
+				form_select('','status', $formData['status'], getOptionsFromEnum('person','status')));
+		}
 
 		$output .= simple_row("Has dog:",
 			form_radiogroup('', 'has_dog', $formData['has_dog'], array(
@@ -974,6 +967,11 @@ class PersonEdit extends Handler
 			$output .= simple_row("Account Class:", form_hidden('class',$class) . $class);
 		}
 		
+		if($this->_permissions['edit_status']) {
+			$status = var_from_post('status');
+			$output .= simple_row("Account Status:", form_hidden('status',$status) . $status);
+		}
+		
 		$has_dog = var_from_post('has_dog');
 		$output .= simple_row("Has dog:", form_hidden('has_dog',$has_dog) . $has_dog);
 			
@@ -1008,7 +1006,10 @@ class PersonEdit extends Handler
 		if($this->_permissions['edit_class']) {
 			$fields[] = "class = ?";
 			$fields_data[] = var_from_getorpost('class');
-				
+		}
+		if($this->_permissions['edit_status']) {
+			$fields[] = "status = ?";
+			$fields_data[] = var_from_getorpost('status');
 		}
 		
 		$fields[] = "email = ?";
@@ -1269,10 +1270,10 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($password_once);
 		
-		$res = $DB->query("INSERT into person (username,password,class) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
+		$res = $DB->query("INSERT into person (username,password,status) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
 		$err = isDatabaseError($res);
 		if($err != false) {
-			if(strstr($err,"already exists: INSERT into person (username,password,class) VALUES")) {
+			if(strstr($err,"already exists: INSERT into person (username,password,status) VALUES")) {
 				$err = "A user with that username already exists; please go back and try again";
 			}
 			$this->error_exit($err);
@@ -1318,14 +1319,14 @@ class PersonActivate extends PersonEdit
 
 	/**
 	 * Check to see if this user can activate themselves.
-	 * This is only possible if the user is in the 'inactive' class. This
+	 * This is only possible if the user is in the 'inactive' status. This
 	 * also means that the user can't have a valid session.
 	 */
 	function has_permission ()
 	{
 		global $session;
 		if(!$session->is_valid()) {
-			if ($session->attr_get('class') != 'inactive') {
+			if ($session->attr_get('status') != 'inactive') {
 				$this->error_exit("You do not have a valid session");
 			} 
 		} else {
@@ -1366,7 +1367,7 @@ class PersonActivate extends PersonEdit
 			return false;
 		}
 		
-		$res = $DB->query("UPDATE person SET class = 'active' where user_id = ?", array($id));
+		$res = $DB->query("UPDATE person SET status = 'active' where user_id = ?", array($id));
 
 		if($this->is_database_error($res)) {
 			return false;
@@ -1703,14 +1704,14 @@ class PersonListNewAccounts extends Handler
 				user_id AS id 
 			 FROM person 
 			 WHERE
-			 	class = 'new'
+			 	status = 'new'
 			 AND
 			 	lastname LIKE ? 
 			 ORDER BY lastname, firstname");
 
 		$this->setLocation(array( $this->title => 'op=person_listnew' ));
 		
-		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
+		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE status = 'new'", $this->op, $letter);
 	}
 }
 

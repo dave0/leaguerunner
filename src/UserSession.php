@@ -153,7 +153,7 @@ class UserSession
 		
 		$this->data = $row;
 		
-		$this->session_key = $this->build_session_key($client_ip);
+		$this->session_key = $this->set_session_key($client_ip);
 
 		return true;
 	}
@@ -211,17 +211,15 @@ class UserSession
 	}
 
 	/**
-	 * Build a session key
+	 * Set the session key
 	 */
-	function build_session_key ( $client_ip )
+	function set_session_key ( $client_ip )
 	{
 		global $DB;
 		
 		$sesskey = session_id();
-		$timestamp = strftime("%Y%m%d%H%M%S");
-
-		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = ?, client_ip = ? WHERE user_id = ?");
-		$res = $DB->execute($sth,array($sesskey,$timestamp,$client_ip,$this->data['user_id']));
+		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = NOW(), client_ip = ? WHERE user_id = ?");
+		$res = $DB->execute($sth,array($sesskey,$client_ip,$this->data['user_id']));
 		if(DB::isError($res)) {
 			/* TODO: Handle database error */
 			echo "Error: ", $res->getMessage();
@@ -234,7 +232,7 @@ class UserSession
 	/**
 	 * Check to see if the current user session is loaded.
 	 * Note that this session may not be valid, as that is determined by its
-	 * account class.
+	 * account status.
 	 *
 	 * We assume that a session is loaded if it contains a user_id in its data
 	 * member.
@@ -266,18 +264,7 @@ class UserSession
 			return false;
 		}
 
-		/* 
-		 * 'new', 'inactive' and 'locked' accounts are not considered valid
-		 * and are handled as special cases
-		 */
-		switch($session->attr_get('class')) {
-			case 'new':
-			case 'inactive':
-			case 'locked':
-				return false;
-		}
-		
-		return true;
+		return ($session->attr_get('status') == 'active');
 	}
 
 	/** 

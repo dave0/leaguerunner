@@ -179,7 +179,7 @@ class AdminMenu extends Handler
 	function process ()
 	{
 		global $DB;
-		$newUsers = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
+		$newUsers = $DB->getOne("SELECT COUNT(*) FROM person WHERE status = 'new'");
 		if($this->is_database_error($newUsers)) {
 			return false;
 		}

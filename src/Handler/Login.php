@@ -61,7 +61,7 @@ class Login extends Handler
 		
 		$remember_me = var_from_post('remember_me');
 
-		switch($session->attr_get('class')) {
+		switch($session->attr_get('status')) {
 			case 'new':
 				return $this->login_form("Login Denied.  Account creation is awaiting approval.");
 				break;
@@ -74,8 +74,6 @@ class Login extends Handler
 				local_redirect("op=person_activate");
 				break;
 			case 'active':
-			case 'volunteer':
-			case 'administrator':
 				/* These accounts are active and can continue */
 
 				/*
