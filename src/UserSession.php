@@ -38,6 +38,7 @@ class UserSession
 		$res = $DB->execute($sth,$cookie);
 		if(DB::isError($res)) {
 			/* TODO: Handle database error */
+			error_log("ERROR: Couldn't fetch user info from db with cookie");
 			return false;
 		}
 		
