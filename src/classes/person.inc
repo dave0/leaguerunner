@@ -10,36 +10,19 @@ class Person extends LeaguerunnerObject
  	 */
 	function load ( $array = array() )
 	{
-		$query = array();
-
-		foreach ($array as $key => $value) {
-			if ($key == 'password') {
-				$query[] = "p.$key = '" . md5($value) . "'";
-			} else {
-				$query[] = "p.$key = '" . check_query($value) . "'";
-			}
-		}
-	
-		$result = db_query_range("SELECT 
-			p.*,
-			UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
-			UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp,
-			w.name AS ward_name, 
-			w.num AS ward_number, 
-			w.city AS ward_city 
-			FROM person p 
-			LEFT JOIN ward w ON (p.ward_id = w.ward_id)
-			WHERE " . implode(' AND ',$query),0,1);
-
-		/* TODO: we may want to abort here instead */
+		$result = person_query( $array );
 		if(1 != db_num_rows($result)) {
 			return null;
 		}
+		return $this->load_from_query_result( db_fetch_array($result) );
+	}
+
+	function load_from_query_result ( $array = array() )
+	{
 
 		$this->_in_database = true;
 
-		$user = db_fetch_array($result);
-		foreach ($user as $key => $value) {
+		foreach ($array as $key => $value) {
 			$this->{$key} = $value;
 		}
 
@@ -351,10 +334,39 @@ class Person extends LeaguerunnerObject
 
 }
 
-/**
- * Wrapper for convenience and backwards-compatibility.
- * TODO: Make this go away.
- */
+function person_query ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		switch( $key ) {
+			case 'password':
+				$query[] = "p.$key = '" . md5($value) . "'";
+				break;
+			case '_extra':
+				/* Just slap on any extra query fields desired */
+				$query[] = $value;
+				break;
+			case '_order':
+				$order = ' ORDER BY ' . $value;
+				break;
+			default:
+				$query[] = "p.$key = '" . check_query($value) . "'";
+		}
+	}
+
+	return db_query("SELECT 
+		p.*,
+		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
+		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp,
+		w.name AS ward_name, 
+		w.num AS ward_number, 
+		w.city AS ward_city 
+		FROM person p 
+		LEFT JOIN ward w ON (p.ward_id = w.ward_id)
+		WHERE " . implode(' AND ',$query) . $order);
+}
+
 function person_load( $array = array() )
 {
 	$p = new Person;
@@ -363,6 +375,25 @@ function person_load( $array = array() )
 	} else {
 		return null;
 	}
+}
+
+function person_load_many( $array = array() )
+{
+	$result = person_query( &$array );
+
+	if(db_num_rows($result) < 1 ) {
+		return false;
+	}
+
+	$result = array();
+	while($ary = db_fetch_array($result)) {
+		$g = new Person;
+		if( $g->load_from_query_result( $ary ) ) {
+			$result[$g->user_id] = $g;
+		}
+	}
+
+	return $result;
 }
 
 ?>
