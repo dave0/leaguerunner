@@ -1211,7 +1211,6 @@ class LeagueApproveScores extends Handler
 				$home = array(
 					'score_for' => 'not entered',
 					'score_against' => 'not entered',
-					'spirit' => 'not entered',
 				);
 			}
 			
@@ -1220,7 +1219,6 @@ class LeagueApproveScores extends Handler
 				$away = array(
 					'score_for' => 'not entered',
 					'score_against' => 'not entered',
-					'spirit' => 'not entered',
 				);
 			}
 
@@ -1232,9 +1230,6 @@ class LeagueApproveScores extends Handler
 				"Away Score:", $home['score_against'], "Away Score:", $away['score_for']
 			);
 			
-			$rows[] = array(
-				"Away SOTG:", $home['spirit'], "Home SOTG:", $away['spirit']
-			);
 		}
 		
 		$output = para("The following games have not been finalized.");
