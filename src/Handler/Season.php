@@ -18,18 +18,14 @@ function season_dispatch()
  */
 class SeasonStandings extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->title = "Standings";
-		$this->_required_perms = array(
-			'allow',
-		);
-
 		return true;
 	}
 	
 	function process ()
 	{
+		$this->title = "Standings";
 		$season = arg(2);
 		if( !$season ) {
 			$season = variable_get('current_season','summer');
@@ -72,6 +68,7 @@ class SeasonStandings extends Handler
 	 */
 	function generate_standings ($league, $current_round = 0)
 	{
+		global $session;
 		$league->load_teams();
 
 		if( count($league->teams) < 1 ) {
@@ -148,7 +145,7 @@ class SeasonStandings extends Handler
 			
 			// initialize the sotg to dashes!
       	    $sotg = "---";
-			if($season[$id]->games < 3 && !($this->_permissions['administer_league'])) {
+			if($season[$id]->games < 3 && !($session->has_permission('league','view',$league->league_id,'spirit'))) {
 				 $sotg = "---";
 			} else if ($season[$id]->games > 0) {
 				$sotg = sprintf("%.2f", ($season[$id]->spirit / $season[$id]->games));
