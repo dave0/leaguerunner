@@ -195,7 +195,7 @@ class TeamEdit extends Handler
 			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
-			'require_captain',
+			'captain_of:id',
 			'deny'
 		);
 		return true;
