@@ -20,6 +20,8 @@ function team_dispatch()
 			return new TeamRosterStatus;
 		case 'schedule':
 			return new TeamSchedule;
+		case 'spirit':
+			return new TeamSpirit;
 		case 'emails':
 			return new TeamEmails;
 	}
@@ -1113,6 +1115,154 @@ class TeamSchedule extends Handler
 		}
 		// add another row of dashes when you're done.
 		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+
+		team_add_to_menu($this, $team);
+		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
+	}
+}
+
+class TeamSpirit extends Handler
+{
+	function initialize ()
+	{
+		$this->_permissions = array(
+			'view_detailed_spirit'	=> false,
+		);
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_player',
+			'admin_sufficient',
+			'captain_of',
+			'coordinate_league_containing',
+			'allow'
+		);
+		$this->title = "Schedule";
+
+		return true;
+	}
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} else if ($type == 'coordinator') {
+			$this->_permissions['view_detailed_spirit'] = true;
+		}
+	}
+
+	function process ()
+	{
+		$id = arg(2);
+
+		$team = team_load( array('team_id' => $id) );
+		
+		if(!$team) {
+			$this->error_exit("That team does not exist");
+		}
+
+		$this->setLocation(array(
+			$team->name => "team/spirit/$id",
+			$this->title => 0));
+
+		/*
+		 * Grab schedule info 
+		 */
+		$games = game_load_many( array( 'either_team' => $id, '_order' => 'g.game_date') );
+
+		if( !is_array($games) ) {
+			$this->error_exit("There are no games scheduled for this team");
+		}
+
+		$header = array(
+			"ID",
+			"Date",
+			"Opponent"
+		);
+		$rows = array();
+
+		# TODO load all point values for answers into array
+		$answer_values = array();
+		$result = db_query("SELECT akey, value FROM multiplechoice_answers");
+		while( $ary = db_fetch_array($result) ) {
+			$answer_values[ $ary['akey'] ] = $ary['value'];
+		}
+
+		$question_sums = array();
+		$num_games = 0;
+
+		while(list(,$game) = each($games)) {
+		
+			if( ! $game->is_finalized() ) {
+				continue;
+			}
+			
+			if($game->home_id == $id) {
+				$opponent_id = $game->away_id;
+				$opponent_name = $game->away_name;
+				$home_away = '(home)';
+			} else {
+				$opponent_id = $game->home_id;
+				$opponent_name = $game->home_name;
+				$home_away = '(away)';
+			}
+			
+			$thisrow = array(
+				l($game->game_id, "game/view/$game->game_id"),
+				strftime('%a %b %d %Y', $game->timestamp),
+				l($opponent_name, "team/view/$opponent_id")
+			);
+
+			
+			# Fetch spirit answers for games
+			$entry = $game->get_spirit_entry( $id );
+			if( !$entry ) {
+				continue;
+			}
+			while( list($qkey,$answer) = each($entry) ) {
+				if( !$num_games ) {
+					$header[] = $qkey;
+				}
+				switch( $answer_values[$answer] ) {
+					case -2:
+						$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+						break;
+					case -1:
+						$thisrow[] = "-";
+						break;
+					case 0:
+						$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+						break;
+					default:
+						$thisrow[] = "?";
+				}
+				$question_sums[ $qkey ] += $answer_values[ $answer ];
+			}
+
+			$num_games++;
+			
+			if( ! $this->_permissions['view_detailed_spirit'] ) {
+				continue;
+			}
+
+			$rows[] = $thisrow;
+		}
+		
+		$thisrow = array(
+			"Total","-","-"
+		);
+		reset($question_sums);
+		foreach( $question_sums as $qkey => $answer) {
+			$avg = ($answer / $num_games);
+			if( $avg < -1.5 ) {
+				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+			} else if ( $avg < -0.5 ) {
+				$thisrow[] = "-";
+			} else {
+				$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+			}
+		}
+		$rows[] = $thisrow;
 
 		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
