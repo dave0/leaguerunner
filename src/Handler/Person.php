@@ -165,36 +165,6 @@ class PersonView extends Handler
 		
 		$player = person_load( array('user_id' => $id) );
 
-		/* 
-		 * See if we're a captain looking at another team captain.  
-		 * Captains are always allowed to view each other for 
-		 * contact purposes.
-		 */
-		if($session->user->is_a_captain && $person->is_a_captain) {	
-			/* is captain of at least one team, so we publish email and phone */
-			$this->_permissions['email'] = true;
-			$this->_permissions['home_phone'] = true;
-			$this->_permissions['work_phone'] = true;
-			$this->_permissions['mobile_phone'] = true;
-			return true; /* since the following checks are now irrelevant */
-		}
-
-		/* If the current user is a team captain, and the requested user is on
-		 * their team, they are allowed to view email/phone
-		 * that instead.
-		 */
-		if($session->user->is_a_captain) {
-			$teams = array_keys($session->user->teams);
-			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.team_id IN (" . implode(",", $teams) . ")";
-			if( db_result(db_query($query,$id )) > 0 ) {
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				/* we must continue, since this player could be 'locked' */
-			}
-		}
-
 		/*
 		 * See what the player's status is.  Some cannot be viewed unless you
 		 * are 'administrator'.  
@@ -211,6 +181,54 @@ class PersonView extends Handler
 			case 'inactive':
 			default:
 				/* do nothing */
+		}
+
+		$sess_user_teams = implode(",",array_keys($session->user->teams));
+		/* 
+		 * See if we're a captain looking at another team captain.  
+		 * Captains in the same tier are always allowed to view each other for
+		 * contact purposes.
+		 */
+		if($session->user->is_a_captain && $player->is_a_captain) {	
+			/* is captain of at least one team, so we need to check if they
+			 * captain two teams in the same tier */
+			$query = "SELECT count(l.league_id) FROM leagueteams l, leagueteams m, teamroster r, teamroster s WHERE l.league_id = m.league_id AND r.team_id = l.team_id AND s.team_id = m.team_id AND r.status IN ('assistant','captain') AND s.status IN ('assistant','captain') AND r.player_id = %d AND s.player_id = %d;";
+			if( db_result(db_query($query, $session->user->user_id, $player->user_id)) > 0 ) {
+				/* They are, so publish email and phone */
+				$this->_permissions['email'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
+				return true; /* since the following checks are now irrelevant */
+			}
+		}
+
+		/* If the current user is a team captain, and the requested user is on
+		 * their team, they are allowed to view email/phone
+		 */
+		if($session->user->is_a_captain) {
+			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.status IN ('player','captain','assistant','substitute') AND r.team_id IN ($sess_user_teams)";
+			if( db_result(db_query($query,$id )) > 0 ) {
+				$this->_permissions['email'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
+				return true;
+			}
+		}
+		
+		/* If the current user is a player, and the requested user is
+		 * their captain, they are allowed to view email/phone.
+		 */
+		if($player->is_a_captain) {
+			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.status IN ('captain','assistant') AND r.team_id IN ($sess_user_teams)";
+			if( db_result(db_query($query,$id)) > 0 ) {
+				$this->_permissions['email'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
+				return true;
+			}
 		}
 
 		return true;
@@ -634,7 +652,7 @@ class PersonApproveNewAccount extends PersonView
 					'%site' => variable_get('app_name','Leaguerunner')));
 
 				if($person->email != $existing->email) {
-					$to_addr = join(',',$person->email,$existing->email);
+					$to_addr = join(',',array($person->email,$existing->email));
 				} else { 
 					$to_addr = $person->email;
 				}
@@ -642,11 +660,11 @@ class PersonApproveNewAccount extends PersonView
 				if( ! $person->delete() ) {
 					$this->error_exit("Delete of user $person->fullname failed.");
 				}
-					
-				$rc = mail($to_addr, 
+				$addresses = array($to_addr, variable_get('app_admin_email', 'webmaster@ocua.ca') );	
+				$rc = mail(join(', ',$addresses),
 					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
 					$message, 
-					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
+					"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n");
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
