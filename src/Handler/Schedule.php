@@ -585,7 +585,7 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = game_query ( array( 'league_id' => $id) );
+		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_start') );
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}

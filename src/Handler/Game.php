@@ -7,6 +7,8 @@ function game_dispatch()
 {
 	$op = arg(1);
 	switch($op) {
+		case 'create':
+			return new GameCreate;
 		case 'submitscore':
 			return new GameSubmit;
 		case 'view':
@@ -25,6 +27,81 @@ function game_dispatch()
 */
 	}
 	return null;
+}
+
+class GameCreate extends Handler
+{
+/*
+ * This is intended to replace ScheduleViewDay.  It will (in a similar manner
+ * to the gameslot creation)
+ *   - present user with a calendar to select a day
+ *   - ask user what they want to schedule on that day:
+ *      - one game, manually scheduled
+ *      - (n - 1)   game round-robin (full-tier)
+ *      - (n/2 - 1) game round-robin (half-tier)
+ *   - if one game, present with form for editing game info
+ *   - if round-robin, auto-generate games with random fields and insert them
+ *   (no confirmation -- coordinator can fix later if necessary)
+ *
+ * Possible problems with autogeneration ( needs checking in code, possible
+ * bailouts):
+ *   - insufficient fields for game(s) wanted
+ *   - how to handle gappy scheduling (ie: 3-week round-robin, played on two
+ *   consecutive weeks, a week off, and then a third game)
+ *   - how to handle selection of days/fields when auto-round-robin is
+ *     selected for tiers that play multiple nights (think fall league).
+ *     Current guess is that we:
+ *       - start at the given day, schedule all games there.  Then find the
+ *         next weekday we play on (from league table), and look ahead in the
+ *         available fields to see if there are enough fields on the next
+ *         matching day.  If so, schedule it then, otherwise look to the next
+ *         weekday with matching fields and so on.
+ *
+ * Need to make some changes to the schedule table, too:
+ *   - add support for postponed/rescheduled games.  This should be done by
+ *     adding a new field to the game table, called 'status'. Status would be
+ *     'normal' under most circumstances, but could be changed to
+ *     'rescheduled', 'cancelled', or 'forfeit'.   Another field named
+ *     'rescheduled_slot' would store rescheduling info.
+ *     When setting a game to 'cancelled':
+ *     	  - game is terminated without predjudice.  Any scores and spirit are
+ *     	  removed from the schedule table and from the submitted scores table.
+ *     	  - game is marked as 'cancelled' in schedule, but is still displayed.
+ *     	  - game should not be counted at all in standings
+ *        This would typically occur when a game needs to be cancelled and
+ *        it's convenient for the coordinator to simply ignore it and move on
+ *        with a new round-robin, rather than push everything back by a week.
+ *
+ *     When setting a game to 'rescheduled':
+ *        - game marked as rescheduled in schedule.
+ *        - a new gameslot must be selected.  Once this is done, a new game
+ *        entry in the table is added for that slot, and the slot ID is also
+ *        added to the existing game, in 'rescheduled_slot' so it can easily
+ *        be linked to.
+ *        - old game doesn't count in standings, but new one does.
+ *        This should be used for make-up games, moving games to other fields,
+ *        etc.  An automated tool should post these changes on the front page.
+ *
+ *     When setting a game to 'forfeit':
+ *        - score and spirit entries set to zero (or other BoD determined
+ *        number).
+ *        - game counts as having been played, with no winner and poor spirit.
+ *
+ * Also need to look at adding fields for dependant games:
+ *   - game would need a way of determining which games to populate 
+ *     schedule from.  One way of doing it:
+ *        home_from: game id of another game
+ *        away_from: game id of another game
+ *        home_wanted: (winner|loser)
+ *        away_wanted: (winner|loser)
+ *     fields would be added to schedule, and a cron script would need to
+ *     update home_team/away_team based on this info.  Either that, or we
+ *     update it each time we finalize a score.
+ *
+ *   - schedule's 'round' field needs to be varchr instead of integer, to
+ *   allow for rounds named 'quarter-final', 'semi-final', and 'final', and
+ *   pulldown menus updated appropriately.
+ */
 }
 
 class GameSubmit extends Handler
