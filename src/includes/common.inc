@@ -291,13 +291,11 @@ function l($text, $query = NULL, $attributes = array())
 
 
 function url($url = NULL, $query = NULL) {
-  global $CLEAN_URLS, $BASE_URL;
+  global $BASE_URL;
   static $script;
 
   $base_url = $BASE_URL;
-  $cleanURL = $CLEAN_URLS;
-  //$cleanURL = variable_get("clean_url", "0");
-
+  $cleanURL = variable_get('clean_url', 1);
 
   if (empty($script)) {
     /*

@@ -18,6 +18,7 @@ function settings_menu()
 	global $session;
 	if($session->is_admin()) {
 		menu_add_child('_root','settings','Settings');
+		menu_add_child('settings','settings/global','global settings', array('link' => 'settings/global'));
 	}
 }
 
@@ -33,6 +34,22 @@ function settings_form( &$form )
 	$form .= form_hidden('op', 'save');
 	$form .= form_submit("Save configuration");
 	return form($form);
+}
+
+function global_settings()
+{
+	$group = form_textfield("Name of application", 'edit[app_name]', variable_get('app_name', 'Leaguerunner'), 60, 120, "The name this application will be known as to your users.");
+
+	$group .= form_textfield("Administrator name", 'edit[app_admin_name]', variable_get('app_admin_name', 'Leaguerunner Administrator'), 60, 120, "The name (or descriptive role) of the system administrator. Mail from Leaguerunner will come from this name.");
+	
+	$group .= form_textfield("Administrator e-mail address", 'edit[app_admin_email]', variable_get('app_admin_email', 'webmaster@localhost'), 60, 120, "The e-mail address of the system administrator.  Mail from Leaguerunner will come from this address.");
+	
+	$output = form_group("Site configuration", $group);
+
+	$group = form_radios("Clean URLs", "clean_url", variable_get("clean_url", 1), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
+	$output .= form_group("General configuration", $group);
+	
+	return settings_form($output);
 }
 
 class SettingsHandler extends Handler
@@ -56,9 +73,13 @@ class SettingsHandler extends Handler
 		switch($op) {
 			case 'save':
 				settings_save($_POST['edit']);
-				return module_invoke($mod, 'settings', "Settings saved");
+				$output = "Settings saved";
+				$output .= module_invoke($mod, 'settings', "Settings saved");
+				return $output;
 			default:
-				return module_invoke($mod, 'settings', "Make your changes below");
+				$output = "Make your changes below";
+				$output .= module_invoke($mod, 'settings');
+				return $output;
 		}
 	}
 }

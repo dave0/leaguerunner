@@ -40,10 +40,13 @@ $DB->{RaiseError} = 1;
 ## We must remember to disconnect on exit.  Use the magical END sub.
 sub END { $DB->disconnect() if defined($DB); }
 
-## Now, retrieve stats
+
 my $sth;
 my $ary;
 
+my $variables = Leaguerunner::loadVariables($DB);
+
+## Now, retrieve stats
 my $stats = "OCUA Leaguerunner statistics\n";
 $stats .= "extracted from database on " . scalar(localtime(time)) . "\n\n";
 
@@ -192,7 +195,7 @@ if(scalar(@addresses)) {
 }
 
 print $fh <<EOF;
-From: Leaguerunner Stats Harvester <$config->{admin_email}>
+From: Leaguerunner Stats Harvester <$variables->{app_admin_email}>
 To: $addresses
 Subject: Leaguerunner Stats Update
 

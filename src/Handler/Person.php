@@ -582,13 +582,13 @@ class PersonApproveNewAccount extends PersonView
 					'%username' => $person->username,
 					'%memberid' => $person->member_id,
 					'%url' => url("/"),
-					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
-					'%site' => $GLOBALS['APP_NAME']));
+					'%adminname' => variable_get('app_admin_name', "Leaguerunner Admin"),
+					'%site' => variable_get('app_name','Leaguerunner')));
 					
 				$rc = mail($person->email, 
-					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => $GLOBALS['APP_NAME'] )), 
+					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
 					$message, 
-					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -605,12 +605,12 @@ class PersonApproveNewAccount extends PersonView
 					'%fullname' => "$person->firstname $person->lastname",
 					'%username' => $person->username,
 					'%url' => url("/"),
-					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
-					'%site' => $GLOBALS['APP_NAME']));
+					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
+					'%site' => variable_get('app_name','Leaguerunner')));
 				$rc = mail($person->email, 
-					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => $GLOBALS['APP_NAME'] )), 
+					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
 					$message, 
-					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -631,7 +631,7 @@ class PersonApproveNewAccount extends PersonView
 					'%existingemail' => $existing->email,
 					'%passwordurl' => url("person/forgotpassword"),
 					'%adminname' => $session->user->fullname,
-					'%site' => $GLOBALS['APP_NAME']));
+					'%site' => variable_get('app_name','Leaguerunner')));
 
 				if($person->email != $existing->email) {
 					$to_addr = join(',',$person->email,$existing->email);
@@ -644,9 +644,9 @@ class PersonApproveNewAccount extends PersonView
 				}
 					
 				$rc = mail($to_addr, 
-					_person_mail_text('dup_delete_subject', array( '%site' => $GLOBALS['APP_NAME'] )), 
+					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
 					$message, 
-					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -699,27 +699,26 @@ class PersonEdit extends Handler
 		$edit = $_POST['edit'];
 		$id = arg(2);
 		
+		$person = person_load( array('user_id' => $id) );
+		if( ! $person ) {
+			$this->error_exit("That account does not exist");
+		}
+		person_add_to_menu( $this, $person );
+		
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$person = person_load( array('user_id' => $id) );
 				$this->perform( $person, $edit );
 				local_redirect("person/view/$id");
 				break;
 			default:
-				$edit = $this->getFormData($id);
+				$edit = object2array($person);
 				$rc = $this->generateForm($id, $edit, "Edit any of the following fields and click 'Submit' when done.");
 		}
 		
 		return $rc;
-	}
-
-	function getFormData( $id ) 
-	{
-		$person = person_load( array('user_id' => $id) );
-		return object2array($person);
 	}
 
 	function generateForm ( $id, &$formData, $instructions = "")
@@ -753,56 +752,54 @@ END_TEXT;
 		);
 
 		$rows = array();
+		
 		if($this->_permissions['edit_name']) {
-			$rows[] = array("First Name:",
-				form_textfield('', 'edit[firstname]', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
+			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
 
-			$rows[] = array("Last Name:",
-				form_textfield('', 'edit[lastname]', $formData['lastname'], 25,100, "Last name"));
+			$group .= form_textfield('Last Name', 'edit[lastname]', $formData['lastname'], 25,100);
 		} else {
-			$rows[] = array("Name:", $formData['firstname'] . " " . $formData['lastname']);
+			$group .= form_item('Full Name', $formData['firstname'] . ' ' . $formData['lastname']);
 		}
 
 		if($this->_permissions['edit_username']) {
-			$rows[] = array("System Username:",
-				form_textfield('', 'edit[username]', $formData['username'], 25,100, "Desired login name."));
+			$group .= form_textfield('System Username', 'edit[username]', $formData['username'], 25,100, 'Desired login name.');
 		} else {
-			$rows[] = array("System Username:", $formData['username']);
+			$group .= form_item('System Username', $formData['username'], 'Desired login name.');
 		}
 		
 		if($this->_permissions['edit_password']) {
-			$rows[] = array("Password:",
-				form_password('', 'edit[password_once]', '', 25,100, "Enter your desired password."));
-			$rows[] = array("Re-Enter Password:",
-				form_password('', 'edit[password_twice]', '', 25,100, "Enter your desired password a second time to confirm it."));
+			$group .= form_password('Password', 'edit[password_once]', '', 25,100, 'Enter your desired password.');
+			$group .= form_password('Re-enter Password', 'edit[password_twice]', '', 25,100, 'Enter your desired password a second time to confirm it.');
 		}
+		
+		$group .= form_select('Gender', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender'), 'Select your gender');
+		
+		$output .= form_group('Identity', $group);
 
-		$rows[] = array("Email Address:",
-			form_textfield('', 'edit[email]', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
-			. form_checkbox("Allow other players to view my email address",'edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y')));
+		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters');
+		$group .= form_checkbox('Allow other players to view my email address','edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y'));
+			
+		$output .= form_group('Online Contact', $group);
 
-		$addrRows = array();
-		$addrRows[] = array("Street Address:",
-			form_textfield('','edit[addr_street]',$formData['addr_street'], 25, 100, "Number, street name, and apartment number if necessary"));
-		$addrRows[] = array("City:",
-			form_textfield('','edit[addr_city]',$formData['addr_city'], 25, 100, "Name of city.  If you are a resident of the amalgamated Ottawa, please enter 'Ottawa' (instead of Kanata, Nepean, etc.)"));
+		$group = form_textfield('Street and Number','edit[addr_street]',$formData['addr_street'], 25, 100, 'Number, street name, and apartment number if necessary');
+		$group .= form_textfield('City','edit[addr_city]',$formData['addr_city'], 25, 100, 'Name of city.  If you are a resident of the amalgamated Ottawa, please enter "Ottawa" (instead of Kanata, Nepean, etc.)');
 			
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
-		$addrRows[] = array("Province:",
-			form_select('', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), "Select a province from the list"));
+		$group .= form_select('Province', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), 'Select a province from the list');
 
-		$addrRows[] = array("Postal Code:",
-			form_textfield('', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
+		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members.');
 
-		$rows[] = array("Address:", table(null, $addrRows));
-	
-		$phoneRows = array();
-		$phoneRows[] = array("Home:", form_textfield('', 'edit[home_phone]', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_home_phone]','Y',($formData['publish_home_phone'] == 'Y'))));
-		$phoneRows[] = array("Work:", form_textfield('', 'edit[work_phone]', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_work_phone]','Y',($formData['publish_work_phone'] == 'Y'))));
-		$phoneRows[] = array("Mobile:", form_textfield('', 'edit[mobile_phone]', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_mobile_phone]','Y',($formData['publish_mobile_phone'] == 'Y'))));
+		$output .= form_group('Street Address', $group);
 
-		$rows[] = array("Telephone:", table(null, $phoneRows));
+		
+		$group = form_textfield('Home', 'edit[home_phone]', $formData['home_phone'], 25, 100, 'Enter your home telephone number');
+		$group .= form_checkbox('Allow other players to view home number','edit[publish_home_phone]','Y',($formData['publish_home_phone'] == 'Y'));
+		$group .= form_textfield('Work', 'edit[work_phone]', $formData['work_phone'], 25, 100, 'Enter your work telephone number (optional)');
+		$group .= form_checkbox('Allow other players to view work number','edit[publish_work_phone]','Y',($formData['publish_work_phone'] == 'Y'));
+		$group .= form_textfield('Mobile', 'edit[mobile_phone]', $formData['mobile_phone'], 25, 100, 'Enter your cell or pager number (optional)');
+		$group .= form_checkbox('Allow other players to view mobile number','edit[publish_mobile_phone]','Y',($formData['publish_mobile_phone'] == 'Y'));
+		$output .= form_group('Telephone Numbers', $group);
 			
 		$player_classes = array(
 			'player' => "OCUA Player",
@@ -822,42 +819,32 @@ END_TEXT;
 			$player_classes['volunteer'] = "OCUA volunteer";
 		}
 		
-		$rows[] = array("Account Type:",
-			form_radiogroup('', 'edit[class]', $formData['class'], $player_classes ));
+		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
+		if($this->_permissions['edit_status']) {
+			$group .= form_select('Account Status','edit[status]', $formData['status'], getOptionsFromEnum('person','status'));
+		}
 		
-		$rows[] = array("Gender:",
-			form_select('', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
-			
-		$rows[] = array("Skill Level:",
-			form_select('', 'edit[skill_level]', $formData['skill_level'], 
+		$output .= form_group('Account Information', $group);
+
+		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
 				"Please use the questionnare to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
-		));
+		);
 
-		$thisYear = strftime("%Y", time());
+		$thisYear = strftime('%Y', time());
+		$group .= form_select('Year Started', 'edit[year_started]', $formData['year_started'], 
+				getOptionsFromRange(1986, $thisYear, 'reverse'), 'The year you started playing Ultimate in Ottawa.');
 
-		$rows[] = array("Year Started:",
-			form_select('', 'edit[year_started]', $formData['year_started'], 
-				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate Ottawa."));
+		$group .= form_select_date('Birthdate', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), 'Please enter a correct birthdate; having accurate information is important for insurance purposes');
 
-		$rows[] = array("Birthdate:",
-			form_select_date('', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
-
-		$rows[] = array('Height:',
-			form_textfield('','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
+		$group .= form_textfield('Height','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams for hat leagues.');
 		
-		if($this->_permissions['edit_status']) {
-			$rows[] = array("Account Status:",
-				form_select('','edit[status]', $formData['status'], getOptionsFromEnum('person','status')));
-		}
-
-		$rows[] = array("Has dog:",
-			form_radiogroup('', 'edit[has_dog]', $formData['has_dog'], array(
-				'Y' => 'Yes, I have a dog I will be bringing to games',
-				'N' => 'No, I will not be bringing a dog to games')));
+		$group .= form_radiogroup('Has Dog', 'edit[has_dog]', $formData['has_dog'], array(
+			'Y' => 'Yes, I have a dog I will be bringing to games',
+			'N' => 'No, I will not be bringing a dog to games'));
+			
+		$output .= form_group('Player and Skill Information', $group);
 		
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-
 		$this->setLocation(array(
 			$formData['fullname'] => "person/view/$id",
 			$this->title => 0));
@@ -879,79 +866,92 @@ END_TEXT;
 
 		$rows = array();
 
-		
+		$group = '';	
 		if($this->_permissions['edit_username']) {
-			$rows[] = array("First Name:",
+			$group .= form_item('First Name',
 				form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
-			$rows[] = array("Last Name:",
+			$group .= form_item('Last Name',
 				form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
 		}
 		
 		if($this->_permissions['edit_username']) {
-			$rows[] = array("System Username:",
+			$group .= form_item('System Username',
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
 		
 		if($this->_permissions['edit_password']) {
-			$rows[] = array("Password:",
+			$group .= form_item('Password',
 				form_hidden('edit[password_once]', $edit['password_once'])
 				. form_hidden('edit[password_twice]', $edit['password_twice'])
 				. '<i>(entered)</i>');
 		}
+		$group .=  form_item('Gender', form_hidden('edit[gender]',$edit['gender']) . $edit['gender']);
 		
-		$rows[] = array("Email Address:",
+		$output .= form_group('Identity', $group);
+		
+		$group = form_item('Email Address',
 			form_hidden('edit[email]',$edit['email']) . $edit['email']);
 			
-		$rows[] = array("Show Email:",
+		$group .= form_item('Show email to other players',
 			form_hidden('edit[allow_publish_email]',$edit['allow_publish_email']) . $edit['allow_publish_email']);
+			
+		$output .= form_group('Online Contact', $group);
 
-		$rows[] = array("Address:",
+		$group = form_item('',
 			form_hidden('edit[addr_street]',$edit['addr_street'])
 			. form_hidden('edit[addr_city]',$edit['addr_city'])
 			. form_hidden('edit[addr_prov]',$edit['addr_prov'])
 			. form_hidden('edit[addr_postalcode]',$edit['addr_postalcode'])
 			. $edit['addr_street'] . "<br>" . $edit['addr_city'] . ", " . $edit['addr_prov'] . "<br>" . $edit['addr_postalcode']);
+			
+		$output .= form_group('Street Address', $group);
 
+		$group = '';
 		foreach( array('home','work','mobile') as $location) {
 			if($edit["${location}_phone"]) {
-				$phoneBlock .= form_hidden("edit[${location}_phone]", $edit["${location}_phone"]);
-				$phoneBlock .= ucfirst($location) . ": " . $edit["${location}_phone"];
+				$group .= form_item(ucfirst($location),
+					form_hidden("edit[${location}_phone]", $edit["${location}_phone"])
+					. $edit["${location}_phone"]);
+					
 				if($edit["publish_${location}_phone"] == 'Y') {
-					$phoneBlock .= " (published)";
-					$phoneBlock .= form_hidden("edit[publish_${location}_phone]", 'Y');
+					$publish_info = "yes";
+					$publish_info .= form_hidden("edit[publish_${location}_phone]", 'Y');
 				} else {
-					$phoneBlock .= " (private)";
+					$publish_info = "no";
 				}
+				$group .= form_item("Allow other players to view $location number", $publish_info);
 			}
 		}
-		$rows[] = array("Telephone:", $phoneBlock);
-		$rows[] = array("Gender:", form_hidden('edit[gender]',$edit['gender']) . $edit['gender']);
+		$output .= form_group('Telephone Numbers', $group);
+
+		
+		$group = form_item("Account Class", form_hidden('edit[class]',$edit['class']) . $edit['class']);
+		
+		if($this->_permissions['edit_status']) {
+			$group .= form_item("Account Status", form_hidden('edit[status]',$edit['status']) . $edit['status']);
+		}
+		
+		$output .= form_group('Account Information', $group);
 		
 		$levels = getOptionsForSkill();
-		$rows[] = array("Skill Level:", form_hidden('edit[skill_level]',$edit['skill_level']) . $levels[$edit['skill_level']]);
+		$group = form_item("Skill Level", form_hidden('edit[skill_level]',$edit['skill_level']) . $levels[$edit['skill_level']]);
 		
-		$rows[] = array("Year Started:", form_hidden('edit[year_started]',$edit['year_started']) . $edit['year_started']);
+		$group .= form_item("Year Started", form_hidden('edit[year_started]',$edit['year_started']) . $edit['year_started']);
 
-		$rows[] = array("Birthdate:", 
+		$group .= form_item("Birthdate", 
 			form_hidden('edit[birth][year]',$edit['birth']['year']) 
 			. form_hidden('edit[birth][month]',$edit['birth']['month']) 
 			. form_hidden('edit[birth][day]',$edit['birth']['day']) 
 			. $edit['birth']['year'] . " / " . $edit['birth']['month'] . " / " . $edit['birth']['day']);
 		
 		if($edit['height']) {
-			$rows[] = array("Height:", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
+			$group .= form_item("Height", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
 		}
 	
-		$rows[] = array("Account Class:", form_hidden('edit[class]',$edit['class']) . $edit['class']);
+		$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 		
-		if($this->_permissions['edit_status']) {
-			$rows[] = array("Account Status:", form_hidden('edit[status]',$edit['status']) . $edit['status']);
-		}
-		
-		$rows[] = array("Has dog:", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
+		$output .= form_group('Player and Skill Information', $group);
 			
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		$this->setLocation(array(
@@ -1195,16 +1195,11 @@ class PersonCreate extends PersonEdit
 				return $this->perform( $person, $edit );
 				
 			default:
-				$edit = $this->getFormData($id);
+				$edit = array();
 				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
 		}
 		$this->setLocation(array( $this->title => 0));
 		return $rc;
-	}
-
-	function getFormData ($id)
-	{
-		return array();
 	}
 
 	function perform ( $person, $edit = array())
@@ -1291,6 +1286,10 @@ class PersonActivate extends PersonEdit
 
 		$id = $session->attr_get('user_id');
 		$edit = $_POST['edit'];
+		$person = person_load( array('user_id' => $id) );
+		if( ! $person ) {
+			$this->error_exit("That account does not exist");
+		}
 		
 		switch($edit['step']) {
 			case 'confirm': 
@@ -1301,7 +1300,7 @@ class PersonActivate extends PersonEdit
 				local_redirect(url("home"));
 				break;
 			default:
-				$edit = $this->getFormData($id);
+				$edit = object2array($person);
 				$rc = $this->generateForm( $id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
@@ -1739,14 +1738,14 @@ END_TEXT;
 
 			/* And fire off an email */
 			$rc = mail($user->email, 
-				_person_mail_text('password_reset_subject', array('%site' => $GLOBALS['APP_NAME'])),
+				_person_mail_text('password_reset_subject', array('%site' => variable_get('app_name','Leaguerunner'))),
 				_person_mail_text('password_reset_body', array(
 					'%fullname' => "$user->firstname $user->lastname",
 					'%username' => $user->username,
 					'%password' => $pass,
-					'%site' => $GLOBALS['APP_NAME']
+					'%site' => variable_get('app_name','Leaguerunner')
 				)),
-				"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+				"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
 			if($rc == false) {
 				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
@@ -1819,10 +1818,8 @@ function _person_mail_text($messagetype, $variables = array() )
 	}
 }
 
-function person_settings ( $message = '' )
+function person_settings ( )
 {
-	$output = $message;
-
 	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
 	 
 	$group .= form_textarea("Body of account approval e-mail (player)", "edit[person_mail_approved_body_player]", _person_mail_text("approved_body_player"), 70, 10, "Customize the body of your approval e-mail, to be sent to an OCUA player after account is approved." ." ". "Available variables are:" ." %fullname, %memberid, %adminname, %username, %site, %url.");
@@ -1837,8 +1834,7 @@ function person_settings ( $message = '' )
 	 
 	$group .= form_textarea("Body of duplicate account deletion e-mail", "edit[person_mail_dup_delete_body]", _person_mail_text("dup_delete_body"), 70, 10, "Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account." ." ". "Available variables are:" ." %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.");
 
-	$output .= form_group("User email settings", $group);
-
+	$output = form_group("User email settings", $group);
 	
 	return settings_form($output);
 }

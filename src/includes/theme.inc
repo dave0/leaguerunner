@@ -6,12 +6,14 @@
 
 function theme_header($title = "", $breadcrumbs = array())
 {
-	global $session, $APP_NAME, $BASE_URL;
+	global $session, $BASE_URL;
+
+	$app_name = variable_get('app_name','Leaguerunner');
 	
 	if ($title) {
-		$title = $title . " - " . $APP_NAME;
+		$title = "$title - $app_name";
 	} else {
-		$title = $APP_NAME;
+		$title = $app_name;
 	}
 ?>
 <!-- start header -->
@@ -25,7 +27,7 @@ function theme_header($title = "", $breadcrumbs = array())
   </head>
   <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
   <table border='0' cellpadding='0' cellspacing='0' width='760' bgcolor='white'><?php
-  	print "<tr><td colspan='2' class='toprow'><h1>$APP_NAME</h1></td></tr>\n";
+  	print "<tr><td colspan='2' class='toprow'><h1>$app_name</h1></td></tr>\n";
 
 	print theme_navbar($breadcrumbs);
 	print "<tr><td colspan='2' class='main'>";

@@ -5,6 +5,8 @@ package Leaguerunner;
 use strict;
 use warnings;
 use URI;
+use PHPUnserialize;
+
 
 sub parseConfigFile($) 
 {
@@ -27,9 +29,19 @@ sub parseConfigFile($)
 		'db_user' => $user,
 		'db_password'   => $pass,
 		'db_host' => $u->host,
-		'db_name' => substr($u->path, 1),
-		'admin_email' => $APP_ADMIN_EMAIL,
+		'db_name' => substr($u->path, 1)
 	};
 }
 
+sub loadVariables($)
+{
+	my $DB = shift;
+	my $sth = $DB->prepare(q{SELECT name,value from variable});
+	$sth->execute();
+	my $variables = {};
+	while(my $ary  = $sth->fetchrow_arrayref()) {
+		$variables->{$ary->[0]} = unserialize($ary->[1]);
+	}
+	return $variables;
+}
 1;
