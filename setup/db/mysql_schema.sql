@@ -36,6 +36,7 @@ CREATE TABLE person (
 	allow_publish_phone	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 
 	session_cookie varchar(50),
+	client_ip      varchar(50),
 	class	ENUM('player','volunteer','administrator') DEFAULT 'player' NOT NULL,
 	last_login datetime
 );

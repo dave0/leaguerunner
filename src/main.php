@@ -51,7 +51,7 @@ $session_cookie = var_from_cookie($APP_COOKIE_NAME);
 $op = var_from_getorpost('op');
 
 if( isset($session_cookie) ) {
-	$session->create_from_cookie($session_cookie);
+	$session->create_from_cookie($session_cookie, $_SERVER['REMOTE_ADDR']);
 }
 
 if( is_null($op) ) {

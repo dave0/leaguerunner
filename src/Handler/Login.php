@@ -51,14 +51,17 @@ class Login extends Handler
 	 */
 	function process () 
 	{
-		global $session, $username, $password;
+		global $session, $_SERVER;
 
 		$username = var_from_post('username');
 		$password = var_from_post('password');
 
 		/* Now, if we can, we will create a new user session */
 		if( isset($username) && isset($password) ) {
-			$rc = $session->create_from_login($username,$password);
+			$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
+			if($rc == false) {
+				$this->tmpl->assign("error", gettext("Incorrect username or password"));
+			}
 		} else {
 			$rc = false;
 		}
@@ -96,13 +99,7 @@ class Login extends Handler
 	function display_error()
 	{
 		global $username, $password;
-		
 		$this->set_template_file("Login.tmpl");
-		
-		if( isset($username) || isset($password) ) {
-			$this->tmpl->assign("error", gettext("Incorrect username or password"));
-		}
-		
 		parent::display();	
 	}
 }

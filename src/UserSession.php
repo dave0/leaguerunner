@@ -26,7 +26,7 @@ class UserSession
 	 *
 	 * @return boolean status of session creation
 	 */
-	function create_from_cookie ($cookie)
+	function create_from_cookie ($cookie, $client_ip)
 	{
 		global $DB;
 		
@@ -34,11 +34,14 @@ class UserSession
 			return false;
 		}
 
-		$sth = $DB->prepare("SELECT * FROM person WHERE session_cookie = ?");
-		$res = $DB->execute($sth,$cookie);
+		if( !isset($client_ip) ) {
+			return false;
+		}
+
+		$sth = $DB->prepare("SELECT * FROM person WHERE session_cookie = ? AND client_ip = ?");
+		$res = $DB->execute($sth, array($cookie, $client_ip));
 		if(DB::isError($res)) {
-			/* TODO: Handle database error */
-			error_log("ERROR: Couldn't fetch user info from db with cookie");
+			error_log( "Error: Couldn't fetch user info from db: " . $res->getMessage() );
 			return false;
 		}
 		
@@ -70,7 +73,7 @@ class UserSession
 	 *
 	 * @return boolean status of session creation
 	 */
-	function create_from_login($user,$pass)
+	function create_from_login($user,$pass,$client_ip)
 	{
 		global $DB;
 
@@ -85,7 +88,7 @@ class UserSession
 		$sth = $DB->prepare("SELECT * FROM person WHERE username = ?");
 		$res = $DB->execute($sth,$user);
 		if(DB::isError($res)) {
-			/* TODO: Handle database error */
+			error_log( "Error: Couldn't fetch user info from db: " . $res->getMessage() );
 			return false;
 		}
 		
@@ -113,7 +116,7 @@ class UserSession
 		/* TODO: We may wish to be selective here */
 		$this->data = $row;
 		
-		$this->session_key = $this->build_session_key();
+		$this->session_key = $this->build_session_key($client_ip);
 
 		return true;
 	}
@@ -121,7 +124,6 @@ class UserSession
 	/**
 	 * Expire a session.
 	 *
-	 * TODO: WRite me!
 	 */
 	function expire ()
 	{
@@ -136,7 +138,7 @@ class UserSession
 		$res = $DB->execute($sth,$user_id);
 		if(DB::isError($res)) {
 			/* TODO: Handle database error */
-			die($res->getMessage());
+			error_log( "Error: Couldn't expire user session due to DB error: " . $res->getMessage() );
 			return false;
 		}
 		
@@ -174,15 +176,15 @@ class UserSession
 	/**
 	 * Build a session key
 	 */
-	function build_session_key ()
+	function build_session_key ( $client_ip )
 	{
 		global $DB;
 		
 		$sesskey = $this->uuidgen();
 		$timestamp = strftime("%Y%m%d%H%M%S");
 
-		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = ? WHERE user_id = ?");
-		$res = $DB->execute($sth,array($sesskey,$timestamp,$this->data['user_id']));
+		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = ?, client_ip = ? WHERE user_id = ?");
+		$res = $DB->execute($sth,array($sesskey,$timestamp,$client_ip,$this->data['user_id']));
 		if(DB::isError($res)) {
 			/* TODO: Handle database error */
 			echo "Error: ", $res->getMessage();

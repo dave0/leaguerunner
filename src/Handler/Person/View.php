@@ -136,7 +136,8 @@ class PersonView extends Handler
 				addr_city, 
 				addr_prov, 
 				addr_postalcode, 
-				last_login 
+				last_login,
+				client_ip 
 			FROM person WHERE user_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
 
@@ -189,6 +190,7 @@ class PersonView extends Handler
 		if($this->_permissions['last_login']) {
 			if($row['last_login']) {
 				$this->tmpl->assign("last_login", $row['last_login']);
+				$this->tmpl->assign("client_ip", $row['client_ip']);
 			} else {
 				$this->tmpl->assign("last_login", gettext("Never logged in"));
 			}
