@@ -64,9 +64,12 @@ class TeamList extends Handler
 			),
 		));
 		$this->tmpl->assign("page_op", "team_list");
-		$foo = array("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z");
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(name,1,1)) as letter from team order by letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
 		
-		$this->tmpl->assign("letters", $foo);
+		$this->tmpl->assign("letters", $letters);
 		$this->tmpl->assign("list", $found);
 			
 		

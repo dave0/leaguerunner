@@ -24,12 +24,6 @@ class PersonList extends Handler
 			'delete' => false,
 		);
 
-		/* Administrator can do all */
-		if($session->attr_get('class') == 'administrator') {
-			$this->enable_all_perms();
-			return true;
-		}
-
 		return true;
 	}
 
@@ -40,6 +34,12 @@ class PersonList extends Handler
 		/* Anyone with a valid session id has permission */
 		if(!$session->is_valid()) {
 			return false;
+		}
+		
+		/* Administrator can do all */
+		if($session->attr_get('class') == 'administrator') {
+			$this->enable_all_perms();
+			return true;
 		}
 
 		return true;
@@ -84,9 +84,12 @@ class PersonList extends Handler
 		$this->tmpl->assign("available_ops", $ops);
 		
 		$this->tmpl->assign("page_op", "person_list");
-		$foo = array("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z");
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
 		
-		$this->tmpl->assign("letters", $foo);
+		$this->tmpl->assign("letters", $letters);
 		$this->tmpl->assign("list", $found);
 			
 		
