@@ -830,7 +830,7 @@ class TeamView extends Handler
 				r.team_id = %d
 			ORDER BY r.status, p.gender, p.lastname", $this->team->team_id);
 		
-		$header = array( array( 'data' => 'Team Roster', 'colspan' => 5));
+		$header = array( array( 'data' => 'Team Roster', 'colspan' => 4));
 		$rows = array();	
 		$totalSkill = 0;
 		$count = db_num_rows($result);
@@ -867,22 +867,22 @@ class TeamView extends Handler
 				}
 			}
 
-			if($conflictText) {
-				$conflictText = "<div class='roster_conflict'>$conflictText</div>";
+			$player_name = l($player->fullname, "person/view/$player->id");
+			if( $conflictText ) {
+				$player_name = "<div class='roster_conflict'>$conflictText</div>";
 			}
 			
-
-			$player_links = array( l('view', "person/view/$player->id") );
 			if($session->has_permission('team','player status', $this->team->team_id, $player->id) ) {
-				$player_links[] = l('change status', "team/roster/" . $this->team->team_id . "/$player->id");
+				$roster_info = l($rosterPositions[$player->status], "team/roster/" . $this->team->team_id . "/$player->id");
+			} else {
+				$roster_info = $rosterPositions[$player->status];
 			}
 			
 			$rows[] = array(
-				$player->fullname.$conflictText,
-				$rosterPositions[$player->status],
+				$player_name,
+				$roster_info,
 				$player->gender,
-				$player->skill_level,
-				theme_links($player_links)
+				$player->skill_level
 			);
 
 			$totalSkill += $player->skill_level;
@@ -895,8 +895,7 @@ class TeamView extends Handler
 		}
 		$rows[] = array(
 			array('data' => 'Average Skill Rating', 'colspan' => 3),
-			$avgSkill,
-			"&nbsp;",
+			$avgSkill
 		);
 		
 		$rosterdata = "<div class='listtable'>" . table($header, $rows) . "</div>";
