@@ -83,6 +83,7 @@ class Person extends LeaguerunnerObject
 				l.league_id, 
 				l.name,
 				l.tier,
+				l.schedule_type,
 				m.status
 			 FROM 
 			 	leaguemembers m 

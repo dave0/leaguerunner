@@ -200,6 +200,7 @@ function slot_query ( $array = array() )
 		g.slot_id,
 		field.name AS field_name,
 		field.num AS field_num,
+		field.code AS field_code,
 		g.fid,
 		g.game_date,
 		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
