@@ -141,6 +141,8 @@ function team_add_to_menu( &$team )
 			menu_add_child($team->name, "$team->name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $session->attr_get('user_id')));
 		}
 	} 
+
+	menu_add_child($team->name, "$team->name/spirit", "spirit", array('weight' => 1, 'link' => "team/spirit/$team->team_id"));
 	
 	if( $session->has_permission('team','edit',$team->team_id)) {
 		menu_add_child($team->name, "$team->name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
@@ -803,7 +805,7 @@ class TeamView extends Handler
 				r.team_id = %d
 			ORDER BY r.status, p.gender, p.lastname", $this->team->team_id);
 		
-		$header = array( array( 'data' => 'Team Roster', 'colspan' => 4));
+		$header = array( 'Name', 'Position', 'Gender','Rating' );
 		$rows = array();	
 		$totalSkill = 0;
 		$count = db_num_rows($result);
