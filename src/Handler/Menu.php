@@ -143,8 +143,9 @@ class Menu extends Handler
 		}
 		$output .= $this->menu_item( l("List Leagues", "op=league_list"));
 		
-
 		$output .= $this->menu_title("Fields");
+		$output .= $this->menu_item(
+			l("List City Wards", "op=ward_list"));
 		$output .= $this->menu_item(
 			l("List Field Sites", "op=site_list"));
 		if($this->_permissions['field_admin']) {

@@ -328,13 +328,16 @@ function get_numeric_options ( $start, $finish )
  * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
  * database.
  */
-function getEnumOptions( $table, $col_name )
+function getOptionsFromEnum( $table, $col_name )
 {
 	global $DB;
 	
 	$row = $DB->getRow("SHOW COLUMNS from $table LIKE ?",
 		array($col_name),
 		DB_FETCHMODE_ASSOC);
+	if(isDatabaseError($row)) {
+		return $result;
+	}
 		
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
 	$str = str_replace(")","",$str);
@@ -349,15 +352,40 @@ function getEnumOptions( $table, $col_name )
 	return $result;
 }
 
+function getOptionsFromQuery( $sql, $data = array() )
+{
+	global $DB;
+
+	$result = array();
+	$res = $DB->query($sql, $data);
+	if(isDatabaseError($res)) {
+		return $result;
+	}
+
+	$result[0] = "-- select from list --"	;
+	while($row = $res->fetchRow()) {
+		$result[$row[0]] = $row[1];	
+	}
+	return $result;
+}
+
 /**
  * Deprecated version of get_enum_options. 
  * TODO Remove when Smarty is gone
  */
 function get_enum_options ( $table, $col_name ) 
 {
-	$ary = getEnumOptions($table, $col_name);
+	$ary = getOptionsFromEnum($table, $col_name);
 	return array_map("map_callback", array_keys($ary));
 }
+
+
+function getWardName($id)
+{
+	global $DB;
+	return $DB->getOne("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = ?", array($id));
+}
+
 
 /* vim: set sw=4 ts=4 et: */
 ?>

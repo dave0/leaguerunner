@@ -2,7 +2,7 @@
 /*
  * Code for dealing with user accounts
  */
-register_page_handler('person_view', 'NEWPersonView');
+register_page_handler('person_view', 'PersonView');
 register_page_handler('person_delete', 'PersonDelete');
 register_page_handler('person_approvenew', 'PersonApproveNewAccount');
 register_page_handler('person_edit', 'PersonEdit');
@@ -16,7 +16,7 @@ register_page_handler('person_forgotpassword', 'PersonForgotPassword');
 /**
  * Player viewing handler
  */
-class NEWPersonView extends Handler
+class PersonView extends Handler
 {
 	function initialize ()
 	{
@@ -186,35 +186,17 @@ class NEWPersonView extends Handler
 	function process ()
 	{	
 		global $DB, $id;
-		$row = $DB->getRow(
-			"SELECT * FROM person WHERE user_id = ?", 
+		$person = $DB->getRow(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($person)) {
 			return false;
 		}
 		
-		if(!isset($row)) {
+		if(!isset($person)) {
 			$this->error_exit("That person does not exist");
 		}
-	
-		$fullname = $row['firstname'] . " " . $row['lastname'];
-		$this->set_title("View Account &raquo; $fullname");
-		print $this->get_header();
-		print $this->generate_view($row);
-		print $this->get_footer();
-		return true;
-	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
-
-	function generate_view (&$person)
-	{
-		$fullname = $person['firstname'] . " " . $person['lastname'];
-		$output =  h1($fullname);
 		
 		$links = array();
 		
@@ -229,9 +211,29 @@ class NEWPersonView extends Handler
 		if($this->_permissions['user_delete']) {
 			$links[] = l("delete account", "op=person_delete&id=" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
 		}
+		
+	
+		$this->set_title("View Account &raquo; " . $person['firstname'] . " " . $person['lastname']);
+		$output =  "";
 		if(count($links) > 0) {
 			$output .= simple_tag("blockquote", theme_links($links));
 		}
+
+		print $this->get_header();
+		print h1($this->title);
+		print $this->generateView($person);
+		print $this->get_footer();
+		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
+
+	function generateView (&$person)
+	{
+		$fullname = $person['firstname'] . " " . $person['lastname'];
 		
 		$output .= "<table border='0'>";
 		$output .= simple_row("Name:", $fullname);
@@ -273,6 +275,10 @@ class NEWPersonView extends Handler
 					$person['addr_postalcode']
 				)
 			);
+			if($person['ward_number']) {
+				$output .= simple_row("Ward:", 
+					l($person['ward_name'] . " (" . $person['ward_city']. " Ward " . $person['ward_number']. ")","op=ward_view&id=".$person['ward_id']));
+			}
 		}
 		
 		if($this->_permissions['birthdate']) {
@@ -331,157 +337,6 @@ class NEWPersonView extends Handler
 }
 
 /**
- * Player viewing handler
- */
-class PersonView extends Handler
-{
-	function initialize ()
-	{
-		$this->_permissions = array(
-			'email'		=> false,
-			'home_phone'		=> false,
-			'work_phone'		=> false,
-			'mobile_phone'		=> false,
-			'username'	=> false,
-			'birthdate'	=> false,
-			'address'	=> false,
-			'gender'	=> false,
-			'skill' 	=> false,
-			'name' 		=> false,
-			'last_login'		=> false,
-			'waiver_signed'		=> false,
-			'member_id'		=> false,
-			'dog'		=> false,
-			'class'		=> false,
-			'publish'			=> false,
-			'user_edit'				=> false,
-#			'user_delete'			=> false,
-			'user_change_password'	=> false,
-		);
-
-		return true;
-	}
-
-	function process ()
-	{	
-		$this->error_exit("This code should never be run");
-	}
-
-	function generate_view ()
-	{
-		global $DB, $id;
-		$row = $DB->getRow(
-			"SELECT * FROM person WHERE user_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($row)) {
-			return false;
-		}
-		
-		if(!isset($row)) {
-			$this->error_exit("That person does not exist");
-		}
-
-		$fullname = $row['firstname'] . " " . $row['lastname'];
-		
-		$this->_page_title .= ": $fullname". 
-
-		$this->tmpl->assign("full_name", $fullname);
-		$this->tmpl->assign("user_id", $id);
-
-		if($this->_permissions['username']) {
-			$this->tmpl->assign("username", $row['username']);
-		}
-		
-		if($this->_permissions['member_id']) {
-			$this->tmpl->assign("member_id", $row['member_id']);
-		}
-		
-		if($this->_permissions['email']) {
-			$this->tmpl->assign("email", $row['email']);
-		}
-		
-		if($this->_permissions['home_phone']) {
-			$this->tmpl->assign("home_phone", $row['home_phone']);
-		}
-		if($this->_permissions['work_phone']) {
-			$this->tmpl->assign("work_phone", $row['work_phone']);
-		}
-		if($this->_permissions['mobile_phone']) {
-			$this->tmpl->assign("mobile_phone", $row['mobile_phone']);
-		}
-		
-		if($this->_permissions['address']) {
-			$this->tmpl->assign("address", true);
-			$this->tmpl->assign("addr_street", $row['addr_street']);
-			$this->tmpl->assign("addr_city", $row['addr_city']);
-			$this->tmpl->assign("addr_prov", $row['addr_prov']);
-			$this->tmpl->assign("addr_postalcode", $row['addr_postalcode']);
-		}
-
-		if($this->_permissions['birthdate']) {
-			$this->tmpl->assign("birthdate", $row['birthdate']);
-		}
-		
-		if($this->_permissions['gender']) {
-			$this->tmpl->assign("gender", $row['gender']);
-		}
-		
-		if($this->_permissions['skill']) {
-			$this->tmpl->assign("skill", true);
-			$this->tmpl->assign("skill_level", $row['skill_level']);
-			$this->tmpl->assign("year_started", $row['year_started']);
-		}
-
-		if($this->_permissions['class']) {
-			$this->tmpl->assign("class", $row['class']);
-		}
-		
-		if($this->_permissions['dog']) {
-
-			$this->tmpl->assign("has_dog", $row['has_dog']);
-			if($row['has_dog'] == 'Y' && $row['dog_waiver_signed']) {
-				$this->tmpl->assign("dog_waiver_signed", $row['dog_waiver_signed']);
-			} else {
-				$this->tmpl->assign("dog_waiver_signed", "Not signed");
-			}
-		}
-		
-		if($this->_permissions['waiver_signed']) {
-			if(array_key_exists('waiver_signed', $row)) {
-				$this->tmpl->assign("waiver_signed", $row['waiver_signed']);
-			} else {
-				$this->tmpl->assign("waiver_signed", "Not signed");
-			}
-		}
-		
-		if($this->_permissions['last_login']) {
-			if($row['last_login']) {
-				$this->tmpl->assign("last_login", $row['last_login']);
-				$this->tmpl->assign("client_ip", $row['client_ip']);
-			} else {
-				$this->tmpl->assign("last_login", "Never logged in");
-			}
-		}
-
-		if($this->_permissions['publish']) {
-			$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
-			$this->tmpl->assign("publish_home_phone", $row['publish_home_phone']);
-			$this->tmpl->assign("publish_work_phone", $row['publish_work_phone']);
-			$this->tmpl->assign("publish_mobile_phone", $row['publish_mobile_phone']);
-		}
-
-		$this->tmpl->assign("has_dog", $row['has_dog']);
-
-		/* Now, fetch teams */
-		$this->tmpl->assign("teams",
-			get_teams_for_user($id));
-
-		return true;
-	}
-}
-
-/**
  * Delete an account
  */
 class PersonDelete extends PersonView
@@ -508,6 +363,7 @@ class PersonDelete extends PersonView
 			'admin_sufficient',
 			'deny',
 		);
+		$this->op = 'person_delete';
 		return true;
 	}
 
@@ -525,31 +381,48 @@ class PersonDelete extends PersonView
 
 	function process ()
 	{
-		global $session;
+		global $DB, $session;
 		$step = var_from_getorpost('step');
+		$id = var_from_getorpost('id');
 
 		/* Safety check: Don't allow us to delete ourselves */
-		$id = var_from_getorpost('id');
 		if($session->attr_get('user_id') == $id) {
 			$this->error_exit("You cannot delete the currently logged in user");
 		}
-		
-		switch($step) {
-			case 'perform':
-				$this->perform();
-				local_redirect("op=person_list");
-				break;
-			case 'confirm':
-			default:
-				$this->set_template_file("Person/admin_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$this->tmpl->assign("page_instructions", "Confirm that you wish to delete this user from the system.");
-				$rc = $this->generate_view();
+
+		if($step == 'perform') {
+			$this->perform();
+			local_redirect("op=person_list");
+			exit; // redundant, local_redirect will exit.
+		}
+
+		/* Otherwise... */
+		$person = $DB->getRow(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($person)) {
+			return false;
 		}
 		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		if(!isset($person)) {
+			$this->error_exit("That person does not exist");
+		}
+		
+		$instructions = "Confirm that you wish to delete this user from the system.";
+		print $this->get_header();
+		print h1($this->title);
+		print simple_tag("p", $instructions);
+		print $this->generateView($person);
+		print form( 
+			form_hidden('op', $this->op)
+			. form_hidden('step', 'perform')
+			. form_hidden('id', $id)
+			. form_submit("Delete")
+		);
+		print $this->get_footer();
 
-		return $rc;
+		return true;
 	}
 
 	/**
@@ -614,6 +487,7 @@ class PersonApproveNewAccount extends PersonView
 			'admin_sufficient',
 			'deny',
 		);
+		$this->op = 'person_approvenew';
 		return true;
 	}
 
@@ -631,29 +505,34 @@ class PersonApproveNewAccount extends PersonView
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		switch($step) {
-			case 'perform':
-				$this->perform();
-				local_redirect("op=person_listnew");
-				break;
-			case 'confirm':
-			default:
-				$this->set_template_file("Person/admin_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_view();
-		}
-		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
-		return $rc;
-	}
-
-	function generate_view () 
-	{
 		global $DB;
+		$step = var_from_getorpost('step');
 		$id = var_from_getorpost('id');
 
+		if($step == 'perform') {
+			/* Actually do the approval on the 'perform' step */
+			$this->perform();
+			local_redirect("op=person_listnew");
+			exit; // redundant, local_redirect will exit.
+		} 
+
+		/* Otherwise... */
+		$person = $DB->getRow(
+			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($person)) {
+			return false;
+		}
+		
+		if(!isset($person)) {
+			$this->error_exit("That person does not exist");
+		}
+		
+		if($person['class'] != 'new') {
+			$this->error_exit("That account has already been approved");
+		}
+		
 		/* Check to see if there are any duplicate users */
 		$duplicate_info = $DB->getAll("SELECT
 			p.user_id,
@@ -680,14 +559,25 @@ class PersonApproveNewAccount extends PersonView
 		if(count($duplicate_info) > 0) {
 			$instructions .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
 			foreach($duplicate_info as $row) {
-				$instructions .= "<li>{$row['firstname']} {$row['lastname']} [ <a href='{$_SERVER['PHP_SELF']}?op=person_view&id={$row['user_id']}'>view</a> ]\n";
-			
+				$instructions .= "<li>{$row['firstname']} {$row['lastname']}";
+				$instructions .= "[&nbsp;" . l("view", "op=person_view&id=" . $row['user_id']) . "&nbsp;]";
 			}
 			$instructions .= "</ul></div>";
 		}
-		$this->tmpl->assign("page_instructions", $instructions);
 		
-		return parent::generate_view();
+		print $this->get_header();
+		print h1($this->title);
+		print simple_tag("p", $instructions);
+		print $this->generateView($person);
+		print form( 
+			form_hidden('op', $this->op)
+			. form_hidden('step', 'perform')
+			. form_hidden('id', $id)
+			. form_submit("Approve")
+		);
+		print $this->get_footer();
+
+		return true;
 	}
 
 	function perform ()
@@ -1621,6 +1511,8 @@ class PersonListNewAccounts extends Handler
 	{
 		global $DB;
 
+		$letter = var_from_getorpost("letter");
+
 		$ops = array(
 			array(
 				'name' => 'view',
@@ -1646,7 +1538,7 @@ class PersonListNewAccounts extends Handler
 			 	lastname LIKE ? 
 			 ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", 'person_list', $letter);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", 'person_listnew', $letter);
 		
 		print $this->get_header();
 		print h1($this->title);

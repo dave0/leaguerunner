@@ -209,12 +209,11 @@ function get_teams_for_user($userid)
 function get_field_name($id)
 {
 	global $DB;
-	$info = $DB->getOne("SELECT
+	return $DB->getOne("SELECT
 		CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')')
 		FROM field f
 		LEFT JOIN site s ON (f.site_id = s.site_id)
 		WHERE f.field_id = ?", array($id));
-	return $info;
 }
 
 ?>

@@ -24,7 +24,7 @@ class SiteCreate extends SiteEdit
 	
 	function perform ()
 	{
-		global $DB, $session;
+		global $DB;
 
 		$site = var_from_getorpost("site");
 		
@@ -144,7 +144,13 @@ class SiteEdit extends Handler
 			
 		$output .= simple_row(
 			"Site Region:",
-			form_select("", 'site[region]', $data['region'], getEnumOptions('site', 'region'), "Area of city this site is located in"));
+			form_select("", 'site[region]', $data['region'], getOptionsFromEnum('site', 'region'), "Area of city this site is located in"));
+			
+		$output .= simple_row(
+			"City Ward:",
+			form_select("", 'site[ward_id]', $data['ward_id'],
+				getOptionsFromQuery("SELECT ward_id, CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward ORDER BY ward_id"),
+				"Official city ward this site is located in"));
 			
 		$output .= simple_row(
 			"Site Location Map:",
@@ -170,6 +176,7 @@ class SiteEdit extends Handler
 
 	function generateConfirm ($data)
 	{
+		global $DB;
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", "perform");
 		$output .= form_hidden("id", $this->id);
@@ -187,6 +194,11 @@ class SiteEdit extends Handler
 		$output .= simple_row(
 			"Site Region:",
 			form_hidden('site[region]', $data['region']) . check_form($data['region']));
+			
+		$output .= simple_row(
+			"City Ward:",
+			form_hidden('site[ward_id]', $data['ward_id']) . 
+				getWardName($data['ward_id']));
 			
 		$output .= simple_row(
 			"Site Location Map:",
@@ -219,6 +231,7 @@ class SiteEdit extends Handler
 			name = ?, 
 			code = ?, 
 			region = ?, 
+			ward_id = ?,
 			location_url = ?, 
 			layout_url = ?, 
 			directions = ?, 
@@ -228,6 +241,7 @@ class SiteEdit extends Handler
 				$site['name'],
 				$site['code'],
 				$site['region'],
+				($site['ward_id'] == 0) ? NULL : $site['ward_id'],
 				$site['location_url'],
 				$site['layout_url'],
 				$site['directions'],
@@ -254,6 +268,10 @@ class SiteEdit extends Handler
 		}
 		if( !validate_nonhtml($site['code'] ) ) {
 			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
+		}
+		
+		if( ! validate_number($site['ward_id']) ) {
+			$errors .= "<li>Ward must be selected";
 		}
 
 		if( ! validate_nonhtml($site['region']) ) {
@@ -394,9 +412,8 @@ class SiteView extends Handler
 		$field_listing .= "</ul>";
 		
 
-		$page_title = "View Site &raquo; ".$site['name']." (" . $site['code'] . ")";
-		$this->set_title($page_title);
-		$output = h1($page_title);
+		$this->set_title("View Site &raquo; ".$site['name']." (" . $site['code'] . ")");
+		$output = h1($this->title);
 		if(count($links) > 0) {
 			$output .= simple_tag("blockquote", theme_links($links));
 		}
@@ -404,14 +421,15 @@ class SiteView extends Handler
 		$output .= simple_row("Site Name:", $site['name']);
 		$output .= simple_row("Site Code:", $site['code']);
 		$output .= simple_row("Site Region:", $site['region']);
-		$output .= simple_row("Site Directions:", $site['directions']);
-		$output .= simple_row("Site-specific Instrutions:", $site['instructions']);
+		$output .= simple_row("City Ward:", l(getWardName($site['ward_id']), "op=ward_view&id=" . $site['ward_id']));
 		$output .= simple_row("Site Location Map:", 
 			$site['location_url'] ? l("Click for map in new window", $site['location_url'], array('target' => '_top'))
 				: "No Map");
 		$output .= simple_row("Field Layout Map:", 
 			$site['layout_url'] ? l("Click for map in new window", $site['layout_url'], array('target' => '_top'))
 				: "No Map");
+		$output .= simple_row("Directions:", $site['directions']);
+		$output .= simple_row("Special Instrutions:", $site['instructions']);
 		
 		$output .= simple_row("Fields:", $field_listing);
 		
