@@ -1160,6 +1160,8 @@ class PersonCreate extends PersonEdit
 		$crypt_pass = md5($edit['password_once']);
 
 		$person->set('username', $edit['username']);
+		$person->set('firstname', $edit['firstname']);
+		$person->set('lastname', $edit['lastname']);
 		$person->set('password', $crypt_pass);
 
 		// Unset the username so parent::perform() doesn't try to validate it.
@@ -1234,8 +1236,8 @@ class PersonActivate extends PersonEdit
 				if( ! $rc ) {
 					error_exit("Failed attempting to activate account");
 				}
-				$person->set('status', 'active');
-				$rc = $person->save();
+				$this->person->set('status', 'active');
+				$rc = $this->person->save();
 				if( !$rc ) {
 					error_exit("Failed attempting to activate account");
 				}

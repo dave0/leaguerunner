@@ -181,6 +181,9 @@ function team_splash ()
 
 	}
 	reset($session->user->teams);
+	if( count($session->user->teams) < 1) {
+		$rows[] = array( array('colspan' => 2, 'data' => "You are not yet on any teams"));
+	}
 	return table( array( array('data' => 'My Teams', colspan => 4),), $rows);
 }
 
@@ -243,7 +246,7 @@ class TeamCreate extends TeamEdit
 	
 		# TODO: Replace with $team->add_player($session->user,'captain')
 		#       and call before parent::perform()
-		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $team->team_id, $session->attr_get('user_id'));
+		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $this->team->team_id, $session->attr_get('user_id'));
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
