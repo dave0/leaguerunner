@@ -43,14 +43,30 @@ function local_redirect($url)
  * HTML-generation functions
  */
 
-function l($text, $query = NULL, $attributes = array())
+function simple_tag($name, &$content, $attributes = array())
 {
 	$t = array();
 	foreach ($attributes as $key => $value) {
 		$t[] = "$key=\"$value\"";
 	}
 
-	return "<a href=\"". url($query) ."\" ". implode($t, " ") .">$text</a>";
+	return "<$name". (count($t) ? " " : "") . implode($t, " ") .">$content</$name>";
+}
+
+function tr($text, $attributes = array())
+{
+	return simple_tag("tr",$text, $attributes);
+}
+
+function td($text, $attributes = array())
+{
+	return simple_tag("td",$text, $attributes);
+}
+
+function l($text, $query = NULL, $attributes = array())
+{
+	$attributes['href'] = url($query);
+	return simple_tag("a", $text, $attributes);
 }
 
 function url($query = NULL) 
@@ -64,6 +80,10 @@ function url($query = NULL)
     }
 }
 
+function check_form($input, $quotes = ENT_QUOTES)
+{
+	return htmlspecialchars($input, $quotes);
+}
 
 /*
  * Form-generation functions
@@ -85,30 +105,30 @@ function form_item($title, $value, $description = 0)
 
 function form_radio($title, $name, $value = 1, $checked = 0, $description = 0) 
 {
-	return form_item(0, "<input type=\"radio\" class=\"form-radio\" name=\"edit[$name]\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
+	return form_item(0, "<input type=\"radio\" class=\"form-radio\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
 function form_checkbox($title, $name, $value = 1, $checked = 0, $description = 0) 
 {
-	return form_hidden($name, 0) . form_item(0, "<input type=\"checkbox\" class=\"form-checkbox\" name=\"edit[$name]\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
+	return form_hidden($name, 0) . form_item(0, "<input type=\"checkbox\" class=\"form-checkbox\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
 function form_textfield($title, $name, $value, $size, $maxlength, $description = 0) 
 {
 	$size = $size ? " size=\"$size\"" : "";
-	return form_item($title, "<input type=\"text\" maxlength=\"$maxlength\" class=\"form-text\" name=\"edit[$name]\"$size value=\"". check_form($value) ."\" />", $description);
+	return form_item($title, "<input type=\"text\" maxlength=\"$maxlength\" class=\"form-text\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
 function form_password($title, $name, $value, $size, $maxlength, $description = 0) 
 {
 	$size = $size ? " size=\"$size\"" : "";
-	return form_item($title, "<input type=\"password\" class=\"form-password\" maxlength=\"$maxlength\" name=\"edit[$name]\"$size value=\"". check_form($value) ."\" />", $description);
+	return form_item($title, "<input type=\"password\" class=\"form-password\" maxlength=\"$maxlength\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
 function form_textarea($title, $name, $value, $cols, $rows, $description = 0) 
 {
 	$cols = $cols ? " cols=\"$cols\"" : "";
-	return form_item($title, "<textarea wrap=\"virtual\"$cols rows=\"$rows\" name=\"edit[$name]\" id=\"edit[$name]\">". check_form($value) ."</textarea>", $description);
+	return form_item($title, "<textarea wrap=\"virtual\"$cols rows=\"$rows\" name=\"$name\" id=\"$name\">". check_form($value) ."</textarea>", $description);
 }
 
 function form_select($title, $name, $value, $options, $description = 0, $extra = 0, $multiple = 0) 
@@ -117,7 +137,7 @@ function form_select($title, $name, $value, $options, $description = 0, $extra =
 		foreach ($options as $key=>$choice) {
 			$select .= "<option value=\"$key\"". (is_array($value) ? (in_array($key, $value) ? " selected=\"selected\"" : "") : ($value == $key ? " selected=\"selected\"" : "")) .">". check_form($choice) ."</option>";
 		}
-		return form_item($title, "<select name=\"edit[$name]". ($multiple ? "[]" : "") ."\"". ($multiple ? " multiple " : "") . ($extra ? " $extra" : "") .">$select</select>", $description);
+		return form_item($title, "<select name=\"$name". ($multiple ? "[]" : "") ."\"". ($multiple ? " multiple " : "") . ($extra ? " $extra" : "") .">$select</select>", $description);
 	}
 }
 
@@ -133,12 +153,12 @@ function form_radios($title, $name, $value, $options, $description = 0)
 
 function form_file($title, $name, $size, $description = 0) 
 {
-	return form_item($title, "<input type=\"file\" class=\"form-file\" name=\"edit[$name]\" size=\"$size\" />\n", $description);
+	return form_item($title, "<input type=\"file\" class=\"form-file\" name=\"$name\" size=\"$size\" />\n", $description);
 }
 
 function form_hidden($name, $value) 
 {
-	return "<input type=\"hidden\" name=\"edit[$name]\" value=\"". check_form($value) ."\" />\n";
+	return "<input type=\"hidden\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
 function form_submit($value, $name = "op") 

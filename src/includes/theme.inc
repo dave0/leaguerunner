@@ -48,6 +48,11 @@ function theme_header($title = "")
 <?php
 }
 
+function theme_links($links, $delimiter = " | ")
+{
+	return implode($delimiter, $links);
+}
+
 function theme_footer()
 {
 ?>

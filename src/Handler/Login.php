@@ -29,6 +29,7 @@ class Login extends Handler
 
 		$username = var_from_post('username');
 		$password = var_from_post('password');
+		$remember_me = var_from_post('remember_me');
 
 		/* Now, if we can, we will create a new user session */
 		if( !(isset($username) || isset($password)) ) {
@@ -72,6 +73,19 @@ class Login extends Handler
 			case 'volunteer':
 			case 'administrator':
 				/* These accounts are active and can continue */
+
+				/*
+				 * If the user wants to be remembered, set the proper cookie
+				 * such that the session won't expire.
+				 */
+
+				$path = dirname($_SERVER['PHP_SELF']);
+				if ($remember_me) {
+					setcookie(session_name(), session_id(), time() + 3600 * 24 * 365, $path);
+				} else {  
+					setcookie(session_name(), session_id(), FALSE, $path);
+				}
+				
 				local_redirect(url("op=menu"));
 				break;
 		}
@@ -92,46 +106,37 @@ class Login extends Handler
 
 	function login_form($error = "")
 	{
-		$output =<<<EOF
-<table align='center' border='0' cellpadding='5' width='300'>
-<tr>
-	<td colspan='2' align='center'>
-EOF;
-		if(isset($error)) {
-			$output .= "<font color='red'><b>$error</b></font>";
-		}
+		$output = "<table align='center' border='0' cellpadding='5' width='300'>";
+	
+		$output .= tr(
+			td(($error ? "<font color='red'><b>$error</b></font>" : "&nbsp;"),
+				array("colspan" => 2, "align" => "center"))
+		);
+		
+		$output .= tr(
+			td("Username:") . td(form_textfield("", "username", "", 25, 25)));
+		$output .= tr(
+			td("Password:") . td(form_password("", "password", "", 25, 25)));
+		$output .= tr(
+			td(form_checkbox("Remember Me","remember_me"), array( "colspan" => 2, "align" => "center"))
+		);
+
+		$login_td = form_submit("Log In","submit");
+		$login_td .= "<br />" . theme_links(array(
+			l("Forgot your password", "op=person_forgotpassword"),
+			l("Create New Account", "op=person_create")));
+		
+		$output .= tr(
+			td( $login_td, array( "colspan" => 2, "align" => "center", "valign" => "middle"))
+		);
+		
 		$output .=<<<EOF
-	</td>
-</tr>
-<tr>
-	<td>Username:</td>
-	<td><input type='text' name='username' size='25'></td>
-</tr>
-<tr>
-	<td>Password:</td>
-	<td><input type='password' name='password' size='25'></td>
-</tr>
-<tr>
-	<td colspan='2' align='center' valign='middle'>
-		<input type='submit' name='submit' value='Log In'>
-    <br>
-EOF;
-		$output .= l("Forgot your password", "op=person_forgotpassword");
-		$output .= " | ";
-		$output .= l("Create New Account", "op=person_create");
-		$output .=<<<EOF
-  </td>
-</tr>
 <tr>
 <td colspan='2'><font size='-2'>
-<b>Note 1:</b> Cookies are required for use of the system.  If you receive an error indicating you 
+<b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
 have an invalid session then cookies may be turned off in your browser.<br />
 <br />
-<b>Note 2:</b> Your account from last year (2002 Summer or Fall seasons, or
-2003 Indoor) will not work.  If you have not created a new account this year,
-you will need to do so.
-<br />
-<i>We are having intermittent problems where user's initial passwords are not being stored properly. 
+<i>
 If you cannot login after receiving your Account Activiation notification, try getting a new 
 password emailed to you (click on "Forgot your password?").</i>
 </font></td>
