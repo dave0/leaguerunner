@@ -273,7 +273,9 @@ class UserSession
 
 		if($league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
-			return true;
+			if ($this->attr_get('class') == 'volunteer') {
+				return true;
+			}
 		}
 
 		$res = $DB->getRow("SELECT coordinator_id, alternate_id from league where league_id = ?",
