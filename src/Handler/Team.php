@@ -497,7 +497,7 @@ class TeamRosterStatus extends Handler
 	function has_permission ()
 	{
 		global $session;
-		return $session->has_permission('team','player status',$this->team->team_id, $this->person->user_id);
+		return $session->has_permission('team','player status',$this->team->team_id, $this->player->user_id);
 	}
 
 	/**
@@ -640,29 +640,24 @@ class TeamRosterStatus extends Handler
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
 		
-		if( !$this->person ) {
+		if( !$this->player ) {
 			if( !($session->is_admin() || $session->is_captain_of($team->team_id))) {
 				error_exit("You cannot add a person to that team!");
 			}
 
-			$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
-			$ops = array(
-				array( 'name' => 'view', 'target' => 'person/view/'),
-				array( 'name' => 'request player', 'target' => "team/roster/" . $this->team->team_id . "/")	
-			);
-	
-			$query = "SELECT IF( status != 'active', CONCAT(lastname,', ',firstname, ' (inactive)'), CONCAT(lastname, ', ', firstname)) AS value, user_id AS id FROM person WHERE (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
+			$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, "Add Player" => 0));
 
-			return
-				para("Select the player you wish to add to the team")
-				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/roster/" . $team->team_id, $_GET['letter']);
+			$new_handler = new PersonSearch;
+			$new_handler->initialize();
+			$new_handler->ops['Add to ' . $this->team->name] = 'team/roster/' .$this->team->team_id . '/%d';
+			return $new_handler->process();
 		}
 
-		if(!$this->person->is_player()) {
+		if(!$this->player->is_player()) {
 			error_exit("Only OCUA-registered players can be added to a team");
 		}
 		
-		$this->loadPermittedStates($this->team->team_id, $this->person->person_id);
+		$this->loadPermittedStates($this->team->team_id, $this->player->user_id);
 		$edit = &$_POST['edit'];
 		
 		if($this->player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
