@@ -23,13 +23,11 @@
 	<html>
 		<head>
 			<title><xsl:value-of select="sports-metadata/sports-title"/></title>
-			<link rel="stylesheet" type="text/css" href="sportsml.css"/>
+			<link rel="stylesheet" type="text/css" href="/leaguerunner/style.css"/>
 		</head>
 		<body>
 		
 		<h1 class="docTitle"><xsl:value-of select="sports-metadata/sports-title"/></h1>
-		
-
 			<xsl:choose>
 			<xsl:when test="sports-content">
 				<xsl:apply-templates/>    <!-- Call all subtemplates -->
@@ -60,7 +58,7 @@
 <!-- template for standings -->
 <xsl:template match="standing">
 	<xsl:if test="@date-label or @content-label">
-		<p class="standline">Standings for: <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></p>
+		<h2>Standings for <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></h2>
 	</xsl:if>
 
 	<!-- uncomment the part below when debugging -->
@@ -206,15 +204,19 @@
 	<xsl:if test="@date-label or @content-label">
 		<h2 class="schedline"> Schedule: <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></h2>
 	</xsl:if>
-	<table class="mediumtable" cellpadding="4">
-		<tr bgcolor="#cccccc"><td><b>date</b></td><td><b>home team</b></td><td><b>visiting team</b></td><td>Site</td></tr>
-		<xsl:for-each select="sports-event">
-			<xsl:call-template name="event-schedule">
-				<xsl:with-param name="oneevent" select="."/>
-			</xsl:call-template>
-		</xsl:for-each>
-	<!-- <xsl:apply-templates select="sports-event"/>-->
-	</table>
+	<table border="0" cellpadding="3" cellspacing="0"><tdata>
+	  <tr>
+     	    <td class="schedule_subtitle">Game Date</td>
+   	    <td class="schedule_subtitle">Home</td>
+     	    <td class="schedule_subtitle">Away</td>
+    	    <td class="schedule_subtitle">Field</td>
+	  </tr>
+  	  <xsl:for-each select="sports-event">
+		<xsl:call-template name="event-schedule">
+			<xsl:with-param name="oneevent" select="."/>
+		</xsl:call-template>
+	  </xsl:for-each>
+	</tdata></table>
 </xsl:template>
 <!-- end template for schedules -->
 
@@ -476,11 +478,6 @@
    <xsl:if test="$oneevent/event-metadata/@event-status = 'post-event'">
  	(<xsl:value-of select="$oneevent/team[1]/team-stats/@score"/>)
    </xsl:if>
-   <!-- below is temporary, for bug in feed -->
-   <xsl:if test="$oneevent/event-metadata/@event-status = 'final'">
- 	(<xsl:value-of select="$oneevent/team[1]/team-stats/@score"/>)
-   </xsl:if>
-
   </td>
   <td><b>
     <xsl:call-template name="choose-name">
