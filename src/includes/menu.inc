@@ -119,22 +119,16 @@ function menu_render($parentKey = '_root', $depth = 0) {
 				$style = ($_menu[$itemKey]['children'] ? 'collapsed' : 'leaf');
 			}
 			if( $itemKey == $active ) {
-				$style = 'active';
+				$style .= ' active';
 			}
 
-			$output .= "<tr><td class=\"$style\">";
-			for ($i=0; $i < $depth; $i++) {
-				$output .= "&nbsp;&nbsp;";
-			}
-			$output .= _menu_render_item($_menu[$itemKey], ($itemKey == $active));
-			$output .= "</td></tr>\n";
+			$output .= "<li class='$style'>" . _menu_render_item($_menu[$itemKey], ($itemKey == $active));
 			if ($mustExpand) {
 				$output .= menu_render($itemKey, ($depth + 1));
 			}
+			$output .= "</li>";
 		}
-	}
-	if ($output != '' && $depth == 0) {
-		$output  = "\n<table>\n$output\n</table>\n";
+		$output = "<ul>$output</ul>";
 	}
 	return $output;
 }

@@ -32,7 +32,7 @@ function theme_header($title = "", $breadcrumbs = array())
 ?></table>
   <table border='0' cellpadding='0' cellspacing='0' width="99%" bgcolor='white'><tr><?php
 	if ($session->is_valid()) {
-		print "<td width='180'><div class='menu'>" . menu_render('_root') . "</div></td>";
+		print "<td id='sidebar-left'><div class='menu'>" . menu_render('_root') . "</div></td>";
 		print "<td class='main'>";
 	} else {
 		print "<td>";

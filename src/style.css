@@ -1,5 +1,11 @@
-body            { background-color: white; font-size: 9pt;
-                  font-family: verdana, arial, helvetica, sans-serif; }
+body { 
+	color: #000;
+	background-color: #fff; 
+	margin: 0;
+	padding: 0;
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+}
+	
 h1              { font-size: 18px;}
 pre             { font-family: monospace; font-size: 9pt; }
 .row_title      { color: black; font-weight: bold; }
@@ -12,7 +18,7 @@ a               { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
 /* Defaults for tables */
-table           { margin: 0; padding: 0; border-collapse: collapse; font-size: 9pt }
+table           { margin: 0; padding: 0; border-collapse: collapse; }
 td		{ vertical-align: top }
 
 fieldset {
@@ -111,34 +117,72 @@ fieldset {
 .error { color: red }
 
 .main {
-  border-left: 1px solid blue;
   padding-left: .5em;
 }
 
+/* Sidebar */
+#sidebar-left {
+	font-size: 0.75em;
+	width: 175px;
+	/* padding in px not ex because IE messes up 100% width tables otherwise */
+	padding: 25px 10px 75px 10px;
+	vertical-align: top;
+	background: #f5f5f5;
+}
+
+#sidebar-left li, #sidebar-right li {
+	font-size: 1em;
+} 
+
 /* Menu styles */
 .menu {
+  padding: 0 0 0 0.5em;
   margin: 0;
-  padding: 0;
-  background-color: #FFF;
-  text-align:left;
 }
-.menu td {
+
+.menu ul {
+	list-style: none;
+	border: none;
+	text-align: left;
 	margin: 0;
-	padding: 0 0 0 0.25em;
+	padding: 0 0 0.25em 1em;
 }
-.menu a {
-  text-decoration: none;
-  width: 100%;
+
+li.expanded {
+	list-style-type: circle;
+	list-style-image: url(misc/menu-expanded.png);
+	padding: 0.2em 0.5em 0 0;
+	margin: 0;
 }
-.menu td.active {
-  color: #000;
-  background-color: #CCF;
-  font-weight: bold;
+li.collapsed {
+	list-style-type: disc;
+	list-style-image: url(misc/menu-collapsed.png);
+	padding: 0.2em 0.5em 0 0;
+	margin: 0;
 }
-.menu a:hover {
+li.leaf {
+	list-style-type: square;
+	list-style-image: url(misc/menu-leaf.png);
+	padding: 0.2em 0.5em 0 0;
+	margin: 0;
+}
+li.active a {
+	color: #000;
+	font-weight: bold;
+}
+
+.menu li a {
+	width: 100%;
+	text-decoration: none;
+}
+    
+.menu li a:hover {
   color: #000;
   background-color: #FFC;
 }
+
+
+/* Form items */
 
 .form-item {
   margin-bottom: 1em;
