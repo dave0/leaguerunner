@@ -60,6 +60,9 @@ New Features:
 		+ when account is created
 		+ to captain when player requests to join
 		+ to player, when captain requests them
+		
+	- integrate survey questions into database, rather than having them
+	  hardcoded in an HTML file
 
 Field Management:
     Add more attributes to fields, auto-generate field websites from DB on
