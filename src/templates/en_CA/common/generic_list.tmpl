@@ -14,17 +14,12 @@
 {foreach from=$list item=each}
 <tr>
 	<td>{$each.value}</td>
-	<td>
-	[
-	{if $view_op}
-		<a href="{$app_cgi_location}?op={$view_op}&id={$each.id_val}">view</a>
-	{/if}
-	{if $add_op}
-		| <a href="{$app_cgi_location}?op={$add_op}&id={$each.id_val}">add</a>
-	{/if}
-	{if $join_op}
-		| <a href="{$app_cgi_location}?op={$join_op}&id={$each.id_val}">request to join</a>
-	{/if}
+	<td> 
+  [
+  {foreach name=available_ops from=$available_ops item=op}
+    {if not $smarty.foreach.available_ops.first}|{/if} 
+    <a href="{$app_cgi_location}?op={$op.action}&id={$each.id_val}">{$op.description}</a>
+  {/foreach} 
   ]
 	</td>
 </tr>

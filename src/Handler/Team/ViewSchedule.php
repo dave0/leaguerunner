@@ -5,7 +5,6 @@ register_page_handler('team_schedule_view', 'TeamScheduleView');
  * Team schedule viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,6 @@ class TeamScheduleView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Schedule";
 		$this->_permissions = array(
 			'submit_score'	=> false,
 		);
@@ -105,6 +103,8 @@ class TeamScheduleView extends Handler
 			$this->error_text = gettext("The team [$id] does not exist");
 			return false;
 		}
+
+		$this->set_title("View Schedule for " . $row['team_name']);
 
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);

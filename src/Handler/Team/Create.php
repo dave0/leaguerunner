@@ -13,7 +13,7 @@ class TeamCreate extends TeamEdit
 {
 	function initialize ()
 	{
-		$this->name = "Create New Team";
+		$this->set_title("Create New Team");
 		$this->_permissions = array(
 			'edit_name'			=> true,
 			'edit_website'		=> true,

@@ -201,12 +201,26 @@ class UserSession
 	 */
 	function is_valid ()
 	{
+		global $session;
+
 		if( !isset($this->data) ) {
 			return false;
 		}
 		if( !isset($this->data['user_id']) ) {
 			return false;
 		}
+		
+		/* 
+		 * 'new', 'inactive' and 'locked' accounts are not considered valid
+		 * and are handled as special cases
+		 */
+		switch($session->attr_get('class')) {
+			case 'new':
+			case 'inactive':
+			case 'locked':
+				return false;
+		}
+		
 		return true;
 	}
 

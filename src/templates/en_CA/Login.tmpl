@@ -1,60 +1,33 @@
-<html>
-  <head>
-    <title>{$app_name}: {$page_title}</title>
-    <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
-  </head>
-  <body bgcolor="#FFFFFF">
-{strip}
-  <table class='toptable' border='0' cellpadding='3' cellspacing='0' bgcolor='black' width='100%'>
-    <tr>
-      <td colspan='2'>
-        <h1>{$app_name}</h1>
-      </td>
-    </tr>
-    <tr>
-      <td colspan='2'>
-		&nbsp;
-      </td>
-    </tr>
-  </table>
-{/strip}
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<br />
+<form action="{$app_cgi_location}" method="POST">
+<table align='center' border='0' cellpadding='5' width='300'>
+<tr>
+	<td colspan='2' align='center'>
+	{if $error}
+	<font color='red'><b>{$error}</b></font>
+	{/if}
+  &nbsp;
+	</td>
+</tr>
+<tr>
+	<td>Username:</td>
+	<td><input type='text' name='username' size='25'></td>
+</tr>
+<tr>
+	<td>Password:</td>
+	<td><input type='password' name='password' size='25'></td>
+</tr>
+<tr>
+	<td colspan='2' align='center' valign='middle'>
+		<input type='submit' name='submit' value='Log In'>
+    <br>
+    <a href="{$app_cgi_location}?op=person_resetpw">Forgot your password?</a> | <A HREF="{$app_cgi_location}?op=person_create">Create New Account</a>
+  </td>
+</tr>
+</table>
+<input type='hidden' name='op' value='login'>
+</form>
+
+{include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}
-{if $error}
-	<P>
-	Login failed:
-	<blockquote>
-		<b>{$error}</b>
-	</blockquote>
-	</P>
-{/if}
-	<p />
-	<form action="{$app_cgi_location}" method="POST">
-	<table align='center' border='0' cellpadding='5' cellspacing='0'>
-		<tr>
-			<td>Username:</td>
-			<td><input type='text' name='username' size='25'></td>
-		</tr>
-		<tr>
-			<td>Password:</td>
-			<td><input type='password' name='password' size='25'></td>
-		</tr>
-		<tr>
-			<td colspan='2' align='center' valign='middle'>
-				<input type='submit' name='submit' value='Log In'>
-			</td>
-		</tr>
-	</table>
-	<input type='hidden' name='op' value='login'>
-	</form>
-	<P>
-	If you've forgotten your password, you can <a href="{$app_cgi_location}?op=forgot">reset it</a> here. 
-	</P>
-	<P>
-    Otherwise, feel free to  <A HREF="{$app_cgi_location}?op=person_create">create a new account</a>.
-	</P>
-	<P>
-	Please note that this site uses cookies to store authentication information.
-	You must have cookies enabled in your browser to use this site.
-	</P>
-</body>
-</html>

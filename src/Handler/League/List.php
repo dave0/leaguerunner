@@ -18,7 +18,7 @@ class LeagueList extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "List Leagues";
+		$this->set_title("List Leagues");
 		$this->_permissions = array(
 		);
 
@@ -49,7 +49,12 @@ class LeagueList extends Handler
 			return false;
 		}
 		
-		$this->tmpl->assign("view_op", "league_view");
+		$this->tmpl->assign("available_ops", array(
+			array(
+				'description' => 'view',
+				'action' => 'league_view'
+			),
+		));
 		$this->tmpl->assign("page_op", "league_list");
 		$this->tmpl->assign("list", $found);
 		

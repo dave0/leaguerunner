@@ -18,7 +18,6 @@ class PersonChangePassword extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "Change Password";
 		return true;
 	}
 
@@ -97,6 +96,8 @@ class PersonChangePassword extends Handler
 		if($this->is_database_error($row)) {
 			return false;
 		}
+		
+		$this->set_title("Changing Password for " . $row['firstname'] . " " .$row['lastname'] );
 
 		$this->tmpl->assign("firstname", $row['firstname']);
 		$this->tmpl->assign("lastname", $row['lastname']);

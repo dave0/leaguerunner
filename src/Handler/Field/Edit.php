@@ -18,7 +18,6 @@ class FieldEdit extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "Edit Field: ";
 		$this->_permissions = array(
 			'edit_name'			=> true,
 			'edit_website' 		=> true,
@@ -85,8 +84,9 @@ class FieldEdit extends Handler
 		}
 	
 		if(var_from_getorpost('id')) {
-			$this->name .= $DB->getOne("SELECT name FROM field_info where field_id = ?", array(var_from_getorpost('id')));
+			$this->set_title("Edit Field: " . $DB->getOne("SELECT name FROM field_info where field_id = ?", array(var_from_getorpost('id'))));
 		}
+
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		
 		/* ... and set permissions flags */

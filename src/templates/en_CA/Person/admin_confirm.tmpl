@@ -1,0 +1,102 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+<p>
+  {$page_instructions}
+</p>
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="{$page_step}">
+	<input type="hidden" name="id" value="{$user_id}">
+<table border="0">
+  <tr>
+    <td class='row_title'>Name:</td> 
+    <td class='row_data'>{$full_name|escape}</td>
+  </tr>
+
+  <tr>
+    <td class='row_title'>System Username:</td> 
+    <td class='row_data'>{$username|escape}</td>
+  </tr>
+
+  {if $email}
+  <tr>
+    <td class='row_title'>Email Address:</td> 
+    <td class='row_data'><a href="mailto:{$email|escape}">{$email|escape}</a></td>
+  </tr>
+  {/if}
+
+  {if $phone}
+  <tr>
+    <td class='row_title'>Phone Number:</td> 
+    <td class='row_data'>{$phone|escape}</td>
+  </tr>
+  {/if}
+
+  {if $address}  
+  <tr>
+    <td class='row_title' valign='top'>Address:</td> 
+    <td class='row_data'>
+      {$addr_street|escape}<br>
+      {$addr_city|escape}, {$addr_prov|escape} <br>
+      {$addr_postalcode|escape}
+    </td>
+  </tr>
+  {/if}
+
+  {if $birthdate}
+  <tr>
+    <td class='row_title'>Birthdate:</td> 
+    <td class='row_data'>{$birthdate|escape}</td>
+  </tr>
+  {/if}
+
+  {if $gender}
+  <tr>
+    <td class='row_title'>Gender:</td> 
+    <td class='row_data'>{$gender|escape}</td>
+  </tr>
+  {/if}
+
+  {if $skill}
+  <tr>
+    <td class='row_title'>Skill Level:</td> 
+    <td class='row_data'>{$skill_level|escape}</td>
+  </tr>
+  <tr>
+    <td class='row_title'>Year Started:</td> 
+    <td class='row_data'>{$year_started|escape}</td>
+  </tr>
+  {/if}
+  {if $last_login}
+  <tr>
+    <td class='row_title'>Last Login:</td> 
+    <td class='row_data'>{$last_login|escape}</td>
+  </tr>
+  <tr>
+    <td class='row_title'>Last Login From:</td> 
+    <td class='row_data'>{$client_ip|escape}</td>
+  </tr>
+  {/if}
+
+  <tr>
+    <td class='row_title'>Teams:</td> 
+    <td class='row_data'>
+      <table border='0'><tdata>
+        {foreach name=teamlist from=$teams item=team}
+          <tr>
+            <td>{$team.position}</td>
+            <td>on</td>
+            <td><a href="{$app_cgi_location}?op=team_view&id={$team.id}">{$team.name}</a></td>
+          </tr>
+        {/foreach}
+      </tdata></table>
+    </td>
+  </tr>
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

@@ -1,7 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-
 <br />
-
 <table border="0" cellpadding="3" cellspacing="0">
 
   {* All users get this section *}
@@ -93,6 +91,9 @@
     <td class="menu_title">System</td>
   </tr>
   {if $perm_user_admin}
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_listnew'>List New Users</a></td>
+  </tr>
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_list'>List Users</a></td>
   </tr>

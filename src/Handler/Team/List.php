@@ -18,7 +18,7 @@ class TeamList extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "List Teams";
+		$this->set_title("List Teams");
 		$this->_permissions = array(
 		);
 
@@ -57,7 +57,12 @@ class TeamList extends Handler
 		}
 		
 		$this->tmpl->assign("letter", $letter);
-		$this->tmpl->assign("view_op", "team_view");
+		$this->tmpl->assign("available_ops", array(
+			array(
+				'description' => 'view',
+				'action' => 'team_view'
+			),
+		));
 		$this->tmpl->assign("page_op", "team_list");
 		$foo = array("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z");
 		

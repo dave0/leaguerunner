@@ -1,5 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<h1>Editing {$firstname} {$lastname}</h1>
+<h1>{if $id}Editing {$firstname} {$lastname}{else}Create New User{/if}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}

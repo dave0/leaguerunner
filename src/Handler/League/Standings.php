@@ -5,7 +5,6 @@ register_page_handler('league_standings', 'LeagueStandings');
  * League standings handler
  *
  * @package Leaguerunner
- * @version $Id$
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,7 @@ class LeagueStandings extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View League Standings";
+		$this->set_title("View League Standings");
 		$this->_permissions = array(
 			"view_spirit" => false,
 			"view_team" => false,

@@ -5,7 +5,6 @@ register_page_handler('field_view', 'FieldView');
  * Field viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,6 @@ class FieldView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Field";
 		$this->_permissions = array(
 			'field_assign' => false,
 			'field_edit'   => false,
@@ -81,7 +79,8 @@ class FieldView extends Handler
 			$this->error_text = gettext("The field [$id] does not exist");
 			return false;
 		}
-
+	
+		$this->set_title("View Field: " . $row['name']);
 		$this->tmpl->assign("field_name", $row['name']);
 		$this->tmpl->assign("field_id", $id);
 		$this->tmpl->assign("field_website", $row['url']);

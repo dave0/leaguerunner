@@ -5,7 +5,6 @@ register_page_handler('league_schedule_view', 'LeagueScheduleView');
  * League schedule viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,7 @@ class LeagueScheduleView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "League Schedule View";
+		$this->set_title("League Schedule View");
 		$this->_permissions = array(
 			"edit_schedule" => false,
 			"edit_anytime" => false,

@@ -34,7 +34,7 @@ class Handler
 	 * @access private
 	 * @var string
 	 */
-	var $name;
+	var $_page_title;
 
 	/**
 	 * Instance of Smarty template file
@@ -124,7 +124,7 @@ class Handler
 		$this->tmpl->assign("app_stylesheet_file", $GLOBALS['APP_STYLESHEET']);
 		$this->tmpl->assign("app_template_dir", $current_language);
 		
-		$this->tmpl->assign("page_title", $this->name);
+		$this->tmpl->assign("page_title", $this->_page_title);
 	
 		if(isset($session) && $session->is_valid()) {
 			$this->tmpl->assign("page_user_name", join(" ",array(
@@ -132,6 +132,14 @@ class Handler
 				$session->attr_get("lastname")
 			)));
 		}
+	}
+	
+	/**
+	 * Set the page title
+	 */
+	function set_title( $title )
+	{
+		$this->_page_title = $title;
 	}
 
 	/**

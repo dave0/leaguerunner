@@ -5,7 +5,6 @@ register_page_handler('league_view', 'LeagueView');
  * League viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,6 @@ class LeagueView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View League";
 		$this->_permissions = array(
 			"administer_league" => false,
 		);
@@ -89,6 +87,12 @@ class LeagueView extends Handler
 		if($this->is_database_error($row)) {
 			return false;
 		}
+		
+		$title = "View League: " . $row['name'];
+		if($row['tier'] > 0) {
+			$title .= " " . $row['tier'];
+		}
+		$this->set_title($title);
 
 		$this->tmpl->assign("league_id", $id);
 		$this->tmpl->assign("league_name",   $row['name']);

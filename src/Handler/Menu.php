@@ -4,7 +4,6 @@ register_page_handler('menu','Menu');
  * Handler for the menu operation
  *
  * @package Leaguerunner
- * @version $Id $
  * @access public
  * @author Dave O'Neill <dmo@acm.org>
  * @copyright GPL
@@ -16,7 +15,7 @@ class Menu extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = 'LeagueRunner Menu';
+		$this->set_title("Main Menu");
 
 		$this->_permissions = array(
 			"league_admin"  => false,
@@ -43,8 +42,6 @@ class Menu extends Handler
 		
 		/* Anyone with a valid session id has permission */
 		if(!$session->is_valid()) {
-			/* If no session, it's error time. */
-			$this->name = "Not Logged In";
 			$this->error_text = gettext("Your session has expired.  Please log in again");
 			return false;
 		}

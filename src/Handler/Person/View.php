@@ -5,7 +5,6 @@ register_page_handler('person_view', 'PersonView');
  * Player viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,7 @@ class PersonView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Person";
+		$this->set_title("View Account:");
 		$this->_permissions = array(
 			'email'		=> false,
 			'phone'		=> false,
@@ -117,11 +116,21 @@ class PersonView extends Handler
 	}
 
 	function process ()
-	{
-		global $DB, $id;
-
+	{	
 		$this->set_template_file("Person/view.tmpl");
 	
+		reset($this->_permissions);
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
+		return $this->generate_view();
+	}
+
+	function generate_view ()
+	{
+		global $DB, $id;
 		$row = $DB->getRow(
 			"SELECT 
 				CONCAT(firstname,' ',lastname) AS fullname, 
@@ -144,6 +153,8 @@ class PersonView extends Handler
 		if($this->is_database_error($row)) {
 			return false;
 		}
+	
+		$this->_page_title .= ": ". $row['fullname'];
 
 		$this->tmpl->assign("full_name", $row['fullname']);
 		$this->tmpl->assign("user_id", $id);
@@ -199,14 +210,6 @@ class PersonView extends Handler
 		/* Now, fetch teams */
 		$this->tmpl->assign("teams",
 			get_teams_for_user($id));
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
 
 		return true;
 	}

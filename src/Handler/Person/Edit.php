@@ -18,7 +18,7 @@ class PersonEdit extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "Edit Person";
+		$this->set_title("Edit Account");
 		$this->_permissions = array(
 			'edit_email'		=> false,
 			'edit_phone'		=> false,

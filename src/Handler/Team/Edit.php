@@ -18,7 +18,6 @@ class TeamEdit extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "Edit Team: ";
 		$this->_permissions = array(
 			'edit_name'			=> true,
 			'edit_website'		=> true,
@@ -95,7 +94,7 @@ class TeamEdit extends Handler
 		}
 	
 		if(var_from_getorpost('id')) {
-			$this->name .= $DB->getOne("SELECT name FROM team where team_id = ?", array(var_from_getorpost('id')));
+			$this->set_title("Edit Team: ". $DB->getOne("SELECT name FROM team where team_id = ?", array(var_from_getorpost('id'))));
 		}
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		

@@ -13,7 +13,7 @@ class FieldCreate extends FieldEdit
 {
 	function initialize ()
 	{
-		$this->name = "Create New Field";
+		$this->set_title("Create New Field");
 		$this->_permissions = array(
 			'edit_name'			=> true,
 			'edit_website' 		=> true,

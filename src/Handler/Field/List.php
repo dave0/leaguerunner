@@ -18,7 +18,7 @@ class FieldList extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "List Fields";
+		$this->set_title("List Fields");
 		$this->_permissions = array(
 		);
 
@@ -49,7 +49,12 @@ class FieldList extends Handler
 			return false;
 		}
 		
-		$this->tmpl->assign("view_op", "field_view");
+		$this->tmpl->assign("available_ops", array(
+			array(
+				'description' => 'view',
+				'action' => 'field_view'
+			),
+		));
 		$this->tmpl->assign("page_op", "field_list");
 		$this->tmpl->assign("list", $found);
 		

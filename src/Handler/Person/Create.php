@@ -5,7 +5,6 @@ register_page_handler('person_create', 'PersonCreate');
  * Player create handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,7 @@ class PersonCreate extends PersonEdit
 	 */
 	function initialize ()
 	{
-		$this->name = "Create New Account";
+		$this->set_title("Create New Account");
 		$this->_permissions = array(
 			'edit_email'		=> true,
 			'edit_phone'		=> true,
@@ -100,7 +99,7 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($password_once);
 		
-		$st = $DB->prepare("INSERT into person (username,password,class) VALUES (?,?,'player')");
+		$st = $DB->prepare("INSERT into person (username,password,class) VALUES (?,?,'new')");
 		$res = $DB->execute($st, array(var_from_getorpost('username'), $crypt_pass));
 		if($this->is_database_error($res)) {
 			return false;

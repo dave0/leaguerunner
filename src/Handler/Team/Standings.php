@@ -19,7 +19,6 @@ class TeamStandings extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Team Standings";
 		$this->_league_id = null;
 		return true;
 	}

@@ -18,24 +18,36 @@ class PersonList extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "List Users";
+		global $session;
+		$this->set_title("List Users");
 		$this->_permissions = array(
+			'delete' => false,
 		);
+
+		/* Administrator can do all */
+		if($session->attr_get('class') == 'administrator') {
+			$this->enable_all_perms();
+			return true;
+		}
 
 		return true;
 	}
 
 	function has_permission ()
 	{
-		global $DB, $session, $id;
+		global $DB, $session;
+		
+		/* Anyone with a valid session id has permission */
+		if(!$session->is_valid()) {
+			return false;
+		}
 
-		/* TODO! */
 		return true;
 	}
 
 	function process ()
 	{
-		global $DB, $id;
+		global $DB;
 
 		$this->set_template_file("common/generic_list.tmpl");
 
@@ -57,7 +69,20 @@ class PersonList extends Handler
 		}
 		
 		$this->tmpl->assign("letter", $letter);
-		$this->tmpl->assign("view_op", "person_view");
+		$ops = array(
+			array(
+				'description' => 'view',
+				'action' => 'person_view'
+			),
+		);
+		if($this->_permissions['delete']) {
+			$ops[] = array(
+				'description' => 'delete',
+				'action' => 'person_delete'
+			);
+		}
+		$this->tmpl->assign("available_ops", $ops);
+		
 		$this->tmpl->assign("page_op", "person_list");
 		$foo = array("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z");
 		

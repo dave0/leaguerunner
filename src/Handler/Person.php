@@ -5,9 +5,12 @@
  * entities.
  */
 require_once("Handler/Person/View.php");
+  require_once("Handler/Person/Delete.php");
+  require_once("Handler/Person/ApproveAccount.php");
 require_once("Handler/Person/Edit.php");
+  require_once("Handler/Person/Create.php");
 require_once("Handler/Person/List.php");
-require_once("Handler/Person/Create.php");
+require_once("Handler/Person/ListNew.php");
 require_once("Handler/Person/ChangePassword.php");
 
 /*

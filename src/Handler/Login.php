@@ -5,7 +5,6 @@ register_page_handler('login','Login');
  * Login handler 
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -22,7 +21,7 @@ class Login extends Handler
 	 */
 	function initialize () 
 	{
-		$this->name = "Login";
+		$this->set_title("Login");
 
 		return true;
 	}
@@ -57,16 +56,32 @@ class Login extends Handler
 		$password = var_from_post('password');
 
 		/* Now, if we can, we will create a new user session */
-		if( isset($username) && isset($password) ) {
-			$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
-			if($rc == false) {
-				$this->tmpl->assign("error", gettext("Incorrect username or password"));
-			}
-		} else {
-			$rc = false;
+		if( !(isset($username) || isset($password)) ) {
+			return false;
 		}
-		
-		return $rc;
+		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
+		if($rc == false) {
+			$this->tmpl->assign("error", gettext("Incorrect username or password"));
+			return false;
+		}
+	
+		/* 
+		 * Now that we know their username/password is valid, check to see if
+		 * there are restrictions on their account.
+		 */
+		switch($session->attr_get('class')) {
+			case 'new':
+				$this->tmpl->assign("error",gettext("Login Denied.  Account creation is awaiting approval."));
+				return false;
+				break;
+			case 'locked':
+				$this->tmpl->assign("error", gettext("Login Denied.  Account has been locked by administrator."));
+				return false;
+				break;
+			default:
+				break;
+		}
+		return true;
 	}
 
 	/** 
@@ -81,8 +96,30 @@ class Login extends Handler
 	function display ()
 	{	
 		global $APP_COOKIE_NAME, $session;
-		setcookie($APP_COOKIE_NAME, $session->get_session_key());
-		return $this->output_redirect("op=menu");
+
+		/* Now that we know the user was reasonably valid, see where we should
+		 * send them
+		 */
+		switch($session->attr_get('class')) {
+			case 'inactive':
+				/* Inactive.  Send this person to the revalidation page(s) */
+				setcookie($APP_COOKIE_NAME, $session->get_session_key());
+				return $this->output_redirect("op=person_revalidate");
+				break;
+			case 'active':
+			case 'volunteer':
+			case 'administrator':
+				/* These accounts are active and can continue */
+				setcookie($APP_COOKIE_NAME, $session->get_session_key());
+				return $this->output_redirect("op=menu");
+				break;
+			case 'new':
+			case 'locked':
+			default:
+				$this->error_text = "Internal Error: Unreachable code reached in Login.php";	
+				return $this->display_error();
+				break;
+		}
 	}
 
 	/**

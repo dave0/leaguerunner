@@ -5,7 +5,6 @@ register_page_handler('team_view', 'TeamView');
  * Team viewing handler
  *
  * @package Leaguerunner
- * @version $Id $
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,6 @@ class TeamView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Team: ";
 		$this->_permissions = array(
 			'edit_team'	=> false,
 		);
@@ -111,7 +109,7 @@ class TeamView extends Handler
 			return false;
 		}
 
-		$this->name .= $row['team_name'];
+		$this->set_title("View Team: " . $row['team_name']);
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
 		if( !strstr($row['team_website'], "http://") && (strlen($row['team_website']) > 0 ) ) {

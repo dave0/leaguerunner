@@ -5,7 +5,6 @@ register_page_handler('logout','Logout');
  * Logout handler. 
  *
  * @package Leaguerunner
- * @version $Id$
  * @author Dave O'Neill <dmo@acm.org>
  * @access public
  * @copyright GPL
@@ -19,7 +18,7 @@ class Logout extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "Logout";
+		$this->set_title("Logout");
 		return true;
 	}
 
