@@ -65,7 +65,7 @@ if( is_null($op) ) {
 $handler = get_page_handler($op);
 if(is_null($handler)) {
 	$handler = new Handler;
-	$handler->error_text = gettext("Sorry, that operation does not exist");
+	$handler->error_text = "Sorry, that operation does not exist";
 	$handler->display_error();
 	return;
 }
@@ -86,7 +86,7 @@ if($handler->initialize()) {
 		}
 	} else {
 		if( !isset($handler->error_text) ) {
-			$this->error_text = gettext("You do not have permission to perform that operation");
+			$this->error_text = "You do not have permission to perform that operation";
 		}
 		$handler->display_error();
 	}

@@ -90,7 +90,7 @@ class Handler
 		global $session, $DB;
 		
 		if(is_null($this->_required_perms)) {
-			$this->error_text = gettext("You do not have permission to perform that operation");
+			$this->error_text = "You do not have permission to perform that operation";
 			return false;
 		}
 		
@@ -100,11 +100,11 @@ class Handler
 			if($perm_type == 'allow') {
 				return true;
 			} else if($perm_type == 'deny') {
-				$this->error_text = gettext("You do not have permission to perform that operation");
+				$this->error_text = "You do not have permission to perform that operation";
 				return false;
 			} else if($perm_type == 'require_valid_session') {
 				if(!$session->is_valid()) {
-					$this->error_text = gettext("You do not have a valid session");
+					$this->error_text = "You do not have a valid session";
 					return false;
 				}
 			} else if($perm_type == 'admin_sufficient') {
@@ -126,7 +126,7 @@ class Handler
 			} else if($perm_type == 'require_coordinator') {
 				$id = var_from_getorpost('id');
 				if(!$session->is_coordinator_of($id)) {
-					$this->error_text = gettext("You do not have permission to perform that operation");
+					$this->error_text = "You do not have permission to perform that operation";
 					return false;
 				} else {
 					$this->set_permission_flags('coordinator');
@@ -163,13 +163,13 @@ class Handler
 				$wanted_var = substr($perm_type, 12);
 				$got_var = var_from_getorpost($wanted_var);
 				if(is_null($got_var)) {
-					$this->error_text = gettext("Value missing for $wanted_var in URL");
+					$this->error_text = "Value missing for $wanted_var in URL";
 					return false;
 				}
 			}
 		}
 
-		$this->error_text = gettext("You do not have permission to perform that operation");
+		$this->error_text = "You do not have permission to perform that operation";
 		return false;
 	}
 
