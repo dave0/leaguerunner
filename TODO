@@ -20,7 +20,76 @@ New Features:
 	  (year, season) for all leagues are different, it's OK.
 	- volunteer info
 	- integrate Tony's score-reminder code
-	- better field management
 	- add "Sponsor" and "Sponsor URL" field to team info?
 	- carpool arrangements
 	- players looking for teams / teams looking for players
+
+Field Management:
+    Add more attributes to fields, auto-generate field websites from DB on
+    periodic basis.
+    
+    Fields should have the following attributes viewable by all:
+        - full name of field
+        - field code (a unique shorthand notation for the field, consisting of
+          3 letters and 2 numbers (ie: UPI01, SOD10, LYL01, RIV03)
+        - location info
+            - region (east, west, south, north/gatineau)
+            - street address
+            - URL to location map (where the field is)
+            - URL to field layout map (where to put the field at the location)
+            - text field for directions
+            - GPS coordinates
+	    - city ward
+        - public transit info
+            - specific routes
+            - OCT stop IDs (can use it to link directly to schedule info)
+        - parking
+            - parking availability:
+                + very limited, carpool required
+                + limited, carpool recommended
+                + average
+                + ample
+            - parking instructions
+                - text field explaining where to park (also, indicate on map if
+                  possible)
+                - list alternate parking locations and/or special restrictions
+                  (ie: illegal parking frequently ticketed, no parking on
+                  game-day for the Renegades, etc)
+                - 
+        - field permits
+            - URL of scanned field permit
+        - special instructions
+            - field setup notes, notification of hazards
+
+    And private data for administrators & volunteers:
+        - field status
+            - open, closed, newly located, 
+        - Condition log
+            - reported conditions based on game result submissions.
+              This may be something we want to make public, so players know
+              what to expect:
+                - date of observation
+                - firmness (very soft, soft, average, hard, like cement)
+                - grass cover (barren, poor, average, good, excellent)
+                - overall quality (poor, average, good, excellent)
+                - notes on new potholes, hazards, changes, etc.
+        - Area designation
+            - ultimate field, soccer field, football field, baseball outfield,
+              multiuse field, cricket pitch, open greenspace
+        - size (length and width)
+        - lighting availability
+        - ownership
+            - city of ottawa, city of gatineau, NCC, private, OCUA
+        - contact info for owner/managert
+            - name, address, phone, email, URL
+        - URL of scanned contract
+        - Year acquired or use started
+        - availability.  For each day of week:
+            - start and end time ranges
+                (i)Morning
+                (ii)Afternoon
+                (iii)Evening
+                (i)Before 6:30pm
+                (ii)6:30-8:30pm
+                (iii)After 8:30pm
+        - administrative notes
