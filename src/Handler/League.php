@@ -713,6 +713,7 @@ class LeagueStandings extends Handler
 			$subheader .= td($text, array('class'=>'subtitle'));
 		}
 		
+		$header .= th("Rating", array( 'rowspan' => 2));
 		$header .= th("Avg.<br>SOTG", array('rowspan' => 2));
 		
 		$output .= tr( $header );
@@ -739,6 +740,7 @@ class LeagueStandings extends Handler
 			$row .= td($season[$id]['points_for']);
 			$row .= td($season[$id]['points_against']);
 			$row .= td($season[$id]['points_for'] - $season[$id]['points_against']);
+			$row .= td($season[$id]['rating']);
 		
 			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
 				 $sotg = "---";
@@ -774,6 +776,7 @@ class LeagueStandings extends Handler
 				'defaults_for' => 0,
 				'defaults_against' => 0,
 				'games' => 0,
+				'rating' => 1500,
 				'vs' => array()
 			);
 		}
@@ -783,7 +786,7 @@ class LeagueStandings extends Handler
 
 	function record_game(&$season, &$game)
 	{
-	
+
 		if(isset($season[$game['home_team']])) {
 			$data = &$season[$game['home_team']];
 			
@@ -820,6 +823,9 @@ class LeagueStandings extends Handler
 				$data['loss']++;
 				$data['vs'][$game['away_team']] += 0;
 			}
+
+			$homeRating = $data['rating'];
+			$data['rating'] = $this->calculateRating($game['home_score'], $game['away_score'], $data['rating'], $season[$game['away_team']]['rating']);
 		}
 		if(isset($season[$game['away_team']])) {
 			$data = &$season[$game['away_team']];
@@ -857,7 +863,56 @@ class LeagueStandings extends Handler
 				$data['loss']++;
 				$data['vs'][$game['home_team']] += 0;
 			}
+			$data['rating'] = $this->calculateRating($game['away_score'], $game['home_score'], $data['rating'], $homeRating);
 		}
+	}
+
+	/**
+	 * Calculate new rating for team.  Modified Elo system, similar to the one
+	 * used for international soccer (http://www.eloratings.net), with several
+	 * Ultimate-specific modifications:
+	 * 	- all games currently weighted equally (though playoff games will be
+	 * 	  weighted differently in the future)
+	 * 	- score differential bonus modified for Ultimate
+	 * 	- no bonus given for 'home field advantage' since there's no
+	 * 	  real advantage in OCUA.
+	 */
+	function calculateRating($scoreFor, $scoreAgainst, $oldRating, $opponentRating)
+	{
+
+		if(!isset($opponentRating)) {
+			$opponentRating = 1500;
+		}
+
+		$weightConstant = 40;
+	
+		if($scoreFor > $scoreAgainst) {
+			$gameValue = 1;
+		} else if($scoreFor == $scoreAgainst) {
+			$gameValue = 0.5;
+		} else {
+			$gameValue = 0;
+		}
+
+		$scoreWeight = 1;
+
+		/* If the score differential is greater than 1/3 the 
+		 * winning score, add a bonus.
+		 * This means that the bonus is given in summer games of 15-10 or
+		 * worse, and in indoor games with similar score ratios.
+		 */
+		$scoreDiff = abs($scoreFor - $scoreAgainst);
+		$scoreMax  = max($scoreFor, $scoreAgainst);
+		if(($scoreDiff / $scoreMax) > (1/3)) {
+			$scoreWeight += $scoreDiff / $scoreMax;
+		}
+
+		$power = pow(10, ((0 - ($oldRating - $opponentRating)) / 400));
+		$expectedWin = (1 / ($power + 1));
+
+		$newRating = $oldRating + ($weightConstant * $scoreWeight * ($gameValue - $expectedWin));
+
+		return round($newRating);
 	}
 
 	function sort_standings (&$a, &$b) 
@@ -1464,7 +1519,5 @@ function cmp ($a, $b)
 	}
 	return 0;
 }
-
-
 
 ?>
