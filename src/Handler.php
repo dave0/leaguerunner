@@ -161,24 +161,6 @@ class Handler
 	}
 
 	/**
-	 * display the template filled in for this op.
-	 *
-	 * This displays the HTML output for this operation.  Normally,
-	 * this base function gets called to display the contents of the
-	 * template as filled by the process() method.
-	 *
-	 * Individual subclasses can override it as necessary if they need custom
-	 * output.
-	 * 
-	 * @access public
-	 * @see process()
-	 */
-	function display ()
-	{
-		return true;
-	}
-
-	/**
 	 * Generates list output.  Query should generate rows with two
 	 * fields; one named 'id' containing the ID of the object listed,
 	 * and 'value', containing a name or descriptive text for each
