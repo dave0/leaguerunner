@@ -48,6 +48,15 @@ CREATE TABLE person (
 	KEY(username)
 );
 
+CREATE TABLE demographics (
+	income enum('000to020K', '020to040K', '040to060K', '060to080K', '080to100K', '100to150K', '150to200K', '200Kplus'),
+	num_children enum('0','1','2','3','4','more than 4'),
+	education enum(	'none', 'highschool', 'trade', 'college', 'undergrad', 'masters', 'doctorate' ),
+	field	varchar(100),
+	language enum('en','fr','enfr'),
+	other_sports varchar(255)
+);
+
 -- For use when assigning member IDs
 CREATE TABLE member_id_sequence (
 	year	year not null PRIMARY KEY,

@@ -1230,11 +1230,16 @@ class PersonActivate extends PersonEdit
 				break;
 			case 'update':  /* Make any updates specified by the user */
 				$this->set_template_file("Person/waiver_form.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
+				$this->tmpl->assign("page_step", 'survey');
 				$rc = $this->perform();
 				break;
-			case 'perform':  /* Waiver was clicked */
+			case 'survey':  /* Waiver was clicked */
+				$this->set_template_file("Person/survey_form.tmpl");
+				$this->tmpl->assign("page_step", 'perform');
 				$rc = $this->process_waiver();
+				break;
+			case 'perform':
+				$rc = $this->process_survey();
 				break;
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
@@ -1297,6 +1302,52 @@ class PersonActivate extends PersonEdit
 		
 	}
 	
+	function process_survey()
+	{
+		global $DB, $session;
+		$dem = var_from_getorpost('demographics');
+		$items = array( 'income','num_children','education','field','language','other_sports');
+
+		$fields = array();
+		$fields_data = array();
+
+		if(count(array_keys($dem)) <= 0) {
+			return true;
+		}
+		
+		foreach($items as $item) {
+			if( ! array_key_exists($item, $dem) ) {
+				continue;
+			}
+			if($dem[$item] == '---') {
+				continue;
+			}
+			
+			$fields[] = $item;
+
+			// Cheat for array-type items
+			if(is_array($dem[$item])) {
+				$fields_data[] = join(",",$dem[$item]);
+			} else {
+				$fields_data[] = $dem[$item];
+			}
+		}
+		
+		$sql = "INSERT INTO demographics (";
+		$sql .= join(",", $fields);	
+		$sql .= ") VALUES(";
+		for($i=0; $i< (count($fields) - 1); $i++) {
+			$sql .= "?,";
+		}
+		$sql .= "?)";
+		
+		$res = $DB->query($sql, $fields_data);
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		
+		return true;
+	}
 
 }
 
