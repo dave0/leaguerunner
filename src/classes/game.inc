@@ -82,6 +82,9 @@ class Game extends LeaguerunnerObject
         // Also where this function is called from must already
         // confirm that the scores have been finalized.
 
+		// TODO: perhaps call from $game->save() instead of requiring an
+		// explicit call in the handler?
+
         function updatedependentgames() {
 
            // Need to make sure this is a ladder league.
@@ -105,12 +108,18 @@ class Game extends LeaguerunnerObject
                     $this->game_id,
                     $this->game_id);
 
+			$num_rows = db_num_rows($queryResult);
+			if( $num_rows == 0 ) {
+				// No dependant games; that's OK, nothing more to do
+				return true;
+			}
+
             // Should only ever get two games;
-            if (db_num_rows($queryResult) != 2) {
-              error_exit("Found too many dependent games!");
+            if ($num_rows != 2) {
+              error_exit("Internal error: Found $num_rows dependant games, expecting 2");
             } 
 
-            // Figure out winner and looser.
+            // Figure out winner and loser.
             $winlose = $this->calculate_winner_loser();
             $winnerTeamId = $winlose['winner'];
             $loserTeamId  = $winlose['loser'];
@@ -271,7 +280,7 @@ class Game extends LeaguerunnerObject
 
 		// And, remove any old score_entry for this game if we've entered a
 		// final score
-		if( defined($this->home_score) || defined($this->away_score) ) {
+		if( array_key_exists('home_score', $this->_modified_fields) ) {
 			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
 		}
 
