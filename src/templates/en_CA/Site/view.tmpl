@@ -47,7 +47,7 @@
       <td class='row_title' valign='top'>Site Location Map:</td> 
       <td class='row_data' valign='top'>
         {if $site.location_url}
-          <img src='{$site.location_url}' border='0'>
+          <a href='{$site.location_url}' target=_new>Click for map in new window</a>
         {else}
           No map
         {/if} 
@@ -57,7 +57,7 @@
       <td class='row_title' valign='top'>Field Layout Map:</td> 
       <td class='row_data' valign='top'>
         {if $site.layout_url}
-          <img src='{$site.layout_url}' border='0'>
+          <a href='{$site.layout_url}' target=_new>Click for layout in new window</a>
         {else}
           No map
         {/if} 
