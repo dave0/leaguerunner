@@ -348,7 +348,7 @@ class PersonView extends Handler
 			while(list(,$league) = each($person->leagues)) {
 				$leagues[] = array(
 					"Coordinator of",
-					l($league->fullname, "team/view/$league->id")
+					l($league->fullname, "league/view/$league->league_id")
 				);
 			}
 			reset($person->leagues);
