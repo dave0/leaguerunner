@@ -191,7 +191,7 @@ class GraphTeamSpirit extends Handler
 	function process ()
 	{
 		global $session;
-
+		
 		$graph = new Graph(600,400,'auto');
 		$graph->SetScale("intint");
 		$graph->yscale->SetGrace(10);
@@ -210,19 +210,22 @@ class GraphTeamSpirit extends Handler
 		array_shift($team_ids);  // remove op
 
 		foreach($team_ids as $id) {
-			$this->add_to_graph($graph, $id);
+			$team = team_load( array('team_id' => $id) );
+			if( !$team ) {
+				error_exit("That is not a valid team ID");
+			}
+			if( ! $session->is_coordinator_of($team->league_id) ) {
+				error_exit("You do not have permission to view that team's spirit");
+			}
+			$this->add_to_graph($graph, $team);
 		}
 		header("Content-type: image/png");
 		$graph->Stroke();
 		exit;
 	}
 	
-	function add_to_graph( &$graph, $team_id) 
+	function add_to_graph( &$graph, &$team) 
 	{
-		$team = team_load( array('team_id' => $team_id) );
-		if( !$team ) {
-			return;
-		}
 		// Get games
 		$games = game_load_many( array('either_team' => $team->team_id) );
 		if($games) {
