@@ -995,15 +995,6 @@ class PersonEdit extends Handler
 				$rc = false;
 				$this->error_text .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
-
-			$exists = $DB->getOne("SELECT COUNT(*) from person where username = ?",array($username));
-			if($this->is_database_error($exists)) {
-				return false;
-			}
-			if($exists > 0) {
-				$rc = false;
-				$this->error_text .= "\n<li>You cannot use that username; a user by that name already exists.";
-			}
 		}
 
 		if($this->_permissions['edit_email']) {
