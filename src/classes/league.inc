@@ -408,7 +408,7 @@ class League extends LeaguerunnerObject
 	}
 
 
-	/********************************************************************************
+	/*
 	 *  This function expects one ORDERED array with any number of sets of games, and will return a copy
 	 *  of the input array with the dependant games filled in.
 	 *  - The array should start with the first set of games with home/away teams already assigned, where
