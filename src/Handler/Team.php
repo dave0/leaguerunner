@@ -503,28 +503,22 @@ class TeamPlayerStatus extends Handler
 		return $this->set_permissions_for_transition($is_captain, $is_administrator, $current_status);
 	}
 	
-/*
- * FLow:
- * 	- request comes in.  Ensure it has a $id and $player_id
- * 	- if $session user isn't captain or administrator, override $player_id
- * 	  with their own ID.
- * 	- check if player is already on team.  If not, set current status to
- * 	  'none';
- * 	- check who user is.  Captain and administrator can:
- * 		- 'none' -> 'captain_request'
- * 		- 'player_request' -> 'none', 'player' or 'substitute'
- * 		- 'player' -> 'captain', 'substitute', 'none'
- * 		- 'substitute' -> 'captain', 'player', 'none'
- * 		- 'captain' -> 'player', 'substitute', 'none'
- * 	  in addition, administrator can go from anything to anything.
- * 	  Players are allowed to (for their own player_id):
- * 	  	- 'none' -> 'player_request'
- * 	  	- 'captain_request' -> 'none', 'player' or 'substitute'
- * 	  	- 'player_request' -> 'none'
- * 	  	- 'player' -> 'substitute', 'none'
- * 	  	- 'substitute' -> 'none'
- */
-
+	/*
+	 * Sets the permissions for a state change.
+	 * 	- check who user is.  Captain and administrator can:
+	 * 		- 'none' -> 'captain_request'
+	 *	 	- 'player_request' -> 'none', 'player' or 'substitute'
+	 *	 		- 'player' -> 'captain', 'substitute', 'none'
+	 * 		- 'substitute' -> 'captain', 'player', 'none'
+	 * 		- 'captain' -> 'player', 'substitute', 'none'
+	 * 	  in addition, administrator can go from anything to anything.
+	 * 	  Players are allowed to (for their own player_id):
+	 * 	  	- 'none' -> 'player_request'
+	 * 	  	- 'captain_request' -> 'none', 'player' or 'substitute'
+	 * 	  	- 'player_request' -> 'none'
+	 * 	  	- 'player' -> 'substitute', 'none'
+	 * 	  	- 'substitute' -> 'none'
+	 */
 	function set_permissions_for_transition($is_captain, $is_administrator, $from_state)
 	{
 		global $DB, $id;
@@ -534,6 +528,19 @@ class TeamPlayerStatus extends Handler
 		 */
 		switch($from_state) {
 		case 'captain':
+
+			if( !$is_administrator ) {
+				$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
+				if($this->is_database_error($num_captains)) {
+					trigger_error("Database error");
+					return false;
+				}
+				if($num_captains <= 1) {
+					$this->error_text = "Unable to remove last captain from team.";
+					return false;
+				}
+			}
+			
 			$this->_permissions['set_none'] = true;
 			$this->_permissions['set_player'] = true;
 			$this->_permissions['set_substitute'] = true;
