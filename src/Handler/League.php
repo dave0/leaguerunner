@@ -75,6 +75,7 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 	if($league->schedule_type == 'ladder') {
 		if($this->_permissions['administer_league']) {
 			menu_add_child($league->fullname, "$league->fullname/ladder", 'seed ladder', array('link' => "league/ladder/$league->league_id"));
+			menu_add_child("$league->fullname/ladder", "$league->fullname/ladder/byskill", 'seed by average skill', array('link' => "league/ladder/byskill/$league->league_id"));
 		}
 	}
 	
@@ -1308,9 +1309,19 @@ class LeagueLadder extends Handler
 	{
 		global $session;
 
-		$leagueID  = arg(2);
-		$teamID    = arg(3);
-		$direction = arg(4);
+		// seed by rank flag:
+		$byskill = 0;
+		if (arg(2) == "byskill") {
+			$leagueID  = arg(3);
+			$teamID    = arg(4);
+			$direction = arg(5);
+			$byskill = 1;
+			
+		} else {
+			$leagueID  = arg(2);
+			$teamID    = arg(3);
+			$direction = arg(4);
+		}
 
 		$league = league_load( array('league_id' => $leagueID ));
 		if( !$league ) {
@@ -1323,6 +1334,24 @@ class LeagueLadder extends Handler
 		
 		$league->load_teams();
 		
+		// if the user chose to seed by rank, make the seeding changes
+		if ($byskill) {
+			$skill_array = array();
+			foreach ($league->teams as $t) {
+				$skill_array[$t->team_id] = $t->calculate_avg_skill();
+			}
+			arsort($skill_array, SORT_NUMERIC);
+			$count = 1;
+			foreach ($skill_array as $key => $value) {
+				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $count, $league->league_id, $key);
+				$count++;
+			}
+
+			// now, reload the teams so that they display in the new order!
+			$league->_teams_loaded = false;
+			$league->load_teams();
+		}
+
 		if( $direction ) {
 			$team = team_load( array('team_id' => $teamID) );
 			if( !$team ) {
