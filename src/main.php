@@ -48,11 +48,11 @@ if (DB::isError($DB)) {
 $session = new UserSession;
 
 /* Grab the variables we care about right now */
-$ocua_session = var_from_cookie('ocua_session');
+$session_cookie = var_from_cookie($APP_COOKIE_NAME);
 $op = var_from_getorpost('op');
 
-if( isset($ocua_session) ) {
-	$session->create_from_cookie($ocua_session);
+if( isset($session_cookie) ) {
+	$session->create_from_cookie($session_cookie);
 }
 
 /* 

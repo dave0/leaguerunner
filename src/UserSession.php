@@ -178,7 +178,7 @@ class UserSession
 	{
 		global $DB;
 		
-		$sesskey = strftime("%Y%m%d%H%M%S");
+		$sesskey = $this->uuidgen();
 		$timestamp = strftime("%Y%m%d%H%M%S");
 
 		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = ? WHERE user_id = ?");
@@ -208,12 +208,39 @@ class UserSession
 		return true;
 	}
 
+
 	/**
-	 * TODO: Needed anymore?
+	 * UUID generation function
+	 * Algorithm stolen from uuidgen(1) code
 	 */
-	function get_failure_message ()
+	function uuidgen()
 	{
-		return true;
+		$buf = array();
+
+		## Get random bytes
+		## rand() on Linux should use /dev/random and be reasonably good
+		## YMMV on other platforms.
+		## Just to be safe, though, we'll use PHP's mt_rand(), which should also be faster than rand().
+		for($i=0; $i<16; $i++) {
+			$buf[$i] = mt_rand(0,255);
+		}
+
+		## This is the only PITA left.  I haven't bothered b/c I'm too lazy to 
+		## unravel the bitops required to clean it up.
+		$clock_seq = ((($buf[8] << 8) | $buf[9]) & 0x3FFF) | 0x8000;
+
+		return sprintf("%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			(($buf[0] << 24) | ($buf[1] << 16) | ($buf[2] << 8) | $buf[3]),
+			(($buf[4] << 8) | $buf[5]),
+			((($buf[6] << 8) | $buf[7] & 0x0FFF) | 0x4000),
+			$clock_seq >> 8,
+			$clock_seq & 0xFF,
+			$buf[10],
+			$buf[11],
+			$buf[12],
+			$buf[13],
+			$buf[14],
+			$buf[15]);
 	}
 }
 ?>
