@@ -1084,15 +1084,15 @@ class LeagueApproveScores extends Handler
 		/* Fetch games in need of verification */
 		$result = db_query("SELECT DISTINCT
 			se.game_id,
-			UNIX_TIMESTAMP(s.date_played) as timestamp,
+			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp,
 			s.home_team,
 			h.name AS home_name,
 			s.away_team,
 			a.name AS away_name
-			FROM schedule s, score_entry se
+			FROM schedule s, gameslot g, score_entry se
 			    LEFT JOIN team h ON (s.home_team = h.team_id)
 			    LEFT JOIN team a ON (s.away_team = a.team_id)
-			WHERE s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
+			WHERE s.gameslot = g.id AND s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
 
 		$header = array(
 			'Game Date',

@@ -232,37 +232,8 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
-		/* 
-		 * Now, grab the schedule
-		 */
-		$result = db_query(
-			"SELECT 
-				s.game_id     AS id, 
-				s.league_id,
-				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
-				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
-				s.home_team   AS home_id,
-				s.away_team   AS away_id, 
-				h.name        AS home_name,
-				a.name        AS away_name,
-				s.field_id, 
-				s.defaulted,
-				f.site_id, 
-				s.home_score, 
-				s.away_score,
-				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
-				s.home_spirit, 
-				s.away_spirit,
-				s.round
-			  FROM
-			  	schedule s
-				LEFT JOIN field f ON (s.field_id = f.field_id)
-				LEFT JOIN team  h ON (s.home_team = h.team_id)
-				LEFT JOIN team  a ON (s.away_team = a.team_id)
-			  WHERE 
-			    YEAR(s.date_played) = %d
-				AND DAYOFYEAR(s.date_played) = DAYOFYEAR('%d-%d-%d')
-			 ORDER BY time,site_id",$year,$year,$month,$day);
+		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, f.site_id, s.field_id') );
+		
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}
@@ -382,36 +353,8 @@ class ScheduleEdit extends Handler
 			$league->rounds[$i] = $i;
 		}
 
-		/* 
-		 * Now, grab the schedule
-		 */
-		$result = db_query(
-			"SELECT 
-				s.game_id     AS id, 
-				s.league_id,
-				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
-				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
-				s.home_team   AS home_id,
-				s.away_team   AS away_id, 
-				h.name        AS home_name,
-				a.name        AS away_name,
-				s.field_id, 
-				s.defaulted,
-				f.site_id, 
-				s.home_score, 
-				s.away_score,
-				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
-				s.home_spirit, 
-				s.away_spirit,
-				s.round
-			  FROM
-			  	schedule s
-				LEFT JOIN field f ON (s.field_id = f.field_id)
-				LEFT JOIN team  h ON (s.home_team = h.team_id)
-				LEFT JOIN team  a ON (s.away_team = a.team_id)
-			  WHERE 
-				s.league_id =  %d
-			  ORDER BY s.date_played", $id);
+		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date,g.game_start') );
+		
 			
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
@@ -629,6 +572,7 @@ class ScheduleView extends Handler
 		}
 		
 		$league = league_load( array('league_id' => $id) );
+		
 		if( !$league ) {
 			$this->error_exit("That league does not exist");
 		}
@@ -640,36 +584,7 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = db_query(
-			"SELECT 
-				s.game_id     AS id, 
-				s.league_id,
-				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
-				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
-				s.home_team   AS home_id,
-				s.away_team   AS away_id, 
-				h.name        AS home_name,
-				a.name        AS away_name,
-				h.rating      AS home_rating,
-				a.rating      AS away_rating,
-				s.field_id, 
-				s.defaulted,
-				f.site_id, 
-				s.home_score, 
-				s.away_score,
-				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
-				s.home_spirit, 
-				s.away_spirit,
-				s.round
-			  FROM
-			  	schedule s
-				LEFT JOIN field f ON (s.field_id = f.field_id)
-				LEFT JOIN team  h ON (s.home_team = h.team_id)
-				LEFT JOIN team  a ON (s.away_team = a.team_id)
-			  WHERE 
-				s.league_id =  %d
-			  ORDER BY s.date_played", $id);
-			
+		$result = game_query ( array( 'league_id' => $id) );
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}
@@ -740,12 +655,12 @@ function schedule_subheading( $canViewSpirit )
 function schedule_render_editable( &$game, &$league )
 {
 	return array(
-		form_hidden('edit[games][' . $game['id'] . '][game_id]', $game['id']) 
-		. form_select('','edit[games][' . $game['id'] . '][round]', $game['round'], $league->rounds),
-		form_select('','edit[games][' . $game['id'] . '][start_time]', $game['time'], $league->starttimes),
-		form_select('','edit[games][' . $game['id'] . '][home_id]', $game['home_id'], $league->teams),
-		form_select('','edit[games][' . $game['id'] . '][away_id]', $game['away_id'], $league->teams),
-		form_select('','edit[games][' . $game['id'] . '][field_id]', $game['field_id'], $league->fields),
+		form_hidden('edit[games][' . $game['game_id'] . '][game_id]', $game['game_id']) 
+		. form_select('','edit[games][' . $game['game_id'] . '][round]', $game['round'], $league->rounds),
+		form_select('','edit[games][' . $game['game_id'] . '][start_time]', $game['time'], $league->starttimes),
+		form_select('','edit[games][' . $game['game_id'] . '][home_id]', $game['home_id'], $league->teams),
+		form_select('','edit[games][' . $game['game_id'] . '][away_id]', $game['away_id'], $league->teams),
+		form_select('','edit[games][' . $game['game_id'] . '][field_id]', $game['field_id'], $league->fields),
 		$game['home_score'],
 		$game['away_score'],
 		$game['home_spirit'],
@@ -771,7 +686,7 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 			
 	$gameRow = array(
 		$game['round'],
-		l($game['time'], 'game/view/' . $game['id']),
+		l($game['game_start'], 'game/view/' . $game['game_id']),
 		$homeTeam,
 		$awayTeam,
 		l( $field->abbrev, "site/view/" . $game['site_id']),

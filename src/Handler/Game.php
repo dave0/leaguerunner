@@ -239,7 +239,7 @@ class GameSubmit extends Handler
 			$opponentId = $game->home_id;
 		}
 
-		$output = para( "You have entered the following score for the $game->prettydate $game->prettytime game between $myName and $opponentName.");
+		$output = para( "You have entered the following score for the $game->game_date $game->game_start game between $myName and $opponentName.");
 		$output .= para("If this is correct, please click 'Submit' to continue.  "
 			. "If not, use your back button to return to the previous page and correct the score."
 		);
@@ -283,7 +283,7 @@ class GameSubmit extends Handler
 			$opponentId = $game->home_id;
 		}
 
-		$output = para( "Submit the score for the $game->prettydate, $game->prettytime game between $myName and $opponentName.");
+		$output = para( "Submit the score for the $game->game_date, $game->game_start game between $myName and $opponentName.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  "
   			. "If the score you enter does not agree with this score, posting of the score will "
 			. "be delayed until your coordinator can confirm the correct score.");
@@ -402,8 +402,8 @@ class GameView extends Handler
 		}
 		
 		$rows[] = array("Game ID:", $game->game_id);
-		$rows[] = array("Date:", $game->prettydate);
-		$rows[] = array("Time:", $game->prettytime);
+		$rows[] = array("Date:", $game->game_date);
+		$rows[] = array("Time:", $game->game_start);
 
 		$league = league_load( array('league_id' => $game->league_id) );
 		$rows[] = array("League/Division:",
@@ -542,7 +542,7 @@ class GameApprove extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$output = para( "You have entered the following score for the $game->prettydate $game->prettytime game between $game->home_name and $game->away_name.  ");
+		$output = para( "You have entered the following score for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
 
 		$output .= form_hidden('edit[step]', 'perform');
@@ -582,7 +582,7 @@ class GameApprove extends Handler
 
 	function generateForm ( $game ) 
 	{
-		$output = para( "Finalize the score for <b>Game $game->game_id</b> of $game->prettydate $game->prettytime between <b>$game->home_name</b> and <b>$game->away_name</b>.");
+		$output = para( "Finalize the score for <b>Game $game->game_id</b> of $game->game_date $game->game_start between <b>$game->home_name</b> and <b>$game->away_name</b>.");
 		
 		$output .= form_hidden('edit[step]', 'confirm');
 		$output .= "<h2>Score as entered:</h2>";
@@ -736,60 +736,6 @@ function defaults_agree( $one, $two )
 		return true;
 	} 
 	return false;
-}
-
-/**
- * Load a single game object from the database using the supplied query
- * data.  If more than one game matches, we will return only the first one.
- * If fewer than one matches, we return null.
- *
- * @param	mixed 	$array key-value pairs that identify the game to be loaded.
- */
-function game_load ( $array = array() )
-{
-	$query = array();
-
-	foreach ($array as $key => $value) {
-		if($key == '_extra') {
-			/* Just slap on any extra query fields desired */
-			$query[] = $value;
-		} else {
-			$query[] = "s.$key = '" . check_query($value) . "'";
-		}
-	}
-	
-	$result = db_query_range("SELECT 
-	      s.*,
-		  UNIX_TIMESTAMP(s.date_played) as timestamp, 
-		  s.home_team AS home_id,
-		  h.name AS home_name, 
-		  h.rating AS home_rating,
-		  s.away_team AS away_id,
-		  a.name AS away_name,
-		  a.rating AS away_rating,
-		  s.home_score,
-		  s.away_score
-		FROM schedule s 
-		  LEFT JOIN team h ON (h.team_id = s.home_team) 
-		  LEFT JOIN team a ON (a.team_id = s.away_team)
-		WHERE " . implode(' AND ',$query),0,1);
-
-	/* TODO: we may want to abort here instead */
-	if(1 != db_num_rows($result)) {
-		return null;
-	}
-
-	$game = db_fetch_object($result);
-
-	/* set derived attributes */
-	if($game->field_id) {
-		$field = field_load( array('field_id' => $game->field_id) );
-		$game->field_name = $field->fullname;
-	}
-	$game->prettydate = strftime("%A %B %d %Y",$game->timestamp);
-	$game->prettytime = strftime("%H%Mh",$game->timestamp);
-
-	return $game;
 }
 
 /**

@@ -138,6 +138,9 @@ class MainMenu extends Handler
 	}
 }
 
+/**
+ * TODO: make this use game_query()
+ */
 function getPrintableGameData( $which, $teamId )
 {
 	if($which == 'next') {
