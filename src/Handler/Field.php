@@ -415,9 +415,9 @@ class FieldView extends Handler
 				: "N/A");
 		$rows[] = array("Directions:", $field->site_directions);
 		if( $session->is_valid() ) {
-			$rows[] = array("Special Instrutions:", $field->site_instructions);
+			$rows[] = array("Special Instructions:", $field->site_instructions);
 		} else {
-			$rows[] = array("Special Instrutions:", "You must be logged in to see the special instructions for this site.");
+			$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
 		}
 		
 		/* TODO: list other fields at this site */
