@@ -207,13 +207,14 @@ class PersonView extends Handler
 		 * their team, they are allowed to view email/phone
 		 */
 		if($session->user->is_a_captain) {
-			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.status IN ('player','captain','assistant','substitute') AND r.team_id IN ($sess_user_teams)";
-			if( db_result(db_query($query,$id )) > 0 ) {
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				return true;
+			foreach( array_keys($player->teams) as $team_id ) {
+				if( $session->is_captain_of( $team_id ) ) {
+					$this->_permissions['email'] = true;
+					$this->_permissions['home_phone'] = true;
+					$this->_permissions['work_phone'] = true;
+					$this->_permissions['mobile_phone'] = true;
+					return true;
+				}
 			}
 		}
 		
@@ -621,7 +622,8 @@ class PersonApproveNewAccount extends PersonView
 				$rc = mail($person->email, 
 					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
 					$message, 
-					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
+			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
+					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -643,7 +645,8 @@ class PersonApproveNewAccount extends PersonView
 				$rc = mail($person->email, 
 					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
 					$message, 
-					"From: " . variable_get('app_admin_email','webmaster@localhost') . "\r\n");
+			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
+					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -679,7 +682,8 @@ class PersonApproveNewAccount extends PersonView
 				$rc = mail(join(', ',$addresses),
 					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
 					$message, 
-					"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n");
+			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
+					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
 					$this->error_exit("Error sending email to " . $person->email);
 				}
@@ -859,7 +863,8 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-				"Please use the questionnare to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
+#				"Please use the questionnare to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
+				"Please use the questionnare to <a href=\"/leaguerunner/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
