@@ -1482,7 +1482,7 @@ class LeagueAdmin extends Handler
 		$output .= para("Are you sure you want to proceed!?!");
 
                 $output .= form_submit("Clean Round"); 
-                return form($output,"post", url("league/admin/cleanround/$this->leagueID/doit"));
+                return form($output,"post", url("league/admin/cleanround/$this->leagueID/doit/" . arg(5)));
         }
 
         function cleanrounddoit()
@@ -1498,12 +1498,12 @@ class LeagueAdmin extends Handler
 		$output .= para("Are you sure you want to proceed!?!");
 
                 $output .= form_submit("Cancel Round"); 
-                return form($output,"post", url("league/admin/cancelround/$this->leagueID/doit"));
+                return form($output,"post", url("league/admin/cancelround/$this->leagueID/doit/" . arg(5)));
         }
 
         function cancelrounddoit()
         {
-          $this->league->cleanround(arg(5));
+          $this->league->cancelround(arg(5));
 
           return("Round cancelled.");
         }
@@ -1514,12 +1514,12 @@ class LeagueAdmin extends Handler
 		$output .= para("Are you sure you want to proceed?");
 
                 $output .= form_submit("Finalize Round"); 
-                return form($output,"post", url("league/admin/finalizeround/$this->leagueID/doit"));
+                return form($output,"post", url("league/admin/finalizeround/$this->leagueID/doit/" . arg(5)));
         }
 
         function finalizerounddoit()
         {
-          $this->league->cleanround(arg(5));
+          //$this->league->finalizeround(arg(5));
 
           return("Round finalize.");
         }
