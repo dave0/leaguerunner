@@ -333,6 +333,7 @@ class SiteView extends Handler
 	{
 		$this->title= "View Field Site";
 		$this->_required_perms = array(
+			'require_valid_session',
 			'admin_sufficient',
 			'allow',
 		);
