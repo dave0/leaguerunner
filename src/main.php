@@ -78,6 +78,9 @@ if($handler->initialize()) {
 			$handler->display_error();
 		}
 	} else {
+		if( !isset($handler->error_text) ) {
+			$this->error_text = gettext("You do not have permission to perform that operation");
+		}
 		$handler->display_error();
 	}
 } else {

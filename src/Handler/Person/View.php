@@ -93,7 +93,7 @@ class PersonView extends Handler
 		 * captains can always have their email and phone number viewed for
 		 * contact purposes.
 		 */
-		$count = $DB->getOne("SELECT COUNT(*) FROM team WHERE captain_id = ? OR assistant_id = ?", array($id, $id));
+		$count = $DB->getOne("SELECT COUNT(*) FROM teamroster WHERE status = 'captain' AND player_id = ?", array($id, $id));
 		if($this->is_database_error($count)) {
 			return false;
 		}

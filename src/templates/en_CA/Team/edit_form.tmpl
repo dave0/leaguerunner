@@ -31,26 +31,6 @@
       <td class='row_data'><input type="text" name="shirt_colour" size="35" value="{$shirt_colour}"></td>
     </tr>
     {/if}
-    {if $perm_edit_captain}
-    <tr>
-  		<td class='row_title'>Captain:</td>
-  		<td class='row_data'>
-  			<select name='captain_id'>
-        {create_options data=$team_roster selected=$captain_id}
-  			</select>
-  		</td>
-  	</tr>
-    {/if}
-    {if $perm_edit_assistant}
-  	<tr>
-  		<td class='row_title'>Assistant Captain:</td>
-  		<td class='row_data'>
-  			<select name='assistant_id'>
-        {create_options data=$team_roster selected=$assistant_id}
-  			</select>
-  		</td>
-  	</tr>
-    {/if}
     {if $perm_edit_status}
   	<tr>
   		<td colspan='2'>Is this team 'open' for registering players?

@@ -80,9 +80,6 @@ class TeamView extends Handler
 				t.team_id, 
 				t.name AS team_name, 
 				t.website AS team_website, 
-				t.captain_id, 
-				CONCAT(p.firstname,' ',p.lastname) AS captain_name, 
-				t.assistant_id, 
 				t.status AS team_status, 
 				l.name AS league_name, 
 				l.tier AS league_tier, 
@@ -90,17 +87,15 @@ class TeamView extends Handler
 				t.shirt_colour
 			FROM 
 				team t, 
-				person p, 
 				league l,
 				leagueteams s 
 			WHERE 
-				p.user_id = t.captain_id 
-				AND s.team_id = t.team_id 
+				s.team_id = t.team_id 
 				AND l.league_id = s.league_id 
 				AND t.team_id = ?
 		", array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
-			$this->error_text .= gettext("The team [$id] may not exist");
+			$this->error_text = gettext("The team [$id] may not exist");
 			return false;
 		}
 
@@ -119,22 +114,9 @@ class TeamView extends Handler
 		$this->tmpl->assign("team_status", $row['team_status']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
 		
-		$this->tmpl->assign("captain_id", $row['captain_id']);
-		$this->tmpl->assign("captain_name", $row['captain_name']);
-		
 		$this->tmpl->assign("league_name", $row['league_name']);
 		$this->tmpl->assign("league_id", $row['league_id']);
 		$this->tmpl->assign("league_tier", $row['league_tier']);
-	
-		/* Now, fetch assistant info if needed */
-		if(isset($row['assistant_id'])) {
-			$this->tmpl->assign("assistant_id", $row['assistant_id']);
-			
-			$ass = $DB->getRow("SELECT firstname, lastname from person where user_id = ?", array($row['assistant_id']), DB_FETCHMODE_ASSOC);
-			if(! $this->is_database_error($ass) ) {
-				$this->tmpl->assign("assistant_name", $ass['firstname'] . " " . $ass['lastname']);
-			}
-		}
 
 		/* and, grab roster */
 		$rows = $DB->getAll("
@@ -150,7 +132,7 @@ class TeamView extends Handler
 			WHERE
 				p.user_id = r.player_id
 				AND r.team_id = ?
-			ORDER BY p.gender, r.status, p.lastname",
+			ORDER BY r.status, p.gender, p.lastname",
 			array($id),
 			DB_FETCHMODE_ASSOC);
 			

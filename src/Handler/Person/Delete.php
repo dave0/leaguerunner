@@ -110,12 +110,12 @@ class PersonDelete extends PersonView
 		global $DB, $id;
 
 		/* check if user is team captain       */
-		$res = $DB->getOne("SELECT COUNT(*) from team where captain_id = ? OR assistant_id = ?", array($id, $id));
+		$res = $DB->getOne("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = ?", array($id, $id));
 		if($this->is_database_error($res)) {
 			return false;
 		}
 		if($res > 0) {
-			$this->error_text = gettext("Account cannot be deleted while player is team captain or assistant.");
+			$this->error_text = gettext("Account cannot be deleted while player is a team captain.");
 			return false;
 		}
 		

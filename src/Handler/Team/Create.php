@@ -51,7 +51,7 @@ class TeamCreate extends TeamEdit
 	{
 		global $DB, $id, $session;
 		
-		$st = $DB->prepare("INSERT into team (name,captain_id,established) VALUES ('new team',?, NOW())");
+		$st = $DB->prepare("INSERT into team (name,established) VALUES ('new team',?, NOW())");
 		$res = $DB->execute($st, array($session->data['user_id']));
 		if($this->is_database_error($res)) {
 			return false;
@@ -68,7 +68,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 		
-		$st = $DB->prepare("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, 'confirmed', NOW())");
+		$st = $DB->prepare("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, 'captain', NOW())");
 		$res = $DB->execute($st,array($id, $session->data['user_id']));
 		if($this->is_database_error($res)) {
 			return false;
@@ -93,12 +93,6 @@ class TeamCreate extends TeamEdit
 			$this->error_text .= gettext("shirt colour cannot be left blank") . "<br>";
 			$err = false;
 		}
-
-		/* 
-		 * Now, here we cheat and override captain_id, in order to force it to
-		 * be the user creating this team.
-		 */
-		$_POST['captain_id'] = $session->data['user_id'];
 
 		return $err;
 	}

@@ -14,9 +14,12 @@ Reimplementation:
 Redesign:
 	- Look at redesigning permissions structure
 	- Clean up database schema
+	- de-templateify this code; Smarty is too much of a pain in the ass.
 
 New Features:
 	- volunteer info
 	- integrate Tony's score-reminder code
 	- better field management
 	- add "Sponsor" and "Sponsor URL" field to team info?
+	- carpool arrangements
+	- players looking for teams / teams looking for players

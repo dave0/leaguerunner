@@ -61,8 +61,6 @@ CREATE TABLE team (
 	name            varchar(100) NOT NULL,
 	website         varchar(100),
 	shirt_colour    varchar(30),
-	captain_id      integer NOT NULL,
-	assistant_id    integer,
 	status          ENUM("open","closed"),
 	established     date,
 	PRIMARY KEY (team_id),
@@ -72,7 +70,7 @@ CREATE TABLE team (
 CREATE TABLE teamroster (
 	team_id		integer NOT NULL,
 	player_id	integer NOT NULL,
-	status		ENUM("confirmed","requested"),
+	status		ENUM("captain", "player", "substitute", "captain_request", "player_request"),
 	date_joined	date,
 	PRIMARY KEY (team_id,player_id)
 );

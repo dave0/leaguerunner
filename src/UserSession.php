@@ -235,15 +235,15 @@ class UserSession
 	{
 		global $DB;
 
-		$res = $DB->getRow("SELECT captain_id, assistant_id from team where team_id = ?",
-			array($team_id),
+		$res = $DB->getOne("SELECT status FROM teamroster where player_id = ? AND team_id = ?",
+			array($this->data['user_id'], $team_id),
 			DB_FETCHMODE_ASSOC
 		);
 		if(DB::isError($res)) {
 			return false;
 		}
 
-		if( ($this->data['user_id'] == $res['captain_id']) || ($this->data['user_id'] == $res['assistant_id'])) {
+		if( $res == 'captain' ) {
 			return true;
 		}
 		

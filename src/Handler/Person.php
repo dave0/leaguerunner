@@ -31,20 +31,12 @@ function get_teams_for_user($userid)
 	global $DB;
 	$rows = $DB->getAll(
 		"SELECT 
-            t.team_id AS id,
-            t.name AS name, 
-            if(t.captain_id = r.player_id, 
-                'captain', 
-                if(t.assistant_id = r.player_id, 
-                    'assistant',
-                    if(r.status = 'confirmed',
-                        'player',
-                        r.status))) as position
+			r.status AS position,
+            r.team_id AS id,
+            t.name AS name
         FROM 
-            team t,
-            teamroster r
+            teamroster r LEFT JOIN team t USING(team_id)
         WHERE 
-            r.team_id = t.team_id AND 
             r.player_id = ?",
 	array($userid), DB_FETCHMODE_ASSOC);
 	return $rows;

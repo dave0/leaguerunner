@@ -51,20 +51,9 @@ class TeamScheduleView extends Handler
 			$this->enable_all_perms();
 			return true;
 		}
-
-		$res = $DB->getRow(
-			"SELECT 
-				captain_id, 
-				assistant_id 
-			 FROM team where team_id = ?",
-			 array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($res)) {
-			return false;
-		}
-			 
-		if( ($session->attr_get('user_id') == $res['captain_id'])
-			|| ($session->attr_get('user_id') == $res['assistant_id'])) {
-				$this->_permissions['submit_score'] = true;
+		
+		if($session->is_captain_of($id)) {
+			$this->_permissions['submit_score'] = true;
 		}
 		
 		/**
