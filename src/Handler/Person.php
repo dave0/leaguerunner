@@ -1111,6 +1111,7 @@ class PersonCreate extends PersonEdit
 			'edit_gender'		=> true,
 			'edit_skill' 		=> true,
 			'edit_dog' 			=> true,
+			'edit_publish'		=> true,
 		);
 
 		$this->_required_perms = array( 'allow' );
