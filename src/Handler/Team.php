@@ -558,9 +558,6 @@ class TeamPlayerStatus extends Handler
 
 		$step = var_from_getorpost('step');
 		switch($step) {
-			case 'confirm':
-				$rc = $this->generateConfirm();
-				break;
 			case 'perform':
 				$this->perform();
 				local_redirect("op=team_view&id=$id");
@@ -595,7 +592,7 @@ class TeamPlayerStatus extends Handler
 		}
 
 		$output = form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('player_id', $player_id);
 		
@@ -621,52 +618,6 @@ class TeamPlayerStatus extends Handler
 
 		return form($output);
 	}
-
-	function generateConfirm()
-	{
-		global $DB, $id, $player_id, $current_status;
-		
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid);
-		}
-		
-		$team = $DB->getRow("SELECT name, status FROM team where team_id = ?", 
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($team)) {
-			trigger_error("Database error");
-			return false;
-		}
-		
-		$player = $DB->getRow("SELECT 
-			p.firstname, p.lastname, p.member_id
-			FROM person p
-			WHERE p.user_id = ? ",
-			array($player_id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($player)) {
-			trigger_error("Database error");
-			return false;
-		}
-		
-		$output = form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
-		$output .= form_hidden('player_id', $player_id);
-		$output .= form_hidden('status', var_from_getorpost('status'));
-		
-		$output .= blockquote(
-			"You are about to change player <b>" . $player['firstname'] . " " . $player['lastname']
-			. "</b><br>This player is currently <b>" 
-			. $this->positions[$current_status] . "</b>.<br>"
-			. "You are attempting to change this to <b>" . $this->positions[var_from_getorpost('status')] . "</b>."
-			. para("Is this correct? Click 'Submit' to confirm this operation.")
-		);
-
-		$output .= form_submit('submit');
-		
-		return form($output);
-	}
-
 
 	function perform ()
 	{
