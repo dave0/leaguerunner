@@ -58,6 +58,7 @@ a:hover         { text-decoration: underline; }
 .myteams th { text-align: left; background-color: black; color: white; 
               font-size: 12pt; }
 .myteams td { vertical-align: top; font-size: 10pt; }
+.myteams .highlight { background-color: lightblue; }
 
 
 .oldmenu table { border-collapse: collapse; }
