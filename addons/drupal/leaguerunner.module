@@ -1,29 +1,156 @@
 <?php
-// $Id$
 
-/*
-	Evil, evil hack to get Drupal to auth against the Leaguerunner database.
+function leaguerunner_help($section) {
+  $output = null;
+  switch($section) {
+    case 'admin/system/modules#description':
+      $output = t("Lets users log in using a Leaguerunner ID.");
+	  break;
+	case 'user/help#leaguerunner':
+	  $output = t("If you have an account on OCUA's Leaguerunner system (<a href=\"http://www.ocua.ca/leaguerunner/\">http://www.ocua.ca/leaguerunner/</a>), you may log in using your Leaguerunner username.");
+	  break;
+  } 
+  return $output;
+}
 
-	To make this work, need to:
-		grant SELECT,UPDATE on leaguerunner.* to ocua_drupal@localhost;
-	on the leaguerunner database
-	and also hack user.module so that it exports as global:
-		$db_link -- the database handle returned by mysql_pconnect()
-		$db_name -- the name of the database used by Drupal
-	This is so that we can switch back and forth between the databases as
-	necessary.  
+function leaguerunner_settings() {
+  $output = form_textfield("Leaguerunner database name", "leaguerunner_dbname", variable_get("leaguerunner_dbname", "leaguerunner"), 55, 128, "The name of your Leaguerunner database.  Must be accessible by the database user configured for Drupal.");
 
-	Dave O'Neill <dmo@dmo.ca>
+  return $output;
+}
+
+/**
+ * Here, we validate the user in the Leaguerunner db.
  */
+function leaguerunner_auth($username, $password, $userServer) {
 
-function leaguerunner_system($field){
-  $system["description"] = t("Enables login with Leaguerunner ID and password.");
-  return $system[$field];
+  if($userServer !== 'ocua') {
+    return 0;
+  }
+
+  $lrUser = _leaguerunner_user_load( array('username' => $username, 'password' => $password));
+
+  if($lrUser) {
+    _leaguerunner_set_session( $lrUser, session_id() );
+    return array(
+	  'mail' => $lrUser->email,
+	  'name' => "$lrUser->firstname $lrUser->lastname",
+	);
+  } 
+  return 0;
+}
+
+function leaguerunner_remote_fields() {
+	return array ( 'mail', 'name', 'pass1', 'pass2');
+}
+
+function leaguerunner_user ($type, $edit, $user) {
+
+  $result = user_get_authmaps($user->init);
+  if(!$result['leaguerunner']) {
+    return '';
+  }
+
+  switch($type) {
+    case "view_private":
+    case "edit_form":
+	  return form_item(t("Other Information"), "The remainder of your private information is stored in <a href='/leaguerunner'>Leaguerunner</a>.");
+    case "edit_validate":
+	  foreach(leaguerunner_remote_fields() as $field) {
+	    if(in_array($field, array_keys($edit))) {
+			$error .= "Cannot edit $field on a leaguerunner user<br />";
+		}
+	  }
+	  return $error ? $error : $edit;
+  }
+}
+
+/**
+ * Destroy a Leaguerunner session.  Should get called by sess_destroy()
+ * in user.module.
+ */
+function leaguerunner_destroy( $user, $key ) {
+  global $db_resource, $db_url;
+  
+  $parsedUrl = parse_url($db_url);
+  $db_name = substr($parsedUrl['path'],1);
+  mysql_select_db("leaguerunner", $db_resource);
+
+  /* Nuke session cookie for Leaguerunner */  
+  db_query("UPDATE person SET session_cookie = NULL WHERE session_cookie = '%s'", $key);
+
+  mysql_select_db($db_name, $db_resource);
+}
+
+function _leaguerunner_set_session ( $lrUser, $sess ) {
+  global $db_resource, $db_url;
+  $parsedUrl = parse_url($db_url);
+  $db_name = substr($parsedUrl['path'],1);
+  mysql_select_db("leaguerunner", $db_resource);
+
+  /* Also set session cookie for Leaguerunner */  
+  db_query("UPDATE person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sess, $_SERVER['REMOTE_ADDR'], $lrUser->user_id);
+
+  mysql_select_db($db_name, $db_resource);
+}
+
+function _leaguerunner_user_load ($array = array() ) {
+  global $db_resource, $db_url;
+  $parsedUrl = parse_url($db_url);
+  $db_name = substr($parsedUrl['path'],1);
+  mysql_select_db("leaguerunner", $db_resource);
+
+  $query = "";
+
+  foreach ($array as $key => $value) {
+    if ($key == "password") {
+      $query .= "u.$key = '". md5($value) ."' AND ";
+    }
+    else {
+      $query .= "u.$key = '". check_query($value) ."' AND ";
+    }
+  }
+  $result = db_query_range("SELECT u.* FROM person u WHERE $query status = 'active'", 0, 1);
+
+  $user = db_fetch_object($result);
+  mysql_select_db($db_name, $db_resource);
+  return $user;
+}
+
+function _leaguerunner_next_games (  ) {
+  global $db_resource, $db_url;
+  $player = _leaguerunner_user_load( array('session_cookie' => session_id()));
+  
+  $parsedUrl = parse_url($db_url);
+  $db_name = substr($parsedUrl['path'],1);
+  
+  mysql_select_db("leaguerunner", $db_resource);
+
+
+  $result = db_query("select s.game_id, UNIX_TIMESTAMP(s.date_played) AS date, IF(s.home_team = t.team_id,home.name,away.name) AS myteam, IF(s.home_team = t.team_id,away.name,home.name) AS opponent from schedule s, teamroster t INNER JOIN team home ON (home.team_id = s.home_team) INNER JOIN team away ON (away.team_id = s.away_team) WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND s.date_played > NOW()  ORDER BY date_played asc LIMIT 3", $player->user_id);
+
+  $games = array();
+  while($item = db_fetch_object($result)) {
+    $games[] = $item;
+  }
+  mysql_select_db($db_name, $db_resource);
+  return $games;
+}
+
+function leaguerunner_count_games_for_date ( $year, $month, $day )
+{
+  global $db_resource, $db_url;
+  $parsedUrl = parse_url($db_url);
+  $db_name = substr($parsedUrl['path'],1);
+  mysql_select_db("leaguerunner", $db_resource);
+  $result = db_query("select COUNT(*) from schedule WHERE YEAR(date_played) = %d AND DAYOFYEAR(date_played) = DAYOFYEAR('%d-%d-%d')", $year, $year, $month, $day);
+  $numGames = db_result($result);
+  mysql_select_db($db_name, $db_resource);
+  return $numGames;
 }
 
 function leaguerunner_info($field = 0) {
-  $info["name"] = "Leaguerunner";
-  $info["protocol"] = "mysql";
+  $info["name"] = "leaguerunner";
 
   if ($field) {
     return $info[$field];
@@ -33,70 +160,104 @@ function leaguerunner_info($field = 0) {
   }
 }
 
-function leaguerunner_auth($username, $password, $server) {
-	global $db_link, $db_name;
+/**
+ * Here we need to create our own user info block that doesn't
+ * present the ability to edit settings for Leaguerunner-authenticated users.
+ * Also creates a 'My Games' block for upcoming games.
+ */
+function leaguerunner_block($op = "list", $delta = 0) {
+  global $user;
 
-	if ($server != "ocua") {
-		error_log("This auth isn't for Leaguerunner; bail out");
-		return 0;
-	}
+  $edit = $_POST["edit"];
 
-	mysql_select_db("leaguerunner", $db_link);
-	$username = mysql_escape_string($username);
-	$res = db_query("SELECT username,password FROM person WHERE username = '$username'");
-	if( ! $res ) {
-		mysql_select_db($db_name, $db_link);
-		error_log("Error, got some db error; bail out!");
-      		watchdog("error", "SQL error: ". db_error());
-		return 0;
-	}
+  if ($op == "list") {
+     $blocks[0]["info"] = t("User Login (Leaguerunner Custom)");
+     $blocks[1]["info"] = t("User information (Leaguerunner Custom)");
+     $blocks[2]["info"] = t("Leaguerunner game data");
+     return $blocks;
+  }
+  else {
+    switch ($delta) {
+      case 0:
+        if (!$user->uid) {
+          /*
+          ** For usability's sake, avoid showing two login forms on one
+          ** page.
+          */
 
-	if(db_num_rows($res) != 1) {
-		mysql_select_db($db_name, $db_link);
-		watchdog("error", "SQL error fetching user from db: ". db_error());
-		error_log("Error, got too many or too few results; bail out!");
-		return 0;
-	}
+          if (arg(0) == "user" && arg(1) != "view") {
+            return;
+          }
 
-	$row = db_fetch_array($res);
+          $output = "<div class=\"user-login-block\">\n";
 
-	if( $username != $row['username']) {
-		error_log("Error in results returned; bail out!");
-	    mysql_select_db($db_name, $db_link);
-	    /* Failed sanity check - either we didn't get a row, or the row
-	     * contains crap.
-	     */
-	    return 0;
-	}
+          /*
+          ** Save the referer.  We record where the user came from such
+          ** that we/ can redirect him after having completed the login
+          ** form.
+          */
 
-	/* Now, check password */
-	$cryptpass = md5($password);
-	if ($cryptpass != $row['password']) {
-		error_log("Error comparing passwords; bail out!");
-		mysql_select_db($db_name, $db_link);
-		return 0;
-	}
-	
+          if (empty($edit)) {
+            $edit["destination"] = url($_GET["q"]);
+          }
+          // NOTE: special care needs to be taken because on pages with forms, such as node and comment submission pages, the $edit variable might already be set.
 
-	mysql_select_db($db_name, $db_link);
-	/* TODO: Also set session cookie for online system */	
-	error_log("Logged in; returning success");
-	return 1;
+          $form = form_hidden("destination", $edit["destination"]);
+          $form .= form_textfield(t("Username"), "name", $edit["name"], 15, 64);
+          $form .= form_password(t("Password"), "pass", $pass, 15, 64);
+
+          if (variable_get("user_remember", 0) == 0) {
+            $form .= form_checkbox(t("Remember me"), "remember_me", 1, 0, 0);
+          }
+          elseif (variable_get("user_remember", 1) == 1) {
+            $form .= form_hidden("remember_me", 1);
+          }
+
+          $form .= form_submit(t("Log in"));
+
+          $output .= form($form, "post", url("user/login"));
+
+          $output .= "</div>\n";
+
+          $block["subject"] = t("User login");
+          $block["content"] = $output;
+          return $block;
+        }
+        break;
+      case 1:
+	      break;
+      case 2:
+        if ($user->uid) {
+	      $authmap = user_get_authmaps($user->init);
+	      if($authmap['leaguerunner'] ) {
+	        $lrUser = _leaguerunner_user_load( array( 'session_cookie' => session_id()));
+            $output = "<div class=\"next-games\">\n";
+            $games = _leaguerunner_next_games();
+            if(count($games)) {
+              foreach ($games as $game) {
+                $minutesleft = ( $game->date - time()) / 60;
+                if ( $minutesleft < 90 )
+                  $timeleft = round($minutesleft) . " " . t('minutes');
+                else if ( $minutesleft < (2*24*60) )
+                  $timeleft = round($minutesleft/60) . " " . t('hours');
+                else
+                  $timeleft = round($minutesleft/(24*60)) . " " . t('days');
+
+  	            $items[] = "<a href=\"/leaguerunner/game/view/$game->game_id\">$game->myteam vs. $game->opponent</a> ($timeleft)";
+              }
+
+              $output .= theme("theme_item_list", $items);
+            } else {
+              $output .= "No games scheduled";
+            }
+            $output .= "</div>\n";
+
+		    $block["subject"] = "My Games";
+			$block["content"] = $output;
+			return $block;
+          }
+        }
+    }
+  }
 }
-
-function leaguerunner_page() {
-  global $theme;
-
-  $theme->header();
-  $theme->box("Leaguerunner", leaguerunner_auth_help());
-  $theme->footer();
-}
-
-function leaguerunner_auth_help() {
-  $site = variable_get("site_name", "this web site");
-
-  $output = "<p><a href=\"http://www.dmo.ca/projects/leaguerunner/\">Leaguerunner</a> is a system to manage Ultimate Frisbee leagues.\n ";
-  return t($output, array("%s" => "<i>$site</i>"));
-}
-
 ?>
