@@ -23,6 +23,11 @@ class Game extends LeaguerunnerObject
 			$this->{$key} = $value;
 		}
 
+		// Fixups
+		if( ! $this->game_end ) {
+			$this->game_end = 'dark';
+		}
+
 		return true;
 	}
 	
@@ -258,6 +263,7 @@ function game_query ( $array = array() )
 		g.slot_id,
 		g.game_date,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
+		TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
 		g.fid,
 		UNIX_TIMESTAMP(g.game_date) as day_id,
 		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,

@@ -159,7 +159,8 @@ class ScheduleEdit extends Handler
 		$this->setLocation(array(
 			$league->fullname => "league/view/$id",
 			$this->title => 0));
-			
+		
+		
 		/* Grab data for pulldowns if we need an edit form */
 		$result = db_query(
 			"SELECT t.team_id, t.name 
@@ -205,10 +206,7 @@ class ScheduleEdit extends Handler
 			$league->gameslots[$slot->slot_id] = $slot->value;
 		}
 
-		$league->rounds = array();
-		for($i = 1; $i <= 5;  $i++) {
-			$league->rounds[$i] = $i;
-		}
+		$league->rounds = $league->rounds_as_array();
 
 		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date,g.game_start') );
 		

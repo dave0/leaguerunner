@@ -96,6 +96,37 @@ class League extends LeaguerunnerObject
 		return true;
 	}
 
+	/**
+	 * Return array of teams, suitable for use in pulldown
+	 */
+	function teams_as_array ()
+	{
+		if(!$this->_teams_loaded) {
+			$this->load_teams();
+		}
+	
+		$teams = array();
+		while(list($id, $team) = each($this->teams)) {
+			$teams[$id] = $team->name;
+		}
+		reset($this->teams);
+		return $teams;
+	}
+
+	/** 
+	 * Return array of rounds, suitable for use in pulldown
+	 * For now, this is just a braindead list, but in future, it
+	 * will have playoff semis/quarters/finals available
+	 */
+	function rounds_as_array()
+	{
+		$rounds = array();
+		for($i = 1; $i <= 5;  $i++) {
+			$rounds[$i] = $i;
+		}
+		return $rounds;
+	}
+
 	function add_coordinator ( &$person )
 	{
 		if( array_key_exists( $person->user_id, $this->coordinators ) ) {

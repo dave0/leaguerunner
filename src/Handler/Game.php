@@ -12,24 +12,39 @@ function game_dispatch()
 		case 'submitscore':
 			return new GameSubmit;
 		case 'view':
-			return new GameView;
+			return new GameEdit;
 		case 'approve':
-			return new GameApprove;
+			return new GameEdit;
+		case 'edit':
+			return new GameEdit;
+		case 'reschedule':
+			# TODO: move a game from one gameslot to another.
+			#       Requires addition of a 'rescheduled' flag in db
+			return new GameReschedule;
 /* TODO:
 		case 'delete':
 			// Allow deletion of a game (not gameslot!)
 			return new GameDelete;
-		case 'edit':
-			# TODO: Allow editing of all game data
-			#       Not of gameslot data, aside from rescheduling, though
-			return new GameEdit;
-		case 'reschedule:
-			# TODO: move a game from one gameslot to another.
-			#       Requires addition of a 'rescheduled' flag in db
-			return new GameReschedule;
-*/
+ */
 	}
 	return null;
+}
+
+/**
+ * Add game information to menu
+ * TODO: when permissions are fixed, remove the evil passing of $this
+ */
+function game_add_to_menu( $this, &$league, &$game )
+{
+	global $session;
+	league_add_to_menu($this, $league);
+	menu_add_child("$league->fullname", "$league->fullname/games", "Games");
+	menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
+
+	if( $session->is_coordinator_of( $game->league_id ) ) {
+		menu_add_child("$league->fullname/games/$game->game_id", "$league->fullname/games/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
+		menu_add_child("$league->fullname/games/$game->game_id", "$league->fullname/games/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
+	}
 }
 
 class GameCreate extends Handler
@@ -665,122 +680,18 @@ ENDSCRIPT;
 	}
 }
 
-class GameView extends Handler
+class GameEdit extends Handler
 {
 	function initialize ()
 	{
-		$this->title = "View Game";
+		$this->title = "Game";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_player',
 			'admin_sufficient',
-			'allow'
-		);
-		
-		$this->_permissions = array(
-			'view_entered_scores' => false,
-		);
-		
-		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		}
-	}
-
-	function process ()
-	{
-
-		$id = arg(2);
-
-		$game = game_load( array('game_id' => $id) );
-			 
-		if( !$game ) {
-			$this->error_exit('That game does not exist');
-		}
-		
-		$rows[] = array("Game ID:", $game->game_id);
-		$rows[] = array("Date:", $game->game_date);
-		$rows[] = array("Time:", $game->game_start);
-
-		$league = league_load( array('league_id' => $game->league_id) );
-		$rows[] = array("League/Division:",
-			l($league->fullname, "league/view/$league->league_id")
-		);
-		
-		$rows[] = array("Home Team:", 
-			l($game->home_name, "team/view/$game->home_team"));
-		$rows[] = array("Away Team:", 
-			l($game->away_name, "team/view/$game->away_team"));
-
-	
-		$field = field_load( array('fid' => $game->fid) );
-		$rows[] = array("Field:",
-			l("$field->fullname ($game->field_code)", "field/view/$game->fid"));
-			
-		$rows[] = array("Round:", $game->round);
-
-		if($game->home_score || $game->away_score) {
-			// TODO: show default status here.
-			$scoreRows[] = array($game->home_name, $game->home_score);
-			$scoreRows[] = array($game->away_name, $game->away_score);
-				
-			$rows[] = array("Score:", "<div class='pairtable'>" . table(null, $scoreRows) . "</div>");
-			$rows[] = array("Rating Points:", $game->rating_points);
-			
-			if($game->approved_by) {
-				if($game->approved_by != -1) {
-					$approver = person_load( array('user_id' => $game->approved_by));
-					$approver = l($approver->fullname, "person/view/$approver->user_id");
-				} else {
-					$approver = 'automatic approval';
-				}
-				$rows[] = array("Score Approved By:", $approver);		
-			}
-
-		} else {
-			/* Use our ratings to try and predict the game outcome */
-			$homePct = elo_expected_win($game->home_rating, $game->away_rating);
-			$awayPct = 1 - $homePct;
-
-			$rows[] = array("Chance to win:", table(null, array(
-				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
-				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))))));
-
-			/* And of course, show the scores to those who are allowed */	
-			if( $this->_permissions['view_entered_scores'] ) {
-				$rows[] = array("Score:", game_score_entry_display( $game ));
-			} else {
-				$rows[] = array("Score:","not yet entered");
-				
-			}
-		}
-
-
-		$this->setLocation(array(
-			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
-
-		league_add_to_menu($this, $league);
-		menu_add_child("$league->fullname", "$league->fullname/games", "Games");
-		menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
-			
-		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
-	}
-}
-
-class GameApprove extends Handler
-{
-	function initialize ()
-	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
 			'allow'  # TODO: evil hack.  We do perms checks in process() below.
 		);
-		$this->title = "Approve Game Score";
+		
 		return true;
 	}
 	
@@ -793,15 +704,21 @@ class GameApprove extends Handler
 		if(!$game) {
 			$this->error_exit("That game does not exist");
 		}
+
+		$this->_permissions = array(
+			'edit_game' => false,
+		);
+
+		if( $session->is_admin() ) {
+			$this->_permissions['edit_game'] = true;
+		}
 		
-		if(!($session->is_admin() || $session->is_coordinator_of($game->league_id) ) ) {
-			$this->error_exit("You do not have permission to approve that game.");
+		if($session->is_coordinator_of($game->league_id)) {
+			$this->_permissions['edit_game'] = true;
 		}
 		
 		$this->setLocation(array(
-			"Game $id" => "game/view/$id",
-			$this->title => 0
-		));
+			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
 
 		$edit = $_POST['edit'];
 		switch($edit['step']) {
@@ -810,7 +727,7 @@ class GameApprove extends Handler
 				break;
 			case 'perform':
 				$this->perform( $game, &$edit );
-				local_redirect(url("league/approvescores/$game->league_id"));
+				local_redirect(url("game/view/$game->game_id"));
 				break;
 			default:
 				$rc = $this->generateForm( $game );
@@ -818,103 +735,122 @@ class GameApprove extends Handler
 
 		return $rc;
 	}
-
-	function perform ( $game, $edit )
-	{
-		global $session;
 	
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		$edit['approved_by'] = $session->attr_get('user_id');
-
-		return game_save_score_final($game, $edit);
-	}
-
-	function generateConfirm ( $game, $edit )
-	{
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		$output = para( "You have entered the following score for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
-		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
-
-		$output .= form_hidden('edit[step]', 'perform');
-		if($edit['defaulted'] == 'home' || $edit['defaulted'] == 'away') {
-			$output .= form_hidden('edit[defaulted]', $edit['defaulted']);		
-		} else {
-			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
-			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
-			$output .= form_hidden('edit[home_spirit]', $edit['home_spirit']);		
-			$output .= form_hidden('edit[away_spirit]', $edit['away_spirit']);		
-		}
-		
-		if($edit['defaulted'] == 'home') {
-			$edit['home_score'] = '0 (defaulted)';
-			$edit['away_score'] = '6';
-			$edit['home_spirit'] = 'n/a';
-			$edit['away_spirit'] = 'n/a';
-		} else if ($edit['defaulted'] == 'away') {
-			$edit['home_score'] = '6';
-			$edit['away_score'] = '0 (defaulted)';
-			$edit['home_spirit'] = 'n/a';
-			$edit['away_spirit'] = 'n/a';
-		}
-	
-		$header = array( "Team", "Score", "SOTG");
-		$rows = array(
-			array($game->home_name, $edit['home_score'], $edit['home_spirit']),
-			array($game->away_name, $edit['away_score'], $edit['away_spirit'])
-		);
-	
-		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
-
-		$output .= para(form_submit('submit'));
-
-		return form($output);
-	}
-
 	function generateForm ( $game ) 
 	{
-		$output = para( "Finalize the score for <b>Game $game->game_id</b> of $game->game_date $game->game_start between <b>$game->home_name</b> and <b>$game->away_name</b>.");
+		$output = form_hidden('edit[step]', 'confirm');
 		
-		$output .= form_hidden('edit[step]', 'confirm');
-		$output .= "<h2>Score as entered:</h2>";
-		
-		$output .= game_score_entry_display( $game );
-		
-		$output .= "<h2>Score as approved:</h2>";
-		
-		$rows = array();
-		
-		$rows[] = array(
-			"$game->home_name (home) score:",
-			form_textfield('','edit[home_score]','',2,2)
-				. "or default: <input type='checkbox' name='edit[defaulted]' value='home' onclick='defaultCheckboxChanged()'>"
-		);
-		$rows[] = array(
-			"$game->away_name (away) score:",
-			form_textfield('','edit[away_score]','',2,2)
-				. "or default: <input type='checkbox' name='edit[defaulted]' value='away' onclick='defaultCheckboxChanged()'>"
-		);
-		
-		$rows[] = array(
-			"$game->home_name (home) assigned spirit:",
-			form_select("", "edit[home_spirit]", '', getOptionsFromRange(1,10))
-		);
-		$rows[] = array(
-			"$game->away_name (away) assigned spirit:",
-			form_select("", "edit[away_spirit]", '', getOptionsFromRange(1,10))
-		);
+		$output .= form_item("Game ID", $game->game_id);
 
-		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
-		$output .= para(form_submit("submit") . form_reset("reset"));
+		$league = league_load( array('league_id' => $game->league_id) );
+		$teams = $league->teams_as_array();
+		/* Now, since teams may not be in league any longer, we need to force
+		 * them to appear in the pulldown
+		 */
+		$teams[$game->home_id] = $game->home_name;
+		$teams[$game->away_id] = $game->away_name;
+
+		$output .= form_item("League/Division", l($league->fullname, "league/view/$league->league_id"));
+
+		$output .= form_item( "Home Team", l($game->home_name,"team/view/$game->home_id"));
+		$output .= form_item( "Away Team", l($game->away_name,"team/view/$game->away_id"));
+
+		if( $this->_permissions['edit_game'] ) {
+			$note = "To edit time, date, or location, use the 'reschedule' link";
+		}
+		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until $game->game_end", $note);
+
+		$field = field_load( array('fid' => $game->fid) );
+		$output .= form_item("Location",
+			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 	
-		$script = <<<ENDSCRIPT
+		$output .= form_item("Round", $game->round);
+
+		$spirit_group = '';
+		$score_group = '';
+		/*
+		 * Now, for scores and spirit info.  Possibilities:
+		 *  - game has been finalized:
+		 *  	- everyone can see scores
+		 *  	- coordinator can edit scores/spirit
+		 *  - game has not been finalized
+		 *  	- players only see "not yet submitted"
+		 *  	- captains can see submitted scores
+		 *  	- coordinator can see everything, edit final scores/spirit
+		 */
+
+		if($game->approved_by) {
+			// Game has been finalized
+
+			if( ! $this->_permissions['edit_game'] ) {
+				// If we're not editing, display score.  If we are, 
+				// it will show up below.
+				switch($game->defaulted) {
+					case 'home':
+						$home_default = " (defaulted)";
+						break;
+					case 'away':
+						$away_default = " (defaulted)";
+						break;
+				}
+				$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_default");
+				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_default");
+			}
+			
+			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
+			
+			if($game->approved_by != -1) {
+				$approver = person_load( array('user_id' => $game->approved_by));
+				$approver = l($approver->fullname, "person/view/$approver->user_id");
+			} else {
+				$approver = 'automatic approval';
+			}
+			$score_group .= form_item("Score Approved By", $approver);		
+		
+		} else {
+			/* 
+			 * Otherwise, scores are still pending.
+			 */
+			$stats_group = '';
+			/* Use our ratings to try and predict the game outcome */
+			$homePct = elo_expected_win($game->home_rating, $game->away_rating);
+			$awayPct = 1 - $homePct;
+
+			$stats_group .= form_item("Chance to win", table(null, array(
+				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
+				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))))));
+			$output .= form_group("Statistics", $stats_group);
+			
+			
+			$score_group .= form_item('',"Score not yet finalized");
+			if( $this->_permissions['edit_game'] ) {
+				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
+				
+			}
+		}
+
+		// Now, we always want to display this edit code if we have
+		// permission to edit.
+		if( $this->_permissions['edit_game'] ) {
+			switch($game->defaulted) {
+				case 'home':
+					$home_default_checked = " checked";
+					break;
+				case 'away':
+					$away_default_checked = " checked";
+					break;
+			}
+			$score_group .= form_textfield( "Home ($game->home_name) score", 'edit[home_score]',$game->home_score,2,2);
+			$score_group .= form_item( '', "or mark $game->home_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='home' $home_default_checked onclick='defaultCheckboxChanged()'>");
+			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
+			$score_group .= form_item( "", "or mark $game->away_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='away' $away_default_checked onclick='defaultCheckboxChanged()'>");
+			
+			/* Spirit editing.  TODO: new spirit code goes here */
+			$spirit_group .= form_select("Spirit assigned to home ($game->home_name)", "edit[home_spirit]", $game->home_spirit, getOptionsFromRange(1,10));
+			$spirit_group .= form_select("Spirit assigned to away ($game->away_name)", "edit[away_spirit]", $game->away_spirit, getOptionsFromRange(1,10));
+
+
+			$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
   function defaultCheckboxChanged() {
     if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
@@ -945,10 +881,91 @@ class GameApprove extends Handler
 // -->
 </script>
 ENDSCRIPT;
+		
+		}
+		
+		$output .= form_group("Scoring", $score_group);
+		$output .= form_group("Spirit", $spirit_group);
 
+		game_add_to_menu($this, $league, $game);
+	
+		if( $this->_permissions['edit_game'] ) {
+			$output .= para(form_submit("submit") . form_reset("reset"));
+		}
 		return $script . form($output);
 	}
+	
+	function generateConfirm ( $game, $edit )
+	{
 
+		if( ! $this->_permissions['edit_game'] ) {
+			$this->error_exit("You do not have permission to edit this game");
+		}
+	
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		$output = para( "You have made the changes below for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
+		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
+
+		$output .= form_hidden('edit[step]', 'perform');
+		if($edit['defaulted'] == 'home' || $edit['defaulted'] == 'away') {
+			$output .= form_hidden('edit[defaulted]', $edit['defaulted']);		
+		} else {
+			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
+			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
+			$output .= form_hidden('edit[home_spirit]', $edit['home_spirit']);		
+			$output .= form_hidden('edit[away_spirit]', $edit['away_spirit']);		
+		}
+		
+		if($edit['defaulted'] == 'home') {
+			$edit['home_score'] = '0 (defaulted)';
+			$edit['away_score'] = '6';
+			$edit['home_spirit'] = 'n/a';
+			$edit['away_spirit'] = 'n/a';
+		} else if ($edit['defaulted'] == 'away') {
+			$edit['home_score'] = '6';
+			$edit['away_score'] = '0 (defaulted)';
+			$edit['home_spirit'] = 'n/a';
+			$edit['away_spirit'] = 'n/a';
+		}
+		
+		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
+		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
+		$spirit_group .= form_item("Spirit assigned to home ($game->home_name)", $edit['home_spirit']);
+		$spirit_group .= form_item("Spirit assigned to away ($game->away_name)", $edit['away_spirit']);
+		
+		$output .= form_group("Scoring", $score_group);
+		$output .= form_group("Spirit", $spirit_group);
+		$output .= para(form_submit('submit'));
+
+		game_add_to_menu($this, $league, $game);
+
+
+		return form($output);
+	}
+	
+	
+	function perform ( $game, $edit )
+	{
+		global $session;
+		
+		if( ! $this->_permissions['edit_game'] ) {
+			$this->error_exit("You do not have permission to edit this game");
+		}
+	
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		$edit['approved_by'] = $session->attr_get('user_id');
+
+		return game_save_score_final($game, $edit);
+	}
+	
 	function isDataInvalid( $edit )
 	{
 		$errors = "";
@@ -960,6 +977,8 @@ ENDSCRIPT;
 			if( !validate_number($edit['away_score']) ) {
 				$errors .= "<br>You must enter a valid number for the away score";
 			}
+
+			// TODO: SOTG rewrite
 			if( !validate_number($edit['home_spirit']) ) {
 				$errors .= "<br>You must enter a valid number for the home SOTG";
 			}
@@ -1015,6 +1034,9 @@ function game_score_entry_display( $game )
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 
+/*
+ * TODO: Things below this line probably belong in game.inc
+ */
 
 function scores_agree( $one, $two )
 {
