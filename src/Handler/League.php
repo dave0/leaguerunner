@@ -59,7 +59,8 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 {
 	global $session;
 
-	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
+	$sortname = sprintf("$league->name %02d", $league->tier);
+	menu_add_child($parent, $sortname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
 	if($league->allow_schedule == 'Y') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));

@@ -87,7 +87,8 @@ class Person extends LeaguerunnerObject
 			 FROM 
 			 	leaguemembers m 
 				INNER JOIN league l ON (m.league_id = l.league_id)
-			 WHERE m.status = 'coordinator' AND m.player_id = %d", $this->user_id);
+			 WHERE m.status = 'coordinator' AND m.player_id = %d
+			 ORDER BY l.season, l.name, l.tier", $this->user_id);
 		$this->leagues = array();
 		while($league = db_fetch_object($result)) {
 			# TODO: evil hack.

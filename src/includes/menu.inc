@@ -27,6 +27,7 @@ function menu_add_child( $parentName, $name, $title, $args = array() )
 
 	/* Concat parent/child names together to prevent collisions */
 	$item = array(
+		'name' 	   => $name,
 		'title'    => $title,
 		'parent'   => $parentName,
 		'weight'   => 0,  // Default weight
@@ -141,7 +142,13 @@ function _menu_internal_sort($a, $b) {
 	$a = &$_menu[$a];
 	$b = &$_menu[$b];
 
-	return $a["weight"] < $b["weight"] ? -1 : ($a["weight"] > $b["weight"] ? 1 : ($a["title"] < $b["title"] ? -1 : 1));
+	if( $a["weight"] < $b["weight"] ) {
+		return -1;
+	} else if ($a["weight"] > $b["weight"]) {
+		return 1;
+	} 
+
+	return $a["name"] < $b["name"] ? -1 : 1;
 }
 function _menu_render_item(&$item, $isActive) {
 
