@@ -96,6 +96,7 @@ CREATE TABLE league (
 	stats_display ENUM('all','currentround') DEFAULT 'all',
 	year        integer,
 	start_time	time,
+	allow_schedule	ENUM("Y","N") DEFAULT 'Y',  -- Should this league have scheduling info?
 	PRIMARY KEY (league_id)
 );
 
