@@ -13,12 +13,19 @@
     </tr>
     <tr>
       <td>
+        {if $page_user_name}
         Welcome <b>{$page_user_name}</b>.  You are at: <b>{$page_title}</b>
+        {/if}
       </td>
       <td align='right' valign='top'>
         <font color='white'>
+          {if $page_user_name}
           <a class='topbarlink' href="{$app_cgi_location}?op=menu">main menu</a>
-          &nbsp;|&nbsp;<a class='topbarlink' href="{$app_cgi_location}?op=logout">log out</a>
+          &nbsp;|&nbsp;
+          <a class='topbarlink' href="{$app_cgi_location}?op=logout">log out</a>
+          {else}
+          <a class='topbarlink' href="{$app_cgi_location}?op=login">log in</a>
+          {/if}
         </font>
       </td>
     </tr>
