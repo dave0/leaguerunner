@@ -83,7 +83,7 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		$result = db_query("SELECT team_id FROM leagueteams WHERE league_id = %d", $this->league_id);
+		$result = db_query("SELECT t.team_id FROM leagueteams l INNER JOIN team t ON (t.team_id = l.team_id) WHERE l.league_id = %d ORDER BY t.name", $this->league_id);
 		while( $array = db_fetch_array($result) ) {
 			$t = team_load( array('team_id' => $array['team_id']) );
 			if( ! $t ) {
