@@ -38,7 +38,7 @@ class MainMenu extends Handler
 		global $session;
 
 		$id = $session->attr_get("user_id");
-		$this->setLocation(array( $session->attr_get('firstname') . " " . $session->attr_get('lastname') => 0 ));
+		$this->setLocation(array( $session->attr_get('fullname') => 0 ));
 
 	
 		/* TODO: this menu should go away in favour of an integrated menu

@@ -11,6 +11,10 @@ function game_dispatch()
 			return new GameSubmit;
 		case 'view':
 			return new GameView;
+/* TODO:
+		case 'edit':
+			return new GameEdit;
+*/
 	}
 	return null;
 }
@@ -40,7 +44,8 @@ class GameSubmit extends Handler
 
 		if( !$teamID ) {
 			/* TODO: write code to allow coordinators/admins to submit
-			 * final scores for entire games, not just one team
+			 * final scores for entire games, not just one team.  Probably
+			 * should do it as a game/edit/ handler.
 			 */
 			return false;
 		}
@@ -437,7 +442,7 @@ class GameView extends Handler
 			'view_entered_scores' => false,
 		);
 		
-		$this->section = 'game';
+		$this->section = 'league';
 		return true;
 	}
 	
@@ -451,11 +456,8 @@ class GameView extends Handler
 	function process ()
 	{
 
-		$id = $_GET['id'];
-		if(! $id) {
-			return false;
-		}
-		
+		$id = arg(2);
+
 		$result = db_query(
 			"SELECT 
 				s.*,
@@ -463,12 +465,12 @@ class GameView extends Handler
 				h.name AS home_name, 
 				a.name AS away_name
 			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
+			 	INNER JOIN team h ON (h.team_id = s.home_team) 
+				INNER JOIN team a ON (a.team_id = s.away_team)
 			 WHERE s.game_id = %d", $id);
 			 
 		if( 1 != db_num_rows($result) ) {
-			return false;
+			$this->error_exit('That game does not exist');
 		}
 		
 		$game = db_fetch_object($result);
@@ -478,27 +480,23 @@ class GameView extends Handler
 		$rows[] = array("Date:", $formattedDate);
 		$rows[] = array("Time:", $formattedTime);
 
-		/* TODO: league_load() */
-		$league = db_fetch_object(db_query("SELECT * FROM league WHERE league_id = %d", $game->league_id));
-		$leagueName = $league->name;
-		if($league->tier) {
-			$leagueName .= " Tier $league->tier";
-		}
+		$league = league_load( array('league_id' => $game->league_id) );
 		$rows[] = array("League/Division:",
-			l($leagueName, "op=league_view&id=$league->league_id")
+			l($league->fullname, "league/view/$league->league_id")
 		);
 		
 		$rows[] = array("Home Team:", 
-			l($game->home_name, "op=team_view&id=$game->home_team"));
+			l($game->home_name, "team/view/$game->home_team"));
 		$rows[] = array("Away Team:", 
-			l($game->away_name, "op=team_view&id=$game->away_team"));
+			l($game->away_name, "team/view/$game->away_team"));
 
 		$rows[] = array("Field:",
-			l(get_field_name($game->field_id), "op=field_view&id=$game->field_id"));
+			l(get_field_name($game->field_id), "field/view/$game->field_id"));
 			
 		$rows[] = array("Round:", $game->round);
 
 		if($game->home_score || $game->away_score) {
+			// TODO: show default status here.
 			$rows[] = array("Score:", "$game->home_name: $game->home_score<br /> $game->away_name: $game->away_score");
 		} else {
 			if( $this->_permissions['view_entered_scores'] ) {

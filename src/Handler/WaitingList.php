@@ -677,16 +677,13 @@ class WaitingListQuit extends Handler
 	
 	function generateConfirm ( $id, $userID )
 	{
-	
-		/* TODO: person_load() */
-		$info = db_fetch_array(db_query("SELECT firstname, lastname FROM person WHERE user_id = %d", $userID));
-		if( !$info ) {
+		$person = person_load( array('user_id' => $userID) );
+		if( !$person ) {
 			$this->error_exit("That is not a valid user");
 		}
-		$fullName = $info['firstname'] . " " . $info['lastname'];
 		
 		$this->setLocation(
-			array( $fullName => "person/view/$user", $this->title => 0,));
+			array( $person->fullname => "person/view/$user", $this->title => 0,));
 
 		/* TODO: waitinglist_load() */
 		$listName = db_result(db_query("SELECT name from waitinglist WHERE wlist_id = %d", $id));
@@ -694,7 +691,7 @@ class WaitingListQuit extends Handler
 			$this->error_exit("That is not a valid waiting list.");
 		}
 
-		$output = para("Confirm that you wish to remove $fullName from the $listName waiting list.  Note that this will result in a loss of any priority for this list and that you cannot be re-added."
+		$output = para("Confirm that you wish to remove $person->fullname from the $listName waiting list.  Note that this will result in a loss of any priority for this list and that you cannot be re-added."
 		);
 		
 		$output .= form_hidden("edit[step]", 'perform');
@@ -731,17 +728,14 @@ class WaitingListViewPerson extends Handler
 	{
 		$id = arg(2);
 		
-		/* TODO: person_load() */
-		$info = db_fetch_object(db_query("SELECT firstname, lastname, gender FROM person WHERE user_id = %d", $id));
-
-		if( !$info ) {
+		$person = person_load( array('user_id' => $id) );
+		if( !$person ) {
 			$this->error_exit("That is not a valid user");
 		}
 		
-		$lcGender = strtolower($info->gender);
-		$fullName = $info->firstname . " " . $info->lastname;
+		$lcGender = strtolower($person->gender);
 		
-		$this->setLocation(array( $fullName => "person/view/$id", $this->title => 0));
+		$this->setLocation(array( $person->fullname => "person/view/$id", $this->title => 0));
 
 		$result = db_query(
 			"SELECT w.*, m.preference,m.paired_with
@@ -826,7 +820,7 @@ EOM;
 		while($data = db_fetch_object($result)) {
 			$rows[] = array(
 				array('data' => $data->name, 'class' => 'subtitle'),
-				array('data' => l("remove from this waitlist", "wlist/quit/$data->wlist_id/$id?edit[step]=confirm"), 'class' => 'subtitle')
+				array('data' => l("remove from this waitlist", "wlist/quit/$data->wlist_id/$id"), 'class' => 'subtitle')
 			);
 
 			$rows[] = array("Registration Preference:", $data->preference);

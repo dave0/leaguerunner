@@ -102,7 +102,33 @@ function arg($index) {
   return $arguments[$index];
 }
 
+function array2object($ary) {
 
+  if (is_array($aru)) {
+    foreach ($ary as $key => $value) {
+      $object->$key = $value; 
+    }
+  }
+  else {  
+    $object = $ary;
+  }
+
+  return $object;
+}
+
+function object2array($obj) {
+
+  if (is_object($obj)) {
+    foreach ($obj as $key => $value) {
+      $array[$key] = $value;
+    }
+  }
+  else {  
+    $array = $obj;
+  }
+
+  return $array;
+}
 
 /*
  * HTML-generation functions
@@ -577,6 +603,8 @@ function numberToOrdinal ( $num )
 			return $num . "th";
 	}
 }
+
+
 
 
 /**

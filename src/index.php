@@ -44,8 +44,8 @@ if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
 }
 
-require_once "UserSession.php";
 require_once "Handler.php";
+require_once "UserSession.php";
 
 /* Instantiate a handler of the appropriate class to handle this 
  * operation 

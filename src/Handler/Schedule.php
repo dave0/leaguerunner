@@ -63,18 +63,13 @@ class ScheduleAddDay extends Handler
 	
 	function generateForm( $id, $year = 0, $month = 0, $day = 0 )
 	{
-		/* TODO: league_load() */
-		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
-			return false;
+		$league = league_load( array( 'league_id' => $id ) );
+		if( ! $league ) {
+			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_object($result);
-
 		$league->day = split(',',$league->day);
 
-		$output = para("Select a date below to add a new week of 
-			games to the schedule.  Days on which this league usually 
-			plays are highlighted.");
+		$output = para("Select a date below to add a new week of games to the schedule.  Days on which this league usually plays are highlighted.");
 
 		$today = getdate();
 	
@@ -89,7 +84,7 @@ class ScheduleAddDay extends Handler
 		$output .= generateCalendar( $year, $month, $day, "schedule/add/$league->league_id", "schedule/add/$league->league_id", $league->day);
 
 		$this->setLocation(array(
-			$league->name => "league/view/$id",
+			$league->fullname => "league/view/$id",
 			$this->title => 0));
 
 		return $output;
@@ -104,12 +99,10 @@ class ScheduleAddDay extends Handler
 			$this->error_exit("That date is not valid");
 		}
 		
-		/* TODO: league_load() */
-		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
-			return false;
+		$league = league_load( array( 'league_id' => $id ) );
+		if( ! $league ) {
+			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_object($result);
 
 		$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
 
@@ -120,7 +113,7 @@ class ScheduleAddDay extends Handler
 		$output .= para(form_submit('submit'));
 		
 		$this->setLocation(array(
-			$league->name => "league/view/$id",
+			$league->fullname => "league/view/$id",
 			"$this->title &raquo; $formattedDay" => 0));
 		
 		return form($output);
@@ -150,21 +143,16 @@ class ScheduleAddDay extends Handler
 		 */
 		$num_games = floor($num_teams / 2);
 		
-		/* TODO: league_load() */
-		$result = db_query( "SELECT * FROM league WHERE league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
-			return false;
+		$league = league_load( array( 'league_id' => $id ) );
+		if( ! $league ) {
+			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_object($result);
-
-		/* Use the first start time in the list, by default */
-		$startTimes = split(",", $league->start_time);
 
 		/* All the game_ date values have already been validated by
 		 * isDataInvalid()
 		 */
 		$gametime = join("-",array($year,$month, $day));
-		$gametime .= " " . $startTimes[0];
+		$gametime .= " " . $league->start_time;
 
 		for($i = 0; $i < $num_games; $i++) {
 			db_query("INSERT INTO schedule (league_id,date_played,round) values (%d,'%s',%d)", $id, $gametime, $league->current_round);
@@ -346,19 +334,17 @@ class ScheduleEdit extends Handler
 
 	function generateForm ( $id, $editDayId )
 	{
-		/* TODO: league_load() */
-		$result = db_query( "SELECT IF(l.tier,CONCAT(l.name, ' Tier ', l.tier),l.name) AS name, l.* FROM league l WHERE l.league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
+		$league = league_load( array( 'league_id' => $id ) );
+		if( ! $league ) {
 			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_array($result);
 
 		$this->setLocation(array(
-			$league['name'] => "league/view/$id",
+			$league->fullname => "league/view/$id",
 			$this->title => 0));
 			
 		/* Grab data for pulldowns if we need an edit form */
-		$league['starttimes'] = getOptionsFromTimeRange(900,2400,15);
+		$league->starttimes = getOptionsFromTimeRange(900,2400,15);
 		$result = db_query(
 			"SELECT t.team_id, t.name 
 			 FROM leagueteams l
@@ -368,9 +354,9 @@ class ScheduleEdit extends Handler
 		if( ! db_num_rows($result) ) {
 			$this->error_exit("There may be no teams in this league");
 		}
-		$league['teams'][0] = "---";
+		$league->teams[0] = "---";
 		while($team = db_fetch_object($result)) {
-			$league['teams'][$team->team_id] = $team->name;
+			$league->teams[$team->team_id] = $team->name;
 		}
 
 		$result = db_query(
@@ -388,17 +374,17 @@ class ScheduleEdit extends Handler
 			$this->error_exit("There are no fields assigned to this league");
 		}
 
-		$league['fields'][0] = "---";
+		$league->fields[0] = "---";
 		while($field = db_fetch_object($result)) {
-			$league['fields'][$field->field_id] = $field->name;
+			$league->fields[$field->field_id] = $field->name;
 		}
 
 		/* 
 		 * Rounds
 		 */
-		$league['rounds'] = array();
+		$league->rounds = array();
 		for($i = 1; $i <= 5;  $i++) {
-			$league['rounds'][$i] = $i;
+			$league->rounds[$i] = $i;
 		}
 
 		/* 
@@ -536,11 +522,10 @@ class ScheduleEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
-			return false;
+		$league = league_load( array('league_id' => $id) );
+		if( !$league ) {
+			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_object($result);
 
 		$output = para(
 			"Confirm that the changes below are correct, and click 'Submit' to proceed.");
@@ -567,7 +552,8 @@ class ScheduleEdit extends Handler
 		$output .= para(form_submit('submit'));
 		
 		$this->setLocation(array(
-			$league->name => "op=league_view&id=$id",
+			$league->fullname => "league/view/$id",
+
 			$this->title => 0));
 
 		return form($output);
@@ -648,15 +634,13 @@ class ScheduleView extends Handler
 			$links[] = l("add new week", "schedule/add/$id");
 		}
 		
-		/* TODO: league_load() */
-		$result = db_query( "SELECT IF(l.tier,CONCAT(l.name, ' Tier ', l.tier),l.name) AS name, l.* FROM league l WHERE l.league_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
+		$league = league_load( array('league_id' => $id) );
+		if( !$league ) {
 			$this->error_exit("That league does not exist");
 		}
-		$league = db_fetch_array($result);
 
 		$this->setLocation(array(
-			$league['name'] => "league/view/$id",
+			$league->fullname => "league/view/$id",
 			$this->title => 0));
 			
 		/* 
@@ -738,6 +722,7 @@ function schedule_heading( $date, $canViewSpirit = false, $canEdit = false, $day
 			'class' => 'gamedate'
 		);
 	}
+	$header[] = array('data' => '&nbsp;', 'class' => 'gamedate');
 	return $header;
 }
 
@@ -751,6 +736,7 @@ function schedule_subheading( $canViewSpirit )
 	foreach($subheadings as $subheading) {
 		$subheadingRow[] = array('data' => $subheading, 'class' => 'column-heading');
 	}
+	$subheadingRow[] = array('data' => '&nbsp;', 'class' => 'column-heading');
 	return $subheadingRow;
 }
 
@@ -758,15 +744,16 @@ function schedule_render_editable( &$game, &$league )
 {
 	return array(
 		form_hidden('edit[games][' . $game['id'] . '][game_id]', $game['id']) 
-		. form_select('','edit[games][' . $game['id'] . '][round]', $game['round'], $league['rounds']),
-		form_select('','edit[games][' . $game['id'] . '][start_time]', $game['time'], $league['starttimes']),
-		form_select('','edit[games][' . $game['id'] . '][home_id]', $game['home_id'], $league['teams']),
-		form_select('','edit[games][' . $game['id'] . '][away_id]', $game['away_id'], $league['teams']),
-		form_select('','edit[games][' . $game['id'] . '][field_id]', $game['field_id'], $league['fields']),
+		. form_select('','edit[games][' . $game['id'] . '][round]', $game['round'], $league->rounds),
+		form_select('','edit[games][' . $game['id'] . '][start_time]', $game['time'], $league->starttimes),
+		form_select('','edit[games][' . $game['id'] . '][home_id]', $game['home_id'], $league->teams),
+		form_select('','edit[games][' . $game['id'] . '][away_id]', $game['away_id'], $league->teams),
+		form_select('','edit[games][' . $game['id'] . '][field_id]', $game['field_id'], $league->fields),
 		$game['home_score'],
 		$game['away_score'],
 		$game['home_spirit'],
-		$game['away_spirit']
+		$game['away_spirit'],
+		''
 	);
 }
 
@@ -801,6 +788,8 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 			$gameRow[] = $game['away_spirit'];
 		}
 	}
+
+	$gameRow[] = l('view game', 'game/view/' . $game['id']);
 
 	return $gameRow;
 }

@@ -153,18 +153,9 @@ class PersonView extends Handler
 		 * See what the player's status is.  Some cannot be viewed unless you
 		 * are 'administrator'.  
 		 */
-		$result = db_query(
-			"SELECT 
-				status, 
-				allow_publish_email, 
-				publish_home_phone,
-				publish_work_phone,
-				publish_mobile_phone
-			FROM person WHERE user_id = %d", $id);
-
-		$row = db_fetch_array($result);
+		$player = person_load( array('user_id' => $id) );
 		
-		switch($row['status']) {
+		switch($player->status) {
 			case 'new':
 			case 'locked':
 				/* players of status 'new' and 'locked' can only be viewed by
@@ -174,22 +165,21 @@ class PersonView extends Handler
 				break;
 			case 'active':
 			case 'inactive':
-				if($row['allow_publish_email'] == 'Y') {
+				if($player->allow_publish_email == 'Y') {
 					$this->_permissions['email'] = true;
 				}
-				if($row['publish_home_phone'] == 'Y') {
+				if($player->publish_home_phone == 'Y') {
 					$this->_permissions['home_phone'] = true;
 				}
-				if($row['publish_work_phone'] == 'Y') {
+				if($player->publish_work_phone == 'Y') {
 					$this->_permissions['work_phone'] = true;
 				}
-				if($row['publish_mobile_phone'] == 'Y') {
+				if($player->publish_mobile_phone == 'Y') {
 					$this->_permissions['mobile_phone'] = true;
 				}
 				break;
 			default:
 				/* do nothing */
-				
 		}
 
 		return true;
@@ -200,31 +190,28 @@ class PersonView extends Handler
 
 		$id = arg(2);
 
-		$result = db_query(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
+		$person = person_load( array('user_id' => $id ) );
 
-		$person = db_fetch_array($result);
-		
-		if(!isset($person)) {
+		if( !$person ) {
 			$this->error_exit("That person does not exist");
 		}
 		
 		$links = array();
 		
 		if($this->_permissions['user_edit']) {
-			$links[] = l("edit account", "person/edit/" . $person['user_id'], array('title' => "Edit the currently-displayed account"));
+			$links[] = l("edit account", "person/edit/$id", array('title' => "Edit the currently-displayed account"));
 		}
 		
 		if($this->_permissions['user_change_password']) {
-			$links[] = l("change password", "person/changepassword/" . $person['user_id'], array('title' => "Change password for the currently-displayed account"));
+			$links[] = l("change password", "person/changepassword/$id", array('title' => "Change password for the currently-displayed account"));
 		}
 		
 		if($this->_permissions['user_delete']) {
-			$links[] = l("delete account", "person/delete/" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
+			$links[] = l("delete account", "person/delete/$id", array('title' => "Delete the currently-displayed account"));
 		}
 
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
+			$person->fullname => "person/view/$id",
 			$this->title => 0));
 			
 		$links_html =  "";
@@ -237,88 +224,89 @@ class PersonView extends Handler
 	
 	function generateView (&$person)
 	{
-		$rows[] = array("Name:", 
-			$person['firstname'] . " " . $person['lastname']);
+		$rows[] = array("Name:", $person->fullname);
 
 		if($this->_permissions['username']) {
-			$rows[] = array("System Username:", $person['username']);
+			$rows[] = array("System Username:", $person->username);
 		}
 		
 		if($this->_permissions['member_id']) {
-			$rows[] = array("OCUA Member ID:", $person['member_id']);
+			$rows[] = array("OCUA Member ID:", $person->member_id);
 		}
 		
 		if($this->_permissions['email']) {
-			if($person['allow_publish_email'] == 'Y') {
+			if($person->allow_publish_email == 'Y') {
 				$publish_value = " (published)";
 			} else {
 				$publish_value = " (private)";
 			}
-			$rows[] = array("Email Address:", l($person['email'], "mailto:" .  $person['email']) . $publish_value);
+			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . $publish_value);
 		}
 		
 		foreach(array('home','work','mobile') as $type) {
-			if($this->_permissions["${type}_phone"] && $person["${type}_phone"]) {
-				if($person["publish_${type}_phone"] == 'Y') {
+			$item = "${type}_phone";
+			if($this->_permissions["${type}_phone"] && $person->$item) {
+				$publish = "publish_$item";
+				if($person->$item == 'Y') {
 					$publish_value = " (published)";
 				} else {
 					$publish_value = " (private)";
 				}
-				$rows[] = array("Phone ($type):", $person["${type}_phone"] . $publish_value);
+				$rows[] = array("Phone ($type):", $person->$item . $publish_value);
 			}
 		}
 		
 		if($this->_permissions['address']) {
 			$rows[] = array("Address:", 
 				format_street_address(
-					$person['addr_street'],
-					$person['addr_city'],
-					$person['addr_prov'],
-					$person['addr_postalcode']
+					$person->addr_street,
+					$person->addr_city,
+					$person->addr_prov,
+					$person->addr_postalcode
 				)
 			);
-			if($person['ward_number']) {
+			if($person->ward_number) {
 				$rows[] = array('Ward:', 
-					l($person['ward_name'] . ' (' . $person['ward_city']. ' Ward ' . $person['ward_number']. ')','op=ward_view&id='.$person['ward_id']));
+					l("$person->ward_name ($person->ward_city Ward $person->ward_number)","ward/view/$person->ward_id"));
 			}
 		}
 		
 		if($this->_permissions['birthdate']) {
-			$rows[] = array('Birthdate:', $person['birthdate']);
+			$rows[] = array('Birthdate:', $person->birthdate);
 		}
 		
 		if($this->_permissions['height']) {
-			$rows[] = array('Height:', $person['height'] ? $person['height'] : 0 . ' inches');
+			$rows[] = array('Height:', $person->height ? "$person->height inches" : "Please edit your account to enter your height");
 		}
 		
 		if($this->_permissions['gender']) {
-			$rows[] = array("Gender:", $person['gender']);
+			$rows[] = array("Gender:", $person->gender);
 		}
 		
 		if($this->_permissions['skill']) {
 			$skillAry = getOptionsForSkill();
-			$rows[] = array("Skill Level:", $skillAry[$person['skill_level']]);
-			$rows[] = array("Year Started:", $person['year_started']);
+			$rows[] = array("Skill Level:", $skillAry[$person->skill_level]);
+			$rows[] = array("Year Started:", $person->year_started);
 		}
 
 		if($this->_permissions['class']) {
-			$rows[] = array("Account Class:", $person['class']);
+			$rows[] = array("Account Class:", $person->class);
 		}
 		
-		$rows[] = array("Account Status:", $person['status']);
+		$rows[] = array("Account Status:", $person->status);
 		
 		if($this->_permissions['dog']) {
-			$rows[] = array("Has Dog:",($person['has_dog'] == 'Y') ? "yes" : "no");
+			$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
 
-			if($person['has_dog'] == 'Y') {
-				$rows[] = array("Dog Waiver Signed:",($person['dog_waiver_signed']) ? $person['dog_waiver_signed'] : "Not signed");
+			if($person->has_dog == 'Y') {
+				$rows[] = array("Dog Waiver Signed:",($person->dog_waiver_signed) ? $person->dog_waiver_signed : "Not signed");
 			}
 		}
 		
 		if($this->_permissions['last_login']) {
-			if($person['last_login']) {
+			if($person->last_login) {
 				$rows[] = array("Last Login:", 
-					$person['last_login'] . ' from ' . $person['client_ip']);
+					$person->last_login . ' from ' . $person->client_ip);
 			} else {
 				$rows[] = array("Last Login:", "Never logged in");
 			}
@@ -332,14 +320,14 @@ class PersonView extends Handler
 			FROM 
 				teamroster r LEFT JOIN team t USING(team_id)
 			WHERE 
-				r.player_id = %d", $person['user_id']);
+				r.player_id = %d", $person->user_id);
 		$rosterPositions = getRosterPositions();
 		$teams = array();
 		while($team = db_fetch_array($result)) {
 			$teams[] = array(
 				$rosterPositions[$team['position']],
 				"on",
-				l($team['name'], "op=team_view&id=" . $team['id'])
+				l($team['name'], "team/view/" . $team['id'])
 			);
 		}
 		
@@ -401,7 +389,7 @@ class PersonDelete extends PersonView
 
 		/* Safety check: Don't allow us to delete ourselves */
 		if($session->attr_get('user_id') == $id) {
-			$this->error_exit("You cannot delete the currently logged in user");
+			$this->error_exit("You cannot delete your own account!");
 		}
 
 		if($edit['step'] == 'perform') {
@@ -411,15 +399,13 @@ class PersonDelete extends PersonView
 		}
 
 		/* Otherwise... */
-		$result = db_query(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
-		if(1 != db_num_rows($result)) {
+		$person = person_load( array( 'user_id' => $id ) );
+		if( ! $person ) {
 			$this->error_exit("That person does not exist");
 		}
-		$person = db_fetch_array($result);
 		
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
+			$person->fullname => "person/view/$id",
 			$this->title => 0));
 		
 		return 
@@ -509,16 +495,13 @@ class PersonApproveNewAccount extends PersonView
 		} 
 
 		/* Otherwise... */
-		$result = db_query(
-			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d",  $id);
-			
-		$person = db_fetch_array($result);
+		$person = person_load( array('user_id' => $id) );
 
-		if(!isset($person)) {
+		if( !$person ) {
 			$this->error_exit("That person does not exist");
 		}
 		
-		if($person['status'] != 'new') {
+		if($person->status != 'new') {
 			$this->error_exit("That account has already been approved");
 		}
 		
@@ -552,7 +535,7 @@ class PersonApproveNewAccount extends PersonView
 		}
 
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
+			$person->fullname => "person/view/$id",
 			$this->title => 0));
 		
 		return para($instructions)
@@ -565,9 +548,7 @@ class PersonApproveNewAccount extends PersonView
 
 	function perform ( $id )
 	{
-
-		$result = db_query("SELECT * FROM person where user_id = %d", $id);
-		$person = db_fetch_object($result);
+		$person = person_load( array('user_id' => $id ) );
 
 		$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
 			$person->year_started, $person->gender);
@@ -694,8 +675,8 @@ class PersonEdit extends Handler
 				local_redirect(url("person/view/$id"));
 				break;
 			default:
-				$formData = $this->getFormData($id);
-				$rc = $this->generateForm($id, $formData, "Edit any of the following fields and click 'Submit' when done.");
+				$edit = $this->getFormData($id);
+				$rc = $this->generateForm($id, $edit, "Edit any of the following fields and click 'Submit' when done.");
 		}
 		
 		return $rc;
@@ -703,7 +684,8 @@ class PersonEdit extends Handler
 
 	function getFormData( $id ) 
 	{
-		return db_fetch_array(db_query("SELECT * FROM person WHERE user_id = %d", $id));
+		$person = person_load( array('user_id' => $id) );
+		return object2array($person);
 	}
 
 	function generateForm ( $id, &$formData, $instructions = "")
@@ -806,11 +788,10 @@ class PersonEdit extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$this->setLocation(array(
-			$formData['firstname'] . " " . $formData['lastname'] => "person/view/$id",
+			$formData['fullname'] => "person/view/$id",
 			$this->title => 0));
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
-
 		
 		return form($output);
 	}
@@ -1145,8 +1126,8 @@ class PersonCreate extends PersonEdit
 				return $this->perform( &$id, $edit );
 				break;
 			default:
-				$formData = $this->getFormData($id);
-				$rc = $this->generateForm( $id, $formData, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
+				$edit = $this->getFormData($id);
+				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
 		}
 		$this->setLocation(array( $this->title => 0));
 		return $rc;
@@ -1169,9 +1150,9 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($edit['password_once']);
 
-		if(db_num_rows(db_query("SELECT username FROM person WHERE username = '%s'",$edit['username']))) {
-			$err = "A user with that username already exists; please go back and try again";
-			$this->error_exit($err);
+		$user = person_load( array('username' => $edit['username']) );
+		if( $user ) {
+			$this->error_exit("A user with that username already exists; please go back and try again");
 		}
 	
 		db_query("INSERT into person (username,password,status) VALUES('%s','%s','new')", $edit['username'], $crypt_pass);
@@ -1252,8 +1233,8 @@ class PersonActivate extends PersonEdit
 				local_redirect(url("home"));
 				break;
 			default:
-				$formData = $this->getFormData($id);
-				$rc = $this->generateForm( $id , $formData, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
+				$edit = $this->getFormData($id);
+				$rc = $this->generateForm( $id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
 		return $rc;
@@ -1597,20 +1578,17 @@ class PersonChangePassword extends Handler
 	
 	function generateForm( $id )
 	{
-
-		/* TODO: person_load */
-		$result = db_query( "SELECT firstname, lastname, username FROM person WHERE user_id = %d", $id);
-		if(1 != db_num_rows($result)) {
+		$user = person_load( array ('user_id' => $id ));
+		if( !$user ) {
 			$this->error_exit("That user does not exist");
 		}
-		$user = db_fetch_object($result);
 		
 		$this->setLocation(array(
-			"$user->firstname $user->lastname" => "person/view/$id",
+			$user->fullname => "person/view/$id",
 			'Change Password' => 0
 		));
 
-		$output = para("You are changing the password for '$user->firstname $user->lastname' (username '$user->username').");
+		$output = para("You are changing the password for '$user->fullname' (username '$user->username').");
 
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= "<div class='pairtable'>";
@@ -1703,41 +1681,28 @@ END_TEXT;
 	function perform ( $edit = array() )
 	{
 		$fields = array();
-		$fields_data = array();
 		if(validate_nonblank($edit['username'])) {
-			$fields[] = "username = '%s'";
-			$fields_data[] = $edit['username'];
+			$fields['username'] = $edit['username'];
 		}
 		if(validate_nonblank($edit['email'])) {
-			$fields[] = "email = '%s'";
-			$fields_data[] = $edit['email'];
+			$fields['email'] = $edit['email'];
 		}
 		if(validate_nonblank($edit['member_id'])) {
-			$fields[] = "member_id = %d";
-			$fields_data[] = $edit['member_id'];
+			$fields['member_id'] = $edit['member_id'];
 		}
 		
-		if( count($fields) < 1 || (count($fields) != count($fields_data))) {
+		if( count($fields) < 1 ) {
 			$this->error_exit("You must supply at least one of username, member ID, or email address");
 		}
 
 		/* Now, try and find the user */
-		$sql = "SELECT user_id,firstname,lastname,username,email FROM person WHERE ";
-		$sql .= join(" AND ",$fields);
-
-		$result = db_query($sql, $fields_data);
-		
-		if(db_num_rows($result) > 1) {
-			$this->error_exit("You did not supply enough identifying information.  Try filling in more data.");
-		}
+		$user = person_load( $fields );
 
 		/* Now, we either have one or zero users.  Regardless, we'll present
 		 * the user with the same output; that prevents them from using this
 		 * to guess valid usernames.
 		 */
-		if(db_num_rows($result) == 1) {
-			$user = db_fetch_object($result);
-	
+		if( $user ) {
 			/* Generate a password */
 			$pass = generate_password();
 			$cryptpass = md5($pass);
@@ -1786,6 +1751,54 @@ EOM;
 END_TEXT;
 		return $output;
 	}
+}
+
+/**
+ * Load a single user account object from the database using the 
+ * supplied query data.  If more than one account matches, we will
+ * return only the first one.  If fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the user to be loaded.
+ */
+function person_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if ($key == 'password') {
+			$query[] = "p.$key = '" . md5($value) . "'";
+		} else {
+			$query[] = "p.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+		p.*,
+		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
+		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp,
+		w.name AS ward_name, 
+		w.num AS ward_number, 
+		w.city AS ward_city 
+		FROM person p 
+		LEFT JOIN ward w ON (p.ward_id = w.ward_id)
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	$user = db_fetch_object($result);
+
+	/* set any defaults for unset values */
+	if(!$user->height) {
+		$user->height = 0;
+	}
+
+	/* set derived attributes */
+	$user->fullname = "$user->firstname $user->lastname";
+
+	return $user;
 }
 
 ?>

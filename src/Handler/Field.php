@@ -442,18 +442,14 @@ class FieldAssign extends Handler
 
 	function generateConfirm ( $id, $day, $edit )
 	{
-		/* TODO: league_load() */
-		$result = db_query("SELECT l.league_id, 
-			IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS name
-			FROM league l WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s',l.day) > 0) AND l.league_id = %d", $day, $edit['league_id']);
-			
-		if( db_num_rows($result) < 1) {
+		$league = league_load( array('league_id'=> $edit['league_id'], 'allow_schedule' => 'Y', '_extra' => "(FIND_IN_SET('" . check_query($day). "',l.day) > 0)") );
+		
+		if( ! $league ) {
 			$this->error_exit("You must provide a valid league ID");
 			return false;
 		}
-			
-		$league = db_fetch_object($result);
-		
+	
+		/* TODO: field_load */
 		$field_name = get_field_name($id);
 		$this->setLocation(array(
 			$field_name => "field/view/$id",
@@ -463,7 +459,7 @@ class FieldAssign extends Handler
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= form_hidden('edit[league_id]', $edit['league_id']);
 
-		$output .= para("You have chosen to assign field <b>$field_name</b> to <b>$league->name</b> for <b>$day</b>")
+		$output .= para("You have chosen to assign field <b>$field_name</b> to <b>$league->fullname</b> for <b>$day</b>")
 			. para("If this is correct, please click 'Submit' below to proceed");
 
 		$output .= form_submit("Submit");
@@ -502,19 +498,17 @@ class FieldUnassign extends Handler
 		}
 		$leagueID = arg(4);
 		
-		/* TODO: league_load() */
-		$result = db_query("SELECT l.*, IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS name FROM league l WHERE l.league_id = %d", $leagueID);
-		if(1 != db_num_rows($result)) {
+		$league = league_load( array('league_id' => $leagueID) );
+		if( !$league ) {
 			$this->error_exit("That league does not exist.");
-			return false;
 		}
-		$league = db_fetch_object($result);
 		
 		$edit = $_POST['edit'];
 		
 		switch($edit['step']) {
 			default:
 			case 'confirm':
+				/* TODO: field_load */
 				$field_name = get_field_name($id);
 				$this->setLocation(array(
 					$field_name => "field/view/$id",
@@ -522,7 +516,7 @@ class FieldUnassign extends Handler
 				));
 
 				$output = form_hidden('edit[step]', 'perform');
-				$output .= para("You have chosen to remove the assignment of <b>$field_name</b> from <b>$league->name</b> for <b>$day</b>")
+				$output .= para("You have chosen to remove the assignment of <b>$field_name</b> from <b>$league->fullname</b> for <b>$day</b>")
 					. para("If this is correct, please click 'Submit' below to proceed");
 				$output .= form_submit("Submit");
 				$rc = form($output);

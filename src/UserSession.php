@@ -74,23 +74,17 @@ class UserSession
 		if( !isset($client_ip) ) {
 			return false;
 		}
+		
+		$user = person_load( array( 'session_cookie' => $cookie, 'client_ip' => $client_ip ) );
 
-		$result = db_query("SELECT *, UNIX_TIMESTAMP(waiver_signed) as waiver_timestamp, UNIX_TIMESTAMP(dog_waiver_signed) as dog_waiver_timestamp FROM person WHERE session_cookie = '%s' AND client_ip = '%s'", $cookie, $client_ip);
-
-		$row = db_fetch_array($result);
-
-		if( $cookie != $row['session_cookie']) {
-			/* Failed sanity check - either we didn't get a row, or the row
-			 * contains crap.
-			 */
+		if( ! $user ) {
 			return false;
 		}
 
-		/* Ok, the user is good.  Now we need to save the user data 
+		/* Ok, the user is good.  Now we need to save the user 
 		 * and generate a session key.
 		 */
-		
-		$this->data = $row;
+		$this->user = $user;
 		
 		$this->session_key = $cookie;
 
@@ -111,30 +105,18 @@ class UserSession
 		if( !isset($password) ) {
 			return false;
 		}
+
+		$user = person_load( array( 'username' => $username, 'password' => $password ) );
+
+		if( ! $user ) {
+			return false;
+		}
 	
-		$result = db_query("SELECT * FROM person WHERE username = '%s'",$username);
-		
-		## So, we assume that the first username we get back is the only one =)
-		$row = db_fetch_array($result);
 
-		if( $username != $row['username']) {
-			/* Failed sanity check - either we didn't get a row, or the row
-			 * contains crap.
-			 */
-			return false;
-		}
-
-		/* Now, check password */
-		$cryptpass = md5($password);
-		if ($cryptpass != $row['password']) {
-			return false;
-		}
-
-		/* Ok, the user is good.  Now we need to save the user data 
+		/* Ok, the user is good.  Now we need to save the user
 		 * and generate a session key.
 		 */
-		
-		$this->data = $row;
+		$this->user = $user;
 		
 		$this->session_key = $this->set_session_key($client_ip);
 
@@ -173,15 +155,15 @@ class UserSession
 	 */
 	function attr_get ($attr)
 	{
-		if(!isset($this->data)) {
+		if(!isset($this->user)) {
 			return null;
 		}
 		
-		if(!isset($this->data[$attr])) {
+		if(!isset($this->user->$attr)) {
 			return null;
 		}
 
-		return $this->data[$attr];
+		return $this->user->$attr;
 		
 	}
 
@@ -192,7 +174,7 @@ class UserSession
 	{
 		$sesskey = session_id();
 
-		$result = db_query("UPDATE person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sesskey, $client_ip, $this->data['user_id']);
+		$result = db_query("UPDATE person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sesskey, $client_ip, $this->user->user_id);
 		if(!db_affected_rows()) {
 			echo "Error: ", db_error();
 			return false;
@@ -206,21 +188,12 @@ class UserSession
 	 * Note that this session may not be valid, as that is determined by its
 	 * account status.
 	 *
-	 * We assume that a session is loaded if it contains a user_id in its data
-	 * member.
+	 * We assume that a session is loaded if it contains a user with a
+	 * user_id.
 	 */
 	function is_loaded ()
 	{
-		global $session;
-
-		if( !isset($this->data) ) {
-			return false;
-		}
-		if( !isset($this->data['user_id']) ) {
-			return false;
-		}
-
-		return true;
+		return !is_null($this->attr_get('user_id'));
 	}
 
 	/**
@@ -230,13 +203,11 @@ class UserSession
 	 */
 	function is_valid ()
 	{
-		global $session;
-
-		if( ! $session->is_loaded() ) {
+		if( ! $this->is_loaded() ) {
 			return false;
 		}
 
-		return ($session->attr_get('status') == 'active');
+		return ($this->attr_get('status') == 'active');
 	}
 
 	/** 
@@ -256,7 +227,7 @@ class UserSession
 	 */
 	function is_captain_of ($team_id)
 	{
-		$result = db_query("SELECT status FROM teamroster where player_id = %d AND team_id = %d",$this->data['user_id'], $team_id);
+		$result = db_query("SELECT status FROM teamroster where player_id = %d AND team_id = %d",$this->user->user_id, $team_id);
 
 		$status = db_result($result);
 
@@ -280,7 +251,7 @@ class UserSession
 
 		if($league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
-			if ($this->data['class'] == 'volunteer') {
+			if ($this->user->class == 'volunteer') {
 				return true;
 			}
 		}
@@ -289,7 +260,7 @@ class UserSession
 
 		$coordInfo = db_fetch_object($result);
 
-		if( ($this->data['user_id'] == $coordInfo->coordinator_id) || ($this->data['user_id'] == $coordInfo->alternate_id)) {
+		if( ($this->user->user_id == $coordInfo->coordinator_id) || ($this->user->user_id == $coordInfo->alternate_id)) {
 			return true;
 		}
 		
@@ -325,7 +296,7 @@ class UserSession
 			return true;
 		}
 
-		if( ($this->data['user_id'] == $league->coordinator_id) || ($this->data['user_id'] == $league->alternate_id)) {
+		if( ($this->user->user_id == $league->coordinator_id) || ($this->user->user_id == $league->alternate_id)) {
 			return true;
 		}
 

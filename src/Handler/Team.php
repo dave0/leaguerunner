@@ -93,7 +93,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 		
-		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $id, $session->data['user_id']);
+		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $id, $session->attr_get('user_id'));
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
