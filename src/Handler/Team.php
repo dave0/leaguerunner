@@ -1225,6 +1225,23 @@ function team_statistics ( )
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Lowest-rated $current_season teams:", table(null, $sub_table));
+
+	$result = db_query("SELECT COUNT(*) AS num, IF(s.status = 'home_default',s.home_team,s.away_team) AS team_id FROM schedule s, league l WHERE s.league_id = l.league_id AND l.season = '%s' AND (s.status = 'home_default' OR s.status = 'away_default') GROUP BY team_id ORDER BY num DESC", $current_season);
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$team = team_load( array('team_id' => $row['team_id']) );
+		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
+	}
+	$rows[] = array("Top defaulting $current_season teams:", table(null, $sub_table));
+	
+	$result = db_query("SELECT COUNT(*) AS num, IF(s.approved_by = -3,s.home_team,s.away_team) AS team_id FROM schedule s, league l WHERE s.league_id = l.league_id AND l.season = '%s' AND (s.approved_by = -2 OR s.approved_by = -3) GROUP BY team_id ORDER BY num DESC", $current_season);
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$team = team_load( array('team_id' => $row['team_id']) );
+		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
+	}
+	$rows[] = array("Top non-score-submitting $current_season teams:", table(null, $sub_table));
+	
 	
 	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	return form_group("Team Statistics", $output);
