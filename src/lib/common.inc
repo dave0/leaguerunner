@@ -98,7 +98,7 @@ function validate_postalcode ( $string )
 	 * postalcodes, but that would be a lot of work for potentially little
 	 * gain.
 	 */
-	if( preg_match("/^([A-Z]\d)$1$1$/", $string) ) {
+	if( preg_match("/^([A-Z])(\d)\\1\s*\\2\\1\\2$/", $string) ) {
 		return false;
 	}
 	
