@@ -1,0 +1,102 @@
+<?php
+// $Id$
+
+/*
+	Evil, evil hack to get Drupal to auth against the Leaguerunner database.
+
+	To make this work, need to:
+		grant SELECT,UPDATE on leaguerunner.* to ocua_drupal@localhost;
+	on the leaguerunner database
+	and also hack user.module so that it exports as global:
+		$db_link -- the database handle returned by mysql_pconnect()
+		$db_name -- the name of the database used by Drupal
+	This is so that we can switch back and forth between the databases as
+	necessary.  
+
+	Dave O'Neill <dmo@dmo.ca>
+ */
+
+function leaguerunner_system($field){
+  $system["description"] = t("Enables login with Leaguerunner ID and password.");
+  return $system[$field];
+}
+
+function leaguerunner_info($field = 0) {
+  $info["name"] = "Leaguerunner";
+  $info["protocol"] = "mysql";
+
+  if ($field) {
+    return $info[$field];
+  }
+  else {
+    return $info;
+  }
+}
+
+function leaguerunner_auth($username, $password, $server) {
+	global $db_link, $db_name;
+
+	if ($server != "ocua") {
+		error_log("This auth isn't for Leaguerunner; bail out");
+		return 0;
+	}
+
+	mysql_select_db("leaguerunner", $db_link);
+	$username = mysql_escape_string($username);
+	$res = db_query("SELECT username,password FROM person WHERE username = '$username'");
+	if( ! $res ) {
+		mysql_select_db($db_name, $db_link);
+		error_log("Error, got some db error; bail out!");
+      		watchdog("error", "SQL error: ". db_error());
+		return 0;
+	}
+
+	if(db_num_rows($res) != 1) {
+		mysql_select_db($db_name, $db_link);
+		watchdog("error", "SQL error fetching user from db: ". db_error());
+		error_log("Error, got too many or too few results; bail out!");
+		return 0;
+	}
+
+	$row = db_fetch_array($res);
+
+	if( $username != $row['username']) {
+		error_log("Error in results returned; bail out!");
+	    mysql_select_db($db_name, $db_link);
+	    /* Failed sanity check - either we didn't get a row, or the row
+	     * contains crap.
+	     */
+	    return 0;
+	}
+
+	/* Now, check password */
+	$cryptpass = md5($password);
+	if ($cryptpass != $row['password']) {
+		error_log("Error comparing passwords; bail out!");
+		mysql_select_db($db_name, $db_link);
+		return 0;
+	}
+	
+
+	mysql_select_db($db_name, $db_link);
+	/* TODO: Also set session cookie for online system */	
+	error_log("Logged in; returning success");
+	return 1;
+}
+
+function leaguerunner_page() {
+  global $theme;
+
+  $theme->header();
+  $theme->box("Leaguerunner", leaguerunner_auth_help());
+  $theme->footer();
+}
+
+function leaguerunner_auth_help() {
+  $site = variable_get("site_name", "this web site");
+
+  $output = "<p><a href=\"http://www.dmo.ca/projects/leaguerunner/\">Leaguerunner</a> is a system to manage Ultimate Frisbee leagues.\n ";
+  return t($output, array("%s" => "<i>$site</i>"));
+}
+
+?>
