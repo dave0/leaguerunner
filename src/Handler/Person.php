@@ -1480,27 +1480,27 @@ class PersonChangePassword extends Handler
 				if($edit['password_one'] != $edit['password_two']) {
 					error_exit("You must enter the same password twice.");
 				}
-				$user->set('password', md5($edit['password_one']));
-				if( ! $user->save() ) {
+				$this->person->set('password', md5($edit['password_one']));
+				if( ! $this->person->save() ) {
 					error_exit("Couldn't change password due to internal error");
 				}
 				local_redirect(url("person/view/" . $this->person->user_id));
 				break;
 			default:
-				$rc = $this->generateForm( $this->person->user_id );
+				$rc = $this->generateForm();
 		}
 		
 		return $rc;
 	}
 	
-	function generateForm( $user )
+	function generateForm( )
 	{
 		$this->setLocation(array(
-			$user->fullname => "person/view/$user->user_id",
+			$user->fullname => "person/view/" . $this->person->user_id,
 			'Change Password' => 0
 		));
 
-		$output = para("You are changing the password for '$user->fullname' (username '$user->username').");
+		$output = para("You are changing the password for '" . $this->person->fullname . "' (username '" . $this->person->username . "').");
 
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= "<div class='pairtable'>";
