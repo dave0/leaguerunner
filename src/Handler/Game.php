@@ -223,7 +223,7 @@ class GameSubmit extends Handler
 
 				$this->tmpl->assign("message", "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.");
 			} else {
-				if($this->save_score($our_entry) == false) {
+				if($this->save_one_score($our_entry) == false) {
 					return false;
 				}
 				$this->tmpl->assign("message", "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.");
@@ -341,13 +341,13 @@ class GameSubmit extends Handler
 
 		if($our_entry['defaulted'] == 'us') {
 			$our_entry['score_for'] = 0;
-			$our_entry['score_against'] = 6; 
+			$our_entry['score_against'] = 6;
 		} else if($our_entry['defaulted'] == 'them') {
 			$our_entry['score_for'] = 6;
 			$our_entry['score_against'] = 0;
 		} else {
 			$our_entry['defaulted'] = 'no';
-		}
+		} 
 		
 		$res = $DB->query("INSERT INTO score_entry 
 			(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
