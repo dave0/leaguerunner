@@ -39,7 +39,7 @@ class Login extends Handler
 		}
 		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
-			$this->tmpl->assign("error", gettext("Incorrect username or password"));
+			$this->tmpl->assign("error", "Incorrect username or password");
 			return false;
 		}
 	
@@ -49,11 +49,11 @@ class Login extends Handler
 		 */
 		switch($session->attr_get('class')) {
 			case 'new':
-				$this->tmpl->assign("error",gettext("Login Denied.  Account creation is awaiting approval."));
+				$this->tmpl->assign("error","Login Denied.  Account creation is awaiting approval.");
 				return false;
 				break;
 			case 'locked':
-				$this->tmpl->assign("error", gettext("Login Denied.  Account has been locked by administrator."));
+				$this->tmpl->assign("error", "Login Denied.  Account has been locked by administrator.");
 				return false;
 				break;
 			default:
@@ -138,7 +138,7 @@ class Logout extends Handler
 		global $session;
 		$rc =  $session->expire();
 		if(! $rc) {
-			$this->error_text = gettext("Couldn't log out!");
+			$this->error_text = "Couldn't log out!";
 		}
 		return $rc;
 	}

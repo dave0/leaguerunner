@@ -113,7 +113,7 @@ class FieldAssign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = gettext("You must provide a valid league ID");
+			$this->error_text = "You must provide a valid league ID";
 			return false;
 		}
 
@@ -143,7 +143,7 @@ class FieldAssign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = gettext("You must provide a valid league ID");
+			$this->error_text = "You must provide a valid league ID";
 			return false;
 		}
 
@@ -346,7 +346,7 @@ class FieldEdit extends Handler
 		
 		$field_name = var_from_getorpost("field_name");
 		if( !validate_name_input($field_name) ) {
-			$this->error_text .= gettext("Field name cannot be left blank") . "<br>";
+			$this->error_text .= "Field name cannot be left blank<br>";
 			$rc = false;
 		}
 		
@@ -477,7 +477,7 @@ class FieldUnassign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = gettext("You must provide a valid league ID");
+			$this->error_text = "You must provide a valid league ID";
 			return false;
 		}
 
@@ -507,7 +507,7 @@ class FieldUnassign extends Handler
 			return false;
 		}
 		if(sizeof($league_info) < 1) {
-			$this->error_text = gettext("You must provide a valid league ID");
+			$this->error_text = "You must provide a valid league ID";
 			return false;
 		}
 
@@ -550,7 +550,7 @@ class FieldView extends Handler
 		}
 
 		if(!isset($row)) {
-			$this->error_text = gettext("The field [$id] does not exist");
+			$this->error_text = "The field [$id] does not exist";
 			return false;
 		}
 	

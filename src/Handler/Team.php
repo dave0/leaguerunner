@@ -451,19 +451,19 @@ class TeamPlayerStatus extends Handler
 		global $DB, $session, $id, $player_id, $current_status;
 
 		if(!$session->is_valid()) {
-			$this->error_text = gettext("You do not have a valid session");
+			$this->error_text = "You do not have a valid session";
 			return false;
 		}
 		
 		$id = var_from_getorpost('id');
 		if(is_null($id)) {
-			$this->error_text = gettext("You must provide a team ID");
+			$this->error_text = "You must provide a team ID";
 			return false;
 		}
 		
 		$player_id = var_from_getorpost('player_id');
 		if(is_null($player_id)) {
-			$this->error_text = gettext("You must provide a player ID");
+			$this->error_text = "You must provide a player ID";
 			return false;
 		}
 	
@@ -482,7 +482,7 @@ class TeamPlayerStatus extends Handler
 		if(!($is_captain  || $is_administrator)) {
 			$allowed_id = $session->attr_get('user_id');
 			if($allowed_id != $player_id) {
-				$this->error_text = gettext("You cannot change status for that player ID");
+				$this->error_text = "You cannot change status for that player ID";
 				return false;
 			}
 		}
@@ -596,7 +596,7 @@ class TeamPlayerStatus extends Handler
 					return false;
 				}
 				if($is_open == 'closed') {
-					$this->error_text = gettext("Sorry, this team is not open for new players to join");
+					$this->error_text = "Sorry, this team is not open for new players to join";
 					return false;
 				}
 				$this->_permissions['set_player_request'] = true;
@@ -626,7 +626,6 @@ class TeamPlayerStatus extends Handler
 				break;
 			default:
 				$this->set_template_file("Team/player_status_form.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
@@ -842,7 +841,7 @@ class TeamStandings extends Handler
 		$this->_league_id = $DB->getOne("SELECT league_id FROM leagueteams WHERE team_id = ?", array($id));
 
 		if($this->is_database_error($this->_league_id)) {
-			$this->error_text .= '<br' . gettext("The team [$id] may not exist");
+			$this->error_text .= "<br>The team [$id] may not exist";
 			return false;
 		}
 
@@ -914,7 +913,7 @@ class TeamView extends Handler
 		}
 
 		if(!isset($row)) {
-			$this->error_text = gettext("That is not a valid team ID");
+			$this->error_text = "That is not a valid team ID";
 			return false;
 		}
 
@@ -1034,7 +1033,7 @@ class TeamScheduleView extends Handler
 		}
 
 		if(!isset($row)) {
-			$this->error_text = gettext("The team [$id] does not exist");
+			$this->error_text = "The team [$id] does not exist";
 			return false;
 		}
 

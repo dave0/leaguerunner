@@ -58,13 +58,13 @@ class PersonView extends Handler
 		global $DB, $session, $id;
 
 		if(!$session->is_valid()) {
-			$this->error_text = gettext("You do not have a valid session");
+			$this->error_text = "You do not have a valid session";
 			return false;
 		}
 		
 		$id = var_from_getorpost('id');
 		if(is_null($id)) {
-			$this->error_text = gettext("You must provide a user ID");
+			$this->error_text = "You must provide a user ID";
 			return false;
 		}
 
@@ -234,7 +234,7 @@ class PersonView extends Handler
 			if(array_key_exists('waiver_signed', $row)) {
 				$this->tmpl->assign("waiver_signed", $row['waiver_signed']);
 			} else {
-				$this->tmpl->assign("waiver_signed", gettext("Not signed"));
+				$this->tmpl->assign("waiver_signed", "Not signed");
 			}
 		}
 		
@@ -243,7 +243,7 @@ class PersonView extends Handler
 				$this->tmpl->assign("last_login", $row['last_login']);
 				$this->tmpl->assign("client_ip", $row['client_ip']);
 			} else {
-				$this->tmpl->assign("last_login", gettext("Never logged in"));
+				$this->tmpl->assign("last_login", "Never logged in");
 			}
 		}
 
@@ -305,7 +305,7 @@ class PersonDelete extends PersonView
 		/* Safety check: Don't allow us to delete ourselves */
 		$id = var_from_getorpost('id');
 		if($session->attr_get('user_id') == $id) {
-			$this->error_text = gettext("You cannot delete the currently logged in user");
+			$this->error_text = "You cannot delete the currently logged in user";
 			return false;
 		}
 		
@@ -317,7 +317,7 @@ class PersonDelete extends PersonView
 			default:
 				$this->set_template_file("Person/admin_confirm.tmpl");
 				$this->tmpl->assign("page_step", 'perform');
-				$this->tmpl->assign("page_instructions", gettext("Confirm that you wish to delete this user from the system."));
+				$this->tmpl->assign("page_instructions", "Confirm that you wish to delete this user from the system.");
 				$rc = $this->generate_view();
 		}
 		
@@ -354,7 +354,7 @@ class PersonDelete extends PersonView
 			return false;
 		}
 		if($res > 0) {
-			$this->error_text = gettext("Account cannot be deleted while player is a team captain.");
+			$this->error_text = "Account cannot be deleted while player is a team captain.";
 			return false;
 		}
 		
@@ -364,7 +364,7 @@ class PersonDelete extends PersonView
 			return false;
 		}
 		if($res > 0) {
-			$this->error_text = gettext("Account cannot be deleted while player is a league coordinator.");
+			$this->error_text = "Account cannot be deleted while player is a league coordinator.";
 			return false;
 		}
 		
@@ -432,7 +432,7 @@ class PersonApproveNewAccount extends PersonView
 			default:
 				$this->set_template_file("Person/admin_confirm.tmpl");
 				$this->tmpl->assign("page_step", 'perform');
-				$this->tmpl->assign("page_instructions", gettext("Confirm that you wish to approve this user.  The account will be moved to 'inactive' status."));
+				$this->tmpl->assign("page_instructions", "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.");
 				$rc = $this->generate_view();
 		}
 		
@@ -481,19 +481,19 @@ class PersonApproveNewAccount extends PersonView
 		if($DB->affectedRows() == 1) {
 			$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
 			if($this->is_database_error($member_id)) {
-				$this->error_text = gettext("Couldn't get member ID allocation");
+				$this->error_text = "Couldn't get member ID allocation";
 				return false;
 			}
 		} else {
 			/* Possible empty, so fill it */
 			$lock = $DB->getOne("SELECT GET_LOCK('member_id_${year_started}_lock',10)");
 			if($this->is_database_error($lock)) {
-				$this->error_text = gettext("Couldn't get lock for member_id allocation");
+				$this->error_text = "Couldn't get lock for member_id allocation";
 				return false;
 			}
 			if($lock == 0) {
 				/* Couldn't get lock */
-				$this->error_text = gettext("Couldn't get lock for member_id allocation");
+				$this->error_text = "Couldn't get lock for member_id allocation";
 				return false;
 			}
 			$result = $DB->query("REPLACE INTO member_id_sequence values(?,1)", array($year_started));
@@ -619,7 +619,7 @@ class PersonEdit extends Handler
 				break;
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
-				$this->tmpl->assign("instructions", gettext("Edit any of the following fields and click 'Submit' when done."));
+				$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
@@ -747,7 +747,7 @@ class PersonEdit extends Handler
 			$this->set_template_file("Person/edit_form.tmpl");
 			$this->tmpl->assign("page_step", 'confirm');
 			$this->tmpl->assign("error_message", $this->error_text);
-			$this->tmpl->assign("instructions", gettext("Edit any of the following fields and click 'Submit' when done."));
+			$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
 			return $this->generate_form();
 		}
 
@@ -875,12 +875,12 @@ class PersonEdit extends Handler
 		}
 
 		if(count($fields_data) != count($fields)) {
-			$this->error_text = gettext("Internal error: Incorrect number of fields set");
+			$this->error_text = "Internal error: Incorrect number of fields set";
 			return false;
 		}
 		
 		if(count($fields) <= 0) {
-			$this->error_text = gettext("You have no permission to edit");
+			$this->error_text = "You have no permission to edit";
 			return false;
 		}
 		
@@ -1042,7 +1042,7 @@ class PersonCreate extends PersonEdit
 	function generate_form ()
 	{
 		
-		$this->tmpl->assign("instructions", gettext("To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system."));
+		$this->tmpl->assign("instructions", "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
 		$this->tmpl->assign("provinces",
@@ -1082,7 +1082,7 @@ class PersonCreate extends PersonEdit
 		$password_once = var_from_getorpost("password_once");
 		$password_twice = var_from_getorpost("password_twice");
 		if($password_once != $password_twice) {
-			$this->error_text = gettext("First and second entries of password do not match");
+			$this->error_text = "First and second entries of password do not match";
 			return false;
 		}
 		$crypt_pass = md5($password_once);
@@ -1138,7 +1138,7 @@ class PersonActivate extends PersonEdit
 		global $session;
 		if(!$session->is_valid()) {
 			if ($session->attr_get('class') != 'inactive') {
-				$this->error_text = gettext("You do not have a valid session");
+				$this->error_text = "You do not have a valid session";
 				return false;
 			} 
 		}
@@ -1182,7 +1182,7 @@ class PersonActivate extends PersonEdit
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
 				$rc = $this->generate_form();
-				$this->tmpl->assign("instructions", gettext("In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary."));
+				$this->tmpl->assign("instructions", "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 				$this->tmpl->assign("page_step", 'confirm');
 		}
 		
@@ -1224,7 +1224,7 @@ class PersonActivate extends PersonEdit
 		$signed = var_from_getorpost('signed');
 		
 		if('yes' != $signed) {
-			$this->error_text = gettext("Sorry, your account may only be activated by agreeing to the waiver.");
+			$this->error_text = "Sorry, your account may only be activated by agreeing to the waiver.";
 			return false;
 		}
 
@@ -1465,7 +1465,7 @@ class PersonChangePassword extends Handler
 		$pass_two = var_from_getorpost('password_two');
 
 		if($pass_one != $pass_two) {
-			$this->error_text = gettext("You must enter the same password twice.");
+			$this->error_text = "You must enter the same password twice.";
 			return false;
 		}
 
