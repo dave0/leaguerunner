@@ -12,12 +12,21 @@ create table league_gameslot_availability (
 	slot_id		integer NOT NULL
 );
 
+-- dump current field assignments for reassignment in future
+select l.name, l.tier, s.name, s.code, f.num, a.day 
+	FROM field_assignment a 
+		LEFT JOIN league l on (l.league_id = a.league_id) 
+		LEFT JOIN field f ON f.field_id = a.field_id 
+		LEFT JOIN site s ON f.site_id = s.site_id 
+	WHERE l.season = 'Summer' 
+	ORDER BY l.season, l.day, l.tier, s.name, f.num;
+
 -- Bring field table up-to-date
 alter table field drop index field_site;
 alter table field drop index field_status;
 alter table field change field_id fid int;
 alter table field drop primary key;
-alter table field change field_id fid int NOT NULL PRIMARY KEY AUTO_INCREMENT;
+alter table field change fid fid int NOT NULL PRIMARY KEY AUTO_INCREMENT;
 alter table field add parent_fid int after notes;
 alter table field add name varchar(255) after parent_fid;
 alter table field add code char(3) after name;
@@ -75,15 +84,6 @@ alter table schedule drop field_id;
 
 -- Remove now-unnecessary site table
 drop table site;
-
--- dump current field assignments for reassignment in future
-select l.name, l.tier, s.name, s.code, f.num, a.day 
-	FROM field_assignment a 
-		LEFT JOIN league l on (l.league_id = a.league_id) 
-		LEFT JOIN field f ON f.field_id = a.field_id 
-		LEFT JOIN site s ON f.site_id = s.site_id 
-	WHERE l.season = 'Summer' 
-	ORDER BY l.season, l.day, l.tier, s.name, f.num;
 	
 -- TODO: Drop now-unused information
 -- drop table field_assignment;
