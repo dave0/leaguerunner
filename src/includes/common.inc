@@ -826,9 +826,9 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$output .= "<table border='1' cellspacing='0'>\n";
 	$output .= "<tr>" 
 		. "<td colspan='7' class='header_month'>"
-		. l("<<<", "op=$calendarOp&month=$prevMonth&year=$prevYear")
+		. l("<<<", "$calendarOp/$prevYear/$prevMonth")
 		. " " . date("F Y", $startOfMonth)
-		. " " . l(">>>", "op=$calendarOp&month=$nextMonth&year=$nextYear")
+		. " " . l(">>>", "$calendarOp/$nextYear/$nextMonth")
 		. "</td></tr>";
 
 	/* Generate days of the week headers 
@@ -861,7 +861,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 		}
 		
 		$output .= "<td $attributes>"
-		. l($curDate, "op=$dayOp&year=$year&month=$month&day=$curDate")
+		. l($curDate, "$dayOp/$year/$month/$curDate")
 		. "</td>";
 		
 		if($curColumn == 6) {
