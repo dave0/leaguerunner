@@ -20,7 +20,7 @@ class LeagueScheduleAddWeek extends Handler
 
 		$this->op = 'league_schedule_addweek';
 		$this->section = 'league';
-		$this->set_title("Schedule &raquo; Add Week");
+		$this->title = "Add Week";
 
 		return true;
 	}
@@ -107,10 +107,13 @@ class LeagueScheduleAddWeek extends Handler
 			$league['day']
 		);
 
-		$this->set_title($this->title . " &raquo; " . $league['name']);
+		$leagueName = $league['name'];
 		if($league['tier']) {
-			$this->set_title($this->title . " Tier " . $league['tier']);
+			$leagueName .= " Tier " . $league['tier'];
 		}
+		$this->setLocation(array(
+			$leagueName => "op=league_view&id=$id",
+			$this->title => 0));
 
 		return $output;
 	}
@@ -152,12 +155,13 @@ class LeagueScheduleAddWeek extends Handler
 		$output .= form_hidden('day', $day);
 		$output .= para(form_submit('submit'));
 		
-		if($league['name']) {
-			$this->set_title($this->title . " &raquo; " . $league['name']);
-			if($league['tier']) {
-				$this->set_title($this->title . " Tier " . $league['tier']);
-			}
+		$leagueName = $league['name'];
+		if($league['tier']) {
+			$leagueName .= " Tier " . $league['tier'];
 		}
+		$this->setLocation(array(
+			$leagueName => "op=league_view&id=$id",
+			$this->title => 0));
 		
 		return form($output);
 	}
@@ -226,7 +230,7 @@ class LeagueScheduleEdit extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Schedule &raquo; Edit");
+		$this->title = "Edit";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -369,12 +373,13 @@ class LeagueScheduleEdit extends Handler
 		$output .= "</table>";
 		$output .= para(form_submit('submit'));
 		
-		if($league['name']) {
-			$this->set_title($this->title . " &raquo; " . $league['name']);
-			if($league['tier']) {
-				$this->set_title($this->title . " Tier " . $league['tier']);
-			}
+		$leagueName = $league['name'];
+		if($league['tier']) {
+			$leagueName .= " Tier " . $league['tier'];
 		}
+		$this->setLocation(array(
+			$leagueName => "op=league_view&id=$id",
+			$this->title => 0));
 
 		return form($output);
 	}
@@ -430,7 +435,7 @@ class LeagueScheduleView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Schedule &raquo; View");
+		$this->title = "View Schedule";
 		$this->_permissions = array(
 			"edit_schedule" => false,
 			"view_spirit" => false,
@@ -487,10 +492,13 @@ class LeagueScheduleView extends Handler
 			return false;
 		}
 
-		$this->set_title($this->title . " &raquo; " . $league['name']);
+		$leagueName = $league['name'];
 		if($league['tier']) {
-			$this->set_title($this->title . " Tier " . $league['tier']);
+			$leagueName .= " Tier " . $league['tier'];
 		}
+		$this->setLocation(array(
+			$leagueName => "op=league_view&id=$id",
+			$this->title => 0));
 
 		/* 
 		 * Now, grab the schedule

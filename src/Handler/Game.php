@@ -6,7 +6,7 @@ class GameSubmit extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Submit Game Score");
+		$this->title = "Submit Game Score";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -65,7 +65,8 @@ class GameSubmit extends Handler
 			default:
 				$rc = $this->generateForm($id, $team_id);
 		}
-		
+	
+		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 
@@ -443,7 +444,7 @@ class GameFinalizeScore extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Finalize Game Score");
+		$this->title = "Finalize Game Score";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -473,7 +474,7 @@ class GameFinalizeScore extends Handler
 			default:
 				$rc = $this->generateForm($id);
 		}
-		
+		$this->setLocation(array($this->title => 0));	
 		return $rc;
 	}
 

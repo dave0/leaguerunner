@@ -16,7 +16,6 @@ class FieldCreate extends FieldEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create New Field");
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:site_id',
@@ -24,9 +23,9 @@ class FieldCreate extends FieldEdit
 			'deny'
 		);
 		
-		$this->set_title("Create Field");
 		$this->op = 'field_create';
 		$this->section = 'field';
+		$this->setLocation(array("Create New Field" => 0));
 		return true;
 	}
 
@@ -172,7 +171,7 @@ class FieldEdit extends Handler
 			'deny'
 		);
 
-		$this->set_title("Edit Field");
+		$this->title = "Edit Field";
 		$this->op = 'field_edit';
 		$this->section = 'field';
 		return true;
@@ -251,7 +250,10 @@ class FieldEdit extends Handler
 		$output .= "</table>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
-		$this->set_title($this->title . " &raquo; " . $field['site_name'] . " " . $field['num']);
+		$this->setLocation(array(
+			$field['site_name'] . " " . $field['num'] => "op=field_view&id=$id",
+			$this->title => 0
+		));
 		
 		return form($output);
 	}
@@ -299,8 +301,10 @@ class FieldEdit extends Handler
 		$output .= "</table>";
 		$output .= para(form_submit("submit"));
 
-		
-		$this->set_title($this->title . " &raquo; " . $site['site_name'] . " " . $field['num']);
+		$this->setLocation(array(
+			$site['site_name'] . " " . $field['num'] => "op=field_view&id=$id",
+			$this->title => 0
+		));
 
 		return form($output);
 	}
@@ -371,6 +375,7 @@ class FieldView extends Handler
 			'admin_sufficient',
 			'allow',
 		);
+		$this->title = 'View Field';
 		$this->op = 'field_view';	
 		$this->section = 'field';
 		return true;
@@ -404,7 +409,10 @@ class FieldView extends Handler
 			$this->error_exit("That field does not exist");
 		}
 		
-		$this->set_title("View Field &raquo; " . $field['name'] . " " . $field['num']);
+		$this->setLocation(array(
+			$field['name'] . " " . $field['num'] => "op=field_view&id=$id",
+			$this->title => 0
+		));
 
 		$daysAvailable = strlen($field['availability']) ? split(",", $field['availability']) : array();
 		
@@ -450,7 +458,7 @@ class FieldView extends Handler
 			} else {
 				$bookings .= td("Unavailable", array('class' => 'booking_item', 'colspan' => 2));
 			}
-			
+
 			$bookings .= "</tr>";
 		}
 		$bookings .= "</table>";
@@ -484,7 +492,7 @@ class FieldAssign extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Assign Field");
+		$this->title = "Assign Field";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -540,7 +548,10 @@ class FieldAssign extends Handler
 		global $DB;
 		
 		$field_name = get_field_name($id);
-		$this->set_title("Assign Field &raquo; $field_name");
+		$this->setLocation(array(
+			$field_name => "op=field_view&id=$id",
+			$this->title => 0
+		));
 
 		$output = form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'confirm');
@@ -567,11 +578,14 @@ class FieldAssign extends Handler
 		
 		$league_name = $league['name'];
 		if($league['tier']) {
-			$league_name .= " Tier " . $league_info['tier'];
+			$league_name .= " Tier " . $league['tier'];
 		}
 		
 		$field_name = get_field_name($id);
-		$this->set_title("Assign Field &raquo; $field_name");
+		$this->setLocation(array(
+			$field_name => "op=field_view&id=$id",
+			$this->title => 0
+		));
 		
 		$output = form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
@@ -600,7 +614,7 @@ class FieldUnassign extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Unassign Field");
+		$this->title = "Unassign Field";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -658,7 +672,10 @@ class FieldUnassign extends Handler
 			$league_name .= " Tier " . $league_info['tier'];
 		}
 		$field_name = get_field_name($id);
-		$this->set_title("Unassign Field &raquo; $field_name");
+		$this->setLocation(array(
+			$field_name => "op=field_view&id=$id",
+			$this->title => 0
+		));
 
 		$output = form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');

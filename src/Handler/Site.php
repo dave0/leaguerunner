@@ -14,8 +14,7 @@ class SiteCreate extends SiteEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create Field Site");
-		$this->breadcrumbs[] = "Create";
+		$this->title = "Create Field Site";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
@@ -57,7 +56,7 @@ class SiteEdit extends Handler
 
 	function initialize ()
 	{
-		$this->set_title("Edit Field Site");
+		$this->title = "Edit Field Site";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -89,9 +88,6 @@ class SiteEdit extends Handler
 					if($this->is_database_error($name)) {
 						return false;
 					}
-					$this->set_title($this->title . " &raquo; ". $name);
-					$this->breadcrumbs[] = l($name,"op=site_view&id=" . $this->id);
-					$this->breadcrumbs[] = l("Edit","op=site_edit&id=" . $this->id);
 				}
 				
 				return $this->generateConfirm(var_from_getorpost('site'));
@@ -113,9 +109,6 @@ class SiteEdit extends Handler
 					if($this->is_database_error($row)) {
 						return false;
 					}
-					$this->set_title($this->title . " &raquo; ". $row['name']);
-					$this->breadcrumbs[] = l($row['name'],"op=site_view&id=".$this->id);
-					$this->breadcrumbs[] = l("Edit","op=site_edit&id=" . $this->id);
 				} else {
 					$row = array();
 				}
@@ -171,6 +164,15 @@ class SiteEdit extends Handler
 			form_submit('Submit'),
 			form_reset('Reset'));
 		$output .= "</table>";
+		
+		if($this->id) {
+			$this->setLocation(array(
+				$data['name'] => "op=site_view&id=" . $this->id,
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => 0));
+		}
+		
 		return form($output);	
 	}
 
@@ -218,6 +220,13 @@ class SiteEdit extends Handler
 
 		$output .= simple_row( form_submit('Submit'), "");
 		$output .= "</table>";
+		if($this->id) {
+			$this->setLocation(array(
+				$data['name'] => "op=site_view&id=" . $this->id,
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => 0));
+		}
 		return form($output);
 	}
 
@@ -302,8 +311,6 @@ class SiteList extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Field Sites");
-		
 		$this->_permissions = array(
 			"field_admin"    => false,
 		);
@@ -315,6 +322,7 @@ class SiteList extends Handler
 		);
 		$this->op = "site_list";
 		$this->section = 'field';
+		$this->setLocation(array("List Field Sites" => 'op=' . $this->op));
 		return true;
 	}
 	
@@ -380,7 +388,7 @@ class SiteView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View Field Site");
+		$this->title= "View Field Site";
 		$this->_required_perms = array(
 			'require_var:id',
 			'admin_sufficient',
@@ -467,8 +475,10 @@ class SiteView extends Handler
 		
 		$output .= "</table>";
 		
-		$this->set_title("View Field Site &raquo; ".$site['name']." (" . $site['code'] . ")");
-		$this->breadcrumbs[] = l($site['name'],"op=site_view&id=" . $site['site_id']);
+		$this->setLocation(array(
+			$site['name'] => "op=site_view&id=" . $site['site_id'],
+			$this->title => 0
+		));
 		
 		return $output;
 	}

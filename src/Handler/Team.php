@@ -18,7 +18,7 @@ class TeamAddPlayer extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Add Player");
+		$this->title = "Add Player";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -52,6 +52,8 @@ class TeamAddPlayer extends Handler
         $query = $DB->prepare("SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE (class = 'active' OR class = 'volunteer' OR class='administrator') AND lastname LIKE ? ORDER BY lastname, firstname");
+
+		$this->setLocation(array( $this->title => 0));
 		
 		return $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op . "&id=$id", $letter);
 	}
@@ -64,7 +66,7 @@ class TeamCreate extends TeamEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create New Team");
+		$this->title = "Create Team";
 
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -131,7 +133,7 @@ class TeamEdit extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Edit Team");
+		$this->title = "Edit Team";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -202,7 +204,11 @@ class TeamEdit extends Handler
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		if($formData['name']) {
-			$this->set_title($this->title . " &raquo; " . $formData['name']);
+			$this->setLocation(array(
+				$formData['name']  => "op=team_view&id=$id",
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => "op=" . $this->op));
 		}
 
 		return form($output);
@@ -236,7 +242,11 @@ class TeamEdit extends Handler
 		$output .= para(form_submit("submit"));
 		
 		if($team_name) {
-			$this->set_title($this->title . " &raquo; " . $team_name);
+			$this->setLocation(array(
+				$team_name  => "op=team_view&id=$id",
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => "op=" . $this->op));
 		}
 		
 		return form($output);
@@ -313,7 +323,6 @@ class TeamList extends Handler
 	 */
 	function initialize ()
 	{
-		$this->set_title("List Teams");
 		$this->_permissions = array(
 			'delete' => false,
 			'create' => false,
@@ -325,6 +334,7 @@ class TeamList extends Handler
 		);
 		$this->op = 'team_list';
 		$this->section = 'team';
+		$this->setLocation(array("List Teams" => 'op=' . $this->op));
 		return true;
 	}
 	
@@ -374,7 +384,7 @@ class TeamPlayerStatus extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Change Player Status");
+		$this->title = "Change Player Status";
 
 		$this->positions = getRosterPositions();
 
@@ -569,6 +579,10 @@ class TeamPlayerStatus extends Handler
 			trigger_error("Database error");
 			return false;
 		}
+
+		$this->setLocation(array(
+			$team['name'] => "op=team_view&id=$id",
+			$this->title => 0));
 		
 		$player = $DB->getRow("SELECT 
 			p.firstname, p.lastname, p.member_id
@@ -724,6 +738,7 @@ class TeamView extends Handler
 			'captain_of:id',
 			'allow'
 		);
+		$this->title = "View Team";
 		$this->section = 'team';
 		$this->op = 'team_view';
 
@@ -773,7 +788,9 @@ class TeamView extends Handler
 
 		// Team names might have HTML in them, so we need to nuke it.
 		$team_name = check_form($team['name']);
-		$this->set_title("View Team &raquo; $team_name");
+		$this->setLocation(array(
+			$team_name => "op=team_view&id=$id",
+			$this->title => 0));
 
 		$links = array();
 		$links[] = l('schedule and scores', 
@@ -939,6 +956,7 @@ class TeamScheduleView extends Handler
 			'coordinate_league_containing:id',
 			'allow'
 		);
+		$this->title = "Schedule";
 		$this->op = 'team_schedule_view';
 		$this->section = 'team';
 
@@ -985,7 +1003,9 @@ class TeamScheduleView extends Handler
 		$links[] = l("view league schedule", "op=league_schedule_view&id=" . $team['league_id']);
 
 
-		$this->set_title("View Schedule &raquo; " . $team['team_name']);
+		$this->setLocation(array(
+			$team['team_name'] => "op=team_view&id=$id",
+			$this->title => 0));
 
 		$output = blockquote(theme_links($links));
 		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
@@ -1144,9 +1164,10 @@ class TeamEmails extends Handler
 		if($this->is_database_error($league)) {
 			return false;
 		}
-		$this->breadcrumbs[] = l($team['name'],"op=team_view&id=$id");
-		$this->breadcrumbs[] = $this->title;
-		$this->set_title($this->title . " &raquo; " . $team['name']);
+
+		$this->setLocation(array(
+			$team['name'] => "op=team_view&id=$id",
+			$this->title => 0));
 
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");
 	

@@ -12,7 +12,7 @@ class WardCreate extends WardEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create New Ward");
+		$this->title = "Create Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
@@ -52,7 +52,7 @@ class WardEdit extends Handler
 
 	function initialize ()
 	{
-		$this->set_title("Edit Ward");
+		$this->title = "Edit Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -79,7 +79,6 @@ class WardEdit extends Handler
 					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 				}
 				
-				$this->set_title($this->title . " &raquo; ". $edit['name']);
 				return $this->generateConfirm($edit);
 				break;
 			case 'perform':
@@ -99,7 +98,6 @@ class WardEdit extends Handler
 					if($this->is_database_error($row)) {
 						return false;
 					}
-					$this->set_title($this->title . " &raquo; ". $row['name']);
 				} else {
 					$row = array();
 				}
@@ -144,6 +142,15 @@ class WardEdit extends Handler
 			form_submit('Submit'),
 			form_reset('Reset'));
 		$output .= "</table>";
+	
+		if($this->id) {
+			$this->setLocation(array(
+				$data['name'] => "op=ward_view&id=" . $this->id,
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => 0));
+		}
+			
 		return form($output);	
 	}
 
@@ -178,6 +185,13 @@ class WardEdit extends Handler
 			
 		$output .= simple_row( form_submit('Submit'), "");
 		$output .= "</table>";
+		if($this->id) {
+			$this->setLocation(array(
+				$data['name'] => "op=ward_view&id=" . $this->id,
+				$this->title => 0));
+		} else {
+			$this->setLocation(array( $this->title => 0));
+		}
 		return form($output);
 	}
 
@@ -249,12 +263,12 @@ class WardList extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("List Wards");
 		$this->_required_perms = array(
 			'allow'		/* Allow everyone */
 		);
 		$this->op = "ward_list";
 		$this->section = 'admin';
+		$this->setLocation(array("List Wards" => 'op=' . $this->op));
 		return true;
 	}
 
@@ -305,7 +319,7 @@ class WardView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View Ward");
+		$this->title = "View Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -364,8 +378,9 @@ class WardView extends Handler
 		}
 		$field_listing .= "</ul>";
 		
-
-		$this->set_title("View Ward &raquo; ".$ward['name']);
+		$this->setLocation(array(
+			$ward['name'] => "op=ward_view&id=$id",
+			$this->title => 0));
 		
 		$output .= blockquote(theme_links($links));
 		$output .= "<table border='0' width='100%'>";

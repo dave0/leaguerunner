@@ -236,12 +236,24 @@ class Handler
 		return false;
 	}
 	
-	/**
-	 * Set the page title
+	/** 
+	 * Set both page title and breadcrumbs
+	 * Array consists of several key-value pairs.  If there's a nonzero value,
+	 * it should be a link component that can be passed to l().
 	 */
-	function set_title( $title )
+	function setLocation( $ary ) 
 	{
-		$this->title = $title;
+		$titleComponents = array();
+		$this->breadcrumbs = array();
+		while(list($key,$val) = each($ary)) {
+			if($val) {
+				$this->breadcrumbs[] = l($key,$val);
+			} else {
+				$this->breadcrumbs[] = $key;
+			}
+			array_unshift($titleComponents, $key);
+		}
+		$this->title = join(' &raquo; ', $titleComponents);
 	}
 
 	/**

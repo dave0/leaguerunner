@@ -24,6 +24,7 @@ class PersonView extends Handler
 {
 	function initialize ()
 	{
+		$this->title = 'View';
 		$this->_permissions = array(
 			'email'		=> false,
 			'home_phone'		=> false,
@@ -216,9 +217,11 @@ class PersonView extends Handler
 		if($this->_permissions['user_delete']) {
 			$links[] = l("delete account", "op=person_delete&id=" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
 		}
-		
-	
-		$this->set_title("View Account &raquo; " . $person['firstname'] . " " . $person['lastname']);
+
+		$this->setLocation(array(
+			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$this->title => 0));
+			
 		$links_html =  "";
 		if(count($links) > 0) {
 			$links_html .= blockquote(theme_links($links));
@@ -340,7 +343,7 @@ class PersonDelete extends PersonView
 {
 	function initialize ()
 	{
-		$this->set_title("Delete Account");
+		$this->title = 'Delete';
 		$this->_permissions = array(
 			'email'		=> false,
 			'phone'		=> false,
@@ -406,6 +409,10 @@ class PersonDelete extends PersonView
 		if(!isset($person)) {
 			$this->error_exit("That person does not exist");
 		}
+		
+		$this->setLocation(array(
+			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$this->title => 0));
 		
 		return 
 			para("Confirm that you wish to delete this user from the system.")
@@ -473,7 +480,7 @@ class PersonApproveNewAccount extends PersonView
 	function initialize ()
 	{
 		parent::initialize();
-		$this->set_title("Approve Account");
+		$this->title = 'Approve Account';
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -558,6 +565,10 @@ class PersonApproveNewAccount extends PersonView
 			}
 			$instructions .= "</ul></div>";
 		}
+
+		$this->setLocation(array(
+			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$this->title => 0));
 		
 		return para($instructions)
 			. $this->generateView($person)
@@ -677,7 +688,7 @@ class PersonEdit extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Person &raquo; Edit");
+		$this->title = 'Edit';
 		$this->_permissions = array(
 			'edit_username'		=> false,
 			'edit_class' 		=> false,
@@ -837,7 +848,9 @@ class PersonEdit extends Handler
 		
 		$output .= "</table>";
 
-		$this->set_title($this->title . " &raquo; " . $formData['firstname'] . " " . $formData['lastname']);
+		$this->setLocation(array(
+			$formData['firstname'] . " " . $formData['lastname'] => "op=person_view&id=$id",
+			$this->title => 0));
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
@@ -954,7 +967,9 @@ class PersonEdit extends Handler
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
-		$this->set_title($this->title . " &raquo; " . $firstname . " " . $lastname);
+		$this->setLocation(array(
+			"$firstname $lastname" => "op=person_view&id=$id",
+			$this->title => 0));
 
 		return form($output);
 	}
@@ -1173,7 +1188,7 @@ class PersonCreate extends PersonEdit
 {
 	function initialize ()
 	{
-		$this->set_title("Create New Account");
+		$this->title = 'Create Account';
 		$this->_permissions = array(
 			'edit_username'		=> true,
 			'edit_password'		=> true,
@@ -1207,6 +1222,7 @@ class PersonCreate extends PersonEdit
 				$formData = $this->getFormData($id);
 				$rc = $this->generateForm( $id, $formData, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
 		}
+		$this->setLocation(array( $this->title => 0));
 		return $rc;
 	}
 
@@ -1261,7 +1277,7 @@ class PersonActivate extends PersonEdit
 	function initialize ()
 	{
 		parent::initialize();
-		$this->set_title("Activate Account");
+		$this->title = "Activate Account";
 
 		$this->op = 'person_activate';
 		$this->section = 'person';
@@ -1340,7 +1356,7 @@ class PersonSurvey extends PersonSignWaiver
 	function initialize ()
 	{
 		global $session;
-		$this->set_title("Member Survey");
+		$this->title = "Member Survey";
 
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -1417,7 +1433,7 @@ class PersonSignWaiver extends Handler
 	function initialize ()
 	{
 		global $session;
-		$this->set_title("Informed Consent Form for League Play");
+		$this->title = "Consent Form for League Play";
 
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -1448,6 +1464,8 @@ class PersonSignWaiver extends Handler
 			default:
 				$rc = $this->generateForm( $next );
 		}	
+
+		$this->setLocation( array($this->title => 0 ));
 		
 		return $rc;
 	}
@@ -1504,7 +1522,7 @@ class PersonSignDogWaiver extends PersonSignWaiver
 	function initialize ()
 	{
 		global $session;
-		$this->set_title("Informed Consent Form For Dog Owners");
+		$this->title = "Consent Form For Dog Owners";
 
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -1555,7 +1573,6 @@ class PersonList extends Handler
 	function initialize ()
 	{
 		global $session;
-		$this->set_title("List Users");
 		$this->_permissions = array(
 			'delete' => false,
 			'create' => false,
@@ -1569,6 +1586,8 @@ class PersonList extends Handler
 		);
 		$this->op = 'person_list';
 		$this->section = 'person';
+		
+		$this->setLocation(array("List Users" => 'op=' . $this->op));
 
 		return true;
 	}
@@ -1620,7 +1639,7 @@ class PersonListNewAccounts extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("List New Accounts");
+		$this->title = "New Accounts";
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
@@ -1661,6 +1680,8 @@ class PersonListNewAccounts extends Handler
 			 AND
 			 	lastname LIKE ? 
 			 ORDER BY lastname, firstname");
+
+		$this->setLocation(array( $this->title => 'op=person_listnew' ));
 		
 		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
 	}
@@ -1683,13 +1704,6 @@ class PersonChangePassword extends Handler
 		$this->op = 'person_changepassword';
 		$this->section = 'person';
 		return true;
-	}
-
-	function set_permission_flags($type) 
-	{
-		if($type == 'self') {
-			$this->section = 'myaccount';
-		}
 	}
 
 	function process()
@@ -1723,7 +1737,10 @@ class PersonChangePassword extends Handler
 			$this->error_exit("That user does not exist");
 		}
 		
-		$this->set_title("Change Password &raquo; " . $user['firstname'] . " " .$user['lastname'] );
+		$this->setLocation(array(
+			$user['firstname'] . " " .$user['lastname'] => "op=person_view&id=$id",
+			'Change Password' => 0
+		));
 
 		$output = para("You are changing the password for '"
 			. $user['firstname'] . " " . $user['lastname']

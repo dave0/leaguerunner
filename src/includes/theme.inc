@@ -37,7 +37,7 @@ function theme_navbar($section, $breadcrumbs = array())
 
 	/* TODO: Put these somewhere else (global var? config var?) */
 	$sectionTabs = array(
-		'myaccount' => 'My Account',
+		'home' => 'Home',
 		'person' => 'People',
 		'team' => 'Teams',
 		'league' => 'Leagues',

@@ -1,5 +1,5 @@
 <?php
-register_page_handler('myaccount','MainMenu');
+register_page_handler('home','MainMenu');
 register_page_handler('menu','MainMenu');
 register_page_handler('admin','AdminMenu');
 
@@ -16,8 +16,8 @@ class MainMenu extends Handler
 			'admin_sufficient',
 			'allow'
 		);
-		$this->op = 'myaccount';
-		$this->section = 'myaccount';
+		$this->op = 'home';
+		$this->section = 'home';
 		return true;
 	}
 	
@@ -32,9 +32,7 @@ class MainMenu extends Handler
 	{
 		global $session, $DB;
 		$id = $session->attr_get("user_id");
-		$this->set_title(
-			$session->attr_get('firstname') 
-			. " " . $session->attr_get('lastname'));
+		$this->setLocation(array( $session->attr_get('firstname') . " " . $session->attr_get('lastname') => 0 ));
 
 		
 		$accountMenu = "<table>";
@@ -155,7 +153,7 @@ class AdminMenu extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("Admin Tools");
+		$this->setLocation(array("Admin Tools" => 0));
 
 		$this->_required_perms = array(
 			'require_valid_session',
