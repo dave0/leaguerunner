@@ -26,7 +26,6 @@ require("lib/variables.php");
 $APP_PAGE_MAP = array();
 
 require_once 'DB.php';
-require_once 'lib/db_helper_functions.php';
 require_once "UserSession.php";
 require_once "Handler.php";
 require_once "Smarty.class.php";
