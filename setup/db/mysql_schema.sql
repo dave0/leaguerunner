@@ -88,6 +88,7 @@ CREATE TABLE team (
 	website         varchar(100),
 	shirt_colour    varchar(30),
 	status          ENUM("open","closed"),
+	rating		int DEFAULT 1500,
 	PRIMARY KEY (team_id)
 );
 
@@ -143,6 +144,7 @@ CREATE TABLE schedule (
     away_score  tinyint,
     home_spirit tinyint,
     away_spirit tinyint,
+    rating_points int, -- rating points exchanged for this game
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
     defaulted  enum('no','home','away') DEFAULT 'no',
     INDEX game_date (date_played),

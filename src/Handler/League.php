@@ -498,7 +498,7 @@ class LeagueStandings extends Handler
 	{
 		$this->title = "Standings";
 		$this->_permissions = array(
-			"view_spirit" => false,
+			"administer_league" => false,
 		);
 
 		$this->_required_perms = array(
@@ -512,9 +512,9 @@ class LeagueStandings extends Handler
 	function set_permission_flags($type)
 	{
 		if($type == 'administrator') {
-			$this->_permissions['view_spirit'] = true;
+			$this->_permissions['administer_league'] = true;
 		} else if($type == 'coordinator') {
-			$this->_permissions['view_spirit'] = true;
+			$this->_permissions['administer_league'] = true;
 		} 
 	}
 
@@ -540,6 +540,8 @@ class LeagueStandings extends Handler
 			$league->fullname => "league/view/$id",
 			$this->title => 0,
 		));
+
+		league_add_to_menu($this, $league);
 		
 		return $this->generate_standings($id, $round);
 	}
@@ -566,13 +568,11 @@ class LeagueStandings extends Handler
 	 * 	3) displaying
 	 * as this will allow us to create multiple sort modules
 	 */
-	/**
-	 * TODO: remove hacks for Elo rating, replace with proper support
-	 */
 	function generate_standings ($id, $current_round = 0)
 	{
 		$result = db_query(
-				"SELECT t.team_id AS id, t.name
+				"SELECT t.team_id AS id, 
+			 	 t.name, t.rating
 				 FROM leagueteams l
 				 LEFT JOIN team t ON (l.team_id = t.team_id)
 				 WHERE
@@ -674,7 +674,7 @@ class LeagueStandings extends Handler
 			$row[] = $season[$id]['points_for'] - $season[$id]['points_against'];
 			$row[] = $season[$id]['rating'];
 		
-			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
+			if($season[$id]['games'] < 3 && !($this->_permissions['administer_league'])) {
 				 $sotg = "---";
 			} else {
 				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id], true));
@@ -706,7 +706,7 @@ class LeagueStandings extends Handler
 			'defaults_for' => 0,
 			'defaults_against' => 0,
 			'games' => 0,
-			'rating' => 1500,
+			'rating' => $team->rating,
 			'vs' => array()
 		);
 	}
@@ -750,9 +750,6 @@ class LeagueStandings extends Handler
 				$data['loss']++;
 				$data['vs'][$game['away_team']] += 0;
 			}
-
-			$homeRating = $data['rating'];
-			$data['rating'] = $this->calculateRating($game['home_score'], $game['away_score'], $data['rating'], $season[$game['away_team']]['rating']);
 		}
 		if(isset($season[$game['away_team']])) {
 			$data = &$season[$game['away_team']];
@@ -790,56 +787,7 @@ class LeagueStandings extends Handler
 				$data['loss']++;
 				$data['vs'][$game['home_team']] += 0;
 			}
-			$data['rating'] = $this->calculateRating($game['away_score'], $game['home_score'], $data['rating'], $homeRating);
 		}
-	}
-
-	/**
-	 * Calculate new rating for team.  Modified Elo system, similar to the one
-	 * used for international soccer (http://www.eloratings.net), with several
-	 * Ultimate-specific modifications:
-	 * 	- all games currently weighted equally (though playoff games will be
-	 * 	  weighted differently in the future)
-	 * 	- score differential bonus modified for Ultimate
-	 * 	- no bonus given for 'home field advantage' since there's no
-	 * 	  real advantage in OCUA.
-	 */
-	function calculateRating($scoreFor, $scoreAgainst, $oldRating, $opponentRating)
-	{
-
-		if(!isset($opponentRating)) {
-			$opponentRating = 1500;
-		}
-
-		$weightConstant = 40;
-	
-		if($scoreFor > $scoreAgainst) {
-			$gameValue = 1;
-		} else if($scoreFor == $scoreAgainst) {
-			$gameValue = 0.5;
-		} else {
-			$gameValue = 0;
-		}
-
-		$scoreWeight = 1;
-
-		/* If the score differential is greater than 1/3 the 
-		 * winning score, add a bonus.
-		 * This means that the bonus is given in summer games of 15-10 or
-		 * worse, and in indoor games with similar score ratios.
-		 */
-		$scoreDiff = abs($scoreFor - $scoreAgainst);
-		$scoreMax  = max($scoreFor, $scoreAgainst);
-		if(($scoreDiff / $scoreMax) > (1/3)) {
-			$scoreWeight += $scoreDiff / $scoreMax;
-		}
-
-		$power = pow(10, ((0 - ($oldRating - $opponentRating)) / 400));
-		$expectedWin = (1 / ($power + 1));
-
-		$newRating = $oldRating + ($weightConstant * $scoreWeight * ($gameValue - $expectedWin));
-
-		return round($newRating);
 	}
 
 	function sort_standings (&$a, &$b) 
@@ -1186,6 +1134,9 @@ class LeagueApproveScores extends Handler
 			'coordinator_sufficient',
 			'deny'
 		);
+		$this->_permissions = array(
+			'administer_league' => true,
+		);
 		$this->title = "Approve Scores";
 		return true;
 	}
@@ -1193,40 +1144,13 @@ class LeagueApproveScores extends Handler
 	function process ()
 	{
 		$id = arg(2);
-		
+
 		$league = league_load( array('league_id' => $id) );
-		if( !$league ) {
-			$this->error_exit("That league does not exist.");
+		if(!$league) {
+			$this->error_exit("That league does not exist!");
 		}
-
-		$this->setLocation(array(
-			$league->fullname => "league/view/$id",
-			$this->title => 0
-		));
-
-		$gameId = arg(3);
-		if( !$gameId ) {
-			return $this->listUnverifiedGames( $id );
-		}
-
-		$edit = $_POST['edit'];
-		switch($edit['step']) {
-			case 'confirm':
-				$rc = $this->generateConfirm( $id, $gameId, &$edit );
-				break;
-			case 'perform':
-				$this->perform( $id, $gameId, &$edit );
-				break;
-			default:
-				$rc = $this->generateForm( $id, $gameId );
-		}
-
-		return $rc;
-	}
-
-	function listUnverifiedGames ( $id )
-	{
-		/* Now fetch games in need of verification */
+		
+		/* Fetch games in need of verification */
 		$result = db_query("SELECT DISTINCT
 			se.game_id,
 			UNIX_TIMESTAMP(s.date_played) as timestamp,
@@ -1254,7 +1178,7 @@ class LeagueApproveScores extends Handler
 				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 4),
 				array('data' => $game->home_name, 'colspan' => 2),
 				array('data' => $game->away_name, 'colspan' => 2),
-				array('data' => l("approve score", "league/approvescores/$id/$game->game_id"), 'rowspan' => 4)
+				array('data' => l("approve score", "game/approve/$game->game_id"), 'rowspan' => 4)
 			);
 		
 			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
@@ -1292,232 +1216,8 @@ class LeagueApproveScores extends Handler
 		$output = para("The following games have not been finalized.");
 		$output .= "<div class='listtable'>" . table( $header, $rows ) . "</div>";
 
+		league_add_to_menu($this, $league);
 		return $output;
-	}
-	
-	function perform ( $leagueId, $gameId, $edit )
-	{
-		global $session;
-	
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		switch($edit['defaulted']) {
-		case 'home':
-			$edit['home_score'] = 0;
-			$edit['away_score'] = 6;
-			$edit['home_sotg'] = 0;
-			$edit['away_sotg'] = 0;
-			break;
-		case 'away':
-			$edit['home_score'] = 6;
-			$edit['away_score'] = 0;
-			$edit['home_sotg'] = 0;
-			$edit['away_sotg'] = 0;
-			break;
-		default:
-			$edit['defaulted'] = 'no';
-		}
-		
-		db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', home_spirit = %d, away_spirit = %d, approved_by = %d WHERE game_id = %d", 
-			$edit['home_score'],
-			$edit['away_score'],
-			$edit['defaulted'],
-			$edit['home_sotg'],
-			$edit['away_sotg'],
-			$session->attr_get('user_id'), 
-			$gameId);
-
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-
-		/* And remove any score_entry fields */
-		db_query("DELETE FROM score_entry WHERE game_id = %d", $gameId);
-
-		local_redirect(url("league/approvescores/$leagueId"));
-	}
-
-	function generateConfirm ( $leagueId, $gameId, $edit )
-	{
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		$result = db_query(
-			"SELECT 
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team AS home_id,
-				h.name AS home_name, 
-				s.away_team AS away_id,
-				a.name AS away_name
-			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $gameId);
-			 
-		if( 1 != db_num_rows($result) ) {
-			return false;
-		}
-			 
-		$game = db_fetch_object($result);
-
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$game->timestamp);
-		$output = para( "You have entered the following score for the $datePlayed game between $game->home_name and $game->away_name.  ");
-		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
-
-		$output .= form_hidden('edit[step]', 'perform');
-		if($edit['defaulted'] == 'home' || $edit['defaulted'] == 'away') {
-			$output .= form_hidden('edit[defaulted]', $edit['defaulted']);		
-		} else {
-			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
-			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
-			$output .= form_hidden('edit[home_sotg]', $edit['home_sotg']);		
-			$output .= form_hidden('edit[away_sotg]', $edit['away_sotg']);		
-		}
-		
-		if($edit['defaulted'] == 'home') {
-			$edit['home_score'] = '0 (defaulted)';
-			$edit['away_score'] = '6';
-			$edit['home_sotg'] = 'n/a';
-			$edit['away_sotg'] = 'n/a';
-		} else if ($edit['defaulted'] == 'away') {
-			$edit['home_score'] = '6';
-			$edit['away_score'] = '0 (defaulted)';
-			$edit['home_sotg'] = 'n/a';
-			$edit['away_sotg'] = 'n/a';
-		}
-	
-		$header = array( "Team", "Score", "SOTG");
-		$rows = array(
-			array($game->home_name, $edit['home_score'], $edit['home_sotg']),
-			array($game->away_name, $edit['away_score'], $edit['away_sotg'])
-		);
-	
-		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
-
-		$output .= para(form_submit('submit'));
-
-		return form($output);
-	}
-
-	function generateForm ( $leagueId, $gameId ) 
-	{
-		$result = db_query(
-			"SELECT 
-				s.game_id,
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team,
-				h.name AS home_name, 
-				s.away_team,
-				a.name AS away_name
-			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $gameId);
-			 
-		if( 1 != db_num_rows($result) ) {
-			return false;
-		}
-
-		$game = db_fetch_object($result);
-		
-		$output = para( "Finalize the score for <b>Game $gameId</b> of $datePlayed between <b>$game->home_name</b> and <b>$game->away_name</b>.");
-		
-		$output .= form_hidden('edit[step]', 'confirm');
-		$output .= "<h2>Score as entered:</h2>";
-		
-		$output .= game_score_entry_display( $game );
-		
-		$output .= "<h2>Score as approved:</h2>";
-		
-		$rows = array();
-		
-		$rows[] = array(
-			"$game->home_name (home) score:",
-			form_textfield('','edit[home_score]','',2,2)
-				. "or default: <input type='checkbox' name='edit[defaulted]' value='home' onclick='defaultCheckboxChanged()'>"
-		);
-		$rows[] = array(
-			"$game->away_name (away) score:",
-			form_textfield('','edit[away_score]','',2,2)
-				. "or default: <input type='checkbox' name='edit[defaulted]' value='away' onclick='defaultCheckboxChanged()'>"
-		);
-		
-		$rows[] = array(
-			"$game->home_name (home) assigned spirit:",
-			form_select("", "edit[home_sotg]", '', getOptionsFromRange(1,10))
-		);
-		$rows[] = array(
-			"$game->away_name (away) assigned spirit:",
-			form_select("", "edit[away_sotg]", '', getOptionsFromRange(1,10))
-		);
-
-		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
-		$output .= para(form_submit("submit") . form_reset("reset"));
-	
-		$script = <<<ENDSCRIPT
-<script type="text/javascript"> <!--
-  function defaultCheckboxChanged() {
-    if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
-        document.forms[0].elements['edit[home_score]'].value = '0';
-        document.forms[0].elements['edit[home_score]'].disabled = true;
-        document.forms[0].elements['edit[away_score]'].value = '6';
-        document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[home_sotg]'].disabled = true;
-        document.forms[0].elements['edit[away_sotg]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = true;
-    } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
-        document.forms[0].elements['edit[home_score]'].value = '6';
-        document.forms[0].elements['edit[home_score]'].disabled = true;
-        document.forms[0].elements['edit[away_score]'].value = '0';
-        document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[home_sotg]'].disabled = true;
-        document.forms[0].elements['edit[away_sotg]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = true;
-    } else {
-        document.forms[0].elements['edit[home_score]'].disabled = false;
-        document.forms[0].elements['edit[away_score]'].disabled = false;
-        document.forms[0].elements['edit[home_sotg]'].disabled = false;
-        document.forms[0].elements['edit[away_sotg]'].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = false;
-    }
-  }
-// -->
-</script>
-ENDSCRIPT;
-
-		return $script . form($output);
-	}
-
-	function isDataInvalid( $edit )
-	{
-		$errors = "";
-
-		if($edit['defaulted'] != 'home' && $edit['defaulted'] != 'away') {
-			if( !validate_number($edit['home_score']) ) {
-				$errors .= "<br>You must enter a valid number for the home score";
-			}
-			if( !validate_number($edit['away_score']) ) {
-				$errors .= "<br>You must enter a valid number for the away score";
-			}
-			if( !validate_number($edit['home_sotg']) ) {
-				$errors .= "<br>You must enter a valid number for the home SOTG";
-			}
-			if( !validate_number($edit['away_sotg']) ) {
-				$errors .= "<br>You must enter a valid number for the away SOTG";
-			}
-		}
-		
-		if(strlen($errors) > 0) {
-			return $errors;
-		} else {
-			return false;
-		}
 	}
 }
 

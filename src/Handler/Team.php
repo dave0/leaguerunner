@@ -692,6 +692,7 @@ class TeamView extends Handler
 			} 
 			$rows[] = array("Team SBF:", $teamSBF);
 		}
+		$rows[] = array("Rating:", $team->rating);
 		
 
 		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";

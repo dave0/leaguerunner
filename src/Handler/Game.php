@@ -11,6 +11,8 @@ function game_dispatch()
 			return new GameSubmit;
 		case 'view':
 			return new GameView;
+		case 'approve':
+			return new GameApprove;
 /* TODO:
 		case 'edit':
 			return new GameEdit;
@@ -48,11 +50,10 @@ class GameSubmit extends Handler
 			 */
 			return false;
 		}
-		
-		$result = db_query("SELECT home_team, away_team, league_id FROM schedule WHERE game_id = %d", $gameID);
-		$scheduleInfo = db_fetch_array($result);
 
-		if( $teamID != $scheduleInfo['home_team'] && $teamID != $scheduleInfo['away_team'] ) {
+		$game = game_load( array('game_id' => $gameID) );
+		
+		if( $teamID != $game->home_id && $teamID != $game->away_id ) {
 			$this->error_exit("That team did not play in that game!");
 		}
 		
@@ -61,7 +62,7 @@ class GameSubmit extends Handler
 			return true;
 		}
 
-		if($session->is_coordinator_of($scheduleInfo['league_id'])) {
+		if($session->is_coordinator_of($game->league_id)) {
 			$this->set_permission_flags('coordinator');
 			return true;
 		}
@@ -79,27 +80,12 @@ class GameSubmit extends Handler
 		$gameID = arg(2);
 		$teamID = arg(3);
 
-		$result = db_query(
-			"SELECT 
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team AS home_id,
-				h.name AS home_name, 
-				s.away_team AS away_id,
-				a.name AS away_name,
-				s.home_score,
-				s.away_score
-			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $gameID);
-
-		if( 1 != db_num_rows($result) ) {
+		$game = game_load( array('game_id' => $gameID) );
+		if( !$game ) {
 			$this->error_exit("That game does not exist");
 		}
-
-		$scheduleInfo = db_fetch_array($result);
 		
-		if(!is_null($scheduleInfo['home_score']) && !is_null($scheduleInfo['away_score']) ) {
+		if(isset($game->home_score) && isset($game->away_score) ) {
 			$this->error_exit("The score for that game has already been submitted.");
 		}
 		
@@ -114,13 +100,13 @@ class GameSubmit extends Handler
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm($gameID, $teamID, $scheduleInfo, $edit);
+				$rc = $this->generateConfirm($game, $teamID, $edit);
 				break;
 			case 'perform':
-				$rc = $this->perform($gameID, $teamID, $scheduleInfo, $edit);
+				$rc = $this->perform($game, $teamID, $edit);
 				break;
 			default:
-				$rc = $this->generateForm($gameID, $teamID, $scheduleInfo);
+				$rc = $this->generateForm($game, $teamID);
 		}
 	
 		$this->setLocation(array($this->title => 0));
@@ -150,7 +136,7 @@ class GameSubmit extends Handler
 			$errors .= "<br>You must enter a valid number for your opponent's score";
 		}
 
-		if( !validate_number($edit['sotg']) ) {
+		if( !validate_number($edit['spirit']) ) {
 			$errors .= "<br>You must enter a valid number for your opponent's SOTG";
 		}
 		
@@ -161,7 +147,7 @@ class GameSubmit extends Handler
 		}
 	}
 	
-	function perform ($gameID, $teamID, $scheduleInfo, $edit)
+	function perform ($game, $teamID, $edit)
 	{
 		global $session;
 
@@ -169,78 +155,59 @@ class GameSubmit extends Handler
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-
-		$our_entry = array(
-			'score_for' => $edit['score_for'],
-			'score_against' => $edit['score_against'],
-			'spirit' => $edit['sotg'],
-			'defaulted' => $edit['defaulted'],
-		);
 		
-		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$gameID);
+		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$game->game_id);
 		$opponent_entry = db_fetch_array($result);
 
 		if( ! db_num_rows($result) ) {
 			// No opponent entry, so just add to the score_entry table
-			if($this->save_one_score($gameID, $teamID, $our_entry) == false) {
+			if(game_save_score_entry($game->game_id, $teamID, $edit) == false) {
 				return false;
 			}
 			$resultMessage ="This score has been saved.  Once your opponent has entered their score, it will be officially posted";
 		} else {
 			/* See if we agree with opponent score */
-			if( defaults_agree($our_entry, $opponent_entry) ) {
+			if( defaults_agree($edit, $opponent_entry) ) {
 				// Both teams agree that a default has occurred. 
 				if(
-					($teamID == $scheduleInfo['home_id'])
-					&& ($our_entry['defaulted'] == 'us')
+					($teamID == $game->home_id)
+					&& ($edit['defaulted'] == 'us')
 				) {
-					$data = array( 0, 6, 'home', $gameID);
+					$rc = game_save_score_final( $game, array('defaulted' => 'home') );
 				} else {
-					$data = array( 6, 0, 'away', $gameID);
+					$rc = game_save_score_final( $game, array('defaulted' => 'away') );
 				}
 
-				db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', approved_by = -1 WHERE game_id = %d", $data);
-				if(1 != db_affected_rows()) {
-					return false;
-				}
-
-				db_query("DELETE FROM score_entry WHERE game_id = %d",$gameID);
-				if(1 != db_affected_rows()) {
+				if( !$rc ) {
 					return false;
 				}
 				
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
-			} else if( scores_agree($our_entry, $opponent_entry) ) {
+				
+			} else if( scores_agree($edit, $opponent_entry) ) {
 				/* Agree. Make it official */
-				if($teamID == $scheduleInfo['home_id']) {
-					$data = array(
-						$our_entry['score_for'],
-						$our_entry['score_against'],
-						$opponent_entry['spirit'],
-						$our_entry['spirit'],
-						$gameID);
+				if($teamID == $game->home_id) {
+					$rc = game_save_score_final( $game, array( 
+						'defaulted' => 'no', 
+						'home_score' => $edit['score_for'], 
+						'away_score' => $edit['score_against'],
+						'home_spirit' => $opponent_entry['spirit'],
+						'away_spirit' => $edit['spirit']));
 				} else {
-					$data = array(
-						$our_entry['score_against'],
-						$our_entry['score_for'],
-						$our_entry['spirit'],
-						$opponent_entry['spirit'],
-						$gameID);
+					$rc = game_save_score_final( $game, array( 
+						'defaulted' => 'no', 
+						'home_score' => $edit['score_against'], 
+						'away_score' => $edit['score_for'],
+						'home_spirit' => $edit['spirit'],
+						'away_spirit' => $opponent_entry['spirit']));
 				}
-
-				db_query("UPDATE schedule SET home_score = %d, away_score = %d, home_spirit = %d, away_spirit = %d, approved_by = -1 WHERE game_id = %d", $data);
-				if(1 != db_affected_rows()) {
-					return false;
-				}
-
-				db_query("DELETE FROM score_entry WHERE game_id = %d",$gameID);
-				if(1 != db_affected_rows()) {
+				if( !$rc ) {
 					return false;
 				}
 
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 			} else {
-				if($this->save_one_score($gameID, $teamID, $our_entry) == false) {
+				if(game_save_score_entry($game->game_id, $teamID, $edit) == false) {
 					return false;
 				}
 				$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
@@ -250,26 +217,24 @@ class GameSubmit extends Handler
 		return para($resultMessage);
 	}
 
-	function generateConfirm ($gameID, $teamID, $scheduleInfo, $edit )
+	function generateConfirm ($game, $teamID, $edit )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 	
-		if($scheduleInfo['home_id'] == $teamID) {
-			$myName = $scheduleInfo['home_name'];
-			$opponentName = $scheduleInfo['away_name'];
-			$opponentId = $scheduleInfo['away_id'];
+		if($game->home_id == $teamID) {
+			$myName = $game->home_name;
+			$opponentName = $game->away_name;
+			$opponentId = $game->away_id;
 		} else {
-			$myName = $scheduleInfo['away_name'];
-			$opponentName = $scheduleInfo['home_name'];
-			$opponentId = $scheduleInfo['home_id'];
+			$myName = $game->away_name;
+			$opponentName = $game->home_name;
+			$opponentId = $game->home_id;
 		}
 
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$scheduleInfo['timestamp']);
-
-		$output = para( "You have entered the following score for the $datePlayed game between $myName and $opponentName.");
+		$output = para( "You have entered the following score for the $game->prettydate $game->prettytime game between $myName and $opponentName.");
 		$output .= para("If this is correct, please click 'Submit' to continue.  "
 			. "If not, use your back button to return to the previous page and correct the score."
 		);
@@ -290,7 +255,7 @@ class GameSubmit extends Handler
 		default:
 			$rows[] = array("$myName:", $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
 			$rows[] = array("$opponentName:", $edit['score_against'] . form_hidden('edit[score_against]', $edit['score_against']));
-			$rows[] = array("SOTG for $opponentName:", $edit['sotg'] . form_hidden('edit[sotg]', $edit['sotg']));
+			$rows[] = array("SOTG for $opponentName:", $edit['spirit'] . form_hidden('edit[spirit]', $edit['spirit']));
 			break;
 		}
 
@@ -300,45 +265,41 @@ class GameSubmit extends Handler
 		return form($output);
 	}
 
-	function generateForm ( $gameID, $teamID, $scheduleInfo ) 
+	function generateForm ( $game, $teamID ) 
 	{
 
-		if($scheduleInfo['home_id'] == $teamID) {
-			$myName = $scheduleInfo['home_name'];
-			$opponentName = $scheduleInfo['away_name'];
-			$opponentId = $scheduleInfo['away_id'];
+		if($game->home_id == $teamID) {
+			$myName = $game->home_name;
+			$opponentName = $game->away_name;
+			$opponentId = $game->away_id;
 		} else {
-			$myName = $scheduleInfo['away_name'];
-			$opponentName = $scheduleInfo['home_name'];
-			$opponentId = $scheduleInfo['home_id'];
+			$myName = $game->away_name;
+			$opponentName = $game->home_name;
+			$opponentId = $game->home_id;
 		}
 
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$scheduleInfo['timestamp']);
-
-		$output = para( "Submit the score for the $datePlayed game between $myName and $opponentName.");
+		$output = para( "Submit the score for the $game->prettydate, $game->prettytime game between $myName and $opponentName.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  "
   			. "If the score you enter does not agree with this score, posting of the score will "
 			. "be delayed until your coordinator can confirm the correct score.");
 
 		$output .= form_hidden('edit[step]', 'confirm');
 
-		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $gameID, $opponentId);
+		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $game->game_id, $opponentId);
 				
 		$opponent = db_fetch_array($result);
 
 		if($opponent) {
-			$opponentScoreFor = $opponent['score_for'];
-			$opponentScoreAgainst = $opponent['score_against'];
-			
 			if($opponent['defaulted'] == 'us') {
-				$opponentScoreFor .= " (defaulted)"; 
+				$opponent['score_for'] .= " (defaulted)"; 
 			} else if ($opponent['defaulted'] == 'them') {
-				$opponentScoreAgainst .= " (defaulted)"; 
+				$opponent['score_against'] .= " (defaulted)"; 
 			}
 			
 		} else {
-			$opponentScoreFor = "not yet entered";
-			$opponentScoreAgainst = "not yet entered";
+			$opponent = array();
+			$opponent['score_for'] = "not yet entered";
+			$opponent['score_against'] = "not yet entered";
 		}
 		
 		$rows = array();
@@ -349,7 +310,7 @@ class GameSubmit extends Handler
 			$myName,
 			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
 			form_textfield("","edit[score_for]","",2,2),
-			$opponentScoreAgainst,
+			$opponent['score_against'],
 			"&nbsp;"
 		);
 		
@@ -357,8 +318,8 @@ class GameSubmit extends Handler
 			$opponentName,
 			"<input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'>",
 			form_textfield("","edit[score_against]","",2,2),
-			$opponentScoreFor,
-			form_select("", "edit[sotg]", "--", getOptionsFromRange(1,10))
+			$opponent['score_for'],
+			form_select("", "edit[spirit]", "--", getOptionsFromRange(1,10))
 				. "<font size='-2'>(<a href='/leagues/spirit_guidelines.html' target='_new'>spirit guideline</a>)</font>"
 		);
 
@@ -373,19 +334,19 @@ class GameSubmit extends Handler
         document.forms[0].elements['edit[score_for]'].disabled = true;
         document.forms[0].elements['edit[score_against]'].value = "6";
         document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[sotg]'].disabled = true;
+        document.forms[0].elements['edit[spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][1].disabled = true;
     } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
         document.forms[0].elements['edit[score_for]'].value = "6";
         document.forms[0].elements['edit[score_for]'].disabled = true;
         document.forms[0].elements['edit[score_against]'].value = "0";
         document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[sotg]'].disabled = true;
+        document.forms[0].elements['edit[spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][0].disabled = true;
     } else {
         document.forms[0].elements['edit[score_for]'].disabled = false;
         document.forms[0].elements['edit[score_against]'].disabled = false;
-        document.forms[0].elements['edit[sotg]'].disabled = false;
+        document.forms[0].elements['edit[spirit]'].disabled = false;
         document.forms[0].elements['edit[defaulted]'][0].disabled = false;
         document.forms[0].elements['edit[defaulted]'][1].disabled = false;
     }
@@ -395,34 +356,6 @@ class GameSubmit extends Handler
 ENDSCRIPT;
 
 		return $script . form($output);
-	}
-
-	function save_one_score ( $gameID, $teamID, $our_entry ) 
-	{
-		global $session;
-
-		if($our_entry['defaulted'] == 'us') {
-			$our_entry['score_for'] = 0;
-			$our_entry['score_against'] = 6;
-			$our_entry['spirit'] = 0;
-		} else if($our_entry['defaulted'] == 'them') {
-			$our_entry['score_for'] = 6;
-			$our_entry['score_against'] = 0;
-			$our_entry['spirit'] = 0;
-		} else {
-			$our_entry['defaulted'] = 'no';
-		} 
-		
-		db_query("INSERT INTO score_entry 
-			(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
-				VALUES(%d,%d,%d,%d,%d,%d,'%s')",
-				$gameID, $teamID, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
-
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
 	}
 }
 
@@ -456,27 +389,15 @@ class GameView extends Handler
 
 		$id = arg(2);
 
-		$result = db_query(
-			"SELECT 
-				s.*,
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				h.name AS home_name, 
-				a.name AS away_name
-			 FROM schedule s 
-			 	INNER JOIN team h ON (h.team_id = s.home_team) 
-				INNER JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $id);
+		$game = game_load( array('game_id' => $id) );
 			 
-		if( 1 != db_num_rows($result) ) {
+		if( !$game ) {
 			$this->error_exit('That game does not exist');
 		}
 		
-		$game = db_fetch_object($result);
-		$formattedDate = strftime("%A %B %d %Y",$game->timestamp);
-		$formattedTime = strftime("%H%Mh",$game->timestamp);
 		$rows[] = array("Game ID:", $game->game_id);
-		$rows[] = array("Date:", $formattedDate);
-		$rows[] = array("Time:", $formattedTime);
+		$rows[] = array("Date:", $game->prettydate);
+		$rows[] = array("Time:", $game->prettytime);
 
 		$league = league_load( array('league_id' => $game->league_id) );
 		$rows[] = array("League/Division:",
@@ -495,7 +416,12 @@ class GameView extends Handler
 
 		if($game->home_score || $game->away_score) {
 			// TODO: show default status here.
-			$rows[] = array("Score:", "$game->home_name: $game->home_score<br /> $game->away_name: $game->away_score");
+			$scoreRows[] = array($game->home_name, $game->home_score);
+			$scoreRows[] = array($game->away_name, $game->away_score);
+				
+			$rows[] = array("Score:", "<div class='pairtable'>" . table(null, $scoreRows) . "</div>");
+			$rows[] = array("Rating Points:", $game->rating_points);
+
 		} else {
 			if( $this->_permissions['view_entered_scores'] ) {
 				$rows[] = array("Score:", game_score_entry_display( $game ));
@@ -504,9 +430,222 @@ class GameView extends Handler
 			}
 		}
 
+		if($game->approved_by) {
+			if($game->approved_by != -1) {
+				$approver = person_load( array('user_id' => $game->approved_by));
+				$approver = l($approver->fullname, "person/view/$approver->user_id");
+			} else {
+				$approver = 'automatic';
+			}
+		} else {
+			$approver = 'awaiting approval';
+		}
+		$rows[] = array("Score Approved By:", $approver);		
+
 		$this->setLocation(array(
 			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
+	}
+}
+
+class GameApprove extends Handler
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny'
+		);
+		$this->title = "Approve Game Score";
+		return true;
+	}
+
+	function process ()
+	{
+		$id = arg(2);
+
+		$game = game_load( array('game_id' => $id) );
+		if(!$game) {
+			$this->error_exit("That game does not exist");
+		}
+		
+		$this->setLocation(array(
+			"Game $id" => "game/view/$id",
+			$this->title => 0
+		));
+
+		$edit = $_POST['edit'];
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm( $game, &$edit );
+				break;
+			case 'perform':
+				$this->perform( $game, &$edit );
+				local_redirect(url("league/approvescores/$game->league_id"));
+				break;
+			default:
+				$rc = $this->generateForm( $game );
+		}
+
+		return $rc;
+	}
+
+	function perform ( $game, $edit )
+	{
+		global $session;
+	
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		$edit['approved_by'] = $session->attr_get('user_id');
+
+		return game_save_score_final($game, $edit);
+	}
+
+	function generateConfirm ( $game, $edit )
+	{
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		$output = para( "You have entered the following score for the $game->prettydate $game->prettytime game between $game->home_name and $game->away_name.  ");
+		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
+
+		$output .= form_hidden('edit[step]', 'perform');
+		if($edit['defaulted'] == 'home' || $edit['defaulted'] == 'away') {
+			$output .= form_hidden('edit[defaulted]', $edit['defaulted']);		
+		} else {
+			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
+			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
+			$output .= form_hidden('edit[home_spirit]', $edit['home_spirit']);		
+			$output .= form_hidden('edit[away_spirit]', $edit['away_spirit']);		
+		}
+		
+		if($edit['defaulted'] == 'home') {
+			$edit['home_score'] = '0 (defaulted)';
+			$edit['away_score'] = '6';
+			$edit['home_spirit'] = 'n/a';
+			$edit['away_spirit'] = 'n/a';
+		} else if ($edit['defaulted'] == 'away') {
+			$edit['home_score'] = '6';
+			$edit['away_score'] = '0 (defaulted)';
+			$edit['home_spirit'] = 'n/a';
+			$edit['away_spirit'] = 'n/a';
+		}
+	
+		$header = array( "Team", "Score", "SOTG");
+		$rows = array(
+			array($game->home_name, $edit['home_score'], $edit['home_spirit']),
+			array($game->away_name, $edit['away_score'], $edit['away_spirit'])
+		);
+	
+		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
+
+		$output .= para(form_submit('submit'));
+
+		return form($output);
+	}
+
+	function generateForm ( $game ) 
+	{
+		$output = para( "Finalize the score for <b>Game $game->game_id</b> of $game->prettydate $game->prettytime between <b>$game->home_name</b> and <b>$game->away_name</b>.");
+		
+		$output .= form_hidden('edit[step]', 'confirm');
+		$output .= "<h2>Score as entered:</h2>";
+		
+		$output .= game_score_entry_display( $game );
+		
+		$output .= "<h2>Score as approved:</h2>";
+		
+		$rows = array();
+		
+		$rows[] = array(
+			"$game->home_name (home) score:",
+			form_textfield('','edit[home_score]','',2,2)
+				. "or default: <input type='checkbox' name='edit[defaulted]' value='home' onclick='defaultCheckboxChanged()'>"
+		);
+		$rows[] = array(
+			"$game->away_name (away) score:",
+			form_textfield('','edit[away_score]','',2,2)
+				. "or default: <input type='checkbox' name='edit[defaulted]' value='away' onclick='defaultCheckboxChanged()'>"
+		);
+		
+		$rows[] = array(
+			"$game->home_name (home) assigned spirit:",
+			form_select("", "edit[home_spirit]", '', getOptionsFromRange(1,10))
+		);
+		$rows[] = array(
+			"$game->away_name (away) assigned spirit:",
+			form_select("", "edit[away_spirit]", '', getOptionsFromRange(1,10))
+		);
+
+		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
+		$output .= para(form_submit("submit") . form_reset("reset"));
+	
+		$script = <<<ENDSCRIPT
+<script type="text/javascript"> <!--
+  function defaultCheckboxChanged() {
+    if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
+        document.forms[0].elements['edit[home_score]'].value = '0';
+        document.forms[0].elements['edit[home_score]'].disabled = true;
+        document.forms[0].elements['edit[away_score]'].value = '6';
+        document.forms[0].elements['edit[away_score]'].disabled = true;
+        document.forms[0].elements['edit[home_spirit]'].disabled = true;
+        document.forms[0].elements['edit[away_spirit]'].disabled = true;
+        document.forms[0].elements['edit[defaulted]'][1].disabled = true;
+    } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
+        document.forms[0].elements['edit[home_score]'].value = '6';
+        document.forms[0].elements['edit[home_score]'].disabled = true;
+        document.forms[0].elements['edit[away_score]'].value = '0';
+        document.forms[0].elements['edit[away_score]'].disabled = true;
+        document.forms[0].elements['edit[home_spirit]'].disabled = true;
+        document.forms[0].elements['edit[away_spirit]'].disabled = true;
+        document.forms[0].elements['edit[defaulted]'][0].disabled = true;
+    } else {
+        document.forms[0].elements['edit[home_score]'].disabled = false;
+        document.forms[0].elements['edit[away_score]'].disabled = false;
+        document.forms[0].elements['edit[home_spirit]'].disabled = false;
+        document.forms[0].elements['edit[away_spirit]'].disabled = false;
+        document.forms[0].elements['edit[defaulted]'][0].disabled = false;
+        document.forms[0].elements['edit[defaulted]'][1].disabled = false;
+    }
+  }
+// -->
+</script>
+ENDSCRIPT;
+
+		return $script . form($output);
+	}
+
+	function isDataInvalid( $edit )
+	{
+		$errors = "";
+
+		if($edit['defaulted'] != 'home' && $edit['defaulted'] != 'away') {
+			if( !validate_number($edit['home_score']) ) {
+				$errors .= "<br>You must enter a valid number for the home score";
+			}
+			if( !validate_number($edit['away_score']) ) {
+				$errors .= "<br>You must enter a valid number for the away score";
+			}
+			if( !validate_number($edit['home_spirit']) ) {
+				$errors .= "<br>You must enter a valid number for the home SOTG";
+			}
+			if( !validate_number($edit['away_spirit']) ) {
+				$errors .= "<br>You must enter a valid number for the away SOTG";
+			}
+		}
+		
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 
@@ -557,6 +696,7 @@ function scores_agree( $one, $two )
 	} 
 	return false;
 }
+
 function defaults_agree( $one, $two )
 {
 	if(
@@ -568,3 +708,214 @@ function defaults_agree( $one, $two )
 	} 
 	return false;
 }
+
+/**
+ * Load a single game object from the database using the supplied query
+ * data.  If more than one game matches, we will return only the first one.
+ * If fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the game to be loaded.
+ */
+function game_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if($key == '_extra') {
+			/* Just slap on any extra query fields desired */
+			$query[] = $value;
+		} else {
+			$query[] = "s.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+	      s.*,
+		  UNIX_TIMESTAMP(s.date_played) as timestamp, 
+		  s.home_team AS home_id,
+		  h.name AS home_name, 
+		  s.away_team AS away_id,
+		  a.name AS away_name,
+		  s.home_score,
+		  s.away_score
+		FROM schedule s 
+		  LEFT JOIN team h ON (h.team_id = s.home_team) 
+		  LEFT JOIN team a ON (a.team_id = s.away_team)
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	$game = db_fetch_object($result);
+
+	/* set derived attributes */
+	if($game->field_id) {
+		$field = field_load( array('field_id' => $game->field_id) );
+		$game->field_name = $field->fullname;
+	}
+	$game->prettydate = strftime("%A %B %d %Y",$game->timestamp);
+	$game->prettytime = strftime("%H%Mh",$game->timestamp);
+
+	return $game;
+}
+
+/**
+ * Save a score entry for one of a game's participants
+ */
+function game_save_score_entry ( $gameID, $teamID, $our_entry ) 
+{
+	global $session;
+
+	if($our_entry['defaulted'] == 'us') {
+		$our_entry['score_for'] = 0;
+		$our_entry['score_against'] = 6;
+		$our_entry['spirit'] = 0;
+	} else if($our_entry['defaulted'] == 'them') {
+		$our_entry['score_for'] = 6;
+		$our_entry['score_against'] = 0;
+		$our_entry['spirit'] = 0;
+	} else {
+		$our_entry['defaulted'] = 'no';
+	} 
+		
+	db_query("INSERT INTO score_entry 
+		(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
+			VALUES(%d,%d,%d,%d,%d,%d,'%s')",
+			$gameID, $teamID, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
+
+	if( 1 != db_affected_rows() ) {
+		return false;
+	}
+	
+	return true;
+}
+
+/**
+ * Save final score for a single game
+ * $entry should contain:
+ * 	defaulted - final value for defaulted
+ * 	home_score, away_score - final values for score (if not defaulted)
+ * 	home_spirit, away_spirit - final values for spirit (if not defaulted)
+ * and optionally:
+ *  approved_by = ID of user approving it
+ */
+function game_save_score_final( $game, $entry )
+{
+	switch($entry['defaulted']) {
+	case 'home':
+		$entry['home_score'] = 0;
+		$entry['away_score'] = 6;
+		$entry['home_spirit'] = 0;
+		$entry['away_spirit'] = 0;
+		$rating_points = 0;
+		break;
+	case 'away':
+		$entry['away_score'] = 0;
+		$entry['home_score'] = 6;
+		$entry['home_spirit'] = 0;
+		$entry['away_spirit'] = 0;
+		$rating_points = 0;
+		break;
+	default:
+		$entry['defaulted'] = 'no';
+		$home = team_load( array('team_id' => $game->home_id) );
+		$away = team_load( array('team_id' => $game->away_id) );
+		/* And, calculate the Elo value for this game.  It's only
+		 * applicable iff we're not defaulted.
+		 */
+		$rating_points = calculate_elo_change(
+			$entry['home_score'],
+			$entry['away_score'],
+			$home->rating,
+			$away->rating);
+	}
+	if( !array_key_exists("approved_by", $entry) ) {
+		$entry['approved_by'] = -1;
+	}
+
+	db_query("UPDATE schedule SET
+		home_score = %d,
+		away_score = %d,
+		home_spirit = %d,
+		away_spirit = %d,
+		approved_by = %d,
+		rating_points = %d,
+		defaulted = '%s' WHERE game_id = %d", array(
+			$entry['home_score'],
+			$entry['away_score'],
+			$entry['home_spirit'],
+			$entry['away_spirit'],
+			$entry['approved_by'],
+			$rating_points,
+			$entry['defaulted'],
+			$game->game_id) );
+
+	if(1 != db_affected_rows()) {
+		return false;
+	}
+
+	/* Update ratings if we've got a change */
+	if($rating_points && ($entry['home_score'] > $entry['away_score']) ) {
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $rating_points, $game->home_id);
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", (0 - $rating_points), $game->away_id);
+	} else {
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", (0 - $rating_points), $game->home_id);
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $rating_points, $game->away_id);
+	}
+
+	db_query("DELETE FROM score_entry WHERE game_id = %d",$game->game_id);
+	if(1 != db_affected_rows()) {
+		return false;
+	}
+
+	return true;
+}
+
+
+
+/**
+ * Calculate the value to be added/subtracted from the competing teams' 
+ * ratings.
+ * Modified Elo system, similar to the one
+ * used for international soccer (http://www.eloratings.net), with several
+ * Ultimate-specific modifications:
+ * 	- all games currently weighted equally (though playoff games will be
+ * 	  weighted differently in the future)
+ * 	- score differential bonus modified for Ultimate
+ * 	- no bonus given for 'home field advantage' since there's no
+ * 	  real advantage in OCUA.
+ */
+function calculate_elo_change($scoreA, $scoreB, $ratingA, $ratingB)
+{
+	/* TODO: Should be a config variable in the league table? */
+	$weightConstant = 40;
+	$scoreWeight = 1;
+
+	if($scoreA > $scoreB) {
+		$gameValue = 1;
+	} else if($scoreA == $scoreB) {
+		$gameValue = 0.5;
+	} else {
+		$gameValue = 0;
+	}
+	
+	/* If the score differential is greater than 1/3 the 
+	 * winning score, add a bonus.
+	 * This means that the bonus is given in summer games of 15-10 or
+	 * worse, and in indoor games with similar score ratios.
+	 */
+	$scoreDiff = $scoreA - $scoreB;
+	$scoreMax  = max($scoreA, $scoreB);
+	if($scoreMax && (($scoreDiff / $scoreMax) > (1/3)) ) {
+		$scoreWeight += $scoreDiff / $scoreMax;
+	}
+
+	$power = pow(10, ((0 - ($ratingA - $ratingB)) / 400));
+	$expectedWin = (1 / ($power + 1));
+
+	return $weightConstant * $scoreWeight * ($gameValue - $expectedWin);
+}
+
+?>
