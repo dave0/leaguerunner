@@ -71,7 +71,7 @@ class MainMenu extends Handler
 			foreach($teams as $team) { 
 				$teamData = bold($team['name']) . " (" . $team['position'] . ")";
 				$teamsAndLeagues .= tr(
-					td( $teamData, array('foo' => 'bar', 'colspan' => 3))
+					td( $teamData, array('colspan' => 3))
 					. td(theme_links(array(
 						l("info", "op=team_view&id=" . $team['id']),
 						l("scores and schedules", "op=team_schedule_view&id=" . $team['id']),
@@ -93,7 +93,7 @@ class MainMenu extends Handler
 			}
 		}
 
-		if( $session->may_coordinate_league() === 'foo') {
+		if( $session->may_coordinate_league() ) {
 			/* Fetch leagues coordinated */
 			$leagues = $DB->getAll("
 				SELECT 
