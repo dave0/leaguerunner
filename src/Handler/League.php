@@ -1199,10 +1199,10 @@ class LeagueApproveScores extends Handler
 		
 		while($game = db_fetch_object($result)) {
 			$rows[] = array(
-				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 4),
+				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 3),
 				array('data' => $game->home_name, 'colspan' => 2),
 				array('data' => $game->away_name, 'colspan' => 2),
-				array('data' => l("approve score", "game/approve/$game->game_id"), 'rowspan' => 4)
+				array('data' => l("approve score", "game/approve/$game->game_id"), 'rowspan' => 3)
 			);
 		
 			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
