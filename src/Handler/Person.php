@@ -1609,7 +1609,7 @@ class PersonList extends Handler
 			'require_valid_session',
 			'admin_sufficient',
 			'volunteer_sufficient',
-			'allow',
+			'deny',
 		);
 		$this->op = 'person_list';
 		$this->section = 'person';

@@ -472,7 +472,7 @@ class WaitingListJoin extends Handler
 		
 		/* TODO: This should be a config option!  It duplicates info in
 		 * Menu.php */
-		$signupTime = time();#mktime(9,0,0,10,22,2003);
+		$signupTime = mktime(9,0,0,10,22,2003);
 		if(	time() < $signupTime) {
 			return blockquote(para("You may not make any selections until registration opens.")
 				. para("Indoor Signup opens " . date("F j Y h:i A", $signupTime)));
@@ -702,8 +702,9 @@ class WaitingListJoin extends Handler
 			}
 		}
 
-		$output = para("Your preferences have been recorded.  Please note that you need to send in a separate cheque for each night you have registered for.  DO NOT send in a single cheque covering all nights or you may lose your position on the waiting list.");
-		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to TODO: what address?!");
+		$output = para("Your preferences have been recorded.  Please note that you need to send in a separate cheque for each night you have registered for.  DO NOT send in a single cheque covering all nights or you may lose your position on the waiting list.  Remember to write your OCUA member number clearly on the front or back of the cheque.");
+		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to<br />Ottawa Carleton Ultimate Association<br />PO Box 120, 410 Bank St<br />Ottawa, Ontario<br /> K2P 1Y8.");
+		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
 		return blockquote($output);
 	}
@@ -871,11 +872,55 @@ class WaitingListViewPerson extends Handler
 		}
 
 		if($dbResult->numRows() < 1) {
-			$output = blockquote(
-			    para("TODO: Text describing registration can go here")
-				. para("You are not currently on any waiting lists.  Click " . l('here','op=wlist_join') . " to sign up for one or more days.")
-			);
-			return $output;
+			// TODO: This belongs in a config file or as a data resource
+			$output = <<<EOM
+<p>
+Welcome to OCUA's Winter Indoor Registration.  Please read everything
+carefully before you proceed to make sure you do not make a mistake.
+Once you submit your registration you may not change your preferences
+without losing your priority ranking on the waiting lists.  You are able
+to remove yourself from waiting lists.  If you remove yourself from all
+waiting lists you can start registration with a clean slate.
+</p>
+<p>
+If you want to register as a couple you must know your partner/friend's
+OCUA member number.
+</p>
+<p>
+Instructions for cheque submission will be displayed after you submit
+your registration.  You will need to provide OCUA with a separate cheque
+for each division in which you register.  If you are not accepted into a
+particular division your cheque for that division will be destroyed.
+</p>
+<p>
+The lists of players attempting to register for a division is called a
+waiting list. That's just a label. Everyone is signing up for the
+waiting lists. Then, for the Open, Rec, and Daytime divisions the people
+who get in are selected from the top of the waiting list. After all the
+spots have been filled those who didn't make it in are on a traditional
+waiting list. Any subsequent openings within divisions will be filled
+from the top of the traditional waiting list.  Players for Tuesday
+Advanced will be selected from the entire waiting list.  Order of
+submission does not apply for the Tuesday Advanced division.
+</p>
+<p>
+Registration for the Wednesday Competitive division is not being done in
+Leaguerunner.  An announcement about the Wednesday Competitive
+registration procedure should be made on OCUA's website shortly.
+Remember: You cannot play in both Wednesday Competitive and Tuesdays
+Advanced.  If you are interested in playing Competitive but might not be
+selected it is in your best interest to apply for Tuesdays Advanced as
+well.
+</p>
+<p>
+Incomplete registration submissions will be rejected.  The onus is on
+you, the user, to complete your registration in its entirety.  We (the
+Webteam, Coordinating team, and OCUA Management) accept no
+responsibility for user error.
+</p>
+EOM;
+			$output .= para("You are not currently on any waiting lists.  Click <b>" . l('here','op=wlist_join') . "</b> to sign up for one or more divisions.");
+			return blockquote($output);
 		}
 
 		$output = blockquote(
