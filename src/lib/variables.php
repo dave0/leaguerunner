@@ -19,9 +19,9 @@ $GLOBALS['APP_ADMIN_EMAIL'] = "dmo@acm.org";
 
 $GLOBALS['APP_SERVER'] = $HTTP_SERVER_VARS["HTTP_HOST"];
 
-$GLOBALS['APP_DIR_WEBFACING'] = "/php-engine/"; # was $server_root_remote
+$GLOBALS['APP_DIR_WEBFACING'] = "/leaguerunner/"; # was $server_root_remote
 $GLOBALS['APP_DIR_GRAPHICS']  = "$APP_DIR_WEBFACING/graphics/"; 
-$GLOBALS['APP_DIR_INTERNAL']  = "/home/projects/ocua/ocua-engine/"; # was $server_root_local
+$GLOBALS['APP_DIR_INTERNAL']  = "/home/projects/ocua/leaguerunner/"; # was $server_root_local
 $GLOBALS['APP_CGI_LOCATION']  = "http://$APP_SERVER/$APP_DIR_WEBFACING/main.php";
 
 $GLOBALS['APP_STYLESHEET'] = "http://$APP_SERVER/$APP_DIR_WEBFACING/style.css";
