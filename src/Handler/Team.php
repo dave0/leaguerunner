@@ -1069,7 +1069,7 @@ class TeamSpirit extends Handler
 	function process ()
 	{
 		global $session;
-		$this->title = "Schedule";
+		$this->title = "Team Spirit";
 		
 		$this->setLocation(array(
 			$this->team->name => "team/spirit/". $this->team->team_id,
@@ -1084,11 +1084,14 @@ class TeamSpirit extends Handler
 			error_exit("There are no games scheduled for this team");
 		}
 
-		$header = array(
-			"ID",
-			"Date",
-			"Opponent"
-		);
+		$header = array();
+		if( $session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+			$header = array(
+				"ID",
+				"Date",
+				"Opponent"
+			);
+		}
 		$rows = array();
 
 		# TODO load all point values for answers into array
@@ -1157,10 +1160,13 @@ class TeamSpirit extends Handler
 
 			$rows[] = $thisrow;
 		}
-		
-		$thisrow = array(
-			"Total","-","-"
-		);
+	
+		$thisrow = array();
+		if( $session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+			$thisrow = array(
+				"Total","-","-"
+			);
+		}
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / $num_games);
@@ -1174,7 +1180,7 @@ class TeamSpirit extends Handler
 		}
 		$rows[] = $thisrow;
 
-		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
+		return table($header,$rows, array('alternate-colours' => true) );
 	}
 }
 
