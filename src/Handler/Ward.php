@@ -8,18 +8,17 @@ function ward_dispatch()
 	$op = arg(1);
 	switch($op) {
 		case 'create':
-			return new WardCreate; // TODO
+			return new WardCreate;
 		case 'edit':
-			return new WardEdit; // TODO
+			return new WardEdit;
 		case 'view':
-			return new WardView; // TODO
+			return new WardView;
 		case 'list':
 		case '':
-			return new WardList; // TODO
+			return new WardList;
 	}
 	return null;
 }
-
 
 class WardCreate extends WardEdit
 {
@@ -31,15 +30,33 @@ class WardCreate extends WardEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = "ward_create";
 		$this->section = 'admin';
 		return true;
 	}
 	
-	function perform ()
+	function process ()
 	{
-		$edit = var_from_getorpost("edit");
+		$id = arg(2);
+		$edit = $_POST['edit'];
 
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm($id, $edit);
+				break;
+			case 'perform':
+				$this->perform(&$id, $edit);
+				local_redirect(url("ward/view/$id"));
+				break;
+			default:
+				$edit = $this->getFormData( $id );
+				$rc = $this->generateForm($id, $edit);
+		}
+		$this->setLocation(array($this->title => 0));
+		return $rc;
+	}
+	
+	function perform ( $id, $edit )
+	{
 		/* TODO: should use a sequence table here instead of LAST_INSERT_ID()
 		 */
 	
@@ -53,157 +70,113 @@ class WardCreate extends WardEdit
 		if( !db_num_rows($result) ) {
 			return false;
 		}
-		$this->id = db_result($result);
+		$id = db_result($result);
 		
-		return parent::perform();
+		return parent::perform($id, $edit);
 	}
 
 }
 
 class WardEdit extends Handler
 {
-	var $id;
-
 	function initialize ()
 	{
 		$this->title = "Edit Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = "ward_edit";
 		$this->section = 'admin';
 		return true;
 	}
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		$edit = var_from_getorpost('edit');
-		$this->id = var_from_getorpost('id');
+		$id = arg(2);
+		$edit = $_POST['edit'];
 
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$dataInvalid = $this->isDataInvalid();
-				if($dataInvalid) {
-					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-				}
-				
-				return $this->generateConfirm($edit);
+				$rc = $this->generateConfirm($id, $edit);
 				break;
 			case 'perform':
-				$dataInvalid = $this->isDataInvalid();
-				if($dataInvalid) {
-					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-				}
-				$this->perform();
-				local_redirect("op=ward_view&id=". $this->id);
+				$this->perform($id, $edit);
+				local_redirect(url("ward/view/$id"));
 				break;
 			default:
-				if($this->id) {
-					$result = db_query("SELECT * FROM ward WHERE ward_id = %d", $this->id);
-					$row = db_fetch_array($result);
-				} else {
-					$row = array();
-				}
-				return $this->generateForm($row);
+				$edit = $this->getFormData( $id );
+				$rc = $this->generateForm( $edit );
 		}
+		$this->setLocation(array($edit['name']  => "ward/view/$id", $this->title => 0));
+		return $rc;
+	}
+
+	function getFormData( $id ) 
+	{
+		/* TODO: ward_load() */
+		return db_fetch_array(db_query("SELECT * FROM ward WHERE ward_id = %d", $id));
 	}
 
 	function generateForm( $data = array() )
 	{
-
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", "confirm");
-		if($this->id) {
-			$output .= form_hidden("id", $this->id);
-		}
+		$output .= form_hidden("edit[step]", "confirm");
 		
 		$rows = array();
-
-		$rows[] = array(
-			"Ward Name:",
-			form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of ward"));
-			
-		$rows[] = array(
-			"Ward Number:",
-			form_textfield("", 'edit[num]', $data['num'], 3, 3, "City's number for this ward"));
-			
-		$rows[] = array(
-			"Ward Region:",
-			form_select("", 'edit[region]', $data['region'], getOptionsFromEnum('ward', 'region'), "Area of city this ward is located in"));
-			
-		$rows[] = array(
-			"City:",
-			form_select("", 'edit[city]', $data['city'],
+		$rows[] = array( "Ward Name:", form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of ward"));
+		$rows[] = array( "Ward Number:", form_textfield("", 'edit[num]', $data['num'], 3, 3, "City's number for this ward"));
+		$rows[] = array( "Ward Region:", form_select("", 'edit[region]', $data['region'], getOptionsFromEnum('ward', 'region'), "Area of city this ward is located in"));
+		$rows[] = array( "City:", form_select("", 'edit[city]', $data['city'],
 				getOptionsFromQuery("SELECT city AS theKey, city AS theValue FROM ward"),
 				"City this ward is located in"));
-			
-		$rows[] = array(
-			"Ward URL:",
-			form_textfield("", 'edit[url]', $data['url'],50, 255, "City's URL for information on this ward"));
-			
-		$rows[] = array(
-			form_submit('Submit'),
-			form_reset('Reset'));
+		$rows[] = array( "Ward URL:", form_textfield("", 'edit[url]', $data['url'],50, 255, "City's URL for information on this ward"));
+		$rows[] = array( form_submit('Submit'), form_reset('Reset'));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-	
-		if($this->id) {
-			$this->setLocation(array(
-				$data['name'] => "op=ward_view&id=" . $this->id,
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => 0));
-		}
-			
 		return form($output);	
 	}
 
-	function generateConfirm ($data)
+	function generateConfirm ($id, $edit)
 	{
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", "perform");
-		$output .= form_hidden("id", $this->id);
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+		$output .= form_hidden("edit[step]", "perform");
 		
 		$rows = array();
 		$rows[] = array(
 			"Ward Name:",
-			form_hidden('edit[name]', $data['name']) . check_form($data['name']));
+			form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
 			
 		$rows[] = array(
 			"Ward Number:",
-			form_hidden('edit[num]', $data['num']) . check_form($data['num']));
+			form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
 			
 		$rows[] = array(
 			"Ward Region:",
-			form_hidden('edit[region]', $data['region']) . check_form($data['region']));
+			form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
 			
 		$rows[] = array(
 			"City Ward:",
-			form_hidden('edit[city]', $data['city']) . check_form($data['city']));
+			form_hidden('edit[city]', $edit['city']) . check_form($edit['city']));
 			
 		$rows[] = array(
 			"Ward URL:",
-			form_hidden('edit[url]', $data['url']) . check_form($data['url']));
+			form_hidden('edit[url]', $edit['url']) . check_form($edit['url']));
 			
 		$rows[] = array( form_submit('Submit'), "");
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		if($this->id) {
-			$this->setLocation(array(
-				$data['name'] => "op=ward_view&id=" . $this->id,
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => 0));
-		}
+		
 		return form($output);
 	}
 
-	function perform ()
+	function perform ($id, $edit)
 	{
-		$edit = var_from_getorpost('edit');
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
 		
 		$res = db_query("UPDATE ward SET 
 			name = '%s', 
@@ -211,7 +184,7 @@ class WardEdit extends Handler
 			region = '%s', 
 			city = '%s',
 			url = '%s'
-			WHERE ward_id = %d", $edit['name'], $edit['num'], $edit['region'], $edit['city'], $edit['url'], $this->id);
+			WHERE ward_id = %d", $edit['name'], $edit['num'], $edit['region'], $edit['city'], $edit['url'], $id);
 		
 		if( 1 != db_affected_rows() ) {
 			return false;
@@ -220,12 +193,10 @@ class WardEdit extends Handler
 		return true;
 	}
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit )
 	{
 		$errors = "";
 
-		$edit = var_from_getorpost('edit');
-		
 		if( !validate_nonhtml($edit['name'] ) ) {
 			$errors .= "<li>Name cannot be left blank, and cannot contain HTML";
 		}
@@ -259,11 +230,11 @@ class WardList extends Handler
 	function initialize ()
 	{
 		$this->_required_perms = array(
+			'require_valid_session',
 			'allow'		/* Allow everyone */
 		);
-		$this->op = "ward_list";
 		$this->section = 'admin';
-		$this->setLocation(array("List Wards" => 'op=' . $this->op));
+		$this->setLocation(array('List Wards' => 'ward/list'));
 		return true;
 	}
 
@@ -288,7 +259,7 @@ class WardList extends Handler
 					$ward->name,
 					array('data' => $fields . (($fields == 1) ? " field" : " fields"), 'align' => 'right'),
 					array('data' => $ward->players . (($ward->players == 1) ? " player" : " players"), 'align' => 'right'),
-					l('view', "op=ward_view&id=$ward->ward_id")
+					l('view', "ward/view/$ward->ward_id")
 				);
 			}
 			$playerQuery = db_query("SELECT COUNT(*) FROM person WHERE ISNULL(ward_id) AND addr_city = '%s'", $city);
@@ -315,14 +286,12 @@ class WardView extends Handler
 		$this->title = "View Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'allow',
 		);
 		$this->_permissions = array(
 			'ward_edit'			=> false,
 		);
-		$this->op = "ward_view";
 		$this->section = 'admin';
 		return true;
 	}
@@ -336,20 +305,18 @@ class WardView extends Handler
 
 	function process ()
 	{
-		global $session;
+		$id = arg(2);
 
-		$id = var_from_getorpost('id');
-
+		/* TODO: ward_load() */
 		$result = db_query("SELECT * FROM ward WHERE ward_id = %d", $id);
-		$ward = db_fetch_object($result);
-
-		if(!isset($ward)) {
+		if( 1 != db_num_rows($result)) {
 			$this->error_exit("That ward does not exist");
 		}
+		$ward = db_fetch_object($result);
 
 		$links = array();
 		if($this->_permissions['ward_edit']) {
-			$links[] = l('edit ward', "op=ward_edit&id=$id", array("title" => "Edit this ward"));
+			$links[] = l('edit ward', "ward/edit/$id", array("title" => "Edit this ward"));
 		}
 		
 		/* and list field sites in this ward */
@@ -358,13 +325,11 @@ class WardView extends Handler
 		$site_listing = "<ul>";
 		while($site = db_fetch_object($fieldSites)) {
 			$field_listing .= "<li>$site->name ($site->code) &nbsp;";
-			$field_listing .= l("view", 
-				"op=site_view&id=$site->site_id", 
-				array('title' => "View site"));
+			$field_listing .= l("view", "site/view/$site->site_id", array('title' => "View site"));
 		}
 		$field_listing .= "</ul>";
 		
-		$this->setLocation(array( $ward->name => "op=ward_view&id=$id", $this->title => 0));
+		$this->setLocation(array( $ward->name => "ward/view/$id", $this->title => 0));
 		
 		$output = theme_links($links);
 		
@@ -377,7 +342,6 @@ class WardView extends Handler
 		$rows[] = array("Field Sites:", $field_listing);
 		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		
 		return $output;
 	}
 }
