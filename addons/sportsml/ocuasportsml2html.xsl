@@ -68,21 +68,21 @@
 	</td></tr></table>
 	-->
 
-	<table border="0" cellpadding="3" cellspacing="0"><tdata>
+	<div class='listtable'><table border="0" cellpadding="3" cellspacing="0"><tdata>
   	<tr>
-	  <td class='standings_title' valign='middle' colspan='2' rowspan='2'>Team Name</td>
-          <td class='standings_title' valign='bottom' colspan='7'>Season To Date</td>
-	  <td class='standings_title' valign='middle' rowspan='2'>Avg. SOTG</td>
+	  <th colspan='2' rowspan='2'>Team Name</th>
+          <th colspan='7'>Season To Date</th>
+	  <th rowspan='2'>Avg. SOTG</th>
 	</tr>
 
 	<tr>
-	  <td class='standings_subtitle' valign='bottom' >Win</td>
-	  <td class='standings_subtitle' valign='bottom' >Loss</td>
-	  <td class='standings_subtitle' valign='bottom' >Tie</td>
-	  <td class='standings_subtitle' valign='bottom' ><span title="Defaulted games">Dfl</span></td>
-	  <td class='standings_subtitle' valign='bottom' ><span title="Points For">PF</span></td>
-	  <td class='standings_subtitle' valign='bottom' ><span title="Points Against">PA</span></td>
-	  <td class='standings_subtitle' valign='bottom' ><span title="Plus/Minus ranking">+/-</span></td>
+	  <td class='subtitle'>Win</td>
+	  <td class='subtitle'>Loss</td>
+	  <td class='subtitle'>Tie</td>
+	  <td class='subtitle'><span title="Defaulted games">Dfl</span></td>
+	  <td class='subtitle'><span title="Points For">PF</span></td>
+	  <td class='subtitle'><span title="Points Against">PA</span></td>
+	  <td class='subtitle'><span title="Plus/Minus ranking">+/-</span></td>
 	</tr>
 
 	<xsl:for-each select="team">             <!--process all teams-->
@@ -90,7 +90,7 @@
 			<xsl:with-param name="oneteam" select="."/>
 		</xsl:call-template>
 	</xsl:for-each>
-	</tdata></table>
+	</tdata></table></div>
 </xsl:template>
 <!-- end template for standing -->
 
@@ -105,7 +105,7 @@
 		</td>
 
 		<!--Build the name in the second field-->
-		<td class='standings_item' nowrap="nowrap">
+		<td nowrap="nowrap">
 		  <xsl:for-each select="$oneteam/team-metadata/name">
 		    <xsl:if test="@language">
 		      <xsl:value-of select="@language"/>:
@@ -118,33 +118,33 @@
 		  </xsl:for-each>
 		</td>
 
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@wins"/>
 		</td>
-		<td class="standings_item">
+		<td>
 	  	  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@losses"/>
 		</td>
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@ties"/>
 		</td>
 		
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-miscellaneous/@defaults"/>
 		</td>
 
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@points-scored-for"/>
 		</td>
 
-		<td class="standings_item">
+		<td>
 			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@points-scored-against"/>
 		</td>
 
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-miscellaneous/@plusminus"/>
 		</td>
 
-		<td class="standings_item">
+		<td>
 		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-spirit/@value"/>
 		</td>
 	</tr>
@@ -153,70 +153,23 @@
 
 
 <!-- Template to catch schedules -->
-	<!--
-<table border="0" cellpadding="3" cellspacing="0"><tdata>
-  <tr>
-    <td class="schedule_title" valign='top' colspan='7'> 
-      <font face="verdana,arial,helvetica" color='#FFFF00'><b>Mon May 19 2003</b></font>
-    </td>
-    <td class="schedule_title" colspan='2'>
-                  <a class="topbarlink" href="/leaguerunner/index.php?op=league_schedule_view&id=11&week_id=2003139">edit week</a>
-              </td>
-
-  </tr>
-
-  <tr>
-    <td class="schedule_subtitle" rowspan="2">Round</td>
-    <td class="schedule_subtitle" rowspan="2">Game Time</td>
-    <td class="schedule_subtitle" rowspan="2">Home</td>
-    <td class="schedule_subtitle" rowspan="2">Away</td>
-
-    <td class="schedule_subtitle" rowspan="2">Field</td>
-    <th class="schedule_subtitle" colspan="2">Score</td>
-          <td class="schedule_subtitle" colspan="2">SOTG</td>
-      </tr>
-  <tr>
-    <td class="schedule_subtitle">Home</td>
-    <td class="schedule_subtitle">Away</td>
-
-          <td class="schedule_subtitle">Home</td>
-	    <td class="schedule_subtitle">Away</td>
-      </tr>
-
- 
-    <tr>
-    <td>1</td>
-    <td>18:30</td>
-
-    <td>
-              <a href="/leaguerunner/index.php?op=team_view&id=323">Bionic Monkeys</a>          </td>
-    <td>
-              <a href="/leaguerunner/index.php?op=team_view&id=253">Dingoes (Monday)</a>          </td>
-    <td><a href="/leaguerunner/index.php?op=site_view&id=7">Potvin Green Space 2 (POT2)</a>&nbsp;</td>
-    <td>6</td>
-
-    <td>15</td>
-               	 	<td>9</td>
-       	<td>8</td>
-            </tr>
-	-->
 <xsl:template match="schedule">
 	<xsl:if test="@date-label or @content-label">
 		<h2 class="schedline"> Schedule: <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></h2>
 	</xsl:if>
-	<table border="0" cellpadding="3" cellspacing="0"><tdata>
+	<div class='schedule'><table border="0" cellpadding="3" cellspacing="0"><tdata>
 	  <tr>
-     	    <td class="schedule_subtitle">Game Date</td>
-   	    <td class="schedule_subtitle">Home</td>
-     	    <td class="schedule_subtitle">Away</td>
-    	    <td class="schedule_subtitle">Field</td>
+     	    <td class="column-heading">Game Date</td>
+   	    <td class="column-heading">Home</td>
+     	    <td class="column-heading">Away</td>
+    	    <td class="column-heading">Field</td>
 	  </tr>
   	  <xsl:for-each select="sports-event">
 		<xsl:call-template name="event-schedule">
 			<xsl:with-param name="oneevent" select="."/>
 		</xsl:call-template>
 	  </xsl:for-each>
-	</tdata></table>
+	</tdata></table></div>
 </xsl:template>
 <!-- end template for schedules -->
 
