@@ -998,11 +998,11 @@ class LeagueView extends Handler
 		$teams = $DB->getAll(
 			"SELECT t.* FROM
 				leagueteams l
-				LEFT JOIN team t ON (l.team_id = t.team_id)
+				INNER JOIN team t ON (l.team_id = t.team_id)
 			 WHERE
 				l.league_id = ?
 			 ORDER BY 
-			 	name",
+			 	t.name",
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($teams)) {
@@ -1010,9 +1010,27 @@ class LeagueView extends Handler
 		}
 
 		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
-		$output .= tr( th("Teams", array( 'colspan' => 3)));
+		$output .= tr( 
+		   th("Team Name")
+		   . th("Shirt Colour")
+		   . th("Avg. Skill")
+		   . th("&nbsp;")
+		);
 		$count = count($teams);
 		for($i = 0; $i < $count; $i++) {
+			$teamSkill = $DB->getOne(
+				"SELECT 
+				  AVG(p.skill_level)
+				 FROM
+				  teamroster r
+				  INNER JOIN person p ON (r.player_id = p.user_id)
+				 WHERE 
+				  r.team_id = ?",
+				array($teams[$i]['team_id']), DB_FETCHMODE_ASSOC);
+
+			if($this->is_database_error($teamSkill)) {
+				return false;
+			}
 			$team_links = array();
 			$team_links[] = l('view', 'op=team_view&id=' . $teams[$i]['team_id']);
 			if($teams[$i]['status'] == 'open') {
@@ -1026,6 +1044,7 @@ class LeagueView extends Handler
 			$output .= tr(
 				td(check_form($teams[$i]['name']))
 				. td(check_form($teams[$i]['shirt_colour']))
+				. td(sprintf('%.02f',$teamSkill))
 				. td(theme_links($team_links))
 			);
 		}
