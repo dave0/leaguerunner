@@ -11,7 +11,7 @@ class Team extends LeaguerunnerObject
 	function load ( $array = array() )
 	{
 
-		$result = team_query( &$array );
+		$result = team_query( $array );
 		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
