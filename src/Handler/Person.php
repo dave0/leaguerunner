@@ -1228,6 +1228,7 @@ class PersonActivate extends PersonEdit
 		$this->_permissions['edit_gender']		= true;
 		$this->_permissions['edit_skill'] 		= true;
 		$this->_permissions['edit_dog'] 		= true;
+		$this->_permissions['edit_publish']		= true;
 
 		return true;
 	}
