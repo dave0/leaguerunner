@@ -943,6 +943,7 @@ class TeamView extends Handler
 						league l, leagueteams t, teamroster r
 					WHERE
 						l.season = ? AND l.tier = ? AND l.day = ?
+						AND l.allow_schedule = 'Y'
 						AND l.league_id = t.league_id 
 						AND t.team_id = r.team_id
 						AND r.player_id = ?
