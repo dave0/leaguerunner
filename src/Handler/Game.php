@@ -1364,6 +1364,7 @@ class GameEdit extends Handler
 		if( ! $this->_permissions['edit_game'] ) {
 			$this->error_exit("You do not have permission to edit this game");
 		}
+
 	
 		$dataInvalid = $this->isDataInvalid( $edit );
 		
@@ -1417,6 +1418,8 @@ class GameEdit extends Handler
 		
 		$output .= para(form_submit('submit'));
 
+		// TODO: dmo: this should be done elsewhere as each operation needs it.
+		$league = league_load( array('league_id' => $game->league_id) );
 		game_add_to_menu($this, $league, $game);
 
 
