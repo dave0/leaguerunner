@@ -228,7 +228,7 @@ class Team extends LeaguerunnerObject
 	{
 		$sbf = db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $this->team_id, $this->team_id));
 		
-		if( !defined($sbf) || $sbf = "") {
+		if( $sbf == "") {
 			$sbf = "n/a";
 		}
 

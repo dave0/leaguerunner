@@ -507,7 +507,7 @@ class GameSubmit extends Handler
 		// Otherwise, both teams have an entry.  So, compare them:
 		$home_entry = $this->game->get_score_entry( $this->game->home_id );
 		$away_entry = $this->game->get_score_entry( $this->game->away_id );
-		if( $this->game->score_entries_agree( $home_entry, $away_entry ) ) {
+		if( $this->game->score_entries_agree( object2array($home_entry), object2array($away_entry) ) ) {
 			switch( $home_entry->defaulted ) {
 				case 'us':
 					$this->game->set('status', 'home_default');
@@ -552,6 +552,9 @@ class GameSubmit extends Handler
 			// If it's a default, short-circuit the spirit-entry form and skip
 			// straight to the confirmation
 			return $this->generateConfirm($edit, $opponent);
+		} else {
+			// Force a non-default to display correctly
+			$edit['defaulted'] = 'no';
 		}
 
 		$output = $this->interim_game_result(&$edit, &$opponent);
@@ -582,6 +585,9 @@ class GameSubmit extends Handler
 			if( $dataInvalid ) {
 				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
+			
+			// Force a non-default to display correctly
+			$edit['defaulted'] = 'no';
 		}
 		
 		$output = $this->interim_game_result(&$edit, &$opponent);
@@ -704,8 +710,9 @@ ENDSCRIPT;
 			
 		// now, check if the opponent has an entry
 		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
+
 		if( $opponent_entry ) {
-			if( ! $this->game->score_entries_agree( $edit, $opponent_entry ) ) {
+			if( ! $this->game->score_entries_agree( $edit, object2array($opponent_entry) ) ) {
 				$output .= para("<b>Note:</b> this score does NOT agree with the one provided by your opponent, so coordinator approval will be required if you submit it");
 			}
 		}
@@ -782,15 +789,23 @@ class GameEdit extends Handler
 		}
 
 		$this->_permissions = array(
-			'edit_game' => false,
+			'edit_game'   => false,
+			'view_spirit' => false,
 		);
 
+		if( arg(1) == 'edit' || arg(1) == 'approve' ) {
+			$want_edit = true;
+		} else {
+			$want_edit = false;
+		}
 		if( $session->is_admin() ) {
-			$this->_permissions['edit_game'] = true;
+			$this->_permissions['edit_game'] = $want_edit;
+			$this->_permissions['view_spirit'] = true;
 		}
 		
-		if($session->is_coordinator_of($game->league_id)) {
-			$this->_permissions['edit_game'] = true;
+		if( $session->is_coordinator_of($game->league_id)) {
+			$this->_permissions['edit_game'] = $want_edit;
+			$this->_permissions['view_spirit'] = true;
 		}
 		
 		$this->setLocation(array(
@@ -799,7 +814,7 @@ class GameEdit extends Handler
 		$edit = $_POST['edit'];
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( &$edit );
+				$rc = $this->generateConfirm( $this->game, &$edit );
 				break;
 			case 'perform':
 				$this->perform( &$edit );
@@ -844,6 +859,8 @@ class GameEdit extends Handler
 		$field = field_load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
+
+		$output .= form_item("Game Status", $game->status);
 	
 		$output .= form_item("Round", $game->round);
 
@@ -866,16 +883,20 @@ class GameEdit extends Handler
 			if( ! $this->_permissions['edit_game'] ) {
 				// If we're not editing, display score.  If we are, 
 				// it will show up below.
-				switch($game->defaulted) {
-					case 'home':
-						$home_default = " (defaulted)";
+				switch($game->status) {
+					case 'home_default':
+						$home_status = " (defaulted)";
 						break;
-					case 'away':
-						$away_default = " (defaulted)";
+					case 'away_default':
+						$away_status = " (defaulted)";
+						break;
+					case 'forfeit':
+						$home_status = " (forfeit)";
+						$away_status = " (forfeit)";
 						break;
 				}
-				$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_default");
-				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_default");
+				$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_status");
+				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_status");
 			}
 			
 			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
@@ -894,8 +915,8 @@ class GameEdit extends Handler
 			 */
 			$stats_group = '';
 			/* Use our ratings to try and predict the game outcome */
-			$homePct = elo_expected_win($game->home_rating, $game->away_rating);
-			$awayPct = 1 - $homePct;
+			$homePct = $game->home_expected_win();
+			$awayPct = $game->away_expected_win();
 
 			$stats_group .= form_item("Chance to win", table(null, array(
 				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
@@ -913,63 +934,37 @@ class GameEdit extends Handler
 		// Now, we always want to display this edit code if we have
 		// permission to edit.
 		if( $this->_permissions['edit_game'] ) {
-			switch($game->defaulted) {
-				case 'home':
-					$home_default_checked = " checked";
-					break;
-				case 'away':
-					$away_default_checked = " checked";
-					break;
-			}
+			$score_group .= form_select('Game Status','edit[status]', $game->status, getOptionsFromEnum('schedule','status'), "To mark a game as defaulted, select the appropriate option here.  Appropriate scores will automatically be entered.");
 			$score_group .= form_textfield( "Home ($game->home_name) score", 'edit[home_score]',$game->home_score,2,2);
-			$score_group .= form_item( '', "or mark $game->home_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='home' $home_default_checked onclick='defaultCheckboxChanged()'>");
 			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
-			$score_group .= form_item( "", "or mark $game->away_name as defaulted: <input type='checkbox' name='edit[defaulted]' value='away' $away_default_checked onclick='defaultCheckboxChanged()'>");
-
+		
+		}
+		
+		$output .= form_group("Scoring", $score_group);
+		if ($this->_permissions['view_spirit']) {
+		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->away_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
-			$home_spirit_group = $formbuilder->render_editable( $ary );
+			if($this->_permissions['edit_game']) {
+				$home_spirit_group = $formbuilder->render_editable( $ary, 'home' );
+			} else {
+				$home_spirit_group = $formbuilder->render_viewable( $ary );
+			}
 		
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->home_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
-			$away_spirit_group = $formbuilder->render_editable( $ary );
+			if($this->_permissions['edit_game']) {
+				$away_spirit_group = $formbuilder->render_editable( $ary , 'away');
+			} else {
+				$away_spirit_group = $formbuilder->render_viewable( $ary );
+			}
 			
-			$script = <<<ENDSCRIPT
-<script type="text/javascript"> <!--
-  function defaultCheckboxChanged() {
-    if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
-        document.forms[0].elements['edit[home_score]'].value = '0';
-        document.forms[0].elements['edit[home_score]'].disabled = true;
-        document.forms[0].elements['edit[away_score]'].value = '6';
-        document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = true;
-    } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
-        document.forms[0].elements['edit[home_score]'].value = '6';
-        document.forms[0].elements['edit[home_score]'].disabled = true;
-        document.forms[0].elements['edit[away_score]'].value = '0';
-        document.forms[0].elements['edit[away_score]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = true;
-    } else {
-        document.forms[0].elements['edit[home_score]'].disabled = false;
-        document.forms[0].elements['edit[away_score]'].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = false;
-    }
-  }
-// -->
-</script>
-ENDSCRIPT;
-		
-		}
-		
-		$output .= form_group("Scoring", $score_group);
-		if ($this->_permissions['edit_game']) {
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
@@ -990,10 +985,21 @@ ENDSCRIPT;
 		}
 	
 		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
+		
+		$home_spirit = formbuilder_load('team_spirit');
+		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
+		$away_spirit = formbuilder_load('team_spirit');
+		$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
+	
+		if($edit['status'] == 'normal') {
+			$dataInvalid .= $home_spirit->answers_invalid();
+			$dataInvalid .= $away_spirit->answers_invalid();
+		}
+		
+		if( $dataInvalid ) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-
+		
 		$output = para( "You have made the changes below for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
 
@@ -1005,6 +1011,8 @@ ENDSCRIPT;
 			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
 			$output .= form_hidden('edit[home_spirit]', $edit['home_spirit']);		
 			$output .= form_hidden('edit[away_spirit]', $edit['away_spirit']);		
+			$output .= $home_spirit->render_hidden('home');
+			$output .= $away_spirit->render_hidden('away');
 		}
 		
 		if($edit['defaulted'] == 'home') {
@@ -1021,11 +1029,11 @@ ENDSCRIPT;
 		
 		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
-		$spirit_group .= form_item("Spirit assigned to home ($game->home_name)", $edit['home_spirit']);
-		$spirit_group .= form_item("Spirit assigned to away ($game->away_name)", $edit['away_spirit']);
-		
 		$output .= form_group("Scoring", $score_group);
-		$output .= form_group("Spirit", $spirit_group);
+		
+		$output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
+		$output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
+		
 		$output .= para(form_submit('submit'));
 
 		game_add_to_menu($this, $league, $game);
@@ -1035,42 +1043,78 @@ ENDSCRIPT;
 	}
 	
 	
-	function perform ( $game, $edit )
+	function perform ( $edit )
 	{
 		global $session;
 		
 		if( ! $this->_permissions['edit_game'] ) {
 			$this->error_exit("You do not have permission to edit this game");
 		}
+		$home_spirit = formbuilder_load('team_spirit');
+		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
+		$away_spirit = formbuilder_load('team_spirit');
+		$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
 	
 		$dataInvalid = $this->isDataInvalid( $edit );
+		
+		if($edit['status'] == 'normal') {
+			$dataInvalid .= $home_spirit->answers_invalid();
+			$dataInvalid .= $away_spirit->answers_invalid();
+		}
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$edit['approved_by'] = $session->attr_get('user_id');
+		// Now, finalize score.
+		$this->game->set('home_score', $edit['home_score']);
+		$this->game->set('away_score', $edit['away_score']);
+		$this->game->set('approved_by', $session->attr_get('user_id'));
 
-		return game_save_score_final($game, $edit);
+		// TODO: the default_spirit() stuff should be pushed into game.inc
+		switch( $edit['status'] ) {
+			case 'home_default':
+				$home_spirit_values = $this->default_spirit('loser');
+				$away_spirit_values = $this->default_spirit('winner');
+				break;
+			case 'away_default':
+				$away_spirit_values = $this->default_spirit('loser');
+				$home_spirit_values = $this->default_spirit('winner');
+				break;
+			case 'forfeit':
+				$away_spirit_values = $this->default_spirit('loser');
+				$home_spirit_values = $this->default_spirit('loser');
+				break;
+			case 'normal':
+			default:
+				$home_spirit_values = $home_spirit->bulk_get_answers();
+				$away_spirit_values = $away_spirit->bulk_get_answers();
+				break;
+		}
+
+		if( !$this->game->save_spirit_entry( $this->game->home_id, $home_spirit_values) ) {
+			$this->error_exit("Error saving spirit entry for " . $this->game->home_name);
+		}
+		if( !$this->game->save_spirit_entry( $this->game->away_id, $away_spirit_values) ) {
+			$this->error_exit("Error saving spirit entry for " . $this->game->away_name);
+		}
+
+		if ( ! $this->game->save() ) {
+			$this->error_exit("Could not successfully save game results");
+		}
+
+		return true;
 	}
 	
 	function isDataInvalid( $edit )
 	{
 		$errors = "";
 
-		if($edit['defaulted'] != 'home' && $edit['defaulted'] != 'away') {
+		if($edit['status'] == 'normal') {
 			if( !validate_number($edit['home_score']) ) {
 				$errors .= "<br>You must enter a valid number for the home score";
 			}
 			if( !validate_number($edit['away_score']) ) {
 				$errors .= "<br>You must enter a valid number for the away score";
-			}
-
-			// TODO: SOTG rewrite
-			if( !validate_number($edit['home_spirit']) ) {
-				$errors .= "<br>You must enter a valid number for the home SOTG";
-			}
-			if( !validate_number($edit['away_spirit']) ) {
-				$errors .= "<br>You must enter a valid number for the away SOTG";
 			}
 		}
 		
@@ -1116,155 +1160,4 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
-
-/*
- * TODO: Things below this line probably belong in game.inc
- */
-
-/**
- * Save final score for a single game
- * $entry should contain:
- * 	defaulted - final value for defaulted
- * 	home_score, away_score - final values for score (if not defaulted)
- * 	home_spirit, away_spirit - final values for spirit (if not defaulted)
- * and optionally:
- *  approved_by = ID of user approving it
- */
-function game_save_score_final( $game, $entry )
-{
-	switch($entry['defaulted']) {
-	case 'home':
-		$entry['home_score'] = 0;
-		$entry['away_score'] = 6;
-		$entry['home_spirit'] = 0;
-		$entry['away_spirit'] = 0;
-		$rating_points = 0;
-		break;
-	case 'away':
-		$entry['away_score'] = 0;
-		$entry['home_score'] = 6;
-		$entry['home_spirit'] = 0;
-		$entry['away_spirit'] = 0;
-		$rating_points = 0;
-		break;
-	default:
-		$entry['defaulted'] = 'no';
-		$home = team_load( array('team_id' => $game->home_id) );
-		$away = team_load( array('team_id' => $game->away_id) );
-		/* And, calculate the Elo value for this game.  It's only
-		 * applicable iff we're not defaulted.
-		 */
-		if($entry['home_score'] > $entry['away_score']) {
-			$rating_points = calculate_elo_change( $entry['home_score'], $entry['away_score'], $home->rating, $away->rating);
-		} else {
-			$rating_points = calculate_elo_change( $entry['away_score'], $entry['home_score'], $away->rating, $home->rating);
-		}
-	}
-	if( !array_key_exists("approved_by", $entry) ) {
-		$entry['approved_by'] = -1;
-	}
-
-	db_query("UPDATE schedule SET
-		home_score = %d,
-		away_score = %d,
-		home_spirit = %d,
-		away_spirit = %d,
-		approved_by = %d,
-		rating_points = %d,
-		defaulted = '%s' WHERE game_id = %d", array(
-			$entry['home_score'],
-			$entry['away_score'],
-			$entry['home_spirit'],
-			$entry['away_spirit'],
-			$entry['approved_by'],
-			$rating_points,
-			$entry['defaulted'],
-			$game->game_id) );
-
-	if(1 != db_affected_rows()) {
-		return false;
-	}
-
-	/* Update ratings if we've got a change */
-	if($rating_points && ($entry['home_score'] > $entry['away_score']) ) {
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $rating_points, $game->home_id);
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", (0 - $rating_points), $game->away_id);
-	} else {
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", (0 - $rating_points), $game->home_id);
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $rating_points, $game->away_id);
-	}
-
-	db_query("DELETE FROM score_entry WHERE game_id = %d",$game->game_id);
-	if(1 != db_affected_rows()) {
-		return false;
-	}
-
-	return true;
-}
-
-
-
-/**
- * Calculate the value to be added/subtracted from the competing teams' 
- * ratings.
- * Modified Elo system, similar to the one
- * used for international soccer (http://www.eloratings.net), with several
- * Ultimate-specific modifications:
- * 	- all games currently weighted equally (though playoff games will be
- * 	  weighted differently in the future)
- * 	- score differential bonus modified for Ultimate
- * 	- no bonus given for 'home field advantage' since there's no
- * 	  real advantage in OCUA.
- *
- * Now, this code should work regardless of which score is passed as A and B,
- * but since we'd like to have positive change numbers as much as possible (in
- * the case of ties, we sometimes won't) we'll make sure when calling this
- * code to pass the winning score as scoreA and the losing score as scoreB.
- *
- * TODO: The 'right' way to fix this would probably be to modify this (and the
- * calling code) to use 'home' and 'away' everywhere instead of winner/loser
- * or A/B, as there's no chance of screwing up the order.
- */
-function calculate_elo_change($scoreA, $scoreB, $ratingA, $ratingB)
-{
-	/* TODO: Should be a config variable in the league table? */
-	$weightConstant = 40;
-	$scoreWeight = 1;
-
-	if($scoreA > $scoreB) {
-		$gameValue = 1;
-	} else if($scoreA == $scoreB) {
-		$gameValue = 0.5;
-	} else {
-		$gameValue = 0;
-	}
-	
-	/* If the score differential is greater than 1/3 the 
-	 * winning score, add a bonus.
-	 * This means that the bonus is given in summer games of 15-10 or
-	 * worse, and in indoor games with similar score ratios.
-	 */
-	$scoreDiff = $scoreA - $scoreB;
-	$scoreMax  = max($scoreA, $scoreB);
-	if($scoreMax && (($scoreDiff / $scoreMax) > (1/3)) ) {
-		$scoreWeight += $scoreDiff / $scoreMax;
-	}
-
-	$expectedWin = elo_expected_win($ratingA, $ratingB);
-
-	return $weightConstant * $scoreWeight * ($gameValue - $expectedWin);
-}
-
-/* 
- * Calculate the expected win percentage for team A over team B
- * Used both in the elo calculations and as a fun thing to display on the
- * schedule.
- */
-function elo_expected_win( $ratingA, $ratingB ) 
-{
-	$power = pow(10, ((0 - ($ratingA - $ratingB)) / 400));
-	$expectedWin = (1 / ($power + 1));
-	return $expectedWin;
-}
-
 ?>

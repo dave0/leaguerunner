@@ -1041,7 +1041,7 @@ class TeamSchedule extends Handler
 					$score_type = l("submit score", "game/submitscore/$game->game_id/$id");
 				}
 			}
-			if($game->defaulted != 'no') {
+			if($game->status == 'home_default' || $game->status == 'away_default') {
 				$score_type .= " (default)";
 			}
 

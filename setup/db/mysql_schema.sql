@@ -153,7 +153,6 @@ CREATE TABLE schedule (
     
     rating_points int, -- rating points exchanged for this game
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
-    defaulted  enum('no','home','away') DEFAULT 'no',
 
     -- Game status.  Indicates rescheduling, defaults, etc.
     status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL,
@@ -201,7 +200,8 @@ CREATE TABLE team_spirit_answers (
 	tid		int NOT NULL, -- id of team receiving this answer
 	gid		int NOT NULL, -- ID of game this entry relates to
 	qkey		varchar(255), -- Question asked
-	akey		varchar(255) -- Answer provided
+	akey		varchar(255), -- Answer provided
+	PRIMARY KEY (tid_created,gid,qkey)
 );
 
 

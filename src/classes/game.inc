@@ -20,17 +20,28 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
-		$this->_in_database = true;
+		return $this->load_from_query_result( db_fetch_array($result) );
+	}
+
+	/** 
+	 * Populate a game object, given an array result generated from
+	 * game_query()
+	 */
+	function load_from_query_result ( $array = array() )
+	{
 		
-		$item = db_fetch_array($result);
-		foreach ($item as $key => $value) {
+		foreach ($array as $key => $value) {
 			$this->{$key} = $value;
 		}
+
+		$this->_in_database = true;
 
 		// Fixups
 		if( ! $this->game_end ) {
 			$this->game_end = 'dark';
 		}
+
+		$this->load_spirit_entries();
 
 		return true;
 	}
@@ -123,9 +134,12 @@ class Game extends LeaguerunnerObject
 
 		// And, remove any old score_entry for this game if we've entered a
 		// final score
-		if( defined($this->home_score) || $defined($this->away_score) ) {
+		if( defined($this->home_score) || defined($this->away_score) ) {
 			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
 		}
+
+		// Save elo rating, if we're just adding a new score
+		$this->save_elo_rating();
 		
 		unset($this->_modified_fields);
 		return true;
@@ -245,6 +259,16 @@ class Game extends LeaguerunnerObject
 			$this->_score_entries[ $entry->team_id ] = $entry;
 		}
 
+		$this->load_spirit_entries();
+
+		return true;
+	}
+
+	function load_spirit_entries ( )
+	{
+		if( ! $this->_in_database ) {
+			die( "Cannot load entered scores for game not in database!");
+		}
 		$result = db_query("SELECT tid_created,qkey,akey FROM team_spirit_answers WHERE gid = %d", $this->game_id);
 		while( $row = db_fetch_array( $result ) ) {
 			$this->_spirit_entries[ $row['tid_created'] ][ $row['qkey'] ] = $row['akey'] ;
@@ -349,6 +373,11 @@ class Game extends LeaguerunnerObject
 	 */
 	function save_spirit_entry ( $team_id, $spirit )
 	{
+
+		if( !is_array($spirit) ) {
+			die("Spirit argument to save_spirit_entry() must be an array");
+		}
+	
 		// Store in object
 		$this->_spirit_entries[$team_id] = $spirit;
 
@@ -357,13 +386,13 @@ class Game extends LeaguerunnerObject
 		// save in DB
 		while( list($qkey, $answer) = each($spirit) ) {
 			db_query("REPLACE INTO team_spirit_answers (tid_created,tid,gid,qkey,akey) VALUES (%d,%d,%d,'%s','%s')", 
-				$team_id,
 				$opponent_id,
+				$team_id,
 				$this->game_id,
 				$qkey,
 				$answer
 			);
-	    	if( 1 != db_affected_rows() ) {
+	    	if( db_affected_rows() < 1) {
 	      		return false;
 	    	}
 		}
@@ -390,6 +419,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function score_entries_agree ( $one, $two )
 	{
+
 		if(
 			($one['defaulted'] == 'us' && $two['defaulted'] == 'them') 
 			||
@@ -398,11 +428,104 @@ class Game extends LeaguerunnerObject
 			return true;
 		} 
 
-		if(($one['defaulted'] == 'no' && $two['defaulted'] == 'no') &&  ($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
+		if(! (($one['defaulted'] == 'no') && ($two['defaulted'] == 'no'))) {
+			return false;
+			
+		}
+
+		if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
 			return true;
 		} 
 
 		return false;
+	}
+
+	/**
+	 * Calculate the expected win ratio of the home team.  Answer
+	 * is always 0 <= x <= 1
+	 */
+	function home_expected_win()
+	{
+		$difference = $this->home_rating - $this->away_rating;
+		$power = pow(10, (0 - $difference) / 400);
+		return ( 1 / ($power + 1) );
+	}
+	
+	/**
+	 * Calculate the expected win ratio of the away team.  Answer
+	 * is always 0 <= x <= 1
+	 */
+	function away_expected_win()
+	{
+		return 1 - $this->home_expected_win();
+	}
+
+	/** 
+	 * Calculate the value to be added/subtracted from the competing
+	 * teams' ratings. 
+	 * This uses a modified Elo system, similar to the one used for
+	 * international soccer (http://www.eloratings.net) with several
+	 * modifications:
+	 * 	- all games are equally weighted
+	 * 	- score differential bonus adjusted for Ultimate patterns (ie: a 3
+	 * 	  point win in soccer is a much bigger deal than in Ultimate
+	 * 	- no bonus given for home-field advantage
+	 *
+	 */
+	function save_elo_rating ( )
+	{
+		if( $this->rating_points ) {
+			// If we already have a rating, don't recalculate it.
+			// TODO: in the future, it might be nice if we can 
+			// recalculate the rating if the score changes, but for
+			// now we'll let the perl script do that 
+			return true;
+		}
+	
+		$weight_constant = 40;  // All games weighted equally
+		$score_weight    = 1;   // Games start with a weight of 1
+
+		$game_value      = 1;   // Game value is always 1 or 0.5 as we're calculating the elo change for the winning team
+
+		// Find winning/losing scores.  In the case of a tie, 
+		// the home team is considered the winner for purposes of
+		// rating calculation.  This has nothing to do with the
+		// tiebreakers used for standings purposes as in tie cases,
+		// the $elo_change will work out the same regardless of which team is
+		// considered the 'winner'
+		if( $this->home_score >= $this->away_score) {
+			$winner = $this->home_id;
+			$loser = $this->away_id;
+			$expected_win = $this->home_expected_win();
+	    } else {
+			$winner = $this->away_id;
+			$loser = $this->home_id;
+			$expected_win = $this->away_expected_win();
+		}
+
+		// Calculate score differential bonus.  
+		// If the difference is greater than 1/3 the winning score, the bonus
+		// added is the ratio of score difference over winning score.
+		$score_diff = abs($this->home_score - $this->away_score);
+		$score_max  = max($this->home_score, $this->away_score);
+		if( $score_max && ( ($score_diff / $score_max) > 0.333 )) {
+			$score_weight += $score_diff / $score_max;
+		}
+
+		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
+		$this->set('rating_points', $elo_change);
+	
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $elo_change, $winner);
+		if( 1 != db_affected_rows()) {
+			return false;
+		}
+		
+		db_query("UPDATE team SET rating = rating - %d WHERE team_id = %d", $elo_change, $loser);
+		if( 1 != db_affected_rows()) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -534,4 +657,24 @@ function game_load( $array = array() )
 		return null;
 	}
 }
+
+function game_load_many( $array = array() )
+{
+	$result = game_query( &$array );
+
+	if(db_num_rows($result) < 1 ) {
+		return false;
+	}
+
+	$games = array();
+	while($ary = db_fetch_array($result)) {
+		$g = new Game;
+		if( $g->load_from_query_result( $ary ) ) {
+			$games[$g->game_id] = $g;
+		}
+	}
+
+	return $games;
+}
+
 ?>

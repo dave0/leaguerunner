@@ -116,5 +116,37 @@ alter table league add schedule_type ENUM('none','roundrobin','ladder') default 
 update league set schedule_type = 'none' where allow_schedule = 'N';
 alter table league drop allow_schedule;
 
--- Spirit System
--- TODO: Pull in here when finalized
+-- Spirit System and form-editing changes.
+CREATE TABLE question (
+	qkey	varchar(255) PRIMARY KEY, -- question key
+	genre	varchar(255),
+	question varchar(255),
+	qtype   varchar(255),
+	restrictions   varchar(255),  -- used for start/end dates, upper/lower limits, etc.
+	required	ENUM('Y','N') DEFAULT 'Y',
+	sorder	int default 0
+);
+
+CREATE TABLE multiplechoice_answers (
+	akey	varchar(255) PRIMARY KEY,
+	qkey	varchar(255),
+	answer	varchar(255),
+	value	varchar(255),
+	sorder	int default 0		-- sort order
+);
+
+CREATE TABLE team_spirit_answers (
+	tid_created	int NOT NULL, -- ID of team providing this answer
+	tid		int NOT NULL, -- id of team receiving this answer
+	gid		int NOT NULL, -- ID of game this entry relates to
+	qkey		varchar(255), -- Question asked
+	akey		varchar(255), -- Answer provided
+	PRIMARY KEY (tid_created,gid,qkey)
+);
+
+
+-- Change 'defaulted' flag to  new 'status' flag
+alter table schedule add status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL after defaulted;
+update schedule set status = 'home_default' where defaulted = 'home';
+update schedule set status = 'away_default' where defaulted = 'away';
+alter table schedule drop defaulted;

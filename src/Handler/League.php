@@ -711,9 +711,9 @@ class LeagueStandings extends Handler
 				$data['vs'][$game['away_team']] = 0;
 			}
 			
-			if($game['defaulted'] == 'home') {
+			if($game['status'] == 'home_default') {
 				$data['defaults_against']++;
-			} else if($game['defaulted'] == 'away') {
+			} else if($game['status'] == 'away_default') {
 				$data['defaults_for']++;
 			} else {
 				$data['spirit'] += $game['home_spirit'];
@@ -748,9 +748,9 @@ class LeagueStandings extends Handler
 				$data['vs'][$game['home_team']] = 0;
 			}
 			
-			if($game['defaulted'] == 'away') {
+			if($game['status'] == 'away_default') {
 				$data['defaults_against']++;
-			} else if($game['defaulted'] == 'home') {
+			} else if($game['status'] == 'home_default') {
 				$data['defaults_for']++;
 			} else {
 				$data['spirit'] += $game['away_spirit'];

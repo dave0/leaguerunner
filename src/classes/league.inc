@@ -257,7 +257,8 @@ class League extends LeaguerunnerObject
 	function calculate_sbf()
 	{
 		$sbf = db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)), 2) FROM schedule s WHERE s.league_id = %d", $this->league_id));
-		if( !defined($sbf) || $sbf = "") {
+
+		if( $sbf == "") {
 			$sbf = "n/a";
 		}
 

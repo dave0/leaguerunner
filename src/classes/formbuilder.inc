@@ -61,12 +61,17 @@ class FormBuilder
 	 * TODO: allow specifying an array of question keys that will be rendered
 	 * as viewable-only or hidden instead of editable.
 	 */
-	function render_editable ( $want_results = true )
+	function render_editable ( $want_results = true, $suffix = null )
 	{
 		if ( $want_results ) {
 			if( $this->answers_invalid() ) {
 				return false;
 			}
+		}
+		
+		$name = $this->_name;
+		if( ! is_null($suffix) ) {
+			$name .= "_$suffix";
 		}
 		
 		while( list(,$q) = each($this->_questions) ) {
@@ -75,7 +80,7 @@ class FormBuilder
 			} else {
 				$answer = null;
 			}
-			$output .= question_render_editable( &$q, $this->_name, $answer );
+			$output .= question_render_editable( &$q, $name, $answer );
 		}
 		reset($this->_questions);
 		return $output;
@@ -100,14 +105,19 @@ class FormBuilder
 	/** 
 	 * Render form as hidden form elements.
 	 */
-	function render_hidden ()
+	function render_hidden ( $suffix = null )
 	{
 		if( $this->answers_invalid() ) {
 			return false;
 		}
+
+		$name = $this->_name;
+		if( ! is_null($suffix) ) {
+			$name .= "_$suffix";
+		}
 		
 		while( list(,$q) = each($this->_questions) ) {
-			$output .= form_hidden("$this->_name[$q->qkey]", $this->get_answer($q->qkey));
+			$output .= form_hidden($name."[$q->qkey]", $this->get_answer($q->qkey));
 		}
 		reset($this->_questions);
 		return $output;

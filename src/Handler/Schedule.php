@@ -88,7 +88,7 @@ class ScheduleViewDay extends Handler
 
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(0,0,0,$month,$day,$year))),
-			schedule_subheading( $this->_permissions['administer_league'] ),
+			schedule_subheading( ),
 		);
 		while($game = db_fetch_array($result)) {
 			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
@@ -228,14 +228,13 @@ class ScheduleEdit extends Handler
 				
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game['timestamp']),
-					$this->_permissions['administer_league'], 
 					false,
 					$game['day_id'], $id );
 				
 				if($timestamp == $game['day_id']) {
 					$rows[] = schedule_edit_subheading();
 				} else {
-					$rows[] = schedule_subheading( $this->_permissions['administer_league'] );
+					$rows[] = schedule_subheading( );
 				}
 			}
 			
@@ -439,13 +438,12 @@ class ScheduleView extends Handler
 			if( $game['day_id'] != $prevDayId ) {
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game['timestamp']),
-					$this->_permissions['administer_league'], 
 					$this->_permissions['edit_schedule'], 
 					$game['day_id'], $id );
-				$rows[] = schedule_subheading( $this->_permissions['administer_league'] );
+				$rows[] = schedule_subheading( );
 			}
 			
-			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
+			$rows[] = schedule_render_viewable($game);
 			$prevDayId = $game['day_id'];	
 		}
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
@@ -454,7 +452,7 @@ class ScheduleView extends Handler
 	}
 }
 	
-function schedule_heading( $date, $canViewSpirit = false, $canEdit = false, $dayId = 0, $leagueId = 0 )
+function schedule_heading( $date, $canEdit = false, $dayId = 0, $leagueId = 0 )
 {
 	$header = array(
 		array('data' => $date, 'colspan' => 7, 'class' => 'gamedate')
@@ -466,24 +464,14 @@ function schedule_heading( $date, $canViewSpirit = false, $canEdit = false, $day
 			'colspan' => 2,
 			'class' => 'gamedate'
 		);
-	} else if( $canViewSpirit ) {
-		$header[] = array(
-			'data' => '&nbsp;',
-			'colspan' => 2,
-			'class' => 'gamedate'
-		);
 	}
 	$header[] = array('data' => '&nbsp;', 'class' => 'gamedate');
 	return $header;
 }
 
-function schedule_subheading( $canViewSpirit )
+function schedule_subheading( )
 {
 	$subheadings = array("Rnd", "Time/Place", "Home", "Away", "Home<br />Score", "Away<br />Score");
-	if($canViewSpirit) {
-		$subheadings[] = "Home<br />SOTG";
-		$subheadings[] = "Away<br /> SOTG";
-	}
 	foreach($subheadings as $subheading) {
 		$subheadingRow[] = array('data' => $subheading, 'class' => 'column-heading');
 	}
@@ -527,7 +515,7 @@ function schedule_render_editable( &$game, &$league )
 	);
 }
 
-function schedule_render_viewable( $canViewSpirit, &$game )
+function schedule_render_viewable( &$game )
 {
 	if($game['home_name']) {
 		$homeTeam = l($game['home_name'], "team/view/" . $game['home_id']);
@@ -549,13 +537,8 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 		$game['away_score']
 	);
 	
-	if($game['defaulted'] != 'no') {
+	if($game['status'] == 'home_default' || $game['status'] == 'away_default') {
 		$gameRow[] = array('data' => '(default)', 'colspan' => 2);
-	} else {
-		if($canViewSpirit) {
-			$gameRow[] = $game['home_spirit'];
-			$gameRow[] = $game['away_spirit'];
-		}
 	}
 
 	return $gameRow;
