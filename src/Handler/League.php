@@ -496,10 +496,10 @@ class LeagueList extends Handler
 
 		$output = para(theme_links($seasonLinks));
 
-		$header = array( "Name", "Ratio", "&nbsp;") ;
+		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 		
-		$result = db_query("SELECT * FROM league WHERE season = '%s' ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season);
+		$result = db_query("SELECT name,tier,league_id FROM league WHERE season = '%s' ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season);
 
 		while($league = db_fetch_object($result)) {
 			if($league->tier) {
@@ -508,9 +508,7 @@ class LeagueList extends Handler
 				$league->fullname = $league->name;
 			}
 		
-			$links = array(
-				l('view',"league/view/$league->league_id")
-			);
+			$links = array();
 			if($league->schedule_type != 'none') {
 				$links[] = l('schedule',"schedule/view/$league->league_id");
 				$links[] = l('standings',"league/standings/$league->league_id");
@@ -518,7 +516,9 @@ class LeagueList extends Handler
 			if( $session->has_permission('league','delete', $league->league_id) ) {
 				$links[] = l('delete',"league/delete/$league->league_id");
 			}
-			$rows[] = array($league->fullname,$league->ratio,theme_links($links));
+			$rows[] = array(
+				l($league->fullname,"league/view/$league->league_id"),
+				theme_links($links));
 		}
 
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
@@ -1236,14 +1236,11 @@ class LeagueMemberStatus extends Handler
 
 		if( !$player_id ) {
 			$this->setLocation(array( $this->league->fullname => "league/view/" . $this->league->league_id, $this->title => 0));
-			$ops = array(
-				array( 'name' => 'view', 'target' => 'person/view/'),
-				array( 'name' => 'add coordinator', 'target' => "league/member/" . $this->league->league_id."/")
-			);
-			$query = "SELECT CONCAT(lastname, ', ', firstname) AS value, user_id AS id FROM person WHERE (class = 'administrator' OR class = 'volunteer') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
-			return 
-				para("Select the player you wish to add as league coordinator")
-				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "league/member/" . $this->league->league_id, $_GET['letter']);
+			$new_handler = new PersonSearch;
+			$new_handler->initialize();
+			$new_handler->ops['Add to ' . $this->league->fullname] = 'league/member/' .$this->league->league_id . '/%d';
+			$new_handler->extra_where = "(class = 'administrator' OR class = 'volunteer')";
+			return $new_handler->process();
 		}
 
 		if( !$session->is_admin() && $player_id == $session->attr_get('user_id') ) {
