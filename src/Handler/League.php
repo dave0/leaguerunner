@@ -139,7 +139,8 @@ class LeagueEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=league_view&id=".$this->_id);
 				break;
 			default:
 				$this->set_template_file("League/edit_form.tmpl");
@@ -158,19 +159,6 @@ class LeagueEdit extends Handler
 
 		return $rc;
 	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=league_view&id=".$this->_id);
-		}
-		return parent::display();
-	}
-	
 
 	function generate_form ()
 	{
@@ -501,6 +489,7 @@ class LeagueScheduleAddWeek extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
+		$id = var_from_getorpost('id');
 		switch($step) {
 			case 'confirm':
 				$this->set_template_file("League/schedule_addweek_confirm.tmpl");
@@ -508,7 +497,8 @@ class LeagueScheduleAddWeek extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=league_schedule_view&id=$id");
 				break;
 			default:
 				$this->set_template_file("League/schedule_addweek_form.tmpl");
@@ -520,19 +510,6 @@ class LeagueScheduleAddWeek extends Handler
 		return $rc;
 	}
 	
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=league_schedule_view&id=$id");
-		}
-		return parent::display();
-	}
-
 	/**
 	 * Validate that date provided is 
 	 * legitimately a valid date (ie: no Jan 32 or Feb 30)
@@ -730,10 +707,12 @@ class LeagueScheduleEdit extends Handler
 	{
 		global $DB;
 
+		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=league_schedule_view&id=$id");
 				break;
 			case 'confirm':
 			default:
@@ -747,19 +726,6 @@ class LeagueScheduleEdit extends Handler
 		return $rc;
 	}
 	
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=league_schedule_view&id=$id");
-		}
-		return parent::display();
-	}
-
 	function isDataInvalid () 
 	{
 		$games = var_from_post('games');
@@ -1140,18 +1106,7 @@ class LeagueStandings extends Handler
 		$this->set_template_file("League/standings.tmpl");
 	
 		$row = $DB->getRow(
-			"SELECT 
-				l.name,
-				l.tier,
-				l.ratio,
-				l.season,
-				l.current_round,
-				l.stats_display,
-				l.allow_schedule
-			FROM 
-				league l
-			WHERE 
-				l.league_id = ?",
+			"SELECT * FROM league l WHERE l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
@@ -1457,9 +1412,7 @@ class LeagueView extends Handler
 
 	function set_permission_flags($type)
 	{
-		if($type == 'administrator') {
-			$this->_permissions['administer_league'] = true;
-		} else if($type == 'coordinator') {
+		if($type == 'administrator' || $type == 'coordinator') {
 			$this->_permissions['administer_league'] = true;
 		} 
 	}
@@ -1468,25 +1421,12 @@ class LeagueView extends Handler
 	{
 		global $DB, $session;
 
-		$this->set_template_file("League/view.tmpl");
-
 		$id = var_from_getorpost('id');
-	
-		$row = $DB->getRow(
-			"SELECT 
-				l.name,
-				l.tier,
-				l.ratio,
-				l.day,
-				l.season,
-				l.max_teams,
+		
+		$league = $DB->getRow(
+			"SELECT l.*,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
-				l.coordinator_id,
-				CONCAT(co.firstname,' ',co.lastname) AS co_coordinator_name, 
-				l.alternate_id as co_coordinator_id,
-				l.current_round,
-				l.allow_schedule,
-				l.start_time
+				CONCAT(co.firstname,' ',co.lastname) AS alternate_name
 			FROM 
 				league l
 				LEFT JOIN person c ON (l.coordinator_id = c.user_id) 
@@ -1495,37 +1435,47 @@ class LeagueView extends Handler
 				l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($league)) {
 			return false;
 		}
 		
-		$this->tmpl->assign("player_id", $session->attr_get("user_id"));
-		$this->tmpl->assign("league_id", $id);
-		$this->tmpl->assign("league_name",   $row['name']);
-		$this->tmpl->assign("league_tier",   $row['tier']);
-		$this->tmpl->assign("league_day",   $row['day']);
-		$this->tmpl->assign("league_ratio",  $row['ratio']);
-		$this->tmpl->assign("league_season", $row['season']);
-		$this->tmpl->assign("league_maxteams", $row['max_teams']);
-		$this->tmpl->assign("league_current_round", $row['current_round']);
-		$this->tmpl->assign("league_start_time", $row['start_time']);
-		$this->tmpl->assign("coordinator_name", $row['coordinator_name']);
-		$this->tmpl->assign("coordinator_id", $row['coordinator_id']);
-		$this->tmpl->assign("league_allow_schedule", $row['allow_schedule']);
-
-		if( $row['co_coordinator_id'] > 1 ) {
-			$this->tmpl->assign("co_coordinator_name", $row['co_coordinator_name']);
-			$this->tmpl->assign("co_coordinator_id", $row['co_coordinator_id']);
+		$links = array();
+		if($league['allow_schedule']) {
+			$links[] = l("schedule", "op=league_schedule_view&id=$id");
+			$links[] = l("standings", "op=league_standings&id=$id");
+			if($this->_permissions['administer_league']) {
+				$links[] = l("approve scores", "op=league_verifyscores&id=$id");
+			}
+		}
+		if($this->_permissions['administer_league']) {
+			$links[] = l("edit info", "op=league_edit&id=$id");
+			$links[] = l("fetch captain emails", "op=league_captemail&id=$id");
 		}
 
+		$output = "<table border='0'>";
+		$output .= simple_row("Coordinator:", 
+			l($league['coordinator_name'], "op=person_view&id=" . $league['coordinator_id']));
+		if($league['alternate_id']) {
+			$output .= simple_row("Co-Coordinator:", 
+				l($league['alternate_name'], "op=person_view&id=" . $league['alternate_id']));
+		}
+		$output .= simple_row("Season:", $league['season']);
+		$output .= simple_row("Day(s):", $league['day']);
+		if($league['tier']) {
+			$output .= simple_row("Tier:", $league['tier']);
+		}
+
+		# Now, if this league should contain schedule info, grab it
+		if($league['allow_schedule'] == 'Y') {
+			$output .= simple_row("Current Round:", $league['current_round']);
+			$output .= simple_row("Usual Start Time:", $league['start_time']);
+			$output .= simple_row("Maximum teams:", $league['max_teams']);
+		}
+		$output .= "</table>";
+
 		/* Now, fetch teams */
-		$rows = $DB->getAll(
-			"SELECT 
-				t.team_id AS id,
-				t.name,
-				t.shirt_colour,
-				t.status AS team_status
-			 FROM
+		$teams = $DB->getAll(
+			"SELECT t.* FROM
 				leagueteams l
 				LEFT JOIN team t ON (l.team_id = t.team_id)
 			 WHERE
@@ -1534,21 +1484,50 @@ class LeagueView extends Handler
 			 	name",
 			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($rows)) {
+		if($this->is_database_error($teams)) {
 			return false;
 		}
-		$this->tmpl->assign("teams", $rows);
 
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
+		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= tr( td("Teams", array( 'class' => 'teamlist_title', 'colspan' => 3)));
+		$count = count($teams);
+		for($i = 0; $i < $count; $i++) {
+			$team_links = array();
+			$team_links[] = l('view', 'op=team_view&id=' . $teams[$i]['team_id']);
+			if($teams[$i]['status'] == 'open') {
+				$team_links[] = l('join team', 'op=team_playerstatus&id=' . $teams[$i]['team_id'] . "&status=player_request&step=confirm");
 			}
+			if($this->_permissions['administer_league']) {
+				$team_links[] = l('move team', "op=league_moveteam&id=$id&team_id=" . $teams[$i]['team_id']);
+			}
+			
+			
+			$output .= tr(
+				td(check_form($teams[$i]['name']), array( 'class' => 'teamlist_item'))
+				. td(check_form($teams[$i]['shirt_colour']), array( 'class' => 'teamlist_item'))
+				. td(theme_links($team_links), array( 'class' => 'teamlist_item'))
+			);
 		}
+		$output .= "</table>";
 
+		$title = $league['name'];
+		if($league['tier']) {
+			$title .= " Tier " . $league['tier'];
+		}
+		$this->set_title("View League &raquo; $title");
+		print $this->get_header();
+		print h1($title);
+		print simple_tag("blockquote", theme_links($links));
+		print $output;
+		print $this->get_footer();
 		return true;
 	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
+
 }
 
 class LeagueCaptainEmails extends Handler
@@ -1572,7 +1551,7 @@ class LeagueCaptainEmails extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$this->page_data = "# League captain email address list\n";
+		$output = "# League captain email address list\n";
 
 		$addrs = $DB->getAll("SELECT 
 				p.firstname, p.lastname, p.email
@@ -1589,23 +1568,23 @@ class LeagueCaptainEmails extends Handler
 		if(count($addrs) <= 0) {
 			return true;
 		}
+		
 		foreach($addrs as $addr) {
-			$this->page_data .= sprintf("\"%s %s\" <%s>,\n",
+			$output .= sprintf("\"%s %s\" <%s>,\n",
 				$addr['firstname'],
 				$addr['lastname'],
 				$addr['email']);
 		}
 		
+		Header("Content-type: text/plain");
+		print $output;
+		
 		return true;
 	}
 
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
 	function display ()
 	{
-		Header("Content-type: text/plain");
-		print $this->page_data;
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -1648,7 +1627,8 @@ class LeagueMoveTeam extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=league_view&id=".$this->_id);
 				break;
 			default:
 				$this->set_template_file("League/move_team_form.tmpl");
@@ -1661,18 +1641,6 @@ class LeagueMoveTeam extends Handler
 		return $rc;
 	}
 	
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=league_view&id=".$this->_id);
-		}
-		return parent::display();
-	}
-
 	function perform ()
 	{
 		global $DB, $session;

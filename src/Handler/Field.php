@@ -154,7 +154,8 @@ class FieldEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=field_view&id=". $this->_id);
 				break;
 			default:
 				$this->set_template_file("Field/edit_form.tmpl");
@@ -166,19 +167,6 @@ class FieldEdit extends Handler
 
 		return $rc;
 	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=field_view&id=". $this->_id);
-		}
-		return parent::display();
-	}
-	
 
 	function generate_form ()
 	{
@@ -440,6 +428,7 @@ class FieldAssign extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
+		$id = var_from_getorpost('id');
 		switch($step) {
 			case 'confirm':
 				$this->set_template_file("Field/assign_confirm.tmpl");
@@ -447,7 +436,8 @@ class FieldAssign extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=field_view&id=$id");
 				break;
 			default:
 				$this->set_template_file("Field/assign_form.tmpl");
@@ -455,7 +445,7 @@ class FieldAssign extends Handler
 				$rc = $this->generate_form();
 		}
 		
-		$field_name = get_field_name(var_from_getorpost('id'));
+		$field_name = get_field_name($id);
 		if($this->is_database_error($field_name)) {
 			return false;
 		}
@@ -464,16 +454,6 @@ class FieldAssign extends Handler
 	
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		return $rc;
-	}
-
-	function display()
-	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=field_view&id=$id");
-		}
-		return parent::display();
 	}
 
 	function generate_form()
@@ -587,6 +567,7 @@ class FieldUnassign extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
+		$id = var_from_getorpost('id');
 		switch($step) {
 			default:
 			case 'confirm':
@@ -595,7 +576,8 @@ class FieldUnassign extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=field_view&id=$id");
 				break;
 		}
 		
@@ -609,16 +591,6 @@ class FieldUnassign extends Handler
 	
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		return $rc;
-	}
-
-	function display()
-	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=field_view&id=$id");
-		}
-		return parent::display();
 	}
 
 	function generate_confirm ()

@@ -536,7 +536,8 @@ class PersonDelete extends PersonView
 		
 		switch($step) {
 			case 'perform':
-				$rc = $this->perform();
+				$this->perform();
+				local_redirect("op=person_list");
 				break;
 			case 'confirm':
 			default:
@@ -549,15 +550,6 @@ class PersonDelete extends PersonView
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 
 		return $rc;
-	}
-
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=person_list");
-		}
-		return parent::display();
 	}
 
 	/**
@@ -642,7 +634,8 @@ class PersonApproveNewAccount extends PersonView
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'perform':
-				$rc = $this->perform();
+				$this->perform();
+				local_redirect("op=person_listnew");
 				break;
 			case 'confirm':
 			default:
@@ -695,18 +688,6 @@ class PersonApproveNewAccount extends PersonView
 		$this->tmpl->assign("page_instructions", $instructions);
 		
 		return parent::generate_view();
-	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=person_listnew");
-		}
-		return parent::display();
 	}
 
 	function perform ()
@@ -874,7 +855,8 @@ class PersonEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				$rc = $this->perform();
+				$this->perform();
+				local_redirect("op=person_view&id=".$this->_id);
 				break;
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
@@ -895,19 +877,6 @@ class PersonEdit extends Handler
 
 		return $rc;
 	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=person_view&id=".$this->_id);
-		}
-		return parent::display();
-	}
-	
 
 	function generate_form ()
 	{
@@ -1436,7 +1405,8 @@ class PersonActivate extends PersonEdit
 				$this->tmpl->assign("page_step", 'perform');
 				break;
 			case 'perform':
-				$rc = $this->process_survey();
+				$this->process_survey();
+				local_redirect("op=menu");
 				break;
 			default:
 				$this->set_template_file("Person/edit_form.tmpl");
@@ -1456,18 +1426,6 @@ class PersonActivate extends PersonEdit
 		}
 
 		return $rc;
-	}
-
-	/**
-	 * Override parent display to redirect to 'menu' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=menu");
-		}
-		return parent::display();
 	}
 
 	/**
@@ -1746,9 +1704,11 @@ class PersonChangePassword extends Handler
 	function process()
 	{
 		$step = var_from_getorpost('step');
+		$id = var_from_getorpost('id');
 		switch($step) {
 			case 'perform':
-				$rc = $this->perform();	
+				$this->perform();	
+				local_redirect("op=person_view&id=$id");
 				break;
 			default:
 				$this->set_template_file("Person/change_password.tmpl");
@@ -1760,19 +1720,6 @@ class PersonChangePassword extends Handler
 		return $rc;
 	}
 	
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
-		if($step == 'perform') {
-			local_redirect("op=person_view&id=$id");
-		}
-		return parent::display();
-	}
-
 	function generate_form()
 	{
 		global $DB;

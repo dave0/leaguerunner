@@ -94,7 +94,8 @@ class SiteEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=site_view&id=". $this->_id);
 				break;
 			default:
 				$this->set_template_file("Site/edit_form.tmpl");
@@ -110,19 +111,6 @@ class SiteEdit extends Handler
 
 		return $rc;
 	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=site_view&id=". $this->_id);
-		}
-		return parent::display();
-	}
-	
 
 	function generate_form ()
 	{

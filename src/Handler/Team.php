@@ -192,7 +192,8 @@ class TeamEdit extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=team_view&id=" . $this->_id);
 				break;
 			default:
 				$this->set_template_file("Team/edit_form.tmpl");
@@ -215,16 +216,6 @@ class TeamEdit extends Handler
 
 		return $rc;
 	}
-
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=team_view&id=" . $this->_id);
-		}
-		return parent::display();
-	}
-	
 
 	function generate_form ()
 	{
@@ -598,7 +589,7 @@ class TeamPlayerStatus extends Handler
 	
 	function process ()
 	{
-		global $DB;
+		global $id, $DB;
 
 		$step = var_from_getorpost('step');
 		switch($step) {
@@ -608,7 +599,8 @@ class TeamPlayerStatus extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				return $this->perform();
+				$this->perform();
+				local_redirect("op=team_view&id=$id");
 				break;
 			default:
 				$this->set_template_file("Team/player_status_form.tmpl");
@@ -626,19 +618,6 @@ class TeamPlayerStatus extends Handler
 		}
 
 		return $rc;
-	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		global $id;
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=team_view&id=$id");
-		}
-		return parent::display();
 	}
 
 	function generate_form () 

@@ -17,22 +17,7 @@ function local_redirect($url)
 		$url = url($url);
 	}
 
-    /*
-     * It is advised to use "local_redirect()" instead of PHP's
-     * "header()" as "local_redirect()" will append the user's session
-     * ID to the URI when PHP is compiled with "--enable-trans-sid".
-     */
-    if (!ini_get("session.use_trans_sid") || !session_id() || strstr($url, session_id())) {
-        header("Location: $url");
-    } else { 
-	    $sid = session_name() . "=" . session_id();
-
-        if (strstr($url, "?") && !strstr($url, $sid)) {
-            header("Location: $url&". $sid);
-        } else {  
-            header("Location: $url?". $sid);
-        }
-    }
+    header("Location: $url");
 
     /*
      * The "Location" header sends a REDIRECT status code to the http

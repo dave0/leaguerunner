@@ -390,7 +390,8 @@ class GameFinalizeScore extends Handler
 				$rc = $this->generate_confirm();
 				break;
 			case 'perform':
-				$rc = $this->perform();
+				$this->perform();
+				local_redirect("op=league_verifyscores&id=".$this->_league_id);
 				break;
 			default:
 				$this->set_template_file("Game/score_finalize_form.tmpl");
@@ -402,15 +403,6 @@ class GameFinalizeScore extends Handler
 		return $rc;
 	}
 	
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			local_redirect("op=league_verifyscores&id=".$this->_league_id);
-		}
-		return parent::display();
-	}
-
 	function isDataInvalid()
 	{
 		$errors = "";
