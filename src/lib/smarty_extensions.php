@@ -79,7 +79,7 @@ function create_pulldown( $params )
  */
 function register_smarty_extensions  ( &$smarty )
 {
-	$smarty->register_function("create_pulldown", create_pulldown);
+	$smarty->register_function("create_pulldown","create_pulldown");
 }
 
 ?>
