@@ -148,6 +148,17 @@
         {html_select_date prefix=birth_ start_year=-60 end_year=-10 reverse_years=yes time=$birthdate}
       </td>
     </tr>
+   
+    {if $perm_edit_class} 
+    <tr>
+      <td class='row_title'>Account Class:</td>
+      <td>
+        <select name='class'>
+        {create_options data=$classes selected=$class}
+        </select>
+      </td>
+    </tr>
+    {/if}
     
     <tr>
       <td colspan=2>May we list your email address for other members to see?  

@@ -124,6 +124,16 @@
       </td>
     </tr>
     
+    {if $perm_edit_class} 
+    <tr>
+      <td class='row_title'>Account Class:</td>
+      <td>
+        <input type="hidden" name="class" value="{$class}">
+        {$class}
+      </td>
+    </tr>
+    {/if}
+    
     <tr>
       <td class="row_title">Show email:</td>
       <td class="row_data">

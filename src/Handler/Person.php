@@ -583,6 +583,7 @@ class PersonEdit extends Handler
 			'edit_address'		=> false,
 			'edit_gender'		=> false,
 			'edit_skill' 		=> false,
+			'edit_class' 		=> false,
 		);
 
 		$this->_required_perms = array(
@@ -683,6 +684,7 @@ class PersonEdit extends Handler
 				addr_city, 
 				addr_prov, 
 				addr_postalcode, 
+				class,
 				last_login 
 			FROM person WHERE user_id = ?", 
 			array($this->_id), DB_FETCHMODE_ASSOC);
@@ -740,6 +742,9 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("allow_publish_email",  ($row['allow_publish_email'] == 'Y'));
 		$this->tmpl->assign("allow_publish_phone",  ($row['allow_publish_phone'] == 'Y'));
 
+		$this->tmpl->assign("class", $row['class']);
+		$this->tmpl->assign("classes", $this->get_enum_options('person','class'));
+
 		return true;
 	}
 
@@ -782,6 +787,7 @@ class PersonEdit extends Handler
 		$this->tmpl->assign("birth_Year", var_from_getorpost('birth_Year'));
 		$this->tmpl->assign("birth_Month", var_from_getorpost('birth_Month'));
 		$this->tmpl->assign("birth_Day", var_from_getorpost('birth_Day'));
+		$this->tmpl->assign("class", var_from_getorpost('class'));
 		
 		$this->tmpl->assign("allow_publish_email", var_from_getorpost('allow_publish_email'));
 		$this->tmpl->assign("allow_publish_phone", var_from_getorpost('allow_publish_phone'));
@@ -850,6 +856,12 @@ class PersonEdit extends Handler
 				var_from_getorpost('birth_Year'),
 				var_from_getorpost('birth_Month'),
 				var_from_getorpost('birth_Day')));
+				
+		}
+		
+		if($this->_permissions['edit_class']) {
+			$fields[] = "class = ?";
+			$fields_data[] = var_from_getorpost('class');
 				
 		}
 		
