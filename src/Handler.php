@@ -210,11 +210,11 @@ class Handler
 	 */
 	function set_global_template_vars()
 	{
-		global $current_language, $session;
+		global $session;
 
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
 		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
-		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/$current_language");
+		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/en_CA");
 		$this->tmpl->assign("page_title", $this->_page_title);
 	
 		if(isset($session) && $session->is_valid()) {
@@ -248,8 +248,6 @@ class Handler
 	 */
 	function display ()
 	{
-		global $current_language;
-
 		$this->set_global_template_vars();
 		register_smarty_extensions($this->tmpl);
 
@@ -260,7 +258,7 @@ class Handler
 		 * development, your changes to the templates will not be noticed!
 		 */
 		$this->tmpl->compile_check = true;
-		$this->tmpl->template_dir  = "./templates/" . $current_language;
+		$this->tmpl->template_dir  = "./templates/en_CA";
 		$this->tmpl->display($this->tmplfile);
 	}
 
@@ -291,8 +289,6 @@ class Handler
 	 */
 	function display_error()
 	{
-		global $current_language;
-
 		$this->tmpl = new Smarty;
 		$this->set_template_file("ErrorMessage.tmpl");
 		$this->name = "Error";
@@ -306,7 +302,7 @@ class Handler
 			
 		$this->set_global_template_vars();
 		
-		$this->tmpl->template_dir  = "./templates/" . $current_language;
+		$this->tmpl->template_dir  = "./templates/en_CA/";
 		$this->tmpl->display($this->tmplfile);
 	}
 

@@ -21,9 +21,6 @@ $GLOBALS['APP_SERVER'] = $HTTP_SERVER_VARS["HTTP_HOST"];
 
 $GLOBALS['APP_DIR_GRAPHICS']  = dirname($_SERVER["PHP_SELF"]) . "/graphics/"; 
 
-$GLOBALS['APP_DEFAULT_LANGUAGE'] = "en_CA";
-
-
 /*
  * TODO: this crap belongs in the database on a per-tier basis
  */
