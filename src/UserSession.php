@@ -259,7 +259,6 @@ class UserSession
 	 */
 	function is_coordinator_of ($league_id)
 	{
-		if($this->is_admin()) { return true; }
 		return ($this->user && $this->user->is_coordinator_of($team_id));
 	}
 
@@ -269,26 +268,7 @@ class UserSession
 	 */
 	function coordinates_league_containing($team_id)
 	{
-		if($this->is_admin()) { return true; }
-
-		if(!$this->user->is_a_coordinator) { return false; }
-
-		$result = db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $team_id);
-
-		$league = db_fetch_object($result);	
-		
-		if($league->league_id == 1) {
-			/* All coordinators can coordinate "Inactive Teams" */
-			return true;
-		}
-
-		if( array_key_exists( $league->league_id, $this->user->leagues ) ) {
-			if($this->user->leagues[ $league->league_id ]->status == 'coordinator') {
-				return true;
-			}
-		}
-
-		return false;
+		return ($this->user && $this->user->coordinates_league_containing($team_id));
 	}
 }
 ?>

@@ -322,6 +322,8 @@ class Person extends LeaguerunnerObject
 
 	function is_coordinator_of($league_id)
 	{
+		if($this->is_admin()) { return true; }
+		
 		if(!$this->is_a_coordinator) { return false; }
 
 		if($league_id == 1) {
@@ -334,6 +336,17 @@ class Person extends LeaguerunnerObject
 		}
 		
 		return false;
+	}
+
+	function coordinates_league_containing( $team_id )
+	{
+		if($this->is_admin()) { return true; }
+
+		$result = db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $team_id);
+
+		$league = db_fetch_object($result);	
+
+		return $this->is_coordinator_of( $league->league_id );
 	}
 
 }
