@@ -13,8 +13,9 @@ use IO::File;
 
 sub list_sync_members($$);
 
-our($season, $opt_create, $admin_password);
+our($season, $opt_create, $opt_want_tier, $admin_password);
 $opt_create = 0;
+$opt_want_tier = 1;
 
 our($mm_path, $mm_list_lists, $mm_sync_members, $mm_newlist);
 $mm_path = '/usr/lib/mailman/bin';
@@ -25,7 +26,7 @@ $mm_newlist = join('/',$mm_path, 'newlist');
 our $list_admin = 'dmo@dmo.ca';
 
 
-Getopt::Mixed::init("s=s season>s password=s create");
+Getopt::Mixed::init("s=s season>s password=s create notier");
 my $optarg;
 while( ($_, $optarg) = Getopt::Mixed::nextOption()) {
 	/^s$/ && do {
@@ -34,6 +35,9 @@ while( ($_, $optarg) = Getopt::Mixed::nextOption()) {
 	};
 	/^create$/ && do {
 		$opt_create = 1;
+	};
+	/^notier$/ && do {
+		$opt_want_tier = 0;
 	};
 	/^password$/ && do {
 		## TODO: validation?
@@ -100,46 +104,21 @@ my @season_captains;
 while( my($league_id, $name, $day, $ratio, $tier) = $league_sth->fetchrow_array()) {
 
 	$day = lc($day);
+	if( $day =~ /,/ ) {
+		$day =~ s/,?(saturday|sunday),?//g;
+	}
 
 	# sanity check
-	if( $name !~ /^$season $day( $ratio)?$/i ) {
+	if( $name !~ /^$season/i ) {
 		print "Warning: League [$name] has a nonstandard name\n";
 		next;
-	}
-
-	my $list_name;
-	if ($ratio eq 'womens') {
-		 $list_name = join('-',
-			$season,
-			lc($day),
-			'womens',
-			'tier',
-			$tier,
-			'captains');
-	} else {
-		 $list_name = join('-',
-			$season,
-			lc($day),
-			'tier',
-			$tier,
-			'captains');
-	}
-
-	if( ! scalar( grep { /^$list_name$/} @mailing_lists ) ) {
-		if( $opt_create ) {
-#			system( $mm_newlist, qw( -l en -q ), $list_name, $list_admin, $admin_password ) == 0 or die("$mm_newlist failed");
-			# TODO: need to set default list settings
-			# TODO: need to allow only coordinators to post
-		} else {
-			print "List $list_name needs to be created first\n";
-			next;
-		}
 	}
 
 	my @user_emails;
 	my $sth = $DB->prepare(q{SELECT p.email FROM leagueteams l, teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE l.league_id = ? AND l.team_id = r.team_id AND (r.status = 'captain' OR r.status = 'assistant')});
 	$sth->execute($league_id);
 	while( my($email_addr) = $sth->fetchrow_array() ) {
+		print "Adding $email_addr to $day\n";
 		push @user_emails, $email_addr;
 	}
 	
@@ -150,10 +129,42 @@ while( my($league_id, $name, $day, $ratio, $tier) = $league_sth->fetchrow_array(
 		push @user_emails, $email_addr;
 	}
 
-	list_sync_members($list_name, \@user_emails);
-	
-	# remove the list from the list of mailing lists to update
-	@mailing_lists = grep { $_ ne $list_name } @mailing_lists;
+	if( $opt_want_tier ) {
+		my $list_name;
+		if ($ratio eq 'womens') {
+			 $list_name = join('-',
+				$season,
+				lc($day),
+				'womens',
+				'tier',
+				$tier,
+				'captains');
+		} else {
+			 $list_name = join('-',
+				$season,
+				lc($day),
+				'tier',
+				$tier,
+				'captains');
+		}
+
+		if( ! scalar( grep { /^$list_name$/} @mailing_lists ) ) {
+			if( $opt_create ) {
+	#			system( $mm_newlist, qw( -l en -q ), $list_name, $list_admin, $admin_password ) == 0 or die("$mm_newlist failed");
+				# TODO: need to set default list settings
+				# TODO: need to allow only coordinators to post
+			} else {
+				print "List $list_name needs to be created first\n";
+				next;
+			}
+		}
+
+
+		list_sync_members($list_name, \@user_emails);
+		
+		# remove the list from the list of mailing lists to update
+		@mailing_lists = grep { $_ ne $list_name } @mailing_lists;
+	}
 
 	# Add the members to the list for this day
 	push @{$day_lists{$day}}, @user_emails;
@@ -168,7 +179,6 @@ foreach my $day (keys %day_lists) {
 		lc($day),
 		'captains');
 
-	print "Building $list_name\n";
 	list_sync_members($list_name, $day_lists{$day});
 	
 	# remove the list from the list of mailing lists to update
@@ -187,6 +197,10 @@ sub list_sync_members($$)
 {
 	my ($listname, $new_members) = @_;
 	
+	print "Building $listname\n";
+
+	print join (",",@$new_members) . "\n";
+
 	# dump into a tempfile
 	my $tmpfilename = './temp-address-file';
 	my $fh = new IO::File "> $tmpfilename" or die("Couldn't open tempfile: $!");
@@ -195,6 +209,7 @@ sub list_sync_members($$)
 	
 	# run /usr/lib/mailman/bin/sync_members on the list
 	system( $mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listname ) == 0 or die("$mm_sync_members failed");
+	print join( ' ',$mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listname, "\n" ) ;
 
 	unlink($tmpfilename);
 	
