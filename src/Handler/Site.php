@@ -455,10 +455,10 @@ class SiteView extends Handler
 		$output .= simple_row("Site Region:", $site['region']);
 		$output .= simple_row("City Ward:", l(getWardName($site['ward_id']), "op=ward_view&id=" . $site['ward_id']));
 		$output .= simple_row("Site Location Map:", 
-			$site['location_url'] ? l("Click for map in new window", $site['location_url'], array('target' => '_top'))
+			$site['location_url'] ? l("Click for map in new window", $site['location_url'], array('target' => '_new'))
 				: "No Map");
 		$output .= simple_row("Field Layout Map:", 
-			$site['layout_url'] ? l("Click for map in new window", $site['layout_url'], array('target' => '_top'))
+			$site['layout_url'] ? l("Click for map in new window", $site['layout_url'], array('target' => '_new'))
 				: "No Map");
 		$output .= simple_row("Directions:", $site['directions']);
 		$output .= simple_row("Special Instrutions:", $site['instructions']);
