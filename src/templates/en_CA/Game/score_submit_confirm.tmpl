@@ -16,18 +16,25 @@
 <input type='hidden' name='score_for' value='{$score_for}'>
 <input type='hidden' name='score_against' value='{$score_against}'>
 <input type='hidden' name='sotg' value='{$sotg}'>
+<input type='hidden' name='defaulted' value='{$defaulted}'>
 <table border='1' cellpadding='3' cellspacing='0'>
   <tr>
+    <td class='schedule_title'>Team Name</td>
+    <td class='schedule_title'>Defaulted?</td>
+    <td class='schedule_title'>Your Score Entry</td>
+    <td class='schedule_title'>SOTG</td>
+  </tr>
+  <tr>
     <td class='row_title'>{$my_name}:</td> 
-    <td class='row_data'>{$score_for}</td>
+    <td class='row_data'>&nbsp;{if $defaulted == 'us'}yes{/if}</td>
+    <td class='row_data'>&nbsp;{$score_for}</td>
+    <td class='row_data'>&nbsp;</td>
   </tr>
   <tr>
     <td class='row_title'>{$opponent_name}:</td> 
-    <td class='row_data'>{$score_against}</td>
-  </tr>
-  <tr>
-    <td class='row_title'>{$opponent_name} SOTG:</td> 
-    <td class='row_data'>{$sotg}</td>
+    <td class='row_data'>&nbsp;{if $defaulted == 'them'}yes{/if}</td>
+    <td class='row_data'>&nbsp;{$score_against}</td>
+    <td class='row_data'>&nbsp;{$sotg}</td>
   </tr>
 </table>
 <br>

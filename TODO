@@ -3,6 +3,9 @@ The Main TODO List
 Basic Install Needs:
 	- need install instructions
 
+Docs:	
+	- check in Mack's user instructions
+
 Reimplementation:
 	- send email:
 		+ when account is created
@@ -20,7 +23,7 @@ New Features:
 	  (year, season) for all leagues are different, it's OK.
 	- volunteer info
 	- integrate Tony's score-reminder code
-	- add "Sponsor" and "Sponsor URL" field to team info?
+	- better score approval for coordinators, esp. handling of defaults
 	- carpool arrangements
 	- players looking for teams / teams looking for players
 

@@ -98,6 +98,19 @@ class GameSubmit extends Handler
 	function validate_data()
 	{
 		$rc = true;
+		
+		$defaulted = var_from_getorpost('defaulted');
+		if( ! is_null($defaulted) ) {
+			switch($defaulted) {
+				case 'us':
+				case 'them':
+					return true;  // Ignore other data in cases of default.
+				default:
+					$this->error_text .= "<br>An invalid value was specified for default.";
+					return false;
+			}
+		}
+		
 		$score_for = var_from_getorpost('score_for');
 		if( !validate_number($score_for) ) {
 			$this->error_text .= "<br>You must enter a valid number for your score";
@@ -148,23 +161,39 @@ class GameSubmit extends Handler
 			'score_for' => var_from_getorpost('score_for'),
 			'score_against' => var_from_getorpost('score_against'),
 			'spirit' => var_from_getorpost('sotg'),
+			'defaulted' => var_from_getorpost('defaulted'),
 		);
 		
 		if( count($opponent_entry) <= 0 ) {
-			/* No opponent entry, so just add to the score_entry table */
-			$res = $DB->query("INSERT INTO score_entry 
-				(game_id,team_id,entered_by,score_for,score_against,spirit)
-				VALUES(?,?,?,?,?,?)",
-				array($this->_id, $this->_team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit']));
-			if($this->is_database_error($res)) {
+			// No opponent entry, so just add to the score_entry table
+			if($this->save_one_score($our_entry) == false) {
 				return false;
 			}
 			$this->tmpl->assign("message", "This score has been saved.  Once your opponent has entered their score, it will be officially posted");
 		} else {
 			/* See if we agree with opponent score */
-			if( 
-				($opponent_entry['score_for'] == $our_entry['score_against']) 
-				&& ($opponent_entry['score_against'] == $our_entry['score_for']) ) {
+			if( defaults_agree($our_entry, $opponent_entry) ) {
+				// Both teams agree that a default has occurred. 
+				if(
+					($this->_team_id == $schedule_entry['home_id'])
+					&& ($our_entry['defaulted'] == 'us')
+				) {
+					$data = array( 0, 6, 'home', $this->_id);
+				} else {
+					$data = array( 6, 0, 'away', $this->_id);
+				}
+
+				$res = $DB->query("UPDATE schedule SET home_score = ?, away_score = ?, defaulted = ?, approved_by = -1 WHERE game_id = ?", $data);
+				if($this->is_database_error($res)) {
+					return false;
+				}
+
+				$res = $DB->query("DELETE FROM score_entry WHERE game_id = ?", array($this->_id));
+				if($this->is_database_error($res)) {
+					return false;
+				}
+				$this->tmpl->assign("message", "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.");
+			} else if( scores_agree($our_entry, $opponent_entry) ) {
 				/* Agree. Make it official */
 				if($this->_team_id == $schedule_entry['home_id']) {
 					$data = array(
@@ -194,12 +223,7 @@ class GameSubmit extends Handler
 
 				$this->tmpl->assign("message", "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.");
 			} else {
-				/* Disagree.  Stick it in score_entry */
-				$res = $DB->query("INSERT INTO score_entry 
-					(game_id,team_id,entered_by,score_for,score_against,spirit)
-					VALUES(?,?,?,?,?,?)",
-					array($this->_id, $this->_team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit']));
-				if($this->is_database_error($res)) {
+				if($this->save_score($our_entry) == false) {
 					return false;
 				}
 				$this->tmpl->assign("message", "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.");
@@ -252,7 +276,7 @@ class GameSubmit extends Handler
 		$this->tmpl->assign('score_for', var_from_getorpost('score_for'));
 		$this->tmpl->assign('score_against', var_from_getorpost('score_against'));
 		$this->tmpl->assign('sotg', var_from_getorpost('sotg'));
-		
+		$this->tmpl->assign('defaulted', var_from_getorpost('defaulted'));
 		return true;
 	}
 
@@ -308,6 +332,30 @@ class GameSubmit extends Handler
 		$this->tmpl->assign('team_id',$this->_team_id);
 		$this->tmpl->assign('date_played',strftime("%A %B %d %Y, %H%Mh",$row['timestamp']));
 	
+		return true;
+	}
+
+	function save_one_score ( $our_entry ) 
+	{
+		global $DB, $session;
+
+		if(is_null($our_entry['defaulted']) ) {
+			$our_entry['defaulted'] = 'no';
+		} else if($our_entry['defaulted'] == 'us') {
+			$our_entry['score_for'] = 0;
+			$our_entry['score_against'] = 6;
+		} else {
+			$our_entry['score_for'] = 6;
+			$our_entry['score_against'] = 0;
+		}
+		
+		$res = $DB->query("INSERT INTO score_entry 
+			(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
+				VALUES(?,?,?,?,?,?,?)",
+				array($this->_id, $this->_team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']));
+		if($this->is_database_error($res)) {
+			return false;
+		}
 		return true;
 	}
 }
@@ -516,4 +564,22 @@ class GameFinalizeScore extends Handler
 
 		return true;
 	}
+}
+function scores_agree( $one, $two )
+{
+	if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
+		return true;
+	} 
+	return false;
+}
+function defaults_agree( $one, $two )
+{
+	if(
+		($one['defaulted'] == 'us' && $two['defaulted'] == 'them')
+		||
+		($one['defaulted'] == 'them' && $two['defaulted'] == 'us')
+	) {
+		return true;
+	} 
+	return false;
 }

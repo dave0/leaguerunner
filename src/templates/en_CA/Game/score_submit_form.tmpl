@@ -1,4 +1,28 @@
 {include file="common/basic_header.tmpl"}
+{literal}
+<script type="text/javascript"> <!--
+  function defaultCheckboxChanged() {
+    if (document.scoreform.defaulted[0].checked == true) {
+        document.scoreform.score_for.disabled = true;
+        document.scoreform.score_against.disabled = true;
+        document.scoreform.sotg.disabled = true;
+        document.scoreform.defaulted[1].disabled = true;
+    } else if (document.scoreform.defaulted[1].checked == true) {
+        document.scoreform.score_for.disabled = true;
+        document.scoreform.score_against.disabled = true;
+        document.scoreform.sotg.disabled = true;
+        document.scoreform.defaulted[0].disabled = true;
+    } else {
+        document.scoreform.score_for.disabled = false;
+        document.scoreform.score_against.disabled = false;
+        document.scoreform.sotg.disabled = false;
+        document.scoreform.defaulted[0].disabled = false;
+        document.scoreform.defaulted[1].disabled = false;
+    }
+  }
+// -->
+</script>
+{/literal}
 <h1>{$page_title}</h1>
 <p>
 	Submit the score for the {$date_played} game between {$my_name} and {$opponent_name}.
@@ -8,7 +32,7 @@
   be delayed until your coordinator can confirm the correct score.
 </p>
 
-<form action='{$app_cgi_location}' method='POST'>
+<form action='{$app_cgi_location}' method='POST' name='scoreform'>
 <input type='hidden' name='op' value='{$page_op}'>
 <input type='hidden' name='step' value='{$page_step}'>
 <input type='hidden' name='id' value='{$id}'>
@@ -16,12 +40,14 @@
 <table border='1' cellpadding='3' cellspacing='0'>
   <tr>
     <td class='schedule_title'>Team Name</td>
+    <td class='schedule_title'>Defaulted?</td>
     <td class='schedule_title'>Your Score Entry</td>
     <td class='schedule_title'>Opponent's Score Entry</td>
     <td class='schedule_title'>SOTG</td>
   </tr>
   <tr>
     <td class='row_title'>{$my_name}:</td> 
+    <td class='row_data'><input type='checkbox' name='defaulted' value='us' onclick="defaultCheckboxChanged()"></td>
     <td class='row_data'><input type='text' name='score_for' size='2' maxlength='2'></td>
     <td class='row_data'>
       {$opponent_against}
@@ -30,6 +56,7 @@
   </tr>
   <tr>
     <td class='row_title'>{$opponent_name}:</td> 
+    <td class='row_data'><input type='checkbox' name='defaulted' value='them' onclick="defaultCheckboxChanged()"></td>
     <td class='row_data'><input type='text' name='score_against' size='2' maxlength='2'></td>
     <td class='row_data'>
       {$opponent_for}
