@@ -937,7 +937,7 @@ class LeagueScheduleView extends Handler
 			 FROM 
 			 	leagueteams l 
 			    LEFT JOIN team t ON (l.team_id = t.team_id) 
-		     WHERE l.league_id = 1 AND l.status = 'confirmed'",
+		     WHERE l.league_id = ? AND l.status = 'confirmed'",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_teams)) {
 			$this->error_text .= gettext("There may be no teams in this league");
