@@ -125,6 +125,9 @@ class TeamCreate extends TeamEdit
 	
 		$res = $DB->query("INSERT into team (name) VALUES (?)", array($team_name));
 		if($this->is_database_error($res)) {
+			if(strstr($this->error_text,"already exists: INSERT into team (name) VALUES")) {
+				$this->error_text = "A team with that name already exists; please go back and try again";
+			}
 			return false;
 		}
 		
@@ -158,6 +161,7 @@ class TeamEdit extends Handler
 	
 	function initialize ()
 	{
+		$this->set_title("Edit Team");
 		$this->_permissions = array(
 			'edit_name'			=> true,
 			'edit_website'		=> true,
@@ -286,7 +290,9 @@ class TeamEdit extends Handler
 		);
 		
 		if($this->is_database_error($res)) {
-			trigger_error("Database error");
+			if(strstr($this->error_text,"uplicate entry ")) {
+				$this->error_text = "A team with that name already exists; please go back and try again";
+			}
 			return false;
 		}
 		

@@ -92,7 +92,7 @@ CREATE TABLE team (
 	shirt_colour    varchar(30),
 	status          ENUM("open","closed"),
 	PRIMARY KEY (team_id),
-	KEY(name)
+	UNIQUE(name)
 );
 
 CREATE TABLE team_request_player (
