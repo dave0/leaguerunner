@@ -1528,6 +1528,16 @@ class PersonListNewAccounts extends Handler
 
 		$this->set_template_file("common/generic_list.tmpl");
 
+		$letter = var_from_getorpost("letter");
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person where class = 'new' ORDER BY letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
+		
+		if(!isset($letter)) {
+			$letter = $letters[0];
+		}
+
 		$found = $DB->getAll(
 			"SELECT 
 				CONCAT(lastname,', ',firstname) AS value, 
@@ -1535,7 +1545,10 @@ class PersonListNewAccounts extends Handler
 			 FROM person 
 			 WHERE
 			 	class = 'new'
-			 ORDER BY lastname", DB_FETCHMODE_ASSOC);
+			 AND
+			 	lastname LIKE ? 
+			 ORDER BY lastname", 
+			 array($letter . "%"), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($found)) {
 			return false;
 		}
@@ -1554,6 +1567,11 @@ class PersonListNewAccounts extends Handler
 				'action' => 'person_delete'
 			),
 		));
+
+		$this->tmpl->assign("page_op", "person_listnew");
+		$this->tmpl->assign("letter", $letter);
+		$this->tmpl->assign("letters", $letters);
+
 		$this->tmpl->assign("list", $found);
 		
 		return true;
