@@ -931,16 +931,14 @@ class LeagueView extends Handler
 		$rows = array();
 		$this->league->load_teams();
 		foreach($this->league->teams as $team) {
-			$team_links = array(
-				l('view', "team/view/$team->team_id"),
-			);
+			$team_links = array();
 			if($team->status == 'open') {
 				$team_links[] = l('join', "team/roster/$team->team_id/" . $session->attr_get('user_id'));
 			}
 			if($session->has_permission('league','edit',$this->league->league_id)) {
 				$team_links[] = l('move', "league/moveteam/$id/$team->team_id");
 			}
-			if($session->has_permission('team','delete',$team->team_id)) {
+			if($this->league->league_id == 1 && $session->has_permission('team','delete',$team->team_id)) {
 				$team_links[] = l('delete', "team/delete/$team->team_id");
 			}
 
@@ -949,7 +947,7 @@ class LeagueView extends Handler
 				$row[] = $team->rank;
 			}
 			
-			$row[] = check_form($team->name);
+			$row[] = l(check_form($team->name), "team/view/$team->team_id");
 			$row[] = $team->count_players();
 			$row[] = $team->rating;
 			$row[] = $team->calculate_avg_skill();
