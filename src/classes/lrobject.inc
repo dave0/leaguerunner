@@ -76,7 +76,23 @@ class LeaguerunnerObject
 	 */
 	function get_placeholder( $key, $value )
 	{
-		die("Implemented by subclass");
+		// Null doesn't need to be quoted
+		if(0 == strcasecmp($value,'NULL')) {
+			return "%s";
+		}
+
+		// Hack for NOW() timestamps
+		if(0 == strcasecmp($value,'NOW()')) {
+			return "%s";
+		}
+
+		// Hack for _id values
+		if( '_id' == substr($value, -3) ) {
+			return '%d';
+		}
+
+		// Else, assume string
+		return "'%s'";
 	}
 }
 ?>
