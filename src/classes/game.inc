@@ -209,8 +209,6 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
-		$game_updated = false;
-
 		$home_entry = $this->get_score_entry( $this->home_id );
 		$away_entry = $this->get_score_entry( $this->away_id );
 		if( $home_entry && $away_entry ) {
@@ -235,9 +233,9 @@ class Game extends LeaguerunnerObject
 						$this->set('away_score', $home_entry->score_against);
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
-				$game_updated = true;
 			} else {
-				print "&nbsp;&nbsp;entries do not agree; mail coordinator<br/>\n";
+				// print "&nbsp;&nbsp;entries do not agree; mail coordinator<br/>\n";
+				return false;
 			}
 		} else if ( $home_entry && !$away_entry ) {
 #			print $this->game_id ." has only a home entry<br/>\n";
@@ -245,35 +243,31 @@ class Game extends LeaguerunnerObject
 			$this->set('away_score', $home_entry->score_against);
 			$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
-			$game_updated = true;
 		} else if ( !$home_entry && $away_entry ) {
 #			print $this->game_id ." has only an away entry<br/>\n";
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
-			$game_updated = true;
 		} else if ( !$home_entry && !$away_entry ) {
 #			print $this->game_id ." has no entry<br/>\n";
 			$this->set('status', 'forfeit');
 			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
 			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_FORFEIT);
-			$game_updated = true;
 		} else {
 			die("Unreachable code hit in Game::finalize()");
 		}
 
-		if( $game_updated ) {
-			if ( ! $this->save() ) {
-				error_exit("Could not successfully save game results");
-			}
-
-			// Game has been saved to database.  Now we can update the dependant games.
-			if (! $this->updatedependentgames()) {
-				error_exit("Could not update dependant games.");
-			}
+		if ( ! $this->save() ) {
+			error_exit("Could not successfully save game results");
 		}
+
+		// Game has been saved to database.  Now we can update the dependant games.
+		if (! $this->updatedependentgames()) {
+			error_exit("Could not update dependant games.");
+		}
+		return true;
 	}
 	
 	function save ()
@@ -518,7 +512,7 @@ class Game extends LeaguerunnerObject
 		if( ! $this->_in_database ) {
 			die( "Cannot load entered scores for game not in database!");
 		}
-		$result = db_query("SELECT tid,qkey,akey FROM team_spirit_answers WHERE gid = %d", $this->game_id);
+		$result = db_query("SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = %d ORDER BY a.tid,q.sorder", $this->game_id);
 		while( $row = db_fetch_array( $result ) ) {
 			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
@@ -678,7 +672,7 @@ class Game extends LeaguerunnerObject
 	function default_spirit ( $type )
 	{
 		switch( $type ) {
-			case 'winner':
+			case 'penalized_winner':
 				return array(
 					'Timeliness' => 'OnTime',
 					'RulesKnowledge' => 'AcceptableRules',
@@ -696,6 +690,7 @@ class Game extends LeaguerunnerObject
 					'GameOverall' => 'OverallAverage'
 				);
 				break;
+			case 'winner':
 			case 'perfect':
 				return array(
 					'Timeliness' => 'OnTime',
@@ -791,6 +786,15 @@ class Game extends LeaguerunnerObject
 			// now we'll let the perl script do that 
 			return true;
 		}
+		
+        // If we're not a normal game, avoid changing the rating.
+		if( $this->status != 'normal' ) {
+			db_query("UPDATE schedule SET rating_points = 0 WHERE game_id = %d", $this->game_id);
+			if( 1 != db_affected_rows()) {
+				return false;
+			}
+			return true;
+		}
 	
 		$weight_constant = 40;  // All games weighted equally
 		$score_weight    = 1;   // Games start with a weight of 1
@@ -823,6 +827,8 @@ class Game extends LeaguerunnerObject
 		}
 
 		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
+
+		
 		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $elo_change, $this->game_id);
 		if( 1 != db_affected_rows()) {
 			return false;
