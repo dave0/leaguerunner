@@ -12,8 +12,10 @@ function team_dispatch()
 			return new TeamEdit;
 		case 'view':
 			return new TeamView;
+/*
 		case 'delete':
 			return new TeamDelete; // TODO: CREATE 
+ */
 		case 'list':
 			return new TeamList;
 		case 'roster':
