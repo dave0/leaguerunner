@@ -1605,7 +1605,7 @@ class PersonList extends Handler
 
         $query = $DB->prepare("SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE lastname LIKE ? ORDER BY lastname");
+			FROM person WHERE lastname LIKE ? ORDER BY lastname,firstname");
 		
 		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
 
@@ -1660,7 +1660,7 @@ class PersonListNewAccounts extends Handler
 			 	class = 'new'
 			 AND
 			 	lastname LIKE ? 
-			 ORDER BY lastname");
+			 ORDER BY lastname, firstname");
 		
 		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", $this->op, $letter);
 	}
