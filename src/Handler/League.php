@@ -1077,7 +1077,7 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("That is not a valid league to move to");
 		}
 		
-		$team = team_load( array('team_id', $teamId) );
+		$team = team_load( array('team_id' => $teamId) );
 		if(! $team ) {
 			$this->error_exit("That is not a valid team");
 		}
@@ -1098,7 +1098,7 @@ class LeagueMoveTeam extends Handler
 	{
 		global $session;
 
-		$team = team_load( array('team_id', $teamId) );
+		$team = team_load( array('team_id' => $teamId) );
 		if(!$team ) {
 			$this->error_exit("That is not a valid team");
 		}
