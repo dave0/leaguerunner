@@ -36,6 +36,8 @@ CREATE TABLE person (
 	addr_prov       ENUM('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'),
 	addr_postalcode char(7),
 
+	ward_id 	integer,
+
 	gender 		ENUM("Male","Female"),
 
 	birthdate date,
@@ -73,18 +75,6 @@ CREATE TABLE member_id_sequence (
  	KEY (year,gender)
 );
 
--- to be used for player availability
-CREATE TABLE player_availability (
-	user_id		integer NOT NULL,
-	mon 	enum("Y","N") DEFAULT "N",
-	tue 	enum("Y","N") DEFAULT "N",
-	wed 	enum("Y","N") DEFAULT "N",
-	thu 	enum("Y","N") DEFAULT "N",
-	fri 	enum("Y","N") DEFAULT "N",
-	sat 	enum("Y","N") DEFAULT "N",
-	sun 	enum("Y","N") DEFAULT "N"
-);
-
 CREATE TABLE team (
 	team_id         integer NOT NULL AUTO_INCREMENT,
 	name            varchar(100) NOT NULL,
@@ -93,14 +83,6 @@ CREATE TABLE team (
 	status          ENUM("open","closed"),
 	PRIMARY KEY (team_id),
 	UNIQUE(name)
-);
-
-CREATE TABLE team_request_player (
-	team_id		integer NOT NULL,
-	day 		SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
-	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
-	men_needed	integer,
-	women_needed	integer
 );
 
 CREATE TABLE teamroster (
@@ -176,6 +158,7 @@ CREATE TABLE site (
 	name varchar(255) UNIQUE, 
 	code char(3) UNIQUE, 
 	region   enum('Central','East','South','West'),
+	ward_id integer,
 	location_url varchar(255), 
 	layout_url varchar(255), 
 	directions text, 
@@ -198,3 +181,12 @@ CREATE TABLE field_assignment (
     day       ENUM('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday') NOT NULL
 );
 
+-- city wards
+CREATE TABLE ward (
+	ward_id integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	num tinyint,
+	name varchar(255) UNIQUE,
+	city       varchar(50),
+	region   enum('Central','East','South','West'),
+	url       varchar(255)
+);
