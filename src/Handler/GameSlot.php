@@ -103,7 +103,7 @@ class GameSlotCreate extends Handler
 			$year = $today['year'];
 		}
 
-		$output .= generateCalendar( $year, $month, $day, "slot/create/$ield->fid", "slot/create/$field->fid");
+		$output .= generateCalendar( $year, $month, $day, "slot/create/$field->fid", "slot/create/$field->fid");
 
 		return $output;
 	}
