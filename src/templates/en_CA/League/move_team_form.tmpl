@@ -19,7 +19,7 @@
       <td class="row_content">
         <select name='target_id'>
           {foreach name=leagues from=$leagues item=league}
-          <option value='{$league.id}'>{$league.season} {$league.day} {$league.name}{if $league.tier} {$league.tier}{/if}</option>
+          <option value='{$league.id}'>{$league.name}{if $league.tier} Tier {$league.tier}{/if}</option>
           {/foreach}
         </select>
     </tr>
