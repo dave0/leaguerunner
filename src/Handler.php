@@ -102,6 +102,7 @@ class Handler
 	 */
 	function process ()
 	{
+		trigger_error("Missing handler for process() in this class");
 		return false;
 	}
 	/**
@@ -250,12 +251,9 @@ class Handler
 	function is_database_error( &$res ) 
 	{
 		global $DB;
-		if(!isset($res)) {
-			$this->error_text = gettext("Database error: Invalid database resource.");
-			return true;
-		}
 		if(DB::isError($res)) {
 			$this->error_text = $res->getMessage();
+			$this->error_text .= ": " . $res->getUserinfo();
 			return true;
 		}
 		
