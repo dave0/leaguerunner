@@ -225,5 +225,5 @@ CREATE TABLE waitinglistmembers (
 	paired_with	integer, -- for couples registration
 	preference	smallint,
 	date_registered datetime,
-	PRIMARY KEY(wlist_id, player_id)
+	PRIMARY KEY(wlist_id, user_id)
 );
