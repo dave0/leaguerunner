@@ -577,7 +577,7 @@ class Game extends LeaguerunnerObject
 		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted) VALUES(%d,%d,%d,%d,%d,'%s')",
 			$this->game_id,
 			$entry->team_id,
-			$entry->user_id,
+			$entry->entered_by,
 			$entry->score_for,
 			$entry->score_against,
 			$entry->defaulted);
