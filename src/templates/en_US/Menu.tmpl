@@ -1,6 +1,8 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
 
-<table border="0">
+<br />
+
+<table border="0" cellpadding="3" cellspacing="0">
 
   {* All users get this section *}
   <tr>
@@ -22,7 +24,7 @@
   </tr>
   <tr>
     <td>
-      <table border='0'>
+      <table border="0" cellpadding="3" cellspacing="0">
       {foreach name=teamlist from=$teams item=team}
       <tr>
         <td class="menu_item">{$team.name}</td>
@@ -36,11 +38,59 @@
     </td>
   </tr>
   <tr>
-    <td class="menu_item"><a href='{$app_cgi_location}?op=team_list'>View Other Teams</a></td>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=team_list'>List Other Teams</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=team_search'>Search for a Team</a></td>
   </tr>
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=team_create'>Create New Team</a></td>
   </tr>
+
+  {* Only league coordinators and admins get this section *}
+  <tr>
+    <td class="menu_title">Leagues</td>
+  </tr>
+  <tr>
+    <td class="menu_item">
+      <table border="0" cellpadding="3" cellspacing="0">
+      {foreach name=leaguelist from=$leagues item=league}
+      <tr>
+        <td class="menu_item">{$league.name}</td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_view;id={$league.id}">info</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_schedule_view;id={$league.id}">schedule</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_standings;id={$league.id}">standings</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_score_verify;id={$league.id}">approve scores</a></td>
+      </tr>
+      {/foreach}
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=league_list'>List Leagues</a></td>
+  </tr>
+    {if $perm_league_create}
+    <tr>
+      <td class="menu_item"><a href='{$app_cgi_location}?op=league_create'>Create New League</a></td>
+    </tr>
+    {/if}
+
+  {* General system junk *}
+  <tr>
+    <td class="menu_title">System</td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=field_list'>List Fields</a></td>
+  </tr>
+  {if $perm_user_admin}
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_list'>List Users</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_create'>Create New User</a></td>
+  </tr>
+  {/if}
+  
 </table>
 {include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}
