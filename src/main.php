@@ -174,6 +174,11 @@ function var_from_post($name)
  * We could use the PHP magic array $_REQUEST, but it also includes cookie
  * data, which can confuse things.  We just want GET and POST values, so we'll
  * do it ourselves.
+ *
+ * TODO: modify function to take optional $flags arg, with available flags:
+ * 	ALLOW_HTML
+ * 	ALLOW_JAVASCRIPT
+ * and add code to strip out otherwise.
  * 
  * @param string $name name of variable we're looking for
  * @return mixed
