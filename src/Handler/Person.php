@@ -209,6 +209,11 @@ class PersonView extends Handler
 		if($this->is_database_error($row)) {
 			return false;
 		}
+		
+		if(!isset($row)) {
+			$this->error_text = "That person does not exist";
+			return false;
+		}
 
 		$fullname = $row['firstname'] . " " . $row['lastname'];
 		
@@ -1433,7 +1438,8 @@ class PersonList extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'allow',
+			'volunteer_sufficient',
+			'deny',
 		);
 
 		return true;

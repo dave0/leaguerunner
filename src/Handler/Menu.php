@@ -20,12 +20,14 @@ class Menu extends Handler
 		$this->_permissions = array(
 			"league_admin"  => false,
 			"league_create" => false,
+			"user_list"    => false,
 			"user_admin"    => false,
 			"field_admin"    => false,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
+			'volunteer_sufficient',
 			'allow'
 		);
 		return true;
@@ -36,6 +38,10 @@ class Menu extends Handler
 		if($type == 'administrator') {
 			$this->enable_all_perms();
 		} 
+
+		if($type == 'volunteer') {
+			$this->_permissions['user_list'] = true;
+		}
 	}
 
 	/**

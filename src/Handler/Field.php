@@ -3,12 +3,355 @@
 /*
  * Handlers for dealing with fields
  */
-register_page_handler('field_assign', 'FieldAssign');
 register_page_handler('field_create', 'FieldCreate');
 register_page_handler('field_edit', 'FieldEdit');
-register_page_handler('field_list', 'FieldList');
 register_page_handler('field_view', 'FieldView');
+register_page_handler('field_assign', 'FieldAssign');
 register_page_handler('field_unassign', 'FieldUnassign');
+
+/**
+ * Field create handler
+ */
+class FieldCreate extends FieldEdit
+{
+	function initialize ()
+	{
+		$this->set_title("Create New Field");
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:site_id',
+			'admin_sufficient',
+			'deny'
+		);
+		return true;
+	}
+	
+	function generate_form () 
+	{
+		global $DB;
+
+		$field['site_id'] = var_from_getorpost('site_id');
+		if(! validate_number($field['site_id']) ) {
+			$this->error_text .= "You cannot add a field to an invalid site.";
+			return false;
+		}
+
+		$field['site_name'] = $DB->getOne("SELECT name FROM site where site_id = ?", array($field['site_id']));
+		if($this->is_database_error($field['site_name'])) {
+			$this->error_text .= "You cannot add a field to an invalid site.";
+			return false;
+		}
+
+		$field['availability'] = array();
+
+		$this->tmpl->assign("field", $field);
+
+		return true;
+	}
+	
+	function perform ()
+	{
+		global $DB, $session;
+		
+		if(! $this->validate_data()) {
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
+		}
+
+		$field = var_from_getorpost("field");
+		
+		$res = $DB->query("INSERT into field (site_id,num) VALUES (?,?)", array($field['site_id'],$field['num']));
+		if($this->is_database_error($res)) {
+			return false;
+		}
+	
+		$id = $DB->getOne("SELECT LAST_INSERT_ID() from field");
+		if($this->is_database_error($id)) {
+			return false;
+		}
+		
+		$this->_id = $id;
+		
+		return parent::perform();
+	}
+
+}
+
+/**
+ * Field edit handler
+ */
+class FieldEdit extends Handler
+{
+
+	var $_id;
+
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'deny'
+		);
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$step = var_from_getorpost('step');
+		$this->_id = var_from_getorpost('id');
+		switch($step) {
+			case 'confirm':
+				$this->set_template_file("Field/edit_confirm.tmpl");
+				$this->tmpl->assign("page_step", 'perform');
+				$rc = $this->generate_confirm();
+				break;
+			case 'perform':
+				return $this->perform();
+				break;
+			default:
+				$this->set_template_file("Field/edit_form.tmpl");
+				$this->tmpl->assign("page_step", 'confirm');
+				$rc = $this->generate_form();
+		}
+
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+
+		return $rc;
+	}
+
+	/**
+	 * Override parent display to redirect to 'view' on success
+	 */
+	function display ()
+	{
+		$step = var_from_getorpost('step');
+		if($step == 'perform') {
+			return $this->output_redirect("op=field_view&id=". $this->_id);
+		}
+		return parent::display();
+	}
+	
+
+	function generate_form ()
+	{
+		global $DB;
+
+		$field = $DB->getRow(
+			"SELECT 
+				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
+			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
+			 WHERE f.field_id = ?", 
+			array($this->_id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($field)) {
+			return false;
+		}
+
+		$field['availability'] = split(",", $field['availability']);
+		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
+
+		$this->tmpl->assign("field", $field);
+		$this->tmpl->assign("id", $this->_id);
+		return true;
+	}
+
+	function generate_confirm ()
+	{
+		global $DB;
+
+		if(! $this->validate_data()) {
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
+		}
+
+		$site = $DB->getRow(
+			"SELECT 
+				f.site_id, s.name as site_name, s.code as site_code
+			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
+			 WHERE f.field_id = ?", 
+			array($this->_id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($site)) {
+			return false;
+		}
+
+		$field = var_from_getorpost('field');
+
+		$field['availability'] = join(",", $field['availability']);
+		$field['site_name'] = $site['site_name'];
+		$field['site_code'] = $site['site_code'];
+		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
+
+		$this->tmpl->assign("field", $field);
+		$this->tmpl->assign("id", $this->_id);
+		return true;
+	}
+
+	function perform ()
+	{
+		global $DB;
+
+		if(! $this->validate_data()) {
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
+		}
+		$field = var_from_getorpost('field');
+
+		
+		
+		$res = $DB->query("UPDATE field SET 
+			num = ?, 
+			status = ?,
+			availability = ?
+			WHERE field_id = ?",
+			array(
+				$field['num'],
+				$field['status'],
+				$field['availability'],
+				$this->_id,
+			)
+		);
+		
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	function validate_data ()
+	{
+		$rc = true;
+		
+		$field = var_from_getorpost("field");
+		if( !validate_number($field['num']) ) {
+			$this->error_text .= "<li>Field number cannot be left blank";
+			$rc = false;
+		}
+		
+		return $rc;
+	}
+}
+
+/**
+ * Field viewing handler
+ */
+class FieldView extends Handler
+{
+	function initialize ()
+	{
+		$this->_permissions = array(
+			'field_edit'		=> false,
+			'field_assign'		=> false,
+		);
+		
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'allow',
+		);
+		
+		return true;
+	}
+	
+	function set_permission_flags($type) 
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		}
+	}
+	
+	function process ()
+	{
+		global $DB;
+		
+		$this->_id = var_from_getorpost('id');
+		$this->set_template_file("Field/view.tmpl");
+
+		$field = $DB->getRow(
+			"SELECT 
+				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
+			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
+			 WHERE f.field_id = ?", 
+			array($this->_id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($field)) {
+			return false;
+		}
+
+		if(!isset($field)) {
+			$this->error_text = "The field [$id] does not exist";
+			return false;
+		}
+		
+		$this->set_title("View Field: " . $field['site_name'] . " " . $field['num']);
+
+		$field['availability'] = split(",", $field['availability']);
+
+		$this->tmpl->assign("field", $field);
+		$this->tmpl->assign("id", $this->_id);
+
+		/* and, grab bookings */
+		$rows = $DB->getAll("
+			SELECT 
+				a.league_id,
+				IF(l.tier,CONCAT(l.season,' ',l.name, ' Tier ',l.tier),CONCAT(l.season,' ',l.name)) AS name,
+				a.day
+		  	FROM 
+				field_assignment a,
+				league l
+		  	WHERE 
+				a.field_id = ?
+				AND a.league_id = l.league_id",
+			array($this->_id),
+			DB_FETCHMODE_ASSOC);
+			
+		if($this->is_database_error($rows)) {
+			return false;
+		}
+		
+		$daynum = array( 'Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6);
+
+		$assignments = array(
+			array( 'day' => "Sunday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Monday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Tuesday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Wednesday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Thursday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Friday", 'leagues' => array(), 'avail' => false),
+			array( 'day' => "Saturday", 'leagues' => array(), 'avail' => false),
+		);
+
+		/* Now, show only available days on booking list */
+		while(list(,$day) = each($field['availability'])) {
+			$assignments[$daynum[$day]]['avail'] = true;
+		}
+		
+		while(list(,$booking) = each($rows)) {
+			$num = $daynum[$booking['day']];
+			$assignments[$num]['leagues'][] = $booking;
+		}
+
+		/* Argh.  Need to resort array */
+		ksort($assignments);
+		
+		$this->tmpl->assign("field_assignments", $assignments);
+
+		reset($this->_permissions);
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
+
+		return true;
+	}
+}
+
 
 /**
  * Assign a field to a league
@@ -158,247 +501,6 @@ class FieldAssign extends Handler
 }
 
 /**
- * Field create handler
- */
-class FieldCreate extends FieldEdit
-{
-	function initialize ()
-	{
-		$this->set_title("Create New Field");
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
-	}
-	
-	/*
-	 * Overridden, as we have no info to put in that form.
-	 */
-	function generate_form () 
-	{
-		return true;
-	}
-	
-	function perform ()
-	{
-		global $DB, $session;
-		
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
-		}
-		
-		$field_name = trim(var_from_getorpost("field_name"));
-		$res = $DB->query("INSERT into field_info (name) VALUES (?)", array($field_name));
-		if($this->is_database_error($res)) {
-			return false;
-		}
-	
-		$id = $DB->getOne("SELECT LAST_INSERT_ID() from field_info");
-		if($this->is_database_error($id)) {
-			return false;
-		}
-		
-		$this->_id = $id;
-		
-		return parent::perform();
-	}
-
-}
-
-/**
- * Field edit handler
- */
-class FieldEdit extends Handler
-{
-
-	var $_id;
-
-	function initialize ()
-	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_var:id',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
-	}
-
-	function process ()
-	{
-		global $DB;
-
-		$step = var_from_getorpost('step');
-		$this->_id = var_from_getorpost('id');
-		switch($step) {
-			case 'confirm':
-				$this->set_template_file("Field/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
-				break;
-			case 'perform':
-				return $this->perform();
-				break;
-			default:
-				$this->set_template_file("Field/edit_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
-		}
-	
-		if($this->_id) {
-			$this->set_title("Edit Field: " . $DB->getOne("SELECT name FROM field_info where field_id = ?", array($this->_id)));
-		}
-
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
-		return $rc;
-	}
-
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
-	function display ()
-	{
-		$step = var_from_getorpost('step');
-		if($step == 'perform') {
-			return $this->output_redirect("op=field_view&id=". $this->_id);
-		}
-		return parent::display();
-	}
-	
-
-	function generate_form ()
-	{
-		global $DB;
-
-		$row = $DB->getRow(
-			"SELECT 
-				f.name          AS field_name, 
-				f.url           AS field_website
-			FROM field_info f  WHERE f.field_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($row)) {
-			return false;
-		}
-
-		$this->tmpl->assign("field_name", $row['field_name']);
-		$this->tmpl->assign("field_website", $row['field_website']);
-		
-		$this->tmpl->assign("id", $this->_id);
-		return true;
-	}
-
-	function generate_confirm ()
-	{
-		global $DB;
-
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
-		}
-
-		$this->tmpl->assign("field_name", var_from_getorpost('field_name'));
-		$this->tmpl->assign("id", $this->_id);
-		$this->tmpl->assign("field_website", var_from_getorpost('field_website'));
-
-		return true;
-	}
-
-	function perform ()
-	{
-		global $DB;
-
-		if(! $this->validate_data()) {
-			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
-			return false;
-		}
-		
-		$res = $DB->query("UPDATE field_info SET name = ?, url = ? WHERE field_id = ?",
-			array(
-				var_from_getorpost('field_name'),
-				var_from_getorpost('field_website'),
-				$this->_id,
-			)
-		);
-		
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		
-		return true;
-	}
-
-	function validate_data ()
-	{
-		$rc = true;
-		
-		$field_name = var_from_getorpost("field_name");
-		if( !validate_nonhtml($field_name) ) {
-			$this->error_text .= "<li>Field name cannot be left blank";
-			$rc = false;
-		}
-		
-		$field_website = var_from_getorpost("field_website");
-		if(validate_nonblank($field_website)) {
-			if( ! validate_nonhtml($field_website) ) {
-				$this->error_text .= "<li>If you provide a website URL, it must be valid.";
-				$rc = false;
-			}
-		}
-		
-		return $rc;
-	}
-}
-
-/**
- * Field list handler
- */
-class FieldList extends Handler
-{
-	function initialize ()
-	{
-		$this->set_title("List Fields");
-		$this->_required_perms = array(
-			'allow'		/* Allow everyone */
-		);
-
-		return true;
-	}
-
-	function process ()
-	{
-		global $DB, $id;
-
-		$this->set_template_file("common/generic_list.tmpl");
-
-		$found = $DB->getAll(
-			"SELECT 
-				name AS value, 
-				field_id AS id_val 
-			 FROM field_info",
-			array(), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
-		
-		$this->tmpl->assign("available_ops", array(
-			array(
-				'description' => 'view',
-				'action' => 'field_view'
-			),
-		));
-		$this->tmpl->assign("page_op", "field_list");
-		$this->tmpl->assign("list", $found);
-		
-		return true;
-	}
-}
-
-/**
  * Un-assign a field
  * This code is messy and should be combined with the assign code.
  */
@@ -510,97 +612,6 @@ class FieldUnassign extends Handler
 			return false;
 		}
 		return true;	
-	}
-}
-
-/**
- * Field viewing handler
- */
-class FieldView extends Handler
-{
-	function initialize ()
-	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_var:id',
-			'allow',
-		);
-		return true;
-	}
-
-	function process ()
-	{
-		global $session, $DB;
-
-		$id = var_from_getorpost('id');
-
-		$this->set_template_file("Field/view.tmpl");
-		
-		$row = $DB->getRow("SELECT name, url FROM field_info WHERE field_id = ?",
-			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
-			return false;
-		}
-
-		if(!isset($row)) {
-			$this->error_text = "The field [$id] does not exist";
-			return false;
-		}
-	
-		$this->set_title("View Field: " . $row['name']);
-		$this->tmpl->assign("field_name", $row['name']);
-		$this->tmpl->assign("field_id", $id);
-		if( strncmp($row['url'], "http://", 7) != 0 ) {
-			$row['url'] = "http://" . $row['url'];
-		}
-		$this->tmpl->assign("field_website", $row['url']);
-	
-		/* and, grab bookings */
-		$rows = $DB->getAll("
-			SELECT 
-				a.league_id,
-				IF(l.tier,CONCAT(l.season,' ',l.name, ' Tier ',l.tier),CONCAT(l.season,' ',l.name)) AS name,
-				a.day
-		  	FROM 
-				field_assignment a,
-				league l
-		  	WHERE 
-				a.field_id = ?
-				AND a.league_id = l.league_id",
-			array($id),
-			DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($rows)) {
-			return false;
-		}
-		$daynum = array( 'Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6);
-		$assignments = array(
-			array( 'day' => "Sunday", 'leagues' => array()),
-			array( 'day' => "Monday", 'leagues' => array()),
-			array( 'day' => "Tuesday", 'leagues' => array()),
-			array( 'day' => "Wednesday", 'leagues' => array()),
-			array( 'day' => "Thursday", 'leagues' => array()),
-			array( 'day' => "Friday", 'leagues' => array()),
-			array( 'day' => "Saturday", 'leagues' => array()),
-		);
-		
-		while(list(,$booking) = each($rows)) {
-			$num = $daynum[$booking['day']];
-			$assignments[$num]['leagues'][] = $booking;
-		}
-
-		/* Argh.  Need to resort array */
-		ksort($assignments);
-		
-		$this->tmpl->assign("field_assignments", $assignments);
-
-		/* ... and set permissions flags */
-		if($session->is_admin()) {
-			$this->tmpl->assign("perm_field_edit", true);
-			$this->tmpl->assign("perm_field_assign", true);
-		}
-
-		return true;
 	}
 }
 

@@ -171,12 +171,23 @@ CREATE TABLE score_entry (
     PRIMARY KEY (team_id,game_id)
 );
 
+CREATE TABLE site ( 
+	site_id int NOT NULL PRIMARY KEY AUTO_INCREMENT, 
+	name varchar(255) UNIQUE, 
+	code char(3) UNIQUE, 
+	location_url varchar(255), 
+	layout_url varchar(255), 
+	directions text, 
+	instructions text
+);
 
--- field information. 
-CREATE TABLE field_info (
-    field_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name varchar(255) NOT NULL,
-    url  varchar(255) NOT NULL -- location below server root of page containing directions, map, etc.
+CREATE TABLE field (
+	field_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	site_id int NOT NULL,
+	num tinyint,
+	status   enum('open','closed'),
+	notes text,
+	availability set('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')
 );
 
 -- field assignments

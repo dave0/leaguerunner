@@ -1,5 +1,5 @@
 {include file="common/basic_header.tmpl"}
-<h1>{if $id}Editing {$field_name}{else}Create New Field{/if}</h1>
+<h1>{if $id}Editing {$field.site_name} {$field.num}{else}Create New Field{/if}</h1>
 <p>
 	Confirm that the data below is correct, and hit continue to make your changes.
 </p>
@@ -12,12 +12,20 @@
 {/if}
 	<table border="0">
     <tr>
-      <td class='row_title'>Field Name:</td> 
-      <td class='row_data'><input type="hidden" name="field_name" value="{$field_name}">{$field_name}</td>
+      <td class='row_title'>Site Name:</td> 
+      <td class='row_data'>{$field.site_name} ({$field.site_code})</td>
     </tr>
     <tr>
-      <td class='row_title'>Website:</td> 
-      <td class='row_data'><input type="hidden" name="field_website" value="{$field_website}">{$field_website}</td>
+      <td class='row_title'>Field Number:</td> 
+      <td class='row_data'><input type="hidden" name="field[num]" value="{$field.num}">{$field.num}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Status:</td> 
+      <td class='row_data'><input type="hidden" name="field[status]" value="{$field.status}">{$field.status}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Availability:</td> 
+      <td class='row_data'><input type="hidden" name="field[availability]" value="{$field.availability}">{$field.availability}</td>
     </tr>
 	</table>
 <br>

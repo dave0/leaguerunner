@@ -1,11 +1,11 @@
 {include file="common/basic_header.tmpl"}
 
-<h1>{$field_name}</h1>
+<h1>{$field.site_name} {$field.num}</h1>
 
 <table border="0" cellpadding="3" cellspacing="0">
   <tr>
-    <td class='row_title'>Field information:</td>
-    <td class='row_data'><a href="{$field_website}" target="_new">{$field_website}</a></td>
+    <td class='row_title'>Site:</td>
+    <td class='row_data'> {$field.site_name} ({$field.site_code}) [ <a href="{$app_cgi_location}?op=site_view&id={$field.site_id}">view</a> ]</td>
   </tr>
   <tr>
     <td class='row_title' valign='top'>Assignments:</td>
@@ -21,23 +21,31 @@
         <td class='booking_item' valign='top'>
            {$booking.day}
         </td>
+{strip}
+      {if $booking.avail}
         <td class='booking_item'>
-      {foreach name=leagues from=$booking.leagues item=league}
-         &raquo;&nbsp;{$league.name} [&nbsp;<a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">view league</a> {if $perm_field_edit}
-				  | <A href="{$app_cgi_location}?op=field_unassign&id={$field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a>
-        {/if}
-        ]<br>
-      {foreachelse}
-        &nbsp;
-      {/foreach}
+          {foreach name=leagues from=$booking.leagues item=league}
+            &raquo;&nbsp;{$league.name} [&nbsp;<a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">view league</a> {if $perm_field_assign}
+				    | <A href="{$app_cgi_location}?op=field_unassign&id={$field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a>
+            {/if}
+          ]<br>
+          {foreachelse}
+            &nbsp;
+          {/foreach}
         </td>
         <td class='booking_item' valign="top">
-        {if $perm_field_edit}
+        {if $perm_field_assign}
 					[ <A href="{$app_cgi_location}?op=field_assign&id={$field_id}&day={$booking.day}">add new booking</a> ]
         {else}
           &nbsp;
         {/if}
         </td>
+      {else}
+        <td class='booking_item' valign="top" colspan='2'>
+          Unavailable.
+        </td>
+      {/if}
+{/strip}
       </tr>
       {/foreach}
       </table>
@@ -46,7 +54,7 @@
 </table>
 
 <ul>
-  <li><a href="{$app_cgi_location}?op=field_edit&id={$field_id}">edit field</a>.
+  <li><a href="{$app_cgi_location}?op=field_edit&id={$field.field_id}">edit field</a>.
 </ul>
 
 

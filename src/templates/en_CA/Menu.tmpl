@@ -80,30 +80,34 @@
     </tr>
     {/if}
 
-  {* General system junk *}
-  {if $perm_field_admin}
   <tr>
     <td class="menu_title">Fields</td>
   </tr>
   <tr>
-    <td class="menu_item"><a href='{$app_cgi_location}?op=field_list'>List Fields</a></td>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=site_list'>List Field Sites</a></td>
   </tr>
+  {if $perm_field_admin}
   <tr>
-    <td class="menu_item"><a href='{$app_cgi_location}?op=field_create'>Create New Field</a></td>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=site_create'>Create New Field Site</a></td>
   </tr>
   {/if}
 
-  {* General system junk *}
-  {if $perm_user_admin}
+  {if $perm_user_list}
   <tr>
-    <td class="menu_title">System</td>
+    <td class="menu_title">Users</td>
   </tr>
+  {/if}
+  {if $perm_user_admin}
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_listnew'>List New Users</a>{if $new_user_count gt 0} ({$new_user_count} awaiting approval){/if}</td>
   </tr>
+  {/if}
+  {if $perm_user_list}
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_list'>List Users</a></td>
   </tr>
+  {/if}
+  {if $perm_user_admin}
   <tr>
     <td class="menu_item"><a href='{$app_cgi_location}?op=person_create'>Create New User</a></td>
   </tr>
