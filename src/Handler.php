@@ -3,6 +3,7 @@
 # do not resort this list or things will break
 require_once("Handler/Login.php");
 require_once("Handler/Menu.php");
+require_once("Handler/System.php");
 
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
