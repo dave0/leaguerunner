@@ -550,6 +550,42 @@ class League extends LeaguerunnerObject
 		return $return_games;
 	}
 
+	/**
+	 * Get all available gameslots for a given date
+	 * We get any unbooked slots, as well as any currently in use by this set
+	 * of games.
+	 * Returns array suitable for use in html select list
+	 */
+	function get_gameslots( $timestamp )
+	{
+		$result = db_query(
+			"SELECT 
+				s.slot_id AS slot_id,
+				IF( f.parent_fid, 
+					CONCAT_WS(' ', s.game_start, p.name, f.num),
+					CONCAT_WS(' ', s.game_start, f.name, f.num)
+				) AS value
+			 FROM
+				gameslot s 
+				INNER JOIN field f ON (s.fid = f.fid) 
+				LEFT JOIN field p ON (p.fid = f.parent_fid) 
+				LEFT JOIN league_gameslot_availability a ON (s.slot_id = a.slot_id)
+				LEFT JOIN schedule g ON (s.game_id = g.game_id) 
+			 WHERE 
+				UNIX_TIMESTAMP(s.game_date) = %d
+				AND ( 
+					(a.league_id=%d AND ISNULL(s.game_id)) 
+					OR
+					g.league_id=%d
+				)
+			 ORDER BY s.game_start, value", $timestamp, $this->league_id,$this->league_id);
+		
+		$gameslots[0] = "---";
+		while($slot = db_fetch_object($result)) {
+			$gameslots[$slot->slot_id] = $slot->value;
+		}
+		return $gameslots;
+	}
 
 }
 
