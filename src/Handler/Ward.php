@@ -120,8 +120,8 @@ class WardEdit extends Handler
 
 	function getFormData( $id ) 
 	{
-		/* TODO: ward_load() */
-		return db_fetch_array(db_query("SELECT * FROM ward WHERE ward_id = %d", $id));
+		$ward = ward_load( array('ward_id' => $id) );
+		return object2array($ward);
 	}
 
 	function generateForm( $data = array() )
@@ -311,12 +311,10 @@ class WardView extends Handler
 	{
 		$id = arg(2);
 
-		/* TODO: ward_load() */
-		$result = db_query("SELECT * FROM ward WHERE ward_id = %d", $id);
-		if( 1 != db_num_rows($result)) {
+		$ward = ward_load( array('ward_id' => $id) );
+		if( !$ward ) { 
 			$this->error_exit("That ward does not exist");
 		}
-		$ward = db_fetch_object($result);
 
 		$links = array();
 		if($this->_permissions['ward_edit']) {
@@ -348,5 +346,38 @@ class WardView extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		return $output;
 	}
+}
+
+/**
+ * Load a single ward object from the database using the supplied query
+ * data.  If more than one ward matches, we will return only the first one.
+ * If fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the ward to be loaded.
+ */
+function ward_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if($key == '_extra') {
+			/* Just slap on any extra query fields desired */
+			$query[] = $value;
+		} else {
+			$query[] = "w.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+		w.* 
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	$ward = db_fetch_object($result);
+	return $ward;
 }
 ?>
