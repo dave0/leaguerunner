@@ -10,41 +10,24 @@ class Team extends LeaguerunnerObject
 	 */
 	function load ( $array = array() )
 	{
-		$query = array();
 
-		foreach ($array as $key => $value) {
-			if($key == '_extra') {
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-			} else {
-				$query[] = "t.$key = '" . check_query($value) . "'";
-			}
-		}
-		
-		$result = db_query_range("SELECT 
-			t.*,
-			l.name AS league_name,
-			l.tier AS league_tier,
-			l.day AS league_day, 
-			l.season AS league_season, 
-			l.league_id
-			FROM team t
-			INNER JOIN leagueteams s ON (s.team_id = t.team_id)
-			INNER JOIN league l ON (s.league_id = l.league_id)
-			WHERE " . implode(' AND ',$query),0,1);
-
-		if(1 != db_num_rows($result)) {
+		$result = team_query( &$array );
+		if( 1 != db_num_rows($result) ) {
 			return false;
 		}
-		
-		$this->_in_database = true;
-		
-		$item = db_fetch_array($result);
-		foreach ($item as $key => $value) {
+
+		return $this->load_from_query_result( db_fetch_array($result) );
+	}
+
+	function load_from_query_result( $array = array() ) 
+	{
+		foreach ($array as $key => $value) {
 			$this->{$key} = $value;
 		}
 
-		# Fix up league_name if necessary
+		$this->_in_database = true;
+
+		// Fixups 
 		if($this->league_tier) {
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
@@ -244,9 +227,39 @@ class Team extends LeaguerunnerObject
 	}
 }
 
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
+function team_query( $array = array() )
+{
+	$order = '';
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		switch( $key ) {
+			case '_extra':
+				/* Just slap on any extra query fields desired */
+				$query[] = $value;
+				break;
+			case '_order':
+				$order = ' ORDER BY ' . $value;
+				break;
+			default:
+				$query[] = "t.$key = '" . check_query($value) . "'";
+		}
+	}
+		
+	return db_query("SELECT 
+		t.*,
+		s.rank,
+		l.name AS league_name,
+		l.tier AS league_tier,
+		l.day AS league_day, 
+		l.season AS league_season, 
+		l.league_id
+		FROM team t
+		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
+		INNER JOIN league l ON (s.league_id = l.league_id)
+		WHERE " . implode(' AND ',$query) . $order);
+}
+
 function team_load( $array = array() )
 {
 	$t = new Team;
@@ -255,6 +268,25 @@ function team_load( $array = array() )
 	} else {
 		return null;
 	}
+}
+
+function team_load_many( $array = array() )
+{
+	$result = team_query( &$array );
+
+	if(db_num_rows($result) < 1 ) {
+		return false;
+	}
+
+	$teams = array();
+	while($ary = db_fetch_array($result)) {
+		$g = new Team;
+		if( $g->load_from_query_result( $ary ) ) {
+			$teams[$g->team_id] = $g;
+		}
+	}
+
+	return $teams;
 }
 
 ?>

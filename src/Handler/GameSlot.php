@@ -115,9 +115,11 @@ class GameSlotCreate extends Handler
 	# the overlap-checking probably belongs in slot.inc
 	function perform ( &$field, $edit, $datestamp )
 	{
-		if($edit['repeat_for'] > 52) {
-			$this->error_exit("You cannot repeat a schedule for more than 52 weeks.");
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
+		
 		for( $i = 0; $i < $edit['repeat_for']; $i++) {
 			$slot = new GameSlot;
 			$slot->set('fid', $field->fid);
@@ -180,7 +182,14 @@ class GameSlotCreate extends Handler
 	
 	function generateConfirm ( &$field, &$edit, $datestamp )
 	{
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
 		$output = form_hidden('edit[step]', 'perform');
+
+		$output .= para("Please confirm that this information is correct");
 		
 		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
 		$group .= form_item('Game Start Time',
@@ -202,6 +211,24 @@ class GameSlotCreate extends Handler
 		$output .= form_submit('submit');
 
 		return form($output);
+	}
+
+	function isDataInvalid ( $edit = array() )
+	{;
+		$errors = "";
+		if($edit['repeat_for'] > 52) {
+			$errors .= "\n<li>You cannot repeat a schedule for more than 52 weeks.";
+		}
+
+		if( !is_array($edit['availability']) ) {
+			$errors .= "\n<li>You must make this gameslot available to at least one league.";
+		}
+
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 }
 

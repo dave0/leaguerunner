@@ -109,6 +109,7 @@ class GameCreate extends Handler
  */
 
 	var $types;
+	var $league;
 
 	function initialize ()
 	{
@@ -120,15 +121,7 @@ class GameCreate extends Handler
 		);
 
 		$this->title = "Add Game";
-		$this->types = array(
-			'single' => 'single regular-season game',
-			'oneset' => 'set of games for all teams in a tier',
-			'fullround' => 'full-tier round-robin (does not work yet)',
-			'halfround' => 'half-tier round-robin (does not work yet)',
-			'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
-		);
 
-		
 		return true;
 	}
 	
@@ -139,8 +132,8 @@ class GameCreate extends Handler
 		$month = arg(4);
 		$day   = arg(5);
 
-		$league = league_load( array('league_id' => $league_id) );
-		if(! $league ) {
+		$this->league = league_load( array('league_id' => $league_id) );
+		if(! $this->league ) {
 			$this->error_exit("That league does not exist");
 		}
 
@@ -151,45 +144,69 @@ class GameCreate extends Handler
 			$datestamp = mktime(0,0,0,$month,$day,$year);
 		} else {
 			$this->setLocation(array( 
-				$league->name => "league/view/$league->league_id",
+				$this->league->name => "league/view/$league_id",
 				$this->title => 0
 			));
-			return $this->datePick($league, $year, $month, $day);
+			return $this->datePick($year, $month, $day);
 		}
 		
 		// Make sure we have fields allocated to this league for this date
 		// before we proceed.
-		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $league->league_id, $datestamp);
+		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $this->league->league_id, $datestamp);
 		if( db_result($result) == 0) {
-			$this->error_exit("Sorry, there are no fields available for your league on that day");
+			$this->error_exit("Sorry, there are no fields available for your league on that day.  Check that fields have been allocated before attempting to proceed.");
+		}
+
+		// Set up our menu
+		switch($this->league->schedule_type) {
+			case 'roundrobin':
+				$this->types = array(
+					'single' => 'single regular-season game',
+					'oneset' => 'set of games for all teams in a tier',
+					'fullround' => 'full-tier round-robin (does not work yet)',
+					'halfround' => 'half-tier round-robin (does not work yet)',
+					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
+					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
+				);
+				break;
+			case 'ladder':
+				$this->types = array(
+					'ladder' => 'ladder-style two-week shuffle "hold and move" system',
+					'fullladder' => 'full season of games using ladder-style two-week shuffle "hold and move" system',
+					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
+					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
+				);
+				break;
+			default:
+				break;
 		}
 
 		$edit = &$_POST['edit'];
 
 		switch($edit['step']) {
 			case 'perform':
-				return $this->perform( $league, $edit, $datestamp);
+				return $this->perform($edit, $datestamp);
 				break;
 			case 'confirm':
 				$this->setLocation(array( 
-					$league->name => "league/view/$league->league_id",
+					$this->league->name => "league/view/$league_id",
 					$this->title => 0
 				));
-				return $this->generateConfirm($league, $edit, $datestamp);
+				return $this->generateConfirm($edit, $datestamp);
 				break;
 			default:
 				$this->setLocation(array( 
-					$league->name => "league/view/$league->league_id",
+					$this->league->name => "league/view/$league_id",
 					$this->title => 0
 				));
-				return $this->generateForm($league, $datestamp);
+				return $this->generateForm($datestamp);
 				break;
 		}
 		$this->error_exit("Error: This code should never be reached.");
 	}
 
 	
-	function datePick ( &$league, $year, $month, $day)
+	function datePick ( $year, $month, $day)
 	{
 		$output = para("Select a date below to start adding games to this league.  Days on which this league usually plays are highlighted in green.");
 
@@ -203,12 +220,12 @@ class GameCreate extends Handler
 			$year = $today['year'];
 		}
 
-		$output .= generateCalendar( $year, $month, $day, "game/create/$league->league_id", "game/create/$league->league_id", split(',',$league->day));
+		$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id, "game/create/" . $this->league->league_id, split(',',$this->league->day));
 
 		return $output;
 	}
 	
-	function generateForm ( &$league, $datestamp )
+	function generateForm ( $datestamp )
 	{
 		$output = para("Please enter some information about the game(s) to create.");
 		$output .= para("<b>Note</b>: Creating full or half-tier round-robin games does not yet work.");
@@ -224,16 +241,22 @@ class GameCreate extends Handler
 		return form($output);
 	}
 	
-	function generateConfirm ( &$league, &$edit, $datestamp )
+	function generateConfirm ( &$edit, $datestamp )
 	{
 
 		if (  ! array_key_exists( $edit['type'], $this->types) ) {
 			$this->error_exit("That is not a valid selection for adding games");
 		}
+		
 
 		// TODO HACK EVIL DMO
-		if( ($edit['type'] != 'single') && ($edit['type'] != 'oneset')) {
-			$this->error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
+		switch( $edit['type'] ) {
+			case 'ladder':
+			case 'oneset':
+				break;
+			default:
+				$this->error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
+	
 		}
 	
 		$output = para("Confirm that this information is correct for the game(s) you wish to create.");
@@ -250,7 +273,7 @@ class GameCreate extends Handler
 		return form($output);
 	}
 
-	function perform ( &$league, &$edit, $timestamp) {
+	function perform ( &$edit, $timestamp) {
 /*
  * Possible problems with autogeneration ( needs checking in code, possible
  * bailouts):
@@ -268,15 +291,14 @@ class GameCreate extends Handler
  *
  */
 		switch( $edit['type'] ) {
-			case 'single':
-				// TODO: 
-				// - create a single game entry, with a single gameslot
-				// allocated to it.  
-				$this->error_exit("That is not a valid option right now.");
-				break;
 			case 'oneset':
-				return $this->createDayOfGames( $league, $edit, $timestamp);
+				return $this->createDayOfGames( $edit, $timestamp);
 				break;
+			case 'ladder':
+				return $this->createLadderRound( $edit, $timestamp );
+				break;
+			case 'fullladder':
+				return $this->createLadderSeason( $edit, $timestamp );
 			default:
 				$this->error_exit("That is not a valid option right now.");
 	
@@ -284,8 +306,27 @@ class GameCreate extends Handler
 		$this->error_exit("This line of code should never be reached");
 	}
 
-	function createDayOfGames( &$league, &$edit, $timestamp ) 
+	/**
+	 * Create a single "round" for the ladder system consisting of a hold week
+	 * and a move week.
+	 */
+	function createLadderRound( $edit, $timestamp )
 	{
+		$this->error_exit("TODO: dmo is working on this");
+	}
+	
+	/**
+	 * Create an entire season of hold/move pairs for this league.
+	 */
+	function createLadderSeason( $edit, $timestamp )
+	{
+		$this->error_exit("TODO: dmo is working on this");
+	}
+
+	function createDayOfGames( &$edit, $timestamp ) 
+	{
+		$league = $this->league;  // shorthand
+		
 		if ( ! $league->load_teams() ) {
 			$this->error_exit("Error loading teams for league $league->fullname");
 		}
@@ -486,7 +527,7 @@ class GameSubmit extends Handler
 			}
 			
 			// Save the spirit entry if non-default
-			if( !$this->game->save_spirit_entry( $opponent, $questions->bulk_get_answers()) ) {
+			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
 				$this->error_exit("Error saving spirit entry for " . $this->team->team_id);
 			}
 		}
@@ -944,7 +985,7 @@ class GameEdit extends Handler
 		if ($this->_permissions['view_spirit']) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
-			$ary = $game->get_spirit_entry( $game->away_id );
+			$ary = $game->get_spirit_entry( $game->home_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
@@ -955,7 +996,7 @@ class GameEdit extends Handler
 			}
 		
 			$formbuilder->clear_answers();
-			$ary = $game->get_spirit_entry( $game->home_id );
+			$ary = $game->get_spirit_entry( $game->away_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}

@@ -116,6 +116,7 @@ CREATE TABLE league (
 CREATE TABLE leagueteams (
 	league_id 	integer NOT NULL,
 	team_id		integer NOT NULL,
+	rank		integer NOT NULL DEFAULT 0,
 	PRIMARY KEY (team_id,league_id),
 	INDEX leagueteams_league (league_id)
 );

@@ -75,6 +75,23 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
+	 * Check if this league contains a particular team.  There are 
+	 * two modes of operation, to take advantage of team data if we
+	 * already have it.
+	 */
+	function contains_team( $team_id ) 
+	{
+		if($this->_teams_loaded) {
+			return array_key_exists( $team_id , $this->teams );
+		}
+
+		// Otherwise, we have to check directly
+		$result = db_query("SELECT team_id FROM leagueteams WHERE league_id = %d AND team_id = %d", $this->league_id, $team_id);
+		
+		return (db_result($result) == $team_id);
+	}
+
+	/**
 	 * Load teams for this league.
 	 */
 	function load_teams ()
@@ -83,15 +100,8 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		$result = db_query("SELECT t.team_id FROM leagueteams l INNER JOIN team t ON (t.team_id = l.team_id) WHERE l.league_id = %d ORDER BY t.name", $this->league_id);
-		while( $array = db_fetch_array($result) ) {
-			$t = team_load( array('team_id' => $array['team_id']) );
-			if( ! $t ) {
-				error_exit("Invalid team listed in league $league->league_id");
-			}
-			$t->team_status = 'loaded';
-			$this->teams[$t->team_id] = $t;
-		}
+		$this->teams = team_load_many( array('_extra' => 'l.league_id = ' . check_query($this->league_id), '_order' => 's.rank'));
+
 		$this->_teams_loaded = true;	
 		return true;
 	}

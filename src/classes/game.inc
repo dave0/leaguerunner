@@ -640,7 +640,6 @@ function game_query ( $array = array() )
 		}
 	}
 
-	// TODO: day_id is deprecated
 	return db_query("SELECT 
 		s.*,
 		IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
