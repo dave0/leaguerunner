@@ -471,21 +471,24 @@ class GameApprove extends Handler
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
-			'admin_sufficient',
-			'coordinator_sufficient',
-			'deny'
+			'allow'  # TODO: evil hack.  We do perms checks in process() below.
 		);
 		$this->title = "Approve Game Score";
 		return true;
 	}
-
+	
 	function process ()
 	{
+		global $session;
 		$id = arg(2);
 
 		$game = game_load( array('game_id' => $id) );
 		if(!$game) {
 			$this->error_exit("That game does not exist");
+		}
+		
+		if(!($session->is_admin() || $session->is_coordinator_of($game->league_id) ) ) {
+			$this->error_exit("You do not have permission to approve that game.");
 		}
 		
 		$this->setLocation(array(

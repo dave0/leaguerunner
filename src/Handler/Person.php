@@ -1160,10 +1160,19 @@ class PersonCreate extends PersonEdit
 
 	function perform ( $id, $edit = array())
 	{
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		global $session;
+
+		# XXX EVIL: we override the 'edit username' perm so that the 
+		# edit submit won't try to check it.  Otherwise, it will fail
+		# as we've just created a user with that name.
+		if( ! validate_name_input($edit['username']) ) {
+			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 		}
+		$user = person_load( array('username' => $edit['username']) );
+		if( $user && !$session->is_admin()) {
+			$this->error_exit("A user with that username already exists; please go back and try again");
+		}
+		$this->_permissions['edit_username'] = false;
 		
 		if($edit['password_once'] != $edit['password_twice']) {
 			$this->error_exit("First and second entries of password do not match");
@@ -1176,7 +1185,7 @@ class PersonCreate extends PersonEdit
 		}
 
 		$id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
-
+		
 		$rc = parent::perform( $id, $edit );
 
 		if( $rc === false ) {
