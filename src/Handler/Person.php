@@ -1601,44 +1601,4 @@ EOM;
 		return true;
 	}
 }
-
-/**
- * Return array of team information for the given userid
- * 
- * @param integer $userid  User ID
- * @return array Array of all teams with this player, with id, name, and position of player for each team.
- */
-function get_teams_for_user($userid) 
-{
-	global $DB;
-	$rows = $DB->getAll(
-		"SELECT 
-			r.status AS position,
-            r.team_id AS id,
-            t.name AS name
-        FROM 
-            teamroster r LEFT JOIN team t USING(team_id)
-        WHERE 
-            r.player_id = ?",
-	array($userid), DB_FETCHMODE_ASSOC);
-	for($i=0; $i < count($rows); $i++) {
-		$rows[$i]['position'] = display_roster_status($rows[$i]['position']);
-	}
-	return $rows;
-}
-
-function generate_password()
-{
-	$chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-	$pass = '';
-	for($i=0;$i<8;$i++) {
-		$pass .= $chars{mt_rand(0,strlen($chars)-1)};
-	}
-	return $pass;
-}
-
-function map_callback($item)
-{
-	return array("output" => $item, "value" => $item);
-}
 ?>

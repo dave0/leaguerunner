@@ -1565,6 +1565,7 @@ class LeagueManageTeam extends Handler
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
+			'require_var:team_id',
 			'require_var:action',
 			'admin_sufficient',
 			'coordinator_sufficient',
@@ -1582,6 +1583,15 @@ class LeagueManageTeam extends Handler
 		$this->_id      = var_from_getorpost('id');
 		$this->_team_id = var_from_getorpost('team_id');
 		$action 		= var_from_getorpost('action');
+
+		if( !validate_number($this->_id) ) {
+			$this->error_text = "You must supply a valid league ID";
+			return false;
+		}
+		if( !validate_number($this->_team_id) ) {
+			$this->error_text = "You must supply a valid team ID";
+			return false;
+		}
 
 		if($action != "add" && $action != "remove") {
 			$this->error_text = "Only possible actions are to add or remove a team";

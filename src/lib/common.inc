@@ -41,6 +41,17 @@ function validate_date_input ( $year, $month, $day )
 	return true;
 }
 
+function validate_number ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	if ( ! preg_match("/^\d+$/", $string) ) {
+		return false;
+	}
+	return true;
+}
+
 function validate_name_input ( $string )
 {
 	if( !validate_nonblank($string) ) {
@@ -109,7 +120,6 @@ function validate_nonblank( $string )
  * Helper functions
  */
 
-
 /*
  * Clean up a telephone number so that it's in a common format
  * Assumption: phone number has passed validate_telephone_input()
@@ -127,7 +137,6 @@ function clean_telephone_number( $string )
 	return $clean;
 }
 
-
 /*
  * PHP doesn't have the Perlish comparisons of cmp and <=>
  * so we fake a numeric cmp() here.
@@ -143,5 +152,71 @@ function cmp ($a, $b)
 	return 0;
 }
 
+/**
+ * Format roster status as human-readable.
+ */
+function display_roster_status( $short_form )
+{
+	switch($short_form) {
+	case 'captain':
+		return "captain";
+	case 'player':
+		return "player";
+	case 'substitute':
+		return "substitute";
+	case 'captain_request':
+		return "requested by captain";
+	case 'player_request':
+		return "request to join by player";
+	case 'none':
+		return "not on team";
+	default:
+		trigger_error("invalid status: $short_form");
+		return "ERROR: invalid status";
+	}
+}
+
+/**
+ * Return array of team information for the given userid
+ * 
+ * @param integer $userid  User ID
+ * @return array Array of all teams with this player, with id, name, and position of player for each team.
+ */
+function get_teams_for_user($userid) 
+{
+	global $DB;
+	$rows = $DB->getAll(
+		"SELECT 
+			r.status AS position,
+            r.team_id AS id,
+            t.name AS name
+        FROM 
+            teamroster r LEFT JOIN team t USING(team_id)
+        WHERE 
+            r.player_id = ?",
+	array($userid), DB_FETCHMODE_ASSOC);
+	for($i=0; $i < count($rows); $i++) {
+		$rows[$i]['position'] = display_roster_status($rows[$i]['position']);
+	}
+	return $rows;
+}
+
+/*
+ * Generate a random password
+ */
+function generate_password()
+{
+	$chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+	$pass = '';
+	for($i=0;$i<8;$i++) {
+		$pass .= $chars{mt_rand(0,strlen($chars)-1)};
+	}
+	return $pass;
+}
+
+function map_callback($item)
+{
+	return array("output" => $item, "value" => $item);
+}
 
 ?>

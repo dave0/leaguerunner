@@ -52,11 +52,11 @@
         </tr>
         {foreach name=teamroster from=$roster item=player}
         <tr>
-          <td class="roster_item">&nbsp;{$player.fullname}</td>
-          <td class="roster_item">&nbsp;{$player.status}</td>
-          <td class="roster_item">&nbsp;{$player.gender}</td>
-          <td class="roster_item">&nbsp;{$player.skill_level}</td>
-          <td class="roster_item">
+          <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.fullname}</td>
+          <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.status}</td>
+          <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.gender}</td>
+          <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">&nbsp;{$player.skill_level}</td>
+          <td class="{if $player.has_conflict}roster_conflict{else}roster_item{/if}">
             [ <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
             {if $perm_edit_team or $player.allow_status_change}
       | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player.id}">change status</a>

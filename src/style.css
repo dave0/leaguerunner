@@ -107,6 +107,14 @@ TABLE {
 	font-size: 11px;
 }
 
+.roster_conflict {
+	border-bottom-width: 1px;
+	border-bottom-color: gray;
+	border-bottom-style: solid;
+	background-color: red;
+	font-size: 11px;
+}
+
 a {
 	text-decoration: none;
 }

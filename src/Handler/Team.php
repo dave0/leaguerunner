@@ -13,30 +13,6 @@ register_page_handler('team_view', 'TeamView');
 register_page_handler('team_schedule_view', 'TeamScheduleView');
 
 /**
- * Format roster status as human-readable.
- */
-function display_roster_status( $short_form )
-{
-	switch($short_form) {
-	case 'captain':
-		return "captain";
-	case 'player':
-		return "player";
-	case 'substitute':
-		return "substitute";
-	case 'captain_request':
-		return "requested by captain";
-	case 'player_request':
-		return "request to join by player";
-	case 'none':
-		return "not on team";
-	default:
-		trigger_error("invalid status: $short_form");
-		return "ERROR: invalid status";
-	}
-}
-
-/**
  * List players for addition to team
  *
  * @todo this is an evil duplication of Person/List.php
@@ -898,6 +874,8 @@ class TeamView extends Handler
 				t.status AS team_status, 
 				l.name AS league_name, 
 				l.tier AS league_tier, 
+				l.day AS league_day, 
+				l.season AS league_season, 
 				l.league_id,
 				t.shirt_colour
 			FROM 
@@ -930,7 +908,7 @@ class TeamView extends Handler
 		$this->tmpl->assign("league_tier", $row['league_tier']);
 
 		/* and, grab roster */
-		$rows = $DB->getAll("
+		$roster = $DB->getAll("
 			SELECT 
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
@@ -946,19 +924,38 @@ class TeamView extends Handler
 			array($id),
 			DB_FETCHMODE_ASSOC);
 			
-		if($this->is_database_error($rows)) {
+		if($this->is_database_error($roster)) {
 			return false;
 		}
-
-		for($i = 0; $i < count($rows); $i++) {
-			if($rows[$i]['id'] == $session->attr_get("user_id")) {
-				$rows[$i]['allow_status_change'] = true;
+	
+		$count = count($roster);
+		for($i = 0; $i < $count; $i++) {
+			if($roster[$i]['id'] == $session->attr_get("user_id")) {
+				$roster[$i]['allow_status_change'] = true;
 				
 			}
-			$rows[$i]['status'] = display_roster_status($rows[$i]['status']);
+			$roster[$i]['status'] = display_roster_status($roster[$i]['status']);
+			/* Now check for conflicts.  Players who are subs can have
+			 * conflicts, but not others.
+			 */
+			if($roster[$i]['status'] != 'substitute') {
+				$conflict = $DB->getOne("SELECT COUNT(*) from
+						league l, leagueteams t, teamroster r
+					WHERE
+						l.season = ? AND l.tier = ? AND l.day = ?
+						AND l.league_id = t.league_id 
+						AND t.team_id = r.team_id
+						AND r.player_id = ?
+						",array($row['league_season'],$row['league_tier'],$row['league_day'], $roster[$i]['id']));
+				if(!$this->is_database_error($conflict)) {
+					if($conflict > 1) { 
+						$roster[$i]['has_conflict'] = true;
+					}
+				}
+			}
 		}
 		
-		$this->tmpl->assign("roster", $rows);
+		$this->tmpl->assign("roster", $roster);
 
 		/* Assign our own user ID */
 		$this->tmpl->assign("user_id", $session->attr_get("user_id"));
