@@ -541,6 +541,8 @@ class LeagueStandings extends Handler
 
 	function process ()
 	{
+		global $session;
+		
 		$id = arg(2);
 		$this->title = "Standings";
 
@@ -558,122 +560,32 @@ class LeagueStandings extends Handler
 			$this->title => 0,
 		));
 		
-		return $this->generate_standings($round);
-	}
-
-	/**
-	 * TODO: this should be split into:
-	 * 	1) loading data into $season/$round data structures
-	 * 	2) sorting
-	 * 	3) displaying
-	 * as this will allow us to create multiple sort modules
-	 */
-	function generate_standings ($current_round = 0)
-	{
-		global $session;
-		$this->league->load_teams();
-
-		if( count($this->league->teams) < 1 ) {
-			error_exit("Cannot generate standings for a league with no teams");
-		}
-
-		while(list($id,) = each($this->league->teams)) {
-			$this->league->teams[$id]->points_for = 0;
-			$this->league->teams[$id]->points_against = 0;
-			$this->league->teams[$id]->spirit = 0;
-			$this->league->teams[$id]->win = 0;
-			$this->league->teams[$id]->loss = 0;
-			$this->league->teams[$id]->tie = 0;
-			$this->league->teams[$id]->defaults_for = 0;
-			$this->league->teams[$id]->defaults_against = 0;
-			$this->league->teams[$id]->games = 0;
-			$this->league->teams[$id]->vs = array();
-			$this->league->teams[$id]->streak = array();
-		}
-
-               
-		$season = $this->league->teams;
-		$round  = $this->league->teams;
-
-		/* Now, fetch the schedule.  Get all games played by anyone who is
-		 * currently in this league, regardless of whether or not their
-		 * opponents are still here
-		 */
-		// TODO: I'd like to use game_load_many here, but it's too slow.
-		$result = db_query(
-			"SELECT DISTINCT s.*, 
-				s.home_team AS home_id, 
-				h.name AS home_name, 
-				s.away_team AS away_id,
-				a.name AS away_name
-			FROM schedule s, leagueteams t
-			LEFT JOIN team h ON (h.team_id = s.home_team) 
-			LEFT JOIN team a ON (a.team_id = s.away_team)
-			WHERE t.league_id = %d 
-				AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY s.game_id", $this->league->league_id);
-		while( $ary = db_fetch_array( $result) ) {
-			$g = new Game;
-			$g->load_from_query_result($ary);
-			$this->record_game($season, $g);
-			if($current_round == $g->round) {
-				$this->record_game($round, $g);
-			}
-		}
-
-		/* HACK: Before we sort everything, we've gotta copy the 
-		 * $season's spirit and games values into the $round array 
-		 * because otherwise, in any round after the first we're 
-		 * only sorting on the spirit scores received in the current 
-		 * round.
-		 */
-		while(list($team_id,$info) = each($season))
-		{
-			$round[$team_id]->spirit = $info->spirit;
-			$round[$team_id]->games = $info->games;
-		}
-		reset($season);
-		
-		/* Now, sort it all */
-                if ($this->league->schedule_type == "ladder") {
-		  uasort($season, array($this, 'sort_standings_by_rank'));	
-
-		  $sorted_order = &$season;
-                }
-                else {
-  		  if($current_round) {
-			  uasort($round, array($this, 'sort_standings'));	
-			  $sorted_order = &$round;
-		  } else {
-			  uasort($season, array($this, 'sort_standings'));	
-			  $sorted_order = &$season;
-		  }
-                }
+		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 		
 		/* Build up header */
 		$header = array( array('data' => 'Teams', 'rowspan' => 2) );
 		$subheader = array();
 
-                // Ladder leagues display standings differently.
-                // Eventually this should just be a brand new object.
-                if($this->league->schedule_type == "ladder") {
-		  $header[] = array('data' => 'Season To Date', 'colspan' => 8); 
-		  foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-		  	  $subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
-		  }
-                }
-                else {
-		  if($current_round) {
-			$header[] = array('data' => "Current Round ($current_round)", 'colspan' => 7);
+		// Ladder leagues display standings differently.
+		// Eventually this should just be a brand new object.
+		if($this->league->schedule_type == "ladder") {
+			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
+			foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
+			}
+		} else {
+			if($current_round) {
+				$header[] = array('data' => "Current Round ($current_round)", 'colspan' => 7);
+				foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+					$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
+				}
+			}
+		
+			$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
 			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
-		  }
-		
-		  $header[] = array('data' => 'Season To Date', 'colspan' => 7); 
-		  foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-		  	  $subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
-		  }
-                }
+		}
 		
 		$header[] = array('data' => "Rating", 'rowspan' => 2);
 		$header[] = array('data' => "Streak", 'rowspan' => 2);
@@ -681,28 +593,26 @@ class LeagueStandings extends Handler
 		
 		$rows[] = $subheader;
 
-                reset($sorted_order);
-		while(list(, $data) = each($sorted_order)) {
+		while(list(, $id) = each($order)) {
 
-			$id = $data->team_id;
-			$row = array( l($data->name, "team/view/$id"));
+			$row = array( l($season[$id]->name, "team/view/$id"));
 
-                        // Don't need the current round for a ladder schedule.
-                        if ($this->league->schedule_type != "ladder") {
-       			  if($current_round) {
-			  	  $row[] = $round[$id]->win;
-  			  	  $row[] = $round[$id]->loss;
-			  	  $row[] = $round[$id]->tie;
-  			  	  $row[] = $round[$id]->defaults_against;
-			  	  $row[] = $round[$id]->points_for;
-			  	  $row[] = $round[$id]->points_against;
-  				  $row[] = $round[$id]->points_for - $round[$id]->points_against;
-			  }
-                        }
+			// Don't need the current round for a ladder schedule.
+			if ($this->league->schedule_type != "ladder") {
+				if($current_round) {
+					$row[] = $round[$id]->win;
+					$row[] = $round[$id]->loss;
+					$row[] = $round[$id]->tie;
+					$row[] = $round[$id]->defaults_against;
+					$row[] = $round[$id]->points_for;
+					$row[] = $round[$id]->points_against;
+					$row[] = $round[$id]->points_for - $round[$id]->points_against;
+				}
+			}
 
-                        if ($this->league->schedule_type == "ladder") {
-			  $row[] = $season[$id]->rank; 
-                        }
+			if ($this->league->schedule_type == "ladder") {
+				$row[] = $season[$id]->rank; 
+			}
 			$row[] = $season[$id]->win;
 			$row[] = $season[$id]->loss;
 			$row[] = $season[$id]->tie;
@@ -719,7 +629,7 @@ class LeagueStandings extends Handler
 			}
 	
 			// initialize the sotg to dashes!
-                        $sotg = "---";
+			$sotg = "---";
 			if($season[$id]->games < 3 && !($session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
 				 $sotg = "---";
 			} else if ($season[$id]->games > 0) {
@@ -730,147 +640,6 @@ class LeagueStandings extends Handler
 		}
 		
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";
-	}
-	
-	function record_game(&$season, &$game)
-	{
-
-		$game->home_spirit = $game->get_spirit_numeric( $game->home_team );
-		$game->away_spirit = $game->get_spirit_numeric( $game->away_team );
-		if(isset($season[$game->home_team])) {
-			$team = &$season[$game->home_team];
-			
-			$team->games++;
-			$team->points_for += $game->home_score;
-			$team->points_against += $game->away_score;
-			$team->spirit += $game->home_spirit;
-
-			/* Need to initialize if not set */
-			if(!isset($team->vs[$game->away_team])) {
-				$team->vs[$game->away_team] = 0;
-			}
-			
-			if($game->status == 'home_default') {
-				$team->defaults_against++;
-			} else if($game->status == 'away_default') {
-				$team->defaults_for++;
-			}
-
-			$status = '';
-			if($game->home_score == $game->away_score) {
-				$team->tie++;
-				$team->vs[$game->away_team]++;
-				$status = 'T';
-			} else if($game->home_score > $game->away_score) {
-				$team->win++;
-				$team->vs[$game->away_team] += 2;
-				$status = 'W';
-			} else {
-				$team->loss++;
-				$team->vs[$game->away_team] += 0;
-				$status = 'L';
-			}
-			if(in_array($status, $team->streak)) {
-				array_push($team->streak, $status);
-			} else {
-				$team->streak = array($status);
-			}
-		}
-		if(isset($season[$game->away_team])) {
-			$team = &$season[$game->away_team];
-			
-			$team->games++;
-			$team->points_for += $game->away_score;
-			$team->points_against += $game->home_score;
-			$team->spirit += $game->away_spirit;
-
-			/* Need to initialize if not set */
-			if(!isset($team->vs[$game->home_team])) {
-				$team->vs[$game->home_team] = 0;
-			}
-			
-			if($game->status == 'away_default') {
-				$team->defaults_against++;
-			} else if($game->status == 'home_default') {
-				$team->defaults_for++;
-			}
-
-			$status = '';
-			if($game->away_score == $game->home_score) {
-				$team->tie++;
-				$team->vs[$game->home_team]++;
-				$status = 'T';
-			} else if($game->away_score > $game->home_score) {
-				$team->win++;
-				$team->vs[$game->home_team] += 2;
-				$status = 'W';
-			} else {
-				$team->loss++;
-				$team->vs[$game->home_team] += 0;
-				$status = 'L';
-			}
-			if(in_array($status, $team->streak)) {
-				array_push($team->streak, $status);
-			} else {
-				$team->streak = array($status);
-			}
-		}
-	}
-
-	function sort_standings_by_rank (&$a, &$b) 
-	{
-		if ($a->rank == $b->rank) {
-			return 0;
-		}
-		return ($a->rank < $b->rank) ? -1 : 1;
-	}
-
-	function sort_standings (&$a, &$b) 
-	{
-		/* First, order by wins */
-		$b_points = (( 2 * $b->win ) + $b->tie);
-		$a_points = (( 2 * $a->win ) + $a->tie);
-		if( $a_points > $b_points ) {
-			return -1;
-		} else if( $a_points < $b_points ) {
-			return 1;
-		}
-		
-		/* Then, check head-to-head wins */
-		if(isset($b->vs[$a['id']]) && isset($a->vs[$b['id']])) {
-			if( $b->vs[$a['id']] > $a->vs[$b['id']]) {
-				return 1;
-			} else if( $b->vs[$a['id']] < $a->vs[$b['id']]) {
-				return -1;
-			}
-		}
-
-		/* Check SOTG */
-		if($a->games > 0 && $b->games > 0) {
-			if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
-				return -1;
-			} else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
-				return 1;
-			}
-		}
-		
-		/* Next, check +/- */
-		if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
-			return 1;
-		} else if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
-			return -1;
-		}
-		
-		/* 
-		 * Finally, check losses.  This ensures that teams with no record
-		 * appear above teams who have losses.
-		 */
-		if( $a->loss < $b->loss ) {
-			return -1;
-		} else if( $a->loss > $b->loss ) {
-			return 1;
-		}
-		return 0;
 	}
 }
 
