@@ -214,7 +214,7 @@ class NEWPersonView extends Handler
 	function generate_view (&$person)
 	{
 		$fullname = $person['firstname'] . " " . $person['lastname'];
-		$output =  "<h1>$fullname</h1>";
+		$output =  h1($fullname);
 		
 		$links = array();
 		

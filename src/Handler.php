@@ -271,22 +271,15 @@ class Handler
 		$error = $error ? $error : "An unknown error has occurred.";
 
 		print $this->get_header($title);
-		print "<h1 align='left'>$title</h1>";
-		print "<blockquote>$error</blockquote>";
+		print h1($title, array('align' => 'left'));
+		print simple_tag("blockquote",$error);
 		print $this->get_footer();
 		$DB->disconnect();
 		exit;
 	}
 
 	/** 
-	 * Set the template file to be used
-	 *
-	 * This sets the path to the appropriate template file, relative to
-	 * the template root.  
-	 *
-	 * @access public
-	 * @param string $template_file  Filename of the template file to use.  Should be relative to the language directories.
-	 *
+	 * TODO Delete me after Smarty removal
 	 */
 	function set_template_file( $template_file )
 	{

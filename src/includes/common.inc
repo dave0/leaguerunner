@@ -58,6 +58,11 @@ function simple_tag($name, &$content, $attributes = array())
 	return "<$name". (count($t) ? " " : "") . implode($t, " ") .">$content</$name>";
 }
 
+function h1($text, $attributes = array())
+{
+	return simple_tag("h1", $text, $attributes);
+}
+
 function tr($text, $attributes = array())
 {
 	return simple_tag("tr",$text, $attributes);

@@ -880,14 +880,12 @@ class TeamView extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$this->set_template_file("Team/view.tmpl");
-		
-		$row = $DB->getRow("
+		$team = $DB->getRow("
 			SELECT 
-				t.team_id, 
-				t.name AS team_name, 
-				t.website AS team_website, 
-				t.status AS team_status, 
+				t.team_id as id, 
+				t.name AS name, 
+				t.website AS website, 
+				t.status AS status, 
 				l.name AS league_name, 
 				l.tier AS league_tier, 
 				l.day AS league_day, 
@@ -900,28 +898,57 @@ class TeamView extends Handler
 				LEFT JOIN league l ON (s.league_id = l.league_id) 
 			WHERE s.team_id = ?", 
 		array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($team)) {
 			return false;
 		}
 
-		if(!isset($row)) {
+		if(!isset($team)) {
 			$this->error_exit("That is not a valid team ID");
-			return false;
 		}
 
-		$this->set_title("View Team: " . $row['team_name']);
-		$this->tmpl->assign("team_name", $row['team_name']);
-		$this->tmpl->assign("team_id", $id);
-		if( $row['team_website'] && strncmp($row['team_website'], "http://", 7) != 0 ) {
-			$row['team_website'] = "http://" . $row['team_website'];
+		// Team names might have HTML in them, so we need to nuke it.
+		$team_name = check_form($team['name']);
+		$this->set_title("View Team &raquo; $team_name");
+
+		$links = array();
+		$links[] = l('schedule and scores', 
+			'op=team_schedule_view&id=' . $team['id'], 
+			array('title' => 'View schedule and scores'));
+		if($team['status'] == 'open') {
+			$links[] = l('join team', 
+				'op=team_playerstatus&id=' . $team['id'] . "&player_id=" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
+				array('title' => 'Request to join this team'));
 		}
-		$this->tmpl->assign("team_website", $row['team_website']);
-		$this->tmpl->assign("team_status", $row['team_status']);
-		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
-		
-		$this->tmpl->assign("league_name", $row['league_name']);
-		$this->tmpl->assign("league_id", $row['league_id']);
-		$this->tmpl->assign("league_tier", $row['league_tier']);
+		if($this->_permissions['edit_team']) {
+			$links[] = l('edit info', 
+				'op=team_edit&id=' . $team['id'], 
+				array('title' => "Edit team information"));
+			$links[] = l('add player', 
+				'op=team_addplayer&id=' . $team['id'], 
+				array('title' => "Request a player for this team"));
+		}
+		$links[] = l('view standings', 
+			'op=league_standings&id=' . $team['league_id'], 
+			array('title' => 'View league standings'));
+
+
+		/* Now build up team data */
+		$teamdata = "<table border'0'>";
+		if($team['website']) {
+			if(strncmp($team['website'], "http://", 7) != 0) {
+				$team['website'] = "http://" . $team['website'];
+			}
+			$teamdata .= simple_row("Website:", l($team['website'], $team['website']));
+		}
+		$teamdata .= simple_row("Shirt Colour:", check_form($team['shirt_colour']));
+		$league_name = $team['league_name'];
+		if($team['league_tier']) {
+			$league_name .= " Tier " . $team['league_tier'];
+		}
+		$teamdata .= simple_row("League/Tier:", l($league_name, "op=league_view&id=" . $team['league_id']));
+		$teamdata .= simple_row("Team Status:", $team['status']);
+
+		$teamdata .= "</table>";
 
 		/* and, grab roster */
 		$roster = $DB->getAll("
@@ -943,17 +970,28 @@ class TeamView extends Handler
 		if($this->is_database_error($roster)) {
 			return false;
 		}
-	
+
+		$rosterdata = "<table cellpadding='3' cellspacing='0' border='0'>";
+		$rosterdata .= tr(
+			td("Team Roster", array('colspan' => 5, 'class' => 'roster_title'))
+		);
+		$rosterdata .= tr(
+			td("Name", array('class' => 'roster_subtitle'))
+			. td("Status", array('class' => 'roster_subtitle'))
+			. td("Gender", array('class' => 'roster_subtitle'))
+			. td("Skill", array('class' => 'roster_subtitle'))
+			. td("&nbsp;", array('class' => 'roster_subtitle'))
+		);
 		$count = count($roster);
 		for($i = 0; $i < $count; $i++) {
-			if($roster[$i]['id'] == $session->attr_get("user_id")) {
-				$roster[$i]['allow_status_change'] = true;
-				
-			}
-			$roster[$i]['status'] = display_roster_status($roster[$i]['status']);
-			/* Now check for conflicts.  Players who are subs get
+	
+			/* 
+			 * Now check for conflicts.  Players who are subs get
 			 * conflicts ignored, but not others.
+			 *
+			 * TODO: This is time-consuming and resource-inefficient.
 			 */
+			$row_class = 'roster_item';
 			if($roster[$i]['status'] != 'substitute') {
 				$conflict = $DB->getOne("SELECT COUNT(*) from
 						league l, leagueteams t, teamroster r
@@ -964,27 +1002,49 @@ class TeamView extends Handler
 						AND t.team_id = r.team_id
 						AND r.player_id = ?
 						",array($row['league_season'],$row['league_tier'],$row['league_day'], $roster[$i]['id']));
-				if(!$this->is_database_error($conflict)) {
-					if($conflict > 1) { 
-						$roster[$i]['has_conflict'] = true;
-					}
+				if($conflict) {
+					$row_class = 'roster_conflict';
 				}
 			}
-		}
-		
-		$this->tmpl->assign("roster", $roster);
 
-		/* Assign our own user ID */
-		$this->tmpl->assign("user_id", $session->attr_get("user_id"));
+			$player_links = array();
 
-		/* ... and set permissions flags */
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
+			$player_links[] = l('view',
+				'op=person_view&id=' . $roster[$i]['id']);
+			
+			if($this->_permissions['edit_team'] || ($roster[$i]['id'] == $session->attr_get("user_id"))) {
+				$player_links[] = l('change_status',
+					"op=team_playerstatus&id=$id&player_id" . $roster[$i]['id']);
 			}
+			
+			$rosterdata .= tr(
+				td($roster[$i]['fullname'], array( 'class' => $row_class))
+				. td(display_roster_status($roster[$i]['status']), array( 'class' => $row_class))
+				. td($roster[$i]['gender'], array( 'class' => $row_class))
+				. td($roster[$i]['skill_level'], array( 'class' => $row_class))
+				. td(theme_links($player_links), array( 'class' => $row_class))
+			);
+			
 		}
+		$rosterdata .= "</table>";
+	
 
+		print $this->get_header();
+		print h1($team_name);
+		print simple_tag("blockquote", theme_links($links));
+		print "<table border='0'>";
+		print tr(
+			td($teamdata, array('align' => 'left', 'valign' => 'top'))
+			. td($rosterdata, array('align' => 'left', 'valign' => 'top'))
+		);
+		print "</table>";
+		print $this->get_footer();
 		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
