@@ -347,7 +347,11 @@ function url($url = NULL, $query = NULL) {
 
 function format_street_address( $street, $city, $province, $postalcode)
 {
-	return "$street<br />\n$city, $province<br />\n$postalcode";
+	$foo =  "$street<br />\n$city, $province<br />\n$postalcode";
+	$prov_abbr = substr($province,0,2);
+	$street_uri = strtr($street, array(' ' => '+'));
+	$foo .= "<br />[&nbsp;<a href='http://www.mapquest.com/maps/map.adp?country=ca&zoom=7&city=$city&state=$prov_abbr&address=$street_uri'>map</a>&nbsp;]";
+	return $foo;
 }
 
 function check_url($uri) {
