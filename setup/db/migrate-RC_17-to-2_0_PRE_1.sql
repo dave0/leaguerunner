@@ -283,3 +283,11 @@ INSERT INTO multiplechoice_answers VALUES(
 -- Ranked ladder system changes
 -- 
 ALTER TABLE leagueteams ADD rank integer not null default 0 after team_id;
+
+
+---
+--- put the rank in the schedule schema
+---
+alter table schedule add home_dependant_rank int after home_dependant_type;
+alter table schedule add away_dependant_rank int after away_dependant_type;
+
