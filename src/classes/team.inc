@@ -72,6 +72,7 @@ class Team
 
 	/**
 	 * Add a player to the roster, with the given status
+	 * TODO:
 	 */
 	function add_player( &$player, $status )
 	{
@@ -79,6 +80,7 @@ class Team
 
 	/**
 	 * Update status of a player currently on the roster
+	 * TODO:
 	 */
 	function set_player_status( &$player, $status )
 	{
@@ -86,6 +88,7 @@ class Team
 
 	/**
 	 * Remove a player from the roster.
+	 * TODO:
 	 */
 	function remove_player( &$player )
 	{
