@@ -1253,6 +1253,18 @@ class LeagueStandings extends Handler
 			}
 		}
 
+		/* HACK: Before we sort everything, we've gotta copy the 
+		 * $season's spirit and games values into the $round array 
+		 * because otherwise, in any round after the first we're 
+		 * only sorting on the spirit scores received in the current 
+		 * round.
+		 */
+		while(list(,$team) = each($teams))
+		{
+			$round[$team['id']]['spirit'] = $season[$team['id']]['spirit'];
+			$round[$team['id']]['games'] = $reason[$team['id']]['games'];
+		}
+		
 		/* Now, sort it all */
 		if($current_round > 0) {
 			uasort($round, array($this, 'sort_standings'));	
