@@ -579,7 +579,7 @@ function validate_email_input ( $string )
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	if ( ! preg_match("/^[\w-\.\+]+\@([\w-]+\.)+[\w-]+$/", $string) ) {
+	if ( ! preg_match("/^[\w-\.\+\']+\@([\w-]+\.)+[\w-]+$/", $string) ) {
 		return false;
 	}
 	return true;
