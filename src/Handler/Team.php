@@ -12,6 +12,7 @@ register_page_handler('team_standings', 'TeamStandings');
 register_page_handler('team_view', 'TeamView');
 register_page_handler('team_schedule_view', 'TeamScheduleView');
 
+
 /**
  * List players for addition to team
  *
@@ -60,7 +61,7 @@ class TeamAddPlayer extends Handler
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE ? ORDER BY lastname");
 		
-		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op . "&id=$id", $letter);
 		
 		print $this->get_header();
 		print h1($this->title);
@@ -384,6 +385,16 @@ class TeamPlayerStatus extends Handler
 			'set_none'	        => false,
 		);
 
+		$this->positions = array(
+			'player'            => "regular player",
+			'substitute'        => "substitute/occasional player",
+			'captain_request'   => "request to join by captain",
+			'player_request'    => "request to join by player",
+			'captain'	        => "team captain",
+			'assistant'	        => "team assistant captain",
+			'none'	        	=> "not on team",
+		);
+
 		return true;
 	}
 
@@ -433,134 +444,118 @@ class TeamPlayerStatus extends Handler
 			trigger_error("Database error");
 			return false;
 		}
-		if(is_null($current_status)) {
+		if(! isset($current_status)) {
 			$current_status = 'none';
 		}
 
-		return $this->set_permissions_for_transition($is_captain, $is_administrator, $current_status);
+		/*
+		 * Sets the permissions for a state change.
+		 * 	- check who user is.  Captain and administrator can:
+		 * 		- 'none' -> 'captain_request'
+		 *	 	- 'player_request' -> 'none', 'player' or 'substitute'
+		 *	 		- 'player' -> 'captain', 'substitute', 'none'
+		 * 		- 'substitute' -> 'captain', 'player', 'none'
+		 * 		- 'captain' -> 'player', 'substitute', 'none'
+		 * 	  in addition, administrator can go from anything to anything.
+		 * 	  Players are allowed to (for their own player_id):
+		 * 	  	- 'none' -> 'player_request'
+		 * 	  	- 'captain_request' -> 'none', 'player' or 'substitute'
+		 * 	  	- 'player_request' -> 'none'
+		 * 	  	- 'player' -> 'substitute', 'none'
+		 * 	  	- 'substitute' -> 'none'
+		 */
+		$this->permittedStates = array();
+		if($is_administrator) {
+			/* can't change to current value, but all others OK */
+			$this->permittedStates = array_keys($this->positions);
+			array_splice($this->permittedStates, array_search($current_status, $this->permittedStates), 1);
+
+		} else if ($is_captain) {
+			$this->permittedStates = $this->getStatesForCaptain($id, $current_status);
+		} else {
+			$this->permittedStates = $this->getStatesForPlayer($id, $current_status);
+		}
+		foreach($this->permittedStates as $state) {
+			$this->_permissions["set_$state"] = true;
+		}
+		reset($this->permittedStates);
+		return true;
 	}
 	
-	/*
-	 * Sets the permissions for a state change.
-	 * 	- check who user is.  Captain and administrator can:
-	 * 		- 'none' -> 'captain_request'
-	 *	 	- 'player_request' -> 'none', 'player' or 'substitute'
-	 *	 		- 'player' -> 'captain', 'substitute', 'none'
-	 * 		- 'substitute' -> 'captain', 'player', 'none'
-	 * 		- 'captain' -> 'player', 'substitute', 'none'
-	 * 	  in addition, administrator can go from anything to anything.
-	 * 	  Players are allowed to (for their own player_id):
-	 * 	  	- 'none' -> 'player_request'
-	 * 	  	- 'captain_request' -> 'none', 'player' or 'substitute'
-	 * 	  	- 'player_request' -> 'none'
-	 * 	  	- 'player' -> 'substitute', 'none'
-	 * 	  	- 'substitute' -> 'none'
-	 */
-	function set_permissions_for_transition($is_captain, $is_administrator, $from_state)
+	function getStatesForCaptain($id, $curState)
 	{
-		global $DB, $id;
-		/* Assumption: if !($is_captain || $is_administrator) means
-		 * that we're dealing with a player attempting to change
-		 * their own settings.
-		 */
-		switch($from_state) {
+		global $DB;
+
+		switch($curState) {
 		case 'captain':
 
-			if( !$is_administrator ) {
-				$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
-				if($this->is_database_error($num_captains)) {
-					trigger_error("Database error");
-					return false;
-				}
-				if($num_captains <= 1) {
-					$this->error_exit("All teams must have at least one player with captain status.");
-				}
+			$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
+			if($this->is_database_error($num_captains)) {
+				return false;
+			}
+			if($num_captains <= 1) {
+				$this->error_exit("All teams must have at least one player with captain status.");
 			}
 
-			$this->_permissions['set_assistant'] = true;
-			$this->_permissions['set_none'] = true;
-			$this->_permissions['set_player'] = true;
-			$this->_permissions['set_substitute'] = true;
-			break;
+			return array( 'none', 'assistant', 'player', 'substitute');
 		case 'assistant':
-			if($is_captain || $is_administrator) {
-				$this->_permissions['set_captain'] = true;
-			}
-			$this->_permissions['set_none'] = true;
-			$this->_permissions['set_player'] = true;
-			$this->_permissions['set_substitute'] = true;
-			break;
-			
+			return array( 'none', 'captain', 'player', 'substitute');
 		case 'player':
-			if($is_captain || $is_administrator) {
-				$this->_permissions['set_captain'] = true;
-				$this->_permissions['set_assistant'] = true;
-			}
-			$this->_permissions['set_substitute'] = true;
-			$this->_permissions['set_none'] = true;
-			break;
+			return array( 'none', 'captain', 'assistant', 'substitute');
 		case 'substitute':
-			if($is_captain || $is_administrator) {
-				$this->_permissions['set_captain'] = true;
-				$this->_permissions['set_assistant'] = true;
-				$this->_permissions['set_player'] = true;
-			}
-			$this->_permissions['set_none'] = true;
-			break;
+			return array( 'none', 'captain', 'assistant', 'player');
 		case 'captain_request':
 			/* Captains cannot move players from this state,
 			 * except to remove them.
-			 * Administrators can move anyone, players can move
-			 * self.
 			 */
-			if(!$is_captain || $is_administrator) {
-				$this->_permissions['set_player'] = true;
-				$this->_permissions['set_substitute'] = true;
-			}
-			if($is_administrator) {
-				$this->_permissions['set_captain'] = true;
-			}
-			$this->_permissions['set_none'] = true;
-			break;
+			return array( 'none' );
 		case 'player_request':
-			/* Captains and admins can promote, player can only
-			 * remove
-			 */
-			if($is_captain || $is_administrator) {
-				$this->_permissions['set_player'] = true;
-				$this->_permissions['set_substitute'] = true;
-				$this->_permissions['set_captain'] = true;
-				$this->_permissions['set_assistant'] = true;
-			}
-			$this->_permissions['set_none'] = true;
-			break;
+			return array( 'none', 'captain', 'assistant', 'player', 'substitute');
 		case 'none':
-			if($is_captain) {
-				$this->_permissions['set_captain_request'] = true;
-			} else if ($is_administrator) {
-				$this->_permissions['set_assistant'] = true;
-				$this->_permissions['set_captain'] = true;
-				$this->_permissions['set_player'] = true;
-				$this->_permissions['set_substitute'] = true;
-				$this->_permissions['set_captain_request'] = true;
-				$this->_permissions['set_player_request'] = true;
-			} else {
-				$is_open = $DB->getOne("SELECT status from team where team_id = ?",array($id));
-				if($this->is_database_error($is_open)) {
-					trigger_error("Database error");
-					return false;
-				}
-				if($is_open == 'closed') {
-					$this->error_exit("Sorry, this team is not open for new players to join");
-				}
-				$this->_permissions['set_player_request'] = true;
-			}
-			break;
+			return array( 'captain_request' );
 		default:
-			trigger_error("Player status error");
 			$this->error_exit("Internal error in player status");
 		}
-		return true;
+	}
+
+	function getStatesForPlayer($id, $curState)
+	{
+		global $DB;
+
+		switch($curState) {
+		case 'captain':
+			$num_captains = $DB->getOne("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = ?", array($id));
+			if($this->is_database_error($num_captains)) {
+				return false;
+			}
+			if($num_captains <= 1) {
+				$this->error_exit("All teams must have at least one player with captain status.");
+			}
+
+			return array( 'none', 'assistant', 'player', 'substitute');
+		case 'assistant':
+			return array( 'none', 'player', 'substitute');
+		case 'player':
+			return array( 'none', 'substitute');
+		case 'substitute':
+			return array( 'none' );
+		case 'captain_request':
+			return array( 'none', 'player', 'substitute');
+		case 'player_request':
+			return array( 'none' );
+		case 'none':
+			$is_open = $DB->getOne("SELECT status from team where team_id = ?",array($id));
+			if($this->is_database_error($is_open)) {
+				trigger_error("Database error");
+				return false;
+			}
+			if($is_open == 'closed') {
+				$this->error_exit("Sorry, this team is not open for new players to join");
+			}
+			return array( 'player_request' );
+		default:
+			$this->error_exit("Internal error in player status");
+		}
 	}
 	
 	function process ()
@@ -619,7 +614,7 @@ class TeamPlayerStatus extends Handler
 		
 		$this->tmpl->assign("team_name", $team['name']);
 		$this->tmpl->assign("player_name", $player['firstname'] . " " . $player['lastname']);
-		$this->tmpl->assign("current_status", display_roster_status($current_status));
+		$this->tmpl->assign("current_status", $this->positions[$current_status]);
 		$this->tmpl->assign("id", $id);
 		$this->tmpl->assign("player_id", $player_id);
 
@@ -653,11 +648,12 @@ class TeamPlayerStatus extends Handler
 		}
 		
 		$this->tmpl->assign("status", var_from_getorpost('status'));
-		$this->tmpl->assign("new_status", display_roster_status(var_from_getorpost('status')));
+		$this->tmpl->assign("new_status", $this->positions[var_from_getorpost('status')]);
 
 		$this->tmpl->assign("team_name", $team['name']);
 		$this->tmpl->assign("player_name", $player['firstname'] . " " . $player['lastname']);
 		$this->tmpl->assign("current_status", display_roster_status($current_status));
+		$this->tmpl->assign("current_status", $this->positions[$current_status]);
 		$this->tmpl->assign("id", $id);
 		$this->tmpl->assign("player_id", $player_id);
 		
@@ -720,53 +716,17 @@ class TeamPlayerStatus extends Handler
 
 	function isDataInvalid ()
 	{
-		global $id, $player_id, $session;
-
-		$hasPermission = false;
-		$errors = "";
-
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
 		 *    has_permission code)
 		 *  - status variable set to a valid value
 		 */
 		$status = trim(var_from_getorpost('status'));
-		switch($status) {
-		case 'captain':
-			$hasPermission = $this->_permissions['set_captain'];
-			break;
-		case 'assistant':
-			$hasPermission = $this->_permissions['set_assistant'];
-			break;
-		case 'player':
-			$hasPermission = $this->_permissions['set_player'];
-			break;
-		case 'substitute':
-			$hasPermission = $this->_permissions['set_substitute'];
-			break;
-		case 'captain_request':
-			$hasPermission = $this->_permissions['set_captain_request'];
-			break;
-		case 'player_request':
-			$hasPermission = $this->_permissions['set_player_request'];
-			break;
-		case 'none':
-			$hasPermission = $this->_permissions['set_none'];
-			break;
-		default:
-			$hasPermission = false;
-			$errors = "Invalid status for player";
-			trigger_error("invalid status");
-		}
-		if( ! $hasPermission ) {
-			$errors = "You do not have permission to set that status.";
+		if( ! in_array($status, $this->permittedStates) ) {
+			return "You do not have permission to set that status.";
 		}
 
-		if(strlen($errors) > 0) {
-			return $errors;
-		} else {
-			return false;
-		}
+		return false;
 	}
 }
 
@@ -938,6 +898,8 @@ class TeamView extends Handler
 			. td("&nbsp;", array('class' => 'roster_subtitle'))
 		);
 		$count = count($roster);
+
+		$totalSkill = 0;
 		for($i = 0; $i < $count; $i++) {
 	
 			/* 
@@ -979,10 +941,16 @@ class TeamView extends Handler
 				. td($roster[$i]['skill_level'], array( 'class' => $row_class))
 				. td(theme_links($player_links), array( 'class' => $row_class))
 			);
-			
+
+			$totalSkill += $roster[$i]['skill_level'];
 		}
+
+		$rosterdata .= tr(
+			td( "Average Skill", array('colspan' => 3, 'class' => 'roster_item'))
+			. td( sprintf("%.2f", ($totalSkill / $count)), array('class' => 'roster_item'))
+			. td( "&nbsp;", array('class' => 'roster_item')));
+		
 		$rosterdata .= "</table>";
-	
 
 		print $this->get_header();
 		print h1($team_name);
@@ -1124,7 +1092,7 @@ class TeamScheduleView extends Handler
 			if(!(is_null($game['home_score']) && is_null($game['away_score']))) {
 				/* Already entered */
 				$score_type = '(accepted final)';
-				if($home_away == 'home') {
+				if($game['home_id'] == $id) {
 					$game_score = $game['home_score']." - ".$game['away_score'];
 				} else {
 					$game_score = $game['away_score']." - ".$game['home_score'];
