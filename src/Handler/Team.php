@@ -325,7 +325,7 @@ class TeamList extends Handler
 	{
 		$this->_permissions = array(
 			'delete' => false,
-			'create' => false,
+			'create' => true,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
