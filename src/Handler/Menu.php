@@ -12,13 +12,10 @@ function home_menu()
 
 class MainMenu extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'allow'
-		);
-		return true;
+		global $session;
+		return ( $session->is_valid() );
 	}
 
 	function process ()
