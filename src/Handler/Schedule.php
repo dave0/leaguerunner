@@ -529,9 +529,9 @@ function schedule_render_viewable( &$game )
 	}
 	
 	$gameRow = array(
-		$game['game_id'],
+		l($game['game_id'], 'game/view/' . $game['game_id']),
 		$game['round'],
-		l($game['game_start'], 'game/view/' . $game['game_id']) . " at " .  l( $game['field_code'], "field/view/" . $game['fid']),
+		$game['game_start'] . " at " .  l( $game['field_code'], "field/view/" . $game['fid']),
 		$homeTeam,
 		$awayTeam,
 		$game['home_score'],

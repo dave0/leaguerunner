@@ -29,6 +29,7 @@ class Field extends LeaguerunnerObject
 			$this->site_instructions = $parent->site_instructions;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
+			$this->permit_url = $parent->permit_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
 		}
 		

@@ -36,6 +36,7 @@ alter table field add site_directions text after ward_id;
 alter table field add site_instructions text after site_directions;
 alter table field add location_url varchar(255);
 alter table field add layout_url varchar(255);
+alter table field add permit_url varchar(255);
 
 update field, site SET 
 	field.name = site.name, 

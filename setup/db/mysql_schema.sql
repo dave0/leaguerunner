@@ -158,7 +158,6 @@ CREATE TABLE schedule (
     -- Game status.  Indicates rescheduling, defaults, etc.
     status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL,
     
-    INDEX game_date (date_played),
     INDEX game_league (league_id),
     INDEX game_home_team (home_team),
     INDEX game_away_team (away_team)
@@ -221,7 +220,8 @@ CREATE TABLE field (
 	site_directions	text,
 	site_instructions text,
 	location_url varchar(255),
-	layout_url varchar(255)
+	layout_url varchar(255),
+	permit_url varchar(255),
 
 	INDEX field_ward (ward_id)
 );
