@@ -862,31 +862,8 @@ class TeamSchedule extends Handler
 
 		/*
 		 * Grab schedule info 
-		 * This select is still evil, but not as evil as it could be.
 		 */
-		$result = db_query(
-			"SELECT 
-				s.game_id, 
-				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date,
-				TIME_FORMAT(s.date_played,'%%l:%%i %%p') as time,
-				s.home_team AS home_id, 
-				s.away_team AS away_id, 
-				s.field_id, 
-				f.site_id, 
-				s.home_score, 
-				s.away_score, 
-				h.name AS home_name, 
-				a.name AS away_name, 
-				CONCAT(t.code,' ',f.num) AS field_code,
-				s.defaulted 
-			FROM schedule s 
-				LEFT JOIN team h ON (s.home_team = h.team_id) 
-				LEFT JOIN team a ON (s.away_team = a.team_id) 
-				LEFT JOIN field f ON (s.field_id = f.field_id) 
-				LEFT JOIN site t ON (t.site_id = f.site_id) 
-			WHERE (s.home_team = %d OR s.away_team = %d) 
-			ORDER BY s.date_played", $id, $id);
-
+		$result = game_query( array( 'either_team' => $id, '_order' => 'g.game_date') );
 
 		$header = array(
 			"Date",
@@ -937,8 +914,8 @@ class TeamSchedule extends Handler
 			}
 
 			$rows[] = array(
-				$game->date, 
-				$game->time,
+				$game->game_date, 
+				$game->game_start,
 				l($opponent_name, "team/view/$opponent_id"),
 				l($game->field_code, "site/view/$game->site_id"),
 				$home_away,
