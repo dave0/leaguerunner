@@ -36,7 +36,7 @@ class LeaguerunnerObject
 
 		// No need to set it if it already has the same value
 		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
-			if( $this->{$key} == $value ) {
+			if( $this->{$key} === $value ) {
 				return true;
 			}
 		}
