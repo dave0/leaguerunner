@@ -717,6 +717,7 @@ class LeagueStandings extends Handler
 			$team->games++;
 			$team->points_for += $game->home_score;
 			$team->points_against += $game->away_score;
+			$team->spirit += $game->home_spirit;
 
 			/* Need to initialize if not set */
 			if(!isset($team->vs[$game->away_team])) {
@@ -727,8 +728,6 @@ class LeagueStandings extends Handler
 				$team->defaults_against++;
 			} else if($game->status == 'away_default') {
 				$team->defaults_for++;
-			} else {
-				$team->spirit += $game->home_spirit;
 			}
 
 			if($game->home_score == $game->away_score) {
@@ -748,6 +747,7 @@ class LeagueStandings extends Handler
 			$team->games++;
 			$team->points_for += $game->away_score;
 			$team->points_against += $game->home_score;
+			$team->spirit += $game->away_spirit;
 
 			/* Need to initialize if not set */
 			if(!isset($team->vs[$game->home_team])) {
@@ -758,8 +758,6 @@ class LeagueStandings extends Handler
 				$team->defaults_against++;
 			} else if($game->status == 'home_default') {
 				$team->defaults_for++;
-			} else {
-				$team->spirit += $game->away_spirit;
 			}
 
 			if($game->away_score == $game->home_score) {
@@ -1195,7 +1193,7 @@ class LeagueApproveScores extends Handler
 		);
 		$rows = array();
 		
-		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = %d AND game_id = %d";
+		$se_query = "SELECT score_for, score_against FROM score_entry WHERE team_id = %d AND game_id = %d";
 		
 		while($game = db_fetch_object($result)) {
 			$rows[] = array(
