@@ -39,6 +39,10 @@ require_once("includes/common.inc");
 require_once("includes/theme.inc");
 require_once("includes/database.inc");
 
+if(!valid_input_data($_REQUEST)) {
+	die("terminated request due to suspicious input data");
+}
+
 $APP_PAGE_MAP = array();
 
 require_once "UserSession.php";

@@ -27,6 +27,45 @@ function local_redirect($url)
     exit();
 }
 
+function valid_input_data($data) {
+
+  if (is_array($data) || is_object($data)) {
+    /*
+    ** Form data can contain a number of nested arrays.
+    */
+
+    foreach ($data as $key => $value) {
+      if (!valid_input_data($value)) {
+        return 0;
+      }
+    }
+  }
+  else {  
+    /*
+    ** Detect evil input data.
+    */
+
+    // check strings:
+    $match  = preg_match("/\Wjavascript\s*:/i", $data); 
+    $match += preg_match("/\Wexpression\s*\(/i", $data); 
+    $match += preg_match("/\Walert\s*\(/i", $data); 
+
+    // check attributes:
+    $match += preg_match("/\W(dynsrc|datasrc|data|lowsrc|on[a-z]+)\s*=[^>]+?>/i", $data);
+
+
+    // check tags:
+    $match += preg_match("/<\s*(applet|script|object|style|embed|form|blink|meta|html|frame|iframe|layer|ilayer|head|frameset|xml)/i", $data);
+
+    if ($match) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+
 function queryPickle( $q )
 {
 	return base64_encode($q);
