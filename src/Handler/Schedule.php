@@ -162,19 +162,13 @@ class ScheduleEdit extends Handler
 		
 		
 		/* Grab data for pulldowns if we need an edit form */
-		$result = db_query(
-			"SELECT t.team_id, t.name 
-			 FROM leagueteams l
-			 LEFT JOIN team t ON (l.team_id = t.team_id) 
-		     WHERE l.league_id = %s", $id);
-		 
-		if( ! db_num_rows($result) ) {
+		$teams = $league->teams_as_array();
+		if( ! count($teams) ) {
 			$this->error_exit("There may be no teams in this league");
 		}
-		$league->teams[0] = "---";
-		while($team = db_fetch_object($result)) {
-			$league->teams[$team->team_id] = $team->name;
-		}
+		$teams[0] = "---";
+		 
+		$league->teams = $teams;
 
 		// Load available gameslots for scheduling
 		// We get any unbooked slots, as well as any currently in use by this
@@ -182,10 +176,14 @@ class ScheduleEdit extends Handler
 		$result = db_query(
 			"SELECT 
 				s.slot_id AS slot_id,
-				CONCAT_WS(' ', s.game_start, field.name, field.num) AS value
+				IF( f.parent_fid, 
+					CONCAT_WS(' ', s.game_start, p.name, f.num),
+					CONCAT_WS(' ', s.game_start, f.name, f.num)
+				) AS value
 			 FROM
 			 	gameslot s 
-				INNER JOIN field ON (s.fid = field.fid) 
+				INNER JOIN field f ON (s.fid = f.fid) 
+				LEFT JOIN field p ON (p.fid = f.parent_fid) 
 				LEFT JOIN league_gameslot_availability a ON (s.slot_id = a.slot_id)
 				LEFT JOIN schedule g ON (s.game_id = g.game_id) 
 			 WHERE 
@@ -195,7 +193,7 @@ class ScheduleEdit extends Handler
 					OR
 					g.league_id=%d
 				)
-			 ORDER BY s.game_start, field.name, field.num", $timestamp, $id,$id);
+			 ORDER BY s.game_start, value", $timestamp, $id,$id);
 			
 		if( ! db_num_rows($result) ) {
 			$this->error_exit("There are no fields assigned to this league");
@@ -506,6 +504,11 @@ function schedule_edit_subheading( )
 
 function schedule_render_editable( &$game, &$league )
 {
+
+	// Ensure the given teams are listed in pulldown
+	$league->teams[$game['home_id']] = $game['home_name'];
+	$league->teams[$game['away_id']] = $game['away_name'];
+
 	return array(
 		form_hidden('edit[games][' . $game['game_id'] . '][game_id]', $game['game_id']) 
 		. form_select('','edit[games][' . $game['game_id'] . '][round]', $game['round'], $league->rounds),
