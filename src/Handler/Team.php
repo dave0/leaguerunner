@@ -680,9 +680,14 @@ class TeamView extends Handler
 		 * Average of all score differentials.  Lower SBF means more
 		 * evenly-matched games.
 		 */
-		$leagueSBF = league_calculate_sbf( $team->league_id);
 		$teamSBF = team_calculate_sbf( $id );
-		$rows[] = array("Team SBF:", "$teamSBF (league $leagueSBF)");
+		if( $teamSBF ) {
+			$leagueSBF = league_calculate_sbf( $team->league_id);
+			if( $leagueSBF ) {
+				$teamSBF .= " (league $leagueSBF)";
+			} 
+			$rows[] = array("Team SBF:", $teamSBF);
+		}
 		
 
 		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";
