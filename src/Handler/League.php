@@ -55,6 +55,9 @@ function league_dispatch()
 function league_permissions( $user, $action, $id, $data_field = '' )
 {
 	// TODO: finish this!
+	if( !$user ) {
+		return false;
+	}
 	switch($action)
 	{
 		case 'view':
@@ -77,7 +80,7 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 		case 'edit schedule':
 		case 'manage teams':
 		case 'ladder seed':
-			return $user->is_coordinator_of($id);
+			return ($user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
 		case 'unsafe admin':
@@ -583,6 +586,7 @@ class LeagueStandings extends Handler
 			$this->league->teams[$id]->defaults_against = 0;
 			$this->league->teams[$id]->games = 0;
 			$this->league->teams[$id]->vs = array();
+			$this->league->teams[$id]->streak = array();
 		}
 
                
@@ -670,6 +674,7 @@ class LeagueStandings extends Handler
                 }
 		
 		$header[] = array('data' => "Rating", 'rowspan' => 2);
+		$header[] = array('data' => "Streak", 'rowspan' => 2);
 		$header[] = array('data' => "Avg.<br>SOTG", 'rowspan' => 2);
 		
 		$rows[] = $subheader;
@@ -704,6 +709,12 @@ class LeagueStandings extends Handler
 			$row[] = $season[$id]->points_against;
 			$row[] = $season[$id]->points_for - $season[$id]->points_against;
 			$row[] = $season[$id]->rating;
+			
+			if( count($season[$id]->streak) > 1 ) {
+				$row[] = count($season[$id]->streak) . $season[$id]->streak[0];
+			} else {
+				$row[] = '-';
+			}
 	
 			// initialize the sotg to dashes!
                         $sotg = "---";
@@ -712,7 +723,6 @@ class LeagueStandings extends Handler
 			} else if ($season[$id]->games > 0) {
 				$sotg = sprintf("%.2f", ($season[$id]->spirit / $season[$id]->games));
 			}
-			
 			$row[] = $sotg;
 			$rows[] = $row;
 		}
@@ -744,15 +754,24 @@ class LeagueStandings extends Handler
 				$team->defaults_for++;
 			}
 
+			$status = '';
 			if($game->home_score == $game->away_score) {
 				$team->tie++;
 				$team->vs[$game->away_team]++;
+				$status = 'T';
 			} else if($game->home_score > $game->away_score) {
 				$team->win++;
 				$team->vs[$game->away_team] += 2;
+				$status = 'W';
 			} else {
 				$team->loss++;
 				$team->vs[$game->away_team] += 0;
+				$status = 'L';
+			}
+			if(in_array($status, $team->streak)) {
+				array_push($team->streak, $status);
+			} else {
+				$team->streak = array($status);
 			}
 		}
 		if(isset($season[$game->away_team])) {
@@ -774,15 +793,24 @@ class LeagueStandings extends Handler
 				$team->defaults_for++;
 			}
 
+			$status = '';
 			if($game->away_score == $game->home_score) {
 				$team->tie++;
 				$team->vs[$game->home_team]++;
+				$status = 'T';
 			} else if($game->away_score > $game->home_score) {
 				$team->win++;
 				$team->vs[$game->home_team] += 2;
+				$status = 'W';
 			} else {
 				$team->loss++;
 				$team->vs[$game->home_team] += 0;
+				$status = 'L';
+			}
+			if(in_array($status, $team->streak)) {
+				array_push($team->streak, $status);
+			} else {
+				$team->streak = array($status);
 			}
 		}
 	}
