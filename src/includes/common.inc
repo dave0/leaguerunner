@@ -545,7 +545,7 @@ function validate_number ( $string )
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	return ctype_digit($string);
+	return is_numeric($string);
 }
 
 function validate_name_input ( $string )
