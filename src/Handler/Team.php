@@ -1008,7 +1008,8 @@ class TeamSchedule extends Handler
 		$header = array(
 			"Game",
 			"Date",
-			"Time",
+			"Start",
+			"End",
 			"Opponent",
 			array('data' => "Location",'colspan' => 2),
 			array('data' => "Score",'colspan' => 2)
@@ -1076,7 +1077,7 @@ class TeamSchedule extends Handler
 			if ( ($numgames - $countgames < 2) && ($game->home_id == "" || $game->away_id == "") ) {
 				$update_prev_game_id = 0;
 				if (!$empty_row_added) {
-					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 					$empty_row_added = 1;
 				}
 				if ($game->home_dependant_game == $prev_game_id) {
@@ -1098,6 +1099,7 @@ class TeamSchedule extends Handler
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
+				$game->game_end,
 				$opponent_name,
 				l($game->field_code, "field/view/$game->fid"),
 				$home_away,
@@ -1110,7 +1112,7 @@ class TeamSchedule extends Handler
 			}
 		}
 		// add another row of dashes when you're done.
-		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 
 		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
