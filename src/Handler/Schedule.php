@@ -7,7 +7,7 @@ function schedule_dispatch()
 		case 'day':
 			return new ScheduleViewDay;
 		case 'add':
-			return new ScheduleAddDay; // TODO
+			return new ScheduleAddDay;
 		case 'edit':
 			return new ScheduleEdit;
 		case 'view':
@@ -18,7 +18,7 @@ function schedule_dispatch()
 
 
 /**
- * League schedule add week
+ * Add a day to the schedule for a given league
  */
 class ScheduleAddDay extends Handler
 {

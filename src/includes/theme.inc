@@ -42,7 +42,7 @@ function theme_navbar($section, $breadcrumbs = array())
 		'person' => 'People',
 		'team' => 'Teams',
 		'league' => 'Leagues',
-		'field' => 'Fields',
+		'site' => 'Fields',
 // TODO: 'game' handlers should encompass the following:
 //   - list all games for a given date (anyone)
 //   - view a game (anyone, coord/admin has extra privs)

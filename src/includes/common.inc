@@ -769,6 +769,7 @@ function getWardName($id)
 
 /**
  * Return name of field, given a field ID
+ * TODO: replace with field_load() and put in Field.php
  */
 function get_field_name($id)
 {

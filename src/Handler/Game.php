@@ -8,9 +8,9 @@ function game_dispatch()
 	$op = arg(1);
 	switch($op) {
 		case 'submitscore':
-			return new GameSubmit; // TODO
+			return new GameSubmit;
 		case 'view':
-			return new GameView; // TODO
+			return new GameView;
 	}
 	return null;
 }
@@ -20,87 +20,133 @@ class GameSubmit extends Handler
 	function initialize ()
 	{
 		$this->title = "Submit Game Score";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_var:id',
-			'require_var:team_id',
-			'admin_sufficient',
-			'coordinate_game:id',
-			'captain_of:team_id',
-			'deny',
-		);
-
-		$this->op = 'game_submitscore';
 		$this->section = 'admin';
 		return true;
 	}
 
+	function has_permission ()
+	{
+		global $session;
+		if(!$session->is_valid()) {
+			$this->error_exit("You do not have a valid session");
+			return false;
+		}
+
+		$gameID = arg(2);
+		$teamID = arg(3);
+		if( !$gameID ) {
+			return false;
+		}
+
+		if( !$teamID ) {
+			/* TODO: write code to allow coordinators/admins to submit
+			 * final scores for entire games, not just one team
+			 */
+			return false;
+		}
+		
+		$result = db_query("SELECT home_team, away_team, league_id FROM schedule WHERE game_id = %d", $gameID);
+		$scheduleInfo = db_fetch_array($result);
+
+		if( $teamID != $scheduleInfo['home_team'] && $teamID != $scheduleInfo['away_team'] ) {
+			$this->error_exit("That team did not play in that game!");
+		}
+		
+		if($session->is_admin()) {
+			$this->set_permission_flags('administrator');
+			return true;
+		}
+
+		if($session->is_coordinator_of($scheduleInfo['league_id'])) {
+			$this->set_permission_flags('coordinator');
+			return true;
+		}
+
+		if($session->is_captain_of($teamID)) {
+			$this->set_permission_flags('captain');
+			return true;
+		}
+
+		return false;
+	}
+
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-		$result = db_query(
-			"SELECT home_score, away_score FROM schedule WHERE game_id = %d",  $id);
-		$row = db_fetch_array($result);
+		$gameID = arg(2);
+		$teamID = arg(3);
 
-		if(!isset($row)) {
+		$result = db_query(
+			"SELECT 
+				UNIX_TIMESTAMP(s.date_played) as timestamp, 
+				s.home_team AS home_id,
+				h.name AS home_name, 
+				s.away_team AS away_id,
+				a.name AS away_name,
+				s.home_score,
+				s.away_score
+			 FROM schedule s 
+			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
+				LEFT JOIN team a ON (a.team_id = s.away_team)
+			 WHERE s.game_id = %d", $gameID);
+
+		if( 1 != db_num_rows($result) ) {
 			$this->error_exit("That game does not exist");
 		}
-		if(!is_null($row['home_score']) && !is_null($row['away_score']) ) {
+
+		$scheduleInfo = db_fetch_array($result);
+		
+		if(!is_null($scheduleInfo['home_score']) && !is_null($scheduleInfo['away_score']) ) {
 			$this->error_exit("The score for that game has already been submitted.");
 		}
 		
-		$team_id = var_from_getorpost('team_id');
 		$result = db_query(
-			"SELECT entered_by FROM score_entry WHERE game_id = %d AND team_id = %d", $id,$team_id);
+			"SELECT entered_by FROM score_entry WHERE game_id = %d AND team_id = %d", $gameID, $teamID);
 
 		if(db_num_rows($result) > 0) {
 			$this->error_exit("The score for your team has already been entered.");
 		}
 
-		$step = var_from_getorpost('step');
+		$edit = $_POST['edit'];
 		
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm($id, $team_id);
+				$rc = $this->generateConfirm($gameID, $teamID, $scheduleInfo, $edit);
 				break;
 			case 'perform':
-				$rc = $this->perform($id, $team_id);
+				$rc = $this->perform($gameID, $teamID, $scheduleInfo, $edit);
 				break;
 			default:
-				$rc = $this->generateForm($id, $team_id);
+				$rc = $this->generateForm($gameID, $teamID, $scheduleInfo);
 		}
 	
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 
-	function isDataInvalid()
+	function isDataInvalid( $edit )
 	{
 		$errors = "";
 		
-		$defaulted = var_from_getorpost('defaulted');
-		if( ! (is_null($defaulted) || (strlen($defaulted) == 0))) {
+		if( $edit['defaulted'] ) {
 			switch($defaulted) {
 				case 'us':
 				case 'them':
+				case '':
 					return false;  // Ignore other data in cases of default.
 				default:
 					return "An invalid value was specified for default.";
 			}
 		}
 		
-		$score_for = var_from_getorpost('score_for');
-		if( !validate_number($score_for) ) {
+		if( !validate_number($edit['score_for']) ) {
 			$errors .= "<br>You must enter a valid number for your score";
 		}
 
-		$score_against = var_from_getorpost('score_against');
-		if( !validate_number($score_against) ) {
+		if( !validate_number($edit['score_against']) ) {
 			$errors .= "<br>You must enter a valid number for your opponent's score";
 		}
 
-		$sotg = var_from_getorpost('sotg');
-		if( !validate_number($sotg) ) {
+		if( !validate_number($edit['sotg']) ) {
 			$errors .= "<br>You must enter a valid number for your opponent's SOTG";
 		}
 		
@@ -111,40 +157,28 @@ class GameSubmit extends Handler
 		}
 	}
 	
-	function perform ($id, $team_id)
+	function perform ($gameID, $teamID, $scheduleInfo, $edit)
 	{
 		global $session;
 
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$result = db_query(
-			"SELECT 
-				s.home_team AS home_id,
-				s.away_team AS away_id
-			 FROM schedule s 
-			 WHERE s.game_id = %d",$id);
-
-		if( ! db_num_rows($result) ) {
-			return false;
-		}
-		$schedule_entry = db_fetch_array($result);
-		
 		$our_entry = array(
-			'score_for' => var_from_getorpost('score_for'),
-			'score_against' => var_from_getorpost('score_against'),
-			'spirit' => var_from_getorpost('sotg'),
-			'defaulted' => var_from_getorpost('defaulted'),
+			'score_for' => $edit['score_for'],
+			'score_against' => $edit['score_against'],
+			'spirit' => $edit['sotg'],
+			'defaulted' => $edit['defaulted'],
 		);
 		
-		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$id);
+		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$gameID);
 		$opponent_entry = db_fetch_array($result);
 
 		if( ! db_num_rows($result) ) {
 			// No opponent entry, so just add to the score_entry table
-			if($this->save_one_score($id, $team_id, $our_entry) == false) {
+			if($this->save_one_score($gameID, $teamID, $our_entry) == false) {
 				return false;
 			}
 			$resultMessage ="This score has been saved.  Once your opponent has entered their score, it will be officially posted";
@@ -153,12 +187,12 @@ class GameSubmit extends Handler
 			if( defaults_agree($our_entry, $opponent_entry) ) {
 				// Both teams agree that a default has occurred. 
 				if(
-					($team_id == $schedule_entry['home_id'])
+					($teamID == $scheduleInfo['home_id'])
 					&& ($our_entry['defaulted'] == 'us')
 				) {
-					$data = array( 0, 6, 'home', $id);
+					$data = array( 0, 6, 'home', $gameID);
 				} else {
-					$data = array( 6, 0, 'away', $id);
+					$data = array( 6, 0, 'away', $gameID);
 				}
 
 				db_query("UPDATE schedule SET home_score = %d, away_score = %d, defaulted = '%s', approved_by = -1 WHERE game_id = %d", $data);
@@ -166,28 +200,28 @@ class GameSubmit extends Handler
 					return false;
 				}
 
-				db_query("DELETE FROM score_entry WHERE game_id = %d",$id);
-				if(2 != db_affected_rows()) {
+				db_query("DELETE FROM score_entry WHERE game_id = %d",$gameID);
+				if(1 != db_affected_rows()) {
 					return false;
 				}
 				
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 			} else if( scores_agree($our_entry, $opponent_entry) ) {
 				/* Agree. Make it official */
-				if($team_id == $schedule_entry['home_id']) {
+				if($teamID == $scheduleInfo['home_id']) {
 					$data = array(
 						$our_entry['score_for'],
 						$our_entry['score_against'],
 						$opponent_entry['spirit'],
 						$our_entry['spirit'],
-						$id);
+						$gameID);
 				} else {
 					$data = array(
 						$our_entry['score_against'],
 						$our_entry['score_for'],
 						$our_entry['spirit'],
 						$opponent_entry['spirit'],
-						$id);
+						$gameID);
 				}
 
 				db_query("UPDATE schedule SET home_score = %d, away_score = %d, home_spirit = %d, away_spirit = %d, approved_by = -1 WHERE game_id = %d", $data);
@@ -195,89 +229,65 @@ class GameSubmit extends Handler
 					return false;
 				}
 
-				db_query("DELETE FROM score_entry WHERE game_id = %d",$id);
-				if(2 != db_affected_rows()) {
+				db_query("DELETE FROM score_entry WHERE game_id = %d",$gameID);
+				if(1 != db_affected_rows()) {
 					return false;
 				}
 
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 			} else {
-				if($this->save_one_score($id, $team_id, $our_entry) == false) {
+				if($this->save_one_score($gameID, $teamID, $our_entry) == false) {
 					return false;
 				}
 				$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
 			}
-
 		}
 		
 		return para($resultMessage);
 	}
 
-	function generateConfirm ($id, $team_id)
+	function generateConfirm ($gameID, $teamID, $scheduleInfo, $edit )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 	
-		$result = db_query(
-			"SELECT 
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team AS home_id,
-				h.name AS home_name, 
-				s.away_team AS away_id,
-				a.name AS away_name
-			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $id);
-			 
-		if( 1 != db_num_rows($result) ) {
-			return false;
-		}
-
-		$gameInfo = db_fetch_array($result);
-
-		if($gameInfo['home_id'] == $team_id) {
-			$myName = $gameInfo['home_name'];
-			$opponentName = $gameInfo['away_name'];
-			$opponentId = $gameInfo['away_id'];
+		if($scheduleInfo['home_id'] == $teamID) {
+			$myName = $scheduleInfo['home_name'];
+			$opponentName = $scheduleInfo['away_name'];
+			$opponentId = $scheduleInfo['away_id'];
 		} else {
-			$myName = $gameInfo['away_name'];
-			$opponentName = $gameInfo['home_name'];
-			$opponentId = $gameInfo['home_id'];
+			$myName = $scheduleInfo['away_name'];
+			$opponentName = $scheduleInfo['home_name'];
+			$opponentId = $scheduleInfo['home_id'];
 		}
 
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$gameInfo['timestamp']);
+		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$scheduleInfo['timestamp']);
 
 		$output = para( "You have entered the following score for the $datePlayed game between $myName and $opponentName.");
 		$output .= para("If this is correct, please click 'Submit' to continue.  "
 			. "If not, use your back button to return to the previous page and correct the score."
 		);
 
-		$scoreFor = var_from_getorpost('score_for');
-		$scoreAgainst = var_from_getorpost('score_against');
-		$sotg = var_from_getorpost('sotg');
-		$defaulted = var_from_getorpost('defaulted');
-
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
-		$output .= form_hidden('team_id', $team_id);
-		$output .= form_hidden('defaulted', $defaulted);
-		
+		$output .= form_hidden('edit[step]', 'perform');
+		$output .= form_hidden('edit[defaulted]', $edit['defaulted']);
 
 		$rows = array();
-		if($defaulted == 'us') {
+		switch($edit['defaulted']) {
+		case 'us':
 			$rows[] = array("$myName:", "0 (defaulted)");
 			$rows[] = array("$opponentName:", 6);
-		} else if($defaulted == 'them') {
+			break;
+		case 'them':
 			$rows[] = array("$myName:", 6);
 			$rows[] = array("$opponentName:", "0 (defaulted)");
-		} else {
-			$rows[] = array("$myName:", $scoreFor . form_hidden('score_for', $scoreFor));
-			$rows[] = array("$opponentName:", $scoreAgainst . form_hidden('score_against', $scoreAgainst));
-			$rows[] = array("SOTG for $opponentName:", $sotg . form_hidden('sotg', $sotg));
+			break;
+		default:
+			$rows[] = array("$myName:", $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
+			$rows[] = array("$opponentName:", $edit['score_against'] . form_hidden('edit[score_against]', $edit['score_against']));
+			$rows[] = array("SOTG for $opponentName:", $edit['sotg'] . form_hidden('edit[sotg]', $edit['sotg']));
+			break;
 		}
 
 		$output .= '<div class="pairtable">' . table(null, $rows) . "</div>";
@@ -286,79 +296,29 @@ class GameSubmit extends Handler
 		return form($output);
 	}
 
-	function generateForm ( $id, $team_id ) 
+	function generateForm ( $gameID, $teamID, $scheduleInfo ) 
 	{
-		$result = db_query(
-			"SELECT 
-				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team AS home_id,
-				h.name AS home_name, 
-				s.away_team AS away_id,
-				a.name AS away_name
-			 FROM schedule s 
-			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
-				LEFT JOIN team a ON (a.team_id = s.away_team)
-			 WHERE s.game_id = %d", $id);
-			 
-		if( 1 != db_num_rows($result) ) {
-			return false;
-		}
 
-		$gameInfo = db_fetch_array($result);
-
-		$script = <<<ENDSCRIPT
-<script type="text/javascript"> <!--
-  function defaultCheckboxChanged() {
-    if (document.scoreform.defaulted[0].checked == true) {
-        document.scoreform.score_for.value = "0";
-        document.scoreform.score_for.disabled = true;
-        document.scoreform.score_against.value = "6";
-        document.scoreform.score_against.disabled = true;
-        document.scoreform.sotg.disabled = true;
-        document.scoreform.defaulted[1].disabled = true;
-    } else if (document.scoreform.defaulted[1].checked == true) {
-        document.scoreform.score_for.value = "6";
-        document.scoreform.score_for.disabled = true;
-        document.scoreform.score_against.value = "0";
-        document.scoreform.score_against.disabled = true;
-        document.scoreform.sotg.disabled = true;
-        document.scoreform.defaulted[0].disabled = true;
-    } else {
-        document.scoreform.score_for.disabled = false;
-        document.scoreform.score_against.disabled = false;
-        document.scoreform.sotg.disabled = false;
-        document.scoreform.defaulted[0].disabled = false;
-        document.scoreform.defaulted[1].disabled = false;
-    }
-  }
-// -->
-</script>
-ENDSCRIPT;
-
-		if($gameInfo['home_id'] == $team_id) {
-			$myName = $gameInfo['home_name'];
-			$opponentName = $gameInfo['away_name'];
-			$opponentId = $gameInfo['away_id'];
+		if($scheduleInfo['home_id'] == $teamID) {
+			$myName = $scheduleInfo['home_name'];
+			$opponentName = $scheduleInfo['away_name'];
+			$opponentId = $scheduleInfo['away_id'];
 		} else {
-			$myName = $gameInfo['away_name'];
-			$opponentName = $gameInfo['home_name'];
-			$opponentId = $gameInfo['home_id'];
+			$myName = $scheduleInfo['away_name'];
+			$opponentName = $scheduleInfo['home_name'];
+			$opponentId = $scheduleInfo['home_id'];
 		}
 
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$gameInfo['timestamp']);
+		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$scheduleInfo['timestamp']);
 
 		$output = para( "Submit the score for the $datePlayed game between $myName and $opponentName.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  "
   			. "If the score you enter does not agree with this score, posting of the score will "
 			. "be delayed until your coordinator can confirm the correct score.");
 
-		
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'confirm');
-		$output .= form_hidden('id', $id);
-		$output .= form_hidden('team_id', $team_id);
+		$output .= form_hidden('edit[step]', 'confirm');
 
-		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $id, $opponentId);
+		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $gameID, $opponentId);
 				
 		$opponent = db_fetch_array($result);
 
@@ -383,28 +343,57 @@ ENDSCRIPT;
 	
 		$rows[] = array(
 			$myName,
-			"<input type='checkbox' name='defaulted' value='us' onclick='defaultCheckboxChanged()'>",
-			form_textfield("","score_for","",2,2),
+			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
+			form_textfield("","edit[score_for]","",2,2),
 			$opponentScoreAgainst,
 			"&nbsp;"
 		);
 		
 		$rows[] = array(
 			$opponentName,
-			"<input type='checkbox' name='defaulted' value='them' onclick='defaultCheckboxChanged()'>",
-			form_textfield("","score_against","",2,2),
+			"<input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'>",
+			form_textfield("","edit[score_against]","",2,2),
 			$opponentScoreFor,
-			form_select("", "sotg", "--", getOptionsFromRange(1,10))
+			form_select("", "edit[sotg]", "--", getOptionsFromRange(1,10))
 				. "<font size='-2'>(<a href='/leagues/spirit_guidelines.html' target='_new'>spirit guideline</a>)</font>"
 		);
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
+		
+		$script = <<<ENDSCRIPT
+<script type="text/javascript"> <!--
+  function defaultCheckboxChanged() {
+    if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
+        document.forms[0].elements['edit[score_for]'].value = "0";
+        document.forms[0].elements['edit[score_for]'].disabled = true;
+        document.forms[0].elements['edit[score_against]'].value = "6";
+        document.forms[0].elements['edit[score_against]'].disabled = true;
+        document.forms[0].elements['edit[sotg]'].disabled = true;
+        document.forms[0].elements['edit[defaulted]'][1].disabled = true;
+    } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
+        document.forms[0].elements['edit[score_for]'].value = "6";
+        document.forms[0].elements['edit[score_for]'].disabled = true;
+        document.forms[0].elements['edit[score_against]'].value = "0";
+        document.forms[0].elements['edit[score_against]'].disabled = true;
+        document.forms[0].elements['edit[sotg]'].disabled = true;
+        document.forms[0].elements['edit[defaulted]'][0].disabled = true;
+    } else {
+        document.forms[0].elements['edit[score_for]'].disabled = false;
+        document.forms[0].elements['edit[score_against]'].disabled = false;
+        document.forms[0].elements['edit[sotg]'].disabled = false;
+        document.forms[0].elements['edit[defaulted]'][0].disabled = false;
+        document.forms[0].elements['edit[defaulted]'][1].disabled = false;
+    }
+  }
+// -->
+</script>
+ENDSCRIPT;
 
-		return $script . form($output, "POST", 0, "name='scoreform'");
+		return $script . form($output);
 	}
 
-	function save_one_score ( $id, $team_id, $our_entry ) 
+	function save_one_score ( $gameID, $teamID, $our_entry ) 
 	{
 		global $session;
 
@@ -423,11 +412,12 @@ ENDSCRIPT;
 		db_query("INSERT INTO score_entry 
 			(game_id,team_id,entered_by,score_for,score_against,spirit,defaulted)
 				VALUES(%d,%d,%d,%d,%d,%d,'%s')",
-				$id, $team_id, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
+				$gameID, $teamID, $session->attr_get('user_id'), $our_entry['score_for'], $our_entry['score_against'], $our_entry['spirit'], $our_entry['defaulted']);
 
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
+		
 		return true;
 	}
 }
@@ -439,14 +429,14 @@ class GameView extends Handler
 		$this->title = "View Game";
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'allow'
 		);
+		
 		$this->_permissions = array(
 			'view_entered_scores' => false,
 		);
-		$this->op = 'game_view';
+		
 		$this->section = 'game';
 		return true;
 	}
