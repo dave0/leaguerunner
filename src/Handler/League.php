@@ -29,8 +29,37 @@ function league_dispatch()
 			return new LeagueLadder;
 		case 'admin':
 			return new LeagueAdmin;
+		case 'finalhack':
+			return new LeagueFinalsHack;
 	}
 	return null;
+}
+
+function league_permissions( $user, $action, $id, $data_field )
+{
+	// TODO: finish this!
+	switch($action)
+	{
+		case 'view':
+			switch($data_field) {
+				case 'spirit':
+					return $user->is_coordinator_of($id);
+				case 'captain emails':
+					return $user->is_coordinator_of($id);
+			}
+			break;
+		case 'edit':
+		case 'edit game':
+		case 'add game':
+		case 'approve scores':
+		case 'administer ladder':
+		case 'edit schedule':
+			return $user->is_coordinator_of($id);
+		case 'create':
+			// admin only
+			break;
+	}
+	return false;
 }
 
 function league_menu()
@@ -47,7 +76,7 @@ function league_menu()
 		while(list(,$league) = each($session->user->leagues) ) {
 			## TODO: permissions hack must die!
 			$this->_permissions['administer_league'] = true;
-			league_add_to_menu($this, $league);
+			league_add_to_menu($league);
 		}
 		reset($session->user->leagues);
 	}
@@ -55,27 +84,26 @@ function league_menu()
 
 /**
  * Add view/edit/delete links to the menu for the given league
- * TODO: when permissions are fixed, remove the evil passing of $this
- * TODO: fix ugly evil things like LeagueEdit so that this can be called to add
- * league being edited to the menu.
  */
-function league_add_to_menu( $this, &$league, $parent = 'league' ) 
+function league_add_to_menu( &$league, $parent = 'league' ) 
 {
 	global $session;
 
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
-	if($league->schedule_type != 'none') {
+	if($league->schedule_type == 'ladder' || $league->schedule_type == 'roundrobin') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
-		if($this->_permissions['administer_league']) {
+		if($session->has_permission('league','add game', $league->league_id) ) {
 			menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/edit", 'add games', array('link' => "game/create/$league->league_id"));
+		} 
+		if($session->has_permission('league','approve scores', $league->league_id) ) {
 			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
 	}
 	
 	if($league->schedule_type == 'ladder') {
-		if($this->_permissions['administer_league']) {
+		if($session->has_permission('league','administer ladder', $league->league_id) ) {
 
 			menu_add_child($league->fullname, "$league->fullname/admin", 
                                'league admin', array('link' => "league/admin/top/$league->league_id"));
@@ -86,14 +114,17 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 			menu_add_child($league->fullname . "/admin/ladder", "$league->fullname/admin/ladder/byskill", 
                                'seed by average skill', array('link' => "league/ladder/$league->league_id" . "/byskill"));
 		}
+		menu_add_child($league->fullname, "$league->fullname/graph/rank",'graph ranks', array('weight' => 4, 'link' => "graph/leaguerank/$league->league_id"));
 	}
 	
-	if($this->_permissions['administer_league']) {
+	if($session->has_permission('league','edit', $league->league_id) ) {
 		menu_add_child($league->fullname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
+	}
+	if($session->has_permission('league','view', $league->league_id, 'captain emails') ) {
 		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
 	}
-	if($session->is_admin()) {
+	if($session->has_permission('league','create') ) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
 }
@@ -212,7 +243,7 @@ class LeagueCreate extends LeagueEdit
 		
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$league->set('name',$session->attr_get('user_id'));
@@ -262,9 +293,9 @@ class LeagueEdit extends Handler
 
 		$league = league_load( array('league_id' => $id) );
 		if( !$league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
-		# league_add_to_menu(TODO)
+		league_add_to_menu($league);
 
 		switch($edit['step']) {
 			case 'confirm':
@@ -328,7 +359,7 @@ class LeagueEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 	
 		if(is_array($edit['day'])) {
@@ -370,7 +401,7 @@ class LeagueEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		if($this->_permissions['edit_info']) {
@@ -384,7 +415,7 @@ class LeagueEdit extends Handler
 		}
 
 		if( !$league->save() ) {
-			$this->error_exit("Internal error: couldn't save changes");
+			error_exit("Internal error: couldn't save changes");
 		}
 
 		return true;
@@ -477,7 +508,7 @@ class LeagueList extends Handler
 		}
 		
 		if( !in_array($season, $seasonNames) ) {
-			$this->error_exit("That is not a valid season"); 
+			error_exit("That is not a valid season"); 
 		}
 		
 		$this->setLocation(array(
@@ -553,11 +584,11 @@ class LeagueStandings extends Handler
 
 		$this->league = league_load( array('league_id' => $id) );
 		if( !$this->league ) {
-			$this->error_exit("That league does not exist.");
+			error_exit("That league does not exist.");
 		}
 		
 		if($this->league->schedule_type == 'none') {
-			$this->error_exit("This league does not have a schedule or standings.");
+			error_exit("This league does not have a schedule or standings.");
 		}
 
 		$round = $_GET['round'];
@@ -570,7 +601,7 @@ class LeagueStandings extends Handler
 			$this->title => 0,
 		));
 
-		league_add_to_menu($this, $this->league);
+		league_add_to_menu($this->league);
 	
 		return $this->generate_standings($round);
 	}
@@ -587,7 +618,7 @@ class LeagueStandings extends Handler
 		$this->league->load_teams();
 
 		if( count($this->league->teams) < 1 ) {
-			$this->error_exit("Cannot generate standings for a league with no teams");
+			error_exit("Cannot generate standings for a league with no teams");
 		}
 
 		while(list($id,) = each($this->league->teams)) {
@@ -901,7 +932,7 @@ class LeagueView extends Handler
 
 		$league = league_load( array('league_id' => $id ));
 		if( !$league ) {
-			$this->error_exit("That league does not exist.");
+			error_exit("That league does not exist.");
 		}
 		
 		foreach( $league->coordinators as $c ) {
@@ -938,10 +969,9 @@ class LeagueView extends Handler
 		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
+		$header = array( "Team Name", "Players", "Rating", "Avg. Skill", "&nbsp;",);
 		if( $league->schedule_type == 'ladder') {
-			$header = array( "Rank", "Team Name", "Rating", "Avg. Skill", "&nbsp;",);
-		} else {
-			$header = array( "Team Name", "Rating", "Avg. Skill", "&nbsp;",);
+			array_unshift($header, 'Rank');
 		}
 		$rows = array();
 		$league->load_teams();
@@ -963,6 +993,7 @@ class LeagueView extends Handler
 			}
 			
 			$row[] = check_form($team->name);
+			$row[] = $team->count_players();
 			$row[] = $team->rating;
 			$row[] = $team->calculate_avg_skill();
 			$row[] = theme_links($team_links);
@@ -975,7 +1006,7 @@ class LeagueView extends Handler
 		$this->setLocation(array(
 			$league->fullname => "league/view/$id",
 			$this->title => 0));
-		league_add_to_menu($this, $league);
+		league_add_to_menu($league);
 		return $output;
 	}
 }
@@ -1002,7 +1033,7 @@ class LeagueCaptainEmails extends Handler
 		
 		$league = league_load( array('league_id' => $id ) );
 		if( !$league ) {
-			$this->error_exit("That league does not exist.");
+			error_exit("That league does not exist.");
 		}
 		
 		$result = db_query(
@@ -1068,28 +1099,28 @@ class LeagueMoveTeam extends Handler
 	
 		$this->league = league_load( array('league_id' => $leagueId ) );
 		if( !$this->league ) {
-			$this->error_exit("You must supply a valid league ID");
+			error_exit("You must supply a valid league ID");
 		}
 		
 		$this->team = team_load( array('team_id' => $teamId ) );
 		if( !$this->team ) {
-			$this->error_exit("You must supply a valid team ID");
+			error_exit("You must supply a valid team ID");
 		}
 
 		$edit = $_POST['edit'];
 
 		if( $edit['step'] == 'confirm' || $edit['step'] == 'perform' ) {
 			if($edit['target'] < 1) {
-				$this->error_exit("That is not a valid league to move to");
+				error_exit("That is not a valid league to move to");
 			}
 			
 			if( ! $session->is_coordinator_of($edit['target']) ) {
-				$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
+				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 			}
 			
 			$this->targetleague = league_load( array('league_id' => $edit['target']));
 			if( !$this->targetleague ) {
-				$this->error_exit("You must supply a valid league to move to");
+				error_exit("You must supply a valid league to move to");
 			}
 			
 			switch($edit['step']) {
@@ -1124,7 +1155,7 @@ class LeagueMoveTeam extends Handler
 		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $this->targetleague->league_id, $rank, $this->team->team_id, $this->league->league_id);
 		
 		if( 1 != db_affected_rows() ) {
-			$this->error_exit("Couldn't move team between leagues");
+			error_exit("Couldn't move team between leagues");
 		}
 		return true;
 	}
@@ -1200,7 +1231,7 @@ class LeagueApproveScores extends Handler
 
 		$league = league_load( array('league_id' => $id) );
 		if(!$league) {
-			$this->error_exit("That league does not exist!");
+			error_exit("That league does not exist!");
 		}
 		
 		/* Fetch games in need of verification */
@@ -1265,7 +1296,7 @@ class LeagueApproveScores extends Handler
 		$output = para("The following games have not been finalized.");
 		$output .= "<div class='listtable'>" . table( $header, $rows ) . "</div>";
 
-		league_add_to_menu($this, $league);
+		league_add_to_menu($league);
 		return $output;
 	}
 }
@@ -1292,7 +1323,7 @@ class LeagueMemberStatus extends Handler
 		$id = arg(2);
 
 		if( !$id ) {
-			$this->error_exit("You must provide a league ID");
+			error_exit("You must provide a league ID");
 		}
 		$league = league_load( array('league_id' => $id) );
 
@@ -1300,7 +1331,7 @@ class LeagueMemberStatus extends Handler
 
 		if( !$player_id ) {
 			if( !($session->is_admin() || $session->is_coordinator_of($id)) ) {
-				$this->error_exit("You cannot add a person to that league");
+				error_exit("You cannot add a person to that league");
 			}
 
 			$this->setLocation(array( $league->fullname => "league/view/$league->id", $this->title => 0));
@@ -1315,7 +1346,7 @@ class LeagueMemberStatus extends Handler
 		}
 
 		if( !$session->is_admin() && $player_id == $session->attr_get('user_id') ) {
-			$this->error_exit("You cannot add or remove yourself as league coordinator");
+			error_exit("You cannot add or remove yourself as league coordinator");
 		}
 
 		$player = person_load( array('user_id' => $player_id) );
@@ -1323,21 +1354,21 @@ class LeagueMemberStatus extends Handler
 		switch($_GET['edit']['status']) {
 			case 'remove':
 				if( ! $league->remove_coordinator($player) ) {
-					$this->error_exit("Failed attempting to remove coordinator from league");
+					error_exit("Failed attempting to remove coordinator from league");
 				}
 				break;
 			default:
 				if($player->class != 'administrator' && $player->class != 'volunteer') {
-					$this->error_exit("Only volunteer-class players can be made coordinator");
+					error_exit("Only volunteer-class players can be made coordinator");
 				}
 				if( ! $league->add_coordinator($player) ) {
-					$this->error_exit("Failed attempting to add coordinator to league");
+					error_exit("Failed attempting to add coordinator to league");
 				}
 				break;
 		}
 
 		if( ! $league->save() ) {
-			$this->error_exit("Failed attempting to modify coordinators for league");
+			error_exit("Failed attempting to modify coordinators for league");
 		}
 		
 		local_redirect(url("league/view/$league->league_id"));
@@ -1387,18 +1418,18 @@ class LeagueAdmin extends Handler
 
 		// Load our league up.
 		if( !$this->league ) {
-			$this->error_exit("That league does not exist.");
+			error_exit("That league does not exist.");
 		}
 
 		$this->setLocation(array(
 			$this->league->fullname => "league/admin",
 			$this->title => 0));
-		league_add_to_menu($this, $this->league);
+		league_add_to_menu($this->league);
                 
 		switch($operation) {
 			case 'cleanround':
 				// TODO: remove this when this code is safe and tested
-				$this->error_exit("This function is still being developed");
+				error_exit("This function is still being developed");
 				return($this->cleanround());
 				break;
 			case 'cancelround':
@@ -1406,7 +1437,7 @@ class LeagueAdmin extends Handler
 				break;
 			case 'finalizeround':
 				// TODO: remove this when this code is safe and tested
-				$this->error_exit("This function is still being developed");
+				error_exit("This function is still being developed");
 				return($this->finalizeround());
 				break;
 			case 'top':
@@ -1600,16 +1631,16 @@ class LeagueLadder extends Handler
 
 		$league = league_load( array('league_id' => $leagueID ));
 		if( !$league ) {
-			$this->error_exit("That league does not exist.");
+			error_exit("That league does not exist.");
 		}
 
 		if( $league->schedule_type != "ladder" ) {
-			$this->error_exit("Ladder cannot be adjusted for a non-ladder league.");
+			error_exit("Ladder cannot be adjusted for a non-ladder league.");
 		}
 
 		// Re-seeding after scheduling is a bad idea, so disallow it
 		if( $league->has_schedule() ) {
-			$this->error_exit("Ladder cannot be adjusted after games have been scheduled.");
+			error_exit("Ladder cannot be adjusted after games have been scheduled.");
 		}
 		
 		$league->load_teams();
@@ -1635,10 +1666,10 @@ class LeagueLadder extends Handler
 		if( $direction ) {
 			$team = team_load( array('team_id' => $teamID) );
 			if( !$team ) {
-				$this->error_exit("A team must be provided for that operation.");
+				error_exit("A team must be provided for that operation.");
 			}
 			if (! $league->contains_team ($team->team_id) ) {
-				$this->error_exit("That team is not in this league!");
+				error_exit("That team is not in this league!");
 			}
 
 			switch($direction) {
@@ -1649,7 +1680,7 @@ class LeagueLadder extends Handler
 					$new_rank = $team->rank - 1;
 					break;
 				default:
-					$this->error_exit("That is not a valid ladder adjustment");
+					error_exit("That is not a valid ladder adjustment");
 			}
 			
 			// Race condition here.  If someone else is doing this, we
@@ -1658,12 +1689,12 @@ class LeagueLadder extends Handler
 			$other_team_id = db_result(db_query("SELECT team_id FROM leagueteams WHERE rank = %d AND league_id = %d", $new_rank, $league->league_id));
 			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $new_rank, $league->league_id, $team->team_id);
 			if(db_affected_rows() != 1) {
-				$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
+				error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
 			}
 			
 			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $team->rank, $league->league_id, $other_team_id);
 			if(db_affected_rows() != 1) {
-				$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
+				error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
 			}
 			
 			// Redirect to prevent page-reload from breaking things.
@@ -1701,8 +1732,63 @@ class LeagueLadder extends Handler
 		$this->setLocation(array(
 			$league->fullname => "league/ladder/$id",
 			$this->title => 0));
-		league_add_to_menu($this, $league);
+		league_add_to_menu($league);
 		return $output;
+	}
+}
+
+class LeagueFinalsHack extends Handler
+{
+	function has_permission()
+	{
+		return true;
+	}
+	
+	function process ()
+	{
+		global $session;
+
+		$leagueID  = arg(2);
+		$league = league_load( array('league_id' => $leagueID ));
+		if( !$league ) {
+			error_exit("That league does not exist.");
+		}
+		
+		$league->load_teams();
+		$head = array('Team');
+		while( list($idx, $team) = each($league->teams)) {
+			$games = game_load_many( array('either_team' => $team->team_id) );
+			$ranks = array();
+			if($games) {
+				foreach($games as $game) {
+					if( ! $game->is_finalized() ) {
+						continue;
+					}
+					if( !$game->home_dependant_rank || !$game->away_dependant_rank) {
+						continue;
+					}
+					if( $game->home_team == $team->team_id ) {
+						$ranks[] = $game->home_dependant_rank;
+					} else {
+						$ranks[] = $game->away_dependant_rank;
+					}
+				}
+				// Add current rank
+				$ranks[] = $team->rank;
+				$average = array( $team->name );
+				$sum = 0;
+				$games = 0;
+				foreach(array_reverse($ranks) as $rank) {
+					$games++;
+					$head[$games] = "last $games";
+					$sum += $rank;
+					$average[] = round($sum / $games,2);
+				}
+				$rows[] = $average;
+			}
+		}
+
+		return table($head,$rows);
 	}
 }
 
