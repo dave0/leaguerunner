@@ -237,9 +237,136 @@ function form_reset($value, $name = "reset")
 	return "<input type=\"reset\" class=\"form-reset\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
+/**
+ **  Data Validation
+ **/
+function validate_nonhtml ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	if ( preg_match("/<>/", $string) ) {
+		return false;
+	}
+	return true;
+}
+
+function validate_date_input ( $year, $month, $day )
+{
+	if( !(validate_nonblank($year) && validate_nonblank($month) && validate_nonblank($day)) ) {
+		return false;
+	}
+
+	$current = localtime(time(),1);
+	$this_year = $current['tm_year'] + 1900;
+
+	/* Checkdate doesn't check that the year is sane, so we have to 
+	 * do it ourselves.  Our sanity window is that anything earlier 
+	 * than 80 years ago, and anything 5 years in the future must be 
+	 * bogus.
+	 */
+	if( ($year < $this_year - 80) || ($year > $this_year + 5) ) {
+		return false;
+	}
+	
+	if(!checkdate($month, $day, $year) ) {
+		return false;
+	}
+	return true;
+}
+
+function validate_number ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	return ctype_digit($string);
+}
+
+function validate_name_input ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	if ( ! preg_match("/^[\w-\. ']+$/", $string) ) {
+		return false;
+	}
+	return true;
+}
+
+function validate_telephone_input( $string ) 
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	if ( ! preg_match("/^\(?\d{3}\)?\s*[-.]?\s*\d{3}\s*[-.]?\s*\d{4}\s*([ext\.]*\s*\d+)?$/", $string) ) {
+		return false;
+	}
+	return true;
+}
+	
+function validate_email_input ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	if ( ! preg_match("/^[\w-\.\+]+\@([\w-]+\.)+[\w-]+$/", $string) ) {
+		return false;
+	}
+	return true;
+}
+	
+function validate_postalcode ( $string )
+{
+	if( !validate_nonblank($string) ) {
+		return false;
+	}
+	
+	$string = strtoupper(trim($string));
+
+	/* Catch well-known "garbage" postalcodes.
+	 * If necessary, we can restrict postalcodes to only ottawa-area
+	 * postalcodes, but that would be a lot of work for potentially little
+	 * gain.
+	 */
+	if( preg_match("/^([A-Z])(\d)\\1\s*\\2\\1\\2$/", $string) ) {
+		return false;
+	}
+	
+	if ( ! preg_match("/^[A-Z]\d[A-Z]\s*\d[A-Z]\d$/", $string) ) {
+		return false;
+	}
+	return true;
+}
+
+function validate_nonblank( $string )
+{
+	if( strlen(trim($string)) <= 0 ) {
+		return false;
+	}
+	return true;
+}
+
 /*
- * DB helper functions
+ * Clean up a telephone number so that it's in a common format
+ * Assumption: phone number has passed validate_telephone_input()
  */
+function clean_telephone_number( $string ) 
+{
+	$matches = array();
+	preg_match("/^\(?(\d{3})\)?\s*[-.]?\s*(\d{3})\s*[-.]?\s*(\d{4})\s*(?:[ext\.]*\s*(\d+))?$/", $string, $matches);
+
+	$clean = "(" . $matches[1] . ") " . $matches[2] . "-" . $matches[3];
+	if(count($matches) == 5) {
+		$clean .= " x" . $matches[4];
+	}
+	
+	return $clean;
+}
+
+/**
+ ** DB helper functions
+ **/
 
 /**
  * Check for a database error
@@ -359,27 +486,6 @@ function generate_password()
 	return $pass;
 }
 
-/*
- * TODO: This should go away once Smarty stuff is removed
- */
-function map_callback($item)
-{
-	return array("output" => $item, "value" => $item);
-}
-
-/** 
- * Helper fn to generate an option-listable sequence of numbers
- */
-function get_numeric_options ( $start, $finish )
-{
-	/* Yuck */
-	$foo = array();
-	for($i = $start; $i <= $finish; $i++) {
-		$foo[] = $i;
-	}
-	return array_map("map_callback", $foo);
-}
-
 /**
  * Helper fn to get names of provinces for use in a select list
  */
@@ -409,6 +515,19 @@ function getOptionsForSkill()
 		"3" => "3: Lower tier league player",
 		"2" => "2: Beginner, minimal experience but athletic with sports background",
 		"1" => "1: Absolute Beginner",
+	);
+}
+
+function getRosterPositions()
+{
+	return array(
+		'player'            => "regular player",
+		'substitute'        => "substitute player",
+		'captain_request'   => "request to join by captain",
+		'player_request'    => "request to join by player",
+		'captain'	        => "captain",
+		'assistant'	        => "assistant captain",
+		'none'	        	=> "not on team",
 	);
 }
 
@@ -492,23 +611,50 @@ function getOptionsFromQuery( $sql, $data = array() )
 	return $result;
 }
 
-/**
- * Deprecated version of get_enum_options. 
- * TODO Remove when Smarty is gone
- */
-function get_enum_options ( $table, $col_name ) 
-{
-	$ary = getOptionsFromEnum($table, $col_name);
-	return array_map("map_callback", array_keys($ary));
-}
-
-
 function getWardName($id)
 {
 	global $DB;
 	return $DB->getOne("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = ?", array($id));
 }
 
+/**
+ * Return array of team information for the given userid
+ * 
+ * @param integer $userid  User ID
+ * @return array Array of all teams with this player, with id, name, and position of player for each team.
+ */
+function get_teams_for_user($userid) 
+{
+	global $DB;
+	$rows = $DB->getAll(
+		"SELECT 
+			r.status AS position,
+            r.team_id AS id,
+            t.name AS name
+        FROM 
+            teamroster r LEFT JOIN team t USING(team_id)
+        WHERE 
+            r.player_id = ?",
+	array($userid), DB_FETCHMODE_ASSOC);
+	$rosterPositions = getRosterPositions();
+	for($i=0; $i < count($rows); $i++) {
+		$rows[$i]['position'] = $rosterPositions[$rows[$i]['position']];
+	}
+	return $rows;
+}
+
+/**
+ * Return name of field, given a field ID
+ */
+function get_field_name($id)
+{
+	global $DB;
+	return $DB->getOne("SELECT
+		CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')')
+		FROM field f
+		LEFT JOIN site s ON (f.site_id = s.site_id)
+		WHERE f.field_id = ?", array($id));
+}
 
 /* vim: set sw=4 ts=4 et: */
 ?>

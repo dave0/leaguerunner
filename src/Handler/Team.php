@@ -379,15 +379,7 @@ class TeamPlayerStatus extends Handler
 	{
 		$this->set_title("Change Player Status");
 
-		$this->positions = array(
-			'player'            => "regular player",
-			'substitute'        => "substitute/occasional player",
-			'captain_request'   => "request to join by captain",
-			'player_request'    => "request to join by player",
-			'captain'	        => "team captain",
-			'assistant'	        => "team assistant captain",
-			'none'	        	=> "not on team",
-		);
+		$this->positions = getRosterPositions();
 
 		$this->op = 'team_playerstatus';
 
@@ -914,6 +906,8 @@ class TeamView extends Handler
 		$count = count($roster);
 
 		$totalSkill = 0;
+
+		$rosterPositions = getRosterPositions();
 		for($i = 0; $i < $count; $i++) {
 	
 			/* 
@@ -950,7 +944,7 @@ class TeamView extends Handler
 			
 			$rosterdata .= tr(
 				td($roster[$i]['fullname'], array( 'class' => $row_class))
-				. td(display_roster_status($roster[$i]['status']), array( 'class' => $row_class))
+				. td($rosterPositions[$roster[$i]['status']], array( 'class' => $row_class))
 				. td($roster[$i]['gender'], array( 'class' => $row_class))
 				. td($roster[$i]['skill_level'], array( 'class' => $row_class))
 				. td(theme_links($player_links), array( 'class' => $row_class))

@@ -26,9 +26,6 @@ require_once("includes/config.inc");
 require_once("includes/common.inc");
 require_once("includes/theme.inc");
 
-require_once("lib/variables.php"); // TODO: Deprecate me.
-require_once("lib/common.inc");  // TODO: Deprecate me.
-
 $APP_PAGE_MAP = array();
 
 require_once('DB.php');

@@ -1387,4 +1387,23 @@ class LeagueVerifyScores extends Handler
 		return true;
 	}
 }
+
+/*
+ * TODO: Make this go away by cleaning up the standings calculation.
+ * PHP doesn't have the Perlish comparisons of cmp and <=>
+ * so we fake a numeric cmp() here.
+ */
+function cmp ($a, $b) 
+{
+	if($a > $b) {
+		return 1;
+	}
+	if($a < $b) {
+		return -1;
+	}
+	return 0;
+}
+
+
+
 ?>

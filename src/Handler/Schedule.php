@@ -515,7 +515,8 @@ class LeagueScheduleView extends Handler
 			"SELECT 
 				name, 
 				tier,
-				start_time
+				start_time,
+				current_round
 			 FROM league WHERE league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
@@ -596,7 +597,7 @@ class LeagueScheduleView extends Handler
 		return true;
 	}
 
-	function processOneWeek( &$games, $league, $week_id, $id )
+	function processOneWeek( &$games, &$league, $week_id, $id )
 	{
 		$weekData = $games[0];
 	
@@ -638,19 +639,19 @@ class LeagueScheduleView extends Handler
 			
 		if( $this->_permissions['edit_schedule'] && ($week_id == $weekData['week_id'])) {
 			/* If editable, start off an editable form */
-			$output .= $this->createEditableWeek( $games, $league['start_time'], $week_id, $id);
+			$output .= $this->createEditableWeek( $games, $league, $week_id, $id);
 		} else {
-			$output .= $this->createViewableWeek( $games );
+			$output .= $this->createViewableWeek( $games, $league );
 		}
 
 		return $output;
 	}
 
-	function createEditableWeek( &$games, $leagueStartTimes, $weekId, $id )
+	function createEditableWeek( &$games, &$league, $weekId, $id )
 	{
 		global $DB;
 		
-		$leagueStartTimes = split(",", $leagueStartTimes);
+		$leagueStartTimes = split(",", $league['start_time']);
 		$startTimes = array();
 		while(list(,$time) = each($leagueStartTimes)) {
 			$startTimes[$time] = $time;
@@ -696,7 +697,7 @@ class LeagueScheduleView extends Handler
 		 * Rounds
 		 */
 		$leagueRounds = array();
-		for($i = 1; $i <= $GLOBALS['LEAGUE_MAX_ROUNDS'];  $i++) {
+		for($i = 1; $i <= $league['current_round'];  $i++) {
 			$leagueRounds[$i] = $i;
 		}
 		
@@ -730,7 +731,7 @@ class LeagueScheduleView extends Handler
 		return form($output);
 	}
 	
-	function createViewableWeek( &$games )
+	function createViewableWeek( &$games, &$league )
 	{
 		global $DB;
 		$output = "";

@@ -10,4 +10,9 @@
  */
 $DB_URL   = "mysql://leaguerunner:ocuaweb@localhost/leaguerunner";
 
+$APP_NAME = "OCUA Leaguerunner";
+
+$APP_ADMIN_NAME  = "OCUA Webmaster";
+$APP_ADMIN_EMAIL = "dmo@acm.org";
+
 ?>
