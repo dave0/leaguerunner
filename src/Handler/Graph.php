@@ -3,6 +3,18 @@ include_once ("/usr/share/jpgraph/jpgraph.php");
 include_once ("/usr/share/jpgraph/jpgraph_line.php");
 include_once ("/usr/share/jpgraph/jpgraph_pie.php");
 
+/*
+ * Graphing for Leaguerunner
+ * 
+ * For this to work well, you need to have caching enabled.  This means
+ * setting:
+ *     DEFINE("USE_CACHE",true); 
+ *     DEFINE("CACHE_DIR","/tmp/jpgraph_cache/");
+ * in /usr/share/jpgraph/jpg-config.php (or wherever the config file lives on
+ * your system.
+ */
+define("LR_GRAPH_TIMEOUT",240);   # timeout is 4 hours per image
+
 function graph_dispatch() 
 {
 	$op = arg(1);
@@ -41,7 +53,7 @@ class GraphTeamRank extends Handler
 	{
 		global $session;
 
-		$graph = new Graph(600,400,'auto');
+		$graph = new Graph(600,400,'auto', LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
 		$graph->yscale->SetGrace(10);
 		$graph->img->SetMargin(40,20,20,40);
@@ -125,7 +137,7 @@ class GraphLeagueRank extends Handler
 	{
 		global $session;
 
-		$graph = new Graph(600,400,'auto');
+		$graph = new Graph(600,400,'auto',LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
 		$graph->yscale->SetGrace(10);
 		$graph->img->SetMargin(40,20,20,40);
@@ -192,7 +204,7 @@ class GraphTeamSpirit extends Handler
 	{
 		global $session;
 		
-		$graph = new Graph(600,400,'auto');
+		$graph = new Graph(600,400,'auto', LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
 		$graph->yscale->SetGrace(10);
 		$graph->img->SetMargin(40,20,20,40);
@@ -283,7 +295,7 @@ class GraphPlayerSkill extends Handler
 
 	function process ()
 	{
-		$graph = new PieGraph(300,200);
+		$graph = new PieGraph(300,200,'auto',LR_GRAPH_TIMEOUT);
 		$graph->title->Set("Player Skill Distribution");
 
 		$result = db_query("SELECT skill_level, COUNT(*) AS count FROM person GROUP BY skill_level");
@@ -319,7 +331,7 @@ class GraphRosterSize extends Handler
 		if(!$current_season) {
 			$current_season = variable_get('current_season', 'Summer');
 		}
-		$graph = new PieGraph(300,200);
+		$graph = new PieGraph(300,200,'auto',LR_GRAPH_TIMEOUT);
 		$graph->title->Set("Team Roster Size ($current_season)");
 
 		$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
