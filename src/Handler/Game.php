@@ -1396,8 +1396,6 @@ class GameEdit extends Handler
 		} else {
 			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
 			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
-			$output .= form_hidden('edit[home_spirit]', $edit['home_spirit']);		
-			$output .= form_hidden('edit[away_spirit]', $edit['away_spirit']);		
 			$output .= $home_spirit->render_hidden('home');
 			$output .= $away_spirit->render_hidden('away');
 		}
@@ -1405,13 +1403,9 @@ class GameEdit extends Handler
 		if($edit['defaulted'] == 'home') {
 			$edit['home_score'] = '0 (defaulted)';
 			$edit['away_score'] = '6';
-			$edit['home_spirit'] = 'n/a';
-			$edit['away_spirit'] = 'n/a';
 		} else if ($edit['defaulted'] == 'away') {
 			$edit['home_score'] = '6';
 			$edit['away_score'] = '0 (defaulted)';
-			$edit['home_spirit'] = 'n/a';
-			$edit['away_spirit'] = 'n/a';
 		}
 		
 		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
