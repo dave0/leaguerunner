@@ -1080,11 +1080,12 @@ class TeamScheduleView extends Handler
 				s.home_team AS home_id, 
 				s.away_team AS away_id, 
 				s.field_id, 
+				f.site_id, 
 				s.home_score, 
 				s.away_score, 
 				h.name AS home_name, 
 				a.name AS away_name, 
-				CONCAT(t.name,' ',f.num,' (',t.code,f.num,')') AS field_name,
+				CONCAT(t.code,f.num) AS field_code,
 				s.defaulted 
 			FROM schedule s 
 				LEFT JOIN team h ON (s.home_team = h.team_id) 
@@ -1113,7 +1114,8 @@ class TeamScheduleView extends Handler
 				'opponent_id' => $this_row['away_id'],
 				'opponent_name' => $this_row['away_name'],
 				'field_id' => $this_row['field_id'],
-				'field_name' => $this_row['field_name'],
+				'site_id' => $this_row['site_id'],
+				'field_code' => $this_row['field_code'],
 				'home_away' => 'home'
 			);
 			/* now, fix it */
