@@ -53,6 +53,8 @@ CREATE TABLE person (
 	has_dog		  ENUM("Y","N") DEFAULT 'N',
 	dog_waiver_signed datetime,
 
+	survey_completed  ENUM("Y","N") DEFAULT 'N',
+
 	last_login datetime,
 	client_ip      varchar(50),
 	UNIQUE(username)

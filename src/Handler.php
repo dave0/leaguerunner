@@ -3,7 +3,6 @@
 # do not resort this list or things will break
 require_once("Handler/Login.php");
 require_once("Handler/Menu.php");
-require_once("Handler/System.php");
 
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
@@ -44,14 +43,6 @@ class Handler
 	var $breadcrumbs;
 
 	/**
-	 * Instance of Smarty template file
-	 * 
-	 * @access private
-	 * @var object Smarty
-	 */
-	var $tmpl;
-
-	/**
 	 * Things to check for general access permission
 	 */
 	var $_required_perms;
@@ -70,7 +61,6 @@ class Handler
 	function Handler ()
 	{
 		global $session;
-		$this->tmpl = new Smarty;
 		$this->_required_perms = null;
 		$this->_permissions = array();
 		if($session->is_valid()) {
@@ -93,6 +83,40 @@ class Handler
 	function initialize ()
 	{
 		return true;
+	}
+
+	/**
+	 * Check for unsatisified prerequisites for this operation
+	 *
+	 * Right now, the main Handler class just needs to check that the acount
+	 * is active and the waiver has been signed as appropriate.
+	 *
+	 * This should be overridden by subclass when performing these checks is
+	 * not appropriate (Login/Logout, PersonCreate, etc)
+	 */
+	function checkPrereqs ( $next )
+	{
+		global $session;
+
+		// TODO: This belongs as a config option
+		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
+
+		$time = $session->attr_get('waiver_timestamp');
+		if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
+			return "op=person_signwaiver&next=$next";
+		}
+
+		$time = $session->attr_get('dog_waiver_timestamp');
+		if(($session->attr_get('has_dog') =='Y') 
+			&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
+			return "op=person_signdogwaiver&next=$next";
+		}
+
+		if( $session->attr_get('survey_completed') != 'Y' ) {
+			return "op=person_survey&next=$next";
+		}
+
+		return false;
 	}
 
 	/**
@@ -232,27 +256,7 @@ class Handler
 	 */
 	function display ()
 	{
-
-		if(!isset($this->tmplfile)) {
-			return true;
-		} else {
-			register_smarty_extensions($this->tmpl);
-
-			$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
-			$this->tmpl->assign("page_title", $this->title);
-		
-			/*      
-			 * The following line needs to be set to 'true' for development
-			 * purposes.  It controls whether or not templates are checked for
-			 * recompilation.  If you don't set this to 'true' when doing
-			 * development, your changes to the templates will not be noticed!
-			 */
-			$this->tmpl->compile_check = true;
-			$this->tmpl->template_dir  = "./templates/en_CA";
-			$this->get_header();
-			$this->tmpl->display($this->tmplfile);
-			$this->get_footer();
-		}
+		return true;
 	}
 
 	function get_header($title = NULL)
@@ -288,14 +292,6 @@ class Handler
 		print $this->get_footer();
 		$DB->disconnect();
 		exit;
-	}
-
-	/** 
-	 * TODO Delete me after Smarty removal
-	 */
-	function set_template_file( $template_file )
-	{
-		$this->tmplfile = $template_file;
 	}
 
 	/**

@@ -10,9 +10,6 @@ register_page_handler('menu','Menu');
  */
 class Menu extends Handler
 {
-	/**
-	 * Initializes the template for this handler. 
-	 */
 	function initialize ()
 	{
 		$this->set_title("Main Menu");
@@ -73,9 +70,9 @@ class Menu extends Handler
 		$output .= $this->menu_item(
 			l("Change My Password", "op=person_changepassword&id=$id"));
 		$output .= $this->menu_item(
-			l("View Player Waiver", "op=system_viewfile&file=player_waiver"));
+			l("View Player Waiver", "op=person_signwaiver"));
 		$output .= $this->menu_item(
-			l("View Dog Waiver", "op=system_viewfile&file=dog_waiver"));
+			l("View Dog Waiver", "op=person_signdogwaiver"));
 		$output .= $this->menu_item( l("Log Out", "op=logout"));
 
 		$output .= $this->menu_title("Teams");

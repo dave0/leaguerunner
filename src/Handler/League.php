@@ -53,7 +53,7 @@ class LeagueCreate extends LeagueEdit
 			return false;
 		}
 
-		return parent::perform();
+		return parent::perform( $id );
 	}
 
 	function isDataInvalid ()
@@ -177,7 +177,6 @@ class LeagueEdit extends Handler
 		$output .= simple_row("League Name:", form_textfield('', 'league_name', $formData['league_name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
 		
 		if($this->_permissions['edit_coordinator']) {
-			## TODO: coord.
 
 			$volunteers = $DB->getAssoc(
 				"SELECT

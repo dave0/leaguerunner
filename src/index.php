@@ -20,7 +20,7 @@
  * Authors: Dave O'Neill <dmo@acm.org>
  * 
  */
-ini_set('include_path','.:/usr/share/php:/usr/local/lib/php:./lib/smarty');
+ini_set('include_path','.:/usr/share/php:/usr/local/lib/php');
 
 require_once("includes/config.inc");
 require_once("includes/common.inc");
@@ -40,8 +40,6 @@ if (DB::isError($DB)) {
 
 require_once "UserSession.php";
 require_once "Handler.php";
-require_once "Smarty.class.php";
-require_once "lib/smarty_extensions.php";
 
 set_magic_quotes_runtime(0);
 if (get_magic_quotes_gpc ()) {
@@ -66,6 +64,16 @@ if(is_null($handler)) {
 	$handler = new Handler;
 	$handler->error_exit("No handler exists for $op");
 	return;
+}
+
+/* 
+ * See if something else needs to be processed before this handler
+ * (Account revalidation, etc)
+ */
+$pickledQuery = queryPickle($_SERVER['QUERY_STRING']);
+$possibleRedirect = $handler->checkPrereqs( $pickledQuery );
+if($possibleRedirect) {
+	local_redirect($possibleRedirect);
 }
 
 /* Set any necessary options for the handler */

@@ -8,6 +8,9 @@ register_page_handler('person_approvenew', 'PersonApproveNewAccount');
 register_page_handler('person_edit', 'PersonEdit');
 register_page_handler('person_create', 'PersonCreate');
 register_page_handler('person_activate', 'PersonActivate');
+register_page_handler('person_survey', 'PersonSurvey');
+register_page_handler('person_signwaiver', 'PersonSignWaiver');
+register_page_handler('person_signdogwaiver', 'PersonSignDogWaiver');
 register_page_handler('person_list', 'PersonList');
 register_page_handler('person_listnew', 'PersonListNewAccounts');
 register_page_handler('person_changepassword', 'PersonChangePassword');
@@ -286,7 +289,8 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['skill']) {
-			$output .= simple_row("Skill Level:", $person['skill_level']);
+			$skillAry = getOptionsForSkill();
+			$output .= simple_row("Skill Level:", $skillAry[$person['skill_level']]);
 			$output .= simple_row("Year Started:", $person['year_started']);
 		}
 
@@ -686,19 +690,10 @@ class PersonEdit extends Handler
 	
 	function initialize ()
 	{
-		$this->set_title("Edit Account");
+		$this->set_title("Person &raquo; Edit");
 		$this->_permissions = array(
-			'edit_email'		=> false,
-			'edit_phone'		=> false,
 			'edit_username'		=> false,
-			'edit_name' 		=> false,
-			'edit_birthdate'	=> false,
-			'edit_address'		=> false,
-			'edit_gender'		=> false,
-			'edit_skill' 		=> false,
 			'edit_class' 		=> false,
-			'edit_dog'	 		=> false,
-			'edit_publish'		=> false,
 		);
 
 		$this->_required_perms = array(
@@ -709,6 +704,8 @@ class PersonEdit extends Handler
 			'deny',
 		);
 
+		$this->op = "person_edit";
+
 		return true;
 	}
 
@@ -716,15 +713,6 @@ class PersonEdit extends Handler
 	{
 		if($type == 'administrator') {
 			$this->enable_all_perms();
-		} else if($type == 'self') {
-			$this->_permissions['edit_email'] 		= true;
-			$this->_permissions['edit_phone']		= true;
-			$this->_permissions['edit_name'] 		= true;
-			$this->_permissions['edit_birthdate']	= true;
-			$this->_permissions['edit_address']		= true;
-			$this->_permissions['edit_gender']		= true;
-			$this->_permissions['edit_skill'] 		= true;
-			$this->_permissions['edit_publish']		= true;
 		} 
 	}
 
@@ -732,102 +720,149 @@ class PersonEdit extends Handler
 	{
 		$step = var_from_getorpost('step');
 
-		$this->_id = var_from_getorpost('id');
+		$id = var_from_getorpost('id');
 		
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Person/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
 				$this->perform();
-				local_redirect("op=person_view&id=".$this->_id);
+				local_redirect("op=person_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("Person/edit_form.tmpl");
-				$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$formData = $this->getFormData($id);
+				$rc = $this->generateForm($id, $formData, "Edit any of the following fields and click 'Submit' when done.");
 		}
 		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
-
 		return $rc;
 	}
 
-	function generate_form ()
+	function getFormData( $id ) 
 	{
 		global $DB;
 
-		$row = $DB->getRow( 
+		$person = $DB->getRow( 
 			"SELECT * FROM person WHERE user_id = ?",
-			array($this->_id), DB_FETCHMODE_ASSOC);
+			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($person)) {
 			return false;
 		}
-
-		$this->tmpl->assign("firstname", $row['firstname']);
-		$this->tmpl->assign("lastname", $row['lastname']);
-		$this->tmpl->assign("id", $this->_id);
-
-		$this->tmpl->assign("username", $row['username']);
-		
-		$this->tmpl->assign("email", $row['email']);
-		
-		$this->tmpl->assign("home_phone", $row['home_phone']);
-		$this->tmpl->assign("work_phone", $row['work_phone']);
-		$this->tmpl->assign("mobile_phone", $row['mobile_phone']);
 	
-		$this->tmpl->assign("addr_street", $row['addr_street']);
-		$this->tmpl->assign("addr_city", $row['addr_city']);
-		$this->tmpl->assign("addr_prov", $row['addr_prov']);
-		$this->tmpl->assign("addr_postalcode", $row['addr_postalcode']);
+		return $person;
+	}
 
-		/* And fill provinces array */
+	function generateForm ( $id, &$formData, $instructions = "")
+	{
+		global $DB;
+
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('id', $id);
+
+		$output .= para($instructions);
+		$output .= para(
+			"Note that email and phone publish settings below only apply to regular players.  "
+			. "Captains will always have access to view the phone numbers and email addresses of their confirmed players.  "
+			. "All Team Captains will also have their email address viewable by other players"
+		);
+		$output .= para(
+			"If you have concerns about the data OCUA collects, please see our "
+			. "<b><font color=red><a href='http://www.ocua.ca/ocua/policy/privacy_policy.html' target='_new'>Privacy Policy</a></font></b>"
+		);
+		
+		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= simple_row("First Name:",
+			form_textfield('', 'firstname', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
+		$output .= simple_row("Last Name:",
+			form_textfield('', 'lastname', $formData['lastname'], 25,100, "Last name"));
+
+		if($this->_permissions['edit_username']) {
+			$output .= simple_row("System Username:",
+				form_textfield('', 'username', $formData['username'], 25,100, "Desired login name."));
+		} else {
+			$output .= simple_row("System Username:", $formData['username']);
+		}
+
+		if($this->_permissions['edit_password']) {
+			$output .= simple_row("Password:",
+				form_password('', 'password_once', '', 25,100, "Enter your desired password."));
+			$output .= simple_row("Re-Enter Password:",
+				form_password('', 'password_twice', '', 25,100, "Enter your desired password a second time to confirm it."));
+		}
+
+		$output .= simple_row("Email Address:",
+			form_textfield('', 'email', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
+			. form_checkbox("Allow other players to view my email",'allow_publish_email','Y',($formData['allow_publish_email'] == 'Y')));
+
+		$addrBlock = "<table border='0' cellspacing='3'>";
+		$addrBlock .= simple_row("Street Address:",
+			form_textfield('','addr_street',$formData['addr_street'], 25, 100, "Number, street name, and apartment number if necessary"));
+		$addrBlock .= simple_row("City:",
+			form_textfield('','addr_city',$formData['addr_city'], 25, 100, "Name of city.  If you are a resident of the amalgamated Ottawa, please enter 'Ottawa' (instead of Kanata, Nepean, etc.)"));
+			
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
-		$this->tmpl->assign("provinces",
-			array_map(
-				"map_callback", 
-				array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'))
+		$addrBlock .= simple_row("Province:",
+			form_select('', 'addr_prov', $formData['addr_prov'], getProvinceNames(), "Select a province from the list"));
+
+		$addrBlock .= simple_row("Postal Code:",
+			form_textfield('', 'addr_postalcode', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
+
+		$addrBlock .= "</table>";
+
+		$output .= simple_row("Address:", $addrBlock);
+
+		$output .= simple_row("Telephone:", 
+			"<table border='0'>"
+			. simple_row("Home:", form_textfield('', 'home_phone', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_home_phone','Y',($formData['publish_home_phone'] == 'Y'))))
+			. simple_row("Work:", form_textfield('', 'work_phone', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_work_phone','Y',($formData['publish_work_phone'] == 'Y'))))
+			. simple_row("Mobile:", form_textfield('', 'mobile_phone', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_mobile_phone','Y',($formData['publish_mobile_phone'] == 'Y'))))
+			. "</table>"
 		);
 
-		$this->tmpl->assign("gender", $row['gender']);
-		$this->tmpl->assign("gender_list",
-			array_map(
-				"map_callback",
-				array('Male','Female'))
-		);
-		
-		$this->tmpl->assign("skill_level", $row['skill_level']);
+		$output .= simple_row("Gender:",
+			form_select('', 'gender', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
+			
+		$output .= simple_row("Skill Level:",
+			form_radiogroup('', 'skill_level', $formData['skill_level'],
+				getOptionsForSkill()));
 
-		$this->tmpl->assign("started_year", $row['year_started'] . "-00-00");
-		
-		$this->tmpl->assign("birthdate",  $row['birthdate']);
-		
-		$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
-		$this->tmpl->assign("publish_home_phone", $row['publish_home_phone']);
-		$this->tmpl->assign("publish_work_phone", $row['publish_work_phone']);
-		$this->tmpl->assign("publish_mobile_phone", $row['publish_mobile_phone']);
-		$this->tmpl->assign("has_dog", $row['has_dog']);
+		$thisYear = strftime("%Y", time());
 
-		$this->tmpl->assign("class", $row['class']);
-		$this->tmpl->assign("classes", get_enum_options('person','class'));
+		$output .= simple_row("Year Started:",
+			form_select('', 'year_started', $formData['year_started'], 
+				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate in Ottawa."));
 
+		$output .= simple_row("Birthdate:",
+			form_select_date('', 'birth', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
+
+		if($this->_permissions['edit_class']) {
+			$output .= simple_row("Account Class:",
+				form_select('','class', $formData['class'], getOptionsFromEnum('person','class')));
+		}
+
+		$output .= simple_row("Has dog:",
+			form_radiogroup('', 'has_dog', $formData['has_dog'], array(
+				'Y' => 'Yes, I have a dog I will be bringing to games',
+				'N' => 'No, I will not be bringing a dog to games')));
+		
+		$output .= "</table>";
+
+		$this->set_title($this->title . " &raquo; " . $formData['firstname'] . " " . $formData['lastname']);
+
+		$output .= para(form_submit('submit') . form_reset('reset'));
+
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id )
 	{
 		global $DB;
 
@@ -836,44 +871,115 @@ class PersonEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$this->tmpl->assign("id", $this->_id);
+		$output = blockquote("Confirm that the data below is correct and click 'Submit' to make your changes.");
+		$output .= form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
 
-		$this->tmpl->assign("firstname", var_from_getorpost('firstname'));
-		$this->tmpl->assign("lastname", var_from_getorpost('lastname'));
-		
-		$this->tmpl->assign("username", var_from_getorpost('username'));
-		
-		$this->tmpl->assign("email", var_from_getorpost('email'));
-		
-		$this->tmpl->assign("addr_street", var_from_getorpost('addr_street'));
-		$this->tmpl->assign("addr_city", var_from_getorpost('addr_city'));
-		$this->tmpl->assign("addr_prov", var_from_getorpost('addr_prov'));
-		$this->tmpl->assign("addr_postalcode", var_from_getorpost('addr_postalcode'));
+		$output .= "<table border='0'>";
 
-		$this->tmpl->assign("home_phone", var_from_getorpost('home_phone'));
-		$this->tmpl->assign("work_phone", var_from_getorpost('work_phone'));
-		$this->tmpl->assign("mobile_phone", var_from_getorpost('mobile_phone'));
+		$firstname = var_from_post('firstname');
+		$output .= simple_row("First Name:",
+			form_hidden('firstname',$firstname) . $firstname);
+			
+		$lastname = var_from_post('lastname');
+		$output .= simple_row("Last Name:",
+			form_hidden('lastname',$lastname) . $lastname);
+		
+		if($this->_permissions['edit_username']) {
+			$username = var_from_post('username');
+			$output .= simple_row("System Username:",
+				form_hidden('username',$username) . $username);
+		}
+		
+		if($this->_permissions['edit_password']) {
+			$password_once = var_from_post('username');
+			$output .= simple_row("Password:",
+				form_hidden('password_once', var_from_post('password_once'))
+				. form_hidden('password_twice', var_from_post('password_twice'))
+				. '<i>(entered)</i>');
+		}
+		
+		$email = var_from_post('email');
+		$output .= simple_row("Email Address:",
+			form_hidden('email',$email) . $email);
+			
+		$allow_publish_email = var_from_post('allow_publish_email');
+		$output .= simple_row("Show Email:",
+			form_hidden('allow_publish_email',$allow_publish_email) . $allow_publish_email);
 
-		$this->tmpl->assign("gender", var_from_getorpost('gender'));
-		$this->tmpl->assign("skill_level", var_from_getorpost('skill_level'));
-		
-		$this->tmpl->assign("started_Year", var_from_getorpost('started_Year'));
-		
-		$this->tmpl->assign("birth_Year", var_from_getorpost('birth_Year'));
-		$this->tmpl->assign("birth_Month", var_from_getorpost('birth_Month'));
-		$this->tmpl->assign("birth_Day", var_from_getorpost('birth_Day'));
-		$this->tmpl->assign("class", var_from_getorpost('class'));
-		
-		$this->tmpl->assign("allow_publish_email", var_from_getorpost('allow_publish_email'));
-		$this->tmpl->assign("publish_home_phone", var_from_getorpost('publish_home_phone'));
-		$this->tmpl->assign("publish_work_phone", var_from_getorpost('publish_work_phone'));
-		$this->tmpl->assign("publish_mobile_phone", var_from_getorpost('publish_mobile_phone'));
-		$this->tmpl->assign("has_dog", var_from_getorpost('has_dog'));
+		$addr_street = var_from_post('addr_street');
+		$addr_city = var_from_post('addr_city');
+		$addr_prov = var_from_post('addr_prov');
+		$addr_postalcode = var_from_post('addr_postalcode');
+		$output .= simple_row("Address:",
+			form_hidden('addr_street',$addr_street)
+			. form_hidden('addr_city',$addr_city)
+			. form_hidden('addr_prov',$addr_prov)
+			. form_hidden('addr_postalcode',$addr_postalcode)
+			. "$addr_street<br>$addr_city, $addr_prov<br> $addr_postalcode");
 
+		$phone['home'] = var_from_post('home_phone');
+		$phone['work'] = var_from_post('work_phone');
+		$phone['mobile'] = var_from_post('mobile_phone');
+		$phone['publish_home'] =  var_from_post('publish_home_phone');
+		$phone['publish_work'] =  var_from_post('publish_work_phone');
+		$phone['publish_mobile'] =  var_from_post('publish_mobile_phone');
+
+		foreach( array('home','work','mobile') as $location) {
+			if($phone[$location]) {
+				$phoneBlock .= form_hidden($location . '_phone', $phone[$location]);
+				$phoneBlock .= ucfirst($location) . ": " . $phone[$location];
+				if($phone["publish_$location"] == 'Y') {
+					$phoneBlock .= " (published)";
+				} else {
+					$phoneBlock .= " (private)";
+				}
+			}
+		}
+		$output .= simple_row("Telephone:", $phoneBlock);
+
+		$gender = var_from_post('gender');
+		$output .= simple_row("Gender:", form_hidden('gender',$gender) . $gender);
+		
+		$skill_level = var_from_post('skill_level');
+		$levels = getOptionsForSkill();
+		$output .= simple_row("Skill Level:", form_hidden('skill_level',$skill_level) . $levels[$skill_level]);
+		
+		$year_started = var_from_post('year_started');
+		$output .= simple_row("Year Started:", form_hidden('year_started',$year_started) . $year_started);
+
+		$birth_year = var_from_post('birth_year');
+		$birth_month = var_from_post('birth_month');
+		$birth_day = var_from_post('birth_day');
+		$output .= simple_row("Birthdate:", 
+			form_hidden('birth_year',$birth_year) 
+			. form_hidden('birth_month',$birth_month) 
+			. form_hidden('birth_day',$birth_day) 
+			. "$birth_year / $birth_month / $birth_day");
+	
+		if($this->_permissions['edit_class']) {
+			$class = var_from_post('class');
+			$output .= simple_row("Account Class:", form_hidden('class',$class) . $class);
+		}
+		
+		$has_dog = var_from_post('has_dog');
+		$output .= simple_row("Has dog:", form_hidden('has_dog',$has_dog) . $has_dog);
+			
+		$output .= "</table>";
+
+		$output .= para(form_submit('submit') . form_reset('reset'));
+
+		$this->set_title($this->title . " &raquo; " . $firstname . " " . $lastname);
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB;
 		
@@ -890,93 +996,74 @@ class PersonEdit extends Handler
 			$fields_data[] = var_from_getorpost('username');
 		}
 		
-		if($this->_permissions['edit_email']) {
-			$fields[] = "email = ?";
-			$fields_data[] = var_from_getorpost('email');
-		}
-		
-		if($this->_permissions['edit_phone']) {
-			foreach(array('home_phone','work_phone','mobile_phone') as $type) {
-				$num = var_from_getorpost($type);
-				if(strlen($num) > 0) {
-					$fields[] = "$type = ?";
-					$fields_data[] = clean_telephone_number($num);
-				} else {
-					$fields[] = "$type = ?";
-					$fields_data[] = null;
-				}
-			}
-		}
-		
-		if($this->_permissions['edit_name']) {
-			$fields[] = "firstname = ?";
-			$fields_data[] = var_from_getorpost('firstname');
-			
-			$fields[] = "lastname = ?";
-			$fields_data[] = var_from_getorpost('lastname');
-		}
-		
-		if($this->_permissions['edit_address']) {
-			$fields[] = "addr_street = ?";
-			$fields_data[] = var_from_getorpost('addr_street');
-			
-			$fields[] = "addr_city = ?";
-			$fields_data[] = var_from_getorpost('addr_city');
-			
-			$fields[] = "addr_prov = ?";
-			$fields_data[] = var_from_getorpost('addr_prov');
-			
-			$postcode = var_from_getorpost('addr_postalcode');
-			if(strlen($postcode) == 6) {
-				$foo = substr($postcode,0,3) . " " . substr($postcode,3);
-				$postcode = $foo;
-			}
-			$fields[] = "addr_postalcode = ?";
-			$fields_data[] = strtoupper($postcode);
-		}
-		
-		if($this->_permissions['edit_birthdate']) {
-			$fields[] = "birthdate = ?";
-			$fields_data[] = join("-",array(
-				var_from_getorpost('birth_Year'),
-				var_from_getorpost('birth_Month'),
-				var_from_getorpost('birth_Day')));
-				
-		}
-		
 		if($this->_permissions['edit_class']) {
 			$fields[] = "class = ?";
 			$fields_data[] = var_from_getorpost('class');
 				
 		}
 		
-		if($this->_permissions['edit_gender']) {
-			$fields[] = "gender = ?";
-			$fields_data[] = var_from_getorpost('gender');
+		$fields[] = "email = ?";
+		$fields_data[] = var_from_getorpost('email');
+		
+		foreach(array('home_phone','work_phone','mobile_phone') as $type) {
+			$num = var_from_getorpost($type);
+			if(strlen($num) > 0) {
+				$fields[] = "$type = ?";
+				$fields_data[] = clean_telephone_number($num);
+			} else {
+				$fields[] = "$type = ?";
+				$fields_data[] = null;
+			}
 		}
 		
-		if($this->_permissions['edit_skill']) {
-			$fields[] = "skill_level = ?";
-			$fields_data[] = var_from_getorpost('skill_level');
-			$fields[] = "year_started = ?";
-			$fields_data[] = var_from_getorpost('started_Year');
+		$fields[] = "firstname = ?";
+		$fields_data[] = var_from_getorpost('firstname');
+		
+		$fields[] = "lastname = ?";
+		$fields_data[] = var_from_getorpost('lastname');
+		
+		$fields[] = "addr_street = ?";
+		$fields_data[] = var_from_getorpost('addr_street');
+		
+		$fields[] = "addr_city = ?";
+		$fields_data[] = var_from_getorpost('addr_city');
+		
+		$fields[] = "addr_prov = ?";
+		$fields_data[] = var_from_getorpost('addr_prov');
+		
+		$postcode = var_from_getorpost('addr_postalcode');
+		if(strlen($postcode) == 6) {
+			$foo = substr($postcode,0,3) . " " . substr($postcode,3);
+			$postcode = $foo;
 		}
+		$fields[] = "addr_postalcode = ?";
+		$fields_data[] = strtoupper($postcode);
+		
+		$fields[] = "birthdate = ?";
+		$fields_data[] = join("-",array(
+			var_from_getorpost('birth_year'),
+			var_from_getorpost('birth_month'),
+			var_from_getorpost('birth_day')));
+		
+		$fields[] = "gender = ?";
+		$fields_data[] = var_from_getorpost('gender');
+		
+		$fields[] = "skill_level = ?";
+		$fields_data[] = var_from_getorpost('skill_level');
+		$fields[] = "year_started = ?";
+		$fields_data[] = var_from_getorpost('year_started');
 
-		if($this->_permissions['edit_publish']) {
-			$fields[] = "allow_publish_email = ?";
-			$fields_data[] = var_from_getorpost('allow_publish_email');
-			$fields[] = "publish_home_phone = ?";
-			$fields_data[] = var_from_getorpost('publish_home_phone') ? 'Y' : 'N';
-			$fields[] = "publish_work_phone = ?";
-			$fields_data[] = var_from_getorpost('publish_work_phone') ? 'Y' : 'N';
-			$fields[] = "publish_mobile_phone = ?";
-			$fields_data[] = var_from_getorpost('publish_mobile_phone') ? 'Y' : 'N';
-		}
+		$fields[] = "allow_publish_email = ?";
+		$fields_data[] = var_from_getorpost('allow_publish_email');
+		$fields[] = "publish_home_phone = ?";
+		$fields_data[] = var_from_getorpost('publish_home_phone') ? 'Y' : 'N';
+		$fields[] = "publish_work_phone = ?";
+		$fields_data[] = var_from_getorpost('publish_work_phone') ? 'Y' : 'N';
+		$fields[] = "publish_mobile_phone = ?";
+		$fields_data[] = var_from_getorpost('publish_mobile_phone') ? 'Y' : 'N';
 		
-		if($this->_permissions['edit_dog']) {
-			$fields[] = "has_dog = ?";
-			$fields_data[] = var_from_getorpost('has_dog');
-		}
+		$fields[] = "has_dog = ?";
+		$fields_data[] = var_from_getorpost('has_dog');
 
 		if(count($fields_data) != count($fields)) {
 			$this->error_exit("Internal error: Incorrect number of fields set");
@@ -990,7 +1077,7 @@ class PersonEdit extends Handler
 		$sql .= join(", ", $fields);	
 		$sql .= "WHERE user_id = ?";
 		
-		$fields_data[] = $this->_id;
+		$fields_data[] = $id;
 		
 		$handle = $DB->prepare($sql);
 		$res = $DB->execute($handle, $fields_data);
@@ -1007,12 +1094,10 @@ class PersonEdit extends Handler
 		global $DB;
 		$errors = "";
 	
-		if($this->_permissions['edit_name']) {
-			$firstname = var_from_getorpost('firstname');
-			$lastname = var_from_getorpost('lastname');
-			if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
-				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
-			}
+		$firstname = var_from_getorpost('firstname');
+		$lastname = var_from_getorpost('lastname');
+		if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
+			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 		}
 
 		if($this->_permissions['edit_username']) {
@@ -1022,87 +1107,75 @@ class PersonEdit extends Handler
 			}
 		}
 
-		if($this->_permissions['edit_email']) {
-			$email = var_from_getorpost('email');
-			if ( ! validate_email_input($email) ) {
-				$errors .= "\n<li>You must supply a valid email address";
-			}
+		$email = var_from_getorpost('email');
+		if ( ! validate_email_input($email) ) {
+			$errors .= "\n<li>You must supply a valid email address";
 		}
 
-		if($this->_permissions['edit_phone']) {
-			$home_phone = var_from_getorpost('home_phone');
-			$work_phone = var_from_getorpost('work_phone');
-			$mobile_phone = var_from_getorpost('mobile_phone');
-			if( !validate_nonblank($home_phone) &&
-				!validate_nonblank($work_phone) &&
-				!validate_nonblank($mobile_phone) ) {
-				$errors .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
-			}
-			if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
-				$errors .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
-			}
-			if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
-				$errors .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
-			}
-			if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
-				$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
-			}
+		$home_phone = var_from_getorpost('home_phone');
+		$work_phone = var_from_getorpost('work_phone');
+		$mobile_phone = var_from_getorpost('mobile_phone');
+		if( !validate_nonblank($home_phone) &&
+			!validate_nonblank($work_phone) &&
+			!validate_nonblank($mobile_phone) ) {
+			$errors .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
+			$errors .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
+			$errors .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
+		if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
+			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
 
-		if($this->_permissions['edit_address']) {
-			$addr_street = var_from_getorpost('addr_street');
-			if( !validate_nonhtml($addr_street) ) {
-				$errors .= "\n<li>You must supply a street address.";
-			}
-			$addr_city = var_from_getorpost('addr_city');
-			if( !validate_nonhtml($addr_city) ) {
-				$errors .= "\n<li>You must supply a city.";
-			}
-			$addr_prov = var_from_getorpost('addr_prov');
-			if( !validate_nonhtml($addr_prov) ) {
-				$errors .= "\n<li>You must supply a province.";
-			}
-			$addr_postalcode = var_from_getorpost('addr_postalcode');
-			if( !validate_postalcode($addr_postalcode) ) {
-				$errors .= "\n<li>You must supply a valid Canadian postal code.";
-			}
+		$addr_street = var_from_getorpost('addr_street');
+		if( !validate_nonhtml($addr_street) ) {
+			$errors .= "\n<li>You must supply a street address.";
+		}
+		$addr_city = var_from_getorpost('addr_city');
+		if( !validate_nonhtml($addr_city) ) {
+			$errors .= "\n<li>You must supply a city.";
+		}
+		$addr_prov = var_from_getorpost('addr_prov');
+		if( !validate_nonhtml($addr_prov) ) {
+			$errors .= "\n<li>You must supply a province.";
+		}
+		$addr_postalcode = var_from_getorpost('addr_postalcode');
+		if( !validate_postalcode($addr_postalcode) ) {
+			$errors .= "\n<li>You must supply a valid Canadian postal code.";
 		}
 		
-		if($this->_permissions['edit_gender']) {
-			$gender = var_from_getorpost('gender');
-			if( !preg_match("/^[mf]/i",$gender ) ) {
-				$errors .= "\n<li>You must select either male or female for gender.";
-			}
+		$gender = var_from_getorpost('gender');
+		if( !preg_match("/^[mf]/i",$gender ) ) {
+			$errors .= "\n<li>You must select either male or female for gender.";
 		}
 		
-		if($this->_permissions['edit_birthdate']) {
-			$birthyear = var_from_getorpost('birth_Year');
-			$birthmonth = var_from_getorpost('birth_Month');
-			$birthday = var_from_getorpost('birth_Day');
-			if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
-				$errors .= "\n<li>You must provide a valid birthdate";
-			}
+		$birthyear = var_from_getorpost('birth_year');
+		$birthmonth = var_from_getorpost('birth_month');
+		$birthday = var_from_getorpost('birth_day');
+		if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
+			$errors .= "\n<li>You must provide a valid birthdate";
 		}
 		
-		if($this->_permissions['edit_skill']) {
-			$skill = var_from_getorpost('skill_level');
-			if( $skill < 1 || $skill > 10 ) {
-				$errors .= "\n<li>You must select a skill level between 1 and 5";
-			}
-			
-			$year_started = var_from_getorpost('started_Year');
-			$current = localtime(time(),1);
-			$this_year = $current['tm_year'] + 1900;
-			if( $year_started > $this_year ) {
-				$errors .= "\n<li>Year started must be before current year.";
-			}
+		$skill = var_from_getorpost('skill_level');
+		if( $skill < 1 || $skill > 10 ) {
+			$errors .= "\n<li>You must select a skill level between 1 and 5";
+		}
+		
+		$year_started = var_from_getorpost('year_started');
+		$current = localtime(time(),1);
+		$this_year = $current['tm_year'] + 1900;
+		if( $year_started > $this_year ) {
+			$errors .= "\n<li>Year started must be before current year.";
+		}
 
-			if( $year_started < 1986 ) {
-				$errors .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
-			}
-			if( $year_started < $birthyear + 8) {
-				$errors .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
-			}
+		if( $year_started < 1986 ) {
+			$errors .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
+		}
+		if( $year_started < $birthyear + 8) {
+			$errors .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
 		}
 	
 		if(strlen($errors) > 0) {
@@ -1122,17 +1195,8 @@ class PersonCreate extends PersonEdit
 	{
 		$this->set_title("Create New Account");
 		$this->_permissions = array(
-			'edit_email'		=> true,
-			'edit_phone'		=> true,
 			'edit_username'		=> true,
 			'edit_password'		=> true,
-			'edit_name' 		=> true,
-			'edit_birthdate'	=> true,
-			'edit_address'		=> true,
-			'edit_gender'		=> true,
-			'edit_skill' 		=> true,
-			'edit_dog' 			=> true,
-			'edit_publish'		=> true,
 		);
 
 		$this->_required_perms = array( 'allow' );
@@ -1141,74 +1205,37 @@ class PersonCreate extends PersonEdit
 
 		return true;
 	}
+
+	function checkPrereqs( $next )
+	{
+		return false;
+	}
 	
 	function process ()
 	{
 		$step = var_from_getorpost('step');
 
-		$this->_id = var_from_getorpost('id');
-		
+		$id = -1;
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Person/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
-				return $this->perform();
+				return $this->perform( &$id );
 				break;
 			default:
-				$this->set_template_file("Person/edit_form.tmpl");
-				$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$formData = $this->getFormData($id);
+				$rc = $this->generateForm( $id, $formData, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
 		}
-		
-		$this->tmpl->assign("page_op", $this->op);
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
-
 		return $rc;
 	}
 
-	function generate_form ()
+	function getFormData ($id)
 	{
-		
-		$this->tmpl->assign("instructions", "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
-		/* TODO: evil.  Need to allow Americans to use this at some point in
-		 * time... */
-		$this->tmpl->assign("provinces",
-			array_map(
-				"map_callback", 
-				array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'))
-		);
-
-		$this->tmpl->assign("gender", "");
-		$this->tmpl->assign("gender_list",
-			array_map(
-				"map_callback",
-				array('Male','Female'))
-		);
-		
-		$this->tmpl->assign("skill_level", "");
-
-		return true;
+		return array();
 	}
 
-	function generate_confirm () 
-	{
-		$this->tmpl->assign("password_once", var_from_getorpost('password_once'));
-		$this->tmpl->assign("password_twice", var_from_getorpost('password_twice'));
-		return parent::generate_confirm();
-	}
-
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB;
 
@@ -1227,9 +1254,9 @@ class PersonCreate extends PersonEdit
 			}
 			$this->error_exit($err);
 		}
-		$this->_id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
+		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
-		$rc = parent::perform();
+		$rc = parent::perform( $id );
 		
 		print $this->get_header();
 		print h1($this->title);
@@ -1257,7 +1284,14 @@ class PersonActivate extends PersonEdit
 		parent::initialize();
 		$this->set_title("Activate Account");
 
+		$this->op = 'person_activate';
+
 		return true;
+	}
+
+	function checkPrereqs ( $ignored )
+	{
+		return false;
 	}
 
 	/**
@@ -1272,138 +1306,75 @@ class PersonActivate extends PersonEdit
 			if ($session->attr_get('class') != 'inactive') {
 				$this->error_exit("You do not have a valid session");
 			} 
+		} else {
+			return false;
 		}
-
-		$this->_id = $session->attr_get('user_id');
 		
-		$this->_permissions['edit_email'] 		= true;
-		$this->_permissions['edit_phone']		= true;
-		$this->_permissions['edit_name'] 		= true;
-		$this->_permissions['edit_birthdate']	= true;
-		$this->_permissions['edit_address']		= true;
-		$this->_permissions['edit_gender']		= true;
-		$this->_permissions['edit_skill'] 		= true;
-		$this->_permissions['edit_dog'] 		= true;
-		$this->_permissions['edit_publish']		= true;
-
 		return true;
 	}
 
-	/*
-	 * Unfortunately, we need to override process() from Edit.php in order to
-	 * insert the step where a user must click through the waiver/agreement --
-	 * even though it's nearly all the same code, we need to stick stuff in
-	 * the middle.  =(
-	 */
 	function process ()
 	{
-		global $DB;
+		global $session;
 		$step = var_from_getorpost('step');
+		$id = $session->attr_get('user_id');
+		
 		switch($step) {
 			case 'confirm': 
-				$this->set_template_file("Person/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'update');
-				$rc = $this->generate_confirm();
-				break;
-			case 'update':  /* Make any updates specified by the user */
-				$dog = var_from_getorpost("has_dog");
-				if($dog == "Y") {
-					$this->set_template_file("Person/dog_waiver_form.tmpl");
-					$this->tmpl->assign("page_step", 'dog_waiver');
-				} else {
-					$this->set_template_file("Person/waiver_form.tmpl");
-					$this->tmpl->assign("page_step", 'survey');
-				}
-				$rc = $this->perform();
-				break;
-			case 'dog_waiver':
-				$this->set_template_file("Person/waiver_form.tmpl");
-				$this->tmpl->assign("page_step", 'survey');
-				$rc = $this->process_dog_waiver();
-				break;
-			case 'survey':  /* Waiver was clicked */
-				$rc = $this->process_waiver();
-				$this->set_template_file("Person/survey_form.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
-				$this->process_survey();
+				$rc = $this->perform( $id );
 				local_redirect("op=menu");
 				break;
 			default:
-				$this->set_template_file("Person/edit_form.tmpl");
-				$rc = $this->generate_form();
-				$this->tmpl->assign("instructions", "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
-				$this->tmpl->assign("page_step", 'confirm');
-		}
-		
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
+				$formData = $this->getFormData($id);
+				$rc = $this->generateForm( $id , $formData, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
 		return $rc;
 	}
-
-	/**
-	 * Process input from the waiver form.
-	 *
-	 * We will only activate the user if they agreed to the waiver.
-	 */
-	function process_waiver()
-	{
-		global $DB, $session;
-		
-		$id = $session->attr_get('user_id');
-		$signed = var_from_getorpost('signed');
-		
-		if('yes' != $signed) {
-			$this->set_title("Informed Consent Form For League Play");
-			$this->error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
-		}
-
-		/* otherwise, it's yes.  Set the user to 'active' and marked the
-		 * signed_waiver field to the current date */
-		$res = $DB->query("UPDATE person SET class = 'active', waiver_signed=NOW() where user_id = ?", array($id));
-
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		
-		return true;
-		
-	}
-
-	function process_dog_waiver()
-	{
-		global $DB, $session;
-		
-		$id = $session->attr_get('user_id');
-		$signed = var_from_getorpost('signed');
-		
-		if('yes' != $signed) {
-			$this->set_title("Informed Consent Form For Dog Owners");
-			$this->error_exit("Sorry, if you wish to bring a dog to the fields, you must sign this waiver.");
-		}
-
-		/* otherwise, it's yes.  Set the user to 'active' and marked the
-		 * signed_waiver field to the current date */
-		$res = $DB->query("UPDATE person SET dog_waiver_signed=NOW() where user_id = ?", array($id));
-
-		if($this->is_database_error($res)) {
-			return false;
-		}
-		
-		return true;
-		
-	}
 	
-	function process_survey()
+	function perform( $id )
+	{
+		global $DB;
+
+		$rc = parent::perform( $id );
+		if( ! $rc ) {
+			return false;
+		}
+		
+		$res = $DB->query("UPDATE person SET class = 'active' where user_id = ?", array($id));
+
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		
+		return true;
+	}
+
+
+}
+
+class PersonSurvey extends PersonSignWaiver
+{
+	function initialize ()
+	{
+		global $session;
+		$this->set_title("Member Survey");
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'allow',
+		);
+		$this->op = 'person_survey';
+
+		$this->formFile = 'member_survey.html';
+
+		return true;
+	}
+
+	function perform()
 	{
 		global $DB, $session;
 		$dem = var_from_getorpost('demographics');
@@ -1430,20 +1401,97 @@ class PersonActivate extends PersonEdit
 			}
 		}
 
-		if(count($fields) <= 0) {
-			return true;
+		if(count($fields) > 0) {
+			$sql = "INSERT INTO demographics (";
+			$sql .= join(",", $fields);	
+			$sql .= ") VALUES(";
+			for($i=0; $i< (count($fields) - 1); $i++) {
+				$sql .= "?,";
+			}
+			$sql .= "?)";
+			
+			$res = $DB->query($sql, $fields_data);
+			if($this->is_database_error($res)) {
+				return false;
+			}
 		}
 		
-		
-		$sql = "INSERT INTO demographics (";
-		$sql .= join(",", $fields);	
-		$sql .= ") VALUES(";
-		for($i=0; $i< (count($fields) - 1); $i++) {
-			$sql .= "?,";
+		$res = $DB->query("UPDATE person SET survey_completed = 'Y' where user_id = ?", array($session->attr_get('user_id')));
+
+		if($this->is_database_error($res)) {
+			return false;
 		}
-		$sql .= "?)";
 		
-		$res = $DB->query($sql, $fields_data);
+		return true;
+	}
+}
+
+class PersonSignWaiver extends Handler
+{
+
+	function checkPrereqs ( $op ) 
+	{
+		return false;
+	}
+	
+	function initialize ()
+	{
+		global $session;
+		$this->set_title("Informed Consent Form for League Play");
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'allow',
+		);
+		$this->op = 'person_signwaiver';
+
+		$this->formFile = 'waiver_form.html';
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+		$step   = var_from_getorpost('step');
+		$next = var_from_getorpost('next');
+		if(is_null($next)) {
+			$next = queryPickle("menu");
+		}
+		
+		switch($step) {
+
+			case 'perform':
+				$this->perform();
+				local_redirect( queryUnpickle($next));
+			default:
+				$rc = $this->generateForm( $next );
+		}	
+		
+		return $rc;
+	}
+
+	/**
+	 * Process input from the waiver form.
+	 *
+	 * User will not be permitted to log in if they have not signed the
+	 * waiver.
+	 */
+	function perform()
+	{
+		global $DB, $session;
+		
+		$id = $session->attr_get('user_id');
+		$signed = var_from_getorpost('signed');
+		
+		if('yes' != $signed) {
+			$this->error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
+		}
+
+		/* otherwise, it's yes.  Mark the signed_waiver field to the current
+		 * date */
+		$res = $DB->query("UPDATE person SET waiver_signed=NOW() where user_id = ?", array($id));
+
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -1451,6 +1499,74 @@ class PersonActivate extends PersonEdit
 		return true;
 	}
 
+	function generateForm( $next )
+	{
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('next', $next);
+		$output .= form_hidden('step', 'perform');
+
+		ob_start();
+		$retval = @readfile("data/" . $this->formFile);
+		if (false !== $retval) {
+			$output .= ob_get_contents();
+		}
+		ob_end_clean();
+
+		$output .= para(form_submit('submit') . form_reset('reset'));
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
+		return true;
+	}
+}
+
+class PersonSignDogWaiver extends PersonSignWaiver
+{
+	function initialize ()
+	{
+		global $session;
+		$this->set_title("Informed Consent Form For Dog Owners");
+
+		$this->_required_perms = array(
+			'require_valid_session',
+			'allow',
+		);
+		$this->op = 'person_signdogwaiver';
+
+		$this->formFile = 'dog_waiver_form.html';
+
+		return true;
+	}
+
+	/**
+	 * Process input from the waiver form.
+	 *
+	 * User will not be permitted to log in if they have not signed the
+	 * waiver.
+	 */
+	function perform()
+	{
+		global $DB, $session;
+		
+		$id = $session->attr_get('user_id');
+		$signed = var_from_getorpost('signed');
+		
+		if('yes' != $signed) {
+			$this->error_exit("Sorry, if you wish to bring a dog to the fields, you must sign this waiver.");
+		}
+
+		/* otherwise, it's yes.  Set the user to 'active' and marked the
+		 * signed_waiver field to the current date */
+		$res = $DB->query("UPDATE person SET dog_waiver_signed=NOW() where user_id = ?", array($id));
+
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		
+		return true;
+	}
 }
 
 /**

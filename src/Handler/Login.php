@@ -16,6 +16,11 @@ class Login extends Handler
 		return true;
 	}
 
+	function checkPrereqs( $op ) 
+	{
+		return false;
+	}
+
 	/**
 	 * Process a user login
 	 *
@@ -38,7 +43,7 @@ class Login extends Handler
 			print $this->get_header();
 			print $this->login_form();
 			print $this->get_footer();
-			return true;  // TODO: remove me when Smarty gone.
+			return true;
 		}
 		
 		/* Now, if we can, we will create a new user session */
@@ -47,7 +52,7 @@ class Login extends Handler
 			print $this->get_header();
 			print $this->login_form("Incorrect username or password");
 			print $this->get_footer();
-			return true; // TODO: remove me when Smarty gone.
+			return true;
 		}
 	
 		/* 
@@ -68,13 +73,13 @@ class Login extends Handler
 				print $this->get_header();
 				print $this->login_form("Login Denied.  Account creation is awaiting approval.");
 				print $this->get_footer();
-				return true;  // TODO Remove when smarty gone.
+				return true; 
 				break;
 			case 'locked':
 				print $this->get_header();
 				print $this->login_form("Login Denied.  Account has been locked by administrator.");
 				print $this->get_footer();
-				return true;  // TODO Remove when smarty gone.
+				return true;
 				break;
 			case 'inactive':
 				/* Inactive.  Send this person to the revalidation page(s) */
@@ -96,7 +101,7 @@ class Login extends Handler
 				} else {  
 					setcookie(session_name(), session_id(), FALSE, $path);
 				}
-				
+
 				local_redirect("op=menu");
 				break;
 		}
@@ -161,6 +166,11 @@ class Logout extends Handler
 			'allow'
 		);
 		return true;
+	}
+
+	function checkPrereqs( $op ) 
+	{
+		return false;
 	}
 
 	function process ()

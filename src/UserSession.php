@@ -77,7 +77,7 @@ class UserSession
 			return false;
 		}
 
-		$sth = $DB->prepare("SELECT * FROM person WHERE session_cookie = ? AND client_ip = ?");
+		$sth = $DB->prepare("SELECT *, UNIX_TIMESTAMP(waiver_signed) as waiver_timestamp, UNIX_TIMESTAMP(dog_waiver_signed) as dog_waiver_timestamp FROM person WHERE session_cookie = ? AND client_ip = ?");
 		$res = $DB->execute($sth, array($cookie, $client_ip));
 		if(DB::isError($res)) {
 			error_log( "Error: Couldn't fetch user info from db: " . $res->getMessage() );

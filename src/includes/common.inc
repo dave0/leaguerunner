@@ -27,6 +27,15 @@ function local_redirect($url)
     exit();
 }
 
+function queryPickle( $q )
+{
+	return base64_encode($q);
+}
+function queryUnpickle( $q )
+{
+	return base64_decode($q);
+}
+
 
 
 /*
@@ -156,14 +165,46 @@ function form_textarea($title, $name, $value, $cols, $rows, $description = 0)
 	return form_item($title, "<textarea wrap=\"virtual\"$cols rows=\"$rows\" name=\"$name\" id=\"$name\">". check_form($value) ."</textarea>", $description);
 }
 
-function form_select($title, $name, $value, $options, $description = 0, $extra = 0, $multiple = 0) 
+function form_radiogroup($title, $name, $value, $options, $description = 0)
+{
+	$radio = "";
+	if (count($options) > 0) {
+		foreach ($options as $key=>$choice) {
+			$radio .= form_radio($choice,$name,$key, ($key == $value), '');
+		}
+		return form_item($title, $radio, $description);
+	}
+}
+
+function __form_select($name, $value, $options, $extra = 0, $multiple = 0) 
 {
 	if (count($options) > 0) {
 		foreach ($options as $key=>$choice) {
 			$select .= "<option value=\"$key\"". (is_array($value) ? (in_array($key, $value) ? " selected=\"selected\"" : "") : ($value == $key ? " selected=\"selected\"" : "")) .">". check_form($choice) ."</option>";
 		}
-		return form_item($title, "<select name=\"$name". ($multiple ? "[]" : "") ."\"". ($multiple ? " multiple " : "") . ($extra ? " $extra" : "") .">$select</select>", $description);
+		return "<select name=\"$name". ($multiple ? "[]" : "") ."\"". ($multiple ? " multiple " : "") . ($extra ? " $extra" : "") .">$select</select>";
 	}
+}
+
+
+function form_select($title, $name, $value, $options, $description = 0, $extra = 0, $multiple = 0) 
+{
+	if (count($options) > 0) {
+		return form_item($title, __form_select($name, $value, $options, $extra, $multiple), $description);
+	}
+}
+
+function form_select_date($title,$prefix,$value, $startYear, $endYear, $description)
+{
+	list($value_year, $value_month, $value_day) = split("-", $value);
+	$allSelect = __form_select($prefix . '_year', $value_year, 
+		getOptionsFromRange($startYear, $endYear, 'reverse'));
+	$allSelect .= __form_select($prefix . '_month', $value_month, 
+		getOptionsFromRange('1','12'));
+	$allSelect .= __form_select($prefix . '_day', $value_day, 
+		getOptionsFromRange('1','31'));
+		
+	return form_item($title, $allSelect, $description);
 }
 
 function form_radios($title, $name, $value, $options, $description = 0) 
@@ -339,17 +380,53 @@ function get_numeric_options ( $start, $finish )
 	return array_map("map_callback", $foo);
 }
 
+/**
+ * Helper fn to get names of provinces for use in a select list
+ */
+function getProvinceNames()
+{
+	$names = array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon');
+	$ary = array();
+	while(list(,$name) = each($names)) {
+		$ary[$name] = $name;
+	}
+	return $ary;
+}
+
+/**
+ * Helper fn to return full descriptions for numeric skill levels
+ */
+function getOptionsForSkill()
+{
+	return array(
+		"10" => "10: High calibre competitive player (team was top 4 at nationals)",
+		"9" => "9: Medium calibre competitive player",
+		"8" => "8: Lower calibre competitive player",
+		"7" => "7: Top tier Mon/Wed league player, minimal/no comp experience",
+		"6" => "6: Mid to Upper tier Mon/Wed OR Top Tier Tue/Thu league player",
+		"5" => "5: Mid tier league player",
+		"4" => "4: Key player lower tier team, minimal/no higher tier experience",
+		"3" => "3: Lower tier league player",
+		"2" => "2: Beginner, minimal experience but athletic with sports background",
+		"1" => "1: Absolute Beginner",
+	);
+}
+
 /** 
  * Helper fn to set up allowed values for an option list.
  * Use in preference to get_numeric_options, as that fn is deprecated
  */
-function getOptionsFromRange( $start, $finish )
+function getOptionsFromRange( $start, $finish, $reverse = 0 )
 {
 	$result = array();
 	$result["---"] = "---";
 	for($i = $start; $i <= $finish; $i++) {
 		$result[$i] = $i;
 	}
+	if($reverse) {
+		$result = array_reverse($result,true);
+	}
+
 	return $result;
 }
 
@@ -390,6 +467,7 @@ function getOptionsFromEnum( $table, $col_name )
 	$ary = preg_split("/,/",$str);
 
 	$result = array();
+	$result["---"] = "---";
 	foreach($ary as $val) {
 		$result[$val] = $val;
 	}
