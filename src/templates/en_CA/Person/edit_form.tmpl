@@ -126,11 +126,16 @@
       <td class='row_title' valign="top">Skill Level:</td> 
       <td class='row_data'>
         {if $perm_edit_skill}
-          <input type="radio" name="skill_level" value="1" {if $skill_level eq 1}checked{/if}>1 = Just learning the game<br />
-          <input type="radio" name="skill_level" value="2" {if $skill_level eq 2}checked{/if}>2<br />
-          <input type="radio" name="skill_level" value="3" {if $skill_level eq 3}checked{/if}>3<br />
-          <input type="radio" name="skill_level" value="4" {if $skill_level eq 4}checked{/if}>4<br />
-          <input type="radio" name="skill_level" value="5" {if $skill_level eq 5}checked{/if}>5 = Expert player<br />
+          <input type="radio" name="skill_level" value="10" {if $skill_level eq 10}checked{/if}>10: High calibre competitive player (team was top 4 at nationals)<br />
+          <input type="radio" name="skill_level" value="9" {if $skill_level eq 9}checked{/if}>9: Medium calibre competitive player<br />
+          <input type="radio" name="skill_level" value="8" {if $skill_level eq 8}checked{/if}>8: Lower calibre competitive player<br />
+          <input type="radio" name="skill_level" value="7" {if $skill_level eq 7}checked{/if}>7: Top tier Mon/Wed league player, minimal/no comp experience<br />
+          <input type="radio" name="skill_level" value="6" {if $skill_level eq 6}checked{/if}>6: Mid to Upper tier Mon/Wed OR Top Tier Tue/Thu league player<br />
+          <input type="radio" name="skill_level" value="5" {if $skill_level eq 5}checked{/if}>5: Mid tier league player<br />
+          <input type="radio" name="skill_level" value="4" {if $skill_level eq 4}checked{/if}>4: Key player lower tier team, minimal/no higher tier experience<br />
+          <input type="radio" name="skill_level" value="3" {if $skill_level eq 3}checked{/if}>3: Lower tier league player<br />
+          <input type="radio" name="skill_level" value="2" {if $skill_level eq 2}checked{/if}>2: Beginner, minimal experience but athletic with sports background<br />
+          <input type="radio" name="skill_level" value="1" {if $skill_level eq 1}checked{/if}>1: Absolute Beginner<br />
         {else}
           {$skill_level}
         {/if}

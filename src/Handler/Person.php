@@ -743,8 +743,6 @@ class PersonEdit extends Handler
 				array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'))
 		);
 
-/* Here */
-
 		$this->tmpl->assign("gender", $row['gender']);
 		$this->tmpl->assign("gender_list",
 			array_map(
@@ -753,11 +751,6 @@ class PersonEdit extends Handler
 		);
 		
 		$this->tmpl->assign("skill_level", $row['skill_level']);
-		$this->tmpl->assign("skill_list", 
-			array_map(
-				"map_callback",
-				array(1,2,3,4,5))
-		);
 
 		$this->tmpl->assign("started_year", $row['year_started'] . "-00-00");
 		
@@ -1040,7 +1033,7 @@ class PersonEdit extends Handler
 		
 		if($this->_permissions['edit_skill']) {
 			$skill = var_from_getorpost('skill_level');
-			if( $skill < 1 || $skill > 5 ) {
+			if( $skill < 1 || $skill > 10 ) {
 				$rc = false;
 				$this->error_text .= "\n<li>You must select a skill level between 1 and 5";
 			}
@@ -1108,11 +1101,6 @@ class PersonCreate extends PersonEdit
 		);
 		
 		$this->tmpl->assign("skill_level", "");
-		$this->tmpl->assign("skill_list", 
-			array_map(
-				"map_callback",
-				array(1,2,3,4,5))
-		);
 
 		return true;
 	}
