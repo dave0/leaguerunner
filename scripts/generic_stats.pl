@@ -6,10 +6,14 @@
 use strict;
 use DBI;
 
+my $print_only = shift || 0;
+
 my $database_name = 'leaguerunner';
 my $database_host = 'localhost';
 my $database_user = 'leaguerunner';
 my $database_pass = 'ocuaweb';
+my $from_addr = 'dmo@acm.org';
+my $to_addr = 'dmo@acm.org';
 
 ## Initialise database handle.
 my $dsn = "DBI:mysql:database=${database_name}:host=${database_host}";
@@ -62,7 +66,19 @@ while($ary  = $sth->fetchrow_arrayref()) {
 }
 
 $stats .= "\tPlayers by identified city:\n";
-$sth = $DB->prepare(q{SELECT addr_city,COUNT(*) as num from person group by addr_city ORDER BY num});
+$sth = $DB->prepare(q{SELECT addr_city,COUNT(*) as num from person group by addr_city ORDER BY num desc});
+$sth->execute();
+while($ary  = $sth->fetchrow_arrayref()) {
+	$stats .= "\t\t" . print_evenly($ary->[0], $ary->[1], 24);
+}
+$stats .= "\tPlayers by skill level:\n";
+$sth = $DB->prepare(q{SELECT skill_level,COUNT(*) as num from person group by skill_level ORDER BY skill_level});
+$sth->execute();
+while($ary  = $sth->fetchrow_arrayref()) {
+	$stats .= "\t\t" . print_evenly($ary->[0], $ary->[1], 24);
+}
+$stats .= "\tPlayers by starting year:\n";
+$sth = $DB->prepare(q{SELECT year_started,COUNT(*) as num from person group by year_started ORDER BY year_started});
 $sth->execute();
 while($ary  = $sth->fetchrow_arrayref()) {
 	$stats .= "\t\t" . print_evenly($ary->[0], $ary->[1], 24);
@@ -98,7 +114,11 @@ $sth = $DB->prepare(q{SELECT l.year, l.name, l.tier, count(*)
 			ORDER BY l.year,l.season,l.day,l.tier});
 $sth->execute();
 while($ary  = $sth->fetchrow_arrayref()) {
-	my $tier_name = $ary->[0] . " " . $ary->[1];
+	my $tier_name = "";
+	if(defined($ary->[0])) {
+		$tier_name .= $ary->[0] . " ";
+	}
+	$tier_name .= $ary->[1];
 	if(defined($ary->[2])) { 
 		$tier_name .= " Tier " . $ary->[2];
 	}
@@ -124,7 +144,20 @@ if($num_rows < 25) {
 	$stats .= "\t\t[ list suppressed; longer than 25 teams ]\n";
 }
 
-print $stats;
+if($print_only ne 0) {
+	print $stats;
+} else {
+	open(SENDMAIL, "|/usr/sbin/sendmail -oi -t")
+	    || die "Couldn't exec sendmail: $!";
+	print SENDMAIL<<EOF;
+From: $from_addr
+To: $to_addr
+Subject: OCUA Leaguerunner Stats Update
+
+$stats
+
+EOF
+}
 
 sub print_evenly
 {
