@@ -108,7 +108,7 @@ class FieldEdit extends Handler
 		global $id;
 		$step = var_from_getorpost('step');
 		if($step == 'perform') {
-			return $this->output_redirect("op=field_view;id=$id");
+			return $this->output_redirect("op=field_view&id=$id");
 		}
 		return parent::display();
 	}
