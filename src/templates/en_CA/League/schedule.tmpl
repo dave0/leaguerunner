@@ -44,33 +44,33 @@
   <form action='{$app_cgi_location}' method='POST'>
   <input type='hidden' name='op' value='league_schedule_edit'>
   <input type='hidden' name='week_id' value='{$week.id}'>
-  <input type='hidden' name='league_id' value='{$league_id}'>
+  <input type='hidden' name='id' value='{$league_id}'>
   {foreach name=games from=$week.games item=game}
   <tr>
     <td>
-      <input type='hidden' name='game_id' value='{$game.id}'>
-      <select name='round[{$game.id}]'>
+      <input type='hidden' name='games[{$game.id}][game_id]' value='{$game.id}'>
+      <select name='games[{$game.id}][round]'>
       {create_options data=$league_rounds selected=$game.round}
       </select>
     </td>
     <td>
       {* does this work OK, or do I need a custom one *}
-      <select name='game_time[{$game.id}]'>
+      <select name='games[{$game.id}][start_time]'>
       {create_options data=$league_starttime selected=$game.time}
       </select>
     </td>
     <td>
-      <select name='home[{$game.id}]'>
+      <select name='games[{$game.id}][home_id]'>
       {create_options data=$league_teams selected=$game.home_id}
       </select>
     </td>
     <td>
-      <select name='away[{$game.id}]'>
+      <select name='games[{$game.id}][away_id]'>
       {create_options data=$league_teams selected=$game.away_id}
       </select>
     </td>
     <td>
-      <select name='field[{$game.id}]'>
+      <select name='games[{$game.id}][field_id]'>
       {create_options data=$league_fields selected=$game.field_id}
       </select>
     </td>
