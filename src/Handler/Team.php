@@ -1017,8 +1017,11 @@ class TeamSchedule extends Handler
 			
 		$empty_row_added = 0;
 		$prev_game_id = 0;
+		$countgames = 0;
+		$numgames = count($games);
 		$update_prev_game_id = 1;
 		while(list(,$game) = each($games)) {
+			$countgames++;
 			$space = '&nbsp;';
 			$dash = '-';
 			if($game->home_id == $id) {
@@ -1029,6 +1032,12 @@ class TeamSchedule extends Handler
 				$opponent_id = $game->home_id;
 				$opponent_name = $game->home_name;
 				$home_away = '(away)';
+			}
+
+			if ($opponent_name == "") {
+				$opponent_name = "(to be determined)";
+			} else {
+				$opponent_name = l($opponent_name, "team/view/$opponent_id");
 			}
 
 			$game_score = $space;
@@ -1056,7 +1065,8 @@ class TeamSchedule extends Handler
 				$score_type .= " (default)";
 			}
 
-			if ($game->home_id == "" && $game->away_id == "") {
+			// see if you're at the next dependant games (only for ladder!)
+			if ( ($numgames - $countgames < 2) && ($game->home_id == "" || $game->away_id == "") ) {
 				$update_prev_game_id = 0;
 				if (!$empty_row_added) {
 					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
@@ -1081,7 +1091,7 @@ class TeamSchedule extends Handler
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
-				l($opponent_name, "team/view/$opponent_id"),
+				$opponent_name,
 				l($game->field_code, "field/view/$game->fid"),
 				$home_away,
 				$game_score,
