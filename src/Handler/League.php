@@ -973,6 +973,10 @@ class LeagueCaptainEmails extends Handler
 
 class LeagueMoveTeam extends Handler
 {
+	var $league;
+	var $team;
+	var $targetleague;
+
 	function initialize ()
 	{
 		$this->_required_perms = array(
@@ -987,49 +991,67 @@ class LeagueMoveTeam extends Handler
 
 	function process ()
 	{
+		global $session;
+
 		$leagueId = arg(2);
 		$teamId = arg(3);
-		
-		$league = league_load( array('league_id' => $leagueId ) );
-		if( !$league ) {
+	
+		$this->league = league_load( array('league_id' => $leagueId ) );
+		if( !$this->league ) {
 			$this->error_exit("You must supply a valid league ID");
 		}
 		
-		if( !validate_number($teamId) ) {
+		$this->team = team_load( array('team_id' => $teamId ) );
+		if( !$this->team ) {
 			$this->error_exit("You must supply a valid team ID");
 		}
 
 		$edit = $_POST['edit'];
-		
-		switch($edit['step']) {
-			case 'confirm':
-				$rc = $this->generateConfirm( $leagueId, $teamId, $edit );
-				break;
-			case 'perform':
-				$this->perform( $leagueId, $teamId, $edit);
-				local_redirect(url("league/view/$leagueId"));
-				break;
-			default:
-				$rc = $this->generateForm( $leagueId, $teamId );
+
+		if( $edit['step'] == 'confirm' || $edit['step'] == 'perform' ) {
+			if($edit['target'] < 1) {
+				$this->error_exit("That is not a valid league to move to");
+			}
+			
+			if( ! $session->is_coordinator_of($edit['target']) ) {
+				$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
+			}
+			
+			$this->targetleague = league_load( array('league_id' => $edit['target']));
+			if( !$this->targetleague ) {
+				$this->error_exit("You must supply a valid league to move to");
+			}
+			
+			switch($edit['step']) {
+				case 'confirm':
+					$rc = $this->generateConfirm();
+					break;
+				case 'perform':
+					$this->perform();
+					local_redirect(url("league/view/$leagueId"));
+					break;
+				default:
+			}
+		} else {
+				$rc = $this->generateForm();
 		}
 		
-		$this->setLocation(array( $league->fullname => "league/view/$leagueId", $this->title => 0));
+		
+		$this->setLocation(array( $this->league->fullname => "league/view/$leagueId", $this->title => 0));
 
 		return $rc;
 	}
 	
-	function perform ( $leagueId, $teamId, $edit )
+	function perform ()
 	{
-		global $session;
 
-		if($edit['target'] < 1) {
-			$this->error_exit("That is not a valid league to move to");
+		$this->targetleague->load_teams();
+		$rank = 0;
+		if( $this->targetleague->schedule_type == 'ladder' ) {
+			$rank = count($this->targetleague->teams) + 1;
 		}
-		if( ! $session->is_coordinator_of($edit['target']) ) {
-			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
-		}
-
-		db_query("UPDATE leagueteams SET league_id = %d WHERE team_id = %d AND league_id = %d", $edit['target'], $teamId, $leagueId);
+	
+		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $this->targetleague->league_id, $rank, $this->team->team_id, $this->league->league_id);
 		
 		if( 1 != db_affected_rows() ) {
 			$this->error_exit("Couldn't move team between leagues");
@@ -1037,44 +1059,25 @@ class LeagueMoveTeam extends Handler
 		return true;
 	}
 
-	function generateConfirm ( $leagueId, $teamId, $edit )
+	function generateConfirm ( )
 	{
-		global $session;
-
-		if( ! $session->is_coordinator_of($edit['target']) ) {
-			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
-		}
-
-		$to = league_load( array('league_id' => $edit['target'] ) );
-		if( !$to ) {
-			$this->error_exit("That is not a valid league to move to");
-		}
-		
-		$team = team_load( array('team_id' => $teamId) );
-		if(! $team ) {
-			$this->error_exit("That is not a valid team");
-		}
-
 		$output .= form_hidden('edit[step]', 'perform');
-		$output .= form_hidden('edit[target]', $edit['target']);
+		$output .= form_hidden('edit[target]', $this->targetleague->league_id);
 		
 		$output .= para( 
-			"You are attempting to move the team <b>$team->name</b> to <b>$to->fullname</b>. <br />If this is correct, please click 'Submit' below."
-		);
-
+			"You are attempting to move the team <b>" 
+			. $this->team->name 
+			. "</b> to <b>" 
+			. $this->targetleague->fullname
+			. "</b>");
+		$output .= para("If this is correct, please click 'Submit' below.");
 		$output .= form_submit("Submit");
-		
 		return form($output);
 	}
 	
-	function generateForm ( $leagueId, $teamId )
+	function generateForm ( )
 	{
 		global $session;
-
-		$team = team_load( array('team_id' => $teamId) );
-		if(!$team ) {
-			$this->error_exit("That is not a valid team");
-		}
 
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
@@ -1092,9 +1095,13 @@ class LeagueMoveTeam extends Handler
 		
 		$output = form_hidden('edit[step]', 'confirm');
 		$output .= 
-			para("You are attempting to move the team <b>$team->name</b>. Select the league you wish to move it to")
-			. form_select('', 'edit[target]', '', $leagues);
+			para("You are attempting to move the team <b>" 
+				. $this->team->name 
+				. "</b>. Select the league you wish to move it to");
+				
+		$output .= form_select('', 'edit[target]', '', $leagues);
 		$output .= form_submit("Submit");
+		$output .= form_reset("Reset");
 
 		return form($output);
 	}
@@ -1287,6 +1294,16 @@ class LeagueLadder extends Handler
 		return true;
 	}
 
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->_permissions['administer_league'] = true;
+		} else if($type == 'coordinator') {
+			$this->_permissions['administer_league'] = true;
+		} 
+	}
+
+
 	function process ()
 	{
 		global $session;
@@ -1317,19 +1334,27 @@ class LeagueLadder extends Handler
 
 			switch($direction) {
 				case 'lower':
-					db_query("UPDATE leagueteams SET rank = rank + 1 WHERE league_id = %d AND team_id = %d", $league->league_id, $team->team_id);
-					if(db_affected_rows() != 1) {
-						$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
-					}
+					$new_rank = $team->rank + 1;
 					break;
 				case 'higher':
-					db_query("UPDATE leagueteams SET rank = rank - 1 WHERE league_id = %d AND team_id = %d", $league->league_id, $team->team_id);
-					if(db_affected_rows() != 1) {
-						$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
-					}
+					$new_rank = $team->rank - 1;
 					break;
 				default:
 					$this->error_exit("That is not a valid ladder adjustment");
+			}
+			
+			// Race condition here.  If someone else is doing this, we
+			// may end up with mis-ranked teams.  It shouldn't be
+			// too big of a worry, though.
+			$other_team_id = db_result(db_query("SELECT team_id FROM leagueteams WHERE rank = %d AND league_id = %d", $new_rank, $league->league_id));
+			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $new_rank, $league->league_id, $team->team_id);
+			if(db_affected_rows() != 1) {
+				$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
+			}
+			
+			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $team->rank, $league->league_id, $other_team_id);
+			if(db_affected_rows() != 1) {
+				$this->error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
 			}
 			
 			// Redirect to prevent page-reload from breaking things.
