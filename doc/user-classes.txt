@@ -1,0 +1,79 @@
+User Classes and Membership Numbers
+
+In order to enable per-user validation as accounts are created ( to prevent
+duplicates and cut down on bulk account creation by captains, a system of
+user classes needs to be implemented.  This will also assignment of
+membership numbers and facilitate forced renewal of account information and
+agreement to a waiver every season.
+
+The system will be implemented by modifying the 'class' field in the
+'person' database table.  This field is now used solely for permissions
+checking and is described at the time of this writing as:
+    class   ENUM('player','volunteer','administrator') DEFAULT 'player' NOT NULL
+
+This column will be extended to contain other classes of account as
+follows:
+    class  ENUM(
+    	'new',
+	'inactive',
+	'active',
+	'locked',
+	'volunteer',
+	'administrator') DEFAULT 'new' NOT NULL
+
+The meanings of these classes will be:
+
+new
+	This class of user is given when a new account is created.  This
+	class of account cannot log in, but the information is stored until
+	an adminstrator can approve the account creation.  Approval of
+	account creation transitions the user from the 'new' class to the
+	'inactive' class.  The approval process can also assign a permanent
+	membership number to the account.
+
+	Users in the 'new' class cannot be viewed by other users without
+	administrator privileges, nor can they be added to teams or set as
+	league coordinators.
+
+inactive
+	The inactive account class is used for users that must revalidate
+	the data they have entered, and click their agreement to a waiver.
+	This process will take place after account creation, and annually
+	or on a periodic basis to ensure that information is kept up to
+	date.  Moving from the 'inactive' class to 'active' occurs when a
+	user fulfills all the requirements.  At this time, those
+	requirements are assumed to be:
+		- confirmation of their personal information (address,
+		  email, telephone, privacy preferences).  Users will not
+		  be able to change their system username without
+		  contacting the administrator.
+		- agreement/clickthrough of a waiver of liability to the
+		  league, for insurance purposes
+	Once these have been completed, the user moves automatically to
+	'active'.
+
+active
+	The 'active' account class takes the place of the old "player"
+	class.  This allows general users to log in, view stats, create new
+	teams, and perform captains' tasks if they are listed as a team
+	captain.
+
+locked
+	The 'locked' class is for administrative use, when it is determined
+	that a user's account needs to be disabled for some reason. 
+	class of account cannot log in, and has the same restrictions as
+	the 'new' class.
+
+volunteer
+	The 'volunteer' class is used to indicate certain individuals who
+	can be given extra responsibility.  They currently get no direct
+	privileges by virtue of this class, as it exists solely to define a
+	list of users that can be marked as league administrators.
+	'volunteer' class users will also not be automatically moved to the
+	'inactive' state when the periodic confirmation step is required.
+
+administrator
+	The 'administrator' class gives all system privileges to users with
+	it set.  By default, only the 'admin' user has this class, but it
+	can be set for other users as well.  Users with this class are also
+	ignored (not moved to 'inactive') when a confirmation is required.
