@@ -3,14 +3,21 @@
  * Common functions for use throughout Leagueruner
  */
 
+/*
+ * Validation functions
+ */
 function validate_url_input ( $string )
 {
-	if( !validate_nonblank($string) ) {
+	/* Ensure that it starts with http:// and something that could be a
+	 * hostname, and does not contain any nasty characters (such as 
+	 * HTML tags, etc)
+	 */
+	if ( ! preg_match("/^http:\/\/[:@\.\w_-]+/", $string) ) {
 		return false;
 	}
-	/* TODO: Ensure that it starts with http:// and does not contain 
-	 * any invalid characters (such as HTML blink tags, etc)
-	 */
+	if( preg_match("/[<>'\"]/", $string) ) {
+		return false;
+	}
 	return true;
 }
 
@@ -101,4 +108,25 @@ function validate_nonblank( $string )
 	}
 	return true;
 }
+
+/*
+ * Helper functions
+ */
+
+/*
+ * PHP doesn't have the Perlish comparisons of cmp and <=>
+ * so we fake a numeric cmp() here.
+ */
+function cmp ($a, $b) 
+{
+	if($a > $b) {
+		return 1;
+	}
+	if($a < $b) {
+		return -1;
+	}
+	return 0;
+}
+
+
 ?>

@@ -356,36 +356,35 @@ class LeagueEdit extends Handler
 	/* TODO: Properly validate other data */
 	function validate_data ()
 	{
-		$err = true;
-		
-		$league_name = trim(var_from_getorpost("league_name"));
-		if(0 == strlen($league_name)) {
-			$this->error_text .= gettext("Name cannot be left blank") . "<br>";
-			$err = false;
+		$rc = true;
+
+		$league_name = var_from_getorpost("league_name");
+		if ( ! validate_name_input($league_name)) {
+			$this->error_text .= "Name cannot be left blank<br>";
+			$rc = false;
 		}
 
 		$coord_id = var_from_getorpost("coordinator_id");
 		if($coord_id <= 0) {
-			$this->error_text .= gettext("A coordinator must be selected") . "<br>";
-			$err = false;
+			$this->error_text .= "A coordinator must be selected<br>";
+			$rc = false;
 		}
 		
 		$league_allow_schedule = var_from_getorpost("league_allow_schedule");
 		if( $league_allow_schedule != 'Y' && $league_allow_schedule != 'N' ) {
-			$this->error_text .= gettext("Values for allow schedule are Y and N") . "<br>";
-			$err = false;
+			$this->error_text .= "Values for allow schedule are Y and N<br>";
+			$rc = false;
 		}
 
 		if($league_allow_schedule = 'Y') {
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
 				$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
-				$err = false;
+				$rc = false;
 			}
 		}
 		
-		
-		return $err;
+		return $rc;
 	}
 
 }
@@ -413,27 +412,47 @@ class LeagueList extends Handler
 	function process ()
 	{
 		global $DB;
-		
-		$this->set_template_file("common/generic_list.tmpl");
 
+		$season = var_from_getorpost('season');
+		if(!isset($season)) {
+			$season = 'none';
+		} else {
+			if( !validate_name_input($season) ) {
+				$this->error_text = "That is not a valid season"; 
+				return false;
+			}
+		}
+	
+		if($season != 'none') {
+			$this->set_title("List $season Leagues");
+		}
+		
+		$this->set_template_file("League/list.tmpl");
+	
+		/* Fetch league names */
+		$row = $DB->getRow("SHOW COLUMNS from league LIKE 'season'", array(), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($row)) {
+			return false;
+		}
+		$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
+		$str = str_replace(")","",$str);
+		$str = str_replace("'","",$str);
+		$ary = preg_split("/,/",$str);
+		$this->tmpl->assign('season_names', $ary);
+		$this->tmpl->assign("current_season", $season);
+		
 		$found = $DB->getAll(
 			"SELECT 
-				CONCAT_WS(' ',name, ratio, 'Tier', tier) AS value, 
-				league_id AS id_val 
-			 FROM league",
-			array(), DB_FETCHMODE_ASSOC);
+				league_id AS id, name, tier, ratio
+			 FROM league
+			 WHERE season = ? ORDER BY day,name,tier",
+			array($season), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($found)) {
 			return false;
 		}
 		
-		$this->tmpl->assign("available_ops", array(
-			array(
-				'description' => 'view',
-				'action' => 'league_view'
-			),
-		));
 		$this->tmpl->assign("page_op", "league_list");
-		$this->tmpl->assign("list", $found);
+		$this->tmpl->assign("leagues", $found);
 		
 		return true;
 	}
@@ -628,7 +647,6 @@ class LeagueScheduleAddWeek extends Handler
 
 	/**
 	 * Add week to schedule.
-	 * TODO: test this
 	 */
 	function perform ()
 	{
@@ -1133,7 +1151,7 @@ class LeagueStandings extends Handler
 					t.team_id AS id, t.name
 				FROM
 					leagueteams l
-					LEFT JOIN team t ON (lt.team_id = t.team_id)
+					LEFT JOIN team t ON (l.team_id = t.team_id)
 				WHERE
 					league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
@@ -1315,34 +1333,48 @@ class LeagueStandings extends Handler
 		}
 	}
 
-
-	/**
-	 * TODO Finish me!
-	 */
-	function sort_standings ($a, $b) 
+	function sort_standings (&$a, &$b) 
 	{
+
+		/* First, order by wins */
 		$b_points = (( 2 * $b['win'] ) + $b['tie']);
 		$a_points = (( 2 * $a['win'] ) + $a['tie']);
 		$rc = cmp($b_points, $a_points);  /* B first, as we want descending */
-#		if($rc != 0) {
+		if($rc != 0) {
 			return $rc;
-#		}
-	}
-}
+		}
 
-/*
- * Fucking php doesn't have the Perlish comparisons of cmp and <=>
- * Grr.
- */
-function cmp ($a, $b) 
-{
-	if($a > $b) {
-		return 1;
+		/* Next, check +/- */
+		$rc = cmp($b['points_for'] - $b['points_against'], $a['points_for'] - $a['points_against']);
+		if($rc != 0) {
+			return $rc;
+		}
+		
+		/* Check SOTG */
+		if($a['games'] > 0 && $b['games'] > 0) {
+			$rc = cmp( $b['spirit'] / $b['games'], $a['spirit'] / $a['games']);
+			if($rc != 0) {
+				return $rc;
+			}
+		}
+		
+		/* Then, check head-to-head wins */
+		if(isset($b['vs'][$a['id']]) && isset($a['vs'][$b['id']])) {
+			$rc = cmp($b['vs'][$a['id']], $a['vs'][$b['id']]);
+			if($rc != 0) {
+				return $rc;
+			}
+		}
+
+		/* 
+		 * Finally, check losses.  This ensures that teams with no record
+		 * appear above teams who have losses.
+		 */
+		$rc = cmp($a['loss'], $b['loss']);
+		if($rc != 0) {
+			return $rc;
+		}
 	}
-	if($a < $b) {
-		return -1;
-	}
-	return 0;
 }
 
 /**
