@@ -30,6 +30,11 @@ function league_dispatch()
 function league_menu()
 {
 	global $session;
+
+	if( !$session->is_player() ) {
+		return;
+	}
+	
 	menu_add_child('_root','league','Leagues');
 	menu_add_child('league','league/list','list leagues', array('link' => 'league/list') );
 	if( $session->is_valid() ) {
@@ -51,7 +56,7 @@ function league_menu()
 function league_add_to_menu( $this, &$league, $parent = 'league' ) 
 {
 	global $session;
-	
+
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
 	if($league->allow_schedule == 'Y') {
@@ -413,6 +418,7 @@ class LeagueList extends Handler
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'allow'
 		);
@@ -844,6 +850,7 @@ class LeagueView extends Handler
 
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'allow',

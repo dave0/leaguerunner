@@ -245,6 +245,7 @@ class FieldView extends Handler
 		$this->title = 'View Field';
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'allow',
 		);

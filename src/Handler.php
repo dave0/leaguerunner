@@ -97,20 +97,23 @@ class Handler
 		// TODO: This belongs as a config option
 		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
 
-		$time = $session->attr_get('waiver_timestamp');
-		if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
-			return url("person/signwaiver","next=$next");
+		if( $session->is_player() ) {
+			$time = $session->attr_get('waiver_timestamp');
+			if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
+				return url("person/signwaiver","next=$next");
+			}
+
+			$time = $session->attr_get('dog_waiver_timestamp');
+			if(($session->attr_get('has_dog') =='Y') 
+				&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
+				return url("person/signdogwaiver","next=$next");
+			}
 		}
 
-		$time = $session->attr_get('dog_waiver_timestamp');
-		if(($session->attr_get('has_dog') =='Y') 
-			&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
-			return url("person/signdogwaiver","next=$next");
-		}
-
-		if( $session->attr_get('survey_completed') != 'Y' ) {
-			return url("person/survey","next=$next");
-		}
+# DMO: Disable the survey.
+#		if( $session->attr_get('survey_completed') != 'Y' ) {
+#			return url("person/survey","next=$next");
+#		}
 
 		return false;
 	}
@@ -142,6 +145,10 @@ class Handler
 			} else if($perm_type == 'require_valid_session') {
 				if(!$session->is_valid()) {
 					$this->error_exit("You do not have a valid session");
+				}
+			} else if($perm_type == 'require_player') {
+				if(!$session->is_player()) {
+					$this->error_exit("You do not have permission to perform that operation");
 				}
 			} else if($perm_type == 'admin_sufficient') {
 				if($session->is_admin()) {

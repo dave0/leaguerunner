@@ -48,7 +48,7 @@ CREATE TABLE person (
 	year_started integer DEFAULT 0,  -- years playing
 
 	session_cookie varchar(50),
-	class   enum('volunteer','administrator', 'player') DEFAULT 'player' NOT NULL,
+	class   enum('volunteer','administrator', 'player', 'visitor') DEFAULT 'player' NOT NULL,
         status  enum('new','inactive','active','locked') DEFAULT 'new' NOT NULL,
 
 	waiver_signed datetime,

@@ -211,6 +211,18 @@ class UserSession
 	}
 
 	/** 
+	 * See if this session user is a player 
+	 */
+	function is_player()
+	{
+		return (
+			$this->attr_get('class') == 'player'
+			|| $this->attr_get('class') == 'volunteer'
+			|| $this->attr_get('class') == 'administrator'
+		);
+	}
+
+	/** 
 	 * See if this session user is an administrator
 	 */
 	function is_admin ()

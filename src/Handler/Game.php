@@ -37,6 +37,11 @@ class GameSubmit extends Handler
 			return false;
 		}
 
+		if(!$session->is_player()) {
+			$this->error_exit("You do not have permission to perform that operation");
+			return false;
+		}
+
 		$gameID = arg(2);
 		$teamID = arg(3);
 		if( !$gameID ) {
@@ -366,6 +371,7 @@ class GameView extends Handler
 		$this->title = "View Game";
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'allow'
 		);
@@ -473,6 +479,7 @@ class GameApprove extends Handler
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'allow'  # TODO: evil hack.  We do perms checks in process() below.
 		);
 		$this->title = "Approve Game Score";

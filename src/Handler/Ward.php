@@ -233,6 +233,7 @@ class WardList extends Handler
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'allow'		/* Allow everyone */
 		);
 		$this->setLocation(array('List Wards' => 'ward/list'));
@@ -287,6 +288,7 @@ class WardView extends Handler
 		$this->title = "View Ward";
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'allow',
 		);

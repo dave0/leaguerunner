@@ -54,6 +54,11 @@ function person_menu()
 	if($session->attr_get('has_dog') == 'Y') {
 		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
 	}
+
+    # Don't show "Players" menu for non-players.
+	if( ! $session->is_player() ) {
+	    return;
+	}
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
 	// TODO: same perms as admin_sufficient and volunteer_sufficient... these
@@ -129,12 +134,16 @@ class PersonView extends Handler
 			$this->error_exit("You must provide a user ID");
 		}
 
-		/* Anyone with a valid session can see your name,
-		 * your skill, your account status, and whether or not you have a dog 
+		/* Anyone can see your name,
+		 * Any valid player can see your skill, your account status, and
+		 * whether or not you have a dog 
 		 */
 		$this->_permissions['name'] = true;
-		$this->_permissions['skill'] = true;
-		$this->_permissions['dog'] = true;
+
+		if( $session->is_player() ) {
+			$this->_permissions['skill'] = true;
+			$this->_permissions['dog'] = true;
+		}
 		
 		/* Administrator can view all and do all */
 		if($session->attr_get('class') == 'administrator') {
@@ -220,7 +229,14 @@ class PersonView extends Handler
 	
 	function generateView (&$person)
 	{
+		global $session;
+		
 		$rows[] = array("Name:", $person->fullname);
+	
+		if( ! $session->is_player() ) {
+			person_add_to_menu( $this, $person );
+			return "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		}
 
 		if($this->_permissions['username']) {
 			$rows[] = array("System Username:", $person->username);
@@ -286,7 +302,7 @@ class PersonView extends Handler
 		if($this->_permissions['class']) {
 			$rows[] = array("Account Class:", $person->class);
 		}
-		
+	
 		$rows[] = array("Account Status:", $person->status);
 		
 		if($this->_permissions['dog']) {
@@ -505,7 +521,13 @@ class PersonApproveNewAccount extends PersonView
 			$this->error_exit("That account has already been approved");
 		}
 		
-		$text = "Confirm that you wish to approve this user.  The account will be moved to 'inactive' status.";
+		$text = "Confirm that you wish to approve this user as:" 
+			. form_select('', 'edit[class]', '--', array(
+				'--' => '- Select One -',
+				'player' => 'OCUA Player',
+				'visitor' => 'Non-player account'
+			))
+			. "The account will be moved to 'inactive' status.";
 		
 		/* Check to see if there are any duplicate users */
 		$result = db_query("SELECT
@@ -538,62 +560,72 @@ class PersonApproveNewAccount extends PersonView
 			$person->fullname => "person/view/$id",
 			$this->title => 0));
 		
-		return para($instructions)
-			. $this->generateView($person)
-			. form( 
-				form_hidden('edit[step]', 'perform')
+		return form( 
+				para($text)
+				. form_hidden('edit[step]', 'perform')
+				. $this->generateView($person)
 				. form_submit("Approve")
 			);
 	}
 
 	function perform ( $id )
 	{
+		$edit = $_POST['edit'];
+		
+		if($edit['class'] == '--') {
+			$this->error_exit("You must select an account class");
+		}
+		
 		$person = person_load( array('user_id' => $id ) );
 
-		$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
-			$person->year_started, $person->gender);
-		$rows = db_affected_rows();
-		if($rows == 1) {
-		
-			$result = db_query("SELECT LAST_INSERT_ID() from member_id_sequence");
-			$member_id = db_result($result);
-			if( !isset($member_id)) {
-				$this->error_exit("Couldn't get member ID allocation");
-			}
-		} else if($rows == 0) {
-			/* Possible empty, so fill it */
-			$lockname = "member_id_" 
-				. $person->year_started
-				. "_" 
-				. $person->gender 
-				. "_lock";
-			$result = db_query("SELECT GET_LOCK('$lockname',10)");
-			$lock = db_result($result);
-			
-			if(!isset($lock) || $lock == 0) {
-				/* Couldn't get lock */
-				$this->error_exit("Couldn't get lock for member_id allocation");
-			}
-			db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
+		if($edit['class'] == 'player') {
+			$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
 				$person->year_started, $person->gender);
-
-			db_query("SELECT RELEASE_LOCK('${lockname}')");
+			$rows = db_affected_rows();
+			if($rows == 1) {
 			
-			$member_id = 1;
-		} else {
-			/* Something bad happened */
-			return false;
-		}
+				$result = db_query("SELECT LAST_INSERT_ID() from member_id_sequence");
+				$member_id = db_result($result);
+				if( !isset($member_id)) {
+					$this->error_exit("Couldn't get member ID allocation");
+				}
+			} else if($rows == 0) {
+				/* Possible empty, so fill it */
+				$lockname = "member_id_" 
+					. $person->year_started
+					. "_" 
+					. $person->gender 
+					. "_lock";
+				$result = db_query("SELECT GET_LOCK('$lockname',10)");
+				$lock = db_result($result);
+				
+				if(!isset($lock) || $lock == 0) {
+					/* Couldn't get lock */
+					$this->error_exit("Couldn't get lock for member_id allocation");
+				}
+				db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
+					$person->year_started, $person->gender);
 
-		/* Now, that's really not the full member ID.  We need to build that
-		 * from other info too.
-		 */
-		$full_member_id = sprintf("%.4d%.1d%03d", 
-			$person->year_started,
-			($person->gender == "Male") ? 0 : 1,
-			$member_id);
-	
-		db_query("UPDATE person SET status = 'inactive', member_id = %d  where user_id = %d", $full_member_id, $id);
+				db_query("SELECT RELEASE_LOCK('${lockname}')");
+				
+				$member_id = 1;
+			} else {
+				/* Something bad happened */
+				return false;
+			}
+
+			/* Now, that's really not the full member ID.  We need to build that
+			 * from other info too.
+			 */
+			$full_member_id = sprintf("%.4d%.1d%03d", 
+				$person->year_started,
+				($person->gender == "Male") ? 0 : 1,
+				$member_id);
+		
+			db_query("UPDATE person SET class = 'player', status = 'inactive', member_id = %d  where user_id = %d", $full_member_id, $id);
+		} else {
+			db_query("UPDATE person SET class = 'visitor', status = 'inactive' where user_id = %d", $id);
+		}
 	
 		if( 1 != db_affected_rows() ) {
 			return false;
@@ -741,7 +773,7 @@ class PersonEdit extends Handler
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
 		$addrRows[] = array("Province:",
-			form_select('', 'edit[addr_prov]', $formData['addr_prov'], getProvinceNames(), "Select a province from the list"));
+			form_select('', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), "Select a province from the list"));
 
 		$addrRows[] = array("Postal Code:",
 			form_textfield('', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
@@ -754,7 +786,28 @@ class PersonEdit extends Handler
 		$phoneRows[] = array("Mobile:", form_textfield('', 'edit[mobile_phone]', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_mobile_phone]','Y',($formData['publish_mobile_phone'] == 'Y'))));
 
 		$rows[] = array("Telephone:", table(null, $phoneRows));
+			
+		$player_classes = array(
+			'player' => "OCUA Player",
+			'visitor' => "Non-player account");
 
+		if(! $formData['class'] ) {
+			$formData['class'] = 'visitor';
+		}
+			
+		if($this->_permissions['edit_class']) {
+			$player_classes['administrator'] = "Leaguerunner administrator";
+			$player_classes['volunteer'] = "OCUA volunteer";
+		}
+
+		# Volunteers can unset themselves as volunteer if they wish.
+		if( $formData['class'] == 'volunteer' ) {
+			$player_classes['volunteer'] = "OCUA volunteer";
+		}
+		
+		$rows[] = array("Account Type:",
+			form_radiogroup('', 'edit[class]', $formData['class'], $player_classes ));
+		
 		$rows[] = array("Gender:",
 			form_select('', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
 			
@@ -766,18 +819,13 @@ class PersonEdit extends Handler
 
 		$rows[] = array("Year Started:",
 			form_select('', 'edit[year_started]', $formData['year_started'], 
-				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate in Ottawa."));
+				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate Ottawa."));
 
 		$rows[] = array("Birthdate:",
 			form_select_date('', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
 
 		$rows[] = array('Height:',
 			form_textfield('','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
-			
-		if($this->_permissions['edit_class']) {
-			$rows[] = array("Account Class:",
-				form_select('','edit[class]', $formData['class'], getOptionsFromEnum('person','class')));
-		}
 		
 		if($this->_permissions['edit_status']) {
 			$rows[] = array("Account Status:",

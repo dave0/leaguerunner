@@ -31,6 +31,11 @@ function team_dispatch()
 function team_menu()
 {
 	global $session;
+
+	if( ! $session->is_player() ) {
+		return;
+	}
+	
 	menu_add_child('_root','team','Teams', array('weight' => -8));
 	menu_add_child('team','team/list','list teams', array('link' => 'team/list') );
 	menu_add_child('team','team/create','create team', array('link' => 'team/create', 'weight' => 1) );
@@ -90,6 +95,7 @@ class TeamCreate extends TeamEdit
 
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'allow',
 		);
 		return true;
@@ -302,6 +308,7 @@ class TeamList extends Handler
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'allow',
 		);
@@ -351,6 +358,7 @@ class TeamRosterStatus extends Handler
 		
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'captain_of',
 			'allow'
@@ -632,6 +640,7 @@ class TeamView extends Handler
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'captain_of',
 			'allow'
@@ -793,6 +802,7 @@ class TeamSchedule extends Handler
 
 		$this->_required_perms = array(
 			'require_valid_session',
+			'require_player',
 			'admin_sufficient',
 			'captain_of',
 			'coordinate_league_containing',
