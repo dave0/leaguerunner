@@ -20,7 +20,10 @@ CREATE TABLE person (
 	lastname        varchar(100),
 
 	email	        varchar(100),
-	telephone       varchar(20),
+	
+	home_phone      varchar(30),
+	work_phone      varchar(30),
+	mobile_phone    varchar(30),
 
 	addr_street     varchar(50),
 	addr_city       varchar(50),
@@ -80,7 +83,7 @@ CREATE TABLE league (
     name		varchar(100),
 	-- can play more than one day a week, so make it a set.	
 	day 		SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
-	season		ENUM('Spring','Summer','Fall','Winter','Winter Indoor'),
+	season		ENUM('none','Spring','Summer','Fall','Winter','Winter Indoor'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
 	active_date     date,  --  Date league starts being in use
