@@ -89,6 +89,7 @@ class PersonView extends Handler
 			'gender'	=> false,
 			'skill' 	=> false,
 			'name' 		=> false,
+			'alias' 		=> false,
 			'last_login'		=> false,
 			'waiver_signed'		=> false,
 			'member_id'		=> false,
@@ -143,10 +144,7 @@ class PersonView extends Handler
 
 		/* Can always view self */
 		if($session->attr_get('user_id') == $id) {
-			reset($this->_permissions);
-			while(list($key,) = each($this->_permissions)) {
-				$this->_permissions[$key] = true;
-			}
+			$this->enable_all_perms();
 			return true;
 		}
 		
@@ -224,6 +222,10 @@ class PersonView extends Handler
 
 		if($this->_permissions['username']) {
 			$rows[] = array("System Username:", $person->username);
+		}
+		
+		if($this->_permissions['alias']) {
+			$rows[] = array("User Alias:", $person->alias);
 		}
 		
 		if($this->_permissions['member_id']) {
@@ -343,6 +345,7 @@ class PersonDelete extends PersonView
 			'gender'	=> false,
 			'skill' 	=> false,
 			'name' 		=> false,
+			'alias'		=> false,
 			'last_login'		=> false,
 			'user_edit'				=> false,
 			'user_change_password'	=> false,
@@ -658,7 +661,7 @@ class PersonEdit extends Handler
 				break;
 			case 'perform':
 				$this->perform( $id, $edit );
-				local_redirect(url("person/view/$id"));
+				local_redirect("person/view/$id");
 				break;
 			default:
 				$edit = $this->getFormData($id);
@@ -702,6 +705,9 @@ class PersonEdit extends Handler
 		} else {
 			$rows[] = array("System Username:", $formData['username']);
 		}
+		
+		$rows[] = array("User Alias:",
+				form_textfield('', 'edit[alias]', $formData['alias'], 25,100, "User alias, for use on discussion forums.  If blank, your real name will be used."));
 
 		if($this->_permissions['edit_password']) {
 			$rows[] = array("Password:",
@@ -804,6 +810,8 @@ class PersonEdit extends Handler
 			$rows[] = array("System Username:",
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
+		$rows[] = array("User Alias:",
+			form_hidden('edit[alias]',$edit['alias']) . $edit['alias']);
 		
 		if($this->_permissions['edit_password']) {
 			$rows[] = array("Password:",
@@ -921,6 +929,9 @@ class PersonEdit extends Handler
 		$fields[] = "lastname = '%s'";
 		$fields_data[] = $edit['lastname'];
 		
+		$fields[] = "alias = '%s'";
+		$fields_data[] = $edit['alias'];
+		
 		$fields[] = "addr_street = '%s'";
 		$fields_data[] = $edit['addr_street'];
 		
@@ -984,7 +995,7 @@ class PersonEdit extends Handler
 		$fields_data[] = $id;
 
 		db_query( $sql, $fields_data);
-		
+
 		return (1 == db_affected_rows());
 	}
 
@@ -999,6 +1010,10 @@ class PersonEdit extends Handler
 		if($this->_permissions['edit_username']) {
 			if( ! validate_name_input($edit['username']) ) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
+			}
+			$user = person_load( array('username' => $edit['username']) );
+			if( $user ) {
+				$this->error_exit("A user with that username already exists; please go back and try again");
 			}
 		}
 
@@ -1019,6 +1034,17 @@ class PersonEdit extends Handler
 		}
 		if(validate_nonblank($edit['mobile_phone']) && !validate_telephone_input($edit['mobile_phone'])) {
 			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
+		}
+		
+		if( validate_nonblank($edit['alias']) ) {
+			if(!validate_nonhtml($edit['alias']) ) {
+				$errors .= "\n<li>User alias cannot contain HTML.";
+			} else {
+				$user = person_load( array('alias' => $edit['alias']) );
+				if( $user ) {
+					$this->error_exit("A user with that alias already exists; please go back and try again");
+				}
+			}
 		}
 
 		if( !validate_nonhtml($edit['addr_street']) ) {
@@ -1135,11 +1161,6 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($edit['password_once']);
 
-		$user = person_load( array('username' => $edit['username']) );
-		if( $user ) {
-			$this->error_exit("A user with that username already exists; please go back and try again");
-		}
-	
 		db_query("INSERT into person (username,password,status) VALUES('%s','%s','new')", $edit['username'], $crypt_pass);
 		if( 1 != db_affected_rows() ) {
 			$this->error_exit("DB error; something bad happened");

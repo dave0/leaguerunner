@@ -11,13 +11,15 @@ CREATE TABLE person (
 
 	user_id	 integer  NOT NULL PRIMARY KEY AUTO_INCREMENT,
 
-	username        varchar(100) NOT NULL,
+	username        varchar(100) UNIQUE NOT NULL,
 	password        varchar(100), -- MD5 hashed
 
 	member_id	integer default 0,
 
 	firstname       varchar(100),
 	lastname        varchar(100),
+
+	alias		varchar(100) UNIQUE;  -- Display a pseudonym instead of a name
 
 	email	        varchar(100),
 	allow_publish_email	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
@@ -60,7 +62,6 @@ CREATE TABLE person (
 
 	last_login datetime,
 	client_ip      varchar(50),
-	UNIQUE(username),
 	INDEX person_ward (ward_id)
 );
 
@@ -83,12 +84,11 @@ CREATE TABLE member_id_sequence (
 
 CREATE TABLE team (
 	team_id         integer NOT NULL AUTO_INCREMENT,
-	name            varchar(100) NOT NULL,
+	name            varchar(100) UNIQUE NOT NULL,
 	website         varchar(100),
 	shirt_colour    varchar(30),
 	status          ENUM("open","closed"),
-	PRIMARY KEY (team_id),
-	UNIQUE(name)
+	PRIMARY KEY (team_id)
 );
 
 CREATE TABLE teamroster (
