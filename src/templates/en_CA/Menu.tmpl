@@ -51,7 +51,7 @@
       <table border="0" cellpadding="3" cellspacing="0">
       {foreach name=leaguelist from=$leagues item=league}
       <tr>
-        <td class="menu_item">{$league.name}</td>
+        <td class="menu_item">{$league.name}{if $league.tier} Tier{$league.tier}{/if}</td>
         <td class="menu_item"><a href="{$app_cgi_location}?op=league_view&id={$league.id}">view</a></td>
         {if $league.allow_schedule == 'Y'}
         <td class="menu_item"><a href="{$app_cgi_location}?op=league_schedule_view&id={$league.id}">schedule</a></td>
