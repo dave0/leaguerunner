@@ -2,6 +2,7 @@
 register_page_handler('league_schedule_addweek', 'LeagueScheduleAddWeek');
 register_page_handler('league_schedule_edit', 'LeagueScheduleEdit');
 register_page_handler('league_schedule_view', 'LeagueScheduleView');
+register_page_handler('schedule_view_day', 'ScheduleViewDay');
 
 /**
  * League schedule add week
@@ -222,6 +223,118 @@ class LeagueScheduleAddWeek extends Handler
 		}
 
 		return true;
+	}
+}
+
+/**
+ * View all games on a single day
+ */
+class ScheduleViewDay extends Handler
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'allow',
+		);
+
+		$this->op = 'schedule_view_day';
+		$this->section = 'league';
+		$this->title = "View Day";
+
+		return true;
+	}
+
+	function process ()
+	{
+		$step = var_from_getorpost('step');
+		
+		$today = getdate();
+		
+		$month = var_from_getorpost("month");
+		if(! ctype_digit($month)) {
+			$month = $today['mon'];
+		}
+
+		$year = var_from_getorpost("year");
+		if(! ctype_digit($year)) {
+			$year = $today['year'];
+		}
+		
+		$day = var_from_getorpost('day');
+		if(! ctype_digit($day)) {
+			$day = $today['mday'];
+		}
+		
+		switch($step) {
+			case 'perform':
+				if( !validate_date_input($year, $month, $day) ) {
+					return "That date is not valid";
+				}
+				$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
+				$this->setLocation(array(
+					"$this->title &raquo; $formattedDay" => 0));
+				return $this->displayGamesForDay( $year, $month, $day );
+				break;
+			default:
+				$this->setLocation(array( "$this->title" => 0));
+				return $this->generateCalendar( $year, $month, $day );
+		}
+	}
+
+	/**
+	 * Generate the calendar for selecting day to view.
+	 * Today is highlighted.
+	 */
+	function generateCalendar ( $year, $month, $day = 0 )
+	{
+		$output = para("Select a date below on which to view all scheduled games");
+
+		$output .= generateCalendar( $year, $month, $day, 
+			$this->op,
+			"$this->op&step=perform"
+		);
+		
+		return $output;
+	}
+
+	/**
+	 * List all games on a given day.
+	 */
+	function displayGamesForDay ( $year, $month, $day )
+	{
+		$result = db_query(
+			"SELECT
+				s.game_id,
+				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
+				f.site_id, 
+				s.home_team,
+				s.away_team,
+				s.field_id,
+				h.name AS home_name, 
+				a.name AS away_name
+			 FROM
+			    schedule s
+				LEFT JOIN field f ON (s.field_id = f.field_id)
+				LEFT JOIN team h ON (s.home_team = h.team_id)
+				LEFT JOIN team a ON (s.away_team = a.team_id)
+			 WHERE
+			    YEAR(s.date_played) = %d
+				AND DAYOFYEAR(s.date_played) = DAYOFYEAR('%d-%d-%d')
+			 ORDER BY time,site_id",$year,$year,$month,$day);
+		$rows = array();
+		$header = array( "Time", "Home", "Away", "Location", "&nbsp;");
+		while($game = db_fetch_object($result)) {
+			$rows[] = array(
+				$game->time,
+				l($game->home_name, "op=team_view&id=$game->home_team"),
+				l($game->away_name, "op=team_view&id=$game->away_team"),
+				get_field_name($game->field_id),
+				l('details', "op=game_view&id=$game->game_id")
+			);
+		}
+		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
+		return $output;
 	}
 }
 

@@ -1,6 +1,7 @@
 <?php
 register_page_handler('game_submitscore', 'GameSubmit');
 register_page_handler('game_finalize', 'GameFinalizeScore');
+register_page_handler('game_view', 'GameView');
 
 class GameSubmit extends Handler
 {
@@ -600,10 +601,11 @@ class GameFinalizeScore extends Handler
 	{
 		$result = db_query(
 			"SELECT 
+				s.game_id,
 				UNIX_TIMESTAMP(s.date_played) as timestamp, 
-				s.home_team AS home_id,
+				s.home_team,
 				h.name AS home_name, 
-				s.away_team AS away_id,
+				s.away_team,
 				a.name AS away_name
 			 FROM schedule s 
 			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
@@ -614,77 +616,39 @@ class GameFinalizeScore extends Handler
 			return false;
 		}
 
-		$gameInfo = db_fetch_array($result);
-
+		$game = db_fetch_object($result);
 		
-		$se_query = "SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE team_id = %d AND game_id = %d";
-		$home = db_fetch_array(db_query($se_query,$gameInfo['home_id'],$id));
-		if(!$home) {
-			$home = array(
-				'score_for' => 'not entered',
-				'score_against' => 'not entered',
-				'spirit' => 'not entered',
-				'defaulted' => 'no' 
-			);
-		}
-		$away = db_fetch_array(db_query($se_query,$gameInfo['away_id'],$id));
-		if(!$away) {
-			$away = array(
-				'score_for' => 'not entered',
-				'score_against' => 'not entered',
-				'spirit' => 'not entered',
-				'defaulted' => 'no' 
-			);
-		}
-		
-		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$gameInfo['timestamp']);
-
-		$output = para( "Finalize the score for <b>Game $id</b> of $datePlayed between <b>" . $gameInfo['home_name'] . "</b> and <b>" . $gameInfo['away_name'] . "</b>.");
+		$output = para( "Finalize the score for <b>Game $id</b> of $datePlayed between <b>$game->home_name</b> and <b>$game->away_name</b>.");
 		
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('id', $id);
-
-
 		$output .= "<h2>Score as entered:</h2>";
 		
-		$header = array(
-			"&nbsp;",
-			$gameInfo['home_name'] . " (home)",
-			$gameInfo['away_name'] . " (away)"
-		);
-		
-		$rows = array();
-		
-		$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
-		$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
-		$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
-		$rows[] = array( "Opponent SOTG:", $home['spirit'], $away['spirit'],);
-		
-		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
+		$output .= game_score_entry_display( $game );
 		
 		$output .= "<h2>Score as approved:</h2>";
 		
 		$rows = array();
 		
 		$rows[] = array(
-			$gameInfo['home_name'] . " (home) score:",
+			"$game->home_name (home) score:",
 			form_textfield('','home_score','',2,2)
 				. "or default: <input type='checkbox' name='defaulted' value='home' onclick='defaultCheckboxChanged()'>"
 		);
 		$rows[] = array(
-			$gameInfo['away_name'] . " (away) score:",
+			"$game->away_name (away) score:",
 			form_textfield('','away_score','',2,2)
 				. "or default: <input type='checkbox' name='defaulted' value='away' onclick='defaultCheckboxChanged()'>"
 		);
 		
 		$rows[] = array(
-			$gameInfo['home_name'] . " (home) assigned spirit:",
-			form_select("", "home_sotg", $away['spirit'], getOptionsFromRange(1,10))
+			"$game->home_name (home) assigned spirit:",
+			form_select("", "home_sotg", '', getOptionsFromRange(1,10))
 		);
 		$rows[] = array(
-			$gameInfo['away_name'] . " (away) assigned spirit:",
-			form_select("", "away_sotg", $home['spirit'], getOptionsFromRange(1,10))
+			"$game->away_name (away) assigned spirit:",
+			form_select("", "away_sotg", '', getOptionsFromRange(1,10))
 		);
 
 		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
@@ -725,6 +689,139 @@ ENDSCRIPT;
 		return $script . form($output, "POST", 0, "name='scoreform'");
 	}
 }
+
+class GameView extends Handler
+{
+	function initialize ()
+	{
+		$this->title = "View Game";
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'allow'
+		);
+		$this->_permissions = array(
+			'view_entered_scores' => false,
+		);
+		$this->op = 'game_view';
+		$this->section = 'game';
+		return true;
+	}
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		}
+	}
+
+	function process ()
+	{
+
+		$id = $_GET['id'];
+		if(! $id) {
+			return false;
+		}
+		
+		$result = db_query(
+			"SELECT 
+				s.*,
+				UNIX_TIMESTAMP(s.date_played) as timestamp, 
+				h.name AS home_name, 
+				a.name AS away_name
+			 FROM schedule s 
+			 	LEFT JOIN team h ON (h.team_id = s.home_team) 
+				LEFT JOIN team a ON (a.team_id = s.away_team)
+			 WHERE s.game_id = %d", $id);
+			 
+		if( 1 != db_num_rows($result) ) {
+			return false;
+		}
+		
+		$game = db_fetch_object($result);
+		$formattedDate = strftime("%A %B %d %Y",$game->timestamp);
+		$formattedTime = strftime("%H%Mh",$game->timestamp);
+		$rows[] = array("Game ID:", $game->game_id);
+		$rows[] = array("Date:", $formattedDate);
+		$rows[] = array("Time:", $formattedTime);
+
+		/* TODO: league_load() */
+		$league = db_fetch_object(db_query("SELECT * FROM league WHERE league_id = %d", $game->league_id));
+		$leagueName = $league->name;
+		if($league->tier) {
+			$leagueName .= " Tier $league->tier";
+		}
+		$rows[] = array("League/Division:",
+			l($leagueName, "op=league_view&id=$league->league_id")
+		);
+		
+		$rows[] = array("Home Team:", 
+			l($game->home_name, "op=team_view&id=$game->home_team"));
+		$rows[] = array("Away Team:", 
+			l($game->away_name, "op=team_view&id=$game->away_team"));
+
+		$rows[] = array("Field:",
+			l(get_field_name($game->field_id), "op=field_view&id=$game->field_id"));
+			
+		$rows[] = array("Round:", $game->round);
+
+		if($game->home_score || $game->away_score) {
+			$rows[] = array("Score:", "$game->home_name: $game->home_score<br /> $game->away_name: $game->away_score");
+		} else {
+			if( $this->_permissions['view_entered_scores'] ) {
+				$rows[] = array("Score:", game_score_entry_display( $game ));
+			} else {
+				$rows[] = array("Score:","not yet entered");
+			}
+		}
+
+		$this->setLocation(array(
+			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
+		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
+	}
+}
+
+function game_score_entry_display( $game )
+{
+	$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
+	$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
+	if(!$home) {
+		$home = array(
+			'score_for' => 'not entered',
+			'score_against' => 'not entered',
+			'spirit' => 'not entered',
+			'defaulted' => 'no' 
+		);
+	}
+	
+	$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
+	if(!$away) {
+		$away = array(
+			'score_for' => 'not entered',
+			'score_against' => 'not entered',
+			'spirit' => 'not entered',
+			'defaulted' => 'no' 
+		);
+	}
+		
+	$header = array(
+		"&nbsp;",
+		"$game->home_name (home)",
+		"$game->away_name (away)"
+	);
+	
+	$rows = array();
+	
+	$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
+	$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
+	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
+	$rows[] = array( "Opponent SOTG:", $home['spirit'], $away['spirit'],);
+	
+	return'<div class="listtable">' . table($header, $rows) . "</div>";
+}
+
+
 function scores_agree( $one, $two )
 {
 	if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {

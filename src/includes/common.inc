@@ -727,11 +727,8 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 			$output .= "<tr class='row-week'>\n";
 		}
 
-
 		/* Check for days to highlight */
-		if($curDate == $day) {
-			$attributes = "class='current-day'";
-		} else if(!(false === array_search($curColumn, $highlightWeekdays))) {
+		if(!(false === array_search($curColumn, $highlightWeekdays))) {
 			$attributes = "class='highlighted-day'";
 		} else {
 			$attributes = '';
