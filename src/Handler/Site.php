@@ -312,8 +312,6 @@ class SiteView extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$this->set_template_file("Site/view.tmpl");
-		
 		$site = $DB->getRow("SELECT * FROM site WHERE site_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
@@ -324,27 +322,68 @@ class SiteView extends Handler
 			$this->error_exit("The site [$id] does not exist");
 		}
 	
-		$this->set_title("View Site: " . $site['name'] . " (" . $site['code'] . ")");
-
 		/* and list fields at this site */
-		$site['fields'] = $DB->getAll("SELECT * FROM field WHERE site_id = ? ORDER BY num",
+		$fields = $DB->getAll("SELECT * FROM field WHERE site_id = ? ORDER BY num",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($site['fields'])) {
 			return false;
 		}
 
-		$this->tmpl->assign("site", $site);
-		$this->tmpl->assign("id", $id);
-
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
+		$links = array();
+		if($this->_permissions['site_edit']) {
+			$links[] = l('edit site', "op=site_edit&id=$id", array("title" => "Edit this field site"));
+		}
+		if($this->_permissions['field_create']) {
+			$links[] = l('add field', "op=field_create&site_id=$id", array("title" => "Add a new field to this site"));
 		}
 
+		$field_listing = "<ul>";
+		foreach ($fields as $field) {
+			$field_listing .= "<li>" . $site['code'] . " " . $field['num'] . " (" . $field['status'] . ")  ";
+			$field_listing .= l("view", 
+				"op=field_view&id=" . $field['field_id'], 
+				array('title' => "View field entry"));
+			if($this->_permissions["site_edit"]) {
+				$field_listing .= " | " . l("edit", 
+					"op=field_edit&id=" . $field['field_id'], 
+					array('title' => "Edit field entry"));
+			}
+		}
+		$field_listing .= "</ul>";
+		
+
+		$page_title = "View Site &raquo; ".$site['name']." (" . $site['code'] . ")";
+		$this->set_title($page_title);
+		$output = h1($page_title);
+		if(count($links) > 0) {
+			$output .= simple_tag("blockquote", theme_links($links));
+		}
+		$output .= "<table border='0' width='100%'>";
+		$output .= simple_row("Site Name:", $site['name']);
+		$output .= simple_row("Site Code:", $site['code']);
+		$output .= simple_row("Site Region:", $site['region']);
+		$output .= simple_row("Site Directions:", $site['directions']);
+		$output .= simple_row("Site-specific Instrutions:", $site['instructions']);
+		$output .= simple_row("Site Location Map:", 
+			$site['location_url'] ? l("Click for map in new window", $site['location_url'], array('target' => '_top'))
+				: "No Map");
+		$output .= simple_row("Field Layout Map:", 
+			$site['layout_url'] ? l("Click for map in new window", $site['layout_url'], array('target' => '_top'))
+				: "No Map");
+		
+		$output .= simple_row("Fields:", $field_listing);
+		
+		$output .= "</table>";
+		
+		print $this->get_header();
+		print $output;
+		print $this->get_footer();
 		return true;
+	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
