@@ -488,11 +488,7 @@ class FieldBooking extends Handler
 			$this->field->fullname => 0
 		));
 
-		// TODO: make the stuff below a get_gameslots() function in field.inc
-		$result = db_query("SELECT 
-			g.*
-			FROM gameslot g
-			WHERE fid = %d ORDER BY g.game_date, g.game_start", $this->field->fid);
+		$result = slot_load( array('fid' => $this->field->fid, '_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
