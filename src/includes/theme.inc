@@ -25,8 +25,8 @@ function theme_header($title = "", $breadcrumbs = array())
       @import url(style.css);
 	</style>
   </head>
-  <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
-  <table border='0' cellpadding='0' cellspacing='0' width='760' bgcolor='white'><?php
+  <body bgcolor="#FFFFFF">
+  <table border='0' cellpadding='1' cellspacing='0' width="99%" bgcolor='white'><?php
   	print "<tr><td colspan='2' class='toprow'><h1>$app_name</h1></td></tr>\n";
 
 	print theme_navbar($breadcrumbs);
@@ -40,7 +40,7 @@ function theme_header($title = "", $breadcrumbs = array())
 	 */
 	print "<table width='100%'><tr>";
 	if ($session->is_valid()) {
-		print "<td width='160'><div class='menu'>" . menu_render('_root') . "</div></td>";
+		print "<td width='180'><div class='menu'>" . menu_render('_root') . "</div></td>";
 	} else {
 		print "<td></td>";
 	}

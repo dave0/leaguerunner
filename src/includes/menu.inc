@@ -93,7 +93,7 @@ function _menu_get_active( $path ) {
 /**
  * Returns a rendered menu tree.
  */
-function menu_render($parentKey = '_root') {
+function menu_render($parentKey = '_root', $depth = 0) {
 	global $_menu;
 
 	$parents = _menu_get_parents($_GET["q"]);
@@ -118,17 +118,23 @@ function menu_render($parentKey = '_root') {
 			} else {
 				$style = ($_menu[$itemKey]['children'] ? 'collapsed' : 'leaf');
 			}
-
-			$output .= "<li class=\"$style\">";
-			$output .= _menu_render_item($_menu[$itemKey], ($itemKey == $active));
-			if ($mustExpand) {
-				$output .= menu_render($itemKey);
+			if( $itemKey == $active ) {
+				$style = 'active';
 			}
-			$output .= "</li>\n";
+
+			$output .= "<tr><td class=\"$style\">";
+			for ($i=0; $i < $depth; $i++) {
+				$output .= "&nbsp;&nbsp;";
+			}
+			$output .= _menu_render_item($_menu[$itemKey], ($itemKey == $active));
+			$output .= "</td></tr>\n";
+			if ($mustExpand) {
+				$output .= menu_render($itemKey, ($depth + 1));
+			}
 		}
 	}
-	if ($output != '') {
-		$output  = "\n<ul>\n$output\n</ul>\n";
+	if ($output != '' && $depth == 0) {
+		$output  = "\n<table>\n$output\n</table>\n";
 	}
 	return $output;
 }

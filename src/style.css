@@ -12,7 +12,7 @@ a               { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
 /* Defaults for tables */
-table           { border-collapse: collapse; font-size: 9pt }
+table           { margin: 0; padding: 0; border-collapse: collapse; font-size: 9pt }
 td		{ vertical-align: top }
 
 fieldset {
@@ -106,42 +106,28 @@ fieldset {
 
 /* Menu styles */
 .menu {
-  padding: 0 0 0 0.5em;
-}
-.menu ul { 
-  list-style: none;
   margin: 0;
-  padding: 0 0 0.25em 1em;
+  padding: 0.25em 0 0.25em 0.25em;
+  background-color: #CCCCFF;
   border: none;
   text-align:left;
 }
-.menu li {
-  margin: 0;
-  padding: 0.2em 0.5em 0 0;
+.menu td {
+	margin: 0;
+	padding: 0 0 0 0.25em;
 }
-.menu li a {
-  display: block;
-  width: 100%;
+.menu a {
   text-decoration: none;
+  width: 100%;
 }
-.menu li a.active {
+.menu td.active {
   color: #000;
+  background-color: #FFF;
   font-weight: bold;
 }
-.menu li a:hover {
-  color: #009;
-}
-.menu li.expanded {
-  list-style-type: circle;
-  list-style-image: url(misc/menu-expanded.gif);
-}
-.menu li.collapsed {
-  list-style-type: disc;
-  list-style-image: url(misc/menu-collapsed.gif);
-}
-.menu li.leaf {
-  list-style-type: square;
-  list-style-image: url(misc/menu-leaf.gif);
+.menu a:hover {
+  color: #000;
+  background-color: #FFC;
 }
 
 .form-item {
