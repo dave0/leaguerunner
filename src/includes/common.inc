@@ -53,6 +53,11 @@ function para($text, $attributes = array())
 	return simple_tag("p", $text, $attributes);
 }
 
+function pre($text, $attributes = array())
+{
+	return simple_tag("pre", $text, $attributes);
+}
+
 function blockquote($text, $attributes = array())
 {
 	return simple_tag("blockquote", $text, $attributes);

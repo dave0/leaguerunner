@@ -8,6 +8,7 @@ require_once("Handler/System.php");
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
 require_once("Handler/League.php");
+require_once("Handler/Schedule.php");
 require_once("Handler/Field.php");
 require_once("Handler/Ward.php");
 require_once("Handler/Site.php");
