@@ -1,17 +1,46 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
 
-<TABLE align="left" cellspacing="0" cellpadding="3" border="0" width="50%">
-  {foreach name=list from=$menu_box_rows item=box}
-    <TR class="menu_box_head" height="15">
-      <TD>{$box.title}</TD>
-    </TR>
-    <TR>
-      <TD valign="top" class="menu_box_body">
-       {$box.content}
-      </TD>
-    </TR>
-  {/foreach}
-</TABLE>
+<table border="0">
 
+  {* All users get this section *}
+  <tr>
+    <td class="menu_title">My Account</td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_view&id={$user_id}'>View/Edit My Account</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=person_password'>Change Password</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=logout'>Log Out</a></td>
+  </tr>
+
+  {* All users get this section *}
+  <tr>
+    <td class="menu_title">Teams</td>
+  </tr>
+  <tr>
+    <td>
+      <table border='0'>
+      {foreach name=teamlist from=$teams item=team}
+      <tr>
+        <td class="menu_item">{$team.name}</td>
+        <td class="menu_item">({$team.position})</td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=team_view&id={$team.id}">info</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=team_schedule_view&id={$team.id}">scores and schedules</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=team_standings&id={$team.id}">standings</a></td>
+      </tr>
+      {/foreach}
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=team_list'>View Other Teams</a></td>
+  </tr>
+  <tr>
+    <td class="menu_item"><a href='{$app_cgi_location}?op=team_create'>Create New Team</a></td>
+  </tr>
+</table>
 {include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}
