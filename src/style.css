@@ -82,8 +82,11 @@ a:hover         { text-decoration: underline; }
 .lr_topbar a:active  { color: red; }
 .lr_topbar .nav  { background-color: lightgray; 
                    padding-left: 5px; padding-right: 5px; }
-.lr_topbar .off  { background-color: darkgray; text-align: center }
-.lr_topbar .on   { background-color: white; font-weight: bold; text-align: center }
+.lr_topbar .off  { background-color: darkgray; text-align: center;
+                   border-left: thin solid black; border-top: thin solid black; 
+		   border-right: thin solid black; }
+.lr_topbar .on   { background-color: white; font-weight: bold; 
+                   text-align: center; border-bottom: thin solid black; }
 
 .fieldlist table { border-collapse: collapse; width: 100%; }
 .fieldlist th    { background-color: black; color: white; font-weight: bold;

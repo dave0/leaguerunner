@@ -72,11 +72,6 @@ function theme_navbar($section, $breadcrumbs = array())
 
 		$crumbs = array_merge($crumbs, $breadcrumbs);
 		
-		print tr(
-			td(theme_links($crumbs, "&nbsp;&raquo;&nbsp;"), array('class' => 'nav', 'colspan' => ceil( 2 * ($numTabs / 3))))
-			. td($rightLink, array('class' => 'nav', 'align'=>'right', 'colspan' => floor($numTabs / 2)))
-		);
-
 		$tdWidth = floor( 100 / $numTabs);
 		print "<tr>";
 		while(list($key,$name) = each($sectionTabs)) {
@@ -88,6 +83,11 @@ function theme_navbar($section, $breadcrumbs = array())
 			print td( l($name,"op=$key"), array('class' => $class, 'width' => $tdWidth . '%'));
 		}
 		print "</tr>";
+		
+		print tr(
+			td(theme_links($crumbs, "&nbsp;&raquo;&nbsp;"), array('class' => 'nav', 'colspan' => ceil( 2 * ($numTabs / 3))))
+			. td($rightLink, array('class' => 'nav', 'align'=>'right', 'colspan' => floor($numTabs / 2)))
+		);
 		
 	} else {
 		$rightLink = theme_links( array(
