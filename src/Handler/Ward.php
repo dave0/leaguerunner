@@ -367,7 +367,6 @@ class WardView extends Handler
 
 		$this->set_title("View Ward &raquo; ".$ward['name']);
 		
-		$output = h1($this->title);
 		$output .= blockquote(theme_links($links));
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Ward Name:", $ward['name']);
