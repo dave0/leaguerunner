@@ -813,6 +813,10 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	}
 	reset($highlightWeekdays);
 
+    // HACK: need to put a fake number on the front of the highlight array or else
+    // the array_search later will return index 0 for first day, and that  == false!
+    array_unshift($highlightWeekdays, 99);
+
 	$startOfMonth = mktime(0, 0, 0, $month, 1, $year);
 	$firstDayOfWeek = date("w", $startOfMonth);
 	$numberOfDays = date("t", $startOfMonth);
@@ -867,7 +871,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 		}
 
 		/* Check for days to highlight */
-		if(!(false === array_search($curColumn, $highlightWeekdays))) {
+		if(!(false == array_search($curColumn, $highlightWeekdays))) {
 			$attributes = "class='highlighted-day'";
 		} else {
 			$attributes = '';
