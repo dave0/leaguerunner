@@ -30,6 +30,7 @@ class PersonView extends Handler
 			'name' 		=> false,
 			'last_login'		=> false,
 			'waiver_signed'		=> false,
+			'member_id'		=> false,
 			'class'		=> false,
 			'user_edit'				=> false,
 #			'user_delete'			=> false,
@@ -173,6 +174,7 @@ class PersonView extends Handler
 			"SELECT 
 				CONCAT(firstname,' ',lastname) AS fullname, 
 				username, 
+				member_id,
 				email, 
 				gender, 
 				telephone, 
@@ -201,6 +203,10 @@ class PersonView extends Handler
 
 		if($this->_permissions['username']) {
 			$this->tmpl->assign("username", $row['username']);
+		}
+		
+		if($this->_permissions['member_id']) {
+			$this->tmpl->assign("member_id", $row['member_id']);
 		}
 		
 		if($this->_permissions['email']) {

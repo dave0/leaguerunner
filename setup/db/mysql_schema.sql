@@ -14,6 +14,8 @@ CREATE TABLE person (
 	username        varchar(100) NOT NULL,
 	password        varchar(100), -- MD5 hashed
 
+	member_id	integer default 0,
+
 	firstname       varchar(100),
 	lastname        varchar(100),
 
@@ -40,6 +42,12 @@ CREATE TABLE person (
 	waiver_signed datetime,
 	last_login datetime,
 	client_ip      varchar(50)
+);
+
+-- For use when assigning member IDs
+CREATE TABLE member_id_sequence (
+	year	year not null,
+	id 	integer not null
 );
 
 -- to be used for player availability

@@ -13,6 +13,13 @@
   </tr>
   {/if}
 
+  {if $member_id}
+  <tr>
+    <td class='row_title'>Member ID:</td> 
+    <td class='row_data'>{$member_id|escape}</td>
+  </tr>
+  {/if}
+
   {if $email}
   <tr>
     <td class='row_title'>Email Address:</td> 

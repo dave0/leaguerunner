@@ -96,11 +96,56 @@ class PersonApproveNewAccount extends PersonView
 	{
 		global $DB, $id;
 
-		/* TODO Here is where we should generate the member number */
+		$person_info = $DB->getRow("SELECT year_started,gender FROM person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($person_info)) {
+			return false;
+		}
 
+		$year_started = $person_info['year_started'];
+
+		/* TODO Here is where we should generate the member number */
+		$result = $DB->query('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ?', array($year_started));
+		if($this->is_database_error($result)) {
+			return false;
+		}
+		$member_id = $DB->getOne("SELECT LAST_INSERT_ID() from member_id_sequence");
+		if($this->is_database_error($member_id)) {
+			$this->error_text = gettext("Couldn't get member ID allocation");
+			return false;
+		}
+		if($member_id == 0) {
+			/* Possible empty, so fill it */
+			$result = $DB->getOne("SELECT GET_LOCK('member_id_${year_started}_lock',10)");
+			if($this->is_database_error($result)) {
+				$this->error_text = gettext("Couldn't get lock for member_id allocation");
+				return false;
+			}
+			if($result == 0) {
+				/* Couldn't get lock */
+				$this->error_text = gettext("Couldn't get lock for member_id allocation");
+				return false;
+			}
+			$result = $DB->query("REPLACE INTO member_id_sequence values(?,0)", array($year_started));
+			if($this->is_database_error($result)) {
+				return false;
+			}
+			$result = $DB->getOne("SELECT RELEASE_LOCK('member_id_${year_started}_lock')");
+			if($this->is_database_error($result)) {
+				return false;
+			}
+			$member_id = 1;
+		}
+
+		/* Now, that's really not the full member ID.  We need to build that
+		 * from other info too.
+		 */
+		$full_member_id = sprintf("%.4d%.1d%04d", 
+			$person_info['year_started'],
+			($person_info['gender'] == "Male") ? 0 : 1,
+			$member_id);
 		
-		$sth = $DB->prepare("UPDATE person SET class = 'inactive' where user_id = ?");
-		$res = $DB->execute($sth, array($id));
+		$sth = $DB->prepare("UPDATE person SET class = 'inactive', member_id = ?  where user_id = ?");
+		$res = $DB->execute($sth, array($full_member_id, $id));
 		
 		if($this->is_database_error($res)) {
 			return false;
