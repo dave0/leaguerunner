@@ -1086,7 +1086,7 @@ class TeamSchedule extends Handler
 
 class TeamSpirit extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
 		global $session;
 		return $session->has_permission('team','view', $this->team->team_id);

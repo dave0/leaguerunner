@@ -30,20 +30,16 @@ function statistics_permissions( &$user, $action )
 
 class StatisticsHandler extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->title = 'Statistics';
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->is_admin();
 	}
 
 	function process ()
 	{
 		$mod = arg(1);
+		$this->title = 'Statistics';
 		return module_invoke($mod, 'statistics');
 	}
 }

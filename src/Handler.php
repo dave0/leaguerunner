@@ -50,29 +50,6 @@ class Handler
 	var $breadcrumbs;
 
 	/**
-	 * Things to check for general access permission
-	 */
-	var $_required_perms;
-	
-	/**
-	 * Permissions bits for various items of interest
-	 * @access private
-	 * @var array
-	 */
-	var $_permissions;
-
-	/**
-	 * Constructor.  This is called by every handler.
-	 * Data that should be initialized for the subclass goes in here.
-	 */
-	function Handler ()
-	{
-		global $session;
-		$this->_required_perms = null;
-		$this->_permissions = array();
-	}
-
-	/**
 	 * Initialize our data
 	 * This is where stuff that shouldn't be inherited should go.
 	 */
@@ -126,7 +103,7 @@ class Handler
 	 * Check if the logged-in user has permission for the current op
 	 * Returns true/false indicating success/failure.
 	 *
-	 * TODO: This permissions-checking system sucks.  Replace it.
+	 * This must be overridden by subclasses.
 	 * 
 	 * @access public
 	 * @return boolean 	Permission success/fail
@@ -134,71 +111,8 @@ class Handler
 	function has_permission() 
 	{
 		global $session;
-		
-		if(is_null($this->_required_perms)) {
-			$this->error_exit("You do not have permission to perform that operation");
-		}
-		
-		/* Now check particular items, in order */
-		foreach($this->_required_perms as $perm_type) {
-		
-			if($perm_type == 'allow') {
-				return true;
-			} else if($perm_type == 'deny') {
-				$this->error_exit("You do not have permission to perform that operation");
-			} else if($perm_type == 'require_valid_session') {
-				if(!$session->is_valid()) {
-					$this->error_exit("You do not have a valid session");
-				}
-			} else if($perm_type == 'require_player') {
-				if(!$session->is_player()) {
-					$this->error_exit("You do not have permission to perform that operation");
-				}
-			} else if($perm_type == 'admin_sufficient') {
-				if($session->is_admin()) {
-					$this->set_permission_flags('administrator');
-					return true;
-				}
-			} else if($perm_type == 'volunteer_sufficient') {
-				if($session->attr_get('class') == 'volunteer') {
-					$this->set_permission_flags('volunteer');
-					return true;
-				}
-			} else if($perm_type == 'self_sufficient') {
-				$id = arg(2);
-				if($session->attr_get('user_id') == $id) {
-					$this->set_permission_flags('self');
-					return true;
-				}
-			} else if($perm_type == 'require_coordinator') {
-				$id = arg(2);
-				if(!$session->is_coordinator_of($id)) {
-					$this->error_exit("You do not have permission to perform that operation");
-				} else {
-					$this->set_permission_flags('coordinator');
-				}
-			} else if($perm_type == 'coordinator_sufficient') {
-				$id = arg(2);
-				if($session->is_coordinator_of($id)) {
-					$this->set_permission_flags('coordinator');
-					return true;
-				}
-			} else if($perm_type == 'coordinate_league_containing') {
-				$id = arg(2);
-				if($session->coordinates_league_containing($id)) {
-					$this->set_permission_flags('coordinator');
-					return true;
-				}
-			} else if($perm_type == 'captain_of') {
-				$id = arg(2);
-				if($session->is_captain_of($id)) {
-					$this->set_permission_flags('captain');
-					return true;
-				}
-			}
-		}
 
-		$this->error_exit("You do not have permission to perform that operation");
+		$this->error_exit("Old permissions code somehow triggered.  You should contact dmo@dmo.ca if you see this error message");
 	}
 
 	/**
@@ -284,18 +198,6 @@ class Handler
 		exit;
 	}
 
-	/**
-	 * Helper fn to turn on all permissions
-	 */
-	function enable_all_perms()
-	{
-		reset($this->_permissions);
-		while(list($key,) = each($this->_permissions)) {
-			$this->_permissions[$key] = true;
-		}
-		reset($this->_permissions);
-	}
-	
 	/**
 	 * Generates list output.  Query should generate rows with two
 	 * fields; one named 'id' containing the ID of the object listed,

@@ -58,19 +58,15 @@ function global_settings()
 
 class SettingsHandler extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->title = 'Settings';
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->is_admin();
 	}
 
 	function process ()
 	{
+		$this->title = 'Settings';
 		$mod = arg(1);
 		$op = $_POST['op'];
 		

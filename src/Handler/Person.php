@@ -644,13 +644,6 @@ class PersonEdit extends Handler
 		return $session->has_permission('person','edit', $this->person->user_id);
 	}
 
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} 
-	}
-
 	function process ()
 	{
 		$edit = $_POST['edit'];

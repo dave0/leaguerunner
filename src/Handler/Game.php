@@ -51,7 +51,7 @@ function game_dispatch()
 	return $obj;
 }
 
-function game_permissions ( &$user, $action, &$game )
+function game_permissions ( &$user, $action, &$game, $field )
 {
 	switch($action)
 	{
@@ -64,6 +64,18 @@ function game_permissions ( &$user, $action, &$game )
 				return true;
 			}
 			break;
+		case 'edit':
+			return ($user->is_coordinator_of($game->league_id));
+			break; // unreached
+		case 'view':
+			if( $field == 'spirit' ) { 
+				return ($user->is_coordinator_of($game->league_id));
+			}
+			if( $field == 'submission' ) { 
+				return ($user->is_coordinator_of($game->league_id));
+			}
+			return ($user->status == 'active');
+			break; // unreached
 		case 'reschedule':
 			//TODO
 		
@@ -944,17 +956,10 @@ class GameEdit extends Handler
 {
 	var $game;
 	
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Game";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'allow'  # TODO: evil hack.  We do perms checks in process() below.
-		);
-		
-		return true;
+		global $session;
+		return $session->has_permission('game','view', $this->game);
 	}
 	
 	function process ()
@@ -964,27 +969,19 @@ class GameEdit extends Handler
 			error_exit("That game does not exist");
 		}
 
-		$this->_permissions = array(
-			'edit_game'   => false,
-			'view_spirit' => false,
-		);
-
 		if( arg(1) == 'edit' || arg(1) == 'approve' ) {
-			$want_edit = true;
-		} else {
-			$want_edit = false;
-		}
-		if( $session->is_admin() ) {
-			$this->_permissions['edit_game'] = $want_edit;
-			$this->_permissions['view_score_submission'] = true;
-			$this->_permissions['view_spirit'] = true;
-		}
+			if( $session->is_admin() ) {
+				$this->can_edit = true;
+			}
 	
-		if( $session->is_coordinator_of($this->game->league_id)) {
-			$this->_permissions['edit_game'] = $want_edit;
-			$this->_permissions['view_score_submission'] = true;
-			$this->_permissions['view_spirit'] = true;
+			if( $session->is_coordinator_of($this->game->league_id)) {
+				$this->can_edit = true;
+			}
+		} else {
+			$this->can_edit = false;
 		}
+
+		$this->title = "Game";
 		
 		$this->setLocation(array(
 			"$this->title &raquo; Game " . $this->game->game_id => 0));
@@ -1008,6 +1005,7 @@ class GameEdit extends Handler
 	
 	function generateForm ( ) 
 	{
+		global $session;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1030,7 +1028,7 @@ class GameEdit extends Handler
 		$output .= form_item( "Home Team", l($game->home_name,"team/view/$game->home_id"));
 		$output .= form_item( "Away Team", l($game->away_name,"team/view/$game->away_id"));
 
-		if( $this->_permissions['edit_game'] ) {
+		if( $this->can_edit ) {
 			$note = "To edit time, date, or location, use the 'reschedule' link";
 		}
 		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until $game->game_end", $note);
@@ -1059,7 +1057,7 @@ class GameEdit extends Handler
 		if($game->approved_by) {
 			// Game has been finalized
 
-			if( ! $this->_permissions['edit_game'] ) {
+			if( ! $this->can_edit ) {
 				// If we're not editing, display score.  If we are, 
 				// it will show up below.
 				switch($game->status) {
@@ -1115,7 +1113,7 @@ class GameEdit extends Handler
 			
 			
 			$score_group .= form_item('',"Score not yet finalized");
-			if( $this->_permissions['view_score_submission'] ) {
+			if( $session->has_permission('game','view', $game, 'submission') ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
 				
 			}
@@ -1123,7 +1121,7 @@ class GameEdit extends Handler
 
 		// Now, we always want to display this edit code if we have
 		// permission to edit.
-		if( $this->_permissions['edit_game'] ) {
+		if( $this->can_edit ) {
 			$score_group .= form_select('Game Status','edit[status]', $game->status, getOptionsFromEnum('schedule','status'), "To mark a game as defaulted, select the appropriate option here.  Appropriate scores will automatically be entered.");
 			$score_group .= form_textfield( "Home ($game->home_name) score", 'edit[home_score]',$game->home_score,2,2);
 			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
@@ -1132,14 +1130,14 @@ class GameEdit extends Handler
 		
 		$output .= form_group("Scoring", $score_group);
 	
-		if ($this->_permissions['view_spirit']) {
+		if( $session->has_permission('game','view',$game,'spirit') ) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
-			if($this->_permissions['edit_game']) {
+			if($this->can_edit) {
 				$home_spirit_group = $formbuilder->render_editable( $ary, 'home' );
 			} else {
 				$home_spirit_group = $formbuilder->render_viewable( $ary );
@@ -1150,7 +1148,7 @@ class GameEdit extends Handler
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
-			if($this->_permissions['edit_game']) {
+			if($this->can_edit) {
 				$away_spirit_group = $formbuilder->render_editable( $ary , 'away');
 			} else {
 				$away_spirit_group = $formbuilder->render_viewable( $ary );
@@ -1160,7 +1158,7 @@ class GameEdit extends Handler
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
 
-		if( $this->_permissions['edit_game'] ) {
+		if( $this->can_edit ) {
 			$output .= para(form_submit("submit") . form_reset("reset"));
 		}
 		return $script . form($output);
@@ -1169,7 +1167,7 @@ class GameEdit extends Handler
 	function generateConfirm ( $game, $edit )
 	{
 
-		if( ! $this->_permissions['edit_game'] ) {
+		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
 
@@ -1238,7 +1236,7 @@ class GameEdit extends Handler
 	{
 		global $session;
 		
-		if( ! $this->_permissions['edit_game'] ) {
+		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
 		$home_spirit = formbuilder_load('team_spirit');
