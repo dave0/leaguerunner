@@ -75,7 +75,7 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 	if($league->schedule_type == 'ladder') {
 		if($this->_permissions['administer_league']) {
 			menu_add_child($league->fullname, "$league->fullname/ladder", 'seed ladder', array('link' => "league/ladder/$league->league_id"));
-			menu_add_child("$league->fullname/ladder", "$league->fullname/ladder/byskill", 'seed by average skill', array('link' => "league/ladder/byskill/$league->league_id"));
+			menu_add_child("$league->fullname/ladder", "$league->fullname/ladder/byskill", 'seed by average skill', array('link' => "league/ladder/$league->league_id" . "/byskill"));
 		}
 	}
 	
@@ -1348,16 +1348,15 @@ class LeagueLadder extends Handler
 	{
 		global $session;
 
+		$leagueID  = arg(2);
+
 		// seed by rank flag:
 		$byskill = 0;
-		if (arg(2) == "byskill") {
-			$leagueID  = arg(3);
+		if (arg(3) == "byskill") {
 			$teamID    = arg(4);
 			$direction = arg(5);
 			$byskill = 1;
-			
 		} else {
-			$leagueID  = arg(2);
 			$teamID    = arg(3);
 			$direction = arg(4);
 		}
