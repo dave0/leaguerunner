@@ -61,7 +61,7 @@ a:hover         { text-decoration: underline; }
 .myteams .highlight { background-color: lightblue; }
 
 .waitlist table { border-collapse: collapse; width: 100% }
-.waitlist th { float: left; text-align: left; background-color: black; color: white; font-size: 9pt; }
+.waitlist th {  background-color: black; color: white; font-size: 9pt; }
 .waitlist th a { color: white; font-size: 9pt; float: right; text-align: right; }
 
 .waitlist td { padding-left: 10px; vertical-align: top; font-size: 9pt; }

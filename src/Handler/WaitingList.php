@@ -420,6 +420,8 @@ class WaitingListView extends Handler
 			}
 			$listMembers->free();
 			$listContents .= "</table></div>";
+			$output .= simple_row('Current Males Registered:', $genderCount['male']);
+			$output .= simple_row('Current Females Registered:', $genderCount['female']);
 			$output .= simple_row('Waitlist Members:', $listContents);
 		}
 		
@@ -477,6 +479,12 @@ class WaitingListJoin extends Handler
 			return blockquote(para("You may not make any selections until registration opens.")
 				. para("Indoor Signup opens " . date("F j Y h:i A", $signupTime)));
 		}
+		
+		$signupTime = mktime(9,0,0,10,31,2003);
+		if(	time() > $signupTime) {
+			return blockquote(para("Online indoor signup is now closed.")
+				. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>."));
+		}
 
 		
 		switch($step) {
@@ -516,6 +524,8 @@ class WaitingListJoin extends Handler
 				given the opportunity to play on more than one night.")
 			. para("Note that you do not need to rank all nights of play if you do not wish to be considered for all of them.  You may either leave columns blank for 3rd, 4th, etc, preference, or select \"No selection\" for that column.")
 			. para("After you have made your selection, you will be given an opportunity to confirm it.  Once you have confirmed your selections, they will be final, and cannot be changed without losing your priority.")
+			. para("If you are willing and able to be a team captain for any of the divisions you have registered for, please contact the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with your name and contact info after completing your registration.")
+			. para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation.")
 		);
 		
 		$output .= "<div class='waitlist'><table border='0'>";
@@ -657,10 +667,13 @@ class WaitingListJoin extends Handler
 			}
 			$seenPreference[$preference] = true;
 
-			if($edit[$wlist_id]['paired_with']) {
+			if(isset($edit[$wlist_id]['paired_with'])) {
 				if($edit[$wlist_id]['paired_with'] == $session->attr_get('member_id')) {
 					$errors .= "<li>You cannot specify yourself as a partner!";
 				}
+	#			if($edit[$wlist_id]['paired_with'] == 0) {
+	#				$errors .= "<li>Do not enter 0 as a partner ID.  If you do not wish to register as a couple, leave this field blank";
+	#			}
 			}
 		}
 		
@@ -703,6 +716,8 @@ class WaitingListJoin extends Handler
 		}
 
 		$output = para("Your preferences have been recorded.  Please note that you need to send in a separate cheque for each night you have registered for.  DO NOT send in a single cheque covering all nights or you may lose your position on the waiting list.  Remember to write your OCUA member number clearly on the front or back of the cheque.");
+		$output .= para("If you are willing and able to be a team captain for any of the divisions you have registered for, please contact the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with your name and contact info.");
+		$output .= para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation");
 		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to<br />Ottawa Carleton Ultimate Association<br />PO Box 120, 410 Bank St<br />Ottawa, Ontario<br /> K2P 1Y8.");
 		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
@@ -872,6 +887,12 @@ class WaitingListViewPerson extends Handler
 		}
 
 		if($dbResult->numRows() < 1) {
+			$signupTime = mktime(9,0,0,10,31,2003);
+			if(	time() > $signupTime) {
+				return blockquote(para("Online indoor signup is now closed.")
+					. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>."));
+			}
+
 			// TODO: This belongs in a config file or as a data resource
 			$output = <<<EOM
 <p>
@@ -923,16 +944,19 @@ EOM;
 			return blockquote($output);
 		}
 
-		$output = blockquote(
-			para("Your waiting list registration choices are below.  Note that
+		$output = para("Your waiting list registration choices are below.  Note that
 			waiting list merely guarantees your order of consideration for a
 			playing slot and does <b>not</b> guarantee your selection.")
 			. para("Selection for each night will be made based on all
 			appropriate criteria, (including experience and skill level for
 			some nights) however every attempt will be made to ensure that as
 			many people as possible get their first choice for at
-			least one night of play.")
-		);
+			least one night of play.");
+		$output = para("Please note that you need to send in a separate cheque for each night you have registered for.  DO NOT send in a single cheque covering all nights or you may lose your position on the waiting list.  Remember to write your OCUA member number clearly on the front or back of the cheque.");
+		$output .= para("If you are willing and able to be a team captain for any of the divisions you have registered for, please contact the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with your name and contact info.");
+		$output .= para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation");
+		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to<br />Ottawa Carleton Ultimate Association<br />PO Box 120, 410 Bank St<br />Ottawa, Ontario<br /> K2P 1Y8.");
+		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
 		$output .= "<div class='waitlist'><table border='0'>";
 		while($data = $dbResult->fetchRow(DB_FETCHMODE_ASSOC)) {
