@@ -172,6 +172,21 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
+	 * Set current_round to a value based on whatever the current game might
+	 * be.
+	 */
+	function update_current_round()
+	{
+		$result = db_query("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = %d AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1", $this->league_id);
+		$round = db_result($result);
+		if( $round != $this->current_round ) {
+			$this->set('current_round',$round);
+			return $this->save();
+		}
+		return true;
+	}
+
+	/**
 	 * Finalize any games considered 'old'.  For now, 'old' is 24 hours after
 	 * the end of the previous game. 
 	 */

@@ -213,6 +213,12 @@ function league_cron()
 		if($league->schedule_type == 'ladder') {
 			$league->finalize_old_games();
 		}
+
+		// Task #2:
+		// If schedule is round-robin, possibly update the current round
+		if($league->schedule_type == 'roundrobin') {
+			$league->update_current_round();
+		}
 	}
 
 	return "<pre>Completed league_cron run</pre>";
