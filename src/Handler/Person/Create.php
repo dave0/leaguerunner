@@ -80,10 +80,34 @@ class PersonCreate extends PersonEdit
 		return true;
 	}
 
+	function generate_confirm () 
+	{
+		$this->tmpl->assign("password_once", var_from_getorpost('password_once'));
+		$this->tmpl->assign("password_twice", var_from_getorpost('password_twice'));
+		return parent::generate_confirm();
+	}
+
 	function perform ()
 	{
-		/* TODO: Create new user, set $id global in POST_VARS, and call parent */
-		parent::perform();
+		global $DB, $id;
+
+		/* TODO: Validate passwords here */
+		$password_once = var_from_getorpost("password_once");
+		$password_twice = var_from_getorpost("password_twice");
+		if($password_once != $password_twice) {
+			$this->error_text = gettext("First and second entries of password do not match");
+			return false;
+		}
+		$crypt_pass = crypt($password_once);
+		
+		$st = $DB->prepare("INSERT into person (username,password,class) VALUES (?,?,'player')");
+		$res = $DB->execute($st, array(var_from_getorpost('username'), $crypt_pass));
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		$id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
+
+		return parent::perform();
 	}
 }
 
