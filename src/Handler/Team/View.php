@@ -62,21 +62,25 @@ class TeamView extends Handler
 			while(list($key,) = each($this->_permissions)) {
 				$this->_permissions[$key] = true;
 			}
+			reset($this->_permissions);
 			return true;
 		}
 
-		$sth = $DB->prepare( "SELECT captain_id, assistant_id FROM team where team_id = ?");
-		$res = $DB->execute($sth,$id);
-		if(DB::isError($res)) {
-		 	/* TODO: Handle database error */
+		$res = $DB->getRow(
+			"SELECT 
+				captain_id, 
+				assistant_id 
+			 FROM team where team_id = ?",
+			 array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($res)) {
 			return false;
 		}
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC, 0);
-		$res->free();
+			 
 		if( ($session->attr_get('user_id') == $res['captain_id'])
 			|| ($session->attr_get('user_id') == $res['assistant_id'])) {
 				$this->_permissions['edit_team'] = true;
 		}
+		
 		/* 
 		 * TODO: 
 		 * See if we're looking at a league coordinator.
@@ -91,7 +95,7 @@ class TeamView extends Handler
 
 		$this->set_template_file("Team/view.tmpl");
 		
-		$sth = $DB->prepare("
+		$row = $DB->getRow("
 			SELECT 
 				t.team_id, 
 				t.name AS team_name, 
@@ -114,15 +118,10 @@ class TeamView extends Handler
 				AND s.team_id = t.team_id 
 				AND l.league_id = s.league_id 
 				AND t.team_id = ?
-		");
-		$res = $DB->execute($sth,$id);
-		if(DB::isError($res)) {
-		 	/* TODO: Handle database error */
-			$this->error_text = gettext("Database error");
+		", array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($row)) {
 			return false;
 		}
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC, 0);
-		$res->free();
 
 		if(!isset($row)) {
 			$this->error_text = gettext("The team [$id] does not exist");
@@ -137,11 +136,51 @@ class TeamView extends Handler
 		
 		$this->tmpl->assign("captain_id", $row['captain_id']);
 		$this->tmpl->assign("captain_name", $row['captain_name']);
-		$this->tmpl->assign("assistant_id", $row['assistant_id']);
 		
 		$this->tmpl->assign("league_name", $row['league_name']);
 		$this->tmpl->assign("league_id", $row['league_id']);
 		$this->tmpl->assign("league_tier", $row['league_tier']);
+	
+		/* Now, fetch assistant info if needed */
+		if(isset($row['assistant_id'])) {
+			$this->tmpl->assign("assistant_id", $row['assistant_id']);
+			$ass = $DB->getRow("SELECT firstname, lastname from person where user_id = ?", array($id), DB_FETCHMODE_ASSOC);
+			if($this->is_database_error($ass)) {
+				return false;
+			}
+			$this->tmpl->assign("assistant_name", $ass['firstname'] . " " . $ass['lastname']);
+			
+		}
+
+		/* and, grab roster */
+		$rows = $DB->getAll("
+			SELECT 
+				p.user_id as id,
+				CONCAT(p.firstname, ' ', p.lastname) as fullname,
+				p.gender,
+				r.status
+			FROM
+				person p,
+				teamroster r
+			WHERE
+				p.user_id = r.player_id
+				AND r.team_id = ?
+			ORDER BY p.gender, r.status, p.lastname",
+			array($id),
+			DB_FETCHMODE_ASSOC);
+			
+		if($this->is_database_error($rows)) {
+			return false;
+		}
+		
+		$this->tmpl->assign("roster", $rows);
+
+		/* ... and set permissions flags */
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
 
 		return true;
 	}

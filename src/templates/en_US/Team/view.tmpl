@@ -1,71 +1,83 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
 
 <h1>{$team_name}</h1>
-<table border="0">
-  <tr>
-    <td class='row_title'>Captain:</td>
-    <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$captain_id}">{$captain_name}</a></td>
-  </tr>
-  <tr>
-    <td class='row_title'>Assistant:</td>
-    <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$assistant_id}">{$assistant_name}</a></td>
-  </tr>
-  <tr>
-    <td class='row_title'>Website:</td>
-    <td class='row_data'><a href="{$team_website}" target="_new">{$team_website}</a></td>
-  </tr>
-  <tr>
-    <td class='row_title'>Shirt Colour:</td>
-    <td class='row_data'>{$shirt_colour}</td>
-  </tr>
-  <tr>
-    <td class='row_title'>League/Tier:</td>
-    <td class='row_data'><a href="{$app_cgi_location}?op=viewleague;id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
-    </td>
-  </tr>
-  <tr>
-    <td class='row_title'>Team Status:</td>
-    <td class='row_data'>{$team_status}</td>
-  </tr>
-</table>
 <p>
-[ <a href="{$app_cgi_location}?op=viewteamschedule;id={$team_id}">schedule and scores</a>
-| <a href="{$app_cgi_location}?op=jointeam;id={$team_id}">join team</a>
-<TMPL_IF NAME='has_modify_permission'>
-| <a href="{$app_cgi_location}?op=editteam;id={$team_id}">edit info</a>
-| <a href="{$app_cgi_location}?op=addplayer;id={$team_id}">add player</a>
-</TMPL_IF>
-| <a href="{$app_cgi_location}?op=viewstandings;id={$league_id}">view standings</a>
-]
+  [ <a href="{$app_cgi_location}?op=team_schedule_view;id={$team_id}">schedule and scores</a>
+  {if $team_status == 'open'}
+  | <a href="{$app_cgi_location}?op=team_join;id={$team_id}">join team</a>
+  {/if}
+  {if $perm_edit_team}
+  | <a href="{$app_cgi_location}?op=team_edit;id={$team_id}">edit info</a>
+  | <a href="{$app_cgi_location}?op=team_addplayer;id={$team_id}">add player</a>
+  {/if}
+  | <a href="{$app_cgi_location}?op=league_standings;id={$league_id}">view standings</a>
+  ]
 </p>
-{if $roster}
-<table border=0>
-  <tr bgcolor="#003399">
-    <td colspan=4><font color="#FFFF00"><b>Team Roster</b></font></td>
-  </tr>
-  {foreach name=teamroster from=$roster item=player}
+
+<table border="0" width="100%">
   <tr>
-    <td>{$player.fullname}</td>
-    <td>{if $player.on_roster}
-          &nbsp;
-        {else}
-          (awaiting approval)
-        {/if}
+    <td align="left" valign="top" width='250'>
+      <table border="0">
+        <tr>
+          <td class='row_title'>Captain:</td>
+          <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$captain_id}">{$captain_name}</a></td>
+        </tr>
+        <tr>
+          <td class='row_title'>Assistant:</td>
+          <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$assistant_id}">{$assistant_name}</a></td>
+        </tr>
+        <tr>
+          <td class='row_title'>Website:</td>
+          <td class='row_data'><a href="{$team_website}" target="_new">{$team_website}</a></td>
+        </tr>
+        <tr>
+          <td class='row_title'>Shirt Colour:</td>
+          <td class='row_data'>{$shirt_colour}</td>
+        </tr>
+        <tr>
+          <td class='row_title'>League/Tier:</td>
+          <td class='row_data'><a href="{$app_cgi_location}?op=league_view;id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
+          </td>
+        </tr>
+        <tr>
+          <td class='row_title'>Team Status:</td>
+          <td class='row_data'>{$team_status}</td>
+        </tr>
+      </table>
     </td>
     <td>
-      [ <a href="{$app_cgi_location}?op=viewuser;id={$player.id}">view</a>
-      {if $edit_permission}
-        {if not $on_roster}
-| <a href="{$app_cgi_location}?op=confirmplayer;team_id={$team_id};user_id={$player.id}">approve</a>
-        {/if}
-| <a href="{$app_cgi_location}?op=delplayer;team_id={$team_id};user_id={$player.id}">remove</a>
+      {if $roster}
+      <table cellpadding="3" cellspacing="0">
+        <tr>
+          <td colspan="4" class="roster_title">Team Roster</td>
+        </tr>
+        <tr>
+          <td class="roster_subtitle">Name</td>
+          <td class="roster_subtitle">Status</td>
+          <td class="roster_subtitle">M/F</td>
+          <td class="roster_subtitle">&nbsp;</td>
+        </tr>
+        {foreach name=teamroster from=$roster item=player}
+        <tr>
+          <td class="roster_item">{$player.fullname}</td>
+          <td class="roster_item">{$player.status}</td>
+          <td class="roster_item">{$player.gender}</td>
+          <td class="roster_item">
+            [ <a href="{$app_cgi_location}?op=person_view;id={$player.id}">view</a>
+            {if $perm_edit_team}
+              {if $player.status ne 'confirmed'}
+      | <a href="{$app_cgi_location}?op=team_playerconfirm;team_id={$team_id};user_id={$player.id}">approve</a>
+              {/if}
+      | <a href="{$app_cgi_location}?op=team_removeplayer;team_id={$team_id};user_id={$player.id}">remove</a>
+            {/if}
+      ]
+          </td>
+        </tr>
+        {/foreach}
+      </table>
       {/if}
-]
     </td>
   </tr>
-  {/foreach}
 </table>
-{/if}
-
 {include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}

@@ -94,3 +94,28 @@ TABLE {
   color: red;
   text-decoration: none;
 }
+
+.teamlist_title, .roster_title {
+	background-color:    black;
+	color:               white;
+	font-weight:         bold;
+	border-bottom-width: 1px;
+	border-bottom-color: black;
+	border-bottom-style: solid;
+	font-size: 11px;
+}
+
+.roster_subtitle {
+	font-weight:         bold;
+	border-bottom-width: 1px;
+	border-bottom-color: black;
+	border-bottom-style: solid;
+	font-size: 11px;
+}
+
+.teamlist_item, .roster_item {
+	border-bottom-width: 1px;
+	border-bottom-color: gray;
+	border-bottom-style: solid;
+	font-size: 11px;
+}

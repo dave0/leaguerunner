@@ -8,8 +8,7 @@ require_once("Handler/NotFound.php");
 
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
-
-require_once("lib/smarty_extensions.php");
+require_once("Handler/League.php");
 
 /**
  * This is the base class for all operation handlers used in the web UI.
@@ -212,6 +211,24 @@ class Handler
 	{
 		global $current_language;
 		$this->tmplfile = $current_language . "/" . $template_file;
+	}
+
+	/**
+	 * Check for a database error
+	 */
+	function is_database_error( &$res ) 
+	{
+		global $DB;
+		if(!isset($res)) {
+			$this->error_text = gettext("Database error: Invalid database resource.");
+			return true;
+		}
+		if(DB::isError($res)) {
+			$this->error_text = $res->getMessage();
+			return true;
+		}
+		
+		return false;
 	}
 }
 

@@ -48,27 +48,4 @@ function get_teams_for_user($userid)
 	return $rows;
 }
 
-/**
- * Return array of all information for the given userid
- * @param integer $userid  User ID
- * @return array Associative array of all DB info on given person
- */
-function get_info_for_user($userid) 
-{
-	global $DB;
-	$sth = $DB->prepare("SELECT * from person where user_id = ?");
-	$res = $DB->execute($sth,$userid);
-	if(DB::isError($res)) {
-	 	/* TODO: Handle database error */
-		return false;
-	}
-	$rows = array();
-	while($row = $res->fetchRow(DB_FETCHMODE_ASSOC)) {
-		$rows[] = $row;
-	}
-	$res->free();
-	return $rows;
-}
-
-
 ?>

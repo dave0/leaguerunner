@@ -1,0 +1,67 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$league_name}{if $league_tier} Tier {$league_tier}{/if}</h1>
+<table border="0">
+  <tr>
+    <td class='row_title'>Coordinator:</td> 
+    <td class='row_data'><a href="{$app_cgi_location}?op=person_view&id={$coordinator_id}">{$coordinator_name}</a></td>
+  </tr>
+  {if $co_coordinator_id}
+  <tr>
+    <td class='row_title'>Co-Coordinator:</td> 
+    <td class='row_data'><a href="{$app_cgi_location}?op=person_view&id={$co_coordinator_id}">{$co_coordinator_name}</a></td>
+  </tr>
+  {/if}
+  <tr>
+    <td class='row_title'>Season:</td> 
+    <td class='row_data'>{$league_season}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title'>Current Round:</td> 
+    <td class='row_data'>{$league_current_round}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title'>Maximum teams:</td> 
+    <td class='row_data'>{$league_maxteams}</a></td>
+  </tr>
+</table>
+
+	<p>
+	[ <a href="{$app_cgi_location}?op=league_schedule_view;id={$league_id}">view{if $perm_adminster_league}/edit{/if} schedule</a>
+	| <a href="{$app_cgi_location}?op=league_standings;id={$league_id}">view standings</a>
+  {if $perm_administer_league}
+	<TMPL_IF NAME='is_league_admin'>
+		| <a href="{$app_cgi_location}?op=league_edit;id={$league_id}">edit info</a>
+		| <a href="{$app_cgi_location}?op=league_verifyscores;id={$league_id}">approve scores</a>
+		| <a href="{$app_cgi_location}?op=league_captemails;id={$league_id}">fetch captain emails</a>
+  {/if}
+	]
+	</p>
+
+<table border='0' cellpadding='3' cellspacing='0'><tdata>
+  <tr>
+    <td colspan='5' class='teamlist_title'>Teams</td>
+  </tr>
+{foreach name=teamlist from=$teams item=team}
+  <tr>
+    <td class='teamlist_item'>{$team.name}</td>
+    <td class='teamlist_item'>{$team.shirt_colour}&nbsp</td>
+    <td class='teamlist_item'>
+    [ <a href="{$app_cgi_location}?op=team_view;id={$team.id}">view</a>
+    {if $team.team_status == 'open'}
+    | <a href="{$app_cgi_location}?op=team_join;id={$team.id}">join team</a>
+    {/if}
+    {if $perm_administer_league}
+      | <a href="{$app_cgi_location}?op=team_move;id={$team.id}">move team</a>
+      | <a href="{$app_cgi_location}?op=team_move;league_to=1;id={$team.id};league_id={$league_id}">deactivate</a>	
+      {if $team.league_status != 'confirmed'}
+        | <a href="{$app_cgi_location}?op=league_addteam;id={$league_id};team_id={$team.id}">confirm</a>
+      {/if}
+    {/if}
+    ]
+    </td> 
+  </tr>
+{/foreach}
+</tdata></table>
+
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

@@ -92,14 +92,17 @@ class PersonView extends Handler
 		/*
 		 * See if we're looking at a regular player with possible restrictions
 		 */
-		$sth = $DB->prepare( "SELECT class, allow_publish_email, allow_publish_phone, FROM person WHERE user_id = ?");
-		$res = $DB->execute($sth,$id);
-		if(DB::isError($res)) {
-		 	/* TODO: Handle database error */
+		$row = $DB->getRow(
+			"SELECT 
+				class, 
+				allow_publish_email, 
+				allow_publish_phone
+			FROM person WHERE user_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($row)) {
 			return false;
 		}
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC, 0);
-		$res->free();
+
 		if($row['allow_publish_email'] == 'yes') {
 			$this->_permissions['email'] = true;
 		}
@@ -115,18 +118,27 @@ class PersonView extends Handler
 		global $DB, $id;
 
 		$this->set_template_file("Person/view.tmpl");
-		
-		$sth = $DB->prepare("SELECT CONCAT(firstname,' ',lastname) AS fullname, username, primary_email, gender, primary_phone, birthdate, skill_level, year_started, addr_street, addr_city, addr_prov, addr_postalcode, last_login FROM person WHERE user_id = ?");
-		$res = $DB->execute($sth,$id);
-		if(DB::isError($res)) {
-		 	/* TODO: Handle database error */
-			return false;
-		}
-		$row = $res->fetchRow(DB_FETCHMODE_ASSOC, 0);
-		$res->free();
+	
+		$row = $DB->getRow(
+			"SELECT 
+				CONCAT(firstname,' ',lastname) AS fullname, 
+				username, 
+				primary_email, 
+				gender, 
+				primary_phone, 
+				birthdate, 
+				skill_level, 
+				year_started, 
+				addr_street, 
+				addr_city, 
+				addr_prov, 
+				addr_postalcode, 
+				last_login 
+			FROM person WHERE user_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
 
-		if(!isset($row)) {
-			$this->error_text = gettext("The user [$id] does not exist");
+		if($this->is_database_error($row)) {
+			return false;
 		}
 
 		$this->tmpl->assign("full_name", $row['fullname']);

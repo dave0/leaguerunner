@@ -26,9 +26,11 @@ require("lib/variables.php");
 $APP_PAGE_MAP = array();
 
 require_once 'DB.php';
+require_once 'lib/db_helper_functions.php';
 require_once "UserSession.php";
 require_once "Handler.php";
 require_once "Smarty.class.php";
+require_once "lib/smarty_extensions.php";
 
 /* 
  * TODO: allow modification of current_language in user prefs later.
