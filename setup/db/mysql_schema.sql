@@ -48,6 +48,7 @@ CREATE TABLE person (
 CREATE TABLE member_id_sequence (
 	year	year not null,
 	id 	integer not null
+	PRIMARY KEY(year);
 );
 
 -- to be used for player availability
