@@ -21,8 +21,6 @@
  *          Mackenzie King <mackking@canada.com>
  * 
  */
-ini_set('include_path','.:/usr/share/php:/usr/local/lib/php');
-
 require_once("includes/config.inc");
 require_once("includes/common.inc");
 require_once("includes/theme.inc");
