@@ -146,14 +146,14 @@ function _menu_internal_sort($a, $b) {
 function _menu_render_item(&$item, $isActive) {
 
 	if($isActive) {
-		$css = " class='active'";
+		
+		$attrs = array('class' => 'active');
+	} else {
+		$attrs = array();
 	}
 
 	if ( $item['link'] ) {
-		return "<a href='"
-			. url($item['link']) 
-			."'$css>"
-			. $item["title"] ."</a>";
+		return l($item['title'], $item['link'], $attrs);
 	} else {
 		return $item["title"];
 	}
