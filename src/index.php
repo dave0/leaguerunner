@@ -45,6 +45,7 @@ require_once("includes/database.inc");
 $conf = variable_init();
 
 require_once("classes/lrobject.inc");
+require_once("classes/site.inc");
 require_once("classes/person.inc");
 require_once("classes/league.inc");
 require_once("classes/team.inc");
