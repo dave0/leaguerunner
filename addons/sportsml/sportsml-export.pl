@@ -84,7 +84,7 @@ sub export_to_files
 			($file, $xml) = start_export_page($filebase, $league);
 		}
 		foreach my $coderef (@coderefs) {
-#			print $league->{name}, "\n";
+			print $league->{name}, "\n";
 			$coderef->($xml, $league);
 		}
 		$prev_league = $league;
@@ -198,7 +198,7 @@ sub sort_standings
 
 	## Ties after +/- are to be broken by SOTG.
 	if($sort_data->{$b}->{games} > 0 && $sort_data->{$a}->{games} > 0) {
-		$rc = (($sort_data->{$b}->{spirit} / $sort_data->{$b}->{games}) <=> ($sort_data->{$a}->{spirit} / $sort_data->{$a}->{games}));
+		$rc = (calculate_sotg($sort_data->{$b},1) <=> calculate_sotg($sort_data->{$a},1));
 		if($rc != 0)  { return $rc; }
 	}
 
@@ -255,6 +255,8 @@ sub export_tier_standing
 			points_for => 0,
 			points_against => 0,
 			spirit => 0,
+			worst_spirit => 9999,
+			best_spirit => 0,
 			win => 0,
 			loss => 0,
 			tie => 0,
@@ -269,6 +271,8 @@ sub export_tier_standing
 				points_for => 0,
 				points_against => 0,
 				spirit => 0,
+				worst_spirit => 9999,
+				best_spirit => 0,
 				win => 0,
 				loss => 0,
 				tie => 0,
@@ -335,7 +339,7 @@ sub export_tier_standing
 		## SOTG gets displayed after the third game
 		## We show entire season's spirit, not just the round.
 		if($season->{$id}->{games} >= 3) {
-			$spirit = sprintf("%.2f",$season->{$id}->{spirit} / ($season->{$id}->{games} - ($season->{$id}->{defaults_for} + $season->{$id}->{defaults_against})));
+			$spirit = sprintf("%.2f", calculate_sotg($season->{$id},1));
 		}
 		my $srow = {
 			team_name => $season->{$id}->{name},
@@ -413,6 +417,12 @@ sub record_game
 			$sref->{$home_id}->{defaults_for}++;
 		} else {
 			$sref->{$home_id}->{spirit} += $home_sotg;
+			if($sref->{$home_id}->{worst_spirit} > $home_sotg) {
+				$sref->{$home_id}->{worst_spirit} = $home_sotg
+			}
+			if($sref->{$home_id}->{best_spirit} < $home_sotg) {
+				$sref->{$home_id}->{best_spirit} = $home_sotg
+			}
 		}
 
 		if($home_score == $away_score) {
@@ -437,6 +447,12 @@ sub record_game
 			$sref->{$away_id}->{defaults_for}++;
 		} else {
 			$sref->{$away_id}->{spirit} += $away_sotg;
+			if($sref->{$away_id}->{worst_spirit} > $away_sotg) {
+				$sref->{$away_id}->{worst_spirit} = $away_sotg
+			}
+			if($sref->{$away_id}->{best_spirit} < $away_sotg) {
+				$sref->{$away_id}->{best_spirit} = $away_sotg
+			}
 		}
 
 		if($home_score == $away_score) {
@@ -558,6 +574,25 @@ sub league_make_title
 		$league_title .= " Tier " . $league->{'tier'};
 	}
 	return $league_title
+}
+
+sub calculate_sotg
+{
+	my $stats = shift;
+	my $drop_best_worst = shift || 0;
+
+	my $raw = $stats->{'spirit'};
+	my $games = $stats->{'games'} - ($stats->{defaults_for} + $stats->{defaults_against});
+
+	if($games > 0) {
+		if($games >= 3 && $drop_best_worst) {
+			$raw = $raw - ($stats->{best_spirit} + $stats->{worst_spirit});
+			$games = $games - 2;
+		}
+		return $raw / $games;
+	} else {
+		return 0;
+	}
 }
 
 

@@ -578,12 +578,11 @@ class LeagueStandings extends Handler
 	{	
 		$raw = $stats['spirit'];
 		$games = $stats['games'] - ($stats['defaults_for'] + $stats['defaults_against']);
-		if($drop_best_worst && ($games > 3)) {
-			$raw = $raw - ($stats['best_spirit'] + $stats['worst_spirit']);
-			$games = $games - 2;
-		}
-
-		if($games > 3) {
+		if($games > 0) {
+			if($games >= 3 && $drop_best_worst) {
+				$raw = $raw - ($stats['best_spirit'] + $stats['worst_spirit']);
+				$games = $games - 2;
+			}
 			return $raw / $games;
 		} else {
 			return 0;
@@ -717,7 +716,7 @@ class LeagueStandings extends Handler
 			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
 				 $sotg = "---";
 			} else {
-				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id]));
+				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id], true));
 			}
 			
 			$row .= td($sotg, array('class' => 'standings_item_lb'));
