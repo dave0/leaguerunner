@@ -93,6 +93,10 @@ TABLE {
   text-decoration: none;
 }
 
+.topbarlink:hover {
+	text-decoration: underline;
+}
+
 .booking_title, .standings_title, .menu_title, .schedule_title, .teamlist_title, .roster_title {
 	background-color:    black;
 	color:               white;
@@ -128,4 +132,8 @@ TABLE {
 
 a {
 	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
 }
