@@ -20,6 +20,15 @@ function ward_dispatch()
 	return null;
 }
 
+function ward_menu()
+{
+	global $session;
+	if($session->is_admin()) {
+		menu("ward", "City Wards", 0,1);
+		menu("ward/list", "list wards");
+	}
+}
+
 class WardCreate extends WardEdit
 {
 	function initialize ()

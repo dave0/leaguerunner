@@ -84,14 +84,6 @@ td		{ vertical-align: top }
 .myteams td { vertical-align: top; font-size: 9pt; }
 .myteams .highlight { background-color: lightblue; }
 
-.oldmenu table { border-collapse: collapse; }
-.oldmenu th { text-align: left; background-color: black; color: white; 
-              font-size: 9pt; }
-.oldmenu td { vertical-align: top; border-bottom-width: 1px;
-              border-bottom-color: gray; border-bottom-style: solid;
-	      font-size: 8pt; }
-
-
 .calendar .row-week td a  { display: block; }
 .calendar .row-week td a:hover { background-color: #888; color: #fff; }
 .calendar table           { border-collapse: collapse; width: 100%; }
@@ -105,7 +97,46 @@ td		{ vertical-align: top }
 .lr_topbar a:active  { color: red; }
 .lr_topbar .nav  { background-color: lightgray; 
                    padding-left: 5px; padding-right: 5px; }
-.lr_topbar .off  { background-color: darkgray; text-align: center; border-left: thin solid black; border-top: thin solid black; border-right: thin solid black }
-.lr_topbar .on   { background-color: white; font-weight: bold; text-align: center; border-bottom: thin solid black }
 
 .error { color: red }
+
+/* Menu styles */
+.menu {
+  padding: 0 0 0 0.5em;
+}
+.menu ul { 
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25em 1em;
+  border: none;
+  text-align:left;
+}
+.menu li {
+  margin: 0;
+  padding: 0.2em 0.5em 0 0;
+}
+.menu li a {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+}
+.menu li a.active {
+  color: #000;
+  font-weight: bold;
+}
+.menu li a:hover {
+  color: #009;
+}
+.menu li.expanded {
+  list-style-type: circle;
+  list-style-image: url(misc/menu-expanded.gif);
+}
+.menu li.collapsed {
+  list-style-type: disc;
+  list-style-image: url(misc/menu-collapsed.gif);
+}
+.menu li.leaf {
+  list-style-type: square;
+  list-style-image: url(misc/menu-leaf.gif);
+}
+

@@ -1,18 +1,18 @@
 <?php
 
 # do not resort this list or things will break
-require_once("Handler/Login.php");
-require_once("Handler/Menu.php");
+module_register("Handler/Login.php", 'login'); // TODO: also contains logout handler!
+module_register("Handler/Menu.php", 'home'); // TODO: make this go away
 
-require_once("Handler/Person.php");
-require_once("Handler/Team.php");
-require_once("Handler/League.php");
-require_once("Handler/Schedule.php");
-require_once("Handler/Field.php");
-require_once("Handler/Ward.php");
-require_once("Handler/Site.php");
-require_once("Handler/Game.php");
-require_once("Handler/WaitingList.php");
+module_register("Handler/Person.php", 'person');
+module_register("Handler/Team.php", 'team');
+module_register("Handler/League.php", 'league');
+module_register("Handler/Schedule.php", 'schedule');
+module_register("Handler/Field.php", 'field');
+module_register("Handler/Ward.php", 'ward');
+module_register("Handler/Site.php",'site');
+module_register("Handler/Game.php",'game');
+module_register("Handler/WaitingList.php",'wlist');
 
 /**
  * This is the base class for all operation handlers used in the web UI.

@@ -28,6 +28,12 @@ function league_dispatch()
 	return null;
 }
 
+function league_menu()
+{
+	menu('league', "Leagues", -2, 1);
+	menu('league/list', "list leagues");
+}
+
 /**
  * Create handler
  */

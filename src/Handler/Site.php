@@ -20,6 +20,12 @@ function site_dispatch()
 	return null;
 }
 
+function site_menu()
+{
+	menu("site", "Field Sites", 0,1);
+	menu("site/list", "list fields");
+}
+
 
 class SiteCreate extends SiteEdit
 {

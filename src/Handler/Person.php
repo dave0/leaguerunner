@@ -38,6 +38,29 @@ function person_dispatch()
 	return null;
 }
 
+function person_menu() 
+{
+	global $session;
+	
+	menu("person", "Players", -4, 1);
+	menu("person/view/" . $session->attr_get('user_id'), "my account", 0);
+	menu("person/changepassword/" . $session->attr_get('user_id'), "change password",1);
+	menu("person/signwaiver", "view/sign player waiver",2);
+	
+	if($session->attr_get('has_dog') == 'Y') {
+	  menu("person/signdogwaiver", "view/sign dog waiver",3);
+	}
+	
+	menu("person/list", "list players", 5);
+
+	if($session->is_admin()) {
+		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
+		if($newUsers) {
+			menu("person/listnew", "approve new accounts ($newUsers pending)");
+		}
+	}
+}
+
 /**
  * Player viewing handler
  */

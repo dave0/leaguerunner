@@ -30,73 +30,46 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
 	print theme_navbar($section, $breadcrumbs);
 	print "<tr><td colspan='2' class='main'>";
 	print "\n<!-- end header -->\n";
+	
+	/* DMO: TODO: fix this evil hack 
+	 * Here we nest another table to not screw up the column widths, etc,
+	 * above.  Instead, all should be merged in one table, the breadcrumbs
+	 * fixed, and the top menubar removed.
+	 */
+	print "<table width='100%'><tr><td>";
+	if ($session->is_valid()) {
+		print "<div class='menu'>" . menu_tree() . "</div>";
+	}
+	print "</td><td class='main'>";
+	/* DMO: TODO: end evil hack */
 }
 
 function theme_navbar($section, $breadcrumbs = array()) 
 {
 	global $session;
 
-	/* TODO: Put these somewhere else (global var? config var?) */
-	$sectionTabs = array(
-		'home' => 'Home',
-		'person' => 'People',
-		'team' => 'Teams',
-		'league' => 'Leagues',
-		'site' => 'Fields',
-// TODO: 'game' handlers should encompass the following:
-//   - list all games for a given date (anyone)
-//   - view a game (anyone, coord/admin has extra privs)
-//   - edit a game (coord/admin)
-//   - submit a game score (captain/coord/admin)
-//   - submit an incident report (anyone)
-//		'game' => 'Games',
-		'admin' => 'Admin',
-		'logout' => 'Log Out'
-	);
-	$numTabs = count($sectionTabs);
-
-	$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
-
 	print "\n<!-- start navbar -->\n";
 	print "<tr><td colspan='2'>" ;
 	print "<div class='lr_topbar'><table>";
 	if($session->is_valid()) {
 		$crumbs = array(
-			"<b>" 
-			. $session->attr_get("firstname") 
-			. " "
-			. $session->attr_get("lastname")
-			. "</b>",
+			"<b>" . $session->attr_get("fullname") . "</b>",
+			l($section, $section)
 		);
-		
-		$crumbs[] = l($sectionTabs[$section], $section);
 
 		$crumbs = array_merge($crumbs, $breadcrumbs);
 		
-		$tdWidth = floor( 100 / $numTabs);
-		print "<tr>";
-		while(list($key,$name) = each($sectionTabs)) {
-			if($key == $section) {
-				$class = 'on';
-			} else {
-				$class = 'off';
-			}
-			print "<td class='$class' width='$tdWidth%'>" . l($name,$key) . "</td>";
-		}
-		print "</tr>";
-		
-		print "<tr>";
-		print "<td class='nav' colspan='" . ceil(2 * ($numTabs / 3)) . "'>" . theme_links($crumbs, "&nbsp;&raquo;&nbsp;") . "</td>";
-		print "<td class='nav' align='right' colspan='" . floor($numTabs / 2) . "'>$rightLink</td>";
-		print "</tr>";
-		
+		$leftLink = theme_links($crumbs, "&nbsp;&raquo;&nbsp;");
+		$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
+
 	} else {
+		$leftLink = "&nbsp;";
 		$rightLink = theme_links( array( l('log in','login'), $rightLink));
-		print "<tr>";
-		print "<td class='nav'>&nbsp;</td>";
-		print "<td class='nav' align='right'>$rightLink</td>";
-		print "</tr>";
 	}
+	print "<tr>";
+	print "<td class='nav'>$leftLink</td>";
+	print "<td class='nav' align='right'>$rightLink</td>";
+	print "</tr>";
 	
 	print "</table></div></td></tr>\n";
 	print "\n<!-- end navbar -->\n";
@@ -114,6 +87,13 @@ function theme_links($links, $delimiter = " | ")
 
 function theme_footer()
 {
+	/* DMO: TODO: fix this evil hack 
+	 * Here we nest another table to not screw up the column widths, etc,
+	 * above.  Instead, all should be merged in one table, the breadcrumbs
+	 * fixed, and the top menubar removed.
+	 */
+	print "</td></tr></table>";
+	/* DMO: TODO: end evil hack */
 ?>
 <!-- start footer -->
 <p />

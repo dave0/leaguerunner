@@ -9,6 +9,11 @@ function logout_dispatch()
 	return new Logout;
 }
 
+function login_menu()
+{
+	menu("logout","Log Out", 20);
+}
+
 /**
  * Login handler 
  */

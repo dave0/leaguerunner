@@ -4,13 +4,21 @@ function home_dispatch()
 {
 	return new MainMenu;
 }
-function admin_dispatch() 
+
+function home_menu() 
 {
-	return new AdminMenu;
+	global $session;
+	menu("home", "Home",0 -5);
 }
 
 class MainMenu extends Handler
 {
+	/* TODO: idea for cleaning this up:
+	 *  - implement $MODULENAME_splash hook for each module that returns
+	 *  appropriate info for displaying on front page.  Then implement
+	 *  team_splash to list teams, league_splash for leagues, etc.
+	 *  Also an admin_splash for approving new users
+	 */
 	function initialize ()
 	{
 		$this->_permissions = array(
@@ -39,36 +47,6 @@ class MainMenu extends Handler
 
 		$id = $session->attr_get("user_id");
 		$this->setLocation(array( $session->attr_get('fullname') => 0 ));
-
-	
-		/* TODO: this menu should go away in favour of an integrated menu
-		 * system */
-		$header = array( "Account Settings" );
-		$rows = array();	
-
-		$rows[] = array(l("View/Edit My Account", "person/view/$id"));
-		$rows[] = array(
-			l("Change My Password", "person/changepassword/$id"));
-
-		$rows[] = array( 
-			l("View/Sign Player Waiver", "person/signwaiver"));
-			
-		if( $session->attr_get('has_dog') == 'Y' ) {
-			$rows[] = array( 
-				l("View/Sign Dog Waiver", "person/signdogwaiver"));
-		}
-
-		/* TODO: This should be a config option */
-		$signupTime = mktime(9,0,0,10,22,2003);
-		if(	time() >= $signupTime) {
-			$rows[] = array( 
-				l("Winter Indoor Signup", "wlist/viewperson/$id"));
-		} else {
-			$rows[] = array("Indoor Signup opens<br/>" . date("F j Y h:i A", $signupTime));
-		}
-
-		$accountMenu = "<div class='oldmenu'>" . table( $header, $rows ) . "</div>";
-
 		$header = array(
 			array('data' => 'My Teams', 'width' => 90 ),
 			array('data' => '&nbsp', 'colspan' => 3 )
@@ -174,54 +152,10 @@ class MainMenu extends Handler
 				
 		$rows = array(
 			array(
-				array('data'=> $accountMenu, 'valign' => 'top', 'rowspan' => 2),
 				array('data'=> $teams, 'valign' => 'top'),
 			),
 			array(
 				array('data'=> $leagues, 'valign' => 'top'),
-			)
-		);
-
-		return table(null, $rows);
-	}
-}
-
-class AdminMenu extends Handler
-{
-	function initialize ()
-	{
-		$this->setLocation(array("Admin Tools" => 0));
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		$this->section = 'admin';
-		return true;
-	}
-
-	function process ()
-	{
-		$result = db_query("SELECT COUNT(*) FROM person WHERE status = 'new'");
-		$newUsers = db_result($result);
-				
-		$links = array(
-			array(l("List City Wards", "ward/list")),
-			array(l("Approve New Accounts", "person/listnew") . " ($newUsers awaiting approval)"),
-			array(l("Create New Waiting List", "wlist/create")),
-			array(l("List Waiting Lists", "wlist/list")),
-		);
-
-		$header = array ("Admin Tools");
-
-		$left = "<div class='oldmenu'>" . table($header, $links) . "</div>";
-		$right = para("Administrative tools for managing the league are available here.");
-		
-		$rows = array(
-			array(
-				array('data'=> $left, 'valign' => 'top'),
-				array('data'=> $right, 'valign' => 'top'),
 			)
 		);
 

@@ -26,6 +26,24 @@ function wlist_dispatch()
 	return null;
 }
 
+function wlist_menu() 
+{
+	global $session;
+
+	menu('wlist', "Waiting Lists", 0,1);
+	
+	/* TODO: This should be a config option */
+	$signupTime = mktime(9,0,0,10,22,2003);
+	if(	time() >= $signupTime) {
+		menu("wlist/viewperson/" . $session->attr_get('user_id'), "winter indoor signup");
+	}
+	
+	if($session->is_admin()) {
+		menu("wlist/create", "create waitlist");
+		menu("wlist/list", "list waitlists");
+	}
+}
+
 
 class WaitingListEdit extends Handler
 {

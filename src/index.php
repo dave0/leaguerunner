@@ -37,6 +37,7 @@ eval($phpCode);
 
 require_once("includes/common.inc");
 require_once("includes/module.inc");
+require_once("includes/menu.inc");
 require_once("includes/theme.inc");
 require_once("includes/database.inc");
 
@@ -46,6 +47,9 @@ if(!valid_input_data($_REQUEST)) {
 
 require_once "Handler.php";
 require_once "UserSession.php";
+
+/* Build up menus */
+menu_build('system');
 
 /* Instantiate a handler of the appropriate class to handle this 
  * operation 

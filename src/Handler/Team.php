@@ -27,6 +27,12 @@ function team_dispatch()
 	return null;
 }
 
+function team_menu()
+{
+	menu("team", "Teams", -3, 1);
+	menu("team/list", "list teams");
+}
+
 
 /**
  * Team create handler
