@@ -12,7 +12,10 @@ module_register("Handler/Field.php", 'field');
 module_register("Handler/Ward.php", 'ward');
 module_register("Handler/Site.php",'site');
 module_register("Handler/Game.php",'game');
+/* 
+ * Not needed/wanted for summer
 module_register("Handler/WaitingList.php",'wlist');
+ */
 
 /**
  * This is the base class for all operation handlers used in the web UI.

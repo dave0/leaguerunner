@@ -1592,7 +1592,7 @@ class PersonList extends Handler
 				break;
 			case 'player':
 			default:
-				$user_class = " AND class = 'player'";
+				$user_class = " AND (class = 'player' OR class= 'administrator' OR class='volunteer')";
 				$query_append = '&class=player';
 				$this->setLocation(array("List Players" => 'person/list?class=player'));
 				break;
@@ -1793,8 +1793,15 @@ class PersonForgotPassword extends Handler
 	or username are required if you are sharing an email address with
 	another registered player.
 </p><p>
+	<b>NOTE!</b> Please follow the instructions!  If you only know your
+	username and not your member ID, DON'T enter the member ID!  If you don't
+	remember which email address you used, DON'T enter an email address with
+	your userid.  If you don't remember your userid but do remember your
+	email, DON'T try and guess.  Randomly guessing at userids will NOT work.
+	Randomly guessing at email addresses will NOT work.  Randomly guessing at member numbers will NOT work.
+</p><p>
 	If you don't receive an email within a few hours, you may not have
-	remembered correctly, or the system may be encountering problems.
+	remembered correctly.
 </p>
 END_TEXT;
 

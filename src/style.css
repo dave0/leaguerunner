@@ -69,7 +69,7 @@ td		{ vertical-align: top }
 }
 
 .schedule tr.dark {
-	background-color: lightgray;
+	background-color: #DDF;
 }
 
 .fieldlist table { border-collapse: collapse; width: 100%; }

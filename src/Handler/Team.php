@@ -530,7 +530,7 @@ class TeamRosterStatus extends Handler
 		}
 
 		$player = person_load( array('user_id' => $playerId) );
-		if($player->class != 'player') {
+		if($player->class != 'player' && $player->class != 'volunteer' && $player->class != 'administrator') {
 			$this->error_exit("Only OCUA-registered players can be added to a team");
 		}
 
