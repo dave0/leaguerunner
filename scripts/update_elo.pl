@@ -49,19 +49,23 @@ sub END { $DB->disconnect() if defined($DB); }
 my $sth;
 my $game;
 ## Set all teams' scores to 1500
-$sth = $DB->prepare(q{UPDATE team SET rating = 1500});
+#$sth = $DB->prepare(q{UPDATE team SET rating = 1500});
+$sth = $DB->prepare(q{UPDATE team SET rating = 0});
+#$sth = $DB->prepare(q{UPDATE team,leagueteams,league SET team.rating = (1600 - (100*league.tier)) WHERE team.team_id=leagueteams.team_id AND league.league_id = leagueteams.league_id});
 $sth->execute();
 
 ## Now, retrieve each game
 my $query = $DB->prepare(q{SELECT s.*,
 	home.name as home_name,
-	away.name as away_name
+	away.name as away_name,
+	league.tier as tier
 	from schedule s 
+	INNER JOIN league ON (league.league_id = s.league_id)
 	INNER JOIN team home ON (home.team_id = s.home_team)
 	INNER JOIN team away ON (away.team_id = s.away_team)
 });
 
-my $updateTeam = $DB->prepare(q{UPDATE team SET rating = rating + ? WHERE team_id = ?});
+my $updateTeam = $DB->prepare(q{UPDATE team SET rating = ? WHERE team_id = ?});
 my $updateGame = $DB->prepare(q{UPDATE schedule SET rating_points = ? WHERE game_id = ?});
 my $getRating = $DB->prepare(q{SELECT rating FROM team WHERE team_id = ?});
 
@@ -79,22 +83,36 @@ while(my $game  = $query->fetchrow_hashref()) {
 
 	$getRating->execute($game->{home_team});
 	$ary = $getRating->fetchrow_arrayref();
-	$game->{home_rating} = $ary->[0];
+	if($ary->[0] != 0) {
+		$game->{home_rating} = $ary->[0];
+	} else {
+		# Seed initial rating based on tier of initial game
+		my $seed_rating = 1600 - (100 * $game->{'tier'} );
+		print "Initializing rating for " . $game->{'home_name'} . " to $seed_rating\n";
+		$game->{home_rating} = $seed_rating;
+	}
 	
 	$getRating->execute($game->{away_team});
 	$ary = $getRating->fetchrow_arrayref();
-	$game->{away_rating} = $ary->[0];
+	if($ary->[0] != 0) {
+		$game->{away_rating} = $ary->[0];
+	} else {
+		# Seed initial rating based on tier of initial game
+		my $seed_rating = 1600 - (100 * $game->{'tier'});
+		print "Initializing rating for " . $game->{'away_name'} . " to $seed_rating\n";
+		$game->{away_rating} = $seed_rating;
+	}
 
 	print "Game $game->{game_id} ($game->{'home_name'} vs $game->{'away_name'}): ";
 	if($game->{home_score} > $game->{away_score}) {
 		$change = calculateEloChange($game->{home_score}, $game->{away_score}, $game->{'home_rating'}, $game->{'away_rating'});
-		$updateTeam->execute($change, $game->{home_team});
-		$updateTeam->execute((0 - $change), $game->{away_team});
+		$updateTeam->execute(($game->{'home_rating'} + $change), $game->{home_team});
+		$updateTeam->execute(($game->{'away_rating'} - $change), $game->{away_team});
 				
 	} else {
 		$change = calculateEloChange($game->{away_score}, $game->{home_score}, $game->{'away_rating'}, $game->{'home_rating'});
-		$updateTeam->execute($change, $game->{away_team});
-		$updateTeam->execute((0 - $change), $game->{home_team});
+		$updateTeam->execute(($game->{'away_rating'} + $change), $game->{away_team});
+		$updateTeam->execute(($game->{'home_rating'} - $change), $game->{home_team});
 	}
 	print "$change\n";
 

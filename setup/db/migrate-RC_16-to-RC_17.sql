@@ -8,7 +8,7 @@ CREATE TABLE leaguemembers (
 	league_id	integer NOT NULL,
 	player_id	integer NOT NULL,
 	status		varchar(64),
-	PRIMARY KEY	(team_id, league_id),
+	PRIMARY KEY	(player_id, league_id),
 	INDEX leaguemembers_league (league_id)
 );
 INSERT INTO leaguemembers (league_id, player_id, status) 
