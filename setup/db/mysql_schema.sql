@@ -44,7 +44,8 @@ CREATE TABLE person (
 	class   enum('new','inactive','active','locked','volunteer','administrator') DEFAULT 'new' NOT NULL,
 	waiver_signed datetime,
 	last_login datetime,
-	client_ip      varchar(50)
+	client_ip      varchar(50),
+	KEY(username)
 );
 
 -- For use when assigning member IDs

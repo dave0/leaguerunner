@@ -1089,6 +1089,9 @@ class PersonCreate extends PersonEdit
 		
 		$res = $DB->query("INSERT into person (username,password,class) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
 		if($this->is_database_error($res)) {
+			if(strstr($this->error_text,"already exists: INSERT into person (username,password,class) VALUES")) {
+				$this->error_text = "A user with that username already exists; please go back and try again";
+			}
 			return false;
 		}
 		$this->_id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
