@@ -553,6 +553,10 @@ class LeagueStandings extends Handler
 	{
 		$this->league->load_teams();
 
+		if( count($this->league->teams) < 1 ) {
+			$this->error_exit("Cannot generate standings for a league with no teams");
+		}
+
 		while(list($id,) = each($this->league->teams)) {
 			$this->league->teams[$id]->points_for = 0;
 			$this->league->teams[$id]->points_against = 0;

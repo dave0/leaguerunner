@@ -102,6 +102,12 @@ class League extends LeaguerunnerObject
 
 		$this->teams = team_load_many( array('_extra' => 'l.league_id = ' . check_query($this->league_id), '_order' => 's.rank'));
 
+		// Cheat.  If we didn't find any teams, set $this->teams to an empty
+		// array again.
+		if( !is_array($this->teams) ) {
+			$this->teams = array();
+		}
+
 		$this->_teams_loaded = true;	
 		return true;
 	}
