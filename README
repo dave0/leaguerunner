@@ -2,13 +2,53 @@ Leaguerunner - PHP software to run an ultimate league
 
 This is a redesign and rewrite of a piece of code formerly known as the "OCUA
 Engine".  It runs the Ottawa-Carleton Ultimate Association's summer, fall, and
-winter indoor leagues, handling over 350 teams and 3500 players per year.
-Unfortunately, the original OCUA Engine was written as organically-grown Perl
-CGI scripts, and isn't easily maintainable.  This codebase is a rework of that
-initial design.
+winter indoor leagues, handling over 350 teams and 4300 players per year.
 
 Prerequisites:
 	- Apache webserver with mod_php, version 4.x or newer
-	- Smarty templating system, version 2.x or newer (see http://smarty.php.net/)
+	- Perl, for the email reporting scripts
 	- MySQL database
 	- a lot of patience
+	
+If you're very impatient and want to set things up without reading the full
+documentation (that is, when it actually exists...), here's how to get things
+running.
+
+First, you'll need these prerequisites installed according to their
+instructions:
+	Apache  1.3.x
+	PHP     4.2.x
+	PEAR    1.4.x
+	MySQL   3.23.x
+	Perl    5.6.x  (optional)
+
+If you don't know where to find them, ask your system administrator.  If you
+_are_ your system administrator and still don't know, ask Google.
+
+
+Now, to install the database, you'll need to create the database and set up a
+MySQL user.  This is done by default as part of setup/db/mysql_schema.sql if
+you run it as:
+  mysql -uroot -p < setup/db/mysql_schema.sql
+  
+however, you probably don't want the default database name, username and
+password.  To change it before running that line, edit the file and change the
+lines:
+  DROP database IF EXISTS leaguerunner;
+  CREATE database leaguerunner;
+  use leaguerunner;
+
+  grant all on leaguerunner.* to leaguerunner@localhost identified by 'password';
+
+to use whatever DB name you'd like wherever you see 'leaguerunner', and
+whatever username you'd like in place of 'leaguerunner@localhost'.  The
+password should also be changed from 'password' to something less guessable.
+
+If you already have a user and database, just delete those lines.
+
+Then, set up the leaguerunner database tables with:
+
+mysql -uroot -p < setup/db/mysql_schema.sql
+mysql -uroot -p < setup/db/mysql_initialdata.sql
+
+(using your own db user if you've already created one.

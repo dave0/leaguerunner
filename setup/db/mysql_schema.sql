@@ -2,7 +2,7 @@ DROP database IF EXISTS leaguerunner;
 CREATE database leaguerunner;
 use leaguerunner;
 
-grant all on leaguerunner.* to leaguerunner@localhost identified by 'ocuaweb';
+grant all on leaguerunner.* to leaguerunner@localhost identified by 'password';
 
 #
 # People in the system
