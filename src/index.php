@@ -41,6 +41,8 @@ require_once("includes/menu.inc");
 require_once("includes/theme.inc");
 require_once("includes/database.inc");
 
+require_once("classes/person.inc");
+
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
 }

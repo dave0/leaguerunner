@@ -4,6 +4,7 @@
 module_register("Handler/Login.php", 'login'); // TODO: also contains logout handler!
 module_register("Handler/Menu.php", 'home'); // TODO: make this go away
 
+module_register("Handler/Settings.php", 'settings');
 module_register("Handler/Person.php", 'person');
 module_register("Handler/Team.php", 'team');
 module_register("Handler/League.php", 'league');
@@ -357,5 +358,17 @@ class Handler
 		}
 		return $opsLinks;
 	}
+}
+function error_exit($error = NULL)
+{
+	$title = "Error";
+	
+	$error = $error ? $error : "An unknown error has occurred.";
+
+	print theme_header($title);
+	print "<h1>$title</h1>";
+	print theme_error( $error );
+	print theme_footer();
+	exit;
 }
 ?>

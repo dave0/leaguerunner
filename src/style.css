@@ -15,6 +15,10 @@ a:hover         { text-decoration: underline; }
 table           { border-collapse: collapse; font-size: 9pt }
 td		{ vertical-align: top }
 
+fieldset {
+	margin-bottom: 1em;
+	padding: .5em;
+}
 
 
 /* CSS2 to bold-face the left-hand column */
@@ -140,3 +144,18 @@ td		{ vertical-align: top }
   list-style-image: url(misc/menu-leaf.gif);
 }
 
+.form-item {
+  margin-bottom: 1em;
+} 
+.form-item .description {
+  font-size: 0.85em;
+}
+.form-item label {
+  font-weight: bold;
+}
+.form-item label.option {
+  font-weight: normal;
+}
+.form-reset .form-submit {
+  margin: 0.5em 0;
+}

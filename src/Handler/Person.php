@@ -75,6 +75,9 @@ function person_menu()
 		}
 
 		menu_add_child('person', 'person/create', "create account", array('link' => "person/create", 'weight' => 1));
+
+		# Admin menu
+		menu_add_child('settings', 'settings/person', 'user settings', array('link' => 'settings/person'));
 	}
 }
 
@@ -511,7 +514,7 @@ class PersonApproveNewAccount extends PersonView
 
 		if($edit['step'] == 'perform') {
 			/* Actually do the approval on the 'perform' step */
-			$this->perform( $id );
+			$this->perform( $id, $edit );
 			local_redirect("person/listnew");
 		} 
 
@@ -525,15 +528,14 @@ class PersonApproveNewAccount extends PersonView
 		if($person->status != 'new') {
 			$this->error_exit("That account has already been approved");
 		}
-		
-		$text = "Confirm that you wish to approve this user as:" 
-			. form_select('', 'edit[class]', '--', array(
-				'--' => '- Select One -',
-				'player' => 'OCUA Player',
-				'visitor' => 'Non-player account'
-			))
-			. "The account will be moved to 'inactive' status.";
-		
+	
+		$dispositions = array(
+			'---'	          => '- Select One -',
+			'approve_player'  => 'Approved as OCUA Player',
+			'approve_visitor' => 'Approved as visitor account',
+			'delete' 		  => 'Deleted silently',
+		);
+	
 		/* Check to see if there are any duplicate users */
 		$result = db_query("SELECT
 			p.user_id,
@@ -552,129 +554,113 @@ class PersonApproveNewAccount extends PersonView
 					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
 				)", $id);
 				
+		
 		if(db_num_rows($result) > 0) {
-			$text .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
+			$duplicates = "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
 			while($user = db_fetch_object($result)) {
-				$text .= "<li>$user->firstname $user->lastname";
-				$text .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
+				$duplicates .= "<li>$user->firstname $user->lastname";
+				$duplicates .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
+
+				$dispositions["delete_duplicate:$user->user_id"] = "Deleted as duplicate of $user->firstname $user->lastname ($user->user_id)";
 			}
-			$text .= "</ul></div>";
+			$duplicates .= "</ul></div>";
 		}
+		
+		$approval_form = 
+			form_hidden('edit[step]', 'perform')
+			. form_select('This user should be', 'edit[disposition]', '---', $dispositions)
+			. form_submit("Submit");
+		
 
 		$this->setLocation(array(
 			$person->fullname => "person/view/$id",
 			$this->title => 0));
 		
-		return form( 
-				para($text)
-				. form_hidden('edit[step]', 'perform')
-				. $this->generateView($person)
-				. form_submit("Approve")
-			);
+		return 
+			para($duplicates)
+			. form( para($approval_form) )
+			. $this->generateView($person);
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit )
 	{
-		$edit = $_POST['edit'];
+		$disposition = $edit['disposition'];
 		
-		if($edit['class'] == '--') {
-			$this->error_exit("You must select an account class");
+		if($disposition == '---') {
+			$this->error_exit("You must select a disposition for this account");
 		}
 		
 		$person = person_load( array('user_id' => $id ) );
 
-		if($edit['class'] == 'player') {
-			$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
-				$person->year_started, $person->gender);
-			$rows = db_affected_rows();
-			if($rows == 1) {
-			
-				$result = db_query("SELECT LAST_INSERT_ID() from member_id_sequence");
-				$member_id = db_result($result);
-				if( !isset($member_id)) {
+		list($disposition,$dup_id) = split(':',$disposition);
+
+		switch($disposition) {
+			case 'approve_player':
+				$person->set('class','player');
+				$person->set('status','inactive');
+				if(! $person->generate_member_id() ) {
 					$this->error_exit("Couldn't get member ID allocation");
 				}
-			} else if($rows == 0) {
-				/* Possible empty, so fill it */
-				$lockname = "member_id_" 
-					. $person->year_started
-					. "_" 
-					. $person->gender 
-					. "_lock";
-				$result = db_query("SELECT GET_LOCK('$lockname',10)");
-				$lock = db_result($result);
-				
-				if(!isset($lock) || $lock == 0) {
-					/* Couldn't get lock */
-					$this->error_exit("Couldn't get lock for member_id allocation");
+
+				if( ! $person->save() ) {
+					$this->error_exit("Couldn't save new member activation");
 				}
-				db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
-					$person->year_started, $person->gender);
-
-				db_query("SELECT RELEASE_LOCK('${lockname}')");
 				
-				$member_id = 1;
-			} else {
-				/* Something bad happened */
-				return false;
-			}
-
-			/* Now, that's really not the full member ID.  We need to build that
-			 * from other info too.
-			 */
-			$full_member_id = sprintf("%.4d%.1d%03d", 
-				$person->year_started,
-				($person->gender == "Male") ? 0 : 1,
-				$member_id);
-		
-			db_query("UPDATE person SET class = 'player', status = 'inactive', member_id = %d  where user_id = %d", $full_member_id, $id);
-		} else {
-			db_query("UPDATE person SET class = 'visitor', status = 'inactive' where user_id = %d", $id);
+				$message = _person_mail_text('approved_body_player', array( 
+					'%fullname' => "$person->firstname $person->lastname",
+					'%username' => $person->username,
+					'%memberid' => $person->member_id,
+					'%url' => 'http://'.$_SERVER['SERVER_NAME'].$_SERVER["PHP_SELF"],
+					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
+					'%site' => $GLOBALS['APP_NAME']));
+					
+				$rc = mail($person->email, 
+					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => $GLOBALS['APP_NAME'] )), 
+					$message, 
+					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+				if($rc == false) {
+					$this->error_exit("Error sending email to " . $person->email);
+				}
+				return true;	
+				
+			case 'approve_visitor':
+				$person->set('class','visitor');
+				$person->set('status','inactive');
+				if( ! $person->save() ) {
+					$this->error_exit("Couldn't save new member activation");
+				}
+				
+				$message = _person_mail_text('approved_body_visitor', array( 
+					'%fullname' => "$person->firstname $person->lastname",
+					'%username' => $person->username,
+					'%url' => 'http://'.$_SERVER['SERVER_NAME'].$_SERVER["PHP_SELF"],
+					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
+					'%site' => $GLOBALS['APP_NAME']));
+				$rc = mail($person->email, 
+					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => $GLOBALS['APP_NAME'] )), 
+					$message, 
+					"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+				if($rc == false) {
+					$this->error_exit("Error sending email to " . $person->email);
+				}
+				return true;	
+				
+			case 'delete':
+				$this->error_exit("Delete silently");
+				break;
+				
+			case 'delete_duplicate':
+				$this->error_exit("Delete as dup of $dup_id");
+				break;
+				
+			default:
+				$this->error_exit("You must select a disposition for this account");
+				
 		}
-	
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-
-		/* Ok, it's done.  Now send a mail to the user and tell them. */
-
-		if( $full_member_id ) {
-			$memberinfo =<<<EOMEMBER
-			
-Your new permanent member number is
-	$full_member_id
-This number will be used in the future to identify you for member services, 
-discounts, etc, so please do not lose it.
-
-EOMEMBER;
-		} else {
-			$memberinfo = '';
-		}
-		
-		$message = <<<EOM
-Dear $person->firstname $person->lastname,
-
-Your {$GLOBALS['APP_NAME']} account has been approved. 
-$memberinfo
-You may now log in to the system at
-	http://{$_SERVER['SERVER_NAME']}{$_SERVER["PHP_SELF"]}
-with the username
-	$person->username
-and the password you specified when you created your account.  You will be
-asked to confirm your account information and sign a waiver form before
-your account will be activated.
-Thanks,
-{$GLOBALS['APP_ADMIN_NAME']}
-EOM;
-
-		$rc = mail($person->email, $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
-		if($rc == false) {
-			$this->error_exit("Error sending email to " . $person->email);
-		}
-		
-		return true;
 	}
+	
 }
+
 
 /**
  * Player edit handler
@@ -719,7 +705,8 @@ class PersonEdit extends Handler
 				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$this->perform( $id, $edit );
+				$person = person_load( array('user_id' => $id) );
+				$this->perform( $person, $edit );
 				local_redirect("person/view/$id");
 				break;
 			default:
@@ -975,7 +962,7 @@ END_TEXT;
 		return form($output);
 	}
 
-	function perform ( $id, $edit = array() )
+	function perform ( &$person, $edit = array() )
 	{
 	
 		$dataInvalid = $this->isDataInvalid( $edit );
@@ -983,12 +970,8 @@ END_TEXT;
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$fields      = array();
-		$fields_data = array();
-
 		if($this->_permissions['edit_username']) {
-			$fields[] = "username = '%s'";
-			$fields_data[] = $edit['username'];
+			$person->set('username', $edit['username']);
 		}
 		
 		/* EVIL HACK
@@ -999,112 +982,68 @@ END_TEXT;
 		 * we're likely to scrutinize non-player accounts less than player
 		 * accounts, it's necessary.
 		 */
-		$person = person_load( array('user_id' => $id) );
 		if( ($person->class == 'visitor') && ($edit['class'] == 'player') ) {
-			$edit['status'] = 'new';
-			$edit['class'] = 'player';
-			$this->_permissions['edit_status'] = true;
-			$this->_permissions['edit_class'] = true;
+			$person->set('status','new');
+			$person->set('class','player');
 			$status_changed = true;
 		}
 
 		if($this->_permissions['edit_class']) {
-			$fields[] = "class = '%s'";
-			$fields_data[] = $edit['class'];
+			$person->set('class', $edit['class']);
 		}
 		
 		if($this->_permissions['edit_status']) {
-			$fields[] = "status = '%s'";
-			$fields_data[] = $edit['status'];
+			$person->set('status',$edit['status']);
 		}
-		
-		$fields[] = "email = '%s'";
-		$fields_data[] = $edit['email'];
+	
+		$person->set('email', $edit['email']);
+		$person->set('allow_publish_email', $edit['allow_publish_email']);
 		
 		foreach(array('home_phone','work_phone','mobile_phone') as $type) {
 			$num = $edit[$type];
-			if(strlen($num) > 0) {
-				$fields[] = "$type = '%s'";
-				$fields_data[] = clean_telephone_number($num);
+			if(strlen($num)) {
+				$person->set($type, clean_telephone_number($num));
 			} else {
-				$fields[] = "$type = %s";
-				$fields_data[] = 'NULL';
+				$person->set($type, 'NULL');
 			}
+
+			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
 		}
 		
 		if($this->_permissions['edit_name']) {
-			$fields[] = "firstname = '%s'";
-			$fields_data[] = $edit['firstname'];
-			$fields[] = "lastname = '%s'";
-			$fields_data[] = $edit['lastname'];
+			$person->set('firstname', $edit['firstname']);
+			$person->set('lastname', $edit['lastname']);
 		}
 		
-		$fields[] = "addr_street = '%s'";
-		$fields_data[] = $edit['addr_street'];
-		
-		$fields[] = "addr_city = '%s'";
-		$fields_data[] = $edit['addr_city'];
-		
-		$fields[] = "addr_prov = '%s'";
-		$fields_data[] = $edit['addr_prov'];
+		$person->set('addr_street', $edit['addr_street']);
+		$person->set('addr_city', $edit['addr_city']);
+		$person->set('addr_prov', $edit['addr_prov']);
 		
 		$postcode = $edit['addr_postalcode'];
 		if(strlen($postcode) == 6) {
 			$foo = substr($postcode,0,3) . " " . substr($postcode,3);
 			$postcode = $foo;
 		}
-		$fields[] = "addr_postalcode = '%s'";
-		$fields_data[] = strtoupper($postcode);
-		
-		$fields[] = "birthdate = '%s'";
-		$fields_data[] = join("-",array(
+		$person->set('addr_postalcode', $edit['addr_postalcode']);
+	
+		$person->set('birthdate', join("-",array(
 			$edit['birth']['year'],
 			$edit['birth']['month'],
-			$edit['birth']['day']));
+			$edit['birth']['day'])));
 		
 		if($edit['height']) {
-			$fields[] = "height = %d";
-			$fields_data[] = $edit['height'];
+			$person->set('height', $edit['height']);
 		}
 		
-		$fields[] = "gender = '%s'";
-		$fields_data[] = $edit['gender'];
+		$person->set('gender', $edit['gender']);
 		
-		$fields[] = "skill_level = '%s'";
-		$fields_data[] = $edit['skill_level'];
-		$fields[] = "year_started = '%s'";
-		$fields_data[] = $edit['year_started'];
-
-		$fields[] = "allow_publish_email = '%s'";
-		$fields_data[] = $edit['allow_publish_email'];
-		$fields[] = "publish_home_phone = '%s'";
-		$fields_data[] = $edit['publish_home_phone'] ? 'Y' : 'N';
-		$fields[] = "publish_work_phone = '%s'";
-		$fields_data[] = $edit['publish_work_phone'] ? 'Y' : 'N';
-		$fields[] = "publish_mobile_phone = '%s'";
-		$fields_data[] = $edit['publish_mobile_phone'] ? 'Y' : 'N';
-		
-		$fields[] = "has_dog = '%s'";
-		$fields_data[] = $edit['has_dog'];
-
-		if(count($fields_data) != count($fields)) {
-			$this->error_exit("Internal error: Incorrect number of fields set");
-		}
-		
-		if(count($fields) <= 0) {
-			$this->error_exit("You have no permission to edit");
-		}
-		
-		$sql = "UPDATE person SET ";
-		$sql .= join(", ", $fields);	
-		$sql .= " WHERE user_id = %d";
-		
-		$fields_data[] = $id;
-
-		$rc = db_query( $sql, $fields_data);
-
-		if($rc == false) {
-			return false;
+		$person->set('skill_level', $edit['skill_level']);
+		$person->set('year_started', $edit['year_started']);
+	
+		$person->set('has_dog', $edit['has_dog']);
+	
+		if( ! $person->save() ) {
+			$this->error_exit("Internal error: couldn't save changes");
 		} else {
 			/* EVIL HACK
 			 * If a user changes their own status from visitor to player, they
@@ -1253,8 +1192,9 @@ class PersonCreate extends PersonEdit
 				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				return $this->perform( &$id, $edit );
-				break;
+				$person = new Person;
+				return $this->perform( $person, $edit );
+				
 			default:
 				$edit = $this->getFormData($id);
 				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.");
@@ -1268,7 +1208,7 @@ class PersonCreate extends PersonEdit
 		return array();
 	}
 
-	function perform ( $id, $edit = array())
+	function perform ( $person, $edit = array())
 	{
 		global $session;
 
@@ -1278,8 +1218,8 @@ class PersonCreate extends PersonEdit
 		if( ! validate_name_input($edit['username']) ) {
 			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 		}
-		$user = person_load( array('username' => $edit['username']) );
-		if( $user && !$session->is_admin()) {
+		$existing_user = person_load( array('username' => $edit['username']) );
+		if( $existing_user ) {
 			$this->error_exit("A user with that username already exists; please go back and try again");
 		}
 		$this->_permissions['edit_username'] = false;
@@ -1289,14 +1229,10 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($edit['password_once']);
 
-		db_query("INSERT into person (username,password,status) VALUES('%s','%s','new')", $edit['username'], $crypt_pass);
-		if( 1 != db_affected_rows() ) {
-			$this->error_exit("DB error; something bad happened");
-		}
+		$person->set('username', $edit['username']);
+		$person->set('password', $crypt_pass);
 
-		$id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
-		
-		$rc = parent::perform( $id, $edit );
+		$rc = parent::perform( $person, $edit );
 
 		if( $rc === false ) {
 			return false;
@@ -1362,7 +1298,7 @@ class PersonActivate extends PersonEdit
 				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$rc = $this->perform( $id, $edit );
+				$rc = $this->perform( $session->user, $edit );
 				local_redirect(url("home"));
 				break;
 			default:
@@ -1373,80 +1309,15 @@ class PersonActivate extends PersonEdit
 		return $rc;
 	}
 	
-	function perform( $id, $edit = array() )
+	function perform( &$person, $edit = array() )
 	{
-		$rc = parent::perform( $id, $edit );
+		$rc = parent::perform( $person, $edit );
 		if( ! $rc ) {
 			$this->error_exit("Failed attempting to activate account");
 		}
-	
-		db_query("UPDATE person SET status = 'active' where user_id = %d", $id);
 
-		return (1 == db_affected_rows());
-	}
-}
-
-class PersonSurvey extends PersonSignWaiver
-{
-	function initialize ()
-	{
-		global $session;
-		$this->title = "Member Survey";
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'allow',
-		);
-		$this->formFile = 'member_survey.html';
-		return true;
-	}
-
-	function perform()
-	{
-		global $session;
-		
-		$dem = $_POST['demographics'];
-		$items = array( 'income','num_children','education','field','language','other_sports');
-
-		$fields = array();
-		$fields_data = array();
-
-		foreach($items as $item) {
-			if( ! array_key_exists($item, $dem) ) {
-				continue;
-			}
-			if($dem[$item] == '---') {
-				continue;
-			}
-			
-			$fields[] = $item;
-
-			// Cheat for array-type items
-			if(is_array($dem[$item])) {
-				$fields_data[] = join(",",$dem[$item]);
-			} else {
-				$fields_data[] = $dem[$item];
-			}
-		}
-
-		if(count($fields) > 0) {
-			$sql = "INSERT INTO demographics (";
-			$sql .= join(",", $fields);	
-			$sql .= ") VALUES(";
-			for($i=0; $i< (count($fields) - 1); $i++) {
-				$sql .= "'%s',";
-			}
-			$sql .= "'%s')";
-			
-			db_query($sql, $fields_data);
-			if( 1 != db_affected_rows() ) {
-				return false;
-			}
-		}
-		
-		db_query("UPDATE person SET survey_completed = 'Y' where user_id = %d", $session->attr_get('user_id'));
-		
-		return (1 == db_affected_rows());
+		$person->set('status', 'active');
+		return ( $person->save() );
 	}
 }
 
@@ -1713,27 +1584,27 @@ class PersonChangePassword extends Handler
 			$id = $session->attr_get('user_id');
 		}
 		
-		switch($edit['step']) {
-			case 'perform':
-				$this->perform( $id, $edit );
-				local_redirect(url("person/view/$id"));
-				break;
-			default:
-				$rc = $this->generateForm( $id );
-		}
-		
-		return $rc;
-	}
-	
-	function generateForm( $id )
-	{
 		$user = person_load( array ('user_id' => $id ));
 		if( !$user ) {
 			$this->error_exit("That user does not exist");
 		}
 		
+		switch($edit['step']) {
+			case 'perform':
+				$this->perform( $user, $edit );
+				local_redirect(url("person/view/$id"));
+				break;
+			default:
+				$rc = $this->generateForm( $user );
+		}
+		
+		return $rc;
+	}
+	
+	function generateForm( $user )
+	{
 		$this->setLocation(array(
-			$user->fullname => "person/view/$id",
+			$user->fullname => "person/view/$user->user_id",
 			'Change Password' => 0
 		));
 
@@ -1756,16 +1627,13 @@ class PersonChangePassword extends Handler
 		return form($output);
 	}
 
-	function perform ( $id , $edit = array())
+	function perform ( $user , $edit = array())
 	{
 		if($edit['password_one'] != $edit['password_two']) {
 			$this->error_exit("You must enter the same password twice.");
 		}
-		
-		db_query("UPDATE person set password = '%s' WHERE user_id = %d",
-			md5($edit['password_one']), $id);
-	
-		return (1 == db_affected_rows());
+		$user->set('password', md5($edit['password_one']));
+		return($user->save());
 	}
 }
 
@@ -1864,31 +1732,22 @@ END_TEXT;
 			$pass = generate_password();
 			$cryptpass = md5($pass);
 
-			db_query("UPDATE person SET password = '%s' WHERE user_id = %d", $cryptpass, $user->user_id);
+			$user->set('password', $cryptpass);
 
-			if( 1 != db_affected_rows() ) {
-				return false;
+			if( ! $user->save() ) {
+				$this->error_exit("Error setting password");
 			}
 
-			$message = <<<EOM
-Dear $user->firstname $user->lastname,
-
-Someone, probably you, just requested that your password for the account
-	$user->username
-be reset.  Your new password is
-	$pass
-Since this password has been sent via unencrypted email, you should change
-it as soon as possible.
-
-If you didn't request this change, don't worry.  Your account password
-can only ever be mailed to the email address specified in your 
-{$GLOBALS['APP_NAME']} system account.  However, if you think someone may
-be attempting to gain unauthorized access to your account, please contact
-the system administrator.
-EOM;
-
 			/* And fire off an email */
-			$rc = mail($user->email, $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+			$rc = mail($user->email, 
+				_person_mail_text('password_reset_subject', array('%site' => $GLOBALS['APP_NAME'])),
+				_person_mail_text('password_reset_body', array(
+					'%fullname' => "$user->firstname $user->lastname",
+					'%username' => $user->username,
+					'%password' => $pass,
+					'%site' => $GLOBALS['APP_NAME']
+				)),
+				"From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 			if($rc == false) {
 				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
@@ -1908,99 +1767,6 @@ EOM;
 END_TEXT;
 		return $output;
 	}
-}
-
-/**
- * Load a single user account object from the database using the 
- * supplied query data.  If more than one account matches, we will
- * return only the first one.  If fewer than one matches, we return null.
- * TODO: This should turn into a full-fledged object at some point.
- * @param	array 	$array key-value pairs that identify the user to be loaded.
- */
-function person_load ( $array = array() )
-{
-	$query = array();
-
-	foreach ($array as $key => $value) {
-		if ($key == 'password') {
-			$query[] = "p.$key = '" . md5($value) . "'";
-		} else {
-			$query[] = "p.$key = '" . check_query($value) . "'";
-		}
-	}
-	
-	$result = db_query_range("SELECT 
-		p.*,
-		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
-		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp,
-		w.name AS ward_name, 
-		w.num AS ward_number, 
-		w.city AS ward_city 
-		FROM person p 
-		LEFT JOIN ward w ON (p.ward_id = w.ward_id)
-		WHERE " . implode(' AND ',$query),0,1);
-
-	/* TODO: we may want to abort here instead */
-	if(1 != db_num_rows($result)) {
-		return null;
-	}
-
-	$user = db_fetch_object($result);
-
-	/* set any defaults for unset values */
-	if(!$user->height) {
-		$user->height = 0;
-	}
-
-	/* set derived attributes */
-	$user->fullname = "$user->firstname $user->lastname";
-
-	/* Now fetch team info */
-	$result = db_query(
-		"SELECT 
-			r.status AS position,
-			r.team_id,
-			t.name,
-			l.league_id
-		FROM 
-			teamroster r 
-			INNER JOIN team t ON (r.team_id = t.team_id)
-			INNER JOIN leagueteams l ON (l.team_id = t.team_id)
-		WHERE 
-			r.player_id = %d", $user->user_id);
-
-	$user->teams = array();
-	while($team = db_fetch_object($result)) {
-		if($team->position == 'captain' || $team->position == 'assistant') {
-			# TODO: evil hack.
-			$user->is_a_captain = true;
-		}
-		$user->teams[ $team->team_id ] = $team;
-		$user->teams[ $team->team_id ]->id = $team->team_id;
-	}
-
-	/* Fetch league info */
-	$result = db_query(
-		"SELECT 
-			l.league_id, 
-			l.name,
-			l.tier
-		 FROM 
-		 	league l,
-			leagueteams t
-		 WHERE l.coordinator_id = %d OR l.alternate_id = %d", $user->user_id, $user->user_id);
-	$user->leagues = array();
-	while($league = db_fetch_object($result)) {
-		# TODO: evil hack.
-		$user->is_a_coordinator = true;
-		if($league->tier) {
-			$league->fullname = "$league->name Tier $league->tier";
-		} else {
-			$league->fullname = $league->name;
-		}
-		$user->leagues[ $league->league_id ] = $league;
-	}
-	return $user;
 }
 
 /**
@@ -2028,5 +1794,54 @@ function person_add_to_menu( $this, &$person )
 		}
 	}
 }	
+
+function _person_mail_text($messagetype, $variables = array() ) 
+{
+	// Check if the default has been overridden by the DB
+	if( $override = variable_get('person_mail_' . $messagetype, false) ) {
+		return strtr($override, $variables);
+	} else {
+		switch($messagetype) {
+			case 'approved_subject':
+				return strtr("%site Account Activation for %username", $variables);
+			case 'approved_body_player':
+				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYour new permanent member number is\n\t%memberid\nThis number will identify you for member services, discounts, etc, so please write it down in a safe place so you'll remember it.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
+			case 'approved_body_visitor':
+				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
+			case 'password_reset_subject':
+				return strtr("%site Password Reset",$variables);
+			case 'password_reset_body':
+				return strtr("Dear %fullname,\n\nSomeone, probably you, just requested that your password for the account\n\t%username\nbe reset.  Your new password is\n\t%password\nSince this password has been sent via unencrypted email, you should change it as soon as possible.\n\nIf you didn't request this change, don't worry.  Your account password can only ever be mailed to the email address specified in your %site system account.  However, if you think someone may be attempting to gain unauthorized access to your account, please contact the system administrator.", $variables);
+			case 'dup_delete_subject':
+				return strtr("%site Account Update", $variables);
+			case 'dup_delete_body':
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\nOCUA Webteam", $variables);
+		}
+	}
+}
+
+function person_settings ( $message = '' )
+{
+	$output = $message;
+
+	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
+	 
+	$group .= form_textarea("Body of account approval e-mail (player)", "edit[person_mail_approved_body_player]", _person_mail_text("approved_body_player"), 70, 10, "Customize the body of your approval e-mail, to be sent to an OCUA player after account is approved." ." ". "Available variables are:" ." %fullname, %memberid, %adminname, %username, %site, %url.");
+	
+	$group .= form_textarea("Body of account approval e-mail (visitor)", "edit[person_mail_approved_body_visitor]", _person_mail_text("approved_body_visitor"), 70, 10, "Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved." ." ". "Available variables are:" ." %fullname, %adminname, %username, %site, %url.");
+	
+	$group .= form_textfield("Subject of password reset e-mail", "edit[person_mail_password_reset_subject]", _person_mail_text("password_reset_subject"), 70, 180, "Customize the subject of your password reset e-mail, which is sent when a user requests a password reset." ." ". "Available variables are:" ." %site.");
+	 
+	$group .= form_textarea("Body of password reset e-mail", "edit[person_mail_password_reset_body]", _person_mail_text("password_reset_body"), 70, 10, "Customize the body of your password reset e-mail, which is sent when a user requests a password reset." ." ". "Available variables are:" ." %fullname, %adminname, %username, %password, %site, %url.");
+	
+	$group .= form_textfield("Subject of duplicate account deletion e-mail", "edit[person_mail_dup_delete_subject]", _person_mail_text("dup_delete_subject"), 70, 180, "Customize the subject of your account deletion mail, sent to a user who has created a duplicate account." ." ". "Available variables are:" ." %site.");
+	 
+	$group .= form_textarea("Body of duplicate account deletion e-mail", "edit[person_mail_dup_delete_body]", _person_mail_text("dup_delete_body"), 70, 10, "Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account." ." ". "Available variables are:" ." %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.");
+
+	$output .= form_group("User email settings", $group);
+
+	
+	return settings_form($output);
+}
 
 ?>

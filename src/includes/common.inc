@@ -131,6 +131,45 @@ function object2array($obj) {
 }
 
 /*
+ * Global configuration variables
+ */
+function variable_init( $conf = array() )
+{
+	$result = db_query("SELECT * from variable");
+	while ($variable = db_fetch_object($result)) {
+		if( !isset($conf[$variable->name]) ) {
+			$conf[$variable->name] = unserialize($variable->value);
+		}
+	}
+	return $conf;
+}
+
+function variable_get($name, $default) 
+{
+	global $conf;
+	if( isset($conf[$name]) ) {
+		return $conf[$name];
+	} else {
+		return $default;
+	}
+}
+
+function variable_set($name, $value) 
+{
+	global $conf;
+	db_query("DELETE FROM variable WHERE name = '%s'", $name);
+	db_query("INSERT INTO variable (name, value) VALUES ('%s','%s')", $name, serialize($value));
+	$conf[$name] = $value;
+}
+
+function variable_del($name) 
+{
+	global $conf;
+	db_query("DELETE FROM variable WHERE name = '%s'", $name);
+	unset($conf[$name]);
+}
+
+/*
  * HTML-generation functions
  */
 
@@ -350,8 +389,20 @@ function form($form, $method = "post", $action = 0, $options = 0)
 /* Displays a form item.  Called by other form_ functions */
 function form_item($title, $value, $description = 0) 
 {
-	return "<div class=\"form-item\">". ($title ? "<div class=\"title\">$title:</div>" : "") . $value . ($description ? "<div class=\"description\">$description</div>" : "") ."</div>\n";
+	if ($title) {
+		$title = "<label>$title:</label><br />";
+	} else {
+		# Ensure that if $title == 0, we blank it instead.
+		$title = "";
+	}
+	return "<div class=\"form-item\">". $title . $value . ($description ? "<div class=\"description\">$description</div>" : "") ."</div>\n";
 }
+
+function form_group($legend, $group, $description = NULL) 
+{
+	return "<fieldset>" . ($legend ? "<legend>$legend</legend>" : "") . $group . ($description ? "<div class=\"description\">$description</div>" : "") . "</fieldset>\n";
+}
+  
 
 function form_radio($title, $name, $value = 1, $checked = 0, $description = 0) 
 {

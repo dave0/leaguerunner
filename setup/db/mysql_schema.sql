@@ -228,3 +228,9 @@ CREATE TABLE waitinglistmembers (
 	date_registered datetime,
 	PRIMARY KEY(wlist_id, user_id)
 );
+
+CREATE TABLE variable (
+	name	varchar(50) NOT NULL default '',
+	value	longtext    NOT NULL,
+	PRIMARY KEY(name)
+);
