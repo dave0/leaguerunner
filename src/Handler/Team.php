@@ -11,6 +11,7 @@ register_page_handler('team_playerstatus', 'TeamPlayerStatus');
 register_page_handler('team_standings', 'TeamStandings');
 register_page_handler('team_view', 'TeamView');
 register_page_handler('team_schedule_view', 'TeamScheduleView');
+register_page_handler('team_emails', 'TeamEmails');
 
 
 /**
@@ -847,6 +848,10 @@ class TeamView extends Handler
 			$links[] = l('add player', 
 				'op=team_addplayer&id=' . $team['id'], 
 				array('title' => "Request a player for this team"));
+            $links[] = l('player emails',
+				'op=team_emails&id=' . $team['id'],
+				array('title' => "Get team email addresses"));
+
 		}
 		$links[] = l('view standings', 
 			'op=league_standings&id=' . $team['league_id'], 
@@ -1142,6 +1147,58 @@ class TeamScheduleView extends Handler
 		print blockquote(theme_links($links));
 		print $output;
 		print $this->get_footer();
+		return true;
+	}
+}
+
+class TeamEmails extends Handler 
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'captain_of:id',
+			'deny',
+		);
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$id = var_from_getorpost('id');
+
+		$output = "# Team email address list\n";
+
+		$addrs = $DB->getAll("SELECT 
+				p.firstname, p.lastname, p.email
+			FROM 
+				teamroster r
+				LEFT JOIN person p ON (r.player_id = p.user_id)
+			WHERE
+				r.team_id = ?",
+				array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($addrs)) {
+			return false;
+		}
+		if(count($addrs) <= 0) { 
+			return true;
+		}
+		
+		foreach($addrs as $addr) {
+			$output .= sprintf("\"%s %s\" <%s>,\n",
+				$addr['firstname'],
+				$addr['lastname'],
+				$addr['email']);
+		}
+		
+		Header("Content-type: text/plain");
+		print $output;
+		
 		return true;
 	}
 }
