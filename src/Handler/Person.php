@@ -33,6 +33,7 @@ class PersonView extends Handler
 			'last_login'		=> false,
 			'waiver_signed'		=> false,
 			'member_id'		=> false,
+			'dog'		=> false,
 			'class'		=> false,
 			'publish'			=> false,
 			'user_edit'				=> false,
@@ -69,6 +70,9 @@ class PersonView extends Handler
 
 		/* Anyone with a valid session can see your name */
 		$this->_permissions['name'] = true;
+
+		/* Also, they can see if you have a dog */
+		$this->_permissions['dog'] = true;
 		
 		/* Administrator can view all and do all */
 		if($session->attr_get('class') == 'administrator') {
@@ -239,6 +243,16 @@ class PersonView extends Handler
 			$this->tmpl->assign("class", $row['class']);
 		}
 		
+		if($this->_permissions['dog']) {
+
+			$this->tmpl->assign("has_dog", $row['has_dog']);
+			if($row['has_dog'] == 'Y' && $row['dog_waiver_signed']) {
+				$this->tmpl->assign("dog_waiver_signed", $row['dog_waiver_signed']);
+			} else {
+				$this->tmpl->assign("dog_waiver_signed", "Not signed");
+			}
+		}
+		
 		if($this->_permissions['waiver_signed']) {
 			if(array_key_exists('waiver_signed', $row)) {
 				$this->tmpl->assign("waiver_signed", $row['waiver_signed']);
@@ -260,6 +274,8 @@ class PersonView extends Handler
 			$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
 			$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
 		}
+
+		$this->tmpl->assign("has_dog", $row['has_dog']);
 
 		/* Now, fetch teams */
 		$this->tmpl->assign("teams",
@@ -400,20 +416,8 @@ class PersonApproveNewAccount extends PersonView
 {
 	function initialize ()
 	{
+		parent::initialize();
 		$this->set_title("Approve Account");
-		$this->_permissions = array(
-			'email'		=> false,
-			'phone'		=> false,
-			'username'	=> false,
-			'birthdate'	=> false,
-			'address'	=> false,
-			'gender'	=> false,
-			'skill' 	=> false,
-			'name' 		=> false,
-			'last_login'		=> false,
-			'user_edit'				=> false,
-			'user_change_password'	=> false,
-		);
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -622,6 +626,7 @@ class PersonEdit extends Handler
 			'edit_gender'		=> false,
 			'edit_skill' 		=> false,
 			'edit_class' 		=> false,
+			'edit_dog'	 		=> false,
 			'edit_publish'		=> false,
 		);
 
@@ -704,29 +709,8 @@ class PersonEdit extends Handler
 	{
 		global $DB;
 
-		$row = $DB->getRow(
-			"SELECT 
-				firstname,
-				lastname, 
-				class,
-				allow_publish_email, 
-				allow_publish_phone,
-				username, 
-				email, 
-				gender, 
-				home_phone, 
-				work_phone, 
-				mobile_phone, 
-				birthdate, 
-				skill_level, 
-				year_started, 
-				addr_street, 
-				addr_city, 
-				addr_prov, 
-				addr_postalcode, 
-				class,
-				last_login 
-			FROM person WHERE user_id = ?", 
+		$row = $DB->getRow( 
+			"SELECT * FROM person WHERE user_id = ?",
 			array($this->_id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
@@ -781,6 +765,7 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("allow_publish_email", $row['allow_publish_email']);
 		$this->tmpl->assign("allow_publish_phone", $row['allow_publish_phone']);
+		$this->tmpl->assign("has_dog", $row['has_dog']);
 
 		$this->tmpl->assign("class", $row['class']);
 		$this->tmpl->assign("classes", $this->get_enum_options('person','class'));
@@ -827,6 +812,7 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("allow_publish_email", var_from_getorpost('allow_publish_email'));
 		$this->tmpl->assign("allow_publish_phone", var_from_getorpost('allow_publish_phone'));
+		$this->tmpl->assign("has_dog", var_from_getorpost('has_dog'));
 
 		return true;
 	}
@@ -925,6 +911,11 @@ class PersonEdit extends Handler
 			$fields_data[] = var_from_getorpost('allow_publish_email');
 			$fields[] = "allow_publish_phone = ?";
 			$fields_data[] = var_from_getorpost('allow_publish_phone');
+		}
+		
+		if($this->_permissions['edit_dog']) {
+			$fields[] = "has_dog = ?";
+			$fields_data[] = var_from_getorpost('has_dog');
 		}
 
 		if(count($fields_data) != count($fields)) {
@@ -1089,6 +1080,7 @@ class PersonCreate extends PersonEdit
 			'edit_address'		=> true,
 			'edit_gender'		=> true,
 			'edit_skill' 		=> true,
+			'edit_dog' 			=> true,
 		);
 
 		$this->_required_perms = array( 'allow' );
@@ -1209,6 +1201,7 @@ class PersonActivate extends PersonEdit
 		$this->_permissions['edit_address']		= true;
 		$this->_permissions['edit_gender']		= true;
 		$this->_permissions['edit_skill'] 		= true;
+		$this->_permissions['edit_dog'] 		= true;
 
 		return true;
 	}
@@ -1221,6 +1214,7 @@ class PersonActivate extends PersonEdit
 	 */
 	function process ()
 	{
+		global $DB;
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'confirm': 
@@ -1229,14 +1223,25 @@ class PersonActivate extends PersonEdit
 				$rc = $this->generate_confirm();
 				break;
 			case 'update':  /* Make any updates specified by the user */
-				$this->set_template_file("Person/waiver_form.tmpl");
-				$this->tmpl->assign("page_step", 'survey');
+				$dog = var_from_getorpost("has_dog");
+				if($dog == "Y") {
+					$this->set_template_file("Person/dog_waiver_form.tmpl");
+					$this->tmpl->assign("page_step", 'dog_waiver');
+				} else {
+					$this->set_template_file("Person/waiver_form.tmpl");
+					$this->tmpl->assign("page_step", 'survey');
+				}
 				$rc = $this->perform();
 				break;
+			case 'dog_waiver':
+				$this->set_template_file("Person/waiver_form.tmpl");
+				$this->tmpl->assign("page_step", 'survey');
+				$rc = $this->process_dog_waiver();
+				break;
 			case 'survey':  /* Waiver was clicked */
+				$rc = $this->process_waiver();
 				$this->set_template_file("Person/survey_form.tmpl");
 				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->process_waiver();
 				break;
 			case 'perform':
 				$rc = $this->process_survey();
@@ -1286,6 +1291,7 @@ class PersonActivate extends PersonEdit
 		$signed = var_from_getorpost('signed');
 		
 		if('yes' != $signed) {
+			$this->set_title("Informed Consent Form For League Play");
 			$this->error_text = "Sorry, your account may only be activated by agreeing to the waiver.";
 			return false;
 		}
@@ -1293,6 +1299,31 @@ class PersonActivate extends PersonEdit
 		/* otherwise, it's yes.  Set the user to 'active' and marked the
 		 * signed_waiver field to the current date */
 		$res = $DB->query("UPDATE person SET class = 'active', waiver_signed=NOW() where user_id = ?", array($id));
+
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		
+		return true;
+		
+	}
+
+	function process_dog_waiver()
+	{
+		global $DB, $session;
+		
+		$id = $session->attr_get('user_id');
+		$signed = var_from_getorpost('signed');
+		
+		if('yes' != $signed) {
+			$this->set_title("Informed Consent Form For Dog Owners");
+			$this->error_text = "Sorry, if you wish to bring a dog to the fields, you must sign this waiver.";
+			return false;
+		}
+
+		/* otherwise, it's yes.  Set the user to 'active' and marked the
+		 * signed_waiver field to the current date */
+		$res = $DB->query("UPDATE person SET dog_waiver_signed=NOW() where user_id = ?", array($id));
 
 		if($this->is_database_error($res)) {
 			return false;
@@ -1311,10 +1342,6 @@ class PersonActivate extends PersonEdit
 		$fields = array();
 		$fields_data = array();
 
-		if(count(array_keys($dem)) <= 0) {
-			return true;
-		}
-		
 		foreach($items as $item) {
 			if( ! array_key_exists($item, $dem) ) {
 				continue;
@@ -1332,6 +1359,11 @@ class PersonActivate extends PersonEdit
 				$fields_data[] = $dem[$item];
 			}
 		}
+
+		if(count($fields) <= 0) {
+			return true;
+		}
+		
 		
 		$sql = "INSERT INTO demographics (";
 		$sql .= join(",", $fields);	

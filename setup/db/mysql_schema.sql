@@ -42,7 +42,12 @@ CREATE TABLE person (
 
 	session_cookie varchar(50),
 	class   enum('new','inactive','active','locked','volunteer','administrator') DEFAULT 'new' NOT NULL,
+
 	waiver_signed datetime,
+
+	has_dog		  ENUM("Y","N") DEFAULT 'N',
+	dog_waiver_signed datetime,
+
 	last_login datetime,
 	client_ip      varchar(50),
 	KEY(username)

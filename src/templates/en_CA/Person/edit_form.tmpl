@@ -161,6 +161,19 @@
       </td>
     </tr>
     {/if}
+    {if $perm_edit_dog} 
+    <tr>
+      <td colspan=2>Do you have a dog that you will be bringing to games?  
+      {if $has_dog == "Y"}
+        <input type="radio" name="has_dog" value="Y" checked> Yes /  
+        <input type="radio" name="has_dog" value="N"> No <br>
+      {else}
+        <input type="radio" name="has_dog" value="Y"> Yes /  
+        <input type="radio" name="has_dog" value="N" checked> No <br>
+      {/if}
+      </td>
+    </tr>
+    {/if}
     <tr>
       <td colspan=2>May we list your email address for other members to see?  
       {if $allow_publish_email == "Y"}

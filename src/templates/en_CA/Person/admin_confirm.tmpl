@@ -70,6 +70,33 @@
     <td class='row_data'>{$client_ip|escape}</td>
   </tr>
 
+  {if $class}
+  <tr>
+    <td class='row_title'>Account Class:</td> 
+    <td class='row_data'>{$class|escape}</td>
+  </tr>
+  {/if}
+
+  {if $waiver_signed}
+  <tr>
+    <td class='row_title'>Waiver Signed:</td> 
+    <td class='row_data'>{$waiver_signed|escape}</td>
+  </tr>
+  {/if}
+
+  {if $has_dog}
+  <tr>
+    <td class="row_title">Has dog:</td>
+    <td class="row_data">
+      {$has_dog}
+    </td>
+  </tr>
+  <tr>
+    <td class='row_title'>Dog waiver Signed:</td> 
+    <td class='row_data'>{$dog_waiver_signed|escape}</td>
+  </tr>
+  {/if}
+
   <tr>
     <td class='row_title' valign="top">Teams:</td> 
     <td class='row_data'>

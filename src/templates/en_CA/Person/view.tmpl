@@ -73,7 +73,7 @@
     <td class='row_data'>{$year_started|escape}</td>
   </tr>
   {/if}
- 
+
   {if $perm_publish} 
   <tr>
     <td class="row_title">Show email:</td>
@@ -102,6 +102,20 @@
     <td class='row_data'>{$waiver_signed|escape}</td>
   </tr>
   {/if}
+
+  {if $has_dog}
+  <tr>
+    <td class="row_title">Has dog:</td>
+    <td class="row_data">
+      {$has_dog}
+    </td>
+  </tr>
+  <tr>
+    <td class='row_title'>Dog waiver Signed:</td> 
+    <td class='row_data'>{$dog_waiver_signed|escape}</td>
+  </tr>
+  {/if}
+ 
   {if $last_login}
   <tr>
     <td class='row_title'>Last Login:</td> 
@@ -114,7 +128,7 @@
   {/if}
 
   <tr>
-    <td class='row_title'>Teams:</td> 
+    <td class='row_title' valign='top'>Teams:</td> 
     <td class='row_data'>
       <table border='0'><tdata>
         {foreach name=teamlist from=$teams item=team}

@@ -133,6 +133,15 @@
       </td>
     </tr>
     {/if}
+
+    {if $perm_edit_dog}
+    <tr>
+      <td class="row_title">Have dog:</td>
+      <td class="row_data">
+        <input type="hidden" name="has_dog" value="{$has_dog}">{$has_dog}
+      </td>
+    </tr>
+    {/if}
     
     <tr>
       <td class="row_title">Show email:</td>
