@@ -821,10 +821,12 @@ class TeamPlayerStatus extends Handler
  */
 class TeamStandings extends Handler
 {
+	var $_league_id;
 	function initialize ()
 	{
 		$this->_league_id = null;
-		$this->_permissions = array(
+		
+		$this->_required_perms = array(
 			'require_var:id',
 			'allow'
 		);
