@@ -331,7 +331,9 @@ class PersonView extends Handler
 			$rows[] = array("Account Class:", $person->class);
 		}
 	
-		$rows[] = array("Account Status:", $person->status);
+		if($session->has_permission('person','view',$person->user_id, 'status')) {
+			$rows[] = array("Account Status:", $person->status);
+		}
 		
 		if($session->has_permission('person','view',$person->user_id, 'dog')) {
 			$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
@@ -1426,6 +1428,9 @@ class PersonSearch extends Handler
 		}
 
 		$result = person_query( $search );
+		if( db_num_rows($result) < 1) {
+			return "No players matching <b>" . $edit['lastname'] . "</b> found";
+		}
 
 		$output = "<table><tr><td>";
 
