@@ -70,8 +70,15 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			// Everyone can list, view, and view schedule if they're a player
 			return ($user->is_player());
 		case 'edit':
-		case 'email':
 			return ($user->is_captain_of( $id ) );
+		case 'email':
+			if( $user->is_captain_of( $id ) ) {
+				return true;
+			}
+			if( $user->coordinates_league_containing( $id ) ) {
+				return true;
+			}
+			break;
 		case 'player status':
 			if( $user->is_captain_of( $id ) ) {	
 				// Captain can adjust status of other players
@@ -125,7 +132,7 @@ function team_add_to_menu( &$team )
 	menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id"));
 	menu_add_child($team->name, "$team->name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
 
-	if( $session && !array_key_exists( $team->team_id, $session->user->teams ) ) {
+	if( $session->user && !array_key_exists( $team->team_id, $session->user->teams ) ) {
 		if($team->status != 'closed') {
 			menu_add_child($team->name, "$team->name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $session->attr_get('user_id')));
 		}
@@ -133,8 +140,11 @@ function team_add_to_menu( &$team )
 	
 	if( $session->has_permission('team','edit',$team->team_id)) {
 		menu_add_child($team->name, "$team->name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
-		menu_add_child($team->name, "$team->name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
 		menu_add_child($team->name, "$team->name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
+	}
+	
+	if( $session->has_permission('team','email',$team->team_id)) {
+		menu_add_child($team->name, "$team->name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
 	}
 		
 	if( $session->has_permission('team','delete',$team->team_id)) {
