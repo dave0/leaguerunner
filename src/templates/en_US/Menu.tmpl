@@ -1,0 +1,24 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+
+<H1>{$page_title}</H1>
+<p>
+  Welcome, {$user_name}.
+</p>
+<TABLE align="center" cellspacing="0" cellpadding="2" border="0" width="90%">
+  {foreach name=list from=$menu_box_rows item=box}
+    <TR class="menu_box_head" height="15">
+    {if $box.icon}
+      <TD><IMG src='{$app_graphics_dir}/{$box.icon}' alt="{$box.title}"></TD>
+    {else}
+      <TD>{$box.title}</TD>
+    {/if}
+    </TR>
+    <TR>
+      <TD valign="top" class="menu_box_body">
+       {$box.content}
+      </TD>
+    </TR>
+  {/foreach}
+</TABLE>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

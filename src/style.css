@@ -1,0 +1,78 @@
+BODY {
+	background-color: #FFFFFF;
+	font-size: 12px;
+	font-family:  verdana, arial, helvetica, sans-serif;
+}
+
+H1 {
+	font-size: 25px;
+	color: #000099;
+	text-align: center;
+	font-variant: small-caps;
+}
+
+PRE {
+	font-family: monospace;
+	font-size: 12px;
+}
+
+TABLE {
+	font-size: 12px;
+}
+
+.menu_box_head {
+	background-color: #000099;
+	color: yellow;
+	font-weight: bold;
+	font-size: 14px;
+}
+
+.menu_box_body {
+	background-color: white;
+	color: black;
+	font-size: 12px;
+}
+
+.list_head {
+	background-color: #999999;
+	color: black;
+	font-weight: bold;	
+	font-size: 12px;
+}
+
+.list_body_light {
+	background-color: #FFFFFF;
+	color: black;
+	font-size: 12px;
+}
+
+.list_body_dark {
+	background-color: #CCCCCC;
+	color: black;
+	font-size: 12px;
+}
+
+.row_title {
+	color: black;
+	font-size: 12px;
+}
+
+.row_content {
+	color: black;
+	font-size: 12px;
+}
+
+.row_emph {
+	color: red;
+	font-size: 12px;
+	font-weight: bold;
+}
+
+.lightblue {
+	font-weight: bold;
+	color: #0099CC;
+}
+
+.small {
+	font-size: 11px;
+}

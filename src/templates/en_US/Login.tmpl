@@ -1,0 +1,33 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+
+<h1 align="center">{$app_name} - {$page_title}</h1>
+{if $error}
+	<P>
+	Login failed:
+	<blockquote>
+		<b>{$error}</b>
+	</blockquote>
+	</P>
+{/if}
+	<P>
+	Please log in if you have an account.
+    Otherwise, feel free to  <A HREF="{$app_cgi_location}?op=newuser">create a new account</a>.
+	</P>
+	<P>
+	If you already have an account, please DON'T create another one.  If you've forgotten your password, you can <a href="{$app_cgi_location}?op=forgot">reset it</a> here. 
+	</P>
+	<P>
+	<font color='red'><b>NOTE:</b></font><br>
+        <li> This system does NOT use the same accounts as the OCUA Open Forum.  You will need to create an account on this system as well.
+	</P>
+	<form action="{$app_cgi_location}" method="POST">
+	<input type='hidden' name='op' value='login'>
+	Username: <input type='text' name='username' size='25'><br>
+	Password: <input type='password' name='password' size='25'><br>
+	<input type='submit' name='submit' value='Log In'>
+	</form>
+	<P>
+	Please note that this site uses cookies to store authentication information.
+	You must have cookies enabled in your browser to use this site.
+	</P>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
