@@ -477,7 +477,7 @@ class FieldView extends Handler
 		$output .= simple_row("Status:", $field['status']);
 		$output .= simple_row("Assignments:", $bookings);
 		
-		$output .= "<table>";
+		$output .= "</table>";
 
 		return $output;
 	}
