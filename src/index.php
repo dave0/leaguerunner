@@ -20,7 +20,7 @@
  * Authors: Dave O'Neill <dmo@acm.org>
  * 
  */
-ini_set('include_path','.:/usr/share/pear:/usr/local/lib/php:./lib/smarty');
+ini_set('include_path','.:/usr/share/php:/usr/local/lib/php:./lib/smarty');
 
 require_once("includes/config.inc");
 require_once("includes/common.inc");
@@ -31,7 +31,7 @@ require_once("lib/common.inc");  // TODO: Deprecate me.
 
 $APP_PAGE_MAP = array();
 
-require_once 'DB.php';
+require_once('DB.php');
 /* Connect to the database */
 $DB = DB::connect($DB_URL, true);
 if (DB::isError($DB)) {
