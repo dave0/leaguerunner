@@ -1,6 +1,7 @@
 create table gameslot (
 	id		integer AUTO_INCREMENT,
-	field 		integer NOT NULL,
+	site_id		integer NOT NULL,
+	field_num	integer NOT NULL,
 	date_played	datetime,
 	game_date	date,
 	game_start	time,
@@ -9,7 +10,7 @@ create table gameslot (
 	PRIMARY KEY (id)
 );
 
-insert into gameslot (game_id,field,date_played,game_date,game_start) select game_id,field_id,date_played,DATE_FORMAT(date_played,'%Y-%m-%d'),TIME_FORMAT(date_played,'%H:%i') as time from schedule;
+insert into gameslot (game_id,site_id,field_num,date_played,game_date,game_start) select s.game_id,f.site_id,f.num,s.date_played,DATE_FORMAT(s.date_played,'%Y-%m-%d'),TIME_FORMAT(s.date_played,'%H:%i') as time from schedule s LEFT JOIN field f ON (s.field_id = f.field_id);
 
 alter table schedule drop date_played;
 alter table schedule drop field_id;
