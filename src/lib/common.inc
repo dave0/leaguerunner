@@ -160,6 +160,8 @@ function display_roster_status( $short_form )
 	switch($short_form) {
 	case 'captain':
 		return "captain";
+	case 'assistant':
+		return "assistant captain";
 	case 'player':
 		return "player";
 	case 'substitute':

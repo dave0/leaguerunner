@@ -251,7 +251,7 @@ class UserSession
 			return false;
 		}
 
-		if( $res == 'captain' ) {
+		if( $res == 'captain' || $res == 'assistant') {
 			return true;
 		}
 		

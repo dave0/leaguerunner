@@ -33,6 +33,9 @@
         {if $perm_set_captain}
         <input type='radio' name='status' value='captain'>Set as team captain<br>
         {/if}
+        {if $perm_set_assistant}
+        <input type='radio' name='status' value='assistant'>Set as assistant captain<br>
+        {/if}
         {if $perm_set_player}
         <input type='radio' name='status' value='player'>Set as regular player<br>
         {/if}

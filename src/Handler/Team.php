@@ -410,6 +410,7 @@ class TeamPlayerStatus extends Handler
 			'set_captain_request'   => false,
 			'set_player_request'    => false,
 			'set_captain'	        => false,
+			'set_assistant'	        => false,
 			'set_none'	        => false,
 		);
 
@@ -505,19 +506,30 @@ class TeamPlayerStatus extends Handler
 					trigger_error("Database error");
 					return false;
 				}
-				if($num_captains <= 2) {
-					$this->error_text = "All teams must have at least two players with captain status.";
+				if($num_captains <= 1) {
+					$this->error_text = "All teams must have at least one player with captain status.";
 					return false;
 				}
 			}
-			
+
+			$this->_permissions['set_assistant'] = true;
 			$this->_permissions['set_none'] = true;
 			$this->_permissions['set_player'] = true;
 			$this->_permissions['set_substitute'] = true;
 			break;
+		case 'assistant':
+			if($is_captain || $is_administrator) {
+				$this->_permissions['set_captain'] = true;
+			}
+			$this->_permissions['set_none'] = true;
+			$this->_permissions['set_player'] = true;
+			$this->_permissions['set_substitute'] = true;
+			break;
+			
 		case 'player':
 			if($is_captain || $is_administrator) {
 				$this->_permissions['set_captain'] = true;
+				$this->_permissions['set_assistant'] = true;
 			}
 			$this->_permissions['set_substitute'] = true;
 			$this->_permissions['set_none'] = true;
@@ -525,6 +537,7 @@ class TeamPlayerStatus extends Handler
 		case 'substitute':
 			if($is_captain || $is_administrator) {
 				$this->_permissions['set_captain'] = true;
+				$this->_permissions['set_assistant'] = true;
 				$this->_permissions['set_player'] = true;
 			}
 			$this->_permissions['set_none'] = true;
@@ -551,9 +564,8 @@ class TeamPlayerStatus extends Handler
 			if($is_captain || $is_administrator) {
 				$this->_permissions['set_player'] = true;
 				$this->_permissions['set_substitute'] = true;
-			}
-			if($is_administrator) {
 				$this->_permissions['set_captain'] = true;
+				$this->_permissions['set_assistant'] = true;
 			}
 			$this->_permissions['set_none'] = true;
 			break;
@@ -561,6 +573,7 @@ class TeamPlayerStatus extends Handler
 			if($is_captain) {
 				$this->_permissions['set_captain_request'] = true;
 			} else if ($is_administrator) {
+				$this->_permissions['set_assistant'] = true;
 				$this->_permissions['set_captain'] = true;
 				$this->_permissions['set_player'] = true;
 				$this->_permissions['set_substitute'] = true;
@@ -711,6 +724,7 @@ class TeamPlayerStatus extends Handler
 		if($current_status != 'none') {
 			switch($status) {
 			case 'captain':
+			case 'assistant':
 			case 'player':
 			case 'substitute':
 			case 'captain_request':
@@ -732,6 +746,7 @@ class TeamPlayerStatus extends Handler
 		} else {
 			switch($status) {
 			case 'captain':
+			case 'assistant':
 			case 'player':
 			case 'substitute':
 			case 'captain_request':
@@ -763,6 +778,9 @@ class TeamPlayerStatus extends Handler
 		switch($status) {
 		case 'captain':
 			$err = $this->_permissions['set_captain'];
+			break;
+		case 'assistant':
+			$err = $this->_permissions['set_assistant'];
 			break;
 		case 'player':
 			$err = $this->_permissions['set_player'];
