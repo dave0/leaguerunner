@@ -85,8 +85,7 @@ class Menu extends Handler
 		}
 		if(count($teams) > 0) {
 			$data = "<table border='0' cellpadding='3' cellspacing='0'>";
-			foreach($teams as $team) {
-				$data .= "<tr><td class='menu_item'>" . $team['name'] . "</td>";
+			foreach($teams as $team) { $data .= "<tr><td class='menu_item'>" . $team['name'] . "</td>";
 				$data .= "<td class='menu_item'>(" . $team['position'] . ")</td>";
 				$data .= "<td class='menu_item'>" . l("info", "op=team_view&id=" . $team['id']) . "</td>";
 				$data .= "<td class='menu_item'>" . l("scores and schedules", "op=team_schedule_view&id=" . $team['id']) . "</td>";
@@ -128,15 +127,16 @@ class Menu extends Handler
 					$name .= " Tier " . $league['tier'];
 				}
 				$data .= "<tr><td class='menu_item'>$name</td>";
-				$data .= "<td class='menu_item'>" . l("view", "op=league_view&id=" . $league['id']) . "</td>";
-				if($league['view_schedule'] == 'Y') {
-					$data .= "<td class='menu_item'>" . l("schedule", "op=league_schedule_view&id=" . $league['id']) . "</td>";
-					$data .= "<td class='menu_item'>" . l("standings", "op=league_standings&id=" . $league['id']) . "</td>";
-					$data .= "<td class='menu_item'>" . l("approve scores", "op=league_verifyscores&id=" . $league['id']) . "</td>";
-				} else {
-					$data .= "<td colspan='3' class='menu_item'>&nbsp;</td>";
+				$links = array(
+					l("view", "op=league_view&id=" . $league['id']),
+					l("edit", "op=league_edit&id=" . $league['id'])
+				);
+				if($league['allow_schedule'] == 'Y') {
+					$links[] = l("schedule", "op=league_schedule_view&id=" . $league['id']);
+					$links[] = l("standings", "op=league_standings&id=" . $league['id']);
+					$links[] = l("approve scores", "op=league_verifyscores&id=" . $league['id']);
 				}
-				$data .= "</tr>";
+				$data .= "<td class='menu_item'>" . theme_links($links) . "</td></tr>";
 			}
 			$data .= "</table>";
 			$output .= $this->menu_item( $data );
