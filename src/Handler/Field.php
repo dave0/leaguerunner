@@ -352,7 +352,7 @@ class FieldEdit extends Handler
 		
 		$field_website = var_from_getorpost("field_website");
 		if(validate_nonblank($field_website)) {
-			if( ! validate_url_input($field_website) ) {
+			if( ! validate_nonhtml($field_website) ) {
 				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
 				$rc = false;
 			}
@@ -557,6 +557,9 @@ class FieldView extends Handler
 		$this->set_title("View Field: " . $row['name']);
 		$this->tmpl->assign("field_name", $row['name']);
 		$this->tmpl->assign("field_id", $id);
+		if( strncmp($row['url'], "http://", 7) != 0 ) {
+			$row['url'] = "http://" . $row['url'];
+		}
 		$this->tmpl->assign("field_website", $row['url']);
 	
 		/* and, grab bookings */

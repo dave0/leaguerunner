@@ -6,16 +6,12 @@
 /*
  * Validation functions
  */
-function validate_url_input ( $string )
+function validate_nonhtml ( $string )
 {
-	/* Ensure that it starts with http:// and something that could be a
-	 * hostname, and does not contain any nasty characters (such as 
-	 * HTML tags, etc)
-	 */
-	if ( ! preg_match("/^http:\/\/[:@\.\w_-]+/", $string) ) {
+	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	if( preg_match("/[<>'\"]/", $string) ) {
+	if ( preg_match("/<>&/", $string) ) {
 		return false;
 	}
 	return true;

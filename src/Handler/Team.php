@@ -347,7 +347,7 @@ class TeamEdit extends Handler
 		
 		$team_website = var_from_getorpost("team_website");
 		if(validate_nonblank($team_website)) {
-			if( ! validate_url_input($team_website) ) {
+			if( ! validate_nonhtml($team_website) ) {
 				$this->error_text .= "If you provide a website URL, it must be valid.<br>";
 				$rc = false;
 			}
@@ -921,6 +921,9 @@ class TeamView extends Handler
 		$this->set_title("View Team: " . $row['team_name']);
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
+		if( strncmp($row['team_website'], "http://", 7) != 0 ) {
+			$row['team_website'] = "http://" . $row['team_website'];
+		}
 		$this->tmpl->assign("team_website", $row['team_website']);
 		$this->tmpl->assign("team_status", $row['team_status']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);

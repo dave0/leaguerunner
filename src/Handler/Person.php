@@ -958,17 +958,17 @@ class PersonEdit extends Handler
 
 		if($this->_permissions['edit_address']) {
 			$addr_street = var_from_getorpost('addr_street');
-			if( !validate_nonblank($addr_street) ) {
+			if( !validate_nonhtml($addr_street) ) {
 				$rc = false;
 				$this->error_text .= "\n<br>You must supply a street address.";
 			}
 			$addr_city = var_from_getorpost('addr_city');
-			if( !validate_nonblank($addr_city) ) {
+			if( !validate_nonhtml($addr_city) ) {
 				$rc = false;
 				$this->error_text .= "\n<br>You must supply a city.";
 			}
 			$addr_prov = var_from_getorpost('addr_prov');
-			if( !validate_nonblank($addr_prov) ) {
+			if( !validate_nonhtml($addr_prov) ) {
 				$rc = false;
 				$this->error_text .= "\n<br>You must supply a province.";
 			}
