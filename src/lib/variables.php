@@ -5,15 +5,8 @@
 
 $GLOBALS['APP_NAME'] = "OCUA Leaguerunner";
 
-$GLOBALS['APP_COOKIE_DOMAIN'] = "localhost.localdomain";
-$GLOBALS['APP_COOKIE_PATH'] = "/";
-
 $GLOBALS['APP_ADMIN_NAME'] = "OCUA Webmaster";
 $GLOBALS['APP_ADMIN_EMAIL'] = "dmo@acm.org";
-
-$GLOBALS['APP_SERVER'] = $HTTP_SERVER_VARS["HTTP_HOST"];
-
-$GLOBALS['APP_DIR_GRAPHICS']  = dirname($_SERVER["PHP_SELF"]) . "/graphics/"; 
 
 /*
  * TODO: this crap belongs in the database on a per-tier basis
