@@ -8,6 +8,7 @@ register_page_handler('league_schedule_edit', 'LeagueScheduleEdit');
 register_page_handler('league_schedule_view', 'LeagueScheduleView');
 register_page_handler('league_standings', 'LeagueStandings');
 register_page_handler('league_view', 'LeagueView');
+register_page_handler('league_captemail', 'LeagueCaptainEmails');
 
 /**
  * Create handler
@@ -1496,6 +1497,64 @@ class LeagueView extends Handler
 		
 
 		return true;
+	}
+}
+
+class LeagueCaptainEmails extends Handler
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny',
+		);
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$id = var_from_getorpost('id');
+
+		$this->page_data = "# League captain email address list\n";
+
+		$addrs = $DB->getAll("SELECT 
+				p.firstname, p.lastname, p.email
+			FROM 
+				leagueteams l, teamroster r
+				LEFT JOIN person p ON (r.player_id = p.user_id)
+			WHERE
+				l.league_id = ?
+				AND l.team_id = r.team_id
+				AND r.status = 'captain'",array($id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($addrs)) {
+			return false;
+		}
+		if(count($addrs) <= 0) {
+			return true;
+		}
+		foreach($addrs as $addr) {
+			$this->page_data .= sprintf("\"%s %s\" <%s>,\n",
+				$addr['firstname'],
+				$addr['lastname'],
+				$addr['email']);
+		}
+		
+		return true;
+	}
+
+	/**
+	 * Override parent display to redirect to 'view' on success
+	 */
+	function display ()
+	{
+		Header("Content-type: text/plain");
+		print $this->page_data;
 	}
 }
 ?>
