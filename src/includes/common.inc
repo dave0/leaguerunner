@@ -381,11 +381,9 @@ function isDatabaseError( &$res )
 }
 
 
-/*
- * 
- * Miscellaneous stuff. 
- * Most of this is old code that might be best removed entirely.
- * 
+/**
+ ** Miscellaneous stuff. 
+ ** TODO: Some of this is old code that might be best removed entirely.
  */
 
 function array_stripslashes(&$array) {
@@ -654,6 +652,110 @@ function get_field_name($id)
 		FROM field f
 		LEFT JOIN site s ON (f.site_id = s.site_id)
 		WHERE f.field_id = ?", array($id));
+}
+
+
+/**
+ * Generate a calendar where individual days are clickable.  Calendar is
+ * generated for $year and $month.  If given and > 0, $day is highlighted.
+ * Next/prev month buttons are linked to $calendarOp followed by month and
+ * year parameters.  Each day is linked to $dayOp followed by a day parameter.
+ * Days of week (full columns) to highlight should be given in
+ * $highlightWeekdays.
+ */
+function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightWeekdays = array())
+{
+	$allDays = array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+
+	$max = sizeof($highlightWeekdays);
+	for($i = 0; $i < $max; $i++) 
+	{
+		$highlightWeekdays[$i] = array_search($highlightWeekdays[$i], $allDays);
+	}
+	reset($highlightWeekdays);
+
+	$startOfMonth = mktime(0, 0, 0, $month, 1, $year);
+	$firstDayOfWeek = date("w", $startOfMonth);
+	$numberOfDays = date("t", $startOfMonth);
+	
+	if($month == 1) {
+		$nextMonth = $month + 1;
+		$nextYear  = $year;
+		$prevMonth = 12;
+		$prevYear  = $year - 1;
+	} else if ($month == 12) {
+		$nextMonth = 1;
+		$nextYear  = $year + 1;
+		$prevMonth = $month - 1;
+		$prevYear  = $year;
+	} else {
+		$nextMonth = $month + 1;
+		$nextYear  = $year;
+		$prevMonth = $month - 1;
+		$prevYear  = $year;
+	}
+
+	$output .= "\n<!-- calendar -->\n";
+	$output .= "<div class='calendar'>";
+	$output .= "<table border='1' cellspacing='0'>\n";
+	$output .= tr(
+		td(
+			l("<<<", "op=$calendarOp&month=$prevMonth&year=$prevYear")
+						
+			. " " . date("F Y", $startOfMonth)
+			. " " . l(">>>", "op=$calendarOp&month=$nextMonth&year=$nextYear")
+		, array('colspan' => 7, 'class' => 'header_month'))
+	);
+
+	/* Generate days of the week headers 
+	 * The year 1995 was chosen because January 1995 starts on a Monday
+	 */
+	$firstcolumn = mktime(0, 0, 0, 1, 1, 1995);
+	$output .= " <tr class=\"header-week\">";
+	
+	foreach($allDays as $dayName) {
+		$output .= td(substr($dayName,0,2));
+	}
+	$output .= "</tr>\n";
+
+	$output .= "<tr class='row-week'>\n";
+	$output .= td( '&nbsp;', array('class' => 'day_blank', 'colspan'=> $firstDayOfWeek));
+
+	$curColumn = $firstDayOfWeek;
+	$curDate  = 1;
+	while($curDate <= $numberOfDays) {
+
+		if( $curColumn == 0) {
+			$output .= "<tr class='row-week'>\n";
+		}
+
+
+		/* Check for columns to highlight */
+		if(!(false === array_search($curColumn, $highlightWeekdays))) {
+			$attributes = array( 'class' => 'highlighted-day' );
+		} else {
+			$attributes = array();
+		}
+		
+		$output .= td( 
+			l($curDate, "op=$dayOp&year=$year&month=$month&day=$curDate" ), 
+			$attributes
+		);	
+		
+		if($curColumn == 6) {
+			$output .= "</tr>\n";
+		}
+
+		$curColumn = (++$curColumn % 7);
+		$curDate++;
+	}
+
+	if($curColumn != 0) {
+		$output .= td( '&nbsp;', array('class' => 'day_blank', 'colspan'=> (7 - $curColumn)));
+	}
+	$output .= "</table></div>\n\n";
+
+	return $output;
 }
 
 /* vim: set sw=4 ts=4 et: */

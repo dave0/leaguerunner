@@ -10,10 +10,6 @@ class LeagueScheduleAddWeek extends Handler
 {
 	function initialize ()
 	{
-		$this->_permissions = array(
-			'add_past_week'			=> false,
-		);
-
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -26,13 +22,6 @@ class LeagueScheduleAddWeek extends Handler
 		$this->set_title("Schedule &raquo; Add Week");
 
 		return true;
-	}
-
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->_permissions['add_past_week'] = true;
-		} 
 	}
 
 	function process ()
@@ -74,21 +63,26 @@ class LeagueScheduleAddWeek extends Handler
 	}
 
 	/**
-	 * Generate the calendar for selecting day to add to schedule.
-	 * TODO: Fix this.  See drupal's archive.module for a better way.
-	 * TODO: Highlight days of week used by this league (in yellow)
+	 * Generate the calendar for selecting day to add to schedule.  
+	 * Days of play for this league are highlighted.
 	 */
 	function generateForm ( $id )
 	{
 		global $DB;
 		
 		$league = $DB->getRow(
-			"SELECT name,tier FROM league WHERE league_id = ?",
+			"SELECT 
+				name,
+				tier,
+				day
+			 FROM league WHERE league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($league)) {
 			return false;
 		}
+
+		$league['day'] = split(',',$league['day']);
 
 		$output = blockquote("Select a date below to add a new week of 
 			games to the schedule.  Days on which this league usually 
@@ -101,53 +95,25 @@ class LeagueScheduleAddWeek extends Handler
 			$month = $today['mon'];
 		}
 
-		$month_name = date("F", mktime (0,0,0,$month,1,0));
-	
 		$year = var_from_getorpost("year");
 		if(! ctype_digit($year)) {
 			$year = $today['year'];
 		}
 
-		$cal_info = shell_exec("cal $month $year");
-		
-		$cal_info = preg_replace("/(?:(?<=^)|(?<=\D))(\d{1,2})(?=(?:\D|$))/", "<a href='".$_SERVER['PHP_SELF']."?op=" . $this->op . "&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
-
-		if($month == 1) {
-			$next_month = $month + 1;
-			$next_year  = $year;
-			$prev_month = "12";
-			$prev_year  = $year - 1;
-		} else if ($month == 12) {
-			$next_month = "1";
-			$next_year  = $year + 1;
-			$prev_month = $month - 1;
-			$prev_year  = $year;
-		} else {
-			$next_month = $month + 1;
-			$next_year  = $year;
-			$prev_month = $month - 1;
-			$prev_year  = $year;
-		}
+		$output .= generateCalendar( $year, $month, -1, 
+			$this->op . "&id=$id",
+			$this->op . "&step=confirm&id=$id",
+			$league['day']
+		);
 
 		$this->set_title($this->title . " &raquo; " . $league['name']);
 		if($league['tier']) {
 			$this->set_title($this->title . " Tier " . $league['tier']);
 		}
-		
-		$output .= "<table border='1'>";
-		$output .= tr(
-			td(l("<--", "op=" . $this->op . "&id=$id&month=$prev_month&year=$prev_year"), array('align' => 'left'))
-			. td("$month_name $year", array('align' => 'middle'))
-			. td(l("-->", "op=" . $this->op . "&id=$id&month=$next_month&year=$next_year"), array('align' => 'right'))
-		);
-		$output .= tr(
-			td(pre($cal_info), array('colspan' => 3)));
-		
-		$output .= "</table>";
 
 		print $this->get_header();
 		print h1($this->title);
-		print form($output);
+		print $output;
 		print $this->get_footer();
 		return true;
 	}
@@ -650,12 +616,15 @@ class LeagueScheduleView extends Handler
 	function createEditableWeek( &$games, &$league, $weekId, $id )
 	{
 		global $DB;
-		
-		$leagueStartTimes = split(",", $league['start_time']);
-		$startTimes = array();
-		while(list(,$time) = each($leagueStartTimes)) {
-			$startTimes[$time] = $time;
-		}
+
+# This is too cumbersome for fall league.
+# Possibly reactivate for summer?
+#		$leagueStartTimes = split(",", $league['start_time']);
+#		$startTimes = array();
+#		while(list(,$time) = each($leagueStartTimes)) {
+#			$startTimes[$time] = $time;
+#		}
+		$startTimes = getOptionsFromTimeRange(900,2400,15);
 		
 		$leagueTeams = $DB->getAssoc(
 			"SELECT t.team_id, t.name 
@@ -776,4 +745,5 @@ class LeagueScheduleView extends Handler
 		return $output;
 	}
 }
+
 ?>
