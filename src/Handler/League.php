@@ -757,22 +757,48 @@ class LeagueScheduleEdit extends Handler
 		}
 	
 		$rc = true;
+		$seen_team = array();
+		$seen_field = array();
 		foreach($games as $game) {
-			/* TODO:
-			 * Validate that each game has real looking data..  Each must
-			 * have:
-			 * 	game_id
-			 * 	round
-			 * 	start_time
-			 * 	home_id
-			 * 	away_id
-			 * 	field_id
-			 * All except start_time should be integer values.
-			 * TODO: should also check that:
-			 * 	- no team is scheduled against itself
-			 * 	- no team is scheduled twice in one timeslot
-			 * 	- no field is scheduled twice in one timeslot
-			 */
+			if( !validate_number($game['game_id']) ) {
+				$this->error_text = "Game entry missing a game ID";
+				return false;
+			}
+			if( !validate_number($game['home_id']) ) {
+				$this->error_text = "Game entry missing home team ID";
+				return false;
+			}
+			if( !validate_number($game['away_id']) ) {
+				$this->error_text = "Game entry missing away team ID";
+				return false;
+			}
+			if( !validate_number($game['field_id']) ) {
+				$this->error_text = "Game entry missing field ID";
+				return false;
+			}
+
+			if( $game['home_id'] != 0 && ($game['home_id'] == $game['away_id']) ) {
+				$this->error_text = "Cannot schedule a team to play themselves.";
+				return false;
+			}
+			
+			if( in_array( $game['away_id'], $seen_team ) || array_search( $game['home_id'], $seen_team )) {
+				$this->error_text = "Cannot schedule a team to play multple games in the same timeslot.";
+				return false;
+			}
+
+			if( in_array( $game['field_id'], $seen_field )) {
+				$this->error_text = "Cannot schedule multiple games to play on the same field.";
+				return false;
+			}
+			// Don't push 0 onto the seen list, as it is 'special'
+			if($game['home_id']) {$seen_team[] = $game['home_id']; }
+			if($game['away_id']) {$seen_team[] = $game['away_id']; }
+			if($game['field_id']){$seen_field[] = $game['field_id']; }
+			
+			// TODO Check the database to ensure that no other game is
+			// scheduled on this field for this timeslot
+
 		}
 		
 		return $rc;
@@ -1006,6 +1032,7 @@ class LeagueScheduleView extends Handler
 				s.home_team   AS home_id,
 				s.away_team   AS away_id, 
 				s.field_id, 
+				f.site_id, 
 				s.home_score, 
 				s.away_score,
 				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as week_id,
@@ -1014,9 +1041,9 @@ class LeagueScheduleView extends Handler
 				s.round,
 				UNIX_TIMESTAMP(s.date_played) as timestamp
 			  FROM
-			  	schedule s
+			  	schedule s, field f
 			  WHERE 
-				s.league_id = ? 
+				s.field_id = f.field_id AND s.league_id = ? 
 			  ORDER BY s.date_played",
 			array($id), DB_FETCHMODE_ASSOC);
 			
