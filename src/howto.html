@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Leaguerunner Online System HOWTO Guide</title>
+	<title>Leaguerunner Online System How To Guide</title>
 	<link rel='stylesheet' href="/leaguerunner/style.css" type="text/css">
 	<style>
 		h2 { text-decoration: underline; }
@@ -10,12 +10,11 @@
 </head>
 <body>
 
-<h1>Leaguerunner Online System HOW TO Guide</h1>
+<h1>Leaguerunner Online System How To Guide</h1>
 
 <p>
-This document outlines the way the <b>new and improved</b> OCUA registration 
-and league management system works.  Guides are broken down in to categories 
-based on what sort of role you have in the system.</p>
+This document outlines the way the <b>OCUA Leaguerunner</b> system works.  
+Guides are broken down in to categories based on what sort of role you have in the system.</p>
 
 <p><i>Please note that this document is a work in progress.  As such, you might run into 
 things you're trying to do that aren't covered here.  If you have any questions, don't 
@@ -29,7 +28,7 @@ hesitate to contact <a href="mailto:webmaster@ocua.ca">the webmasters</a></i></p
 		<ol type="1">
 			<li><a href="#A.1">Create a new account</a></li>
 			<li><a href="#A.2">Login</a></li>
-			<li><a href="#A.3">Forgot my login information</a></li>
+			<li><a href="#A.3">Forgot your login information</a></li>
 			<li><a href="#A.4">Edit your information</a></li>
 			<li><a href="#A.5">Change your password</a></li>
 			<li><a href="#A.6">What can people see?</a></li>
@@ -46,14 +45,16 @@ hesitate to contact <a href="mailto:webmaster@ocua.ca">the webmasters</a></i></p
 			<li><a href="#C.3">Add a player to your team</a></li>
 			<li><a href="#C.4">Accept a player on your team</a></li>
 			<li><a href="#C.5">Submit game score</a></li>
+			<li><a href="#C.6">Open / close your team to new members</a></li>
 		</ol>
 	<li><a href="#D">Coordinator</a></li>
 		<ol type="1">
 			<li><a href="#D.1">Move teams between tiers</a></li>
 			<li><a href="#D.2">Edit a tier's configuration</a></li>
-			<li><a href="#D.3">Create a schedule</a></li>
-			<li><a href="#D.4">Fix mismatched scores</a></li>
-			<li><a href="#D.5">Start a new round</a></li>
+			<li><a href="#D.3">Add a week to a schedule</a></li>
+			<li><a href="#D.4">Edit an existing week in a schedule</a></li>
+			<li><a href="#D.5">Fix mismatched scores</a></li>
+			<li><a href="#D.6">Start a new round</a></li>
 		</ol>
 	</ol>
 	
@@ -83,8 +84,8 @@ password emailed to you.</p>
 be asked to:</p>
 
 <ol type="a" style="margin-left: 20pt;">
-	<li>Sign the <a href="<!-- CHANGE ME -->">waiver form</a></li>
-	<li>Optionally sign the <a href="<!-- CHANGE ME -->">Dog owner waiver form</a> if you intend to bring your dog(s) to games.</li>
+	<li>Sign the <a href="http://www.ocua.ca/leaguerunner/index.php?op=system_viewfile&file=player_waiver">waiver form</a></li>
+	<li>Optionally sign the <a href="http://www.ocua.ca/leaguerunner/index.php?op=system_viewfile&file=dog_waiver">Dog owner waiver form</a> if you intend to bring your dog(s) to games.</li>
 	<li>Fill out a brief demographic survey.</li>
 </ol>
 
@@ -102,7 +103,7 @@ other great stuff.</p>
 forgotten your username and / or password then get you can <a href="#A.3">get a reminder emailed to you</a>.  
 If you don't have an account yet, you have to <a href="#A.1">create one first</a>.</p>
 
-<h3><a name="A.3">A.3. Forgot my login information</a></h3>
+<h3><a name="A.3">A.3. Forgot your login information</a></h3>
 
 <p>If you've forgotten your username and / or your password, then you can get a reminder emailed to you.  Go to 
 the <a href="/leaguerunner/">login page</a> and click on <b>Forgot your password?</b>.  You will be brought to 
@@ -121,7 +122,7 @@ and you're done.</p>
 
 <h3><a name="A.5">A.5. Change your password</a></h3>
 
-<p>Login, click <b>Change Password</b> from the main menu, and enter your old and new passwords.</p>
+<p>Login, click <b>Change Password</b> from the main menu, and enter your choice for a new password.</p>
 
 <h3><a name="A.6">A.6. What can people see?</a></h3>
 
@@ -185,11 +186,11 @@ something that indicates which night the team is for (<i>eg:</i> Fuzzy Pickles -
 
 <h3><a name="C.2">C.2. Add a co-captain</a></h3>
 
-<p>All teams in the system should have two captains on the team.  To mark someone as a team captain, go to the info page 
-for the team, and click on <b>change status</b> next to the person you wish to make co-captain.  Select captain from the list 
-and you're done.</p>
+<p>All teams in the system should have two captains on the team.  To mark someone as a team captain or assistent captain, 
+go to the info page for the team, and click on <b>change status</b> next to the person you wish to make co-captain.  
+Select captain or assistent from the list and you're done.</p>
 
-<p><b>Please note:</b> Each team must have at least one captain listed in the system at all times.</p>
+<p><b>Please note:</b> Each team must have at least one captain listed in the system at all times, and preferably two.</p>
 
 <h3><a name="C.3">C.3. Add a player to your team</a></h3>
 
@@ -204,8 +205,8 @@ addition is official.</p>
 
 <p>Your players can go onto the system and add themselves to your team.  However, you still have to accept them onto your team 
 before they are official members.  To do this, go to the team info page and click on the <b>change status</b> link next to any 
-pending players.  You will have the option of setting the person as a regular player, a substitute, a co-captain, or removing 
-them from the team entirely</p>
+player who's status is shown as <b>requested by player</b>.  You will have the option of setting the person as a regular player, 
+a substitute, a captain, an assistent, or removing them from the team entirely</p>
 
 <h3><a nane="C.5">C.5. Submit game score</a></h3>
 
@@ -217,6 +218,15 @@ game, and the SOTG score for your opponents, and hit submit.</p>
 <p>Standings aren't updated until both captains have submitted matching scores.  If your score entry and your opponent's don't 
 match, then the coordinator will need to resolve the discrepancy before the final results are reflected in the standings.</p>
 
+<h3><a name="C.6">C.6. Open / close your team to new members</a></h3>
+
+<p>Team rosters can have one of two states: open or closed.  If a team is closed, then only the team captain(s) can add 
+new players to their team (still requires player to accept).  If a team is open, individuals can add themselves to your 
+team (still requires captain to accept).</p>
+
+<p>To change your team from open to closed (and vice versa) simply go to the info page for your team and click on 
+<b>edit team</b> and select the appropriate new state.</p>
+
 <p><font size="-2"><a href="#toc">Back to top</a></font></p>
 
 <hr align="center" width="75%" />
@@ -226,13 +236,24 @@ match, then the coordinator will need to resolve the discrepancy before the fina
 
 <h3><a name="D.1">D.1. Move teams between tiers</a></h3>
 
+<p>Once your tiers are created, you'll need to move teams into them.  The first step is to find the team(s) you are looking 
+to move.  Unassigned teams can be found in the Inactive Teams tier (click on <b>List Leagues</b> on the main menu) and then 
+the <b>none</b> season, and then <b>view</b>.  Next to the team you want click on <b>move team</b>.  You will be presented 
+with a list of the tiers you control.  Select the tier in which the team should be placed, and hit submit.</p>
+
 <h3><a name="D.2">D.2. Edit a tier's configuration</a></h3>
 
-<h3><a name="D.3">D.3. Create a schedule</a></h3>
+<h3><a name="D.3">D.3. Add a week to a schedule</a></h3>
 
-<h3><a name="D.4">D.4. Fix mismatched scores</a></h3>
+<h3><a name="D.4">D.4. Edit an existing week in a schedule</a></h3>
 
-<h3><a name="D.5">D.5. Start a new round</a></h3>
+<h3><a name="D.5">D.4. Fix mismatched scores</a></h3>
+
+<h3><a name="D.6">D.5. Start a new round</a></h3>
+
+<p>When one Round Robin has come to an end and it's time to start the 2nd, the first thing you should do is to 
+<a href="D.2">edit your tier's info</a> to indicate the new round.  This will set the default value for <b>round</b> 
+to be the new round when adding weeks to the schedule, and will also start a new set of standings on the standings grid.</p>
 
 <p><font size="-2"><a href="#toc">Back to top</a></font></p>
 
