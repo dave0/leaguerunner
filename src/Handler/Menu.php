@@ -84,18 +84,15 @@ class Menu extends Handler
 		$ops = array(
 			array(
 				'title' => "View/Edit My Account",
-				'url_append' => '?op=person_view&userid=' . $session->attr_get("user_id"),
-				'grey_out' => 0
+				'url_append' => '?op=person_view&id=' . $session->attr_get("user_id")
 			),
 			array(
 				'title' => "Change Password",
-				'url_append' => '?op=changepassword',
-				'grey_out' => 0
+				'url_append' => '?op=changepassword'
 			),
 			array(
 				'title' => "Log Out",
-				'url_append' => '?op=logout',
-				'grey_out' => 0
+				'url_append' => '?op=logout'
 			),
 		);
 		return array(
@@ -147,7 +144,7 @@ class Menu extends Handler
 	function gen_team_row($name,$pos,$id)
 	{
 		$rv = "<tr><td>$pos</td><td>on</td><td>$name</td>";
-		$rv .= "<td><a href='" . $GLOBALS['APP_CGI_LOCATION']. "?op=teamview&team_id=$id'>view/edit</a></td>";
+		$rv .= "<td><a href='" . $GLOBALS['APP_CGI_LOCATION']. "?op=team_view&id=$id'>view/edit</a></td>";
 		return $rv;
 	}
 	
@@ -170,8 +167,6 @@ class Menu extends Handler
 	 * screen. The argument given is an array of arrays, containing:
 	 *   title (string for menu box title)
 	 *   url_append (string to append to the CGI url)
-	 *   grey_out (Used to grey out menu options that are not 
-	 *             implemented yet - deprecated)
 	 *
 	 * @access private
 	 * @param  array	Array of operations supported
@@ -184,12 +179,7 @@ class Menu extends Handler
 		$s = "<table>";
 		reset($available_ops);
 		while (list($key, $val) = each($available_ops)) {
-			if($val['grey_out'] == 0) 
-			{
-				$s .= "<tr><td><a href='" . $APP_CGI_LOCATION . $val['url_append']."'>".$val['title']."</a></td></tr>\n";
-			} else {
-				$s .= "<tr><td>".$val['title']."</td</tr>\n";
-			}
+			$s .= "<tr><td>".$val['title']."</td</tr>\n";
 		}
 		$s .= "</table>";
 		return $s;
