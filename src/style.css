@@ -18,19 +18,6 @@ TABLE {
 	font-size: 12px;
 }
 
-.menu_box_head {
-	background-color: #000099;
-	color: yellow;
-	font-weight: bold;
-	font-size: 14px;
-}
-
-.menu_box_body {
-	background-color: white;
-	color: black;
-	font-size: 12px;
-}
-
 .list_head {
 	background-color: #999999;
 	color: black;
@@ -52,6 +39,7 @@ TABLE {
 
 .row_title {
 	color: black;
+	font-weight: bold;
 	font-size: 12px;
 }
 
@@ -95,7 +83,7 @@ TABLE {
   text-decoration: none;
 }
 
-.teamlist_title, .roster_title {
+.menu_title, .schedule_title, .teamlist_title, .roster_title {
 	background-color:    black;
 	color:               white;
 	font-weight:         bold;
@@ -113,9 +101,13 @@ TABLE {
 	font-size: 11px;
 }
 
-.teamlist_item, .roster_item {
+.menu_item, .schedule_item, .teamlist_item, .roster_item {
 	border-bottom-width: 1px;
 	border-bottom-color: gray;
 	border-bottom-style: solid;
 	font-size: 11px;
+}
+
+a {
+	text-decoration: none;
 }
