@@ -581,7 +581,7 @@ class PersonApproveNewAccount extends PersonView
 					'%fullname' => "$person->firstname $person->lastname",
 					'%username' => $person->username,
 					'%memberid' => $person->member_id,
-					'%url' => 'http://'.$_SERVER['SERVER_NAME'].$_SERVER["PHP_SELF"],
+					'%url' => url("/"),
 					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
 					'%site' => $GLOBALS['APP_NAME']));
 					
@@ -604,7 +604,7 @@ class PersonApproveNewAccount extends PersonView
 				$message = _person_mail_text('approved_body_visitor', array( 
 					'%fullname' => "$person->firstname $person->lastname",
 					'%username' => $person->username,
-					'%url' => 'http://'.$_SERVER['SERVER_NAME'].$_SERVER["PHP_SELF"],
+					'%url' => url("/"),
 					'%adminname' => $GLOBALS['APP_ADMIN_NAME'],
 					'%site' => $GLOBALS['APP_NAME']));
 				$rc = mail($person->email, 
