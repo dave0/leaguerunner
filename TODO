@@ -4,10 +4,10 @@ Basic Install Needs:
 	- need install instructions
 
 Reimplementation:
-	- send email when account is created
-	- add/remove team in league
-	- score submission
-	- score approval
+	- send email:
+		+ when account is created
+		+ to captain when player requests to join
+		+ to player, when captain requests them
 
 Redesign:
 	- Clean up database schema
