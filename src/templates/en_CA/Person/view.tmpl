@@ -85,21 +85,20 @@
   </tr>
 	</table>
 
-{*
-  TODO: All this is still busted 
-	<ul>
-<TMPL_IF NAME='can_edit'>
-	<li><a href="<TMPL_VAR name='script'>?op=edituser;user_id=<TMPL_VAR name='user_id' ESCAPE='URL'>">edit</a> this information.
-</TMPL_IF>
-<TMPL_IF NAME='is_administrator'>
-	<li><a href="<TMPL_VAR name='script'>?op=editpermission;user_id=<TMPL_VAR name='user_id' ESCAPE='URL'>">change permissions</a> for this user.
-	<li><a href="<TMPL_VAR name='script'>?op=changepassword;user_id=<TMPL_VAR name='user_id' ESCAPE='URL'>">change password</a> for this user.
-	<br>
-	<li><a href="<TMPL_VAR name='script'>?op=deleteuser;user_id=<TMPL_VAR name='user_id' ESCAPE='URL'>">permanently delete</a> this user.
-</TMPL_IF>
-	</ul>
-*}
-
+  <ul>
+  {if $perm_user_edit}
+	  <li><a href="{$app_cgi_location}?op=person_edit;id={$user_id}">edit</a> this information.
+  {/if}
+  {if $perm_user_change_perms}
+	  <li><a href="{$app_cgi_location}?op=person_editperms;id={$user_id}">change permissions</a> for this user.
+  {/if}
+  {if $perm_user_change_password}
+	  <li><a href="{$app_cgi_location}?op=person_changepassword;id={$user_id}">change password</a> for this user.
+  {/if}
+  {if $perm_user_delete}
+	  <li><a href="{$app_cgi_location}?op=person_delete;id={$user_id}">permanently delete</a> this user.
+  {/if}
+  </ul>
 
 {include file="$app_template_dir/common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}

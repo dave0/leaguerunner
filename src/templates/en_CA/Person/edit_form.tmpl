@@ -1,0 +1,166 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$full_name}</h1>
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="id" value="{$user_id}">
+	<table border="0">
+    <tr>
+      <td class='row_title'>First Name:</td> 
+      <td class='row_data'><input type="text" name="firstname" size="25" value="{$firstname}"></td>
+    </tr>
+    <tr>
+      <td class='row_title'>Last Name:</td> 
+      <td class='row_data'><input type="text" name="lastname" size="25" value="{$lastname}"></td>
+    </tr>
+
+    <tr>
+      <td class='row_title'>System Username:</td> 
+      <td class='row_data'>
+        {if $perm_edit_username}
+        <input type="text" name="username" size="25" value="{$username}">
+        {else}
+          {$username}
+        {/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Email Address:</td> 
+      <td class='row_data'>
+        {if $perm_edit_email}
+        <input type="text" name="primary_email" size="25" value="{$primary_email}">
+        {else}
+          <a href="mailto:{$primary_email}">{$primary_email}</a>
+        {/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title' valign="top">Address:</td> 
+      <td class='row_data'>
+        {if $perm_edit_address}
+        <table border="0" cellspacing="3">
+          <tr>
+            <td class="row_data">Street address:</td>
+            <td class="row_data"><input type="text" name="addr_street" size="25" value="{$addr_street}"></td>
+          </tr>
+          <tr>
+            <td class="row_data">City:</td>
+            <td class="row_data"><input type="text" name="addr_city" size="25" value="{$addr_city}"></td>
+          </tr>
+          <tr>
+            <td class="row_data">Province:</td>
+            <td class="row_data">
+			        <select name="addr_prov">
+              {create_options data=$provinces selected=$addr_prov}
+			        </select>
+            </td>
+          </tr>
+          <tr>
+            <td class="row_data">Postal Code:</td>
+            <td class="row_data"><input type="text" name="addr_postalcode" size="8" maxlength="6" value="{$addr_postalcode}"></td>
+          </tr>
+        </table>
+        {else}
+          {$addr_street|escape}<br>
+          {$addr_city|escape}, {$addr_prov|escape} <br>
+          {$addr_postalcode|escape}
+        {/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Phone Number:</td> 
+      <td class='row_data'>
+        {if $perm_edit_phone}
+		    (<input type="text" name="phone_areacode" size=3 maxlength=3 value="{$phone_areacode}">)
+		<input type="text" name="phone_prefix" size=3 maxlength=3 value="{$phone_prefix}"> - 
+		<input type="text" name="phone_number" size=4 maxlengt=4 value="{$phone_number}">
+		x <input type="text" name="phone_extension" size=4 value="{$phone_extension}">
+        {else}
+          ({$phone_areacode}) {$phone_prefix}-{$phone_number} {if $phone_extension}x{$phone_extension}{/if}
+        {/if}
+      </td>
+    </tr>
+  <!--DMO: Got this far with re-write-->  
+	<tr>
+		<td><B>Gender:</b></td>
+		<td>
+			<TMPL_LOOP NAME="gender">
+				<input type="radio" name="gender" value="<TMPL_VAR NAME="value">" <TMPL_IF NAME="selected">checked</TMPL_IF>><TMPL_VAR NAME="value"> <br>
+			</TMPL_LOOP>
+		</td>
+	</tr>
+	<tr>
+		<td><B>Skill Level:</b></td>
+		<td>
+			(never played) &nbsp;
+			<TMPL_LOOP NAME="skill_level">
+				<input type="radio" name="skill_level" value=<TMPL_VAR NAME="value"> <TMPL_IF NAME="selected">checked</TMPL_IF>><TMPL_VAR NAME="value"> &nbsp;
+			</TMPL_LOOP>
+			(godlike ability) 
+		</td>
+	</tr>
+	<tr>
+		<td><B>Year Started:</b></td>
+		<td>
+			<select name="year_started">
+			<TMPL_LOOP NAME="year_started">
+				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value"></option>
+			</TMPL_LOOP>
+			</select>
+		</td>
+	</tr>
+	<tr>
+		<td><B>Birthday: (yyyy/mm/dd)</b></td>
+		<td>
+			<select name="birthyear">
+			<TMPL_LOOP NAME="birthyear">
+				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
+			</TMPL_LOOP>
+			</select> / <select name="birthmonth">
+			<TMPL_LOOP NAME="birthmonth">
+				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
+			</TMPL_LOOP>
+			</select> / <select name="birthday">
+			<TMPL_LOOP NAME="birthday">
+				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
+			</TMPL_LOOP>
+			</select>
+		</td>
+	</tr>
+	<tr>
+		<td colspan=2>May we list your email address for other members to see?  
+		<TMPL_IF NAME="allow_publish_email">
+			<input type="radio" name="allow_publish_email" value="Y" checked> Yes /  
+			<input type="radio" name="allow_publish_email" value="N"> No <br>
+		<TMPL_ELSE>
+			<input type="radio" name="allow_publish_email" value="Y"> Yes /  
+			<input type="radio" name="allow_publish_email" value="N" checked> No <br>
+		</TMPL_IF>
+		</td>
+	</tr>
+	<tr>
+		<td colspan=2>May we list your phone number for other members to see?  
+		<TMPL_IF NAME="allow_publish_phone">
+			<input type="radio" name="allow_publish_phone" value="Y" checked> Yes /  
+			<input type="radio" name="allow_publish_phone" value="N"> No <br>
+		<TMPL_ELSE>
+			<input type="radio" name="allow_publish_phone" value="Y"> Yes /  
+			<input type="radio" name="allow_publish_phone" value="N" checked> No <br>
+		</TMPL_IF>
+		</td>
+	</tr>
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
