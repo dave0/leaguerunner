@@ -41,9 +41,9 @@ To install Leaguerunner:
      and a better password in place of "password".
 
      Once this is done, you will need to import the database schema using:
-        mysql -u leaguerunner_user -p < db/mysql_schema.sql
+        mysql leaguerunner -u leaguerunner_user -p < db/mysql_schema.sql
      and populate some of the required initial data with:
-        mysql -u leaguerunner_user -p < db/mysql_initialdata.sql
+        mysql leaguerunner -u leaguerunner_user -p < db/mysql_initialdata.sql
 
      Each time, you  will be prompted for the password of "leaguerunner_user",
      so enter the one you just used when creating it.
