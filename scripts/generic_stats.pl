@@ -5,6 +5,7 @@
 
 use strict;
 use DBI;
+use POSIX;
 
 my $print_only = shift || 0;
 
@@ -126,19 +127,28 @@ while($ary  = $sth->fetchrow_arrayref()) {
 }
 
 $sth = $DB->prepare(q{
-	SELECT t.name,COUNT(r.player_id) as size 
+	SELECT t.team_id,t.name, COUNT(r.player_id) as size 
 	FROM teamroster r 
 	LEFT JOIN team t ON (t.team_id = r.team_id) 
+ 	WHERE r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant'
 	GROUP BY t.team_id 
 	HAVING size < 10 
 	ORDER BY size desc});
 $sth->execute();
-$ary = $sth->fetchall_arrayref();
-my $num_rows = scalar(@$ary);
-$stats .= "\tTeams with rosters under the required 12 players: $num_rows\n";
+my $subs = $DB->prepare(q{SELECT COUNT(*) FROM teamroster r WHERE r.team_id = ? AND r.status = 'substitute'});
+my $teams_under;
+while(($ary = $sth->fetchrow_arrayref())) {
+	$subs->execute($ary->[0]);
+	my $num_subs = ($subs->fetchrow_arrayref())->[0];
+	if(floor($num_subs / 3) + $ary->[2] < 12) {
+		unshift(@$teams_under, $ary->[1]);
+	}
+}
+my $num_rows = scalar(@$teams_under);
+$stats .= "\tTeams with rosters under the required 12 confirmed players: $num_rows\n";
 if($num_rows < 25) {
-	while(my $row = shift(@$ary)) {
-		$stats .= "\t\t" . print_evenly($row->[0], $row->[1], 30);
+	while(my $row = shift(@$teams_under)) {
+		$stats .= "\t\t" . print_evenly($row, "", 30);
 	}
 } else {
 	$stats .= "\t\t[ list suppressed; longer than 25 teams ]\n";
