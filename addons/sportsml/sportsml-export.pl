@@ -24,8 +24,8 @@ my $league_name = "Ottawa-Carleton Ultimate Association";
 use constant TIER_PAGE => 1;
 use constant DIVISION_PAGE => 2;
 
-#my $grouping = TIER_PAGE;
-my $grouping = DIVISION_PAGE;
+my $grouping = TIER_PAGE;
+#my $grouping = DIVISION_PAGE;
 
 my $location = "./export";
 my $season = '';
@@ -84,6 +84,7 @@ sub export_to_files
 			($file, $xml) = start_export_page($filebase, $league);
 		}
 		foreach my $coderef (@coderefs) {
+#			print $league->{name}, "\n";
 			$coderef->($xml, $league);
 		}
 		$prev_league = $league;
@@ -110,43 +111,53 @@ sub export_tier_schedule
 	## Fetch our schedules	
 	my $sth = $DB->prepare(
 		q{SELECT DISTINCT
-			DATE_FORMAT(s.date_played, "%Y-%m-%dT%H:%i") as game_date,
+			s.game_id,
+			UNIX_TIMESTAMP(s.date_played) as game_date,
 			s.home_team, 
 			s.away_team, 
-			s.field_id,
 			s.home_score,
 			s.away_score,
 			h.name AS home_name,
 			a.name AS away_name,
-			CONCAT(t.name,' ',f.num,' (',t.code,f.num,')') AS field_name,
-			f.site_id
+			s.field_id
 		  FROM
-		  	schedule s, field f, site t
+		  	schedule s
 			LEFT JOIN team h ON (h.team_id = s.home_team)
 			LEFT JOIN team a ON (a.team_id = s.away_team)
 		  WHERE 
-               f.field_id = s.field_id
-               AND t.site_id = f.site_id
-		  	AND s.league_id = ? ORDER BY s.date_played});
+		  	s.league_id = ? ORDER BY s.date_played});
 	$sth->execute($league->{league_id}) or croak();
+
+	my $field_sth = $DB->prepare(
+		q{SELECT t.site_id, CONCAT(t.name,' ',f.num) AS field_name FROM field f, site t WHERE t.site_id = f.site_id AND f.field_id = ?});
+
 	my $row;
+	my $currentTime = time();
 	while ($row = $sth->fetchrow_hashref) {
 
 		## Skip weeks without teams	
 		next if(!defined($row->{'home_team'}) || !defined($row->{'away_team'}));
+
+		## Get field
+		my($site_id, $field_name) = ("","");
+		if($row->{'field_id'}) {
+			$field_sth->execute($row->{'field_id'});
+			($site_id, $field_name) = $field_sth->fetchrow_array();
+		}
+
+
 		my $event_status = "pre-event";
 
-		# TODO: If date is already past, change to "post-event", rather
-		# than checking scores.  This requires a real date, not the evilly 
-		# formatted one
-		if(defined($row->{'home_score'}) || defined($row->{'away_score'})) {
+		# If date is already past, change to "post-event"
+		if($currentTime > $row->{'game_date'}) {
 			$event_status = "post-event";
 		}
 		
 		$x->startTag("sports-event");
 		  $x->startTag("event-metadata",
-			'site-name' => $row->{'field_name'},
-			'start-date-time' => $row->{'game_date'},
+			'site-name' => $field_name,
+			'site-id' => $site_id,
+			'start-date-time' => strftime("%Y-%m-%dT%H:%M",localtime($row->{'game_date'})),
 			'event-status' => $event_status
 		  );
 		  $x->endTag("event-metadata");
@@ -154,13 +165,13 @@ sub export_tier_schedule
 		    $x->startTag("team-metadata", 'alignment' => 'home');
 		      $x->emptyTag("name", 'full' => $row->{'home_name'});
 		    $x->endTag("team-metadata");
-		    $x->emptyTag("team-stats", 'score' => ($row->{'home_score'} || ""));
+		   	$x->emptyTag("team-stats", 'score' => (defined($row->{'home_score'}) ? $row->{'home_score'} : ""));
 		  $x->endTag("team");
 		  $x->startTag("team");
 		    $x->startTag("team-metadata", 'alignment' => 'away');
 		      $x->emptyTag("name", 'full' => $row->{'away_name'});
 		    $x->endTag("team-metadata");
-		    $x->emptyTag("team-stats", 'score' => ($row->{'away_score'} || ""));
+		   	$x->emptyTag("team-stats", 'score' => (defined($row->{'away_score'}) ? $row->{'away_score'} : ""));
 		  $x->endTag("team");
 		$x->endTag("sports-event");
 	}
@@ -185,15 +196,15 @@ sub sort_standings
    		if($rc != 0)  { return $rc; }
 	}
 
-	## If still tied, use +/-
-	$rc = (($sort_data->{$b}->{points_for} - $sort_data->{$b}->{points_against}) <=> ($sort_data->{$a}->{points_for} - $sort_data->{$a}->{points_against}));
-	if($rc != 0)  { return $rc; }
-
 	## Ties after +/- are to be broken by SOTG.
 	if($sort_data->{$b}->{games} > 0 && $sort_data->{$a}->{games} > 0) {
 		$rc = (($sort_data->{$b}->{spirit} / $sort_data->{$b}->{games}) <=> ($sort_data->{$a}->{spirit} / $sort_data->{$a}->{games}));
 		if($rc != 0)  { return $rc; }
 	}
+
+	## If still tied, use +/-
+	$rc = (($sort_data->{$b}->{points_for} - $sort_data->{$b}->{points_against}) <=> ($sort_data->{$a}->{points_for} - $sort_data->{$a}->{points_against}));
+	if($rc != 0)  { return $rc; }
 
 	## If still tied, check losses.  This is to ensure that teams without
 	## a score on their sheet appear above teams who have lost a game.
