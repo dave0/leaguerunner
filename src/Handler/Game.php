@@ -6,44 +6,83 @@
 function game_dispatch() 
 {
 	$op = arg(1);
+	$id = arg(2);
 	switch($op) {
 		case 'create':
-			return new GameCreate;
+			$obj = new GameCreate;
+			$obj->league = league_load( array('league_id' => $id) );
+			break;
 		case 'submitscore':
-			return new GameSubmit;
+			$obj = new GameSubmit;
+			$obj->game = game_load( array('game_id' => $id) );
+			$obj->team = team_load( array('team_id' => arg(3)) );
+			break;
 		case 'view':
-			return new GameEdit;
 		case 'approve':
-			return new GameEdit;
 		case 'edit':
-			return new GameEdit;
+			$obj = new GameEdit;
+			$obj->game = game_load( array('game_id' => $id) );
+			$obj->league = league_load( array('league_id' => $obj->game->league_id) );
+			break;
+/* TODO:
 		case 'reschedule':
 			# TODO: move a game from one gameslot to another.
 			#       Requires addition of a 'rescheduled' flag in db
-			return new GameReschedule;
-/* TODO:
+			$obj = new GameReschedule;
+			break;
 		case 'delete':
 			// Allow deletion of a game (not gameslot!)
-			return new GameDelete;
+			$obj = new GameDelete;
+			break;
  */
+		default:
+			$obj = null;
 	}
-	return null;
+	if( $obj->team ) {
+		team_add_to_menu( $obj->team );
+	}
+	if( $obj->league ) {
+		league_add_to_menu( $obj->league );
+	}
+	if( $obj->game ) {
+		game_add_to_menu( $obj->league, $obj->game );
+	}
+	
+	return $obj;
+}
+
+function game_permissions ( &$user, $action, &$game )
+{
+	switch($action)
+	{
+		case 'submit score':
+			if( $user->is_captain_of( $game->home_team )
+			    || $user->is_captain_of( $game->away_team )) {
+				return true;
+			}
+			if($user->is_coordinator_of($game->league_id)) {
+				return true;
+			}
+			break;
+		case 'reschedule':
+			//TODO
+		
+	}
+	return false;
 }
 
 /**
  * Add game information to menu
- * TODO: when permissions are fixed, remove the evil passing of $this
  */
-function game_add_to_menu( $this, &$league, &$game )
+function game_add_to_menu( &$league, &$game )
 {
 	global $session;
-	league_add_to_menu($this, $league);
-	menu_add_child("$league->fullname", "$league->fullname/games", "Games");
-	menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
+	menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
+	menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/graph", "graph opponents", array('link' => "graph/teamrank/$game->home_team/$game->away_team"));
 
-	if( $session->is_coordinator_of( $game->league_id ) ) {
-		menu_add_child("$league->fullname/games/$game->game_id", "$league->fullname/games/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
-		menu_add_child("$league->fullname/games/$game->game_id", "$league->fullname/games/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
+	if( $session->has_permission('league','edit game', $game->league_id) ) {
+		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
+		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
 	}
 }
 
@@ -111,22 +150,16 @@ class GameCreate extends Handler
 	var $types;
 	var $league;
 
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'coordinator_sufficient',
-			'deny',
-		);
-
-		$this->title = "Add Game";
-
-		return true;
+		global $session;
+		return $session->has_permission('league','add game', $this->league->league_id);
 	}
 	
 	function process ()
 	{
+		$this->title = "Add Game";
+
 		$league_id = arg(2);
 		$year  = arg(3);
 		$month = arg(4);
@@ -135,19 +168,18 @@ class GameCreate extends Handler
 		$end_month = arg(7);
 		$end_day   = arg(8);
 
-		$this->league = league_load( array('league_id' => $league_id) );
 		if(! $this->league ) {
-			$this->error_exit("That league does not exist");
+			error_exit("That league does not exist");
 		}
 
 		if ( $day ) {
 			if ( ! validate_date_input($year, $month, $day) ) {
-				$this->error_exit("That date is not valid");
+				error_exit("That date is not valid");
 			}
 			$datestamp = mktime(0,0,0,$month,$day,$year);
 			if ($end_day) {
 				if ( ! validate_date_input($end_year, $end_month, $end_day) ) {
-					$this->error_exit("That date is not valid");
+					error_exit("That date is not valid");
 				}
 				$end_datestamp = mktime(0,0,0,$end_month,$end_day,$end_year);
 			} else {
@@ -169,7 +201,7 @@ class GameCreate extends Handler
 		// before we proceed.
 		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $this->league->league_id, $datestamp);
 		if( db_result($result) == 0) {
-			$this->error_exit("Sorry, there are no fields available for your league on " . date("Y",$datestamp) . "-" . date("m",$datestamp) . "-" . date("d",$datestamp) . ".  Check that fields have been allocated before attempting to proceed.");
+			error_exit("Sorry, there are no fields available for your league on " . date("Y",$datestamp) . "-" . date("m",$datestamp) . "-" . date("d",$datestamp) . ".  Check that fields have been allocated before attempting to proceed.");
 		}
 
 		// Set up our menu
@@ -217,7 +249,7 @@ class GameCreate extends Handler
 				return $this->generateForm($datestamp, $end_datestamp);
 				break;
 		}
-		$this->error_exit("Error: This code should never be reached.");
+		error_exit("Error: This code should never be reached.");
 	}
 
 	
@@ -271,7 +303,7 @@ class GameCreate extends Handler
 	{
 
 		if (  ! array_key_exists( $edit['type'], $this->types) ) {
-			$this->error_exit("That is not a valid selection for adding games");
+			error_exit("That is not a valid selection for adding games");
 		}
 		
 
@@ -282,7 +314,7 @@ class GameCreate extends Handler
 			case 'oneset':
 				break;
 			default:
-				$this->error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
+				error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
 	
 		}
 	
@@ -330,10 +362,10 @@ class GameCreate extends Handler
 			case 'fullladder':
 				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
 			default:
-				$this->error_exit("That is not a valid option right now.");
+				error_exit("That is not a valid option right now.");
 	
 		}
-		$this->error_exit("This line of code should never be reached");
+		error_exit("This line of code should never be reached");
 	}
 
 	/**
@@ -344,13 +376,13 @@ class GameCreate extends Handler
 		$league = $this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
-			$this->error_exit("Error loading teams for league $league->fullname");
+			error_exit("Error loading teams for league $league->fullname");
 		}
 
 		$num_teams = count($league->teams);
 
 		if ($num_teams % 4 != 0) {
-			$this->error_exit("The league MUST have a multiple of 4 teams.");
+			error_exit("The league MUST have a multiple of 4 teams.");
 		}
 
 		usort($league->teams, array($this, 'sort_teams_by_ranking'));
@@ -385,7 +417,7 @@ class GameCreate extends Handler
 		$league = $this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
-			$this->error_exit("Error loading teams for league $league->fullname");
+			error_exit("Error loading teams for league $league->fullname");
 		}
 
 		// get an ordered array of team id's (ordered by rank by default)
@@ -397,7 +429,7 @@ class GameCreate extends Handler
 		$num_teams = count($league->teams);
 
 		if ($num_teams % 4 != 0) {
-			$this->error_exit("The league MUST have a multiple of 4 teams.");
+			error_exit("The league MUST have a multiple of 4 teams.");
 		}
 		
 		$num_games = $num_teams / 2;
@@ -417,7 +449,7 @@ class GameCreate extends Handler
 			$g->set('home_team', $team_ids[$i]);
 			$g->set('away_team', $team_ids[$ii]);
 			if ( ! $g->save() ) {
-				$this->error_exit("Could not successfully create a new game");
+				error_exit("Could not successfully create a new game");
 			}
 			if( ! $g->select_random_gameslot($timestamp) ) {
 				$this->rollback_games($all_games, "Sorry, could not assign a gameslot for " . date("Y",$timestamp) . "-" . date("m",$timestamp) . "-" . date("d",$timestamp));
@@ -478,10 +510,10 @@ class GameCreate extends Handler
 	function rollback_games ($games, $error) {
 		foreach ($games as $g) {
 			if (! $g->delete() ) {
-				$this->error_exit("First error: $error ... Then, on top of that, there was a problem deleting the games!!!");
+				error_exit("First error: $error ... Then, on top of that, there was a problem deleting the games!!!");
 			}
 		}
-		$this->error_exit($error);
+		error_exit($error);
 	}
 
 	/********************************************************************************
@@ -523,13 +555,13 @@ class GameCreate extends Handler
 		$league = $this->league;  // shorthand
 		
 		if ( ! $league->load_teams() ) {
-			$this->error_exit("Error loading teams for league $league->fullname");
+			error_exit("Error loading teams for league $league->fullname");
 		}
 		
 		$num_teams = count($league->teams);
 
 		if($num_teams < 2) {
-			$this->error_exit("Cannot schedule games in a league with less than two teams");
+			error_exit("Cannot schedule games in a league with less than two teams");
 		}
 		
 		/*
@@ -550,7 +582,7 @@ class GameCreate extends Handler
 			$g = new Game;
 			$g->set('league_id', $league->league_id);
 			if ( ! $g->save() ) {
-				$this->error_exit("Could not successfully create a new game");
+				error_exit("Could not successfully create a new game");
 			}
 			$rollback_list[] = $g;
 
@@ -562,7 +594,7 @@ class GameCreate extends Handler
 						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
 					}
 				}
-				$this->error_exit("Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+				error_exit("Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
 			}
 		}
 	
@@ -578,77 +610,37 @@ class GameSubmit extends Handler
 	var $game;
 	var $team;
 
-	function initialize ()
-	{
-		$this->title = "Submit Game Results";
-		return true;
-	}
-
 	function has_permission ()
 	{
 		global $session;
-		if(!$session->is_valid()) {
-			$this->error_exit("You do not have a valid session");
-			return false;
-		}
-
-		if(!$session->is_player()) {
-			$this->error_exit("You do not have permission to perform that operation");
-			return false;
-		}
-
-		$gameID = arg(2);
-		$teamID = arg(3);
-
-		$this->game = game_load( array('game_id' => $gameID) );
-
-		if( !$this->game ) {
-			$this->error_exit("That game does not exist");
-		}
 	
-		$this->team = team_load( array('team_id' => $teamID) );
-		if( !$this->team ) {
-			$this->error_exit("That team does not exist");
-			return false;
-		}
-
-		if( $this->game->timestamp > time() ) {
-			$this->error_exit("That game has not yet occurred!");
-			return false;
-		}
-		
-		if( $teamID != $this->game->home_id && $teamID != $this->game->away_id ) {
-			$this->error_exit("That team did not play in that game!");
-		}
-		
-		if($session->is_admin()) {
-			$this->set_permission_flags('administrator');
-			return true;
-		}
-
-		if($session->is_coordinator_of($game->league_id)) {
-			$this->set_permission_flags('coordinator');
-			return true;
-		}
-
-		if($session->is_captain_of($teamID)) {
-			$this->set_permission_flags('captain');
-			return true;
-		}
-
-		return false;
+		return $session->has_permission('game','submit score', $this->game);
 	}
 
 	function process ()
 	{
+		$this->title = "Submit Game Results";
+		
+		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
+			error_exit("That team did not play in that game!");
+		}
+		
+		if(!$session->is_captain_of($team->team_id)) {
+			error_exit("You may not submit a score for that team!");
+		}
+		
+		if( $this->game->timestamp > time() ) {
+			error_exit("That game has not yet occurred!");
+		}
+
 		if( $this->game->is_finalized() ) {
-			$this->error_exit("The score for that game has already been submitted.");
+			error_exit("The score for that game has already been submitted.");
 		}
 
 		$this->game->load_score_entries();
 
 		if ( $this->game->get_score_entry( $this->team->team_id ) ) {
-			$this->error_exit("The score for your team has already been entered.");
+			error_exit("The score for your team has already been entered.");
 		}
 
 		if($this->game->home_id == $this->team->team_id) {
@@ -715,7 +707,7 @@ class GameSubmit extends Handler
 
 		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
@@ -723,19 +715,19 @@ class GameSubmit extends Handler
 			$questions->bulk_set_answers( $_POST['team_spirit'] );
 			$dataInvalid = $questions->answers_invalid();
 			if( $dataInvalid ) {
-				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
 			
 			// Save the spirit entry if non-default
 			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
-				$this->error_exit("Error saving spirit entry for " . $this->team->team_id);
+				error_exit("Error saving spirit entry for " . $this->team->team_id);
 			}
 		}
 
 		// Now, we know we haven't finalized the game, so we first
 		// save this team's score entry, as there isn't one already.
 		if( !$this->game->save_score_entry( $this->team->team_id, $session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'] ) ) {
-			$this->error_exit("Error saving score entry for " . $this->team->team_id);
+			error_exit("Error saving score entry for " . $this->team->team_id);
 		}
 		
 		// now, check if the opponent has an entry
@@ -745,39 +737,9 @@ class GameSubmit extends Handler
 			return para($resultMessage);
 		}
 
-		// Otherwise, both teams have an entry.  So, compare them:
-		$home_entry = $this->game->get_score_entry( $this->game->home_id );
-		$away_entry = $this->game->get_score_entry( $this->game->away_id );
-		if( $this->game->score_entries_agree( object2array($home_entry), object2array($away_entry) ) ) {
-			switch( $home_entry->defaulted ) {
-				case 'us':
-					$this->game->set('status', 'home_default');
-					$this->game->save_spirit_entry( $this->game->away_id, $this->game->default_spirit('winner'));
-					$this->game->save_spirit_entry( $this->game->home_id, $this->game->default_spirit('loser'));
-					break;
-				case 'them':
-					$this->game->set('status', 'away_default');
-					$this->game->save_spirit_entry( $this->game->away_id, $this->game->default_spirit('loser'));
-					$this->game->save_spirit_entry( $this->game->home_id, $this->game->default_spirit('winner'));
-					break;
-				case 'no':
-				default:
-					// No default.  Just finalize score.
-					$this->game->set('home_score', $home_entry->score_for);
-					$this->game->set('away_score', $home_entry->score_against);
-			}
-			
-			$this->game->set('approved_by', APPROVAL_AUTOMATIC);
-
-			if ( ! $this->game->save() ) {
-				$this->error_exit("Could not successfully save game results");
-			}
-
-			// Game has been saved to database.  Now we can update the dependant games.
-			if (! $this->game->updatedependentgames()) {
-				$this->error_exit("Could not update dependant games.");
-			}
-			
+		// Otherwise, both teams have an entry.  So, attempt to finalize using
+		// this information.
+		if( $this->game->finalize() ) {
 			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 		} else {
 			// Or, we have a disagreement.  Since we've already saved the
@@ -792,7 +754,7 @@ class GameSubmit extends Handler
 	{
 		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
@@ -804,7 +766,7 @@ class GameSubmit extends Handler
 			$edit['defaulted'] = 'no';
 		}
 
-		$output = $this->interim_game_result(&$edit, &$opponent);
+		$output = $this->interim_game_result($edit, $opponent);
 		$output .= form_hidden('edit[step]', 'confirm');
 			
 		$output .= para("Now, you must rate your opponent's spirit using the following questions.  These are used both to generate an average spirit rating for each team, and to indicate to the league what areas might be problematic.");
@@ -822,7 +784,7 @@ class GameSubmit extends Handler
 	{
 		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
@@ -830,14 +792,14 @@ class GameSubmit extends Handler
 			$questions->bulk_set_answers( $_POST['team_spirit'] );
 			$dataInvalid = $questions->answers_invalid();
 			if( $dataInvalid ) {
-				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
 			
 			// Force a non-default to display correctly
 			$edit['defaulted'] = 'no';
 		}
 		
-		$output = $this->interim_game_result(&$edit, &$opponent);
+		$output = $this->interim_game_result($edit, $opponent);
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$output .= para("The following answers will be used to assign your opponents' spirit:");
 			$output .= $questions->render_viewable();
@@ -998,11 +960,8 @@ class GameEdit extends Handler
 	function process ()
 	{
 		global $session;
-		$gameID = arg(2);
-		
-		$this->game = game_load( array('game_id' => $gameID) );
 		if(!$this->game) {
-			$this->error_exit("That game does not exist");
+			error_exit("That game does not exist");
 		}
 
 		$this->_permissions = array(
@@ -1034,10 +993,10 @@ class GameEdit extends Handler
 
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $this->game, &$edit );
+				$rc = $this->generateConfirm( $this->game, $edit );
 				break;
 			case 'perform':
-				$this->perform( &$edit );
+				$this->perform( $edit );
 				local_redirect(url("game/view/" . $this->game->game_id));
 				break;
 			default:
@@ -1051,6 +1010,7 @@ class GameEdit extends Handler
 	{
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
+		$league = &$this->league;
 
 		$game->load_score_entries();
 		
@@ -1058,7 +1018,6 @@ class GameEdit extends Handler
 		
 		$output .= form_item("Game ID", $game->game_id);
 
-		$league = league_load( array('league_id' => $game->league_id) );
 		$teams = $league->teams_as_array();
 		/* Now, since teams may not be in league any longer, we need to force
 		 * them to appear in the pulldown
@@ -1201,8 +1160,6 @@ class GameEdit extends Handler
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
 
-		game_add_to_menu($this, $league, $game);
-	
 		if( $this->_permissions['edit_game'] ) {
 			$output .= para(form_submit("submit") . form_reset("reset"));
 		}
@@ -1213,7 +1170,7 @@ class GameEdit extends Handler
 	{
 
 		if( ! $this->_permissions['edit_game'] ) {
-			$this->error_exit("You do not have permission to edit this game");
+			error_exit("You do not have permission to edit this game");
 		}
 
 	
@@ -1251,7 +1208,7 @@ class GameEdit extends Handler
 		}
 		
 		if( $dataInvalid ) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$output = para( "You have made the changes below for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
@@ -1273,11 +1230,6 @@ class GameEdit extends Handler
 		
 		$output .= para(form_submit('submit'));
 
-		// TODO: dmo: this should be done elsewhere as each operation needs it.
-		$league = league_load( array('league_id' => $game->league_id) );
-		game_add_to_menu($this, $league, $game);
-
-
 		return form($output);
 	}
 	
@@ -1287,7 +1239,7 @@ class GameEdit extends Handler
 		global $session;
 		
 		if( ! $this->_permissions['edit_game'] ) {
-			$this->error_exit("You do not have permission to edit this game");
+			error_exit("You do not have permission to edit this game");
 		}
 		$home_spirit = formbuilder_load('team_spirit');
 		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
@@ -1301,7 +1253,7 @@ class GameEdit extends Handler
 			$dataInvalid .= $away_spirit->answers_invalid();
 		}
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		// Now, finalize score.
@@ -1331,20 +1283,20 @@ class GameEdit extends Handler
 		}
 
 		if( !$this->game->save_spirit_entry( $this->game->home_id, $home_spirit_values) ) {
-			$this->error_exit("Error saving spirit entry for " . $this->game->home_name);
+			error_exit("Error saving spirit entry for " . $this->game->home_name);
 		}
 		if( !$this->game->save_spirit_entry( $this->game->away_id, $away_spirit_values) ) {
-			$this->error_exit("Error saving spirit entry for " . $this->game->away_name);
+			error_exit("Error saving spirit entry for " . $this->game->away_name);
 		}
 
 		if ( ! $this->game->save() ) {
-			$this->error_exit("Could not successfully save game results");
+			error_exit("Could not successfully save game results");
 		}
 
-                // Game has been saved to database.  Now we can update the dependant games.
-                if (! $this->game->updatedependentgames()) {
-			$this->error_exit("Could not update dependant games.");
-                }
+		// Game has been saved to database.  Now we can update the dependant games.
+		if (! $this->game->updatedependentgames()) {
+			error_exit("Could not update dependant games.");
+		}
 
 		return true;
 	}
