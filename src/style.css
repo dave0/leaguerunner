@@ -6,8 +6,6 @@ BODY {
 
 H1 {
 	font-size: 25px;
-	color: #000099;
-	text-align: center;
 	font-variant: small-caps;
 }
 
@@ -75,4 +73,24 @@ TABLE {
 
 .small {
 	font-size: 11px;
+}
+
+
+.toptable {
+	-moz-border-radius: 20px 0px 20px 0px;
+	color: white;
+	background-color: black;
+	border: 1px solid black;
+	padding-left: 7px;
+	padding-right: 7px;
+}
+
+.topbarlink:link, .topbarlink:visited {
+  color: white;
+  text-decoration: none;
+}
+
+.topbarlink:active {
+  color: red;
+  text-decoration: none;
 }

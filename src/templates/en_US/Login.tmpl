@@ -1,6 +1,10 @@
-{include file="$app_template_dir/common/basic_header.tmpl"}
-
-<h1 align="center">{$app_name} - {$page_title}</h1>
+<html>
+ <head>
+  <title>{$app_name}: {$page_title}</title>
+  <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
+ </head>
+<body bgcolor="#FFFFFF">
+<h1 align="center">{$app_name}</h1>
 {if $error}
 	<P>
 	Login failed:
@@ -30,4 +34,5 @@
 	Please note that this site uses cookies to store authentication information.
 	You must have cookies enabled in your browser to use this site.
 	</P>
-{include file="$app_template_dir/common/basic_footer.tmpl"}
+</body>
+</html>

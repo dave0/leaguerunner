@@ -1,10 +1,8 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-
-<H1>{$page_title}</H1>
 <p>
   Welcome, {$user_name}.
 </p>
-<TABLE align="center" cellspacing="0" cellpadding="2" border="0" width="90%">
+<TABLE align="left" cellspacing="0" cellpadding="3" border="0" width="50%">
   {foreach name=list from=$menu_box_rows item=box}
     <TR class="menu_box_head" height="15">
       <TD>{$box.title}</TD>

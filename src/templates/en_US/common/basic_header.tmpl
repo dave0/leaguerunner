@@ -1,6 +1,27 @@
 <html>
- <head>
-  <title>{$app_name} - {$page_title}</title>
-  <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
- </head>
-<body bgcolor="#FFFFFF">
+  <head>
+    <title>{$app_name}: {$page_title}</title>
+    <link rel='stylesheet' href="{$app_stylesheet_file}" type="text/css">
+  </head>
+  <body bgcolor="#FFFFFF">
+{strip}
+  <table class='toptable' border='0' cellpadding='3' cellspacing='0' bgcolor='black' width='100%'>
+    <tr>
+      <td colspan='2'>
+        <h1>{$app_name}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        You are at: <b>{$page_title}</b>
+      </td>
+      <td align='right' valign='top'>
+        <font color='white'>
+          <a class='topbarlink' href="{$app_cgi_location}?op=menu">main menu</a>
+          &nbsp;|&nbsp;<a class='topbarlink' href="{$app_cgi_location}?op=logout">log out</a>
+        </font>
+      </td>
+    </tr>
+  </table>
+{/strip}
+{* vim: set sw=2 ts=2 et: *}

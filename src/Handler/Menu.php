@@ -84,7 +84,7 @@ class Menu extends Handler
 		$ops = array(
 			array(
 				'title' => "View/Edit My Account",
-				'url_append' => '?op=playerview&userid=' . $session->attr_get("user_id"),
+				'url_append' => '?op=person_view&userid=' . $session->attr_get("user_id"),
 				'grey_out' => 0
 			),
 			array(
@@ -107,6 +107,8 @@ class Menu extends Handler
 	function manage_teams ()
 	{
 		global $session, $DB;
+
+		/* TODO: replace with get_teams_for_user() */
 		$sth = $DB->prepare("SELECT t.team_id, 
             t.name AS team_name, 
             if(t.captain_id = r.player_id, 
