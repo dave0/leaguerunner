@@ -1120,6 +1120,7 @@ class TeamScheduleView extends Handler
 			if($this_row['away_id'] == $id) {
 				$week['opponent_id'] = $this_row['home_id'];
 				$week['opponent_name'] = $this_row['home_name'];
+				$week['home_away'] = 'away';
 			}
 
 			/* Now, look for a score entry */
