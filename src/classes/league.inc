@@ -182,9 +182,9 @@ class League extends LeaguerunnerObject
 			$id = $foo['game_id'];
 #			print "$id is possibly 'old' and in need of approval<br />";
 
-			// Expiry is 24 hours after game end, so we'll say 27 hours after start.  This is because for
+			// Expiry is 36 hours after game end, so we'll say 39 hours after start.  This is because for
 			// summer games we may just have 'dark' listed rather than an end time.
-			$expiry_factor = 27 * 3600; 
+			$expiry_factor = 39 * 3600; 
 			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
 				$game = game_load( array('game_id' => $id) );
 				$game->finalize();
