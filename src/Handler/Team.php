@@ -134,10 +134,10 @@ class TeamEdit extends Handler
 				local_redirect(url("team/view/$id"));
 				break;
 			default:
-				$formData = $this->getFormData( $id );
-				$rc = $this->generateForm($id, $formData);
+				$edit = $this->getFormData( $id );
+				$rc = $this->generateForm($id, $edit);
 		}
-		$this->setLocation(array($formData['name']  => "team/view/$id", $this->title => 0));
+		$this->setLocation(array($edit['name']  => "team/view/$id", $this->title => 0));
 		return $rc;
 	}
 
