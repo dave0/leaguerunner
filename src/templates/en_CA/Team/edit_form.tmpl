@@ -1,0 +1,73 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Editing {$team_name}</h1>
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="confirm">
+{if $id}
+	<input type="hidden" name="id" value="{$id}">
+{/if}
+	<table border="0">
+    {if $perm_edit_name}
+    <tr>
+      <td class='row_title'>Team Name:</td> 
+      <td class='row_data'><input type="text" name="team_name" size="35" value="{$team_name}"></td>
+    </tr>
+    {/if}
+    {if $perm_edit_website}
+    <tr>
+      <td class='row_title'>Website:</td> 
+      <td class='row_data'><input type="text" name="team_website" size="35" value="{$team_website}"></td>
+    </tr>
+    {/if}
+    {if $perm_edit_shirt}
+    <tr>
+      <td class='row_title'>Shirt Colour:</td> 
+      <td class='row_data'><input type="text" name="shirt_colour" size="35" value="{$shirt_colour}"></td>
+    </tr>
+    {/if}
+    {if $perm_edit_captain}
+    <tr>
+  		<td class='row_title'>Captain:</td>
+  		<td class='row_data'>
+  			<select name='captain_id'>
+        {create_options data=$team_roster selected=$captain_id}
+  			</select>
+  		</td>
+  	</tr>
+    {/if}
+    {if $perm_edit_assistant}
+  	<tr>
+  		<td class='row_title'>Assistant Captain:</td>
+  		<td class='row_data'>
+  			<select name='assistant_id'>
+        {create_options data=$team_roster selected=$assistant_id}
+  			</select>
+  		</td>
+  	</tr>
+    {/if}
+    {if $perm_edit_status}
+  	<tr>
+  		<td colspan='2'>Is this team 'open' for registering players?
+      {if $status == "open"}
+  			<input type='radio' name='status' value='open' checked> Yes /  
+  			<input type='radio' name='status' value='closed'> No <br>
+      {else}
+  			<input type='radio' name='status' value='open'> Yes /  
+  			<input type='radio' name='status' value='closed' checked> No <br>
+      {/if}
+  		</td>
+  	</tr>
+    {/if}
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

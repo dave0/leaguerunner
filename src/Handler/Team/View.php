@@ -19,7 +19,7 @@ class TeamView extends Handler
 	 */
 	function initialize ()
 	{
-		$this->name = "View Team";
+		$this->name = "View Team: ";
 		$this->_permissions = array(
 			'edit_team'	=> false,
 		);
@@ -58,20 +58,9 @@ class TeamView extends Handler
 			$this->enable_all_perms();
 			return true;
 		}
-
-		$res = $DB->getRow(
-			"SELECT 
-				captain_id, 
-				assistant_id 
-			 FROM team where team_id = ?",
-			 array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($res)) {
-			return false;
-		}
 			 
-		if( ($session->attr_get('user_id') == $res['captain_id'])
-			|| ($session->attr_get('user_id') == $res['assistant_id'])) {
-				$this->_permissions['edit_team'] = true;
+		if( $session->is_captain_of($id) ) {
+			$this->_permissions['edit_team'] = true;
 		}
 		
 		/* 
@@ -122,6 +111,7 @@ class TeamView extends Handler
 			return false;
 		}
 
+		$this->name .= $row['team_name'];
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
 		if( !strstr($row['team_website'], "http://") && (strlen($row['team_website']) > 0 ) ) {
