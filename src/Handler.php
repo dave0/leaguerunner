@@ -210,7 +210,7 @@ class Handler
 			$letters[] = $l->letter;
 		}
 		if(!isset($letter)) {
-			$letter = $letters[0];
+			$letter = 'A';
 		}
 
 		$letterLinks = array();
