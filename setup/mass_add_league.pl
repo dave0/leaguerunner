@@ -7,6 +7,8 @@ use strict;
 ## of tier you wish to create.
 ##
 
+my $year = 2003;
+
 my $data = [
 	{ 
 		'season' => 'Summer',
@@ -63,7 +65,7 @@ my $data = [
 
 foreach my $l (@$data) {
 #INSERT INTO league (name,day,season,tier,ratio,max_teams,coordinator_id) VALUES('Summer Monday','Monday','Summer',1,'4/3',8,1);
-	my $sql = "INSERT INTO league (name,day,season,tier,ratio,max_teams,coordinator_id) VALUES(";
+	my $sql = "INSERT INTO league (name,year,day,season,tier,ratio,max_teams,coordinator_id) VALUES(";
 	my $name;
 	if(exists($l->{name})) {
 		$name = $l->{name};
@@ -71,7 +73,7 @@ foreach my $l (@$data) {
 		$name = $l->{season} . " " . $l->{day};
 	}
 
-	$sql .= "'$name'," . $l->{day} . "','" . $l->{season} . "',%d,'" . $l->{ratio} . "'," . $l->{teams} . ",1);\n";
+	$sql .= "'$name','$year','" . $l->{day} . "','" . $l->{season} . "',%d,'" . $l->{ratio} . "'," . $l->{teams} . ",1);\n";
 
 	for(my $i=1; $i <= $l->{tiers}; $i++) {
 		printf($sql, $i);
