@@ -928,9 +928,15 @@ class PersonEdit extends Handler
 		
 		$fields[] = "lastname = '%s'";
 		$fields_data[] = $edit['lastname'];
-		
-		$fields[] = "alias = '%s'";
-		$fields_data[] = $edit['alias'];
+	
+		if( strlen($edit['alias']) > 0 ) {
+			$fields[] = "alias = '%s'";
+			$fields_data[] = $edit['alias'];
+		} else {
+			$fields[] = "alias = %s";
+			$fields_data[] = 'NULL';
+		}
+			
 		
 		$fields[] = "addr_street = '%s'";
 		$fields_data[] = $edit['addr_street'];
@@ -1001,6 +1007,7 @@ class PersonEdit extends Handler
 
 	function isDataInvalid ( $edit = array() )
 	{
+		global $session;
 		$errors = "";
 	
 		if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
@@ -1012,7 +1019,8 @@ class PersonEdit extends Handler
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 			$user = person_load( array('username' => $edit['username']) );
-			if( $user ) {
+			# TODO: BUG: need to check that $user->user_id != current id
+			if( $user && !$session->is_admin()) {
 				$this->error_exit("A user with that username already exists; please go back and try again");
 			}
 		}
@@ -1041,7 +1049,8 @@ class PersonEdit extends Handler
 				$errors .= "\n<li>User alias cannot contain HTML.";
 			} else {
 				$user = person_load( array('alias' => $edit['alias']) );
-				if( $user ) {
+				# TODO: BUG: need to check that $user->user_id != current id
+				if( $user && !($session->is_admin() || ($session->user->user_id == $user->user_id))) {
 					$this->error_exit("A user with that alias already exists; please go back and try again");
 				}
 			}
