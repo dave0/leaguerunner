@@ -354,17 +354,13 @@ class LeagueEdit extends Handler
 			
 		$sql = "UPDATE league SET ";
 		$sql .= join(",", $fields);	
-		$sql .= "WHERE league_id = %d";
+		$sql .= " WHERE league_id = %d";
 
 		$fields_data[] = $id;
 
-		db_query($sql, $fields_data);
+		$rc = db_query($sql, $fields_data);
 
-		if(1 != db_affected_rows() ) {
-			return false;
-		}
-
-		return true;
+		return ($rc != false);
 	}
 
 	/* TODO: Properly validate other data */

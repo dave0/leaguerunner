@@ -207,19 +207,16 @@ class FieldEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		db_query("UPDATE field SET 
+		$rc = db_query("UPDATE field SET 
 			num = %d, 
 			status = '%s',
 			availability = '%s' 
 			WHERE field_id = %d",
 			$edit['num'], $edit['status'], $edit['availability'], $id
 		);
-		
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+
+
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit )

@@ -37,6 +37,9 @@ function person_dispatch()
 	return null;
 }
 
+/**
+ * Generate the menu items for the "Players" and "My Account" sections.
+ */
 function person_menu() 
 {
 	global $session;
@@ -89,7 +92,6 @@ class PersonView extends Handler
 			'gender'	=> false,
 			'skill' 	=> false,
 			'name' 		=> false,
-			'alias' 		=> false,
 			'last_login'		=> false,
 			'waiver_signed'		=> false,
 			'member_id'		=> false,
@@ -224,10 +226,6 @@ class PersonView extends Handler
 			$rows[] = array("System Username:", $person->username);
 		}
 		
-		if($this->_permissions['alias']) {
-			$rows[] = array("User Alias:", $person->alias);
-		}
-		
 		if($this->_permissions['member_id']) {
 			$rows[] = array("OCUA Member ID:", $person->member_id);
 		}
@@ -320,6 +318,17 @@ class PersonView extends Handler
 		reset($person->teams);
 		
 		$rows[] = array("Teams:", table( null, $teams) );
+
+		$leagues = array();
+		while(list(,$league) = each($person->leagues)) {
+			$leagues[] = array(
+				"Coordinator of",
+				l($league->fullname, "team/view/$league->id")
+			);
+		}
+		reset($person->leagues);
+		
+		$rows[] = array("Leagues:", table( null, $leagues) );
 		
 		person_add_to_menu( $this, $person );
 				
@@ -345,7 +354,6 @@ class PersonDelete extends PersonView
 			'gender'	=> false,
 			'skill' 	=> false,
 			'name' 		=> false,
-			'alias'		=> false,
 			'last_login'		=> false,
 			'user_edit'				=> false,
 			'user_change_password'	=> false,
@@ -627,6 +635,7 @@ class PersonEdit extends Handler
 	{
 		$this->title = 'Edit';
 		$this->_permissions = array(
+			'edit_name'			=> false,
 			'edit_username'		=> false,
 			'edit_class' 		=> false,
 			'edit_status' 		=> false,
@@ -693,11 +702,15 @@ class PersonEdit extends Handler
 		);
 
 		$rows = array();
-		$rows[] = array("First Name:",
-			form_textfield('', 'edit[firstname]', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
+		if($this->_permissions['edit_name']) {
+			$rows[] = array("First Name:",
+				form_textfield('', 'edit[firstname]', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
 
-		$rows[] = array("Last Name:",
-			form_textfield('', 'edit[lastname]', $formData['lastname'], 25,100, "Last name"));
+			$rows[] = array("Last Name:",
+				form_textfield('', 'edit[lastname]', $formData['lastname'], 25,100, "Last name"));
+		} else {
+			$rows[] = array("Name:", $formData['firstname'] . " " . $formData['lastname']);
+		}
 
 		if($this->_permissions['edit_username']) {
 			$rows[] = array("System Username:",
@@ -706,9 +719,6 @@ class PersonEdit extends Handler
 			$rows[] = array("System Username:", $formData['username']);
 		}
 		
-		$rows[] = array("User Alias:",
-				form_textfield('', 'edit[alias]', $formData['alias'], 25,100, "User alias, for use on discussion forums.  If blank, your real name will be used."));
-
 		if($this->_permissions['edit_password']) {
 			$rows[] = array("Password:",
 				form_password('', 'edit[password_once]', '', 25,100, "Enter your desired password."));
@@ -800,18 +810,18 @@ class PersonEdit extends Handler
 
 		$rows = array();
 
-		$rows[] = array("First Name:",
-			form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
-			
-		$rows[] = array("Last Name:",
-			form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
+		
+		if($this->_permissions['edit_username']) {
+			$rows[] = array("First Name:",
+				form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
+			$rows[] = array("Last Name:",
+				form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
+		}
 		
 		if($this->_permissions['edit_username']) {
 			$rows[] = array("System Username:",
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
-		$rows[] = array("User Alias:",
-			form_hidden('edit[alias]',$edit['alias']) . $edit['alias']);
 		
 		if($this->_permissions['edit_password']) {
 			$rows[] = array("Password:",
@@ -923,20 +933,12 @@ class PersonEdit extends Handler
 			}
 		}
 		
-		$fields[] = "firstname = '%s'";
-		$fields_data[] = $edit['firstname'];
-		
-		$fields[] = "lastname = '%s'";
-		$fields_data[] = $edit['lastname'];
-	
-		if( strlen($edit['alias']) > 0 ) {
-			$fields[] = "alias = '%s'";
-			$fields_data[] = $edit['alias'];
-		} else {
-			$fields[] = "alias = %s";
-			$fields_data[] = 'NULL';
+		if($this->_permissions['edit_name']) {
+			$fields[] = "firstname = '%s'";
+			$fields_data[] = $edit['firstname'];
+			$fields[] = "lastname = '%s'";
+			$fields_data[] = $edit['lastname'];
 		}
-			
 		
 		$fields[] = "addr_street = '%s'";
 		$fields_data[] = $edit['addr_street'];
@@ -996,13 +998,12 @@ class PersonEdit extends Handler
 		
 		$sql = "UPDATE person SET ";
 		$sql .= join(", ", $fields);	
-		$sql .= "WHERE user_id = %d";
+		$sql .= " WHERE user_id = %d";
 		
 		$fields_data[] = $id;
 
-		db_query( $sql, $fields_data);
-
-		return (1 == db_affected_rows());
+		$rc = db_query( $sql, $fields_data);
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit = array() )
@@ -1010,8 +1011,10 @@ class PersonEdit extends Handler
 		global $session;
 		$errors = "";
 	
-		if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
-			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+		if($this->_permissions['edit_name']) {
+			if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
+				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
+			}
 		}
 
 		if($this->_permissions['edit_username']) {
@@ -1044,18 +1047,6 @@ class PersonEdit extends Handler
 			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
 		
-		if( validate_nonblank($edit['alias']) ) {
-			if(!validate_nonhtml($edit['alias']) ) {
-				$errors .= "\n<li>User alias cannot contain HTML.";
-			} else {
-				$user = person_load( array('alias' => $edit['alias']) );
-				# TODO: BUG: need to check that $user->user_id != current id
-				if( $user && !($session->is_admin() || ($session->user->user_id == $user->user_id))) {
-					$this->error_exit("A user with that alias already exists; please go back and try again");
-				}
-			}
-		}
-
 		if( !validate_nonhtml($edit['addr_street']) ) {
 			$errors .= "\n<li>You must supply a street address.";
 		}
@@ -1119,6 +1110,7 @@ class PersonCreate extends PersonEdit
 	{
 		$this->title = 'Create Account';
 		$this->_permissions = array(
+			'edit_name'			=> true,
 			'edit_username'		=> true,
 			'edit_password'		=> true,
 		);
@@ -1267,7 +1259,7 @@ class PersonActivate extends PersonEdit
 	{
 		$rc = parent::perform( $id, $edit );
 		if( ! $rc ) {
-			return false;
+			$this->error_exit("Failed attempting to activate account");
 		}
 	
 		db_query("UPDATE person SET status = 'active' where user_id = %d", $id);

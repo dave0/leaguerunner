@@ -204,7 +204,7 @@ class SiteEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		db_query("UPDATE site SET 
+		$rc = db_query("UPDATE site SET 
 			name = '%s', code = '%s', 
 			region = '%s', ward_id = %d,
 			location_url = '%s', layout_url = '%s', 
@@ -223,12 +223,8 @@ class SiteEdit extends Handler
 				$this->id,
 			)
 		);
-	
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit )

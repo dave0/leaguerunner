@@ -184,19 +184,15 @@ class WardEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$res = db_query("UPDATE ward SET 
+		$rc = db_query("UPDATE ward SET 
 			name = '%s', 
 			num = %d, 
 			region = '%s', 
 			city = '%s',
 			url = '%s'
 			WHERE ward_id = %d", $edit['name'], $edit['num'], $edit['region'], $edit['city'], $edit['url'], $id);
-		
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit )

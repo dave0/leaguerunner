@@ -132,7 +132,7 @@ class WaitingListEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		db_query("UPDATE waitinglist SET name = '%s', description = '%s', selection = %d, max_male = %d, max_female = %d, allow_couples_registration = '%s' WHERE wlist_id = %d",
+		$rc = db_query("UPDATE waitinglist SET name = '%s', description = '%s', selection = %d, max_male = %d, max_female = %d, allow_couples_registration = '%s' WHERE wlist_id = %d",
 			$edit['name'],
 			$edit['description'],
 			$edit['selection'],
@@ -142,11 +142,7 @@ class WaitingListEdit extends Handler
 			$id
 		);
 
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit )

@@ -11,11 +11,13 @@ Docs:
 Code Cleanups and Refactoring:
 	- Clean up database schema
 	- rewrite of permissions code so that it isn't so crusty.
+	- (DONE) remove the 'alias' section, as it's been decided that OCUA doesn't
+	  want it and I didn't want to write it in the first place anyway. 
 
 New Features:
-	- remove the 'alias' section, as it's been decided that OCUA doesn't
-	  want it and I didn't want to write it in the first place anyway. 
-	- set full name to be unchangeable by the user after account approval,
+	- (DONE) add "Leagues Coordinated" to person view page.
+	
+	- (DONE) set full name to be unchangeable by the user after account approval,
 	  but allow admins to access it
 	- start using the 'year' column for leagues, to allow multiple leagues
 	  to co-exist for sequential seasons.
@@ -26,16 +28,12 @@ New Features:
 	- better score approval for coordinators, esp. handling of defaults
 	- carpool arrangements
 	- players looking for teams / teams looking for players
-	- add "Leagues Coordinated" to person view page.
-
 	- handle playoffs.  For now, just allow scheduling of rounds based on Q
 	  (quarters), S (semis), F (finals).  Eventually want to be able to
 	  schedule a ladder that's automatically filled in as results are
 	  provided.
-
 	- fix the rankings so that three-way ties are dealt with properly.
-	  Possibly use a modified Elo system (see soccer rankings for details).
-	
+	  Possibly use the elo rating system as a tiebreaker instead?
 	- rather than selecting a field and a start time, coordinators should
 	  be able to select a "game slot" (for lack of a better term) that
 	  knows start/end times and field location.  For example, a league

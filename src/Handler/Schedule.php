@@ -573,14 +573,14 @@ class ScheduleEdit extends Handler
 			 */
 			$date = db_result(db_query('SELECT DATE_FORMAT(date_played, "%%Y-%%m-%%d") FROM schedule WHERE game_id = %d', $game_id));
 
-			db_query("UPDATE schedule SET home_team = %d, away_team = %d, field_id = %d, round = %d, date_played = '%s' WHERE game_id = %d",
+			$rc = db_query("UPDATE schedule SET home_team = %d, away_team = %d, field_id = %d, round = %d, date_played = '%s' WHERE game_id = %d",
 				$game_info['home_id'],
 				$game_info['away_id'],
 				$game_info['field_id'],
 				$game_info['round'],
 				$date . " " . $game_info['start_time'],
 				$game_id);
-			if( 1 != db_affected_rows() ) {
+			if( $rc == false ) {
 				return false;
 			}
 		}

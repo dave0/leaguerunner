@@ -253,15 +253,15 @@ class TeamEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		db_query("UPDATE team SET name = '%s', website = '%s', shirt_colour = '%s', status = '%s' WHERE team_id = %d",
+		$rc = db_query("UPDATE team SET name = '%s', website = '%s', shirt_colour = '%s', status = '%s' WHERE team_id = %d",
 				$edit['name'],
 				$edit['website'],
 				$edit['shirt_colour'],
 				$edit['status'],
 				$id
 		);
-		
-		return ( 1 != db_affected_rows() );
+
+		return ($rc != false);
 	}
 
 	function isDataInvalid ( $edit )

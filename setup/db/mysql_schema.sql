@@ -19,8 +19,6 @@ CREATE TABLE person (
 	firstname       varchar(100),
 	lastname        varchar(100),
 
-	alias		varchar(100) UNIQUE;  -- Display a pseudonym instead of a name
-
 	email	        varchar(100),
 	allow_publish_email	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
 	
