@@ -8,15 +8,11 @@ Docs:
 	- developer docs
 	- code is mostly uncommented =(
 
-Reimplementation:
-	- send email:
-		+ when account is created
-		+ to captain when player requests to join
-		+ to player, when captain requests them
-
-Redesign:
+Code Cleanups and Refactoring:
 	- Clean up database schema
 	- (DONE) de-templateify this code; Smarty is too much of a pain in the ass.
+	- change includes/config.inc to be some sort of parsed configfile
+	  so that both Perl and PHP code can use it for db settings, etc.
 
 New Features:
 	- start using the 'year' column for leagues, to allow multiple leagues
@@ -56,6 +52,11 @@ New Features:
 	  7-game full tier)
 	
 	- use Mike Reade's spirit system
+	
+	- send email:
+		+ when account is created
+		+ to captain when player requests to join
+		+ to player, when captain requests them
 
 Field Management:
     Add more attributes to fields, auto-generate field websites from DB on
@@ -131,5 +132,4 @@ Bugs:
 	- (DONE) player selecting "join team" rather than "change status" gets
 	  told that they don't have permission.  This should be fixed so that
 	  they get the changestatus page if they're already on the roster in
-	  some
-	  capacity.
+	  some capacity.
