@@ -369,7 +369,7 @@ class TeamList extends Handler
 		}
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= blockquote(l("Create New Team", "op=team_create"));
+			$output .= l("Create New Team", "op=team_create");
 		}
 		
 		$output .= $this->generateAlphaList($query, $ops, 'name', 'team', $this->op, $letter);
@@ -857,16 +857,9 @@ class TeamView extends Handler
 			return false;
 		}
 
-		$rosterdata = "<table cellpadding='3' cellspacing='0' border='0'>";
+		$rosterdata = "<div class='listtable'><table cellpadding='3' cellspacing='0' border='0'>";
 		$rosterdata .= tr(
-			td("Team Roster", array('colspan' => 5, 'class' => 'roster_title'))
-		);
-		$rosterdata .= tr(
-			td("Name", array('class' => 'roster_subtitle'))
-			. td("Status", array('class' => 'roster_subtitle'))
-			. td("Gender", array('class' => 'roster_subtitle'))
-			. td("Skill", array('class' => 'roster_subtitle'))
-			. td("&nbsp;", array('class' => 'roster_subtitle'))
+			th("Team Roster", array('colspan' => 5))
 		);
 		$count = count($roster);
 
@@ -881,20 +874,19 @@ class TeamView extends Handler
 			 *
 			 * TODO: This is time-consuming and resource-inefficient.
 			 */
-			$row_class = 'roster_item';
-			if($roster[$i]['status'] != 'substitute') {
-				$conflict = $DB->getOne("SELECT COUNT(*) from
-						league l, leagueteams t, teamroster r
-					WHERE
-						l.season = ? AND l.tier = ? AND l.day = ?
-						AND l.allow_schedule = 'Y'
-						AND l.league_id = t.league_id 
-						AND t.team_id = r.team_id
-						AND r.player_id = ?
-						",array($row['league_season'],$row['league_tier'],$row['league_day'], $roster[$i]['id']));
-				if($conflict) {
-					$row_class = 'roster_conflict';
-				}
+			$conflict = $DB->getOne("SELECT COUNT(*) from
+					league l, leagueteams t, teamroster r
+				WHERE
+					l.season = ? AND l.day = ?
+					AND l.allow_schedule = 'Y'
+					AND l.league_id = t.league_id 
+					AND t.team_id = r.team_id
+					AND r.player_id = ?
+					",array($team['league_season'],$team['league_day'],$roster[$i]['id']));
+			if($conflict > 1) {
+				$conflictText = "<div class='roster_conflict'>(roster conflict)</div>";
+			} else {
+				$conflictText = '';
 			}
 
 			$player_links = array();
@@ -908,11 +900,11 @@ class TeamView extends Handler
 			}
 			
 			$rosterdata .= tr(
-				td($roster[$i]['fullname'], array( 'class' => $row_class))
-				. td($rosterPositions[$roster[$i]['status']], array( 'class' => $row_class))
-				. td($roster[$i]['gender'], array( 'class' => $row_class))
-				. td($roster[$i]['skill_level'], array( 'class' => $row_class))
-				. td(theme_links($player_links), array( 'class' => $row_class))
+				td($roster[$i]['fullname'].$conflictText)
+				. td($rosterPositions[$roster[$i]['status']])
+				. td($roster[$i]['gender'])
+				. td($roster[$i]['skill_level'])
+				. td(theme_links($player_links))
 			);
 
 			$totalSkill += $roster[$i]['skill_level'];
@@ -924,13 +916,13 @@ class TeamView extends Handler
 			$avgSkill = 'N/A';
 		}
 		$rosterdata .= tr(
-			td( "Average Skill", array('colspan' => 3, 'class' => 'roster_item'))
-			. td( $avgSkill, array('class' => 'roster_item'))
-			. td( "&nbsp;", array('class' => 'roster_item')));
+			td( "Average Skill", array('colspan' => 3))
+			. td( $avgSkill)
+			. td( "&nbsp;"));
 		
-		$rosterdata .= "</table>";
+		$rosterdata .= "</table></div>";
 
-		$output = blockquote(theme_links($links));
+		$output = theme_links($links);
 		$output .= "<table border='0'>";
 		$output .= tr(
 			td($teamdata, array('align' => 'left', 'valign' => 'top'))
@@ -1012,7 +1004,7 @@ class TeamScheduleView extends Handler
 			$team['team_name'] => "op=team_view&id=$id",
 			$this->title => 0));
 
-		$output = blockquote(theme_links($links));
+		$output = theme_links($links);
 		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
 		$output .= tr(
 			td("Date", array('class' => 'schedule_title'))

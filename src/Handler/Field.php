@@ -419,13 +419,13 @@ class FieldView extends Handler
 		$allDays = array_values( getOptionsFromEnum('field_assignment', 'day') );
 		$bookings = "<table cellpadding='3' cellspacing='0' width='100%'>";
 		$bookings .= tr(
-			td("Day", array('class' => 'booking_title'))
-			. td("League", array('class' => 'booking_title'))
-			. td("&nbsp;", array('colspan' => 2, 'class' => 'booking_title'))
+			th("Day")
+			. th("League")
+			. th("&nbsp;", array('colspan' => 2))
 		);
 		foreach($allDays as $curDay) {
 			$bookings .= "<tr>";
-			$bookings .= td($curDay, array('valign' => 'top',  'class' => 'booking_item'));
+			$bookings .= td($curDay);
 			if(in_array($curDay, $daysAvailable)) {
 				$result = $DB->query("SELECT 
 					a.league_id, l.name, l.tier
@@ -437,7 +437,7 @@ class FieldView extends Handler
 				if($this->is_database_error($result)) {
 					return false;
 				}
-				$bookings .= "<td class='booking_item'>";
+				$bookings .= "<td>";
 				while($ass = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
 					$bookings .= "&raquo;&nbsp;" . $ass['name'];
 					if($ass['tier']) {
@@ -453,10 +453,10 @@ class FieldView extends Handler
 				}
 				$bookings .= "&nbsp;</td>";
 				if($this->_permissions['field_assign']) {
-					$bookings .= td(l("add new booking", "op=field_assign&id=$id&day=$curDay"), array('class' => 'booking_item', 'valign' => 'top'));
+					$bookings .= td(l("add new booking", "op=field_assign&id=$id&day=$curDay"));
 				}
 			} else {
-				$bookings .= td("Unavailable", array('class' => 'booking_item', 'colspan' => 2));
+				$bookings .= td("Unavailable", array('colspan' => 2));
 			}
 
 			$bookings .= "</tr>";
@@ -468,14 +468,14 @@ class FieldView extends Handler
 			$links[] = l("edit field", "op=field_edit&id=$id");
 		}
 
-		$output = blockquote(theme_links($links));
+		$output = theme_links($links);
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site:", 
 			$field['name'] 
 			. " (" . $field['code'] . ")&nbsp;[&nbsp;" 
 			. l("view", "op=site_view&id=" . $field['site_id']) . "&nbsp;]");
 		$output .= simple_row("Status:", $field['status']);
-		$output .= simple_row("Assignments:", $bookings);
+		$output .= simple_row("Assignments:", "<div class='listtable'>$bookings</div>");
 		
 		$output .= "</table>";
 
@@ -560,12 +560,10 @@ class FieldAssign extends Handler
 		
 		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?, day) > 0)", array($day));
 
-		$output .= blockquote( 
-			para("Select a league to assign field <b>"
+		$output .= para("Select a league to assign field <b>"
 				. $field_name . "</b> to for <b>"
 				. $day . "</b>")
-			. form_select('', 'league_id', '', $leagues)
-		);
+			. form_select('', 'league_id', '', $leagues);
 
 		$output .= form_submit("Submit");
 
@@ -593,13 +591,11 @@ class FieldAssign extends Handler
 		$output .= form_hidden('league_id', $league['league_id']);
 		$output .= form_hidden('day', $day);
 
-		$output .= blockquote( 
-			para("You have chosen to assign field <b>"
+		$output .= para("You have chosen to assign field <b>"
 				. $field_name . "</b> to <b>"
 				. $league_name. "</b> for <b>"
 				. $day . "</b>")
-			. para("If this is correct, please click 'Submit' below to proceed")
-		);
+			. para("If this is correct, please click 'Submit' below to proceed");
 
 		$output .= form_submit("Submit");
 
@@ -683,13 +679,11 @@ class FieldUnassign extends Handler
 		$output .= form_hidden('league_id', $league['league_id']);
 		$output .= form_hidden('day', $day);
 
-		$output .= blockquote( 
-			para("You have chosen to remove the assignment of <b>"
+		$output .= para("You have chosen to remove the assignment of <b>"
 				. $field_name . "</b> from <b>"
 				. $league_name. "</b> for <b>"
 				. $day . "</b>")
-			. para("If this is correct, please click 'Submit' below to proceed")
-		);
+			. para("If this is correct, please click 'Submit' below to proceed");
 
 		$output .= form_submit("Submit");
 

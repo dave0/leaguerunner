@@ -343,13 +343,12 @@ class SiteList extends Handler
 			$links[] = l("create field site", "op=site_create");
 		}
 		
-		$output = blockquote(
-			theme_links( $links ) );
+		$output = theme_links( $links );
 
 		ob_start();
 		$retval = @readfile("data/field_caution.html");
 		if (false !== $retval) {
-			$output .= blockquote(ob_get_contents());
+			$output .= ob_get_contents();
 		}           
 		ob_end_clean();
 
@@ -456,7 +455,7 @@ class SiteView extends Handler
 		$field_listing .= "</ul>";
 		
 
-		$output = blockquote(theme_links($links));
+		$output = theme_links($links);
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Site Name:", $site['name']);
 		$output .= simple_row("Site Code:", $site['code']);

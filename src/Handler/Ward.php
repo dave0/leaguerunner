@@ -280,8 +280,8 @@ class WardList extends Handler
 		$output = "<table border='0' cellpadding='3' cellspacing='0'><tr>";
 		foreach($cities as $city) {
 			
-			$output .= "<td valign='top'><table border='0' cellpadding='3' cellspacing='0'>";
-			$output .= tr( td($city, array('colspan' => 6, 'class' => 'ward_title')));
+			$output .= "<td valign='top'><div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
+			$output .= tr( th($city, array('colspan' => 6)));
 			$result = $DB->query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = ? GROUP BY w.ward_id", array($city));
 			if($this->is_database_error($result)) {
 				return false;
@@ -290,24 +290,24 @@ class WardList extends Handler
 				$fields = $DB->getOne("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = ?", array($ward['ward_id']));
 				$output .= tr( 
 					td("&nbsp;", array('width' => 10))
-					. td("Ward " . $ward['num'], array('class'=>'ward_item'))
-					. td($ward['name'], array('class'=>'ward_item'))
-					. td($fields . (($fields == 1) ? " field" : " fields"), array('class'=>'ward_item', 'align' => 'right'))
-					. td($ward['players'] . (($ward['players'] == 1) ? " player" : " players"), array('class'=>'ward_item', 'align' => 'right'))
-					. td(l('view', 'op=ward_view&id=' . $ward['ward_id']), array('class'=>'ward_item'))
+					. td("Ward " . $ward['num'])
+					. td($ward['name'])
+					. td($fields . (($fields == 1) ? " field" : " fields"), array('align' => 'right'))
+					. td($ward['players'] . (($ward['players'] == 1) ? " player" : " players"), array('align' => 'right'))
+					. td(l('view', 'op=ward_view&id=' . $ward['ward_id']))
 				);
 			}
 			$players = $DB->getOne("SELECT COUNT(*) FROM person WHERE ISNULL(ward_id) AND addr_city = ?", array($city));
 			$output .= tr( 
 				td("&nbsp;", array('width' => 10))
-				. td("&nbsp;", array('class'=>'ward_item'))
-				. td("Unknown Ward", array('class'=>'ward_item'))
-				. td("&nbsp;", array('class'=>'ward_item'))
-				. td($players . (($players == 1) ? " player" : " players"), array('class'=>'ward_item', 'align' => 'right'))
-				. td("&nbsp;", array('class'=>'ward_item'))
+				. td("&nbsp;")
+				. td("Unknown Ward")
+				. td("&nbsp;")
+				. td($players . (($players == 1) ? " player" : " players"), array('align' => 'right'))
+				. td("&nbsp;")
 			);
 			
-			$output .= "</table></td>";
+			$output .= "</table></div></td>";
 		}
 		$output .= "</tr></table>";
 
@@ -382,7 +382,7 @@ class WardView extends Handler
 			$ward['name'] => "op=ward_view&id=$id",
 			$this->title => 0));
 		
-		$output .= blockquote(theme_links($links));
+		$output .= theme_links($links);
 		$output .= "<table border='0' width='100%'>";
 		$output .= simple_row("Ward Name:", $ward['name']);
 		$output .= simple_row("Ward Number:", $ward['num']);

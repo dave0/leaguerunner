@@ -265,7 +265,7 @@ class LeagueEdit extends Handler
 		$league_allow_schedule = var_from_getorpost('league_allow_schedule');
 		$league_start_time = join(",",var_from_getorpost('league_start_time'));
 		
-		$output = blockquote("Confirm that the data below is correct and click 'Submit' to make your changes.");
+		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
 		$output .= form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'perform');
 		$output .= form_hidden("id", $id);
@@ -485,7 +485,7 @@ class LeagueList extends Handler
 
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= blockquote(l("create league", "op=league_create"));
+			$output .= para(l("create league", "op=league_create"));
 		}
 		$output .= "<table border='0'>";
 		$seasonLinks = array();
@@ -694,26 +694,26 @@ class LeagueStandings extends Handler
 			$sorted_order = &$season;
 		}
 
-		$output = "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output = "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 
 		/* Build up header */
-		$header = td("Team Name", array( 'class' => 'standings_title', 'valign'=>'middle', 'rowspan' => 2));
-		$subheader = "";
+		$header = th("Teams");
+		$subheader = td("");
 		if($current_round) {
-			$header .= td("Current Round ($current_round)", array( 'class' => 'standings_title', 'valign'=>'middle', 'colspan' => 7));
-			$subheader .= td("Win", array('class'=>'standings_subtitle_lb', 'valign'=>'bottom'));
+			$header .= th("Current Round ($current_round)", array( 'colspan' => 7));
+			$subheader .= td("Win", array('class'=>'subtitle', 'style' => 'border-left: 1px solid gray;', 'valign'=>'bottom'));
 			foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-				$subheader .= td($text, array('class'=>'standings_subtitle', 'valign'=>'bottom'));
+				$subheader .= td($text, array('class'=>'subtitle', 'valign'=>'bottom'));
 			}
 		}
 		
-		$header .= td("Season To Date", array( 'class' => 'standings_title', 'valign'=>'middle', 'colspan' => 7)); 
-		$subheader .= td("Win", array('class'=>'standings_subtitle_lb', 'valign'=>'bottom'));
+		$header .= th("Season To Date", array('colspan' => 7)); 
+		$subheader .= td("Win", array('class'=>'subtitle', 'style' => 'border-left: 1px solid gray;', 'valign'=>'bottom'));
 		foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-			$subheader .= td($text, array('class'=>'standings_subtitle', 'valign'=>'bottom'));
+			$subheader .= td($text, array('class'=>'subtitle'));
 		}
 		
-		$header .= td("Avg.<br>SOTG", array( 'class' => 'standings_title', 'valign'=>'middle', 'rowspan' => 2));
+		$header .= th("Avg.<br>SOTG", array('rowspan' => 2));
 		
 		$output .= tr( $header );
 		$output .= tr( $subheader );
@@ -721,24 +721,24 @@ class LeagueStandings extends Handler
 		while(list(, $data) = each($sorted_order)) {
 
 			$id = $data['id'];
-			$row = td(l($data['name'], "op=team_view&id=$id"), array('class' => 'standings_item'));
+			$row = td(l($data['name'], "op=team_view&id=$id"));
 
 			if($current_round) {
-				$row .= td($round[$id]['win'], array('class' => 'standings_item_lb'));
-				$row .= td($round[$id]['loss'], array('class' => 'standings_item'));
-				$row .= td($round[$id]['tie'], array('class' => 'standings_item'));
-				$row .= td($round[$id]['defaults_against'], array('class' => 'standings_item'));
-				$row .= td($round[$id]['points_for'], array('class' => 'standings_item'));
-				$row .= td($round[$id]['points_against'], array('class' => 'standings_item'));
-				$row .= td($round[$id]['points_for'] - $round[$id]['points_against'], array('class' => 'standings_item'));
+				$row .= td($round[$id]['win'], array('style' => 'border-left: 1px solid gray;'));
+				$row .= td($round[$id]['loss']);
+				$row .= td($round[$id]['tie']);
+				$row .= td($round[$id]['defaults_against']);
+				$row .= td($round[$id]['points_for']);
+				$row .= td($round[$id]['points_against']);
+				$row .= td($round[$id]['points_for'] - $round[$id]['points_against']);
 			}
-			$row .= td($season[$id]['win'], array('class' => 'standings_item_lb'));
-			$row .= td($season[$id]['loss'], array('class' => 'standings_item'));
-			$row .= td($season[$id]['tie'], array('class' => 'standings_item'));
-			$row .= td($season[$id]['defaults_against'], array('class' => 'standings_item'));
-			$row .= td($season[$id]['points_for'], array('class' => 'standings_item'));
-			$row .= td($season[$id]['points_against'], array('class' => 'standings_item'));
-			$row .= td($season[$id]['points_for'] - $season[$id]['points_against'], array('class' => 'standings_item'));
+			$row .= td($season[$id]['win'], array('style' => 'border-left: 1px solid gray;'));
+			$row .= td($season[$id]['loss']);
+			$row .= td($season[$id]['tie']);
+			$row .= td($season[$id]['defaults_against']);
+			$row .= td($season[$id]['points_for']);
+			$row .= td($season[$id]['points_against']);
+			$row .= td($season[$id]['points_for'] - $season[$id]['points_against']);
 		
 			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
 				 $sotg = "---";
@@ -746,10 +746,10 @@ class LeagueStandings extends Handler
 				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id], true));
 			}
 			
-			$row .= td($sotg, array('class' => 'standings_item_lb'));
+			$row .= td($sotg, array('style' => 'border-left: 1px solid gray;'));
 			$output .= tr( $row );
 		}
-		$output .= "</table>";
+		$output .= "</table></div>";
 
 		return $output;
 	}
@@ -881,8 +881,7 @@ class LeagueStandings extends Handler
 
 		/* Check SOTG */
 		if($a['games'] > 0 && $b['games'] > 0) {
-			# TODO: use calculate_sotg() here!
-			$rc = cmp( $this->calculate_sotg($b), $this->calculate_sotg($b));
+			$rc = cmp( $this->calculate_sotg($b,true), $this->calculate_sotg($b,true));
 			if($rc != 0) {
 				return $rc;
 			}
@@ -972,7 +971,7 @@ class LeagueView extends Handler
 			$links[] = l("fetch captain emails", "op=league_captemail&id=$id");
 		}
 		
-		$output =  blockquote(theme_links($links));
+		$output =  theme_links($links);
 
 		$output .= "<table border='0'>";
 		$output .= simple_row("Coordinator:", 
@@ -1010,8 +1009,8 @@ class LeagueView extends Handler
 			return false;
 		}
 
-		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
-		$output .= tr( td("Teams", array( 'class' => 'teamlist_title', 'colspan' => 3)));
+		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= tr( th("Teams", array( 'colspan' => 3)));
 		$count = count($teams);
 		for($i = 0; $i < $count; $i++) {
 			$team_links = array();
@@ -1025,12 +1024,12 @@ class LeagueView extends Handler
 			
 			
 			$output .= tr(
-				td(check_form($teams[$i]['name']), array( 'class' => 'teamlist_item'))
-				. td(check_form($teams[$i]['shirt_colour']), array( 'class' => 'teamlist_item'))
-				. td(theme_links($team_links), array( 'class' => 'teamlist_item'))
+				td(check_form($teams[$i]['name']))
+				. td(check_form($teams[$i]['shirt_colour']))
+				. td(theme_links($team_links))
 			);
 		}
-		$output .= "</table>";
+		$output .= "</table></div>";
 
 		$leagueName = $league['name'];
 		if($league['tier']) {
@@ -1235,7 +1234,7 @@ class LeagueMoveTeam extends Handler
 		$output .= form_hidden('team_id', $team_id);
 		$output .= form_hidden('target_id', $target_id);
 		
-		$output .= blockquote( 
+		$output .= para( 
 			"You are attempting to move the team <b>$team_name</b> "
 			. "from <b>$from_name</b> to <b>$to_name</b>. "
 			. "If this is correct, please click 'Submit' below."
@@ -1288,12 +1287,11 @@ class LeagueMoveTeam extends Handler
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('team_id', $team_id);
 		
-		$output .= blockquote( 
+		$output .= 
 			para("You are attempting to move the team <b>"
 				. $team_name . "</b>. "
 				. "Select the league you wish to move it to")
-			. form_select('', 'target_id', '', $leagues)
-		);
+			. form_select('', 'target_id', '', $leagues);
 
 		$output .= form_submit("Submit");
 
@@ -1352,7 +1350,7 @@ class LeagueVerifyScores extends Handler
 			return false;
 		}
 
-		$output = blockquote("The following games have not been finalized.");
+		$output = para("The following games have not been finalized.");
 		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
 		$output .= tr(
 			td('Game Date')

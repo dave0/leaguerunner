@@ -62,11 +62,6 @@ function para($text, $attributes = array())
 	return simple_tag("p", $text, $attributes);
 }
 
-function bold($text, $attributes = array())
-{
-	return simple_tag("b", $text, $attributes);
-}
-
 function pre($text, $attributes = array())
 {
 	return simple_tag("pre", $text, $attributes);
@@ -75,11 +70,6 @@ function pre($text, $attributes = array())
 function div($text, $attributes = array())
 {
 	return simple_tag("div", $text, $attributes);
-}
-
-function blockquote($text, $attributes = array())
-{
-	return simple_tag("blockquote", $text, $attributes);
 }
 
 function tr($text, $attributes = array())

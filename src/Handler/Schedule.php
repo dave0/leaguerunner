@@ -85,7 +85,7 @@ class LeagueScheduleAddWeek extends Handler
 
 		$league['day'] = split(',',$league['day']);
 
-		$output = blockquote("Select a date below to add a new week of 
+		$output = para("Select a date below to add a new week of 
 			games to the schedule.  Days on which this league usually 
 			plays are highlighted.");
 
@@ -143,9 +143,8 @@ class LeagueScheduleAddWeek extends Handler
 		$day = var_from_getorpost('day');
 		$date = date("d F Y", mktime (0,0,0,$month,$day,$year));
 
-		$output = blockquote(
-			para("Do you wish to add games on <b>$date</b>?")
-			. para("If so, click 'Submit' to continue.  Otherwise, use your browser's back button to go back and select a new date."));
+		$output = para("Do you wish to add games on <b>$date</b>?")
+			. para("If so, click 'Submit' to continue.  Otherwise, use your browser's back button to go back and select a new date.");
 
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
@@ -336,21 +335,21 @@ class LeagueScheduleEdit extends Handler
 			return false;
 		}
 
-		$output = blockquote(
+		$output = para(
 			"Confirm that the changes below are correct, and click 'Submit' to proceed.");
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
 
-		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 		
 		$output .= tr(
-			td("Game ID", array('class' => 'schedule_subtitle'))
-			. td("Round", array('class' => 'schedule_subtitle'))
-			. td("Game Time", array('class' => 'schedule_subtitle'))
-			. td("Home", array('class' => 'schedule_subtitle'))
-			. td("Away", array('class' => 'schedule_subtitle'))
-			. td("Field", array('class' => 'schedule_subtitle'))
+			td("Game ID", array('class' => 'subtitle'))
+			. td("Round", array('class' => 'subtitle'))
+			. td("Game Time", array('class' => 'subtitle'))
+			. td("Home", array('class' => 'subtitle'))
+			. td("Away", array('class' => 'subtitle'))
+			. td("Field", array('class' => 'subtitle'))
 		);
 
 		while (list ($game_id, $game_info) = each ($games) ) {
@@ -370,7 +369,7 @@ class LeagueScheduleEdit extends Handler
 			);
 		}
 		
-		$output .= "</table>";
+		$output .= "</table></div>";
 		$output .= para(form_submit('submit'));
 		
 		$leagueName = $league['name'];
@@ -475,9 +474,9 @@ class LeagueScheduleView extends Handler
 		if($this->_permissions['edit_schedule']) {
 			$links[] = l("add new week", "op=league_schedule_addweek&id=$id");
 		}
-		$output = blockquote(theme_links($links));
+		$output = theme_links($links);
 		
-		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
+		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
 	
 		$league = $DB->getRow(
 			"SELECT 
@@ -552,9 +551,9 @@ class LeagueScheduleView extends Handler
 
 		/* Make sure to process the last week obtained */
 		$output .= $this->processOneWeek( $thisWeekGames, $league, $week_id, $id );
-		$output .= "</table>";
+		$output .= "</table></div>";
 
-		$output .= blockquote(theme_links($links));
+		$output .= theme_links($links);
 
 		return form($output);
 	}
@@ -570,33 +569,33 @@ class LeagueScheduleView extends Handler
 		}
 		
 		$output .= tr(
-			td("<b>" . $weekData['date'] . "</b>", array( 'class' => 'schedule_title', 'valign' => 'top', 'colspan' => 7 ))
-			. td($editLink, array('class' => 'schedule_title', 'colspan' => 2))
+			th("<b>" . $weekData['date'] . "</b>", array('colspan' => 7 ))
+			. th($editLink, array('colspan' => 2))
 		);
 
 		if($this->_permissions['view_spirit']) {
-			$sotgHeader = td("SOTG", array('class' => 'schedule_subtitle', 'colspan' => 2));
+			$sotgHeader = td("SOTG", array('class' => 'subtitle', 'colspan' => 2));
 			$sotgSubHeader = 
-				td("Home", array('class' => 'schedule_subtitle'))
-				. td("Away", array('class' => 'schedule_subtitle'));
+				td("Home", array('class' => 'subtitle'))
+				. td("Away", array('class' => 'subtitle'));
 		} else {
-			$sotgHeader = td("&nbsp;", array('class' => 'schedule_subtitle', 'colspan' => 2, 'rowspan' => 2, 'width' => '10%'));
+			$sotgHeader = td("&nbsp;", array('class' => 'subtitle', 'colspan' => 2, 'rowspan' => 2, 'width' => '10%'));
 			$sotgSubHeader = "";
 		}
 		
 		$output .= tr(
-			td("Round", array( 'class' => 'schedule_subtitle', 'rowspan' => 2 ))
-			. td("Game Time", array( 'class' => 'schedule_subtitle', 'rowspan' => 2 ))
-			. td("Home", array( 'class' => 'schedule_subtitle', 'rowspan' => 2 ))
-			. td("Away", array( 'class' => 'schedule_subtitle', 'rowspan' => 2 ))
-			. td("Field", array( 'class' => 'schedule_subtitle', 'rowspan' => 2 ))
-			. td("Score", array( 'class' => 'schedule_subtitle', 'colspan' => 2 ))
+			td("Round", array( 'class' => 'subtitle', 'rowspan' => 2 ))
+			. td("Game Time", array( 'class' => 'subtitle', 'rowspan' => 2 ))
+			. td("Home", array( 'class' => 'subtitle', 'rowspan' => 2 ))
+			. td("Away", array( 'class' => 'subtitle', 'rowspan' => 2 ))
+			. td("Field", array( 'class' => 'subtitle', 'rowspan' => 2 ))
+			. td("Score", array( 'class' => 'subtitle', 'colspan' => 2 ))
 			. $sotgHeader
 		);
 
 		$output .= tr(
-			td("Home", array('class' => 'schedule_subtitle'))
-			. td("Away", array('class' => 'schedule_subtitle'))
+			td("Home", array('class' => 'subtitle'))
+			. td("Away", array('class' => 'subtitle'))
 			. $sotgSubHeader);
 			
 		if( $this->_permissions['edit_schedule'] && ($week_id == $weekData['week_id'])) {

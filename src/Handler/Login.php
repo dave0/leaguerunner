@@ -96,17 +96,20 @@ class Login extends Handler
 
 	function login_form($error = "")
 	{
-		$output = "<table align='center' border='0' cellpadding='5' width='300'>";
-	
-		$output .= tr(
-			td(($error ? "<font color='red'><b>$error</b></font>" : "&nbsp;"),
-				array("colspan" => 2, "align" => "center"))
-		);
-		
-		$output .= tr(
-			td("Username:") . td(form_textfield("", "username", "", 25, 25)));
-		$output .= tr(
-			td("Password:") . td(form_password("", "password", "", 25, 25)));
+
+		if($error) {
+			$output .= "<div style='padding-top: 2em; text-align: center'>";
+			$output .= theme_error($error);
+			$output .= "</div>";
+		}
+		$output .= "<table align='center' border='0' cellpadding='5' width='300'>";
+		$output .= "<tr><td>Username:</td><td>";
+		$output .= form_textfield("", "username", "", 25, 25);
+		$output .= "</td></tr>";
+		$output .= "<tr><td>Password:</td><td>";
+		$output .= form_password("", "password", "", 25, 25);
+		$output .= "</td></tr>";
+
 		$output .= tr(
 			td(form_checkbox("Remember Me","remember_me"), array( "colspan" => 2, "align" => "center"))
 		);

@@ -296,7 +296,7 @@ class WaitingListList extends Handler
 		}
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= blockquote(l("Create New Waiting List", "op=wlist_create"));
+			$output .= l("Create New Waiting List", "op=wlist_create");
 		}
 		
 		$output .= $this->generateSingleList($query, $ops);
@@ -353,7 +353,7 @@ class WaitingListView extends Handler
 		$output = '';
 		
 		if($this->_permissions['edit']) {
-			$output .= blockquote(l('edit',"op=wlist_edit&id=$id"));
+			$output .= l('edit',"op=wlist_edit&id=$id");
 		}
 	
 		$output .= "<table border='0'>";
@@ -467,23 +467,22 @@ class WaitingListJoin extends Handler
 			return false;
 		}
 		if($numLists > 0) {
-			return blockquote(para("You have already made your waiting list selections.")
-				. para("You can view your selections " . l('here',"op=wlist_viewperson&id=" . $session->attr_get('user_id')))
-			);
+			return para("You have already made your waiting list selections.")
+				. para("You can view your selections " . l('here',"op=wlist_viewperson&id=" . $session->attr_get('user_id')));
 		}
 		
 		/* TODO: This should be a config option!  It duplicates info in
 		 * Menu.php */
 		$signupTime = mktime(9,0,0,10,22,2003);
 		if(	time() < $signupTime) {
-			return blockquote(para("You may not make any selections until registration opens.")
-				. para("Indoor Signup opens " . date("F j Y h:i A", $signupTime)));
+			return para("You may not make any selections until registration opens.")
+				. para("Indoor Signup opens " . date("F j Y h:i A", $signupTime));
 		}
 		
 		$signupTime = mktime(9,0,0,10,31,2003);
 		if(	time() > $signupTime) {
-			return blockquote(para("Online indoor signup is now closed.")
-				. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>."));
+			return para("Online indoor signup is now closed.")
+				. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>.");
 		}
 
 		
@@ -516,8 +515,7 @@ class WaitingListJoin extends Handler
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'confirm');
 
-		$output .= blockquote(
-			para(
+		$output .= para(
 				"Enter your preferences for the following waiting lists.  You may
 				select up to " . $this->max_preference . ", ranked in order of
 				preference.  Where space and other restrictions allow, you may be
@@ -525,8 +523,7 @@ class WaitingListJoin extends Handler
 			. para("Note that you do not need to rank all nights of play if you do not wish to be considered for all of them.  You may either leave columns blank for 3rd, 4th, etc, preference, or select \"No selection\" for that column.")
 			. para("After you have made your selection, you will be given an opportunity to confirm it.  Once you have confirmed your selections, they will be final, and cannot be changed without losing your priority.")
 			. para("If you are willing and able to be a team captain for any of the divisions you have registered for, please contact the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with your name and contact info after completing your registration.")
-			. para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation.")
-		);
+			. para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation.");
 		
 		$output .= "<div class='waitlist'><table border='0'>";
 
@@ -721,7 +718,7 @@ class WaitingListJoin extends Handler
 		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to<br />Ottawa Carleton Ultimate Association<br />PO Box 120, 410 Bank St<br />Ottawa, Ontario<br /> K2P 1Y8.");
 		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
-		return blockquote($output);
+		return $output;
 	}
 }
 
@@ -889,8 +886,8 @@ class WaitingListViewPerson extends Handler
 		if($dbResult->numRows() < 1) {
 			$signupTime = mktime(9,0,0,10,31,2003);
 			if(	time() > $signupTime) {
-				return blockquote(para("Online indoor signup is now closed.")
-					. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>."));
+				return para("Online indoor signup is now closed.")
+					. para("If you still wish to sign up, please email <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a>.");
 			}
 
 			// TODO: This belongs in a config file or as a data resource
@@ -941,7 +938,7 @@ responsibility for user error.
 </p>
 EOM;
 			$output .= para("You are not currently on any waiting lists.  Click <b>" . l('here','op=wlist_join') . "</b> to sign up for one or more divisions.");
-			return blockquote($output);
+			return $output;
 		}
 
 		$output = para("Your waiting list registration choices are below.  Note that
