@@ -583,7 +583,7 @@ class LeagueStandings extends Handler
 			$games = $games - 2;
 		}
 
-		if($games > 0) {
+		if($games > 3) {
 			return $raw / $games;
 		} else {
 			return 0;
