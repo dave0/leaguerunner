@@ -33,11 +33,10 @@ function theme_header($title = "", $breadcrumbs = array())
   <table border='0' cellpadding='0' cellspacing='0' width="99%" bgcolor='white'><tr><?php
 	if ($session->is_valid()) {
 		print "<td width='180'><div class='menu'>" . menu_render('_root') . "</div></td>";
+		print "<td class='main'>";
 	} else {
-		print "<td></td>";
+		print "<td align='center'>";
 	}
-	print "<td class='main'>";
-	/* DMO: TODO: end evil hack */
 }
 
 function theme_navbar($breadcrumbs = array()) 
@@ -54,9 +53,11 @@ function theme_navbar($breadcrumbs = array())
 	if($session->is_valid()) {
 		$crumbs = array(
 			"<b>" . $session->attr_get("fullname") . "</b>",
-			$section
 		);
 
+		if( $section ) {
+			$crumbs[] = $section;
+		}
 		$crumbs = array_merge($crumbs, $breadcrumbs);
 		$leftLink = theme_links($crumbs, "&nbsp;&raquo;&nbsp;");
 	} else {
