@@ -444,9 +444,15 @@ class LeagueList extends Handler
 		$header = array( "Name", "Ratio", "&nbsp;") ;
 		$rows = array();
 		
-		$result = db_query("SELECT l.*, IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS name FROM league l WHERE season = '%s' ORDER BY l.day, l.ratio, l.tier, name", $season);
+		$result = db_query("SELECT * FROM league WHERE season = '%s' ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season);
 
 		while($league = db_fetch_object($result)) {
+			if($league->tier) {
+				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
+			} else {
+				$league->fullname = $league->name;
+			}
+		
 			$links = array(
 				l('view',"league/view/$league->league_id")
 			);
@@ -457,7 +463,7 @@ class LeagueList extends Handler
 			if($this->_permissions['delete']) {
 				$links[] = l('delete',"league/delete/$league->league_id");
 			}
-			$rows[] = array($league->name,$league->ratio,theme_links($links));
+			$rows[] = array($league->fullname,$league->ratio,theme_links($links));
 		}
 
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";

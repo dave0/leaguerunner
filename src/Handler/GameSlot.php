@@ -155,11 +155,17 @@ class GameSlotCreate extends Handler
 		$leagues = array();
 		$result = db_query("SELECT 
 			l.league_id,
-			IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS fullname
+			l.name,
+			l.tier
 			FROM league l
 			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0) ORDER BY l.day,l.name,l.tier", $weekday);
 			
 		while($league = db_fetch_object($result)) {
+			if( $league->tier ) {
+				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
+			} else {
+				$league->fullname = $league->name;
+			}
 			$chex .= form_checkbox($league->fullname, 'edit[availability][]', $league->league_id, $league->selected);
 		}
 		$output .= form_group('Make Gameslot Available To:', $chex);
@@ -340,11 +346,17 @@ class GameSlotAvailability extends Handler
 		
 		$result = db_query("SELECT 
 			l.league_id,
-			IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS fullname
+			l.name,
+			l.tier
 			FROM league l
 			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0)", $weekday);
 			
 		while($league = db_fetch_object($result)) {
+			if( $league->tier ) {
+				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
+			} else {
+				$league->fullname = $league->name;
+			}
 			$league->selected = false;
 			$leagues[$league->league_id] = $league;
 		}
