@@ -9,30 +9,25 @@ function team_dispatch()
 	$id = arg(2);
 	switch($op) {
 		case 'create':
-			$obj = new TeamCreate;
+			return new TeamCreate;
+			break;
+		case 'list':
+			return new TeamList;
 			break;
 		case 'edit':
 			$obj = new TeamEdit;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		case 'history':
 			$obj = new TeamHistory;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		case 'view':
 			$obj = new TeamView;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		case 'delete':
 			$obj = new TeamDelete;
-			$obj->team = team_load( array('team_id' => $id) );
-			break;
-		case 'list':
-			$obj = new TeamList;
 			break;
 		case 'roster':
 			$obj = new TeamRosterStatus;
-			$obj->team = team_load( array('team_id' => $id) );
 			$player_id = arg(3);
 			if( $player_id ) {
 				$obj->player = person_load( array('user_id' => arg(3)) );
@@ -40,22 +35,21 @@ function team_dispatch()
 			break;
 		case 'schedule':
 			$obj = new TeamSchedule;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		case 'spirit':
 			$obj = new TeamSpirit;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		case 'emails':
 			$obj = new TeamEmails;
-			$obj->team = team_load( array('team_id' => $id) );
 			break;
 		default:
 			$obj = null;
 	}
-	if( $obj->team ) {
-		team_add_to_menu( $obj->team );
+	$obj->team = team_load( array('team_id' => $id) );
+	if( ! $obj->team ) {
+		error_exit('That team does not exist');
 	}
+	team_add_to_menu( $obj->team );
 	return $obj;
 }
 
@@ -220,7 +214,6 @@ class TeamCreate extends TeamEdit
 	function process ()
 	{
 		$this->title = "Create Team";
-		$id = -1;
 		$edit = &$_POST['edit'];
 		
 		switch($edit['step']) {
@@ -290,10 +283,6 @@ class TeamEdit extends Handler
 		$this->title = "Edit Team";
 		$edit = &$_POST['edit'];
 
-		if( !$this->team ) {
-			error_exit("That team does not exist");
-		}
-		
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm( $edit );
@@ -406,9 +395,6 @@ class TeamDelete extends Handler
 	function process ()
 	{
 		$this->title = "Delete Team";
-		if(!$this->team) {
-			error_exit("That team does not exist");
-		}
 		
 		$this->setLocation(array( 
 			$this->team->name => "team/view/" . $this->team->team_id,
@@ -488,8 +474,7 @@ class TeamList extends Handler
 		}
 		
 		$this->setLocation(array("List Teams" => 'team/list'));
-		return $this->generateAlphaList($query,
-			"SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name",
+		return $this->generateAlphaList("SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name",
 			$ops, 'name', 'team', 'team/list', $_GET['letter']);
 	}
 }
@@ -645,9 +630,6 @@ class TeamRosterStatus extends Handler
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
 		
-		if( !$this->team ) {
-			error_exit("That is not a valid team ID");
-		}
 		if( !$this->person ) {
 			if( !($session->is_admin() || $session->is_captain_of($team->team_id))) {
 				error_exit("You cannot add a person to that team!");
@@ -780,10 +762,6 @@ class TeamView extends Handler
 	{
 		global $session;
 
-		if( ! $this->team ) {
-			error_exit("That is not a valid team");
-		}
-		
 		// Team names might have HTML in them, so we need to nuke it.
 		$team_name = check_form($this->team->name);
 		$this->setLocation(array(
@@ -924,9 +902,6 @@ class TeamHistory extends Handler
 	function has_permission ()
 	{
 		global $session;
-		if( ! $this->team ) {
-			error_exit("That is not a valid team");
-		}
 		return $session->has_permission('team','view', $this->team->team_id);
 	}
 
@@ -973,10 +948,6 @@ class TeamSchedule extends Handler
 	{
 		global $session;
 		$this->title = "Schedule";
-		if(!$this->team) {
-			error_exit("That team does not exist");
-		}
-
 		$this->setLocation(array(
 			$this->team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0));
@@ -1010,7 +981,7 @@ class TeamSchedule extends Handler
 			$countgames++;
 			$space = '&nbsp;';
 			$dash = '-';
-			if($game->home_id == $id) {
+			if($game->home_id == $this->team->team_id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
 				$home_away = '(home)';
@@ -1032,7 +1003,7 @@ class TeamSchedule extends Handler
 			if($game->is_finalized()) {
 				/* Already entered */
 				$score_type = '(accepted final)';
-				if($game->home_id == $id) {
+				if($game->home_id == $this->team->team_id) {
 					$game_score = "$game->home_score - $game->away_score";
 				} else {
 					$game_score = "$game->away_score - $game->home_score";
@@ -1116,10 +1087,6 @@ class TeamSpirit extends Handler
 		global $session;
 		$this->title = "Schedule";
 		
-		if(!$this->team) {
-			error_exit("That team does not exist");
-		}
-
 		$this->setLocation(array(
 			$this->team->name => "team/spirit/". $this->team->team_id,
 			$this->title => 0));
@@ -1238,10 +1205,6 @@ class TeamEmails extends Handler
 	function process ()
 	{
 		$this->title = 'Player Emails';
-		if( !$this->team ) {
-			error_exit('That team does not exist');
-		}
-
 		$result = db_query(
 			"SELECT
 				p.firstname, p.lastname, p.email
