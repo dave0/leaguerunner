@@ -57,7 +57,8 @@ CREATE TABLE person (
 
 	last_login datetime,
 	client_ip      varchar(50),
-	UNIQUE(username)
+	UNIQUE(username),
+	INDEX person_ward (ward_id)
 );
 
 CREATE TABLE demographics (
@@ -120,7 +121,8 @@ CREATE TABLE league (
 CREATE TABLE leagueteams (
 	league_id 	integer NOT NULL,
 	team_id		integer NOT NULL,
-	PRIMARY KEY (team_id,league_id)
+	PRIMARY KEY (team_id,league_id),
+	INDEX leagueteams_league (league_id)
 );
 
 -- Tables for scheduling/scorekeeping
@@ -139,8 +141,14 @@ CREATE TABLE schedule (
     home_spirit tinyint,
     away_spirit tinyint,
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
-    defaulted  enum('no','home','away') DEFAULT 'no'
+    defaulted  enum('no','home','away') DEFAULT 'no',
+    INDEX game_date (date_played),
+    INDEX game_league (league_id),
+    INDEX game_home_team (home_team),
+    INDEX game_away_team (away_team)
 );
+
+
 
 -- score_entry table is used to store scores entered by either team
 -- before they are approved
@@ -164,7 +172,8 @@ CREATE TABLE site (
 	location_url varchar(255), 
 	layout_url varchar(255), 
 	directions text, 
-	instructions text
+	instructions text,
+	INDEX site_ward (ward_id)
 );
 
 CREATE TABLE field (
@@ -173,7 +182,9 @@ CREATE TABLE field (
 	num tinyint,
 	status   enum('open','closed'),
 	notes text,
-	availability set('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')
+	availability set('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
+	INDEX field_site (site_id),
+	INDEX field_status (status)
 );
 
 -- field assignments
@@ -190,5 +201,6 @@ CREATE TABLE ward (
 	name varchar(255) UNIQUE,
 	city       varchar(50),
 	region   enum('Central','East','South','West'),
-	url       varchar(255)
+	url       varchar(255),
+	INDEX ward_city (city)
 );
