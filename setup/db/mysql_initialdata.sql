@@ -1,5 +1,6 @@
 use leaguerunner;
 
-INSERT INTO person (username,password,firstname,lastname,class) VALUES ('admin',MD5('admin'), 'System', 'Administrator','administrator');
-INSERT INTO league (name,coordinator_id,season,allow_schedule) VALUES ('Inactive Teams', 1, 'none', 'N');
+INSERT INTO person (username,password,firstname,lastname,class,status) VALUES ('admin',MD5('admin'), 'System', 'Administrator','administrator','active');
+INSERT INTO league (name,season,allow_schedule) VALUES ('Inactive Teams', 'none', 'N');
+INSERT INTO leaguemembers (league_id, player_id, status) VALUES (1,1,'coordinator');
 
