@@ -3,6 +3,8 @@
  * Configuration variables
  */
 
+$GLOBALS['PRODUCT_NAME'] = "Leaguerunner";
+
 $GLOBALS['APP_NAME'] = "OCUA Leaguerunner";
 
 $GLOBALS['APP_COOKIE_NAME']   = "leaguerunner_session";

@@ -1,0 +1,57 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+
+<h1>{$field_name}</h1>
+
+<table border="0" cellpadding="3" cellspacing="0">
+  <tr>
+    <td class='row_title'>Field information:</td>
+    <td class='row_data'><a href="{$field_website}" target="_new">{$field_website}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title' valign='top'>Assignments:</td>
+    <td class='row_data'>
+      <table width="100%" cellspacing="0" cellpadding="3">
+      {foreach name=assignments from=$field_assignments item=booking}
+      {foreach name=leagues from=$booking.leagues item=league}
+      {assign var=row_style value=booking_item}
+      {if $smarty.foreach.leagues.last}
+        {assign var=row_style value=booking_item_ul}
+      {/if}
+      <tr>
+        <td class='{$row_style}' valign='top'>
+          {if $smarty.foreach.leagues.first}
+            {$booking.day}
+          {/if}
+          &nbsp;
+        </td>
+        <td class="{$row_style}"><a href="{$app_cgi_location}?op=league_view;id={$league.league_id}">{$league.name}</a></td>
+        <td class="{$row_style}">
+        {if $perm_field_edit}
+				  [ <A href="{$app_cgi_location}?op=field_unassign;id={$field_id};league_id={$league.league_id};day={$booking.day}">delete booking</a> ]
+        {/if}
+        </td>
+        {if $perm_field_edit}
+        <td class='{$row_style}'>
+          {if $smarty.foreach.leagues.first}
+					[ <A href="{$app_cgi_location}?op=field_assign;id={$field_id};day={$booking.day}">add new booking</a> ]
+          {else}
+          &nbsp;
+          {/if}
+        </td>
+        {/if}
+      </tr>
+      {/foreach}
+      {/foreach}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<ul>
+  <li><a href="{$app_cgi_location}?op=field_edit;id={$field_id}">edit field</a>.
+  <li><a href="{$app_cgi_location}?op=field_assign;id={$field_id}">assign field</a>.
+</ul>
+
+
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

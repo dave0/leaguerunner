@@ -113,6 +113,7 @@ class TeamView extends Handler
 				AND t.team_id = ?
 		", array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
+			$this->error_text .= gettext("The team [$id] may not exist");
 			return false;
 		}
 
@@ -123,6 +124,9 @@ class TeamView extends Handler
 
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
+		if( !strstr($row['team_website']) && (strlen($row['team_website']) > 0 ) ) {
+			$row['team_website'] = "http://" . $row['team_website'];
+		}
 		$this->tmpl->assign("team_website", $row['team_website']);
 		$this->tmpl->assign("team_status", $row['team_status']);
 		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
@@ -139,11 +143,9 @@ class TeamView extends Handler
 			$this->tmpl->assign("assistant_id", $row['assistant_id']);
 			
 			$ass = $DB->getRow("SELECT firstname, lastname from person where user_id = ?", array($row['assistant_id']), DB_FETCHMODE_ASSOC);
-			if($this->is_database_error($ass)) {
-				return false;
+			if(! $this->is_database_error($ass) ) {
+				$this->tmpl->assign("assistant_name", $ass['firstname'] . " " . $ass['lastname']);
 			}
-			$this->tmpl->assign("assistant_name", $ass['firstname'] . " " . $ass['lastname']);
-			
 		}
 
 		/* and, grab roster */

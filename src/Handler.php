@@ -9,6 +9,7 @@ require_once("Handler/NotFound.php");
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
 require_once("Handler/League.php");
+require_once("Handler/Field.php");
 
 /**
  * This is the base class for all operation handlers used in the web UI.
@@ -116,6 +117,7 @@ class Handler
 	function set_global_template_vars()
 	{
 		global $current_language, $session;
+		$this->tmpl->assign("product_name", $GLOBALS['PRODUCT_NAME']);
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
 		$this->tmpl->assign("app_cgi_location", $GLOBALS['APP_CGI_LOCATION']);
 		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/$current_language");

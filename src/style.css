@@ -107,6 +107,15 @@ TABLE {
 	border-bottom-style: solid;
 	font-size: 11px;
 }
+.booking_item {
+	font-size: 11px;
+}
+.booking_item_ul {
+	border-bottom-width: 1px;
+	border-bottom-color: gray;
+	border-bottom-style: solid;
+	font-size: 11px;
+}
 
 a {
 	text-decoration: none;
