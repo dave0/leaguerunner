@@ -571,6 +571,7 @@ class LeagueStandings extends Handler
 			$this->league->teams[$id]->vs = array();
 		}
 
+               
 		$season = $this->league->teams;
 		$round  = $this->league->teams;
 
@@ -613,48 +614,74 @@ class LeagueStandings extends Handler
 		reset($season);
 		
 		/* Now, sort it all */
-		if($current_round) {
-			uasort($round, array($this, 'sort_standings'));	
-			$sorted_order = &$round;
-		} else {
-			uasort($season, array($this, 'sort_standings'));	
-			$sorted_order = &$season;
-		}
+                if ($this->league->schedule_type == "ladder") {
+		  uasort($season, array($this, 'sort_standings_by_rank'));	
+
+		  $sorted_order = &$season;
+                }
+                else {
+  		  if($current_round) {
+			  uasort($round, array($this, 'sort_standings'));	
+			  $sorted_order = &$round;
+		  } else {
+			  uasort($season, array($this, 'sort_standings'));	
+			  $sorted_order = &$season;
+		  }
+                }
 		
 		/* Build up header */
 		$header = array( array('data' => 'Teams', 'rowspan' => 2) );
 		$subheader = array();
-		if($current_round) {
+
+                // Ladder leagues display standings differently.
+                // Eventually this should just be a brand new object.
+                if($this->league->schedule_type == "ladder") {
+		  $header[] = array('data' => 'Season To Date', 'colspan' => 8); 
+		  foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+		  	  $subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
+		  }
+                }
+                else {
+		  if($current_round) {
 			$header[] = array('data' => "Current Round ($current_round)", 'colspan' => 7);
 			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
-		}
+		  }
 		
-		$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
-		foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-			$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
-		}
+		  $header[] = array('data' => 'Season To Date', 'colspan' => 7); 
+		  foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+		  	  $subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
+		  }
+                }
 		
 		$header[] = array('data' => "Rating", 'rowspan' => 2);
 		$header[] = array('data' => "Avg.<br>SOTG", 'rowspan' => 2);
 		
 		$rows[] = $subheader;
 
+                reset($sorted_order);
 		while(list(, $data) = each($sorted_order)) {
 
 			$id = $data->team_id;
 			$row = array( l($data->name, "team/view/$id"));
 
-			if($current_round) {
-				$row[] = $round[$id]->win;
-				$row[] = $round[$id]->loss;
-				$row[] = $round[$id]->tie;
-				$row[] = $round[$id]->defaults_against;
-				$row[] = $round[$id]->points_for;
-				$row[] = $round[$id]->points_against;
-				$row[] = $round[$id]->points_for - $round[$id]->points_against;
-			}
+                        // Don't need the current round for a ladder schedule.
+                        if ($this->league->schedule_type != "ladder") {
+       			  if($current_round) {
+			  	  $row[] = $round[$id]->win;
+  			  	  $row[] = $round[$id]->loss;
+			  	  $row[] = $round[$id]->tie;
+  			  	  $row[] = $round[$id]->defaults_against;
+			  	  $row[] = $round[$id]->points_for;
+			  	  $row[] = $round[$id]->points_against;
+  				  $row[] = $round[$id]->points_for - $round[$id]->points_against;
+			  }
+                        }
+
+                        if ($this->league->schedule_type == "ladder") {
+			  $row[] = $season[$id]->rank; 
+                        }
 			$row[] = $season[$id]->win;
 			$row[] = $season[$id]->loss;
 			$row[] = $season[$id]->tie;
@@ -745,6 +772,16 @@ class LeagueStandings extends Handler
 			}
 		}
 	}
+
+	function sort_standings_by_rank (&$a, &$b) 
+        {
+
+          if ($a->rank == $b->rank) {
+            return 0;
+          }
+          return ($a->rank < $b->rank) ? -1 : 1;
+
+        }
 
 	function sort_standings (&$a, &$b) 
 	{
