@@ -1109,7 +1109,8 @@ class LeagueStandings extends Handler
 				l.ratio,
 				l.season,
 				l.current_round,
-				l.stats_display
+				l.stats_display,
+				l.allow_schedule
 			FROM 
 				league l
 			WHERE 
@@ -1117,6 +1118,10 @@ class LeagueStandings extends Handler
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
+			return false;
+		}
+		if($row['allow_schedule'] == 'N') {
+			$this->error_text = "This league does not have a schedule or standings.";
 			return false;
 		}
 

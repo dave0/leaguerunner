@@ -809,12 +809,18 @@ class TeamStandings extends Handler
 
 		$id = var_from_getorpost('id');
 
-		$this->_league_id = $DB->getOne("SELECT league_id FROM leagueteams WHERE team_id = ?", array($id));
-
-		if($this->is_database_error($this->_league_id)) {
+		$league_info = $DB->getRow("SELECT l.league_id,l.allow_schedule FROM leagueteams t, league l WHERE l.league_id = t.league_id AND t.team_id = ?", array($id),DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league_info)) {
 			$this->error_text .= "<br>The team [$id] may not exist";
 			return false;
 		}
+
+		if($league_info['allow_schedule'] == 'N') {
+			$this->error_text .= "<br>This league does not have a schedule.";
+			return false;
+		}
+
+		$this->_league_id = $league_info['league_id'];
 
 		return true;
 	}
