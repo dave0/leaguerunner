@@ -2,7 +2,7 @@
 /*
  * Code for dealing with user accounts
  */
-register_page_handler('person_view', 'PersonView');
+register_page_handler('person_view', 'NEWPersonView');
 register_page_handler('person_delete', 'PersonDelete');
 register_page_handler('person_approvenew', 'PersonApproveNewAccount');
 register_page_handler('person_edit', 'PersonEdit');
@@ -16,11 +16,10 @@ register_page_handler('person_forgotpassword', 'PersonForgotPassword');
 /**
  * Player viewing handler
  */
-class PersonView extends Handler
+class NEWPersonView extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("View Account");
 		$this->_permissions = array(
 			'email'		=> false,
 			'home_phone'		=> false,
@@ -188,15 +187,168 @@ class PersonView extends Handler
 
 	function process ()
 	{	
-		$this->set_template_file("Person/view.tmpl");
+		global $DB, $id;
+		$row = $DB->getRow(
+			"SELECT * FROM person WHERE user_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($row)) {
+			return false;
+		}
+		
+		if(!isset($row)) {
+			$this->error_text = "That person does not exist";
+			return false;
+		}
 	
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
+		$fullname = $row['firstname'] . " " . $row['lastname'];
+		print theme_header("View Account - $fullname");
+		print $this->generate_view($row);
+		print theme_footer();
+		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
+
+	function generate_view (&$person)
+	{
+		$fullname = $person['firstname'] . " " . $person['lastname'];
+		$output =  "<h1>$fullname</h1>";
+		$output .= "<table border='0'>";
+		$output .= simple_row("Name:", $fullname);
+
+		if($this->_permissions['username']) {
+			$output .= simple_row("System Username:", $person['username']);
+		}
+		
+		if($this->_permissions['member_id']) {
+			$output .= simple_row("OCUA Member ID:", $person['member_id']);
+		}
+		
+		if($this->_permissions['email']) {
+			if($person['allow_publish_email'] == 'Y') {
+				$publish_value = " (published)";
+			} else {
+				$publish_value = " (private)";
+			}
+			$output .= simple_row("Email Address:", l($person['email'], "mailto:" .  $person['email']) . $publish_value);
+		}
+		
+		foreach(array('home','work','mobile') as $type) {
+			if($this->_permissions["${type}_phone"]) {
+				if($person["publish_${type}_phone"] == 'Y') {
+					$publish_value = " (published)";
+				} else {
+					$publish_value = " (private)";
+				}
+				$output .= simple_row("Phone ($type):", $person["${type}_phone"] . $publish_value);
 			}
 		}
-		return $this->generate_view();
+		
+		if($this->_permissions['address']) {
+			$output .= simple_row("Address:", 
+				format_street_address(
+					$person['addr_street'],
+					$person['addr_city'],
+					$person['addr_prov'],
+					$person['addr_postalcode']
+				)
+			);
+		}
+		
+		if($this->_permissions['birthdate']) {
+			$output .= simple_row("Birthdate:", $person['birthdate']);
+		}
+		
+		if($this->_permissions['gender']) {
+			$output .= simple_row("Gender:", $person['gender']);
+		}
+		
+		if($this->_permissions['skill']) {
+			$output .= simple_row("Skill Level:", $person['skill_level']);
+			$output .= simple_row("Year Started:", $person['year_started']);
+		}
+
+		if($this->_permissions['class']) {
+			$output .= simple_row("Account Class:", $person['class']);
+		}
+		
+		if($this->_permissions['dog']) {
+			$output .= simple_row("Has Dog:",($person['has_dog'] == 'Y') ? "yes" : "no");
+
+			if($person['has_dog'] == 'Y') {
+				$output .= simple_row("Dog Waiver Signed:",($person['dog_waiver_signed']) ? $person['dog_waiver_signed'] : "Not signed");
+			}
+		}
+		
+		if($this->_permissions['last_login']) {
+			if($person['last_login']) {
+				$output .= simple_row("Last Login:", 
+					$person['last_login'] . ' from ' . $person['client_ip']);
+			} else {
+				$output .= simple_row("Last Login:", "Never logged in");
+			}
+		}
+		
+		$team_html = "<table border='0'>";
+		$teams = get_teams_for_user($person['user_id']);
+		$tcount = count($teams);
+		for($i=0; $i < $tcount; $i++) {
+			$team = $teams[$i];
+			$team_html .= tr(
+				td($team['position'])
+				. td("on")
+				. td( l($team['name'], "op=team_view&id=" . $team['id']))
+			);
+		}
+		$team_html .= "</table>";
+		
+		$output .= simple_row("Teams:", $team_html);
+				
+		$output .= "</table>";
+		return $output;
+	}
+}
+
+/**
+ * Player viewing handler
+ */
+class PersonView extends Handler
+{
+	function initialize ()
+	{
+		$this->_permissions = array(
+			'email'		=> false,
+			'home_phone'		=> false,
+			'work_phone'		=> false,
+			'mobile_phone'		=> false,
+			'username'	=> false,
+			'birthdate'	=> false,
+			'address'	=> false,
+			'gender'	=> false,
+			'skill' 	=> false,
+			'name' 		=> false,
+			'last_login'		=> false,
+			'waiver_signed'		=> false,
+			'member_id'		=> false,
+			'dog'		=> false,
+			'class'		=> false,
+			'publish'			=> false,
+			'user_edit'				=> false,
+#			'user_delete'			=> false,
+			'user_change_password'	=> false,
+		);
+
+		return true;
+	}
+
+	function process ()
+	{	
+		$this->error_text = "This code should never be run";
+		return false;
 	}
 
 	function generate_view ()
@@ -344,6 +496,11 @@ class PersonDelete extends PersonView
 		return true;
 	}
 
+	function has_permission()
+	{
+		return Handler::has_permission();
+	}
+
 	function set_permission_flags($type) 
 	{
 		if($type == 'administrator') {
@@ -454,6 +611,11 @@ class PersonApproveNewAccount extends PersonView
 			'deny',
 		);
 		return true;
+	}
+
+	function has_permission()
+	{
+		return Handler::has_permission();
 	}
 
 	function set_permission_flags($type) 

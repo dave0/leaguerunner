@@ -63,9 +63,19 @@ function td($text, $attributes = array())
 	return simple_tag("td",$text, $attributes);
 }
 
+function simple_row($left, $right)
+{
+	return tr(
+		td($left, array('class' => 'row_title', 'valign' => 'top')) . td($right, array('class' => 'row_data')));
+}
+
 function l($text, $query = NULL, $attributes = array())
 {
-	$attributes['href'] = url($query);
+	if(0 < preg_match("/^(http|ftp|mailto):/", $query)) {
+		$attributes['href'] = $query;
+	} else {
+		$attributes['href'] = url($query);
+	}
 	return simple_tag("a", $text, $attributes);
 }
 
@@ -78,6 +88,11 @@ function url($query = NULL)
     } else {
         return "$base_url";
     }
+}
+
+function format_street_address( $street, $city, $province, $postalcode)
+{
+	return "$street<br />\n$city, $province<br />\n$postalcode";
 }
 
 function check_form($input, $quotes = ENT_QUOTES)
