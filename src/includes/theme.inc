@@ -63,7 +63,7 @@ function theme_navbar($breadcrumbs = array())
 		print l("log in", "op=login", array( 'class' => 'topbarlink' ));
 		print "&nbsp;|&nbsp;";
 	}
-	print l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/howto.html", array( 'class' => 'topbarlink' ));
+	print l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
 	print "</td></tr>";
 	print "\n<!-- end navbar -->\n";
 }
@@ -80,7 +80,7 @@ function theme_footer()
 <p />
 <hr noshade />
 <table border="0" width="100%">
-<tr><td><a href="howto.html" target="_new"><b><font color="red">Help</font></b></a></td>
+<tr><td><a href="data/howto.html" target="_new"><b><font color="red">Help</font></b></a></td>
 <td align="right">
 <i>Powered by <a href="http://www.dmo.ca/projects/leaguerunner/">Leaguerunner</a></i>
 </td></tr></table>

@@ -73,9 +73,9 @@ class Menu extends Handler
 		$output .= $this->menu_item(
 			l("Change My Password", "op=person_changepassword&id=$id"));
 		$output .= $this->menu_item(
-			l("View Player Waiver", "op=system_viewfile&id=player_waiver"));
+			l("View Player Waiver", "op=system_viewfile&file=player_waiver"));
 		$output .= $this->menu_item(
-			l("View Dog Waiver", "op=system_viewfile&id=dog_waiver"));
+			l("View Dog Waiver", "op=system_viewfile&file=dog_waiver"));
 		$output .= $this->menu_item( l("Log Out", "op=logout"));
 
 		$output .= $this->menu_title("Teams");

@@ -14,12 +14,6 @@ class SystemViewFile extends Handler
 		return true;
 	}
 	
-	/**
-	 * Generate the menu
-	 *
-	 * @access public
-	 * @return boolean success or failure.
-	 */
 	function process ()
 	{
 
@@ -27,20 +21,27 @@ class SystemViewFile extends Handler
 
 		switch($file) {
 			case 'player_waiver':
-				$this->set_template_file("Person/waiver_form.tmpl");
-				$this->tmpl->assign('view_only', true);
-				$rc = true;
+				$this->set_title("Informed Consent Form For League Play");
+				$filename = "data/waiver_form.html";
 				break;
 			case 'dog_waiver':
-				$this->set_template_file("Person/dog_waiver_form.tmpl");
-				$this->tmpl->assign('view_only', true);
-				$rc = true;
+				$this->set_title("Informed Consent Form For Dog Owners");
+				$filename = "data/dog_waiver_form.html";
 				break;
 			default:
 				$this->error_exit("You cannot view that file");
 		}
+		$this->get_header();
+		readfile($filename);
+		$this->get_footer();
 
-		return $rc;
+		return true;
+	}
+	
+	function display()
+	{
+		// TODO DELETEME remove when Smarty is no longer in use
+		return true;
 	}
 }
 ?>
