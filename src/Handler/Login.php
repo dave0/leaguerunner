@@ -31,14 +31,18 @@ class Login extends Handler
 		$password = var_from_post('password');
 		$remember_me = var_from_post('remember_me');
 
-		/* Now, if we can, we will create a new user session */
 		if( !(isset($username) || isset($password)) ) {
+			/* Check if session is already valid */
+			if($session->is_valid()) {
+				return $this->handle_valid();
+			}
 			print $this->get_header();
 			print $this->login_form();
 			print $this->get_footer();
 			return true;  // TODO: remove me when Smarty gone.
 		}
 		
+		/* Now, if we can, we will create a new user session */
 		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
 			print $this->get_header();
@@ -51,7 +55,12 @@ class Login extends Handler
 		 * Now that we know their username/password is valid, check to see if
 		 * there are restrictions on their account.
 		 */
+		return $this->handle_valid();
+	}
 
+	function handle_valid()
+	{
+		global $session, $_SERVER;
 		switch($session->attr_get('class')) {
 			case 'new':
 				print $this->get_header();

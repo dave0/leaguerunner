@@ -214,13 +214,14 @@ class PersonView extends Handler
 		
 	
 		$this->set_title("View Account &raquo; " . $person['firstname'] . " " . $person['lastname']);
-		$output =  "";
+		$links_html =  "";
 		if(count($links) > 0) {
-			$output .= simple_tag("blockquote", theme_links($links));
+			$links_html .= simple_tag("blockquote", theme_links($links));
 		}
 
 		print $this->get_header();
 		print h1($this->title);
+		print $links_html;
 		print $this->generateView($person);
 		print $this->get_footer();
 		return true;
