@@ -23,8 +23,8 @@ function person_dispatch()
 			$obj = new PersonDelete;
 			$obj->person = person_load( array('user_id' => $id) );
 			break;
-		case 'list':
-			$obj = new PersonList;
+		case 'search':
+			$obj = new PersonSearch;
 			break;
 		case 'approve':
 			$obj = new PersonApproveNewAccount;
@@ -63,7 +63,7 @@ function person_dispatch()
  */
 function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 {
-	$self_edit_fields = array(' ');
+	$self_edit_fields = array();  # TODO
 	$create_fields = array( 'name', 'username', 'password');
 	$create_fields = array_merge($self_edit_fields, $create_fields);
 
@@ -78,25 +78,22 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			return true;
 			break;
 		case 'edit':
+			if( 'new' == $arg1) {
+				// Almost all fields can be edited for new players
+				if( $arg2 ) {
+					return( in_array( $arg2, $create_fields ) );
+				} else {
+					return true;
+				}
+			}
 			if( $user->status != 'active' ) {
 				return false;
 			}
-			if( is_numeric( $arg1 ))  {
-				if( $user->user_id == $arg1 ) {
-					if( $arg2 ) {
-						return( in_array( $arg2, $self_edit_fields ) );
-					} else {
-						return true;
-					}
-				}
-			} else { 
-				if( $arg1 == 'new' ) {
-					// Almost all fields can be edited for new players
-					if( $arg2 ) {
-						return( in_array( $arg2, $create_fields ) );
-					} else {
-						return true;
-					}
+			if( $user->user_id == $arg1 ) {
+				if( $arg2 ) {
+					return( in_array( $arg2, $self_edit_fields ) );
+				} else {
+					return true;
 				}
 			}
 			break;
@@ -166,10 +163,11 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			}
 			break;
 		case 'list':
+		case 'search':
 			if( $user->status != 'active' ) {
 				return false;
 			}
-			return($user->class == 'volunteer');
+			return($user->class != 'visitor');
 		case 'approve':
 			// administrator-only
 		case 'delete':
@@ -209,8 +207,7 @@ function person_menu()
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
 	if($session->has_permission('person','list') ) {
-		menu_add_child('person','person/list/players',"list players", array('link' => url('person/list','class=player')));
-		menu_add_child('person','person/list/visitors',"list visitors", array('link' => url('person/list','class=visitor')));
+		menu_add_child('person','person/search',"search players", array('link' => url('person/search')));
 	}
 	
 	if($session->is_admin()) {
@@ -415,7 +412,7 @@ class PersonDelete extends PersonView
 		
 		if($edit['step'] == 'perform') {
 			$this->person->delete();
-			local_redirect(url("person/list"));
+			local_redirect(url("person/search"));
 			return $rc;
 		}
 
@@ -1345,64 +1342,133 @@ class PersonSignDogWaiver extends PersonSignWaiver
 	}
 }
 
-/**
- * Player list handler
- */
-class PersonList extends Handler
+class PersonSearch extends Handler
 {
+	function initialize ()
+	{
+		global $session;
+		$this->ops = array(
+			'view' => 'person/view/%d'
+		);
+
+		$this->title = "Player Search";
+		
+		$this->extra_where = '';
+		if( $session->has_permission('person','delete') ) {
+			$this->ops['delete'] = 'person/delete/%d';
+		}
+		return true;
+	}
+	
 	function has_permission ()
 	{
 		global $session;
-	 	return $session->has_permission('person','list');
+	 	return $session->has_permission('person','search');
 	}
 	
 	function process ()
 	{
+		$edit = &$_POST['edit'];
+		$next = $_POST['next'];
+		
+		if(is_null($next)) {
+			$next = queryPickle("person/view");
+		}
+
+		# Should be configurable
+		$this->max_results = 25;
+	
+		switch($edit['step']) {
+			case 'perform':
+				$rc = $this->perform( $edit );
+				break;
+			default:
+				$rc = $this->form( $next );
+		}	
+		$this->setLocation( array($this->title => 0 ));
+		return $rc;
+	}
+
+	function form ( $next ) 
+	{
+
+		$output = para("Enter last name of person and click 'submit'.  You may use '*' as a wildcard");
+
+		$output .= form_hidden('edit[step]', 'perform');
+		$output .= form_hidden('edit[next]', $next );
+		$output .= form_textfield('Last Name', 'edit[lastname]', '', 25,100);
+		$output .= form_submit("Submit") . form_reset("Reset");
+		return form($output);
+	}
+	
+	function perform ( &$edit )
+	{
 		global $session;
-		$ops = array(
-			array(
-				'name' => 'view',
-				'target' => 'person/view/'
-			),
+
+		if( $edit['lastname'] == '' ) {
+			error_exit("You must provide a last name");
+		}
+
+		$offset = $edit['offset'];
+		if( !$offset ) {
+			$limit = $this->max_results + 1;
+		} else {
+			$limit = "$offset," . ($offset + $this->max_results + 1);
+		}
+		
+		$search = array(
+			'lastname_wildcard' => $edit['lastname'],
+			'_order' => 'p.lastname, p.firstname',
+			'_limit' => $limit
 		);
-		if($session->has_permission('person','delete')) {
-			$ops[] = array(
-				'name' => 'delete',
-				'target' => 'person/delete/'
+		if( strlen($this->extra_where) ) {
+			$search['_extra'] = $this->extra_where;
+		}
+
+		$result = person_query( $search );
+
+		$output = "<table><tr><td>";
+
+		if( $offset > 0 ) {
+			$output .= form( 
+				form_hidden("edit[step]",'perform')
+				. form_hidden('edit[lastname]', $edit['lastname'])
+				. form_hidden('edit[offset]', $offset - $this->max_results )
+				. form_submit("Prev")
 			);
 		}
 
-		$user_class = '';
-		switch( $_GET['class'] ) {
-			case 'all':
-				$user_class = '';
-				$this->setLocation(array("List Users" => 'person/list'));
-				break;
-			case 'visitor':
-				$user_class = " AND class = 'visitor'";
-				$query_append = '&class=visitor';
-				$this->setLocation(array("List Visitors" => url('person/list','class=visitor')));
-				break;
-			case 'player':
-			default:
-				$user_class = " AND (class = 'player' OR class= 'administrator' OR class='volunteer')";
-				$query_append = '&class=player';
-				$this->setLocation(array("List Players" => url('person/list','class=player')));
-				break;
-			
-		}
+		$output .= "</td><td align='right'>";
 
-		$query = "SELECT 
-			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE lastname LIKE '%s%%' $user_class ORDER BY lastname,firstname";
-		
-		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE NOT ISNULL(user_id) $user_class", 'person/list', $_GET['letter'], array(), $query_append);
+		if( db_num_rows($result) > $this->max_results ) {
+			$output .= form( 
+				form_hidden("edit[step]",'perform')
+				. form_hidden('edit[lastname]', $edit['lastname'])
+				. form_hidden('edit[offset]', $edit['offset'] + $this->max_results )
+				. form_submit("Next")
+			);
+		}
+		$output .= "</td></tr>";
+
+		$count = 0;
+		while( $person = db_fetch_object($result) ) {
+			if(++$count > $this->max_results) {
+				break;
+			}
+			$output .= "<tr><td>$person->lastname, $person->firstname</td><td>";
+			while ( list($key, $value) = each($this->ops)) {
+				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
+				$output .= "&nbsp;";
+			}
+			reset($this->ops);
+			$output .= "</td></tr>";
+		}
+		$output .= "</table>";
+	
+		return $output;
 	}
 }
 
-/**
- * Player list handler
- */
 class PersonListNewAccounts extends Handler
 {
 	function has_permission ()
@@ -1413,37 +1479,35 @@ class PersonListNewAccounts extends Handler
 
 	function process ()
 	{
-		$letter = $_GET['letter'];
 		$this->title = "New Accounts";
-
+		$search = array(
+			'status' => 'new',
+			'_order' => 'p.lastname, p.firstname'
+		);
 		$ops = array(
-			array(
-				'name' => 'view',
-				'target' => 'person/view/'
-			),
-			array(
-				'name' => 'approve',
-				'target' => 'person/approve/'
-			),
-			array(
-				'name' => 'delete',
-				'target' => 'person/delete/'
-			),
+			'view' => 'person/view/%d',
+			'approve' => 'person/approve/%d',
+			'delete' => 'person/delete/%d'
 		);
 
-        $query = "SELECT 
-				CONCAT(lastname,', ',firstname) AS value, 
-				user_id AS id 
-			 FROM person 
-			 WHERE
-			 	status = 'new'
-			 AND
-			 	lastname LIKE '%s%%'
-			 ORDER BY lastname, firstname";
+		$result = person_query( $search );
+
+		$output = "<table>";
+		while( $person = db_fetch_object($result) ) {
+			$output .= "<tr><td>$person->lastname, $person->firstname</td><td>";
+			while ( list($key, $value) = each($ops)) {
+				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
+				$output .= "&nbsp;";
+			}
+			reset($ops);
+			$output .= "</td></tr>";
+		}
+		$output .= "</table>";
+
 
 		$this->setLocation(array( $this->title => 'person/listnew' ));
-		
-		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE status = 'new'", 'person/listnew', $letter);
+	
+		return $output;
 	}
 }
 
