@@ -39,6 +39,9 @@ function get_teams_for_user($userid)
         WHERE 
             r.player_id = ?",
 	array($userid), DB_FETCHMODE_ASSOC);
+	for($i=0; $i < count($rows); $i++) {
+		$rows[$i]['position'] = display_roster_status($rows[$i]['position']);
+	}
 	return $rows;
 }
 
