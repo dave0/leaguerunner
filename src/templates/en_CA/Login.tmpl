@@ -1,6 +1,6 @@
 {include file="common/basic_header.tmpl"}
 <br />
-<form action="{$app_cgi_location}" method="POST">
+<form action="{$app_cgi_location}" method="POST" name="lrlogin" id="lrlogin">
 <table align='center' border='0' cellpadding='5' width='300'>
 <tr>
 	<td colspan='2' align='center'>
@@ -42,6 +42,8 @@ password emailed to you (click on "Forgot your password?").</i>
 </table>
 <input type='hidden' name='op' value='login'>
 </form>
-
+<script language="JavaScript">
+document.lrlogin.username.focus();
+</script>
 {include file="common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}
