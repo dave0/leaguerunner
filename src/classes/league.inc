@@ -341,10 +341,17 @@ class League extends LeaguerunnerObject
 		while($game = db_fetch_array($result)) {
 			if ($game['round'] >= $round) {
 				$game = game_load( array('game_id' => $game['game_id']) );
+				if ($game->home_score || $game->away_score) {
+					error_exit("You're still ok, because I didn't actually modify or delete anything yet!" .
+						" But, can't cancel games because Game # $game->game_id has results! ");
+				}
 				array_push($games, $game);
 			}
 		}
 		reset($games);
+
+		// Super important!  We make a back-up copy of all the game objects in case we have to rollback!
+		$backup_games = $games;
 
 		// ASSUMPTION: the array is properly sorted such that games that swap info are "$game_set" apart
 		for ($i = count($games)-1; $i >= 0; $i--) {
@@ -352,6 +359,7 @@ class League extends LeaguerunnerObject
 			if ( ($i - $game_set) >= 0 ) {
 				$prev_game = $games[$i-$game_set];
 				// assign the previous game's dependant info to this game
+				$game->set('round', $prev_game->round);
 				if ($prev_game->home_team) {
 					$game->set('home_team', $prev_game->home_team);
 				}
@@ -365,10 +373,24 @@ class League extends LeaguerunnerObject
 				$game->set('away_dependant_type', $prev_game->away_dependant_type);
 				$game->set('away_dependant_rank', $prev_game->away_dependant_rank);
 				if (! $game->save() ) {
-					error_exit("Oh Crap! Could not save the game info during cancelround($round)! This is VERY bad!  You schedule is most likely HOSED now, you should revert to a backed up copy!");
+					// there was a problem, rollback!
+					foreach ($backup_games as $bgame) {
+						if (! $bgame->save() ) {
+							error_exit("Oh Crap! Could not rollback during cancelround($round)! This is VERY bad!  You schedule is most likely HOSED now, you should revert to a backed up copy! Original problem was saving games...");
+						}
+					}
+					error_exit("Could not save the game info during cancelround($round)! The changes made here have been reverted! Whew!");
 				}
 			} else {
-				$game->delete();
+				if (! $game->delete() ) {
+					// there was a problem, rollback!
+					foreach ($backup_games as $bgame) {
+						if (! $bgame->save() ) {
+							error_exit("Oh Crap! Could not rollback during cancelround($round)! This is VERY bad!  You schedule is most likely HOSED now, you should revert to a backed up copy! Original problem was deleting games...");
+						}
+					}
+					error_exit("Could not delete the game during cancelround($round)! The changes made here have been reverted! Whew!");
+				}
 			}
 		}
 

@@ -375,7 +375,7 @@ class Game extends LeaguerunnerObject
 
 		// TODO: There may be other things that should prevent deletion
 		if( $this->home_score || $this->away_score ) {
-			$this->error_exit("Cannot delete games which have been scored");
+			error_exit("Cannot delete games which have been scored");
 		}
 
 		// Don't check result; there may not be any to change
