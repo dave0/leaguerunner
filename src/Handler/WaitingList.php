@@ -55,19 +55,20 @@ class WaitingListEdit extends Handler
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'confirm');
 		$output .= form_hidden("id", $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("Waiting List Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The title for this waiting list.  Should describe what it's for."));
-		$output .= simple_row("Description:", 
+
+		$rows = array();
+		$rows[] = array("Waiting List Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The title for this waiting list.  Should describe what it's for."));
+		$rows[] = array("Description:", 
 			form_textarea("", 'edit[description]', $formData['description'], 50, 5, "Information about this particular league waitinglist"));
 		
-		$output .= simple_row("Selection process:", 
+		$rows[] = array("Selection process:", 
 			form_select("", "edit[selection]", $formData['selection'], getOptionsFromEnum('waitinglist','selection'), "What type of selection process will be used?"));
-		$output .= simple_row("Max Male Players:", form_textfield('', 'edit[max_male]', $formData['max_male'], 4,4, "Total number of male players that will be accepted"));
-		$output .= simple_row("Max Female Players:", form_textfield('', 'edit[max_female]', $formData['max_female'], 4,4, "Total number of female players that will be accepted"));
-		$output .= simple_row("Allow Couples Registration:", 
+		$rows[] = array("Max Male Players:", form_textfield('', 'edit[max_male]', $formData['max_male'], 4,4, "Total number of male players that will be accepted"));
+		$rows[] = array("Max Female Players:", form_textfield('', 'edit[max_female]', $formData['max_female'], 4,4, "Total number of female players that will be accepted"));
+		$rows[] = array("Allow Couples Registration:", 
 			form_select("", "edit[allow_couples_registration]", $formData['allow_couples_registration'], getOptionsFromEnum('waitinglist','allow_couples_registration'), "Can registrants request to be paired with another person?"));
 
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		if($formData['name']) {
@@ -94,16 +95,17 @@ class WaitingListEdit extends Handler
 		$output .= form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'perform');
 		$output .= form_hidden("id", $id);
-		
-		$output .= "<table border='0'>";
-		$output .= simple_row("Waiting List Name:", form_hidden('edit[name]',$edit['name']) .  $edit['name']);
-		$output .= simple_row("Description:", 
+	
+		$rows = array();
+		$rows[] = array("Waiting List Name:", form_hidden('edit[name]',$edit['name']) .  $edit['name']);
+		$rows[] = array("Description:", 
 			form_hidden('edit[description]', $edit['description']) . $edit['description'] );
-		$output .= simple_row("Selection Process:", form_hidden('edit[selection]',$edit['selection']) .  $edit['selection']);
-		$output .= simple_row("Max Male Players:", form_hidden('edit[max_male]',$edit['max_male']) .  $edit['max_male']);
-		$output .= simple_row("Max Female Players:", form_hidden('edit[max_female]',$edit['max_female']) .  $edit['max_female']);
-		$output .= simple_row("Allow Couples Registration:", form_hidden('edit[allow_couples_registration]',$edit['allow_couples_registration']) .  $edit['allow_couples_registration']);
-		$output .= "</table>";
+		$rows[] = array("Selection Process:", form_hidden('edit[selection]',$edit['selection']) .  $edit['selection']);
+		$rows[] = array("Max Male Players:", form_hidden('edit[max_male]',$edit['max_male']) .  $edit['max_male']);
+		$rows[] = array("Max Female Players:", form_hidden('edit[max_female]',$edit['max_female']) .  $edit['max_female']);
+		$rows[] = array("Allow Couples Registration:", form_hidden('edit[allow_couples_registration]',$edit['allow_couples_registration']) .  $edit['allow_couples_registration']);
+		
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
 		if($team_name) {
@@ -304,7 +306,7 @@ class WaitingListView extends Handler
 		$id = var_from_getorpost('id');
 
 		/* TODO: waitinglist_load() */
-		$data = db_fetch_object(db_query(
+		$data = db_fetch_array(db_query(
 			"SELECT * FROM waitinglist WHERE wlist_id = %d",$id));
 
 		if(!$data) {
@@ -316,77 +318,68 @@ class WaitingListView extends Handler
 		if($this->_permissions['edit']) {
 			$output .= l('edit',"op=wlist_edit&id=$id");
 		}
-	
-		$output .= "<table border='0'>";
-		$output .= simple_row("Waiting List Name:", $data->name);
-		$output .= simple_row("Description:", $data->description);
-		$output .= simple_row("Selection Process:", $data->selection);
-		$output .= simple_row("Max Male Players:", $data->max_male);
-		$output .= simple_row("Max Female Players:", $data->max_female);
-		$output .= simple_row("Allow Couples Registration:", $data->allow_couples_registration);
-		$output .= "</table>";
-		if($this->_permissions['viewmembers']) {
-			$listContents .= "<div class='waitlist'><table border='0'>";
-			$listContents .= tr(
-				th( 'Name' )
-				. th( 'Preference' )
-				. th( 'Date Registered' )
-				. th( 'Gender' )
-				. th( 'Skill' )
-				. th( 'Height' )
-				. th( 'Partner' )
-			);
-			
-			$result = db_query(
-				"SELECT p.firstname,p.lastname,p.gender,p.skill_level,p.height,m.*,partner.firstname as partner_firstname, partner.lastname as partner_lastname, partner.user_id AS partner_id
-				 FROM waitinglistmembers m
-				   LEFT JOIN person p ON (p.user_id = m.user_id)
-				   LEFT JOIN person partner ON (partner.member_id = m.paired_with)
-				 WHERE m.wlist_id = %d 
-				 ORDER BY m.date_registered", $id);
-				 
-			$position = 1;
-			$genderCount = array(
-				'male' => 0,
-				'female' => 0,
-			);
-			while($player = db_fetch_object($result)) {
 
-				$lcGender = strtolower($player->gender);
-				if(++$genderCount[$lcGender] <= $data["max_$lcGender"]) {
-					$style = array('class' => 'highlight');	
-				} else {
-					$style = array();
-				}
-			
-				if( isset($player->partner_id) ) {
-					$partnerInfo = l("$player->partner_firstname $player->partner_lastname", "op=wlist_viewperson&id=$player->partner_id");
-				} else {
-					$partnerInfo = '';
-				}
-				$listContents .= tr(
-					td(l("$player->firstname $player->lastname", "op=wlist_viewperson&id=$player->user_id"), $style)
-					. td($player->preference, $style)
-					. td($player->date_registered, $style)
-					. td($player->gender, $style )
-					. td($player->skill_level, $style )
-					. td($player->height, $style )
-					. td($partnerInfo, $style)
-				);
-				$position++;
-				
+		$rows = array();
+		$rows[] = array("Waiting List Name:", $data['name']);
+		$rows[] = array("Description:", $data['description']);
+		$rows[] = array("Selection Process:", $data['selection']);
+		$rows[] = array("Max Male Players:", $data['max_male']);
+		$rows[] = array("Max Female Players:", $data['max_female']);
+		$rows[] = array("Allow Couples Registration:", $data['allow_couples_registration']);
+		
+		$listRows = array();
+		$result = db_query(
+			"SELECT p.firstname,p.lastname,p.gender,p.skill_level,p.height,m.*,partner.firstname as partner_firstname, partner.lastname as partner_lastname, partner.user_id AS partner_id
+			 FROM waitinglistmembers m
+			   LEFT JOIN person p ON (p.user_id = m.user_id)
+			   LEFT JOIN person partner ON (partner.member_id = m.paired_with)
+			 WHERE m.wlist_id = %d 
+			 ORDER BY m.date_registered", $id);
+				 
+		$position = 1;
+		$genderCount = array(
+			'male' => 0,
+			'female' => 0,
+		);
+		while($player = db_fetch_object($result)) {
+
+			$lcGender = strtolower($player->gender);
+			if(++$genderCount[$lcGender] <= $data["max_$lcGender"]) {
+				$class = 'highlight';	
+			} else {
+				$class = 'light';
 			}
-			
-			$listContents .= "</table></div>";
-			$output .= simple_row('Current Males Registered:', $genderCount['male']);
-			$output .= simple_row('Current Females Registered:', $genderCount['female']);
-			$output .= simple_row('Waitlist Members:', $listContents);
+		
+			if( isset($player->partner_id) ) {
+				$partnerInfo = l("$player->partner_firstname $player->partner_lastname", "op=wlist_viewperson&id=$player->partner_id");
+			} else {
+				$partnerInfo = '';
+			}
+				
+			$listRows[] = array(
+				array('data' => l("$player->firstname $player->lastname", "op=wlist_viewperson&id=$player->user_id"), 'class' => $class),
+				array('data' => $player->preference, 'class' => $class),
+				array('data' => $player->date_registered, 'class' => $class),
+				array('data' => $player->gender, 'class' => $class),
+				array('data' => $player->skill_level, 'class' => $class),
+				array('data' => $player->height, 'class' => $class),
+				array('data' => $partnerInfo, 'class' => $class),
+			);
+			$position++;
+		}
+		$rows[] = array('Current Males Registered:', $genderCount['male']);
+		$rows[] = array('Current Females Registered:', $genderCount['female']);
+		if($this->_permissions['viewmembers']) {
+			$header = array( 'Name', 'Preference', 'Date Registered', 'Gender', 'Skill', 'Height', 'Partner');
+			$rows[] = array('Waitlist Members:', 
+				"<div class='listtable'>" . table($header, $listRows) . "</div>");
 		}
 		
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		
 		$this->setLocation(array(
-			$data->name => "op=wlist_view&id=$id",
+			$data['name'] => "op=wlist_view&id=$id",
 			$this->title => 0));
-		$output .= "</table></div>";
 
 		return $output;
 	}
@@ -476,47 +469,42 @@ class WaitingListJoin extends Handler
 			. para("If you are willing and able to be a team captain for any of the divisions you have registered for, please contact the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with your name and contact info after completing your registration.")
 			. para("For lesser-known players wishing to join the Tuesday Advanced Division, you may also wish to mail the indoor coordinator at <a href='mailto:spenceitup@hotmail.com'>spenceitup@hotmail.com</a> with the name of a player or two who can provide a recommendation.");
 		
-		$output .= "<div class='waitlist'><table border='0'>";
-
-		$output .= tr(
-			th( "Choices", array('colspan'=>$this->max_preference ) )
-			. th( "Name", array('rowspan' => 2 ))
-			. th( "Partner Member Number (optional)", array('rowspan' => 2) )
+		$header = array(
+			array( "Choices", 'colspan'=>$this->max_preference ),
+			array( "Name", 'rowspan' => 2 ),
+			array( "Partner Member Number (optional)", 'rowspan' => 2)
 		);
-		for($i=1; $i <= $this->max_preference; $i++) {
-			$prefColumns .= th( numberToOrdinal($i));
-		}
-		$output .= tr( $prefColumns );
 		
-		$output .= "<tr>";
-		for($i=1;$i <= $this->max_preference; $i++) {
-			$output .= td(
-				form_radio('', "edit[preference][$i]", 0));
+		$rows = array();
+		for($i=1; $i <= $this->max_preference; $i++) {
+			$prefColumns[] = numberToOrdinal($i);
 		}
-		$output .= td("No selection", array('colspan' => 2));
-		$output .= "</tr>";
+		$rows[] = array( $prefColumns );
+		
+		for($i=1;$i <= $this->max_preference; $i++) {
+			$buttonColumns[] = form_radio('', "edit[preference][$i]", 0);
+		}
+		$buttonColumns[] = array("No selection", 'colspan' => 2);
+		$rows[] = array( $buttonColumns );
 		
 		$rowCount = 0;
 		while($list = db_fetch_object($result)) {
-			$output .= "<tr>";
+			$buttonColumns = array();
 			for($i=1;$i <= $this->max_preference; $i++) {
-				$output .= td(
-					form_radio('', "edit[preference][$i]", $list->wlist_id));
-				
+				$buttonColumns[] = form_radio('', "edit[preference][$i]", $list->wlist_id);
 			}
-			$output .= td( "$list->name (" . l('view', 'op=wlist_view&id=' . $list->wlist_id) . ")");
-			if($list->allow_couples_registration == 'Y') {
-				$output .= td(form_textfield('', "edit[$list->wlist_id][paired_with]", '', 8,8));
-			} else {
-				$output .= td('');
-			}
+			$buttonColumns[] = "$list->name (" . l('view', "op=wlist_view&id=$list->wlist_id") . ")";
 			
+			if($list->allow_couples_registration == 'Y') {
+				$buttonColumns[] = form_textfield('', "edit[$list->wlist_id][paired_with]", '', 8,8);
+			} else {
+				$buttonColumns[] = '';
+			}
 			$rowCount++;
-			$output .= "</tr>";
+			$rows[] = array ($buttonColumns);
 		}
-		$dbResult->free();
 		
-		$output .= "</table></div>";
+		$output .= "<div class='waitlist'>" . array($header, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		$this->setLocation(array( $this->title => "op=$this->op"));
@@ -538,7 +526,7 @@ class WaitingListJoin extends Handler
 		$output .= form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'perform');
 		
-		$output .= "<div class='waitlist'><table border='0'>";
+		$rows = array();
 		while(list($preference,$wlist_id) = each($edit['preference'])) {
 
 			if($wlist_id == 0) {
@@ -549,12 +537,12 @@ class WaitingListJoin extends Handler
 			if(!$list) {
 				$this->error_exit("An invalid waitinglist was specified; please go back and try again");		
 			}
-
-			$output .= tr(
-				th( $list->name, array('colspan' => 2) )
+			
+			$rows[] = array(
+				array( 'data' => $list->name, 'class' => 'subtitle', 'colspan' => 2)
 			);
 			
-			$output .= simple_row("Registration Preference:", form_hidden("edit[preference][$preference]", $wlist_id) . numberToOrdinal($preference));
+			$rows[] = array("Registration Preference:", form_hidden("edit[preference][$preference]", $wlist_id) . numberToOrdinal($preference));
 
 			$paired_with = $edit[$wlist_id]['paired_with'];
 			if($paired_with && $list->allow_couples_registration == 'Y') {
@@ -563,13 +551,14 @@ class WaitingListJoin extends Handler
 				if(!$partnerName) {
 					$this->error_exit("An invalid partner member ID was specified; please go back and try again");		
 				}
-				
-				$output .= simple_row("Partner:", 
-					form_hidden("edit[$wlist_id][paired_with]", $paired_with) . "$partnerName (OCUA Member Number $paired_with)");
+				$rows[] = array(
+					array("Partner:",
+						form_hidden("edit[$wlist_id][paired_with]", $paired_with) . "$partnerName (OCUA Member Number $paired_with)")
+				);
 			}
 		}
 		
-		$output .= "</table></div>";
+		$output .= "<div class=listtable'>" . table(null,$rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
 		$this->setLocation(array( $this->title => "op=" . $this->op));
@@ -883,14 +872,14 @@ EOM;
 		$output .= para("Make cheques payable to \"Ottawa-Carleton Ultimate Association\" and mail them to<br />Ottawa Carleton Ultimate Association<br />PO Box 120, 410 Bank St<br />Ottawa, Ontario<br /> K2P 1Y8.");
 		$output .= para("Cheques must be received by Nov 7th or you will lose your spot.");
 
-		$output .= "<div class='waitlist'><table border='0'>";
+		$rows = array();
 		while($data = db_fetch_object($result)) {
-			$output .= tr(
-				th( $data->name )
-				. th( l("remove from this waitlist", "op=wlist_quit&step=confirm&id=$data->wlist_id &user=$id"), array('class' => 'thlinks') )
+			$rows[] = array(
+				array('data' => $data->name, 'class' => 'subtitle'),
+				array('data' => l("remove from this waitlist", "op=wlist_quit&step=confirm&id=$data->wlist_id &user=$id"), 'class' => 'subtitle')
 			);
 
-			$output .= simple_row("Registration Preference:", $data->preference);
+			$rows[] = array("Registration Preference:", $data->preference);
 
 			/* The following is a very ugly way to find this person's
 			 * position in the waiting list; however there doesn't
@@ -924,19 +913,19 @@ EOM;
 			}
 			$waitlistPosition .= " (limit is $data->max_male men, $data->max_female women)";
 			
-			$output .= simple_row("Waitlist Position:", $waitlistPosition);
+			$rows[] = array("Waitlist Position:", $waitlistPosition);
 			if($data->paired_with) {
 				$partnerName = db_result(db_query("SELECT CONCAT(firstname,' ',lastname) FROM person WHERE member_id = %d", $data->paired_with));
 				if(! $partnerName ) {
 					$this->error_exit("An invalid partner member ID was specified; please go back and try again");		
 				}
 				
-				$output .= simple_row("Partner:", 
+				$rows[] = array("Partner:", 
 					form_hidden("edit[$wlist_id][paired_with]", $data->paired_with) . "$partnerName (OCUA Member Number $data->paired_with)");
 			}
 		}
 
-		$output .= "</table></div>";
+		$output .= "<div class='listtable'>" . table(null,$rows) . "</div>";
 		
 		return $output;
 	}

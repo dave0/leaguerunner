@@ -35,75 +35,91 @@ class MainMenu extends Handler
 		$id = $session->attr_get("user_id");
 		$this->setLocation(array( $session->attr_get('firstname') . " " . $session->attr_get('lastname') => 0 ));
 
-		
-		$accountMenu = "<table>";
+	
+		/* TODO: this menu should go away in favour of an integrated menu
+		 * system */
+		$header = array( "Account Settings" );
+		$rows = array();	
 
-		/* General Account Info */
-		$accountMenu .= tr(th("Account Settings"));
-		$accountMenu .= tr(td(
-			l("View/Edit My Account", "op=person_view&id=$id")));
-		$accountMenu .= tr(td(
-			l("Change My Password", "op=person_changepassword&id=$id")));
-		$accountMenu .= tr(td(
-			l("View/Sign Player Waiver", "op=person_signwaiver")));
+		$rows[] = array(l("View/Edit My Account", "op=person_view&id=$id"));
+		$rows[] = array(
+			l("Change My Password", "op=person_changepassword&id=$id"));
+
+		$rows[] = array( 
+			l("View/Sign Player Waiver", "op=person_signwaiver"));
 			
 		if( $session->attr_get('has_dog') == 'Y' ) {
-			$accountMenu .= tr(td(
-				l("View/Sign Dog Waiver", "op=person_signdogwaiver")));
+			$rows[] = array( 
+				l("View/Sign Dog Waiver", "op=person_signdogwaiver"));
 		}
 
 		/* TODO: This should be a config option */
 		$signupTime = mktime(9,0,0,10,22,2003);
 		if(	time() >= $signupTime) {
-			$accountMenu .= tr(td(
-				l("Winter Indoor Signup", "op=wlist_viewperson&id=$id")));
+			$rows[] = array( 
+				l("Winter Indoor Signup", "op=wlist_viewperson&id=$id"));
 		} else {
-			$accountMenu .= tr(td("Indoor Signup opens<br/>" . date("F j Y h:i A", $signupTime)));
+			$rows[] = array("Indoor Signup opens<br/>" . date("F j Y h:i A", $signupTime));
 		}
 
-				
-		$accountMenu .= "</table>";
+		$accountMenu = "<div class='oldmenu'>" . table( $header, $rows ) . "</div>";
 
-		$accountMenu = div($accountMenu, array('class' => 'oldmenu'));
+		$header = array(
+			array('data' => 'My Teams', 'width' => 90 ),
+			array('data' => '&nbsp', 'colspan' => 3 )
+		);
+		$rows = array();
 		
+		$rows[] = array('','', array( 'data' => '','width' => 90), '');
+		
+		$result = db_query(
+			"SELECT 
+				r.status AS position,
+				r.team_id AS id,
+				t.name AS name
+			FROM 
+				teamroster r LEFT JOIN team t USING(team_id)
+			WHERE 
+				r.player_id = %d", $id);
+			
+		$rosterPositions = getRosterPositions();
 
-		$teamsAndLeagues = "<div class='myteams'><table border='0' cellspacing='0' cellpadding='3'>";
-		$teamsAndLeagues .= tr(td('').td('').td('',array('width' => 90)).td(''));
-		$teamsAndLeagues .= tr(th("My Teams", array('width' => 90)) . th("&nbsp;", array('colspan' => 3)));
-				
-		
-		$teams = get_teams_for_user($id);
-		
-		if(count($teams) > 0) {
-			foreach($teams as $team) { 
-
-				$teamData = $team['name'] . " (" . $team['position'] . ")";
-				$teamsAndLeagues .= tr(
-					td( $teamData, array('colspan' => 3, 'class' => 'highlight'))
-					. td(theme_links(array(
-						l("info", "op=team_view&id=" . $team['id']),
-						l("scores and schedules", "op=team_schedule_view&id=" . $team['id']),
-						l("standings", "op=team_standings&id=" . $team['id']))),
-						array('align' => 'right', 'class' => 'highlight'))
-				);
-				
-				$teamsAndLeagues .= tr(
-					td('&nbsp;')
-					. td("Last game:")
-					. td(getPrintableGameData('prev', $team['id']),
-						array('colspan' => '2'))
-				);
-				$teamsAndLeagues .= tr(
-					td('&nbsp;')
-					. td("Next game:")
-					. td(getPrintableGameData('next', $team['id']),
-						array('colspan' => '3'))
-				);
-			}
+		$rows = array();
+		while($team = db_fetch_object($result)) {
+			$position = $rosterPositions[$team->position];
+			
+			$rows[] = 
+				array(
+					array('data' => "$team->name ($team->position)", 
+					      'colspan' => 3, 'class' => 'highlight'),
+					array('data' => theme_links(array(
+							l("info", "op=team_view&id=$team->id"),
+							l("scores and schedules", "op=team_schedule_view&id=$team->id"),
+							l("standings", "op=team_standings&id=$team->id"))),
+						  'align' => 'right', 'class' => 'highlight')
+			);
+			
+			$rows[] = array(
+				'&nbsp;', 
+				"Last game:",
+				array(
+					'data' => getPrintableGameData('prev', $team->id),
+					'colspan' => 2
+				)
+			);
+			$rows[] = array(
+				'&nbsp;', 
+				"Next game:",
+				array(
+					'data' => getPrintableGameData('next', $team->id),
+					'colspan' => 2
+				)
+			);
 		}
-
+		
+		$teams = "<div class='myteams'>" . table( $header, $rows ) . "</div>";
 		if( $session->may_coordinate_league() ) {
-			/* Fetch leagues coordinated */
+
 			$result = db_query(
 				"SELECT 
 					league_id AS id, name, allow_schedule, tier
@@ -115,14 +131,14 @@ class MainMenu extends Handler
 				
 
 			if(db_num_rows($result) > 0) {
-				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 4)));
+				$header = array(
+					array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+				);
+				$rows = array();
+				
 				// TODO: For each league, need to display # of missing scores,
 				// pending scores, etc.
 				while($league = db_fetch_object($result)) {
-					$name = $league->name;
-					if($league->tier) {
-						$name .= " Tier " . $league->tier;
-					}
 					$links = array(
 						l("view", "op=league_view&id=$league->id"),
 						l("edit", "op=league_edit&id=$league->id")
@@ -133,25 +149,32 @@ class MainMenu extends Handler
 						$links[] = l("approve scores", "op=league_verifyscores&id=$league->id");
 					}
 
-					$teamsAndLeagues .= tr(
-						td( $name, array('colspan' => 3))
-						. td( theme_links($links), array('align' => 'right'))
+					$rows[] = array(
+						array( 
+							'data' => $league->tier ? "$league->name Tier $league->tier" : $league->name, 
+							'colspan' => 3
+						),
+						array(
+							'data' => theme_links($links), 
+							'align' => 'right'
+						)
 					);
 				}
-				$teamsAndLeagues .= tr(td( $data, array('colspan' => '4' )));
 			}
+			$leagues = "<div class='myteams'>" . table( $header, $rows ) . "</div>";
 		}
 				
-		$teamsAndLeagues .= "</table></div>";
+		$rows = array(
+			array(
+				array('data'=> $accountMenu, 'valign' => 'top', 'rowspan' => 2),
+				array('data'=> $teams, 'valign' => 'top'),
+			),
+			array(
+				array('data'=> $leagues, 'valign' => 'top'),
+			)
+		);
 
-		$output = "<table border='0' cellpadding='0' cellspacing='2' width='100%'>";
-		$output .= tr(
-			td($accountMenu, array('align' => 'left', 'valign' => 'top'))
-			. td($teamsAndLeagues, array('align' => 'left', 'valign' => 'top')));
-		$output .= "</table>";
-		
-		
-		return $output;
+		return table(null, $rows);
 	}
 }
 
@@ -177,29 +200,25 @@ class AdminMenu extends Handler
 		$newUsers = db_result($result);
 				
 		$links = array(
-			l("List City Wards", "op=ward_list"),
-			l("Approve New Accounts", "op=person_listnew") . " ($newUsers awaiting approval)",
-			l("Create New Waiting List", "op=wlist_create"),
-			l("List Waiting Lists", "op=wlist_list"),
+			array(l("List City Wards", "op=ward_list")),
+			array(l("Approve New Accounts", "op=person_listnew") . " ($newUsers awaiting approval)"),
+			array(l("Create New Waiting List", "op=wlist_create")),
+			array(l("List Waiting Lists", "op=wlist_list")),
 		);
-		$left = "<table>";
-		$left .= tr(th("Admin Tools"));
-		while(list(,$link) = each($links)) {
-			$left .= tr(td( $link ));
-		}
-		$left .= "</table>";
 
-		$left = div($left, array('class' => 'oldmenu'));
-		
+		$header = array ("Admin Tools");
+
+		$left = "<div class='oldmenu'>" . table($header, $links) . "</div>";
 		$right = para("Administrative tools for managing the league are available here.");
 		
-		$output = "<table border='0' cellpadding='0' cellspacing='2'>";
-		$output .= tr(
-			td($left, array('align' => 'left', 'valign' => 'top'))
-			. td($right, array('align' => 'left', 'valign' => 'top')));
-		$output .= "</table>";
-		
-		return $output;
+		$rows = array(
+			array(
+				array('data'=> $left, 'valign' => 'top'),
+				array('data'=> $right, 'valign' => 'top'),
+			)
+		);
+
+		return table(null, $rows);
 	}
 }
 

@@ -216,15 +216,14 @@ class PersonView extends Handler
 	{
 		$fullname = $person['firstname'] . " " . $person['lastname'];
 		
-		$output .= "<table border='0'>";
-		$output .= simple_row("Name:", $fullname);
+		$rows[] = array("Name:", $fullname);
 
 		if($this->_permissions['username']) {
-			$output .= simple_row("System Username:", $person['username']);
+			$rows[] = array("System Username:", $person['username']);
 		}
 		
 		if($this->_permissions['member_id']) {
-			$output .= simple_row("OCUA Member ID:", $person['member_id']);
+			$rows[] = array("OCUA Member ID:", $person['member_id']);
 		}
 		
 		if($this->_permissions['email']) {
@@ -233,7 +232,7 @@ class PersonView extends Handler
 			} else {
 				$publish_value = " (private)";
 			}
-			$output .= simple_row("Email Address:", l($person['email'], "mailto:" .  $person['email']) . $publish_value);
+			$rows[] = array("Email Address:", l($person['email'], "mailto:" .  $person['email']) . $publish_value);
 		}
 		
 		foreach(array('home','work','mobile') as $type) {
@@ -243,12 +242,12 @@ class PersonView extends Handler
 				} else {
 					$publish_value = " (private)";
 				}
-				$output .= simple_row("Phone ($type):", $person["${type}_phone"] . $publish_value);
+				$rows[] = array("Phone ($type):", $person["${type}_phone"] . $publish_value);
 			}
 		}
 		
 		if($this->_permissions['address']) {
-			$output .= simple_row("Address:", 
+			$rows[] = array("Address:", 
 				format_street_address(
 					$person['addr_street'],
 					$person['addr_city'],
@@ -257,70 +256,74 @@ class PersonView extends Handler
 				)
 			);
 			if($person['ward_number']) {
-				$output .= simple_row('Ward:', 
+				$rows[] = array('Ward:', 
 					l($person['ward_name'] . ' (' . $person['ward_city']. ' Ward ' . $person['ward_number']. ')','op=ward_view&id='.$person['ward_id']));
 			}
 		}
 		
 		if($this->_permissions['birthdate']) {
-			$output .= simple_row('Birthdate:', $person['birthdate']);
+			$rows[] = array('Birthdate:', $person['birthdate']);
 		}
 		
 		if($this->_permissions['height']) {
-			$output .= simple_row('Height:', $person['height'] ? $person['height'] : 0 . ' inches');
+			$rows[] = array('Height:', $person['height'] ? $person['height'] : 0 . ' inches');
 		}
 		
 		if($this->_permissions['gender']) {
-			$output .= simple_row("Gender:", $person['gender']);
+			$rows[] = array("Gender:", $person['gender']);
 		}
 		
 		if($this->_permissions['skill']) {
 			$skillAry = getOptionsForSkill();
-			$output .= simple_row("Skill Level:", $skillAry[$person['skill_level']]);
-			$output .= simple_row("Year Started:", $person['year_started']);
+			$rows[] = array("Skill Level:", $skillAry[$person['skill_level']]);
+			$rows[] = array("Year Started:", $person['year_started']);
 		}
 
 		if($this->_permissions['class']) {
-			$output .= simple_row("Account Class:", $person['class']);
+			$rows[] = array("Account Class:", $person['class']);
 		}
 		
-		$output .= simple_row("Account Status:", $person['status']);
+		$rows[] = array("Account Status:", $person['status']);
 		
 		if($this->_permissions['dog']) {
-			$output .= simple_row("Has Dog:",($person['has_dog'] == 'Y') ? "yes" : "no");
+			$rows[] = array("Has Dog:",($person['has_dog'] == 'Y') ? "yes" : "no");
 
 			if($person['has_dog'] == 'Y') {
-				$output .= simple_row("Dog Waiver Signed:",($person['dog_waiver_signed']) ? $person['dog_waiver_signed'] : "Not signed");
+				$rows[] = array("Dog Waiver Signed:",($person['dog_waiver_signed']) ? $person['dog_waiver_signed'] : "Not signed");
 			}
 		}
 		
 		if($this->_permissions['last_login']) {
 			if($person['last_login']) {
-				$output .= simple_row("Last Login:", 
+				$rows[] = array("Last Login:", 
 					$person['last_login'] . ' from ' . $person['client_ip']);
 			} else {
-				$output .= simple_row("Last Login:", "Never logged in");
+				$rows[] = array("Last Login:", "Never logged in");
 			}
 		}
 		
-		$team_html = "<table border='0'>";
-		$teams = get_teams_for_user($person['user_id']);
-		$tcount = count($teams);
-		for($i=0; $i < $tcount; $i++) {
-			$team = $teams[$i];
-			$team_html .= tr(
-				td($team['position'])
-				. td("on")
-				. td( l($team['name'], "op=team_view&id=" . $team['id']))
+		$result = db_query(
+			"SELECT 
+				r.status AS position,
+				r.team_id AS id,
+				t.name AS name
+			FROM 
+				teamroster r LEFT JOIN team t USING(team_id)
+			WHERE 
+				r.player_id = %d", $person['user_id']);
+		$rosterPositions = getRosterPositions();
+		$teams = array();
+		while($team = db_fetch_array($result)) {
+			$teams[] = array(
+				$rosterPositions[$team['position']],
+				"on",
+				l($team['name'], "op=team_view&id=" . $team['id'])
 			);
 		}
-		$team_html .= "</table>";
 		
-		$output .= simple_row("Teams:", $team_html);
+		$rows[] = array("Teams:", table( null, $teams) );
 				
-		$output .= "</table>";
-		
-		return $output;
+		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
 
@@ -718,92 +721,90 @@ class PersonEdit extends Handler
 			"If you have concerns about the data OCUA collects, please see our "
 			. "<b><font color=red><a href='http://www.ocua.ca/ocua/policy/privacy_policy.html' target='_new'>Privacy Policy</a></font></b>"
 		);
-		
-		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
-		$output .= simple_row("First Name:",
+
+		$rows = array();
+		$rows[] = array("First Name:",
 			form_textfield('', 'firstname', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
-		$output .= simple_row("Last Name:",
+
+		$rows[] = array("Last Name:",
 			form_textfield('', 'lastname', $formData['lastname'], 25,100, "Last name"));
 
 		if($this->_permissions['edit_username']) {
-			$output .= simple_row("System Username:",
+			$rows[] = array("System Username:",
 				form_textfield('', 'username', $formData['username'], 25,100, "Desired login name."));
 		} else {
-			$output .= simple_row("System Username:", $formData['username']);
+			$rows[] = array("System Username:", $formData['username']);
 		}
 
 		if($this->_permissions['edit_password']) {
-			$output .= simple_row("Password:",
+			$rows[] = array("Password:",
 				form_password('', 'password_once', '', 25,100, "Enter your desired password."));
-			$output .= simple_row("Re-Enter Password:",
+			$rows[] = array("Re-Enter Password:",
 				form_password('', 'password_twice', '', 25,100, "Enter your desired password a second time to confirm it."));
 		}
 
-		$output .= simple_row("Email Address:",
+		$rows[] = array("Email Address:",
 			form_textfield('', 'email', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
 			. form_checkbox("Allow other players to view my email address",'allow_publish_email','Y',($formData['allow_publish_email'] == 'Y')));
 
-		$addrBlock = "<table border='0' cellspacing='3'>";
-		$addrBlock .= simple_row("Street Address:",
+		$addrRows = array();
+		$addrRows[] = array("Street Address:",
 			form_textfield('','addr_street',$formData['addr_street'], 25, 100, "Number, street name, and apartment number if necessary"));
-		$addrBlock .= simple_row("City:",
+		$addrRows[] = array("City:",
 			form_textfield('','addr_city',$formData['addr_city'], 25, 100, "Name of city.  If you are a resident of the amalgamated Ottawa, please enter 'Ottawa' (instead of Kanata, Nepean, etc.)"));
 			
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
-		$addrBlock .= simple_row("Province:",
+		$addrRows[] = array("Province:",
 			form_select('', 'addr_prov', $formData['addr_prov'], getProvinceNames(), "Select a province from the list"));
 
-		$addrBlock .= simple_row("Postal Code:",
+		$addrRows[] = array("Postal Code:",
 			form_textfield('', 'addr_postalcode', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
 
-		$addrBlock .= "</table>";
+		$rows[] = array("Address:", table(null, $addrRows));
+	
+		$phoneRows = array();
+		$phoneRows[] = array("Home:", form_textfield('', 'home_phone', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_home_phone','Y',($formData['publish_home_phone'] == 'Y'))));
+		$phoneRows[] = array("Work:", form_textfield('', 'work_phone', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_work_phone','Y',($formData['publish_work_phone'] == 'Y'))));
+		$phoneRows[] = array("Mobile:", form_textfield('', 'mobile_phone', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_mobile_phone','Y',($formData['publish_mobile_phone'] == 'Y'))));
 
-		$output .= simple_row("Address:", $addrBlock);
+		$rows[] = array("Telephone:", table(null, $phoneRows));
 
-		$output .= simple_row("Telephone:", 
-			"<table border='0'>"
-			. simple_row("Home:", form_textfield('', 'home_phone', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_home_phone','Y',($formData['publish_home_phone'] == 'Y'))))
-			. simple_row("Work:", form_textfield('', 'work_phone', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_work_phone','Y',($formData['publish_work_phone'] == 'Y'))))
-			. simple_row("Mobile:", form_textfield('', 'mobile_phone', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_mobile_phone','Y',($formData['publish_mobile_phone'] == 'Y'))))
-			. "</table>"
-		);
-
-		$output .= simple_row("Gender:",
+		$rows[] = array("Gender:",
 			form_select('', 'gender', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
 			
-		$output .= simple_row("Skill Level:",
+		$rows[] = array("Skill Level:",
 			form_radiogroup('', 'skill_level', $formData['skill_level'],
 				getOptionsForSkill()));
 
 		$thisYear = strftime("%Y", time());
 
-		$output .= simple_row("Year Started:",
+		$rows[] = array("Year Started:",
 			form_select('', 'year_started', $formData['year_started'], 
 				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate in Ottawa."));
 
-		$output .= simple_row("Birthdate:",
+		$rows[] = array("Birthdate:",
 			form_select_date('', 'birth', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
 
-		$output .= simple_row('Height:',
+		$rows[] = array('Height:',
 			form_textfield('','height',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
 			
 		if($this->_permissions['edit_class']) {
-			$output .= simple_row("Account Class:",
+			$rows[] = array("Account Class:",
 				form_select('','class', $formData['class'], getOptionsFromEnum('person','class')));
 		}
 		
 		if($this->_permissions['edit_status']) {
-			$output .= simple_row("Account Status:",
+			$rows[] = array("Account Status:",
 				form_select('','status', $formData['status'], getOptionsFromEnum('person','status')));
 		}
 
-		$output .= simple_row("Has dog:",
+		$rows[] = array("Has dog:",
 			form_radiogroup('', 'has_dog', $formData['has_dog'], array(
 				'Y' => 'Yes, I have a dog I will be bringing to games',
 				'N' => 'No, I will not be bringing a dog to games')));
 		
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$this->setLocation(array(
 			$formData['firstname'] . " " . $formData['lastname'] => "op=person_view&id=$id",
@@ -827,43 +828,43 @@ class PersonEdit extends Handler
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
 
-		$output .= "<table border='0'>";
+		$rows = array();
 
 		$firstname = var_from_post('firstname');
-		$output .= simple_row("First Name:",
+		$rows[] = array("First Name:",
 			form_hidden('firstname',$firstname) . $firstname);
 			
 		$lastname = var_from_post('lastname');
-		$output .= simple_row("Last Name:",
+		$rows[] = array("Last Name:",
 			form_hidden('lastname',$lastname) . $lastname);
 		
 		if($this->_permissions['edit_username']) {
 			$username = var_from_post('username');
-			$output .= simple_row("System Username:",
+			$rows[] = array("System Username:",
 				form_hidden('username',$username) . $username);
 		}
 		
 		if($this->_permissions['edit_password']) {
 			$password_once = var_from_post('username');
-			$output .= simple_row("Password:",
+			$rows[] = array("Password:",
 				form_hidden('password_once', var_from_post('password_once'))
 				. form_hidden('password_twice', var_from_post('password_twice'))
 				. '<i>(entered)</i>');
 		}
 		
 		$email = var_from_post('email');
-		$output .= simple_row("Email Address:",
+		$rows[] = array("Email Address:",
 			form_hidden('email',$email) . $email);
 			
 		$allow_publish_email = var_from_post('allow_publish_email');
-		$output .= simple_row("Show Email:",
+		$rows[] = array("Show Email:",
 			form_hidden('allow_publish_email',$allow_publish_email) . $allow_publish_email);
 
 		$addr_street = var_from_post('addr_street');
 		$addr_city = var_from_post('addr_city');
 		$addr_prov = var_from_post('addr_prov');
 		$addr_postalcode = var_from_post('addr_postalcode');
-		$output .= simple_row("Address:",
+		$rows[] = array("Address:",
 			form_hidden('addr_street',$addr_street)
 			. form_hidden('addr_city',$addr_city)
 			. form_hidden('addr_prov',$addr_prov)
@@ -889,22 +890,22 @@ class PersonEdit extends Handler
 				}
 			}
 		}
-		$output .= simple_row("Telephone:", $phoneBlock);
+		$rows[] = array("Telephone:", $phoneBlock);
 
 		$gender = var_from_post('gender');
-		$output .= simple_row("Gender:", form_hidden('gender',$gender) . $gender);
+		$rows[] = array("Gender:", form_hidden('gender',$gender) . $gender);
 		
 		$skill_level = var_from_post('skill_level');
 		$levels = getOptionsForSkill();
-		$output .= simple_row("Skill Level:", form_hidden('skill_level',$skill_level) . $levels[$skill_level]);
+		$rows[] = array("Skill Level:", form_hidden('skill_level',$skill_level) . $levels[$skill_level]);
 		
 		$year_started = var_from_post('year_started');
-		$output .= simple_row("Year Started:", form_hidden('year_started',$year_started) . $year_started);
+		$rows[] = array("Year Started:", form_hidden('year_started',$year_started) . $year_started);
 
 		$birth_year = var_from_post('birth_year');
 		$birth_month = var_from_post('birth_month');
 		$birth_day = var_from_post('birth_day');
-		$output .= simple_row("Birthdate:", 
+		$rows[] = array("Birthdate:", 
 			form_hidden('birth_year',$birth_year) 
 			. form_hidden('birth_month',$birth_month) 
 			. form_hidden('birth_day',$birth_day) 
@@ -912,23 +913,23 @@ class PersonEdit extends Handler
 		
 		$height = var_from_post('height');
 		if($height) {
-			$output .= simple_row("Height:", form_hidden('height',$height) . $height . " inches");
+			$rows[] = array("Height:", form_hidden('height',$height) . $height . " inches");
 		}
 	
 		if($this->_permissions['edit_class']) {
 			$class = var_from_post('class');
-			$output .= simple_row("Account Class:", form_hidden('class',$class) . $class);
+			$rows[] = array("Account Class:", form_hidden('class',$class) . $class);
 		}
 		
 		if($this->_permissions['edit_status']) {
 			$status = var_from_post('status');
-			$output .= simple_row("Account Status:", form_hidden('status',$status) . $status);
+			$rows[] = array("Account Status:", form_hidden('status',$status) . $status);
 		}
 		
 		$has_dog = var_from_post('has_dog');
-		$output .= simple_row("Has dog:", form_hidden('has_dog',$has_dog) . $has_dog);
+		$rows[] = array("Has dog:", form_hidden('has_dog',$has_dog) . $has_dog);
 			
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
@@ -1716,10 +1717,15 @@ class PersonChangePassword extends Handler
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("New Password:", form_password('', 'password_one', '', 25, 100, "Enter your new password"));
-		$output .= simple_row("New Password (again):", form_password('', 'password_two', '', 25, 100, "Enter your new password a second time to confirm"));
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>";
+		$output .= table( null, 
+			array(
+				array("New Password:", form_password('', 'password_one', '', 25, 100, "Enter your new password")),
+				array("New Password (again):", form_password('', 'password_two', '', 25, 100, "Enter your new password a second time to confirm")),
+			)
+		);
+		$output .= "</div>";
+		
 		$output .= form_submit("Submit") . form_reset("Reset");
 
 		return form($output);
@@ -1797,11 +1803,13 @@ END_TEXT;
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("Username:", form_textfield('', 'username', '', 25, 100));
-		$output .= simple_row("Member ID Number:", form_textfield('', 'member_id', '', 25, 100));
-		$output .= simple_row("Email Address:", form_textfield('', 'email', '', 40, 100));
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>";
+		$output .= table(null, array(
+			array("Username:", form_textfield('', 'username', '', 25, 100)),
+			array("Member ID Number:", form_textfield('', 'member_id', '', 25, 100)),
+			array("Email Address:", form_textfield('', 'email', '', 40, 100))
+		));
+		$output .= "</div>";
 		$output .= form_submit("Submit") . form_reset("Reset");
 
 		return form($output);
@@ -1812,7 +1820,7 @@ END_TEXT;
 		$username = var_from_getorpost('username');
 		$member_id = var_from_getorpost('member_id');
 		$email = var_from_getorpost('email');
-		
+	
 		$fields = array();
 		$fields_data = array();
 		if(validate_nonblank($username)) {
@@ -1898,4 +1906,5 @@ END_TEXT;
 		return $output;
 	}
 }
+
 ?>

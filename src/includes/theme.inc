@@ -22,9 +22,7 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
   </head>
   <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
   <table border='0' cellpadding='0' cellspacing='0' width='760' bgcolor='white'><?php
-  	print tr(
-		td("<h1>$APP_NAME</h1>", array("class" => "toprow", "colspan" => 2))
-	);
+  	print "<tr><td colspan='2' class='toprow'><h1>$APP_NAME</h1></td></tr>\n";
 
 	print theme_navbar($section, $breadcrumbs);
 	print "<tr><td colspan='2' class='main'>";
@@ -80,23 +78,21 @@ function theme_navbar($section, $breadcrumbs = array())
 			} else {
 				$class = 'off';
 			}
-			print td( l($name,"op=$key"), array('class' => $class, 'width' => $tdWidth . '%'));
+			print "<td class='$class' width='$tdWidth%'>" . l($name,"op=$key") . "</td>";
 		}
 		print "</tr>";
 		
-		print tr(
-			td(theme_links($crumbs, "&nbsp;&raquo;&nbsp;"), array('class' => 'nav', 'colspan' => ceil( 2 * ($numTabs / 3))))
-			. td($rightLink, array('class' => 'nav', 'align'=>'right', 'colspan' => floor($numTabs / 2)))
-		);
+		print "<tr>";
+		print "<td class='nav' colspan='" . ceil(2 * ($numTabs / 3)) . "'>" . theme_links($crumbs, "&nbsp;&raquo;&nbsp;") . "</td>";
+		print "<td class='nav' align='right' colspan='" . floor($numTabs / 2) . "'>$rightLink</td>";
+		print "</tr>";
 		
 	} else {
-		$rightLink = theme_links( array(
-			l('log in','op=login'),
-			$rightLink));
-		print tr(
-			td("&nbsp;", array('class' => 'nav'))
-			. td( $rightLink, array('class' => 'nav', 'align' => 'right'))
-		);
+		$rightLink = theme_links( array( l('log in','op=login'), $rightLink));
+		print "<tr>";
+		print "<td class='nav'>&nbsp;</td>";
+		print "<td class='nav' align='right'>$rightLink</td>";
+		print "</tr>";
 	}
 	
 	print "</table></div></td></tr>\n";

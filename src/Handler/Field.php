@@ -56,13 +56,13 @@ class FieldCreate extends FieldEdit
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('site_id', $site_id);
 
-		$output .= "<table border='0'>";
+		$rows = array();
 
-		$output .= simple_row('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
-		$output .= simple_row('Field Number:', 
+		$rows[] = array('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
+		$rows[] = array('Field Number:', 
 			form_textfield('', 'field[num]', '', 2, 2, "Number for this field at the given site"));
 			
-		$output .= simple_row('Field Status:', 
+		$rows[] = array('Field Status:', 
 			form_select('', 'field[status]', '', getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
 
 		$availability = '';
@@ -70,8 +70,8 @@ class FieldCreate extends FieldEdit
 			$availability .= form_checkbox($day,'field[availability][]', $day, $isAvailable);
 		}
 
-		$output .= simple_row('Availability:',  $availability);
-		$output .= "</table>";
+		$rows[] = array('Availability:',  $availability);
+		$output .= "<div class='pairtable'>". table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
 		return form($output);
@@ -105,17 +105,16 @@ class FieldCreate extends FieldEdit
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('site_id', $site_id);
 
-		$output .= "<table border='0'>";
-
-		$output .= simple_row('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
-		$output .= simple_row('Field Number:', 
+		$rows[] = array();
+		$rows[] = array('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
+		$rows[] = array('Field Number:', 
 			form_hidden('field[num]', $field['num']) . $field['num']);
-		$output .= simple_row('Field Status:', 
+		$rows[] = array('Field Status:', 
 			form_hidden('field[status]', $field['status']) . $field['status']);
-		$output .= simple_row('Availability:', 
+		$rows[] = array('Availability:', 
 			form_hidden('field[availability]', $field['availability']) . $field['availability']);
 			
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>". table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
 		return form($output);
@@ -225,13 +224,12 @@ class FieldEdit extends Handler
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('id', $id);
 
-		$output .= "<table border='0'>";
-
-		$output .= simple_row('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
-		$output .= simple_row('Field Number:', 
+		$rows = array();
+		$rows[] = array('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
+		$rows[] = array('Field Number:', 
 			form_textfield('', 'field[num]', $field['num'], 2, 2, "Number for this field at the given site"));
 			
-		$output .= simple_row('Field Status:', 
+		$rows[] = array('Field Status:', 
 			form_select('', 'field[status]', $field['status'], getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
 
 		$availability = '';
@@ -239,8 +237,8 @@ class FieldEdit extends Handler
 			$availability .= form_checkbox($day,'field[availability][]', $day, $isAvailable);
 		}
 
-		$output .= simple_row('Availability:',  $availability);
-		$output .= "</table>";
+		$rows[] = array('Availability:',  $availability);
+		$output .= "<div class='pairtable'>". table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		$this->setLocation(array(
@@ -275,17 +273,16 @@ class FieldEdit extends Handler
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
 
-		$output .= "<table border='0'>";
-
-		$output .= simple_row('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
-		$output .= simple_row('Field Number:', 
+		$rows[] = array();
+		$rows[] = array('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
+		$rows[] = array('Field Number:', 
 			form_hidden('field[num]', $field['num']) . $field['num']);
-		$output .= simple_row('Field Status:', 
+		$rows[] = array('Field Status:', 
 			form_hidden('field[status]', $field['status']) . $field['status']);
-		$output .= simple_row('Availability:', 
+		$rows[] = array('Availability:', 
 			form_hidden('field[availability]', $field['availability']) . $field['availability']);
 			
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>". table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 
 		$this->setLocation(array(
@@ -392,15 +389,15 @@ class FieldView extends Handler
 		$daysAvailable = strlen($field->availability) ? split(",", $field->availability) : array();
 		
 		$allDays = array_values( getOptionsFromEnum('field_assignment', 'day') );
-		$bookings = "<table cellpadding='3' cellspacing='0' width='100%'>";
-		$bookings .= tr(
-			th("Day")
-			. th("League")
-			. th("&nbsp;", array('colspan' => 2))
-		);
+		
+		$header = array("Day","League",array('data' => '&nbsp;', 'colspan' => 2));
+		$rows = array();	
 		foreach($allDays as $curDay) {
-			$bookings .= "<tr>";
-			$bookings .= td($curDay);
+			if($curDay === '---') {
+				continue;
+			}
+			$thisRow = array( $curDay );
+			
 			if(in_array($curDay, $daysAvailable)) {
 				$result = db_query("SELECT 
 					a.league_id, l.name, l.tier
@@ -408,32 +405,31 @@ class FieldView extends Handler
 					field_assignment a, league l
 				WHERE 
 					a.day = '%s' AND a.field_id = %d AND a.league_id = l.league_id ORDER BY l.ratio, l.tier",  $curDay, $id);
-					
-				$bookings .= "<td>";
+				
+				$booking = "";
 				while($ass = db_fetch_object($result)) {
-					$bookings .= "&raquo;&nbsp;$ass->name";
+					$booking .= "&raquo;&nbsp;$ass->name";
 					if($ass->tier) {
-						$bookings .= " Tier " . $ass->tier;
+						$booking .= " Tier " . $ass->tier;
 					}
-					$bookings .= "&nbsp;[&nbsp;" 
+					$booking .= "&nbsp;[&nbsp;" 
 						. l("view league", "op=league_view&id=$ass->league_id");
 					if($this->_permissions['field_assign']) {
-						$bookings .= "&nbsp;|&nbsp;" 
+						$booking .= "&nbsp;|&nbsp;" 
 							. l("delete booking", "op=field_unassign&id=$id&day=$curDay&league_id=$ass->league_id");
 					}
-					$bookings .= "&nbsp;]<br />";
+					$booking .= "&nbsp;]<br />";
 				}
-				$bookings .= "&nbsp;</td>";
+				$thisRow[] = $booking;
 				if($this->_permissions['field_assign']) {
-					$bookings .= td(l("add new booking", "op=field_assign&id=$id&day=$curDay"));
+					$thisRow[] = l("add new booking", "op=field_assign&id=$id&day=$curDay");
 				}
 			} else {
-				$bookings .= td("Unavailable", array('colspan' => 2));
+				$thisRow[] = array('data' => 'Unavailable', 'colspan' => 2);
 			}
-
-			$bookings .= "</tr>";
+			$rows[] = $thisRow;
 		}
-		$bookings .= "</table>";
+		$bookings = '<div class="listtable">' . table($header, $rows) . "</div>";
 
 		$links = array();
 		if($this->_permissions['field_edit']) {
@@ -441,14 +437,16 @@ class FieldView extends Handler
 		}
 
 		$output = theme_links($links);
-		$output .= "<table border='0' width='100%'>";
-		$output .= simple_row("Site:", 
-			"$field->name ($field->code)&nbsp;[&nbsp;" 
-			. l("view", "op=site_view&id=$field->site_id") . "&nbsp;]");
-		$output .= simple_row("Status:", $field->status);
-		$output .= simple_row("Assignments:", "<div class='listtable'>$bookings</div>");
+		$output .= "<div class='pairtable'>";
+		$output .= table(null, array(
+			array("Site:", 
+				"$field->name ($field->code)&nbsp;[&nbsp;" 
+				. l("view", "op=site_view&id=$field->site_id") . "&nbsp;]"),
+			array("Status:", $field->status),
+			array("Assignments:", $bookings),
 		
-		$output .= "</table>";
+		));
+		$output .= "</div>";
 
 		return $output;
 	}
@@ -525,7 +523,7 @@ class FieldAssign extends Handler
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('day', $day);
 		
-		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?, day) > 0)", array($day));
+		$leagues = getOptionsFromQuery("SELECT league_id AS theKey, IF(tier,CONCAT(name, ' Tier ', tier), name) AS theValue FROM league WHERE allow_schedule = 'Y' AND (FIND_IN_SET(?, day) > 0)", array($day));
 
 		$output .= para("Select a league to assign field <b>"
 				. $field_name . "</b> to for <b>"

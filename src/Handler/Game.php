@@ -126,7 +126,7 @@ class GameSubmit extends Handler
 			'defaulted' => var_from_getorpost('defaulted'),
 		);
 		
-		$result = $db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$id);
+		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$id);
 		$opponent_entry = db_fetch_array($result);
 
 		if( ! db_num_rows($result) ) {
@@ -253,22 +253,21 @@ class GameSubmit extends Handler
 		$output .= form_hidden('team_id', $team_id);
 		$output .= form_hidden('defaulted', $defaulted);
 		
-		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
 
+		$rows = array();
 		if($defaulted == 'us') {
-			$output .= simple_row($myName .":", "0 (defaulted)");
-			$output .= simple_row($opponentName .":", 6);
+			$rows[] = array("$myName:", "0 (defaulted)");
+			$rows[] = array("$opponentName:", 6);
 		} else if($defaulted == 'them') {
-			$output .= simple_row($myName .":", 6);
-			$output .= simple_row($opponentName .":", "0 (defaulted)");
+			$rows[] = array("$myName:", 6);
+			$rows[] = array("$opponentName:", "0 (defaulted)");
 		} else {
-			$output .= simple_row($myName .":", $scoreFor . form_hidden('score_for', $scoreFor));
-			$output .= simple_row($opponentName .":", $scoreAgainst . form_hidden('score_against', $scoreAgainst));
-			$output .= simple_row("SOTG for $opponentName:", $sotg . form_hidden('sotg', $sotg));
+			$rows[] = array("$myName:", $scoreFor . form_hidden('score_for', $scoreFor));
+			$rows[] = array("$opponentName:", $scoreAgainst . form_hidden('score_against', $scoreAgainst));
+			$rows[] = array("SOTG for $opponentName:", $sotg . form_hidden('sotg', $sotg));
 		}
 
-
-		$output .= "</table>";
+		$output .= '<div class="pairtable">' . table(null, $rows) . "</div>";
 		$output .= para(form_submit('submit'));
 
 		return form($output);
@@ -345,17 +344,12 @@ ENDSCRIPT;
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('team_id', $team_id);
-		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
-	
-		$result = db_query(
-			"SELECT 
-				score_for, score_against, defaulted
-				FROM score_entry WHERE game_id = %d AND team_id = %d", 
-				$id, $opponentId);
+
+		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $id, $opponentId);
 				
 		$opponent = db_fetch_array($result);
 
-		if(!$opponent) {
+		if($opponent) {
 			$opponentScoreFor = $opponent['score_for'];
 			$opponentScoreAgainst = $opponent['score_against'];
 			
@@ -370,32 +364,28 @@ ENDSCRIPT;
 			$opponentScoreAgainst = "not yet entered";
 		}
 		
-		$output .= tr(
-			td("Team Name", array( 'class' => 'schedule_title' ))
-			. td("Defaulted?", array( 'class' => 'schedule_title' ))
-			. td("Your Score Entry", array( 'class' => 'schedule_title' ))
-			. td("Opponent's Score Entry", array( 'class' => 'schedule_title' ))
-			. td("SOTG", array( 'class' => 'schedule_title' ))
+		$rows = array();
+		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry", "SOTG");
+	
+	
+		$rows[] = array(
+			$myName,
+			"<input type='checkbox' name='defaulted' value='us' onclick='defaultCheckboxChanged()'>",
+			form_textfield("","score_for","",2,2),
+			$opponentScoreAgainst,
+			"&nbsp;"
 		);
-		$output .= tr(
-			td($myName, array( 'class' => 'row_title' ))
-			. td("<input type='checkbox' name='defaulted' value='us' onclick='defaultCheckboxChanged()'>", array( 'class' => 'row_title' ))
-			. td(form_textfield("","score_for","",2,2), array( 'class' => 'row_title' ))
-			. td( $opponentScoreAgainst, array( 'class' => 'row_title' ))
-			. td( "&nbsp;", array( 'class' => 'row_title' ))
-		);
-		$output .= tr(
-			td($opponentName, array( 'class' => 'row_title' ))
-			. td("<input type='checkbox' name='defaulted' value='them' onclick='defaultCheckboxChanged()'>", array( 'class' => 'row_title' ))
-			. td(form_textfield("","score_against","",2,2), array( 'class' => 'row_title' ))
-			. td( $opponentScoreFor, array( 'class' => 'row_title' ))
-			. td( 
-				form_select("", "sotg", "--", getOptionsFromRange(1,10))
-				. "<font size='-2'>(<a href='/leagues/spirit_guidelines.html' target='_new'>spirit guideline</a>)</font>",
-				array( 'class' => 'row_title' ))
+		
+		$rows[] = array(
+			$opponentName,
+			"<input type='checkbox' name='defaulted' value='them' onclick='defaultCheckboxChanged()'>",
+			form_textfield("","score_against","",2,2),
+			$opponentScoreFor,
+			form_select("", "sotg", "--", getOptionsFromRange(1,10))
+				. "<font size='-2'>(<a href='/leagues/spirit_guidelines.html' target='_new'>spirit guideline</a>)</font>"
 		);
 
-		$output .= "</table>";
+		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		return $script . form($output, "POST", 0, "name='scoreform'");
@@ -580,14 +570,7 @@ class GameFinalizeScore extends Handler
 			$output .= form_hidden('home_sotg', $home_sotg);		
 			$output .= form_hidden('away_sotg', $away_sotg);		
 		}
-		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
-		$output .= tr(
-			td("Team")
-			. td("Score")
-			. td("SOTG"),
-			array('class' => 'schedule_title')
-		);
-
+		
 		if($defaulted == 'home') {
 			$home_score = "0 (defaulted)";
 			$away_score = "6";
@@ -599,22 +582,14 @@ class GameFinalizeScore extends Handler
 			$home_sotg = "n/a";
 			$away_sotg = "n/a";
 		}
-		
-		$output .= tr(
-			td($gameInfo['home_name'] . ":")
-			.td($home_score)
-			.td($home_sotg),
-			array('class' => 'standings_item')
-		);
-		$output .= tr(
-			td($gameInfo['away_name'] . ":")
-			.td($away_score)
-			.td($away_sotg),
-			array('class' => 'standings_item')
-		);
-
 	
-		$output .= "</table>";
+		$header = array( "Team", "Score", "SOTG");
+		$rows = array(
+			array($gameInfo['home_name'], $home_score, $home_sotg),
+			array($gameInfo['away_name'], $away_score, $away_sotg)
+		);
+	
+		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 
 		$output .= para(form_submit('submit'));
 
@@ -664,74 +639,55 @@ class GameFinalizeScore extends Handler
 		
 		$datePlayed = strftime("%A %B %d %Y, %H%Mh",$gameInfo['timestamp']);
 
-		$output = para( "Finalize the score for the $datePlayed game between " . $gameInfo['home_name'] . " and " . $gameInfo['away_name'] . ".");
+		$output = para( "Finalize the score for <b>Game $id</b> of $datePlayed between <b>" . $gameInfo['home_name'] . "</b> and <b>" . $gameInfo['away_name'] . "</b>.");
 		
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'confirm');
 		$output .= form_hidden('id', $id);
-		$output .= "<table border='1' cellpadding='3' cellspacing='0'>";
-		$output .= tr(
-			td("Game Date")
-			. td("Home Team Submission", array('colspan' => 2))
-			. td("Away Team Submission", array('colspan' => 2)),
-			array('class' => 'schedule_title'));
-		$output .= tr(
-			td($datePlayed, array('rowspan' => 5))
-			. td($gameInfo['home_name'], array('colspan' => 2))
-			. td($gameInfo['away_name'], array('colspan' => 2)),
-			array('class' => 'schedule_item'));
-		$output .= tr(
-			td("Home Score:")
-			. td($home['score_for'])
-			. td("Home Score:")
-			. td($away['score_against']),
-			array('class' => 'schedule_item'));
-		$output .= tr(
-			td("Away Score:")
-			. td($home['score_against'])
-			. td("Away Score:")
-			. td($away['score_for']),
-			array('class' => 'schedule_item'));
-		$output .= tr(
-			td("Defaulted?")
-			. td($home['defaulted'])
-			. td("Defaulted?")
-			. td($away['defaulted']),
-			array('class' => 'schedule_item'));
-		$output .= tr(
-			td("Away SOTG:")
-			. td($home['spirit'])
-			. td("Home SOTG:")
-			. td($away['spirit']),
-			array('class' => 'schedule_item'));
 
-		$output .= tr(
-			td("Score Approval", array('colspan' => 5, 'align' => 'center')),
-			array('class' => 'schedule_title'));
-		$output .= tr(
-			td("Final score should be:", array('rowspan' => 2))
-			. td("Home Team")
-			. td(form_textfield("","home_score","",2,2))
-			. td("Away Team")
-			. td(form_textfield("","away_score","",2,2)),
-			array('class' => 'schedule_item'));
 
-		$output .= tr(
-			td("or default: "
-				. "<input type='checkbox' name='defaulted' value='home' onclick='defaultCheckboxChanged()'>", array('colspan' => 2, 'align' => 'right'))
-			. td("or default: "
-				. "<input type='checkbox' name='defaulted' value='away' onclick='defaultCheckboxChanged()'>", array('colspan' => 2, 'align' => 'right')),
-			array('class' => 'schedule_item'));
+		$output .= "<h2>Score as entered:</h2>";
+		
+		$header = array(
+			"&nbsp;",
+			$gameInfo['home_name'] . " (home)",
+			$gameInfo['away_name'] . " (away)"
+		);
+		
+		$rows = array();
+		
+		$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
+		$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
+		$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
+		$rows[] = array( "Opponent SOTG:", $home['spirit'], $away['spirit'],);
+		
+		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
+		
+		$output .= "<h2>Score as approved:</h2>";
+		
+		$rows = array();
+		
+		$rows[] = array(
+			$gameInfo['home_name'] . " (home) score:",
+			form_textfield('','home_score','',2,2)
+				. "or default: <input type='checkbox' name='defaulted' value='home' onclick='defaultCheckboxChanged()'>"
+		);
+		$rows[] = array(
+			$gameInfo['away_name'] . " (away) score:",
+			form_textfield('','away_score','',2,2)
+				. "or default: <input type='checkbox' name='defaulted' value='away' onclick='defaultCheckboxChanged()'>"
+		);
+		
+		$rows[] = array(
+			$gameInfo['home_name'] . " (home) assigned spirit:",
+			form_select("", "home_sotg", $away['spirit'], getOptionsFromRange(1,10))
+		);
+		$rows[] = array(
+			$gameInfo['away_name'] . " (away) assigned spirit:",
+			form_select("", "away_sotg", $home['spirit'], getOptionsFromRange(1,10))
+		);
 
-		$output .= tr(
-			td("Spririt scores should be:")
-			. td("Home Team")
-			. td(form_select("", "home_sotg", $away['spirit'], getOptionsFromRange(1,10)))
-			. td("Away Team")
-			. td(form_select("", "away_sotg", $home['spirit'], getOptionsFromRange(1,10))),
-			array('class' => 'schedule_item'));
-			
-		$output .= "</table>";
+		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
 		$script = <<<ENDSCRIPT

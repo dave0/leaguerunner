@@ -2,9 +2,7 @@ body            { background-color: white; font-size: 9pt;
                   font-family: verdana, arial, helvetica, sans-serif; }
 h1              { font-size: 18px;}
 pre             { font-family: monospace; font-size: 9pt; }
-table           { font-size: 9pt; }
-
-.row_title      { color: black; font-weight: bold; font-size: 9pt; }
+.row_title      { color: black; font-weight: bold; }
 .warning        { background-color: red; border: 1px solid black; }
 
 .toprow         { color: white; background-color: black; border: 1px solid black;
@@ -13,42 +11,78 @@ table           { font-size: 9pt; }
 a               { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
+/* Defaults for tables */
+table           { border-collapse: collapse; font-size: 9pt }
+td		{ vertical-align: top }
+
+
+
+/* CSS2 to bold-face the left-hand column */
+.pairtable td:first-child {
+	font-weight:    bold;
+}
+
 .listtable th {
-    background-color:    black;
-    color:               white;
-    font-weight:         bold;
+	background-color:    black;
+	color:               white;
+	font-weight:         bold;
+	padding-left: 0.3em; 
+	padding-right: 0.3em;
 	border-bottom: 1px solid black;
 	text-align: left;
 }
 
 .listtable td {
+	padding-left: 0.3em; 
+	padding-right: 0.3em;
 	border-bottom: 1px solid gray;
 	vertical-align: top;
 }
 
-.listtable td .subtitle {
+.listtable .subtitle {
 	font-weight: bold;
 	border-bottom: 1px solid black;
 }
 
+.listtable .highlight { background-color: lightgreen; }
+
 .listtable .roster_conflict {
-    color: red;
+	color: red;
 	font-weight: bold;
 }
+
+.schedule td {
+	padding-left: 0.3em; 
+	padding-right: 0.3em;
+}
+
+.schedule .gamedate, .schedule th {
+	background-color:    black;
+	color:               white;
+	font-weight:         bold;
+}
+
+.schedule .column-heading {
+	font-weight: bold;
+	vertical-align: bottom;
+	border-bottom: 1px solid black;
+}
+
+.schedule tr.dark {
+	background-color: lightgray;
+}
+
+.fieldlist table { border-collapse: collapse; width: 100%; }
+.fieldlist th    { background-color: black; color: white; font-weight: bold;
+                   font-size: 9pt; }
+.fieldlist td    { vertical-align: top; font-size: 8pt; }
+
 
 .myteams table { border-collapse: collapse; width: 100% }
 .myteams th { text-align: left; background-color: black; color: white; 
               font-size: 9pt; }
 .myteams td { vertical-align: top; font-size: 9pt; }
 .myteams .highlight { background-color: lightblue; }
-
-.waitlist table { border-collapse: collapse; width: 100% }
-.waitlist th {  background-color: black; color: white; font-size: 9pt; }
-.waitlist th a { color: white; font-size: 9pt; float: right; text-align: right; }
-
-.waitlist td { padding-left: 10px; vertical-align: top; font-size: 9pt; }
-.waitlist .row_title { width: 20%; }
-.waitlist .highlight { background-color: lightgreen; }
 
 .oldmenu table { border-collapse: collapse; }
 .oldmenu th { text-align: left; background-color: black; color: white; 
@@ -73,10 +107,5 @@ a:hover         { text-decoration: underline; }
                    padding-left: 5px; padding-right: 5px; }
 .lr_topbar .off  { background-color: darkgray; text-align: center; border-left: thin solid black; border-top: thin solid black; border-right: thin solid black }
 .lr_topbar .on   { background-color: white; font-weight: bold; text-align: center; border-bottom: thin solid black }
-
-.fieldlist table { border-collapse: collapse; width: 100%; }
-.fieldlist th    { background-color: black; color: white; font-weight: bold;
-                   font-size: 9pt; }
-.fieldlist td    { vertical-align: top; font-size: 8pt; }
 
 .error { color: red }

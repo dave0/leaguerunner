@@ -96,45 +96,42 @@ class Login extends Handler
 
 	function login_form($error = "")
 	{
-
+		
+		$output = "<p />";
 		if($error) {
 			$output .= "<div style='padding-top: 2em; text-align: center'>";
 			$output .= theme_error($error);
 			$output .= "</div>";
 		}
-		$output .= "<table align='center' border='0' cellpadding='5' width='300'>";
-		$output .= "<tr><td>Username:</td><td>";
-		$output .= form_textfield("", "username", "", 25, 25);
-		$output .= "</td></tr>";
-		$output .= "<tr><td>Password:</td><td>";
-		$output .= form_password("", "password", "", 25, 25);
-		$output .= "</td></tr>";
+		$rows = array();
+		$rows[] = array("Username:", form_textfield("", "username", "", 25, 25));
+		$rows[] = array("Password:", form_password("", "password", "", 25, 25));
 
-		$output .= tr(
-			td(form_checkbox("Remember Me","remember_me"), array( "colspan" => 2, "align" => "center"))
+		$rows[] = array(
+			array('data' => form_checkbox("Remember Me","remember_me"),
+				  "colspan" => 2, "align" => "center")
 		);
-
-		$login_td = form_submit("Log In","submit");
-		$login_td .= "<br />" . theme_links(array(
+		$rows[] = array(
+			array('data' => form_submit("Log In","submit")
+				  . "<br />" . theme_links(array(
 			l("Forgot your password", "op=person_forgotpassword"),
-			l("Create New Account", "op=person_create")));
-		
-		$output .= tr(
-			td( $login_td, array( "colspan" => 2, "align" => "center", "valign" => "middle"))
+			l("Create New Account", "op=person_create"))),
+				  "colspan" => 2, "align" => "center")
 		);
-		
-		$output .=<<<EOF
-<tr>
-<td colspan='2'><font size='-2'>
-<b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
+
+		$rows[] = array(
+			array( 'colspan' => 2,
+				   'data' => "<b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
 have an invalid session then cookies may be turned off in your browser.<br />
 <br />
 <i>
 If you cannot login after receiving your Account Activiation notification, try getting a new 
-password emailed to you (click on "Forgot your password?").</i>
-</font></td>
-</tr>
-</table>
+password emailed to you (click on \"Forgot your password?\").</i>"
+			)
+		);
+
+		$output .= table(null, $rows, array('align'=>'center', 'width' => '300' ));
+		$output .=<<<EOF
 <input type='hidden' name='op' value='login'>
 <script language="JavaScript">
 document.lrlogin.username.focus();

@@ -174,14 +174,14 @@ class TeamEdit extends Handler
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'confirm');
 		$output .= form_hidden("id", $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("Team Name:", form_textfield('', 'team_name', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
-		$output .= simple_row("Website:", form_textfield('', 'team_website', $formData['website'], 35,200, "Your team's website (optional)"));
-		$output .= simple_row("Shirt Colour:", form_textfield('', 'shirt_colour', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
-		$output .= simple_row("Team Status:", 
+		$rows = array();
+		$rows[] = array("Team Name:", form_textfield('', 'team_name', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
+		$rows[] = array("Website:", form_textfield('', 'team_website', $formData['website'], 35,200, "Your team's website (optional)"));
+		$rows[] = array("Shirt Colour:", form_textfield('', 'shirt_colour', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
+		$rows[] = array("Team Status:", 
 			form_select("", "status", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
 
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		if($formData['name']) {
@@ -212,12 +212,11 @@ class TeamEdit extends Handler
 		$output .= form_hidden("step", 'perform');
 		$output .= form_hidden("id", $id);
 		
-		$output .= "<table border='0'>";
-		$output .= simple_row("Team Name:", form_hidden('team_name',$team_name) .  $team_name);
-		$output .= simple_row("Website:", form_hidden('team_website',$team_website) .  $team_website);
-		$output .= simple_row("Shirt Colour:", form_hidden('shirt_colour',$shirt_colour) .  $shirt_colour);
-		$output .= simple_row("Team Status:", form_hidden('status',$status) .  $status);
-		$output .= "</table>";
+		$rows[] = array("Team Name:", form_hidden('team_name',$team_name) .  $team_name);
+		$rows[] = array("Website:", form_hidden('team_website',$team_website) .  $team_website);
+		$rows[] = array("Shirt Colour:", form_hidden('shirt_colour',$shirt_colour) .  $shirt_colour);
+		$rows[] = array("Team Status:", form_hidden('status',$status) .  $status);
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
 		if($team_name) {
@@ -529,14 +528,14 @@ class TeamPlayerStatus extends Handler
 		global $id, $player_id, $current_status;
 
 		/* TODO: team_load() */
-		$team = db_fetch_array(db_query("SELECT * FROM team where team_id = %d", $id));
+		$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $id));
 
 		$this->setLocation(array(
-			$team['name'] => "op=team_view&id=$id",
+			$team->name => "op=team_view&id=$id",
 			$this->title => 0));
 	
 		/* TODO: load_user() or load_person() */
-		$player = db_fetch_array(db_query("SELECT
+		$player = db_fetch_object(db_query("SELECT
 			p.firstname, p.lastname, p.member_id
 			FROM person p
 			WHERE p.user_id = %d", $player_id));
@@ -546,14 +545,9 @@ class TeamPlayerStatus extends Handler
 		$output .= form_hidden('id', $id);
 		$output .= form_hidden('player_id', $player_id);
 		
-		$output .= "<table border='0'>";
-		$output .= tr(
-			td(para("You are attempting to change player status for <b>"
-				. $player['firstname'] . " " . $player['lastname'] 
-				. "</b> on team <b>" . $team['name'] 
-				. "</b>."), array('colspan' => 2))
-		);
-		$output .= simple_row("Current status:", "<b>" . $this->positions[$current_status] . "</b>");
+		$output .= para("You are attempting to change player status for <b>$player->firstname $player->lastname</b> on team <b>$team->name</b>.");
+		
+		$output .= para("Current status: <b>" . $this->positions[$current_status] . "</b>");
 
 		$options = "";
 		foreach($this->permittedStates as $state) {
@@ -561,9 +555,8 @@ class TeamPlayerStatus extends Handler
 		}
 		reset($this->permittedStates);
 
-		$output .= simple_row("Choices are:", $options);
+		$output .= para("Choices are:<br />$options");
 
-		$output .= "</table>";
 		$output .= para( form_submit('submit') . form_reset('reset') );
 
 		return form($output);
@@ -758,33 +751,32 @@ class TeamView extends Handler
 
 
 		/* Now build up team data */
-		$teamdata = "<table border'0'>";
+		$rows = array();
 		if($team->website) {
 			if(strncmp($team->website, "http://", 7) != 0) {
 				$team->website = "http://$team->website";
 			}
-			$teamdata .= simple_row("Website:", l($team->website, $team->website));
+			$rows[] = array("Website:", l($team->website, $team->website));
 		}
-		$teamdata .= simple_row("Shirt Colour:", check_form($team->shirt_colour));
+		$rows[] = array("Shirt Colour:", check_form($team->shirt_colour));
 		$league_name = $team->league_name;
 		if($team->league_tier) {
 			$league_name .= " Tier $team->league_tier";
 		}
-		$teamdata .= simple_row("League/Tier:", l($league_name, "op=league_view&id=$team->league_id"));
+		$rows[] = array("League/Tier:", l($league_name, "op=league_view&id=$team->league_id"));
 		
-		$teamdata .= simple_row("Team Status:", $team->status);
+		$rows[] = array("Team Status:", $team->status);
 
 		/* Spence Balancing Factor:
 		 * Average of all score differentials.  Lower SBF means more
 		 * evenly-matched games.
 		 */
-		
 		$leagueSBF = league_calculate_sbf( $team->league_id);
 		$teamSBF = team_calculate_sbf( $team->id );
-		$teamdata .= simple_row("Team SBF:", "$teamSBF (league $leagueSBF)");
+		$rows[] = array("Team SBF:", "$teamSBF (league $leagueSBF)");
 		
 
-		$teamdata .= "</table>";
+		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		/* and, grab roster */
 		$result = db_query(
@@ -800,12 +792,9 @@ class TeamView extends Handler
 			WHERE
 				r.team_id = %d
 			ORDER BY r.status, p.gender, p.lastname", $id);
-			
-		$rosterdata = "<div class='listtable'><table cellpadding='3' cellspacing='0' border='0'>";
-		$rosterdata .= tr(
-			th("Team Roster", array('colspan' => 5))
-		);
 		
+		$header = array( array( 'data' => 'Team Roster', 'colspan' => 5));
+		$rows = array();	
 		$totalSkill = 0;
 		$count = db_num_rows($result);
 		$rosterPositions = getRosterPositions();
@@ -839,12 +828,12 @@ class TeamView extends Handler
 					"op=team_playerstatus&id=$id&player_id=$player->id");
 			}
 			
-			$rosterdata .= tr(
-				td($player->fullname.$conflictText)
-				. td($rosterPositions[$player->status])
-				. td($player->gender)
-				. td($player->skill_level)
-				. td(theme_links($player_links))
+			$rows[] = array(
+				$player->fullname.$conflictText,
+				$rosterPositions[$player->status],
+				$player->gender,
+				$player->skill_level,
+				theme_links($player_links)
 			);
 
 			$totalSkill += $player->skill_level;
@@ -855,20 +844,19 @@ class TeamView extends Handler
 		} else {
 			$avgSkill = 'N/A';
 		}
-		$rosterdata .= tr(
-			td( "Average Skill", array('colspan' => 3))
-			. td( $avgSkill)
-			. td( "&nbsp;"));
+		$rows[] = array(
+			array('data' => 'Average Skill Rating', 'colspan' => 3),
+			$avgSkill,
+			"&nbsp;",
+		);
 		
-		$rosterdata .= "</table></div>";
+		$rosterdata = "<div class='listtable'>" . table($header, $rows) . "</div>";
 
 		$output = theme_links($links);
-		$output .= "<table border='0'>";
-		$output .= tr(
-			td($teamdata, array('align' => 'left', 'valign' => 'top'))
-			. td($rosterdata, array('align' => 'left', 'valign' => 'top'))
-		);
-		$output .= "</table>";
+		
+		$output .= table(null, array(
+			array( $teamdata, $rosterdata ),
+		));
 		
 		return $output;
 	}
@@ -918,9 +906,8 @@ class TeamScheduleView extends Handler
 		/* TODO: team_load() */
 		
 		$team = db_fetch_object(db_query("SELECT
-				lt.league_id, 
-				t.name
-		  	FROM
+				lt.league_id, t.name 
+			FROM
 		  		leagueteams lt, team t
 			WHERE
 				t.team_id = lt.team_id 
@@ -939,16 +926,6 @@ class TeamScheduleView extends Handler
 		$this->setLocation(array(
 			$team->name => "op=team_view&id=$id",
 			$this->title => 0));
-
-		$output = theme_links($links);
-		$output .= "<table border='0' cellpadding='3' cellspacing='0'>";
-		$output .= tr(
-			td("Date", array('class' => 'schedule_title'))
-			. td("Time", array('class' => 'schedule_title'))
-			. td("Opponent", array('class' => 'schedule_title'))
-			. td("Location", array('colspan' => 2, 'class' => 'schedule_title'))
-			. td("Score", array('colspan' => 2, 'class' => 'schedule_title'))
-		);
 
 		/*
 		 * Grab schedule info 
@@ -976,6 +953,16 @@ class TeamScheduleView extends Handler
 				LEFT JOIN site t ON (t.site_id = f.site_id) 
 			WHERE (s.home_team = %d OR s.away_team = %d) 
 			ORDER BY s.date_played", $id, $id);
+
+
+		$header = array(
+			"Date",
+			"Time",
+			"Opponent",
+			array('data' => "Location",'colspan' => 2),
+			array('data' => "Score",'colspan' => 2)
+		);
+		$rows = array();
 			
 		while($game = db_fetch_object($result)) {
 		
@@ -1016,20 +1003,19 @@ class TeamScheduleView extends Handler
 				$score_type .= " (default)";
 			}
 
-			$output .= tr(
-				td($game->date, array('class' => 'schedule_item'))
-				. td($game->time, array('class' => 'schedule_item'))
-				. td(l($opponent_name, "op=team_view&id=$opponent_id"), array('class' => 'schedule_item'))
-				. td(l($game->field_code, "op=site_view&id=". $game->site_id), array('class' => 'schedule_item'))
-				. td($home_away, array('class' => 'schedule_item'))
-				. td($game_score, array('class' => 'schedule_item'))
-				. td($score_type, array('class' => 'schedule_item'))
+			$rows[] = array(
+				$game->date, 
+				$game->time,
+				l($opponent_name, "op=team_view&id=$opponent_id"),
+				l($game->field_code, "op=site_view&id=$game->site_id"),
+				$home_away,
+				$game_score,
+				$score_type
 			);
 
 		}
-
-		$output .= "</table>";
-
+		$output = theme_links($links);
+		$output .= "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
 		return $output;
 	}
 }

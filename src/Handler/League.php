@@ -164,8 +164,9 @@ class LeagueEdit extends Handler
 		$output = form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'confirm');
 		$output .= form_hidden("id", $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("League Name:", form_textfield('', 'league_name', $formData['league_name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
+
+		$rows = array();
+		$rows[] = array("League Name:", form_textfield('', 'league_name', $formData['league_name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
 		
 		if($this->_permissions['edit_coordinator']) {
 
@@ -186,36 +187,35 @@ class LeagueEdit extends Handler
 				$volunteers[$vol->user_id] = $vol->name;
 			}
 
-			$output .= simple_row("Coordinator",
+			$rows[] = array("Coordinator",
 				form_select("", "coordinator_id", $formData['coordinator_id'], $volunteers, "League Coordinator.  Must be set."));
-			$output .= simple_row("Assistant Coordinator",
+			$rows[] = array("Assistant Coordinator",
 				form_select("", "alternate_id", $formData['alternate_id'], $volunteers, "Assistant Coordinator (optional)"));
 		}
 		
-		$output .= simple_row("Season:", 
+		$rows[] = array("Season:", 
 			form_select("", "league_season", $formData['league_season'], getOptionsFromEnum('league','season'), "Season of play for this league. Choose 'none' for administrative groupings and comp teams."));
 			
-		$output .= simple_row("Day(s) of play:", 
+		$rows[] = array("Day(s) of play:", 
 			form_select("", "league_day", $formData['league_day'], getOptionsFromEnum('league','day'), "Day, or days, on which this league will play.", 0, true));
 			
 		/* TODO: 10 is a magic number.  Make it a config variable */
-		$output .= simple_row("Tier:", 
+		$rows[] = array("Tier:", 
 			form_select("", "league_tier", $formData['league_tier'], getOptionsFromRange(0, 10), "Tier number.  Choose 0 to not have numbered tiers."));
 			
-		$output .= simple_row("Gender Ratio:", 
+		$rows[] = array("Gender Ratio:", 
 			form_select("", "league_ratio", $formData['league_ratio'], getOptionsFromEnum('league','ratio'), "Gender format for the league."));
 			
 		/* TODO: 5 is a magic number.  Make it a config variable */
-		$output .= simple_row("Current Round:", 
+		$rows[] = array("Current Round:", 
 			form_select("", "league_round", $formData['league_round'], getOptionsFromRange(1, 5), "New games will be scheduled in this round by default."));
 
-		$output .= simple_row("Regular Start Time(s):",
+		$rows[] = array("Regular Start Time(s):",
 			form_select("", "league_start_time", split(",",$formData['league_start_time']), getOptionsFromTimeRange(900,2400,15), "One or more times at which games will start in this league", "size=5", true));
 
-		$output .= simple_row("Allow Scheduling:",
+		$rows[] = array("Allow Scheduling:",
 			form_select("", "league_allow_schedule", $formData['league_allow_schedule'], getOptionsFromEnum('league','allow_schedule'), "Whether or not this league can have games scheduled and standings displayed."));
-
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
 		if($formData['league_name']) {
@@ -254,15 +254,16 @@ class LeagueEdit extends Handler
 		$output .= form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'perform');
 		$output .= form_hidden("id", $id);
-		$output .= "<table border='0'>";
-		$output .= simple_row("League Name:", 
+
+		$rows = array();
+		$rows[] = array("League Name:", 
 			form_hidden('league_name', $league_name) . $league_name);
 		
 		if($this->_permissions['edit_coordinator']) {
 				$c_id = var_from_getorpost('coordinator_id');
 				$c_name = db_result(db_query("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = %d",$c_id));
 				
-				$output .= simple_row("Coordinator:",
+				$rows[] = array("Coordinator:",
 					form_hidden("coordinator_id", $c_id) . $c_name);
 			
 				$a_id = var_from_getorpost('alternate_id');
@@ -271,32 +272,32 @@ class LeagueEdit extends Handler
 				} else {
 					$a_name = "N/A";
 				}
-				$output .= simple_row("Assistant Coordinator:", 
+				$rows[] = array("Assistant Coordinator:", 
 					form_hidden("alternate_id", $a_id) . $a_name);
 		}
 		
-		$output .= simple_row("Season:", 
+		$rows[] = array("Season:", 
 			form_hidden('league_season', $league_season) . $league_season);
 			
-		$output .= simple_row("Day(s) of play:", 
+		$rows[] = array("Day(s) of play:", 
 			form_hidden('league_day',$league_day) . $league_day);
 			
-		$output .= simple_row("Tier:", 
+		$rows[] = array("Tier:", 
 			form_hidden('league_tier', $league_tier) . $league_tier);
 			
-		$output .= simple_row("Gender Ratio:", 
+		$rows[] = array("Gender Ratio:", 
 			form_hidden('league_ratio', $league_ratio) . $league_ratio);
 			
-		$output .= simple_row("Current Round:", 
+		$rows[] = array("Current Round:", 
 			form_hidden('league_round', $league_round) . $league_round);
 
-		$output .= simple_row("Regular Start Time(s):",
+		$rows[] = array("Regular Start Time(s):",
 			form_hidden('league_start_time', $league_start_time) . $league_start_time);
 
-		$output .= simple_row("Allow Scheduling:",
+		$rows[] = array("Allow Scheduling:",
 			form_hidden('league_allow_schedule', $league_allow_schedule) . $league_allow_schedule);
 
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 
 		if($league_tier) {
@@ -467,7 +468,6 @@ class LeagueList extends Handler
 		if($this->_permissions['create']) {
 			$output .= para(l("create league", "op=league_create"));
 		}
-		$output .= "<table border='0'>";
 		$seasonLinks = array();
 		foreach($seasonNames as $curSeason) {
 			if($curSeason == $wantedSeason) {
@@ -476,37 +476,31 @@ class LeagueList extends Handler
 				$seasonLinks[] = l($curSeason, "op=$this->op&season=$curSeason");
 			}
 		}
-		$output .= tr(td(theme_links($seasonLinks), array('colspan' => 3)));
+		$output .= para(theme_links($seasonLinks));
 
-		$output .= tr(
-			td("Name", array('class' => 'row_title'))
-			. td("Ratio", array('class' => 'row_title'))
-			. td("&nbsp;", array('class' => 'row_title')));
-
+		$header = array( "Name", "Ratio", "&nbsp;") ;
+		$rows = array();
+		
 		$result = db_query("SELECT * FROM league WHERE season = '%s' ORDER BY day, ratio, tier, name", $wantedSeason);
 
-		while($league = db_fetch_array($result)) {
-			$name = $league['name'];
-			if($league['tier']) { 
-				$name .= " Tier " . $league['tier'];
+		while($league = db_fetch_object($result)) {
+			$name = $league->name;
+			if($league->tier) { 
+				$name .= " Tier $league->tier";
 			}
 			$links = array();
-			$links[] = l('view', 'op=league_view&id=' . $league['league_id']);
-			if($league['allow_schedule'] == 'Y') {
-				$links[] = l('schedule', 'op=league_schedule_view&id=' . $league['league_id']);
-				$links[] = l('standings', 'op=league_standings&id=' . $league['league_id']);
+			$links[] = l('view',"op=league_view&id=$league->league_id");
+			if($league->allow_schedule == 'Y') {
+				$links[] = l('schedule',"op=league_schedule_view&id=$league->league_id");
+				$links[] = l('standings',"op=league_standings&id=$league->league_id");
 			}
 			if($this->_permissions['delete']) {
-				$links[] = l('delete', 'op=league_delete&id=' . $league['league_id']);
+				$links[] = l('delete',"op=league_delete&id=$league->league_id");
 			}
-			$output .= tr(
-				td($name, array('class' => 'row_data'))
-				. td($league['ratio'], array('class' => 'row_data'))
-				. td(theme_links($links), array('class' => 'row_data'))
-			);
+			$rows[] = array($name,$league->ratio,theme_links($links));
 		}
 
-		$output .= "</table>";
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		
 		return $output;
 	}
@@ -664,52 +658,48 @@ class LeagueStandings extends Handler
 			$sorted_order = &$season;
 		}
 		
-		$output = "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
-
 		/* Build up header */
-		$header = th("Teams", array('rowspan' => 2));
+		$header = array( array('data' => 'Teams', 'rowspan' => 2) );
+		$subheader = array();
 		if($current_round) {
-			$header .= th("Current Round ($current_round)", array( 'colspan' => 7));
-			$subheader .= td("Win", array('class'=>'subtitle', 'style' => 'border-left: 1px solid gray;', 'valign'=>'bottom'));
-			foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-				$subheader .= td($text, array('class'=>'subtitle', 'valign'=>'bottom'));
+			$header[] = array('data' => "Current Round ($current_round)", 'colspan' => 7);
+			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		}
 		
-		$header .= th("Season To Date", array('colspan' => 7)); 
-		$subheader .= td("Win", array('class'=>'subtitle', 'style' => 'border-left: 1px solid gray;', 'valign'=>'bottom'));
-		foreach(array("Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-			$subheader .= td($text, array('class'=>'subtitle'));
+		$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
+		foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 		}
 		
-		$header .= th("Rating", array( 'rowspan' => 2));
-		$header .= th("Avg.<br>SOTG", array('rowspan' => 2));
+		$header[] = array('data' => "Rating", 'rowspan' => 2);
+		$header[] = array('data' => "Avg.<br>SOTG", 'rowspan' => 2);
 		
-		$output .= tr( $header );
-		$output .= tr( $subheader );
+		$rows[] = $subheader;
 
 		while(list(, $data) = each($sorted_order)) {
 
 			$id = $data['id'];
-			$row = td(l($data['name'], "op=team_view&id=$id"));
+			$row = array( l($data['name'], "op=team_view&id=$id"));
 
 			if($current_round) {
-				$row .= td($round[$id]['win'], array('style' => 'border-left: 1px solid gray;'));
-				$row .= td($round[$id]['loss']);
-				$row .= td($round[$id]['tie']);
-				$row .= td($round[$id]['defaults_against']);
-				$row .= td($round[$id]['points_for']);
-				$row .= td($round[$id]['points_against']);
-				$row .= td($round[$id]['points_for'] - $round[$id]['points_against']);
+				$row[] = $round[$id]['win'];
+				$row[] = $round[$id]['loss'];
+				$row[] = $round[$id]['tie'];
+				$row[] = $round[$id]['defaults_against'];
+				$row[] = $round[$id]['points_for'];
+				$row[] = $round[$id]['points_against'];
+				$row[] = $round[$id]['points_for'] - $round[$id]['points_against'];
 			}
-			$row .= td($season[$id]['win'], array('style' => 'border-left: 1px solid gray;'));
-			$row .= td($season[$id]['loss']);
-			$row .= td($season[$id]['tie']);
-			$row .= td($season[$id]['defaults_against']);
-			$row .= td($season[$id]['points_for']);
-			$row .= td($season[$id]['points_against']);
-			$row .= td($season[$id]['points_for'] - $season[$id]['points_against']);
-			$row .= td($season[$id]['rating']);
+			$row[] = $season[$id]['win'];
+			$row[] = $season[$id]['loss'];
+			$row[] = $season[$id]['tie'];
+			$row[] = $season[$id]['defaults_against'];
+			$row[] = $season[$id]['points_for'];
+			$row[] = $season[$id]['points_against'];
+			$row[] = $season[$id]['points_for'] - $season[$id]['points_against'];
+			$row[] = $season[$id]['rating'];
 		
 			if($season[$id]['games'] < 3 && !($this->_permissions['view_spirit'])) {
 				 $sotg = "---";
@@ -717,12 +707,11 @@ class LeagueStandings extends Handler
 				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id], true));
 			}
 			
-			$row .= td($sotg, array('style' => 'border-left: 1px solid gray;'));
-			$output .= tr( $row );
+			$row[] = $sotg;
+			$rows[] = $row;
 		}
-		$output .= "</table></div>";
 
-		return $output;
+		return "<div class='listtable'>" . table($header, $rows) . "</div>";
 	}
 	
 	/*
@@ -993,57 +982,42 @@ class LeagueView extends Handler
 		}
 		
 		$output =  theme_links($links);
-
-		$output .= "<table border='0'>";
-		$output .= simple_row("Coordinator:", 
+		$rows = array();
+		$rows[] = array("Coordinator:", 
 			l($league->coordinator_name, "op=person_view&id=$league->coordinator_id"));
 		if($league->alternate_id) {
-			$output .= simple_row("Co-Coordinator:", 
+			$rows[] = array("Co-Coordinator:", 
 				l($league->alternate_name, "op=person_view&id=$league->alternate_id"));
 		}
-		$output .= simple_row("Season:", $league->season);
-		$output .= simple_row("Day(s):", $league->day);
+		$rows[] = array("Season:", $league->season);
+		$rows[] = array("Day(s):", $league->day);
 		if($league->tier) {
-			$output .= simple_row("Tier:", $league->tier);
+			$rows[] = array("Tier:", $league->tier);
 		}
 
 		# Now, if this league should contain schedule info, grab it
 		if($league->allow_schedule == 'Y') {
-			$output .= simple_row("Current Round:", $league->current_round);
-			$output .= simple_row("Usual Start Time:", $league->start_time);
-			$output .= simple_row("Maximum teams:", $league->max_teams);
-			$output .= simple_row("League SBF:", league_calculate_sbf($league->league_id));
+			$rows[] = array("Current Round:", $league->current_round);
+			$rows[] = array("Usual Start Time:", $league->start_time);
+			$rows[] = array("Maximum teams:", $league->max_teams);
+			$rows[] = array("League SBF:", league_calculate_sbf($league->league_id));
 		}
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		/* Now, fetch teams */
 		$result = db_query(
-			"SELECT t.* FROM
-				leagueteams l
-				INNER JOIN team t ON (l.team_id = t.team_id)
-			 WHERE
-				l.league_id = %d
-			 ORDER BY 
-			 	t.name", $id);
+			"SELECT 
+			    t.*, ROUND(AVG(p.skill_level),2) AS skill
+			 FROM 
+			    leagueteams l 
+				INNER JOIN teamroster r ON (r.team_id = l.team_id) 
+				INNER JOIN team t ON (l.team_id = t.team_id) 
+				INNER JOIN person p ON (r.player_id = p.user_id) 
+			 WHERE l.league_id = %d GROUP BY l.team_id", $id);
 		
-		$output .= "<div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
-		$output .= tr( 
-		   th("Team Name")
-		   . th("Shirt Colour")
-		   . th("Avg. Skill")
-		   . th("&nbsp;")
-		);
-
+		$header = array( "Team Name", "Shirt Colour", "Avg. Skill", "&nbsp;",);
+		$rows = array();
 		while($team = db_fetch_object($result)) {
-			$teamSkill = db_result(db_query(
-				"SELECT 
-				  AVG(p.skill_level)
-				 FROM
-				  teamroster r
-				  INNER JOIN person p ON (r.player_id = p.user_id)
-				 WHERE 
-				  r.team_id = %d", $team->team_id));
-
 			$team_links = array(
 				l('view', "op=team_view&id=$team->team_id"),
 			);
@@ -1054,14 +1028,15 @@ class LeagueView extends Handler
 				$team_links[] = l('move team', "op=league_moveteam&id=$id&team_id=$team->team_id");
 			}
 			
-			$output .= tr(
-				td(check_form($team->name))
-				. td(check_form($team->shirt_colour))
-				. td(sprintf('%.02f',$teamSkill))
-				. td(theme_links($team_links))
+			$rows[] = array(
+				check_form($team->name),
+				check_form($team->shirt_colour),
+				$team->skill,
+				theme_links($team_links)
 			);
 		}
-		$output .= "</table></div>";
+		
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 
 		$leagueName = $league->name;
 		if($league->tier) {
@@ -1276,7 +1251,7 @@ class LeagueMoveTeam extends Handler
 	{
 		global $session;
 
-		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM
+		$leagues = getOptionsFromQuery("SELECT league_id AS theKey, IF(tier,CONCAT(name, ' Tier ', tier), name) AS theValue FROM
 		  		league l,
 				person p
 			WHERE
@@ -1367,24 +1342,23 @@ class LeagueVerifyScores extends Handler
 			    LEFT JOIN team a ON (s.away_team = a.team_id)
 			WHERE s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $id);
 
-		$output = para("The following games have not been finalized.");
-		$output .= "<div class='listtable'><table border='1' cellpadding='3' cellspacing='0'>";
-		$output .= tr(
-			th('Game Date')
-			. th('Home Team Submission', array('colspan' => 2))
-			. th('Away Team Submission', array('colspan' => 2))
-			. th('&nbsp;'));
-
-		$game_data = array();
+		$header = array(
+			'Game Date',
+			array('data' => 'Home Team Submission', 'colspan' => 2),
+			array('data' => 'Away Team Submission', 'colspan' => 2),
+			'&nbsp;'
+		);
+		$rows = array();
+		
 		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = %d AND game_id = %d";
 		
 		while($game = db_fetch_object($result)) {
-			$output .= tr(
-				td(strftime("%A %B %d %Y, %H%Mh",$game->timestamp),
-					array('rowspan' => 4))
-				. td($game->home_name, array('colspan' => 2))
-				. td($game->away_name, array('colspan' => 2))
-				. td( l("finalize score", "op=game_finalize&id=" . $game->game_id), array('rowspan' => 4)));
+			$rows[] = array(
+				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 4),
+				array('data' => $game->home_name, 'colspan' => 2),
+				array('data' => $game->away_name, 'colspan' => 2),
+				array('data' => l("finalize score", "op=game_finalize&id=" . $game->game_id), 'rowspan' => 4)
+			);
 		
 			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
 			
@@ -1405,26 +1379,21 @@ class LeagueVerifyScores extends Handler
 				);
 			}
 
-			$output .= tr(
-				td("Home Score:")
-				. td( $home['score_for'] )
-				. td("Home Score:")
-				. td( $away['score_against'] ));
+			$rows[] = array(
+				"Home Score:", $home['score_for'], "Home Score:", $away['score_against']
+			);
 			
-			$output .= tr(
-				td("Away Score:")
-				. td( $home['score_against'] )
-				. td("Away Score:")
-				. td( $away['score_for'] ));
+			$rows[] = array(
+				"Away Score:", $home['score_against'], "Away Score:", $away['score_for']
+			);
 			
-			$output .= tr(
-				td("Away SOTG:")
-				. td( $home['spirit'] )
-				. td("Home SOTG:")
-				. td( $away['spirit'] ));
+			$rows[] = array(
+				"Away SOTG:", $home['spirit'], "Home SOTG:", $away['spirit']
+			);
 		}
 		
-		$output .= "</table></div>";
+		$output = para("The following games have not been finalized.");
+		$output .= "<div class='listtable'>" . table( $header, $rows ) . "</div>";
 
 		$leagueName = $league['name'];
 		if($league['tier'] > 0) {

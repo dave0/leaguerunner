@@ -321,16 +321,17 @@ class Handler
 	 * and 'value', containing a name or descriptive text for each
 	 * object
 	 */
-	function generateSingleList($query, $ops, $dbParams)
+	function generateSingleList($query, $ops, $dbParams = array())
 	{
-		$output = "<table border='0'>";
+		
 		$result = db_query($query, $dbParams);
-		while($row = db_fetch_array($result)) {
-			$opsLinks = $this->generateOpsLinks($ops, $row['id']);
-			$output .= tr( td($row['value']) . td(theme_links($opsLinks)) );
+		$rows = array();
+		while($thisRow = db_fetch_array($result)) {
+			$rows[] = array (
+				$thisRow['value'],
+				theme_links( $this->generateOpsLinks($ops, $thisRow['id'])));
 		}
-		$output .= "</table>";
-		return $output;
+		return table(null, &$rows);
 	}
 
 	/**

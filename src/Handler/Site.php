@@ -109,45 +109,45 @@ class SiteEdit extends Handler
 			$output .= form_hidden("id", $this->id);
 		}
 		
-		$output .= "<table border='0'>";
-
-		$output .= simple_row(
+		$rows = array();
+		$rows[] = array(
 			"Site Name:",
 			form_textfield("", 'site[name]', $data['name'], 35, 35, "Name of field site"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Code:",
 			form_textfield("", 'site[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Region:",
 			form_select("", 'site[region]', $data['region'], getOptionsFromEnum('site', 'region'), "Area of city this site is located in"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"City Ward:",
 			form_select("", 'site[ward_id]', $data['ward_id'],
-				getOptionsFromQuery("SELECT ward_id, CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward ORDER BY ward_id"),
+				getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
 				"Official city ward this site is located in"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Location Map:",
 			form_textfield("", 'site[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the site"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Layout Map:",
 			form_textfield("", 'site[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Directions:",
 			form_textarea("", 'site[directions]', $data['directions'], 60, 5, "Directions to field site.  Please ensure that bus and bike directions are also provided if practical."));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Special Instructions:",
 			form_textarea("", 'site[instructions]', $data['instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
-		$output .= simple_row(
+		$rows[] = array(
 			form_submit('Submit'),
 			form_reset('Reset'));
-		$output .= "</table>";
+
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
 		if($this->id) {
 			$this->setLocation(array(
@@ -166,43 +166,45 @@ class SiteEdit extends Handler
 		$output .= form_hidden("step", "perform");
 		$output .= form_hidden("id", $this->id);
 		
-		$output .= "<table border='0'>";
+		$rows = array();
 
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Name:",
 			form_hidden('site[name]', $data['name']) . check_form($data['name']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Code:",
 			form_hidden('site[code]', $data['code']) . check_form($data['code']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Region:",
 			form_hidden('site[region]', $data['region']) . check_form($data['region']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"City Ward:",
 			form_hidden('site[ward_id]', $data['ward_id']) . 
 				getWardName($data['ward_id']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Location Map:",
 			form_hidden('site[location_url]', $data['location_url']) . check_form($data['location_url']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Site Layout Map:",
 			form_hidden('site[layout_url]', $data['layout_url']) . check_form($data['layout_url']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Directions:",
 			form_hidden('site[directions]', $data['directions']) . check_form($data['directions']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Special Instructions:",
 			form_hidden('site[instructions]', $data['instructions']) . check_form($data['instructions']));
 
-		$output .= simple_row( form_submit('Submit'), "");
-		$output .= "</table>";
+		$rows[] = array( form_submit('Submit'), "");
+		
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		
 		if($this->id) {
 			$this->setLocation(array(
 				$data['name'] => "op=site_view&id=" . $this->id,
@@ -328,28 +330,24 @@ class SiteList extends Handler
 		}           
 		ob_end_clean();
 
-		$result = db_query(
-			"SELECT s.site_id, s.name, s.region FROM site s
-			ORDER BY s.region,s.name");
+		$result = db_query( "SELECT s.site_id, s.name, s.region FROM site s ORDER BY s.region,s.name");
 
 		$fieldsByRegion = array();
 		while($field = db_fetch_object($result)) {
 			if(! array_key_exists( $field->region, $fieldsByRegion) ) {
 				$fieldsByRegion[$field->region] = "";
-				$headings .= th(ucfirst($field->region));
 			}
 			$fieldsByRegion[$field->region] 
 				.= l($field->name, "op=site_view&id=$field->site_id") . "<br />";
 		}
 
-		$output .= "<div class='fieldlist'><table>";
-		$output .= tr($headings);
-		$output .= '<tr>';
+		$fieldColumns = array();
+		$header = array();
 		while(list($region,$fields) = each($fieldsByRegion)) {
-			$output .= td($fields);	
+			$fieldColumns[] = $fields;	
+			$header[] = ucfirst($region);
 		}
-		$output .= '</tr>';
-		$output .= "</table></div>";
+		$output .= "<div class='fieldlist'>" . table($header, array( $fieldColumns) ) . "</div>";
 
 		return $output;
 	}
@@ -420,29 +418,30 @@ class SiteView extends Handler
 		$field_listing .= "</ul>";
 		
 
-		$output = theme_links($links);
-		$output .= "<table border='0' width='100%'>";
-		$output .= simple_row("Site Name:", $site->name);
-		$output .= simple_row("Site Code:", $site->code);
-		$output .= simple_row("Site Region:", $site->region);
-		$output .= simple_row("City Ward:", l(getWardName($site->ward_id), "op=ward_view&id=$site->ward_id"));
-		$output .= simple_row("Site Location Map:", 
+		$rows = array();
+		$rows[] = array("Site Name:", $site->name);
+		$rows[] = array("Site Code:", $site->code);
+		$rows[] = array("Site Region:", $site->region);
+		$rows[] = array("City Ward:", l(getWardName($site->ward_id), "op=ward_view&id=$site->ward_id"));
+		$rows[] = array("Site Location Map:", 
 			$site->location_url ? l("Click for map in new window", $site->location_url, array('target' => '_new'))
 				: "No Map");
-		$output .= simple_row("Field Layout Map:", 
+		$rows[] = array("Field Layout Map:", 
 			$site->layout_url ? l("Click for map in new window", $site->layout_url, array('target' => '_new'))
 				: "No Map");
-		$output .= simple_row("Directions:", $site->directions);
-		$output .= simple_row("Special Instrutions:", $site->instructions);
+		$rows[] = array("Directions:", $site->directions);
+		$rows[] = array("Special Instrutions:", $site->instructions);
 		
-		$output .= simple_row("Fields:", $field_listing);
+		$rows[] = array("Fields:", $field_listing);
 		
-		$output .= "</table>";
 		
 		$this->setLocation(array(
 			$site->name => "op=site_view&id=$site->site_id",
 			$this->title => 0
 		));
+		
+		$output = theme_links($links);
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
 		return $output;
 	}

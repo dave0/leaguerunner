@@ -108,34 +108,35 @@ class WardEdit extends Handler
 			$output .= form_hidden("id", $this->id);
 		}
 		
-		$output .= "<table border='0'>";
+		$rows = array();
 
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward Name:",
 			form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of ward"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward Number:",
 			form_textfield("", 'edit[num]', $data['num'], 3, 3, "City's number for this ward"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward Region:",
 			form_select("", 'edit[region]', $data['region'], getOptionsFromEnum('ward', 'region'), "Area of city this ward is located in"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"City:",
 			form_select("", 'edit[city]', $data['city'],
-				getOptionsFromQuery("SELECT city, city FROM ward"),
+				getOptionsFromQuery("SELECT city AS theKey, city AS theValue FROM ward"),
 				"City this ward is located in"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward URL:",
 			form_textfield("", 'edit[url]', $data['url'],50, 255, "City's URL for information on this ward"));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			form_submit('Submit'),
 			form_reset('Reset'));
-		$output .= "</table>";
+
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	
 		if($this->id) {
 			$this->setLocation(array(
@@ -154,30 +155,29 @@ class WardEdit extends Handler
 		$output .= form_hidden("step", "perform");
 		$output .= form_hidden("id", $this->id);
 		
-		$output .= "<table border='0'>";
-
-		$output .= simple_row(
+		$rows = array();
+		$rows[] = array(
 			"Ward Name:",
 			form_hidden('edit[name]', $data['name']) . check_form($data['name']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward Number:",
 			form_hidden('edit[num]', $data['num']) . check_form($data['num']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward Region:",
 			form_hidden('edit[region]', $data['region']) . check_form($data['region']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"City Ward:",
 			form_hidden('edit[city]', $data['city']) . check_form($data['city']));
 			
-		$output .= simple_row(
+		$rows[] = array(
 			"Ward URL:",
 			form_hidden('edit[url]', $data['url']) . check_form($data['url']));
 			
-		$output .= simple_row( form_submit('Submit'), "");
-		$output .= "</table>";
+		$rows[] = array( form_submit('Submit'), "");
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		if($this->id) {
 			$this->setLocation(array(
 				$data['name'] => "op=ward_view&id=" . $this->id,
@@ -257,42 +257,41 @@ class WardList extends Handler
 	function process ()
 	{
 		$cities = array('Ottawa','Gatineau');
-		$output = "<table border='0' cellpadding='3' cellspacing='0'><tr>";
+		$columns = array();
 		foreach($cities as $city) {
 			
-			$output .= "<td valign='top'><div class='listtable'><table border='0' cellpadding='3' cellspacing='0'>";
-			$output .= tr( th($city, array('colspan' => 6)));
+			$header = array( array('data' => $city, 'colspan' => 6));
+			$rows = array();
+			
 			$result = db_query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = '%s' GROUP BY w.ward_id", $city);
 			
 			while($ward = db_fetch_object($result) ) {
 			
 				$fieldQuery = db_query("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = %d", $ward->ward_id);
 				$fields = db_result($fieldQuery);
-				$output .= tr( 
-					td("&nbsp;", array('width' => 10))
-					. td("Ward $ward->num")
-					. td($ward->name)
-					. td($fields . (($fields == 1) ? " field" : " fields"), array('align' => 'right'))
-					. td($ward->players . (($ward->players == 1) ? " player" : " players"), array('align' => 'right'))
-					. td(l('view', "op=ward_view&id=$ward->ward_id"))
+				$rows[] = array(
+					array("&nbsp;", 'width' => 10),
+					"Ward $ward->num",
+					$ward->name,
+					array('data' => $fields . (($fields == 1) ? " field" : " fields"), 'align' => 'right'),
+					array('data' => $ward->players . (($ward->players == 1) ? " player" : " players"), 'align' => 'right'),
+					l('view', "op=ward_view&id=$ward->ward_id")
 				);
 			}
 			$playerQuery = db_query("SELECT COUNT(*) FROM person WHERE ISNULL(ward_id) AND addr_city = '%s'", $city);
 			$players = db_result($playerQuery);
-			$output .= tr( 
-				td("&nbsp;", array('width' => 10))
-				. td("&nbsp;")
-				. td("Unknown Ward")
-				. td("&nbsp;")
-				. td($players . (($players == 1) ? " player" : " players"), array('align' => 'right'))
-				. td("&nbsp;")
+			$rows[] = array( 
+				array('data' => "&nbsp;", 'width' => 10),
+				"&nbsp;",
+				"Unknown Ward",
+				"&nbsp;",
+				array('data' => $players . (($players == 1) ? " player" : " players"), 'align' => 'right'),
+				"&nbsp;"
 			);
 			
-			$output .= "</table></div></td>";
+			$columns[] = "<div class='listtable'>" . table( $header, $rows ) . "</div>";
 		}
-		$output .= "</tr></table>";
-
-		return $output;
+		return table(null, array( $columns ) );
 	}
 }
 
@@ -355,18 +354,16 @@ class WardView extends Handler
 		$this->setLocation(array( $ward->name => "op=ward_view&id=$id", $this->title => 0));
 		
 		$output = theme_links($links);
-		$output .= "<table border='0' width='100%'>";
-		$output .= simple_row("Ward Name:", $ward->name);
-		$output .= simple_row("Ward Number:", $ward->num);
-		$output .= simple_row("Ward City:", $ward->city);
-		$output .= simple_row("Information URL:", 
+		
+		$rows[] = array("Ward Name:", $ward->name);
+		$rows[] = array("Ward Number:", $ward->num);
+		$rows[] = array("Ward City:", $ward->city);
+		$rows[] = array("Information URL:", 
 			$ward->url ? l( $ward->url, $ward->url, array('target' => '_new')) . " (opens in new window)"
 				: "No Link");
-				
-	
-		$output .= simple_row("Field Sites:", $field_listing);
+		$rows[] = array("Field Sites:", $field_listing);
 		
-		$output .= "</table>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
 		return $output;
 	}

@@ -72,26 +72,81 @@ function div($text, $attributes = array())
 	return simple_tag("div", $text, $attributes);
 }
 
-function tr($text, $attributes = array())
-{
-	return simple_tag("tr",$text, $attributes);
+function table_cell($cell, $header = 0) {
+  if (is_array($cell)) {
+    $data = $cell["data"];
+    foreach ($cell as $key => $value) {
+      if ($key != "data")  {
+        $attributes .= " $key=\"$value\"";
+      }
+    }
+  }
+  else {
+    $data = $cell;
+  }
+
+  if ($header) {
+    $output = "<th$attributes>$data</th>";
+  }
+  else {
+    $output = "<td$attributes>$data</td>";
+  }
+
+  return $output;
 }
 
-function td($text, $attributes = array())
-{
-	return simple_tag("td",$text, $attributes);
+function table($header, $rows, $attrArray = array()) {
+
+  foreach ($attrArray as $key => $value) {
+    $attributes .= " $key=\"$value\"";
+  }
+
+  $output = "<table$attributes>\n";
+
+  /*
+  ** Emit the table header:
+  */
+
+  if (is_array($header)) {
+    $output .= " <tr>";
+    foreach ($header as $cell) {
+      if (is_array($cell) && $cell["field"]) {
+        $cell = tablesort($cell, $header);
+      }
+      $output .= table_cell($cell, 1);
+    }
+    $output .= " </tr>\n";
+  }
+
+  /*
+  ** Emit the table rows:
+  */
+
+  if (is_array($rows)) {
+    foreach ($rows as $number => $row) {
+	  if($attrArray['alternate-colours']) {
+        if ($number % 2 == 1) {
+          $output .= " <tr class=\"light\">";
+        }
+        else {
+          $output .= " <tr class=\"dark\">";
+        }
+      } else {
+        $output .= " <tr>";
+	  }
+      foreach ($row as $cell) {
+        $output .= table_cell($cell, 0);
+      }
+      $output .= " </tr>\n";
+    }
+  }
+
+  $output .= "</table>\n";
+
+  return $output;
 }
 
-function th($text, $attributes = array())
-{
-	return simple_tag("th",$text, $attributes);
-}
 
-function simple_row($left, $right)
-{
-	return tr(
-		td($left, array('class' => 'row_title', 'valign' => 'top')) . td($right, array('class' => 'row_data')));
-}
 
 function l($text, $query = NULL, $attributes = array())
 {
@@ -105,7 +160,7 @@ function l($text, $query = NULL, $attributes = array())
 
 function url($query = NULL) 
 {
-    $base_url = $_SERVER['PHP_SELF'];
+	$base_url = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
 
     if (isset($query)) {
         return "$base_url?$query";
@@ -575,7 +630,7 @@ function getOptionsFromQuery( $sql, $data = array() )
 
 	$options[0] = "-- select from list --"	;
 	while($row = db_fetch_array($result)) {
-		$options[$row[0]] = $row[1];	
+		$options[$row['theKey']] = $row['theValue'];	
 	}
 	return $options;
 }
@@ -584,35 +639,6 @@ function getWardName($id)
 {
 	$result = db_query("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = %d", $id);
 	return db_result($result);
-}
-
-/**
- * Return array of team information for the given userid
- * 
- * @param integer $userid  User ID
- * @return array Array of all teams with this player, with id, name, and position of player for each team.
- */
-function get_teams_for_user($userid) 
-{
-	$result = db_query(
-		"SELECT 
-			r.status AS position,
-            r.team_id AS id,
-            t.name AS name
-        FROM 
-            teamroster r LEFT JOIN team t USING(team_id)
-        WHERE 
-            r.player_id = %d", $userid);
-			
-	$rosterPositions = getRosterPositions();
-
-	$rows = array();
-	while($row = db_fetch_array($result)) {
-		$row['position'] = $rosterPositions[$row['position']];
-		$rows[] = $row;
-	}
-	
-	return $rows;
 }
 
 /**
@@ -672,14 +698,12 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$output .= "\n<!-- calendar -->\n";
 	$output .= "<div class='calendar'>";
 	$output .= "<table border='1' cellspacing='0'>\n";
-	$output .= tr(
-		td(
-			l("<<<", "op=$calendarOp&month=$prevMonth&year=$prevYear")
-						
-			. " " . date("F Y", $startOfMonth)
-			. " " . l(">>>", "op=$calendarOp&month=$nextMonth&year=$nextYear")
-		, array('colspan' => 7, 'class' => 'header_month'))
-	);
+	$output .= "<tr>" 
+		. "<td colspan='7' class='header_month'>"
+		. l("<<<", "op=$calendarOp&month=$prevMonth&year=$prevYear")
+		. " " . date("F Y", $startOfMonth)
+		. " " . l(">>>", "op=$calendarOp&month=$nextMonth&year=$nextYear")
+		. "</td></tr>";
 
 	/* Generate days of the week headers 
 	 * The year 1995 was chosen because January 1995 starts on a Monday
@@ -688,12 +712,12 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$output .= " <tr class=\"header-week\">";
 	
 	foreach($allDays as $dayName) {
-		$output .= td(substr($dayName,0,2));
+		$output .= "<td>" . substr($dayName,0,2) . "</td>";
 	}
 	$output .= "</tr>\n";
 
 	$output .= "<tr class='row-week'>\n";
-	$output .= td( '&nbsp;', array('class' => 'day_blank', 'colspan'=> $firstDayOfWeek));
+	$output .= "<td class='day_blank' colspan='$firstDayOfWeek'>&nbsp;</td>";
 
 	$curColumn = $firstDayOfWeek;
 	$curDate  = 1;
@@ -706,17 +730,16 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 
 		/* Check for days to highlight */
 		if($curDate == $day) {
-			$attributes = array( 'class' => 'current-day' );
+			$attributes = "class='current-day'";
 		} else if(!(false === array_search($curColumn, $highlightWeekdays))) {
-			$attributes = array( 'class' => 'highlighted-day' );
+			$attributes = "class='highlighted-day'";
 		} else {
-			$attributes = array();
+			$attributes = '';
 		}
 		
-		$output .= td( 
-			l($curDate, "op=$dayOp&year=$year&month=$month&day=$curDate" ), 
-			$attributes
-		);	
+		$output .= "<td $attributes>"
+		. l($curDate, "op=$dayOp&year=$year&month=$month&day=$curDate")
+		. "</td>";
 		
 		if($curColumn == 6) {
 			$output .= "</tr>\n";
@@ -727,7 +750,9 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	}
 
 	if($curColumn != 0) {
-		$output .= td( '&nbsp;', array('class' => 'day_blank', 'colspan'=> (7 - $curColumn)));
+		$output .= "<td class='day_blank' colspan='"
+		.  (7 - $curColumn)
+		. "'>&nbsp;</td>";
 	}
 	$output .= "</table></div>\n\n";
 
