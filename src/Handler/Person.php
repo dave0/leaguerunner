@@ -1803,6 +1803,11 @@ class PersonForgotPassword extends Handler
 		$this->op = 'person_forgotpassword';
 		return true;
 	}
+	
+	function checkPrereqs( $next )
+	{
+		return false;
+	}
 
 	function process()
 	{
