@@ -521,8 +521,9 @@ class TeamRosterStatus extends Handler
 				array( 'name' => 'view', 'target' => 'person/view/'),
 				array( 'name' => 'request player', 'target' => "team/roster/$teamId/")	
 			);
-		
-        	$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
+	
+			$query = "SELECT IF( status != 'active', CONCAT(lastname,', ',firstname, ' (inactive)'), CONCAT(lastname, ', ', firstname)) AS value, user_id AS id FROM person WHERE (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
+        	#$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND (class = 'player' OR class ='volunteer' OR class='administrator') AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
 
 			return
 				para("Select the player you wish to add to the team")
@@ -533,9 +534,13 @@ class TeamRosterStatus extends Handler
 		if($player->class != 'player' && $player->class != 'volunteer' && $player->class != 'administrator') {
 			$this->error_exit("Only OCUA-registered players can be added to a team");
 		}
-
+		
 		$this->loadPermittedStates($teamId, $playerId);
 		$edit = &$_POST['edit'];
+		
+		if($player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
+			$this->error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
+		}
 
 		if( $edit['step'] == 'perform' ) {
 				if($this->perform( $teamId, $player, $edit )) {
@@ -716,6 +721,7 @@ class TeamView extends Handler
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
 				p.gender,
 				p.skill_level,
+				p.status AS player_status,
 				r.status
 			FROM
 				teamroster r
@@ -747,9 +753,21 @@ class TeamView extends Handler
 					AND r.player_id = %d",$team->league_season,$team->league_day,$player->id));
 					
 			if($conflict > 1) {
-				$conflictText = "<div class='roster_conflict'>(roster conflict)</div>";
+				$conflictText = "(roster conflict)";
 			} else {
-				$conflictText = "";
+				$conflictText = null;
+			}
+			
+			if($player->player_status == "inactive" ) {
+				if($conflictText) {
+					$conflictText .= "<br />(account inactive)";
+				} else {
+					$conflictText .= "(account inactive)";
+				}
+			}
+
+			if($conflictText) {
+				$conflictText = "<div class='roster_conflict'>$conflictText</div>";
 			}
 			
 
