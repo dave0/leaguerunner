@@ -1,6 +1,11 @@
 {include file="common/basic_header.tmpl"}
 
-<h1>{$site.name}</h1>
+<h1>{$site.name} ({$site.code})</h1>
+<p>
+  {if $perm_site_edit}<a href="{$app_cgi_location}?op=site_edit&id={$id}">edit site</a> |{/if}
+  {if $perm_field_create}<a href="{$app_cgi_location}?op=field_create&site_id={$id}">add field</a>
+  {/if}
+</p>
 
 <table border="0" cellpadding="3" cellspacing="0">
     <tr>
@@ -10,14 +15,6 @@
     <tr>
       <td class='row_title'>Site Code:</td> 
       <td class='row_data'>{$site.code}</td>
-    </tr>
-    <tr>
-      <td class='row_title'>Site Location Map URL:</td> 
-      <td class='row_data'><a href='{$site.location_url}' target='_new'>{$site.location_url}</a></td>
-    </tr>
-    <tr>
-      <td class='row_title'>Site Layout Map URL:</td> 
-      <td class='row_data'><a href='{$site.layout_url}' target='_new'>{$site.layout_url}</a></td>
     </tr>
     <tr>
       <td class='row_title' valign='top'>Site Directions:</td> 
@@ -45,15 +42,29 @@
       </ul>
       </td>
     </tr>
+    <tr>
+      <td class='row_title' valign='top'>Site Location Map:</td> 
+      <td class='row_data' valign='top'>
+        {if $site.location_url}
+          <img src='{$site.location_url}' border='0'>
+        {else}
+          No map
+        {/if} 
+      </td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Field Layout Map:</td> 
+      <td class='row_data' valign='top'>
+        {if $site.layout_url}
+          <img src='{$site.layout_url}' border='0'>
+        {else}
+          No map
+        {/if} 
+      </td>
+    </tr>
 </table>
 
 <ul>
-  {if $perm_site_edit}
-  <li><a href="{$app_cgi_location}?op=site_edit&id={$id}">edit site</a>.
-  {/if}
-  {if $perm_field_create}
-  <li><a href="{$app_cgi_location}?op=field_create&site_id={$id}">add field at this site</a>.
-  {/if}
 </ul>
 
 

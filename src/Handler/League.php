@@ -809,7 +809,7 @@ class LeagueScheduleEdit extends Handler
 		while (list ($game_id, $game_info) = each ($games) ) {
 			$games[$game_id]['home_name'] = $DB->getOne("SELECT name from team where team_id = ?", array($game_info['home_id']));
 			$games[$game_id]['away_name'] = $DB->getOne("SELECT name from team where team_id = ?", array($game_info['away_id']));
-			$games[$game_id]['field_name'] = $DB->getOne("SELECT name from field_info where field_id = ?", array($game_info['field_id']));
+			$games[$game_id]['field_name'] = get_field_name($game_info['field_id']);
 		}
 		reset($games);
 		
@@ -954,10 +954,11 @@ class LeagueScheduleView extends Handler
 		$league_fields = $DB->getAll(
 			"SELECT DISTINCT
 				f.field_id AS value, 
-				f.name    AS output
+				CONCAT(s.name,' ',f.num,' (',s.code,f.num,')') AS output
 			  FROM
 			    field_assignment a
-				LEFT JOIN field_info f ON (a.field_id = f.field_id)
+				LEFT JOIN field f ON (a.field_id = f.field_id)
+				LEFT JOIN site s ON (f.site_id = s.site_id)
 		 	  WHERE
 		    	a.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
@@ -1042,7 +1043,7 @@ class LeagueScheduleView extends Handler
 			/* Look up home, away, and field names */
 			$game['home_name'] = $DB->getOne("SELECT name FROM team WHERE team_id = ?", array($game['home_id']));
 			$game['away_name'] = $DB->getOne("SELECT name FROM team WHERE team_id = ?", array($game['away_id']));
-			$game['field_name'] = $DB->getOne("SELECT name FROM field_info WHERE field_id = ?", array($game['field_id']));
+			$game['field_name'] = get_field_name($game['field_id']);
 
 			/* push current game into week list */
 			$schedule_weeks[$game['week_id']]['games'][] = $game;

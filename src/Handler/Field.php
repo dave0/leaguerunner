@@ -25,27 +25,63 @@ class FieldCreate extends FieldEdit
 		);
 		return true;
 	}
-	
+
 	function generate_form () 
 	{
 		global $DB;
 
-		$field['site_id'] = var_from_getorpost('site_id');
-		if(! validate_number($field['site_id']) ) {
+		$site_id = var_from_getorpost('site_id');
+		if(! validate_number($site_id) ) {
 			$this->error_text .= "You cannot add a field to an invalid site.";
 			return false;
 		}
 
-		$field['site_name'] = $DB->getOne("SELECT name FROM site where site_id = ?", array($field['site_id']));
-		if($this->is_database_error($field['site_name'])) {
+		$field = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($field)) {
 			$this->error_text .= "You cannot add a field to an invalid site.";
 			return false;
 		}
 
 		$field['availability'] = array();
+		$field['site_id'] = $site_id;
 
 		$this->tmpl->assign("field", $field);
 
+		return true;
+	}
+	
+	function generate_confirm ()
+	{
+		global $DB;
+		
+		$site_id = var_from_getorpost('site_id');
+		if(! validate_number($site_id) ) {
+			$this->error_text .= "You cannot add a field to an invalid site.";
+			return false;
+		}
+
+		if(! $this->validate_data()) {
+			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
+			return false;
+		}
+
+		$site = $DB->getRow("SELECT name as site_name, code as site_code FROM site where site_id = ?", array($site_id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($site)) {
+			$this->error_text .= "You cannot add a field to an invalid site.";
+			return false;
+		}
+
+
+		$field = var_from_getorpost('field');
+
+		$field['availability'] = join(",", $field['availability']);
+		$field['site_name'] = $site['site_name'];
+		$field['site_code'] = $site['site_code'];
+		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
+
+		$this->tmpl->assign("field", $field);
+		$this->tmpl->assign("id", $this->_id);
+		$this->tmpl->assign("site_id", $site_id);
 		return true;
 	}
 	
@@ -57,10 +93,16 @@ class FieldCreate extends FieldEdit
 			$this->error_text .= "<br>Please use your back button to return to the form, fix these errors, and try again";
 			return false;
 		}
+		
+		$site_id = var_from_getorpost('site_id');
+		if(! validate_number($site_id) ) {
+			$this->error_text .= "You cannot add a field to an invalid site.";
+			return false;
+		}
 
 		$field = var_from_getorpost("field");
 		
-		$res = $DB->query("INSERT into field (site_id,num) VALUES (?,?)", array($field['site_id'],$field['num']));
+		$res = $DB->query("INSERT into field (site_id,num) VALUES (?,?)", array($site_id,$field['num']));
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -393,7 +435,7 @@ class FieldAssign extends Handler
 				$rc = $this->generate_form();
 		}
 		
-		$field_name = $DB->getOne("SELECT name FROM field_info where field_id = ?", array(var_from_getorpost('id')));
+		$field_name = get_field_name(var_from_getorpost('id'));
 		if($this->is_database_error($field_name)) {
 			return false;
 		}
@@ -539,7 +581,7 @@ class FieldUnassign extends Handler
 		}
 		
 		$id = var_from_getorpost('id');
-		$field_name = $DB->getOne("SELECT name FROM field_info where field_id = ?", array($id));
+		$field_name = get_field_name(var_from_getorpost('id'));
 		if($this->is_database_error($field_name)) {
 			return false;
 		}

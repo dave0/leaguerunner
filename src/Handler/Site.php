@@ -26,6 +26,13 @@ class SiteCreate extends SiteEdit
 	 */
 	function generate_form () 
 	{
+		// TODO: This should be populated from database.
+		$this->tmpl->assign("regions", array(
+			array( 'value' => "Central", output => "Central" ), 
+			array( 'value' => "East", output => "East" ),  
+			array( 'value' => "South", output => "South" ),  
+			array( 'value' => "West", output => "West" ), 
+		));
 		return true;
 	}
 	
@@ -129,6 +136,9 @@ class SiteEdit extends Handler
 			return false;
 		}
 
+		// TODO: This should be populated from database.
+		$this->tmpl->assign("regions", array( "Central","East", "South", "West"));
+
 		$this->tmpl->assign("site", $row);
 		
 		$this->tmpl->assign("id", $this->_id);
@@ -164,6 +174,7 @@ class SiteEdit extends Handler
 		$res = $DB->query("UPDATE site SET 
 			name = ?, 
 			code = ?, 
+			region = ?, 
 			location_url = ?, 
 			layout_url = ?, 
 			directions = ?, 
@@ -172,6 +183,7 @@ class SiteEdit extends Handler
 			array(
 				$site['name'],
 				$site['code'],
+				$site['region'],
 				$site['location_url'],
 				$site['layout_url'],
 				$site['directions'],
@@ -199,6 +211,11 @@ class SiteEdit extends Handler
 		}
 		if( !validate_nonhtml($site['code'] ) ) {
 			$this->error_text .= "<li>Code cannot be left blank and cannot contain HTML";
+			$rc = false;
+		}
+
+		if( ! validate_nonhtml($site['region']) ) {
+			$this->error_text .= "<li>Region cannot be left blank and cannot contain HTML";
 			$rc = false;
 		}
 		
@@ -240,9 +257,9 @@ class SiteList extends Handler
 
 		$found = $DB->getAll(
 			"SELECT 
-				name AS value, 
-				site_id AS id_val 
-			 FROM site",
+				CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value,
+				s.site_id AS id_val
+				FROM field f LEFT JOIN site s ON (f.site_id = s.site_id) GROUP BY f.site_id",
 			array(), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($found)) {
 			return false;
@@ -307,7 +324,7 @@ class SiteView extends Handler
 		$this->set_title("View Site: " . $row['name']);
 
 		/* and list fields at this site */
-		$site['fields'] = $DB->getAll("SELECT * FROM field WHERE site_id = ?",
+		$site['fields'] = $DB->getAll("SELECT * FROM field WHERE site_id = ? ORDER BY num",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($site['fields'])) {
 			return false;

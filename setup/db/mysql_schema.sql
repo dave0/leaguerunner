@@ -175,6 +175,7 @@ CREATE TABLE site (
 	site_id int NOT NULL PRIMARY KEY AUTO_INCREMENT, 
 	name varchar(255) UNIQUE, 
 	code char(3) UNIQUE, 
+	region   enum('Central','East','South','West'),
 	location_url varchar(255), 
 	layout_url varchar(255), 
 	directions text, 

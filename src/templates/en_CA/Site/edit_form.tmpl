@@ -17,6 +17,14 @@
       <td class='row_data'><input type="text" name="site[code]" size="3" value="{$site.code}"> (3 letters only)</td>
     </tr>
     <tr>
+      <td class='row_title'>Site Region:</td> 
+      <td class='row_data'>
+        <select name="site[region]">
+	        {create_options data=$regions selected=$site.region}
+        </select>
+      </td>
+    </tr>
+    <tr>
       <td class='row_title'>Site Location Map URL:</td> 
       <td class='row_data'><input type="text" name="site[location_url]" size="50" value="{$site.location_url}"></td>
     </tr>

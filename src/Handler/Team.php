@@ -1073,10 +1073,10 @@ class TeamScheduleView extends Handler
 		 * This select is still evil, but not as evil as it could be.
 		 */
 		$rows = $DB->getAll(
-			'SELECT 
+			"SELECT 
 				s.game_id, 
-				DATE_FORMAT(s.date_played, "%a %b %d %Y") as game_date,
-				TIME_FORMAT(s.date_played,"%l:%i %p") as game_time,
+				DATE_FORMAT(s.date_played, '%a %b %d %Y') as game_date,
+				TIME_FORMAT(s.date_played,'%l:%i %p') as game_time,
 				s.home_team AS home_id, 
 				s.away_team AS away_id, 
 				s.field_id, 
@@ -1084,14 +1084,15 @@ class TeamScheduleView extends Handler
 				s.away_score, 
 				h.name AS home_name, 
 				a.name AS away_name, 
-				f.name AS field_name, 
+				CONCAT(t.name,' ',f.num,' (',t.code,f.num,')') AS field_name,
 				s.defaulted 
 			FROM schedule s 
 				LEFT JOIN team h ON (s.home_team = h.team_id) 
 				LEFT JOIN team a ON (s.away_team = a.team_id) 
-				LEFT JOIN field_info f ON (s.field_id = f.field_id) 
+				LEFT JOIN field f ON (s.field_id = f.field_id) 
+				LEFT JOIN site t ON (t.site_id = f.site_id) 
 			WHERE (s.home_team = ? OR s.away_team = ?) 
-			ORDER BY s.date_played',
+			ORDER BY s.date_played",
 		array($id, $id),
 		DB_FETCHMODE_ASSOC);
 			
