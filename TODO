@@ -4,14 +4,20 @@ Basic Install Needs:
 	- need install instructions
 
 Reimplementation:
-	- finish pulling over remaining features from ocua-engine
-	- fix up permissions handling for viewing
+	- send email when account is created
+	- add/remove team in league
+	- score submission
+	- score approval
 
 Redesign:
 	- Clean up database schema
 	- de-templateify this code; Smarty is too much of a pain in the ass.
 
 New Features:
+	- start using the 'year' column for leagues, to allow multiple leagues
+	  to co-exist for sequential seasons.
+	- add test for adding teams to multiple leagues.  Basically, as long as
+	  (year, season) for all leagues are different, it's OK.
 	- volunteer info
 	- integrate Tony's score-reminder code
 	- better field management
