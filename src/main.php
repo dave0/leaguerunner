@@ -30,31 +30,34 @@ require_once "UserSession.php";
 require_once "Handler.php";
 require_once "Smarty.class.php";
 
+/* 
+ * TODO: allow modification of current_language in user prefs later.
+ */
+$current_language = $APP_DEFAULT_LANGUAGE;
+
 /* Connect to the database */
 $dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
 $DB = DB::connect($dsn, true);
 if (DB::isError($DB)) {
-    die ($DB->getMessage());
+	die($DB->getMessage());
 }
 	
 
 $session = new UserSession;
 
-/* Cookie comes in as $ocua_session */
+/* Grab the variables we care about right now */
+$ocua_session = var_from_cookie('ocua_session');
+$op = var_from_getorpost('op');
+
 if( isset($ocua_session) ) {
 	$session->create_from_cookie($ocua_session);
 }
 
 /* 
- * TODO: allow modification of current_language in user prefs
- */
-$current_language = $APP_DEFAULT_LANGUAGE;
-
-/* 
  * If we're not attempting to log in, try to resume the session using
  * the saved token.
  */
-if( !($session->is_valid() && isset($op)) ) {
+if( !($session->is_valid()) || is_null($op) ) {
 	$op = 'login';
 }
 
@@ -130,6 +133,64 @@ function register_page_handler($op, $class)
 		/* TODO: Warn here that an existing handler is being overridden? */
 	}
 	$APP_PAGE_MAP[$op] = $class;
+}
+
+/* 
+ * To be safe, PHP's auto-global-variable stuff should be turned off, so we
+ * will use the functions below to access GET, POST and cookie variables.
+ */
+
+/**
+ * Get variable from cookie
+ * @param string $name name of variable we're looking for
+ * @return mixed
+ */
+function var_from_cookie($name) 
+{
+	global $_COOKIE;
+	if(isset($_COOKIE[$name])) {
+		return $_COOKIE[$name];
+	}
+	return null;
+}
+
+/**
+ * Get variable from POST submission.
+ * @param string $name name of variable we're looking for
+ * @return mixed
+ */
+function var_from_post($name)
+{
+	global $_SERVER, $_POST;
+	
+	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		if(isset($_POST[$name])) {
+			return $_POST[$name];
+		}
+	} 
+	return null;
+}
+
+/**
+ * Get variable from either a GET or a POST submission.
+ *
+ * We could use the PHP magic array $_REQUEST, but it also includes cookie
+ * data, which can confuse things.  We just want GET and POST values, so we'll
+ * do it ourselves.
+ * 
+ * @param string $name name of variable we're looking for
+ * @return mixed
+ */
+function var_from_getorpost($name)
+{
+	/* Don't want to use $_REQUEST, since that can contain cookie info */
+	global $_SERVER, $_GET, $_POST;
+	if($_SERVER['REQUEST_METHOD'] == 'GET') {
+		return $_GET[$name];
+	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		return $_POST[$name];
+	} 
+	return null;
 }
 
 ?>

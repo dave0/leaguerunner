@@ -16,7 +16,7 @@ class Login extends Handler
 	/**
 	 * Initializer for Login class
 	 * 
-	 * We simply initialize the printable name for this operation. 
+	 * We simply initialize the printable name for this operation.
 	 *
 	 * @access public
 	 */
@@ -53,6 +53,8 @@ class Login extends Handler
 	{
 		global $session, $username, $password;
 
+		$username = var_from_post('username');
+		$password = var_from_post('password');
 
 		/* Now, if we can, we will create a new user session */
 		if( isset($username) && isset($password) ) {
