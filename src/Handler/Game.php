@@ -907,10 +907,9 @@ class GameSubmit extends Handler
 			}
 
                         // Game has been saved to database.  Now we can update the dependant games.
-                        //if (! $this->game->updatedependentgames()) {
-                        $this->game->updatedependentgames();
-  		        //  $this->error_exit("Could not update dependant games.");
-                       // }
+                        if (! $this->game->updatedependentgames()) {
+  		          $this->error_exit("Could not update dependant games.");
+                        }
 			
 			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 		} else {
@@ -1486,7 +1485,7 @@ class GameEdit extends Handler
 
                 // Game has been saved to database.  Now we can update the dependant games.
                 if (! $this->game->updatedependentgames()) {
-			$this->error_exit("Ckould not update dependant games.");
+			$this->error_exit("Could not update dependant games.");
                 }
 
 		return true;
