@@ -686,8 +686,6 @@ EOM;
  */
 class PersonEdit extends Handler
 {
-	var $_id;
-	
 	function initialize ()
 	{
 		$this->set_title("Person &raquo; Edit");
@@ -727,7 +725,7 @@ class PersonEdit extends Handler
 				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
-				$this->perform();
+				$this->perform( $id );
 				local_redirect("op=person_view&id=$id");
 				break;
 			default:
@@ -932,6 +930,7 @@ class PersonEdit extends Handler
 				$phoneBlock .= ucfirst($location) . ": " . $phone[$location];
 				if($phone["publish_$location"] == 'Y') {
 					$phoneBlock .= " (published)";
+					$phoneBlock .= form_hidden('publish_' . $location . '_phone', 'Y');
 				} else {
 					$phoneBlock .= " (private)";
 				}
@@ -1794,6 +1793,12 @@ class PersonChangePassword extends Handler
 
 class PersonForgotPassword extends Handler
 {
+
+	function checkPrereqs( $next )
+	{
+		return false;
+	}
+
 	function initialize ()
 	{
 		$this->_required_perms = array(
@@ -1802,11 +1807,6 @@ class PersonForgotPassword extends Handler
 		$this->title = "Request New Password";
 		$this->op = 'person_forgotpassword';
 		return true;
-	}
-	
-	function checkPrereqs( $next )
-	{
-		return false;
 	}
 
 	function process()
