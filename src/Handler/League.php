@@ -1528,7 +1528,7 @@ class LeagueView extends Handler
 		}
 		
 		$links = array();
-		if($league['allow_schedule']) {
+		if($league['allow_schedule'] == 'Y') {
 			$links[] = l("schedule", "op=league_schedule_view&id=$id");
 			$links[] = l("standings", "op=league_standings&id=$id");
 			if($this->_permissions['administer_league']) {
