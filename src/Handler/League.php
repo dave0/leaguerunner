@@ -1427,7 +1427,10 @@ class LeagueAdmin extends Handler
 		$output .= para("Use <b>cancel</b> to delete the entire round of games (ie: physically removes games from the system, adjusting all dependent game info)");
 		$output .= para("Use <b>finalize</b> to force a result for all games in the round (ie: automatically approve partial score entries, assign 0-0 ties to games with no results)");
 
-		$header = array("Round", "Date", "&nbsp", "&nbsp", "Operations", "&nbsp");
+		$header = array(array('data'=>"Round",'align'=>"center"), 
+				array('data'=>"Date",'align'=>"center"), 
+				"&nbsp", 
+				array('data'=>"Operations",'colspan'=>3,'align'=>"center") );
 
 		$row = array();
 
