@@ -1,41 +1,19 @@
 <?php
 register_page_handler('login','Login');
+register_page_handler('logout','Logout');
 
 /**
  * Login handler 
- *
- * @package Leaguerunner
- * @author Dave O'Neill <dmo@acm.org>
- * @access public
- * @copyright GPL
  */
 class Login extends Handler 
 {
-
-	/**
-	 * Initializer for Login class
-	 * 
-	 * We simply initialize the printable name for this operation.
-	 *
-	 * @access public
-	 */
 	function initialize () 
 	{
 		$this->set_title("Login");
+		$this->_required_perms = array(
+			'allow'
+		);
 
-		return true;
-	}
-
-	/**
-	 * Check if the current session has permission to log in
-	 *
-	 * Since there's no other validation to be done, we always return true. 
-	 *
-	 * @access public
-	 * @return boolean Permission success (true) or fail (false).
-	 */
-	function has_permission()
-	{
 		return true;
 	}
 
@@ -140,4 +118,43 @@ class Login extends Handler
 		parent::display();	
 	}
 }
+
+/**
+ * Logout handler. 
+ */
+class Logout extends Handler 
+{
+	function initialize ()
+	{
+		$this->set_title("Logout");
+		$this->_required_perms = array(
+			'allow'
+		);
+		return true;
+	}
+
+	function process ()
+	{
+		global $session;
+		$rc =  $session->expire();
+		if(! $rc) {
+			$this->error_text = gettext("Couldn't log out!");
+		}
+		return $rc;
+	}
+
+	/**
+	 * Display handler for Logout
+	 *
+	 * When logging out a user, after invalidating that user's session, we
+	 * redirect them to the login page.
+	 *
+	 * @access public
+	 */
+	function display ()
+	{	
+		return $this->output_redirect("op=login");
+	}
+}
+
 ?>

@@ -20,12 +20,12 @@
  * Authors: Dave O'Neill <dmo@acm.org>
  * 
  */
-
-require("lib/variables.php");
+require_once("lib/variables.php");
 
 $APP_PAGE_MAP = array();
 
 require_once 'DB.php';
+
 require_once "UserSession.php";
 require_once "Handler.php";
 require_once "Smarty.class.php";
@@ -37,12 +37,12 @@ require_once "lib/smarty_extensions.php";
 $current_language = $APP_DEFAULT_LANGUAGE;
 
 /* Connect to the database */
-$dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
+#$dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
+$dsn = "mysql://leaguerunner:ocuaweb@unix(/var/run/mysqld/mysqld.sock)/leaguerunner";
 $DB = DB::connect($dsn, true);
 if (DB::isError($DB)) {
 	die($DB->getMessage());
 }
-	
 
 $session = new UserSession;
 
@@ -62,6 +62,12 @@ if( is_null($op) ) {
  * operation 
  */
 $handler = get_page_handler($op);
+if(is_null($handler)) {
+	$handler = new Handler;
+	$handler->error_text = gettext("Sorry, that operation does not exist");
+	$handler->display_error();
+	return;
+}
 
 /* Set any necessary options for the handler */
 if($handler->initialize()) {
@@ -87,11 +93,6 @@ if($handler->initialize()) {
 	$handler->display_error();
 }
 
-/*
- * Perform necessary cleanup, and save our session info for the next operation
- */
-$handler->end_page();
-
 $DB->disconnect();
 /* And, that's all, folks.  */
 
@@ -108,12 +109,10 @@ function get_page_handler( $op )
 {
 	global $APP_PAGE_MAP;
 	if(isset($APP_PAGE_MAP[$op])) {
-		$class = $APP_PAGE_MAP[$op];	
-	} else {
-		$class = $APP_PAGE_MAP['notfound'];	
-	}
-
-	return new $class;
+		return new $APP_PAGE_MAP[$op];	
+	} 
+	
+	return null;
 }
 
 /**
@@ -139,7 +138,6 @@ function register_page_handler($op, $class)
  * To be safe, PHP's auto-global-variable stuff should be turned off, so we
  * will use the functions below to access GET, POST and cookie variables.
  */
-
 /**
  * Get variable from cookie
  * @param string $name name of variable we're looking for
@@ -214,4 +212,15 @@ function var_from_getorpost($name)
 	return null;
 }
 
+/**
+ * Set variable for both GET and POST
+ *
+ * This is used for overriding certain values when necessary.
+ *
+ */
+function set_getandpost($name, $value)
+{
+	$_POST[$name] = $value;
+	$_GET[$name] = $value;
+}
 ?>

@@ -2,9 +2,7 @@
 
 # do not resort this list or things will break
 require_once("Handler/Login.php");
-require_once("Handler/Logout.php");
 require_once("Handler/Menu.php");
-require_once("Handler/NotFound.php");
 
 require_once("Handler/Person.php");
 require_once("Handler/Team.php");
@@ -19,12 +17,6 @@ require_once("Handler/Field.php");
  *
  * It also provides the Handler base class, which implements an API that
  * must be followed by each page handler subclass.
- *
- * @package 	Leaguerunner
- * @version		$Id$
- * @author		Dave O'Neill <dmo@acm.org>
- * @access		public
- * @copyright	Dave O'Neill <dmo@acm.org>; GPL.
  */
 class Handler 
 {
@@ -51,6 +43,11 @@ class Handler
 	 * @var string
 	 */
 	var $error_text;
+
+	/**
+	 * Things to check for general access permission
+	 */
+	var $_required_perms;
 	
 	/**
 	 * Permissions bits for various items of interest
@@ -66,6 +63,8 @@ class Handler
 	function Handler ()
 	{
 		$this->tmpl = new Smarty;
+		$this->_required_perms = null;
+		$this->_permissions = array();
 	}
 
 	/**
@@ -79,17 +78,94 @@ class Handler
 
 	/**
 	 * Check if the logged-in user has permission for the current op
-	 *
-	 * This checks whether or not the user has authorization to perform
-	 * the given operation.  Returns true/false indicating success/failure
-	 * This MUST be overridden by the subclass.
+	 * Returns true/false indicating success/failure.
 	 * 
 	 * @access public
 	 * @return boolean 	Permission success/fail
 	 */
 	function has_permission() 
 	{
+		global $session;
+		
+		if(is_null($this->_required_perms)) {
+			$this->error_text = gettext("You do not have permission to perform that operation");
+			return false;
+		}
+		
+		/* Now check particular items, in order */
+		foreach($this->_required_perms as $perm_type) {
+		
+			if($perm_type == 'allow') {
+				return true;
+			} else if($perm_type == 'deny') {
+				$this->error_text = gettext("You do not have permission to perform that operation");
+				return false;
+			} else if($perm_type == 'require_valid_session') {
+				if(!$session->is_valid()) {
+					$this->error_text = gettext("You do not have a valid session");
+					return false;
+				}
+			} else if($perm_type == 'require_admin') {
+				if(!$session->is_admin()) {
+					$this->error_text = gettext("You do not have permission to perform that operation");
+					return false;
+				} else {
+					$this->set_permission_flags('administrator');
+				}
+			} else if($perm_type == 'admin_sufficient') {
+				if($session->is_admin()) {
+					$this->set_permission_flags('administrator');
+					return true;
+				}
+			} else if($perm_type == 'self_sufficient') {
+				$id = var_from_getorpost('id');
+				if($session->attr_get('user_id') == $id) {
+					$this->set_permission_flags('self');
+					return true;
+				}
+			} else if($perm_type == 'require_coordinator') {
+				$id = var_from_getorpost('id');
+				if(!$session->is_coordinator_of($id)) {
+					$this->error_text = gettext("You do not have permission to perform that operation");
+					return false;
+				} else {
+					$this->set_permission_flags('coordinator');
+				}
+			} else if($perm_type == 'coordinator_sufficient') {
+				$id = var_from_getorpost('id');
+				if($session->is_coordinator_of($id)) {
+					$this->set_permission_flags('coordinator');
+					return true;
+				}
+			} else if($perm_type == 'captain_sufficient') {
+				$id = var_from_getorpost('id');
+				if($session->is_captain_of($id)) {
+					$this->set_permission_flags('captain');
+					return true;
+				}
+			} else if(strncmp($perm_type,'require_var:',11) == 0) {
+				$wanted_var = substr($perm_type, 12);
+				$got_var = var_from_getorpost($wanted_var);
+				if(is_null($got_var)) {
+					$this->error_text = gettext("Value missing for $wanted_var in URL");
+					return false;
+				}
+			}
+		}
+
+		$this->error_text = gettext("You do not have permission to perform that operation");
 		return false;
+	}
+
+	/**
+	 * Set any perms flags needed for a particular handler
+	 * Should be overridden by subclass if needed.
+	 *
+	 * @param $type Type of flag to set.  Valid values are * 'administrator', 'coordinator', 'captain'
+	 */
+	function set_permission_flags($type = '')
+	{
+		return true;
 	}
 
 	/**
@@ -118,13 +194,10 @@ class Handler
 	function set_global_template_vars()
 	{
 		global $current_language, $session;
-		$this->tmpl->assign("product_name", $GLOBALS['PRODUCT_NAME']);
+
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
-		$this->tmpl->assign("app_cgi_location", $GLOBALS['APP_CGI_LOCATION']);
+		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
 		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/$current_language");
-		$this->tmpl->assign("app_stylesheet_file", $GLOBALS['APP_STYLESHEET']);
-		$this->tmpl->assign("app_template_dir", $current_language);
-		
 		$this->tmpl->assign("page_title", $this->_page_title);
 	
 		if(isset($session) && $session->is_valid()) {
@@ -158,6 +231,8 @@ class Handler
 	 */
 	function display ()
 	{
+		global $current_language;
+
 		$this->set_global_template_vars();
 		register_smarty_extensions($this->tmpl);
 
@@ -168,6 +243,7 @@ class Handler
 		 * development, your changes to the templates will not be noticed!
 		 */
 		$this->tmpl->compile_check = true;
+		$this->tmpl->template_dir  = "./templates/" . $current_language;
 		$this->tmpl->display($this->tmplfile);
 	}
 
@@ -178,7 +254,7 @@ class Handler
 	{
 		Header(join("",array(
 			"Location: ",
-			$GLOBALS['APP_CGI_LOCATION'],
+			$_SERVER['PHP_SELF'],
 			"?",
 			$append
 		)));
@@ -198,8 +274,8 @@ class Handler
 	 */
 	function display_error()
 	{
-		/* TODO: If we're going to use error codes, display them too. */
-		
+		global $current_language;
+
 		$this->tmpl = new Smarty;
 		$this->set_template_file("ErrorMessage.tmpl");
 		$this->name = "Error";
@@ -212,28 +288,16 @@ class Handler
 			$this->error_text);
 			
 		$this->set_global_template_vars();
+		
+		$this->tmpl->template_dir  = "./templates/" . $current_language;
 		$this->tmpl->display($this->tmplfile);
-	}
-
-	/**
-	 * Perform page finalization
-	 * 
-	 * Deals with any final close-off that needs to be done for the 
-	 * page.
-	 * 
-	 * @access public
-	 */
-	function end_page ()
-	{
-		/* TODO: */
 	}
 
 	/** 
 	 * Set the template file to be used
 	 *
 	 * This sets the path to the appropriate template file, relative to
-	 * the template root.  This also inserts the appropriate language
-	 * directory into the pathname.
+	 * the template root.  
 	 *
 	 * @access public
 	 * @param string $template_file  Filename of the template file to use.  Should be relative to the language directories.
@@ -241,8 +305,7 @@ class Handler
 	 */
 	function set_template_file( $template_file )
 	{
-		global $current_language;
-		$this->tmplfile = $current_language . "/" . $template_file;
+		$this->tmplfile = $template_file;
 	}
 
 	/**

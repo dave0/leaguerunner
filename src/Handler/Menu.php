@@ -23,36 +23,19 @@ class Menu extends Handler
 			"user_admin"    => false,
 			"field_admin"    => false,
 		);
-		
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'allow'
+		);
 		return true;
 	}
-
-	/**
-	 * Check if the logged-in user has permission to view the menu
-	 *
-	 * This checks whether or not the user has authorization to view the
-	 * menu.  At present, everyone with a valid session can view the menu.
-	 * 
-	 * @access public
-	 * @return boolean True if current session is valid, false otherwise.
-	 */
-	function has_permission()
-	{	
-		global $session;
-		
-		/* Anyone with a valid session id has permission */
-		if(!$session->is_valid()) {
-			$this->error_text = gettext("Your session has expired.  Please log in again");
-			return false;
-		}
-
-		/* Administrator can do all */
-		if($session->attr_get('class') == 'administrator') {
+	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
 			$this->enable_all_perms();
-		}
-		reset($this->_permissions);
-		
-		return true;
+		} 
 	}
 
 	/**

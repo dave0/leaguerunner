@@ -225,6 +225,14 @@ class UserSession
 	}
 
 	/** 
+	 * See if this session user is an administrator
+	 */
+	function is_admin ()
+	{
+		return ($this->attr_get('class') == 'administrator');
+	}
+
+	/** 
 	 * See if this session user is captain of given team
 	 *
 	 * @param team_id Team identifier.
