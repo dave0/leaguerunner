@@ -47,13 +47,13 @@ INSERT INTO multiplechoice_answers VALUES(
 INSERT INTO multiplechoice_answers VALUES(
 	'AcceptableRules', 
 	'RulesKnowledge',
-	'acceptable, and they were willing to learn',
+	'acceptable, or they were willing to learn',
 	'0',
 	1);
 INSERT INTO multiplechoice_answers VALUES(
 	'PoorRules', 
 	'RulesKnowledge',
-	'poor, and they weren\'t interested in learning',
+	'poor, or they weren\'t interested in learning',
 	'-1',
 	2);
 INSERT INTO multiplechoice_answers VALUES(
