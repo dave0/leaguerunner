@@ -164,7 +164,7 @@ class FieldEdit extends Handler
 
 		$rows[] = array( "Directions:", form_textarea("", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical."));
 
-		$rows[] = array( "Special Instructions:", form_textarea("", 'edit[site_instructions]', $data['site instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
+		$rows[] = array( "Special Instructions:", form_textarea("", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
 		$rows[] = array(
 			form_submit('Submit'),
 			form_reset('Reset'));
