@@ -45,11 +45,21 @@ class MainMenu extends Handler
 			l("Change My Password", "op=person_changepassword&id=$id")));
 		$accountMenu .= tr(td(
 			l("View/Sign Player Waiver", "op=person_signwaiver")));
-
+			
 		if( $session->attr_get('has_dog') == 'Y' ) {
 			$accountMenu .= tr(td(
 				l("View/Sign Dog Waiver", "op=person_signdogwaiver")));
 		}
+
+		/* TODO: This should be a config option */
+		$signupTime = mktime(9,0,0,10,22,2003);
+		if(	time() >= $signupTime) {
+			$accountMenu .= tr(td(
+				l("Winter Indoor Signup", "op=wlist_viewperson&id=$id")));
+		} else {
+			$accountMenu .= tr(td("Indoor Signup opens<br/>" . date("F j Y h:i A", $signupTime)));
+		}
+
 				
 		$accountMenu .= "</table>";
 
@@ -177,6 +187,8 @@ class AdminMenu extends Handler
 		$links = array(
 			l("List City Wards", "op=ward_list"),
 			l("Approve New Accounts", "op=person_listnew") . " ($newUsers awaiting approval)",
+			l("Create New Waiting List", "op=wlist_create"),
+			l("List Waiting Lists", "op=wlist_list"),
 		);
 		$left = "<table>";
 		$left .= tr(th("Admin Tools"));

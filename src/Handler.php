@@ -12,6 +12,7 @@ require_once("Handler/Field.php");
 require_once("Handler/Ward.php");
 require_once("Handler/Site.php");
 require_once("Handler/Game.php");
+require_once("Handler/WaitingList.php");
 
 /**
  * This is the base class for all operation handlers used in the web UI.
@@ -161,6 +162,13 @@ class Handler
 			} else if($perm_type == 'self_sufficient') {
 				$id = var_from_getorpost('id');
 				if($session->attr_get('user_id') == $id) {
+					$this->set_permission_flags('self');
+					return true;
+				}
+			} else if(strncmp($perm_type,'self_sufficient:',16) == 0) {
+				$id_field = substr($perm_type, 16);
+				$id_data = var_from_getorpost($id_field);
+				if($session->attr_get('user_id') == $id_data) {
 					$this->set_permission_flags('self');
 					return true;
 				}

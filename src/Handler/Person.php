@@ -32,6 +32,7 @@ class PersonView extends Handler
 			'mobile_phone'		=> false,
 			'username'	=> false,
 			'birthdate'	=> false,
+			'height'	=> false,
 			'address'	=> false,
 			'gender'	=> false,
 			'skill' 	=> false,
@@ -275,13 +276,17 @@ class PersonView extends Handler
 				)
 			);
 			if($person['ward_number']) {
-				$output .= simple_row("Ward:", 
-					l($person['ward_name'] . " (" . $person['ward_city']. " Ward " . $person['ward_number']. ")","op=ward_view&id=".$person['ward_id']));
+				$output .= simple_row('Ward:', 
+					l($person['ward_name'] . ' (' . $person['ward_city']. ' Ward ' . $person['ward_number']. ')','op=ward_view&id='.$person['ward_id']));
 			}
 		}
 		
 		if($this->_permissions['birthdate']) {
-			$output .= simple_row("Birthdate:", $person['birthdate']);
+			$output .= simple_row('Birthdate:', $person['birthdate']);
+		}
+		
+		if($this->_permissions['height']) {
+			$output .= simple_row('Height:', $person['height'] . 'in');
 		}
 		
 		if($this->_permissions['gender']) {
@@ -349,6 +354,7 @@ class PersonDelete extends PersonView
 			'phone'		=> false,
 			'username'	=> false,
 			'birthdate'	=> false,
+			'height'	=> false,
 			'address'	=> false,
 			'gender'	=> false,
 			'skill' 	=> false,
@@ -836,6 +842,9 @@ class PersonEdit extends Handler
 		$output .= simple_row("Birthdate:",
 			form_select_date('', 'birth', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
 
+		$output .= simple_row('Height:',
+			form_textfield('','height',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
+			
 		if($this->_permissions['edit_class']) {
 			$output .= simple_row("Account Class:",
 				form_select('','class', $formData['class'], getOptionsFromEnum('person','class')));
@@ -954,6 +963,9 @@ class PersonEdit extends Handler
 			. form_hidden('birth_month',$birth_month) 
 			. form_hidden('birth_day',$birth_day) 
 			. "$birth_year / $birth_month / $birth_day");
+		
+		$height = var_from_post('height');
+		$output .= simple_row("Height:", form_hidden('height',$height) . $height . "in");
 	
 		if($this->_permissions['edit_class']) {
 			$class = var_from_post('class');
@@ -1039,6 +1051,9 @@ class PersonEdit extends Handler
 			var_from_getorpost('birth_year'),
 			var_from_getorpost('birth_month'),
 			var_from_getorpost('birth_day')));
+			
+		$fields[] = "height = ?";
+		$fields_data[] = var_from_getorpost('height');
 		
 		$fields[] = "gender = ?";
 		$fields_data[] = var_from_getorpost('gender');
@@ -1152,6 +1167,15 @@ class PersonEdit extends Handler
 		$birthday = var_from_getorpost('birth_day');
 		if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
 			$errors .= "\n<li>You must provide a valid birthdate";
+		}
+
+		$height = var_from_getorpost('height');
+		if( !validate_nonblank($height) ) {
+			$errors .= "\n<li>Please enter a value for your height.";
+		} else {
+			if( ($height < 36) || ($height > 84) ) {
+				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
+			}
 		}
 		
 		$skill = var_from_getorpost('skill_level');
