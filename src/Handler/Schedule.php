@@ -425,7 +425,9 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+		// TODO: Tony changed this ordering... but, it needs to be changed back once he starts assigning game slots!
+		$result = game_query ( array( 'league_id' => $id, '_order' => 's.game_id') );
+		//$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}
@@ -524,7 +526,11 @@ function schedule_render_viewable( &$game )
 		}
 		$homeTeam = l($short, "team/view/" . $game['home_id']);
 	} else {
-		$homeTeam = "Not scheduled";
+		if ($game['home_dependant_game'] && $game['home_dependant_type']) {
+			$homeTeam = $game['home_dependant_type'] . " of " . $game['home_dependant_game'];
+		} else {
+			$homeTeam = "Not yet scheduled.";
+		}
 	}
 	if($game['away_name']) {
 		$short = sprintf("%.20s", $game['away_name']);
@@ -533,7 +539,11 @@ function schedule_render_viewable( &$game )
 		}
 		$awayTeam = l($short, "team/view/" . $game['away_id']);
 	} else {
-		$awayTeam = "Not scheduled";
+		if ($game['away_dependant_game'] && $game['away_dependant_type']) {
+			$awayTeam = $game['away_dependant_type'] . " of " . $game['away_dependant_game'];
+		} else {
+			$awayTeam = "Not yet scheduled.";
+		}
 	}
 	
 	$gameRow = array(

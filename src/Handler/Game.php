@@ -131,6 +131,9 @@ class GameCreate extends Handler
 		$year  = arg(3);
 		$month = arg(4);
 		$day   = arg(5);
+		$end_year  = arg(6);
+		$end_month = arg(7);
+		$end_day   = arg(8);
 
 		$this->league = league_load( array('league_id' => $league_id) );
 		if(! $this->league ) {
@@ -142,6 +145,18 @@ class GameCreate extends Handler
 				$this->error_exit("That date is not valid");
 			}
 			$datestamp = mktime(0,0,0,$month,$day,$year);
+			if ($end_day) {
+				if ( ! validate_date_input($end_year, $end_month, $end_day) ) {
+					$this->error_exit("That date is not valid");
+				}
+				$end_datestamp = mktime(0,0,0,$end_month,$end_day,$end_year);
+			} else {
+				$this->setLocation(array(
+					$this->league->name => "league/view/$league_id",
+					$this->title => 0
+				));
+				return $this->datePick($end_year, $end_month, $end_day, "/$year/$month/$day");
+			}
 		} else {
 			$this->setLocation(array( 
 				$this->league->name => "league/view/$league_id",
@@ -185,30 +200,34 @@ class GameCreate extends Handler
 
 		switch($edit['step']) {
 			case 'perform':
-				return $this->perform($edit, $datestamp);
+				return $this->perform($edit, $datestamp, $end_datestamp);
 				break;
 			case 'confirm':
 				$this->setLocation(array( 
 					$this->league->name => "league/view/$league_id",
 					$this->title => 0
 				));
-				return $this->generateConfirm($edit, $datestamp);
+				return $this->generateConfirm($edit, $datestamp, $end_datestamp);
 				break;
 			default:
 				$this->setLocation(array( 
 					$this->league->name => "league/view/$league_id",
 					$this->title => 0
 				));
-				return $this->generateForm($datestamp);
+				return $this->generateForm($datestamp, $end_datestamp);
 				break;
 		}
 		$this->error_exit("Error: This code should never be reached.");
 	}
 
 	
-	function datePick ( $year, $month, $day)
+	function datePick ( $year, $month, $day, $end = 0)
 	{
-		$output = para("Select a date below to start adding games to this league.  Days on which this league usually plays are highlighted in green.");
+		if ($end) {
+			$output = para("Select a date below to <b>end</b> games for this league.  Days on which this league usually plays are highlighted in green.");
+		} else {
+			$output = para("Select a date below to <b>start</b> adding games to this league.  Days on which this league usually plays are highlighted in green.");
+		}
 
 		$today = getdate();
 	
@@ -220,18 +239,25 @@ class GameCreate extends Handler
 			$year = $today['year'];
 		}
 
-		$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id, "game/create/" . $this->league->league_id, split(',',$this->league->day));
+		if ($end) {
+			$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id . $end, "game/create/" . $this->league->league_id . $end, split(',',$this->league->day));
+		} else {
+			$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id, "game/create/" . $this->league->league_id, split(',',$this->league->day));
+		}
 
 		return $output;
 	}
 	
-	function generateForm ( $datestamp )
+	function generateForm ( $datestamp, $end_datestamp = "" )
 	{
 		$output = para("Please enter some information about the game(s) to create.");
 		$output .= para("<b>Note</b>: Creating full or half-tier round-robin games does not yet work.");
 		$output .= form_hidden('edit[step]', 'confirm');
 		
 		$group = form_item("Starting on", strftime("%A %B %d %Y", $datestamp));
+		if ($end_datestamp) {
+			$group .= form_item("Ending on", strftime("%A %B %d %Y", $end_datestamp));
+		}
 
 		$group .= form_radiogroup("Create a", 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
 		$output .= form_group("Game Information", $group);
@@ -241,7 +267,7 @@ class GameCreate extends Handler
 		return form($output);
 	}
 	
-	function generateConfirm ( &$edit, $datestamp )
+	function generateConfirm ( &$edit, $datestamp, $end_datestamp )
 	{
 
 		if (  ! array_key_exists( $edit['type'], $this->types) ) {
@@ -264,6 +290,9 @@ class GameCreate extends Handler
 		$output .= form_hidden('edit[step]', 'perform');
 		
 		$group = form_item("Starting on", strftime("%A %B %d %Y", $datestamp));
+		if ($end_datestamp) {
+			$group .= form_item("Ending on", strftime("%A %B %d %Y", $end_datestamp));
+		}
 		$group .= form_item("Create a", $this->types[$edit['type']] . form_hidden('edit[type]', $edit['type']));
 
 		$group .= form_radiogroup("What to add", 'edit[type]', 'single', $types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
@@ -274,7 +303,7 @@ class GameCreate extends Handler
 		return form($output);
 	}
 
-	function perform ( &$edit, $timestamp) {
+	function perform ( &$edit, $timestamp, $end_timestamp = "") {
 /*
  * Possible problems with autogeneration ( needs checking in code, possible
  * bailouts):
@@ -299,7 +328,7 @@ class GameCreate extends Handler
 				return $this->createLadderRound( $edit, $timestamp );
 				break;
 			case 'fullladder':
-				return $this->createLadderSeason( $edit, $timestamp );
+				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
 			default:
 				$this->error_exit("That is not a valid option right now.");
 	
@@ -356,9 +385,8 @@ class GameCreate extends Handler
 	/**
 	 * Create an entire season of hold/move pairs for this league.
 	 */
-	function createLadderSeason( $edit, $timestamp )
+	function createLadderSeason( $edit, $timestamp, $end_timestamp )
 	{
-		//$this->error_exit("TONY IS WORKING ON THIS, AND THIS FUNCTION IS UNTESTED!!!");
 		$league = $this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
@@ -385,7 +413,7 @@ class GameCreate extends Handler
 		// all games array!
 		$all_games = array();
 
-		// DO THE FIRST GAME, SETTINGS TEAM NAMES AND SUCH
+		// DO THE FIRST GAME, SETTINGS TEAMS AND SUCH
 		for($i = 0; $i < $num_games*2; $i=$i+2) {
 			$ii = $i+1;
 			$g = new Game;
@@ -400,19 +428,30 @@ class GameCreate extends Handler
 			array_push ( $all_games, $g );
 		}
 
-		// repeat the loop, but prepare the next games
-		for($i = 0; $i < $num_games*2; $i=$i+2) {
-			$ii = $i+1;
-			$g = new Game;
-			$g->set('league_id', $league->league_id);
-			$g->set('round', $round+1);
-			if ( ! $g->save() ) {
-				$this->error_exit("Could not successfully create a new game");
+
+		// figure out how many games there are between the start and end dates (inclusively)
+		$game_dates = $this->find_game_dates($league, $timestamp, $end_timestamp);
+
+		// now, prepare the subsequent games
+		foreach ($game_dates as $date) {
+			// skip first set of games, which we've already created!
+			if ($date == $timestamp) {
+				next;
 			}
-			
-			array_push ( $all_games, $g );
+			$round++;
+			for($i = 0; $i < $num_games; $i++) {
+				$g = new Game;
+				$g->set('league_id', $league->league_id);
+				$g->set('round', $round);
+				if ( ! $g->save() ) {
+					$this->error_exit("Could not successfully create a new game");
+				}
+				
+				array_push ( $all_games, $g );
+			}
 		}
 
+	/*
 		// repeat the loop, but prepare the far games
 		for($i = 0; $i < $num_games*2; $i=$i+2) {
 			$ii = $i+1;
@@ -425,6 +464,7 @@ class GameCreate extends Handler
 
 			array_push ( $all_games, $g );
 		}
+	*/
 
 		$all_games = $this->set_dependents($all_games, $num_teams);
 		
@@ -432,15 +472,39 @@ class GameCreate extends Handler
 		print "<pre>--------------</pre>\n";
 		foreach ($all_games as $game) {
 			print $game->sprintf('debug');
-			if ( ! $game->delete() ) {
-				$this->error_exit("PROBLEM HERE");
-			}
+			//if ( ! $game->delete() ) {
+				//$this->error_exit("PROBLEM HERE");
+			//}
 		}
 		print "<pre>--------------</pre>\n";
 
 		$this->error_exit("TODO: Tony is working on this!  The output above is indicative of what WOULD have been scheduled had this function been finished.");
 	}
 
+
+	/********************************************************************************
+	 *  This function takes in the league object, a start date and an end date.
+	 *  The return value is an array of dates for which this league will have games,
+	 *   between the start and end dates (inclusively)
+	 */
+	function find_game_dates ($league, $start, $end) {
+		$game_dates = array();
+		array_push($game_dates, $start);
+
+		$days = split(',', $league->day);
+
+		$date = $start;
+		while ($date < $end) {
+			$date = mktime(0,0,0,date("n", $date), date("j", $date)+1, date("Y", $date));
+			// loop through the days that this league plays
+			foreach ($days as $d) {
+				if ( date("l", $date) == $d ) {
+					array_push($game_dates, $date);
+				}
+			}
+		}
+		return $game_dates;
+	}
 
 	/********************************************************************************
 	 *  This function expects one ORDERED array with any number of sets of games, and will return a copy
@@ -486,7 +550,7 @@ class GameCreate extends Handler
 			}
 			// the last game will always be the losers of the last 2 "prev" games
 			if ( $count - ($games_per_set*$game_set) == $games_per_set ) {
-				$get = $count - $games_per_set - 1;
+				$get = $count - $games_per_set - 2;
 				$game = $games[ $get ];
 				$g->set('home_dependant_game', $game->game_id);
 				$g->set('home_dependant_type', "loser");
