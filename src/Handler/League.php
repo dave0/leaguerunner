@@ -9,7 +9,8 @@ register_page_handler('league_schedule_view', 'LeagueScheduleView');
 register_page_handler('league_standings', 'LeagueStandings');
 register_page_handler('league_view', 'LeagueView');
 register_page_handler('league_captemail', 'LeagueCaptainEmails');
-register_page_handler('league_manageteam', 'LeagueManageTeam');
+//register_page_handler('league_manageteam', 'LeagueManageTeam');
+register_page_handler('league_moveteam', 'LeagueMoveTeam');
 
 /**
  * Create handler
@@ -1760,4 +1761,191 @@ class LeagueManageTeam extends Handler
 		return true;	
 	}
 }
+
+class LeagueMoveTeam extends Handler
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'require_var:team_id',
+			'admin_sufficient',
+			'coordinate_league_containing:team_id',
+			'deny'
+		);
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$step = var_from_getorpost('step');
+
+		$this->_id = var_from_getorpost('id');
+		$this->_team_id = var_from_getorpost('team_id');
+		
+		if( !validate_number($this->_id) ) {
+			$this->error_text = "You must supply a valid league ID";
+			return false;
+		}
+		if( !validate_number($this->_team_id) ) {
+			$this->error_text = "You must supply a valid team ID";
+			return false;
+		}
+		
+		switch($step) {
+			case 'confirm':
+				$this->set_template_file("League/move_team_confirm.tmpl");
+				$this->tmpl->assign("page_step", 'perform');
+				$rc = $this->generate_confirm();
+				break;
+			case 'perform':
+				return $this->perform();
+				break;
+			default:
+				$this->set_template_file("League/move_team_form.tmpl");
+				$this->tmpl->assign("page_step", 'confirm');
+				$rc = $this->generate_form();
+		}
+		
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+
+		return $rc;
+	}
+	
+	/**
+	 * Override parent display to redirect to 'view' on success
+	 */
+	function display ()
+	{
+		$step = var_from_getorpost('step');
+		if($step == 'perform') {
+			return $this->output_redirect("op=league_view&id=".$this->_id);
+		}
+		return parent::display();
+	}
+
+	function perform ()
+	{
+		global $DB, $session;
+
+		$target_id = var_from_getorpost('target_id');
+		if($target_id < 1) {
+			$this->error_text="That is not a valid league to move to";
+			return false;
+		}
+		if( ! $session->is_coordinator_of($target_id) ) {
+			$this->error_text = "Sorry, you cannot move teams to leagues you do not coordinate";
+			return false;
+		}
+
+		$res = $DB->query("UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?", array( $target_id, $this->_team_id, $this->_id ));
+		if($this->is_database_error($res)) {
+			return false;
+		}
+		if( $DB->affectedRows() != 1 ) {
+			$this->error_text = "Couldn't move team between leagues";
+			return false;
+		}
+
+		return true;
+	}
+
+	function generate_confirm ()
+	{
+		global $DB, $session;
+
+		$target_id = var_from_getorpost('target_id');
+		if( ! $session->is_coordinator_of($target_id) ) {
+			$this->error_text = "Sorry, you cannot move teams to leagues you do not coordinate";
+			return false;
+		}
+
+		$from_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $this->_id ), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($from_league)) {
+			return false;
+		}
+		if( ! $from_league ) {
+			$this->error_text = "That is not a valid league to move from";
+			return false;
+		}
+
+		$to_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $target_id ), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($to_league)) {
+			return false;
+		}
+		if( ! $to_league ) {
+			$this->error_text = "That is not a valid league to move to";
+			return false;
+		}
+
+		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($this->_team_id));
+		if($this->is_database_error($team_name)) {
+			return false;
+		}
+		if(! $team_name ) {
+			$this->error_text = "That is not a valid team";
+			return false;
+		}
+
+		$this->set_title("Moving $team_name");
+
+		$this->tmpl->assign("team_name", $team_name);
+		$this->tmpl->assign("team_id", $this->_team_id);
+		$this->tmpl->assign("id", $this->_id);
+		$this->tmpl->assign("from_league", $from_league);
+		$this->tmpl->assign("to_league", $to_league);
+
+		return true;
+	}
+	
+	function generate_form ()
+	{
+		global $DB, $session;
+
+		$leagues = $DB->getAll("SELECT DISTINCT
+				l.league_id AS id,
+				l.season,
+				l.day,
+				l.name,
+				l.tier
+		  	FROM
+		  		league l,
+				person p
+			WHERE
+				l.league_id = 1 
+				OR l.coordinator_id = ?
+				OR l.alternate_id = ?
+				OR (p.class = 'administrator' AND p.user_id = ?)
+			ORDER BY l.season,l.day,l.name,l.tier",
+			array( $session->attr_get('user_id'), $session->attr_get('user_id'), $session->attr_get('user_id')),
+			DB_FETCHMODE_ASSOC
+		);
+		if($this->is_database_error($leagues)) {
+			return false;
+		}
+
+		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($this->_team_id));
+		if($this->is_database_error($team_name)) {
+			return false;
+		}
+		if(! $team_name ) {
+			$this->error_text = "That is not a valid team";
+			return false;
+		}
+
+		$this->set_title("Moving $team_name");
+
+		$this->tmpl->assign("team_name", $team_name);
+		$this->tmpl->assign("team_id", $this->_team_id);
+		$this->tmpl->assign("id", $this->_id);
+		$this->tmpl->assign("leagues", $leagues);
+
+		return true;
+	}
+}
+
 ?>

@@ -137,6 +137,13 @@ class Handler
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
+			} else if($perm_type == 'coordinate_league_containing:') {
+				$id_field = substr($perm_type, 29);
+				$id_data = var_from_getorpost($id_field);
+				if($session->coordinates_league_containing($id)) {
+					$this->set_permission_flags('coordinator');
+					return true;
+				}
 			} else if(strncmp($perm_type,'captain_of:',10) == 0) {
 				$id_field = substr($perm_type, 11);
 				$id_data = var_from_getorpost($id_field);

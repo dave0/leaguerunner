@@ -935,8 +935,8 @@ class TeamView extends Handler
 				
 			}
 			$roster[$i]['status'] = display_roster_status($roster[$i]['status']);
-			/* Now check for conflicts.  Players who are subs can have
-			 * conflicts, but not others.
+			/* Now check for conflicts.  Players who are subs get
+			 * conflicts ignored, but not others.
 			 */
 			if($roster[$i]['status'] != 'substitute') {
 				$conflict = $DB->getOne("SELECT COUNT(*) from
@@ -1143,5 +1143,4 @@ class TeamScheduleView extends Handler
 		return true;
 	}
 }
-
 ?>

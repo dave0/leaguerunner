@@ -269,6 +269,13 @@ class UserSession
 	{
 		global $DB;
 
+		if($this->is_admin()) { return true; }
+
+		if($league_id == 1) {
+			/* All coordinators can coordinate "Inactive Teams" */
+			return true;
+		}
+
 		$res = $DB->getRow("SELECT coordinator_id, alternate_id from league where league_id = ?",
 			array($league_id),
 			DB_FETCHMODE_ASSOC
@@ -284,6 +291,31 @@ class UserSession
 		return false;
 	}
 
+	/**
+	 * See if this session user is the coordinator of a league containing
+	 * this team
+	 */
+	function coordinates_league_containing($team_id)
+	{
+		global $DB;
+		
+		if($this->is_admin()) { return true; }
+
+		$res = $DB->getRow("SELECT l.league_id, l.coordinator_id, l.alternate_id FROM league l, leagueteams t WHERE t.team_id = ? and t.league_id = l.league_id", array($team_id), DB_FETCHMODE_ASSOC);
+		if(DB::isError($res)) {
+			return false;
+		}
+
+		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['coordinator_id'])) {
+			return true;
+		}
+
+		if($res['league_id'] == 1) {
+			/* All coordinators can coordinate "Inactive Teams" */
+			return true;
+		}
+		return false;
+	}
 
 	/**
 	 * UUID generation function
