@@ -462,11 +462,8 @@ class PersonDelete extends PersonView
 		
 		/* remove user account */
 		db_query("DELETE from person WHERE user_id = %d", $id);
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
 		
-		return true;
+		return (1 != db_affected_rows());
 	}
 }
 
@@ -1021,11 +1018,7 @@ class PersonEdit extends Handler
 
 		db_query( $sql, $fields_data);
 		
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+		return (1 != db_affected_rows());
 	}
 
 	function isDataInvalid ( $edit = array() )
@@ -1275,14 +1268,8 @@ class PersonActivate extends PersonEdit
 	
 		db_query("UPDATE person SET status = 'active' where user_id = %d", $id);
 
-		if(1 != db_affected_rows()) {
-			return false;
-		}
-		
-		return true;
+		return (1 != db_affected_rows());
 	}
-
-
 }
 
 class PersonSurvey extends PersonSignWaiver
@@ -1345,11 +1332,8 @@ class PersonSurvey extends PersonSignWaiver
 		}
 		
 		db_query("UPDATE person SET survey_completed = 'Y' where user_id = %d", $session->attr_get('user_id'));
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
 		
-		return true;
+		return (1 != db_affected_rows());
 	}
 }
 
@@ -1419,11 +1403,7 @@ class PersonSignWaiver extends Handler
 		 */
 		db_query($this->querystring, $session->attr_get('user_id'));
 
-		if( 1 != db_affected_rows()) {
-			return false;
-		}
-		
-		return true;
+		return (1 != db_affected_rows());
 	}
 
 	function generateForm( $next )
@@ -1656,11 +1636,7 @@ class PersonChangePassword extends Handler
 		db_query("UPDATE person set password = '%s' WHERE user_id = %d",
 			md5($edit['password_one']), $id);
 	
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+		return (1 != db_affected_rows());
 	}
 }
 

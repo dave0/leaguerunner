@@ -7,9 +7,9 @@ function team_dispatch()
 	$op = arg(1);
 	switch($op) {
 		case 'create':
-			return new TeamCreate; // TODO
+			return new TeamCreate;
 		case 'edit':
-			return new TeamEdit; // TODO
+			return new TeamEdit;
 		case 'view':
 			return new TeamView;
 		case 'delete':
@@ -17,11 +17,8 @@ function team_dispatch()
 		case 'list':
 		case '':
 			return new TeamList;
-		case 'addplayer':
-			// TODO: Merge with TeamPlayerStatus as a first step?
-			return new TeamAddPlayer;
-		case 'playerstatus':
-			return new TeamPlayerStatus;
+		case 'roster':
+			return new TeamRosterStatus;
 		case 'schedule':
 			return new TeamSchedule;
 		case 'emails':
@@ -30,43 +27,6 @@ function team_dispatch()
 	return null;
 }
 
-class TeamAddPlayer extends Handler
-{
-	function initialize ()
-	{
-		$this->title = "Add Player";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'captain_of:id',
-			'deny',
-		);
-		$this->section = 'team';
-		return true;
-	}
-
-	function process ()
-	{
-		$id = arg(2);
-		
-		$ops = array(
-			array(
-				'name' => 'view', 'target' => 'person/view/'
-			),
-			array(
-				'name' => 'request player', 'target' => "team/playerstatus/$id?step=perform&status=captain_request&player_id="
-			)	
-		);
-		
-        $query = "SELECT 
-			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
-			FROM person WHERE status = 'active' AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
-
-		$this->setLocation(array( $this->title => 0));
-		
-		return $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/addplayer/$id", $_GET['letter']);
-	}
-}
 
 /**
  * Team create handler
@@ -81,31 +41,40 @@ class TeamCreate extends TeamEdit
 			'require_valid_session',
 			'allow',
 		);
-
-		$this->op = 'team_create';
 		$this->section = 'team';
-
 		return true;
 	}
-
-	/*
-	 * Overridden, as we have no info to put in that form.
-	 */
-	function getFormData ( $id )
+	
+	function process ()
 	{
-		return array();
+		$id = -1;
+		$edit = $_POST['edit'];
+		
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm( $id, $edit );
+				break;
+			case 'perform':
+				$this->perform( &$id, $edit);
+				local_redirect(url("team/view/$id"));
+				break;
+			default:
+				$rc = $this->generateForm($id, array());
+		}
+		$this->setLocation(array($this->title => 0));
+		return $rc;
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit = array() )
 	{
 		global $session;
 
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$team_name = trim(var_from_getorpost("team_name"));
+		$team_name = trim($edit['name']);
 		
 		if(db_num_rows(db_query("SELECT name FROM team WHERE name = '%s'",$team_name))) {
 			$err = "A team with that name already exists; please go back and try again";
@@ -129,7 +98,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		return parent::perform( $id );
+		return parent::perform( $id, $edit );
 	}
 }
 
@@ -143,148 +112,111 @@ class TeamEdit extends Handler
 		$this->title = "Edit Team";
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'captain_of:id',
 			'deny'
 		);
-		$this->op = "team_edit";
 		$this->section = 'team';
 		return true;
 	}
 
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
+		$id = arg(2);
+		$edit = &$_POST['edit'];
 		
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$this->perform( &$id );
-				local_redirect("op=team_view&id=$id");
+				$this->perform( $id, $edit);
+				local_redirect(url("team/view/$id"));
 				break;
 			default:
 				$formData = $this->getFormData( $id );
 				$rc = $this->generateForm($id, $formData);
 		}
+		$this->setLocation(array($formData['name']  => "team/view/$id", $this->title => 0));
 		return $rc;
 	}
 
 	function getFormData ( $id )
 	{
 		/* TODO: team_load() */
-		return db_fetch_array(db_query(
-			"SELECT * FROM team WHERE team_id = %d", $id));
+		return db_fetch_array(db_query("SELECT * FROM team WHERE team_id = %d", $id));
 	}
 
 	function generateForm ($id, $formData)
 	{
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'confirm');
-		$output .= form_hidden("id", $id);
+		$output = form_hidden("edit[step]", 'confirm');
+		
 		$rows = array();
-		$rows[] = array("Team Name:", form_textfield('', 'team_name', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
-		$rows[] = array("Website:", form_textfield('', 'team_website', $formData['website'], 35,200, "Your team's website (optional)"));
-		$rows[] = array("Shirt Colour:", form_textfield('', 'shirt_colour', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
+		$rows[] = array("Team Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
+		$rows[] = array("Website:", form_textfield('', 'edit[website]', $formData['website'], 35,200, "Your team's website (optional)"));
+		$rows[] = array("Shirt Colour:", form_textfield('', 'edit[shirt_colour]', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
 		$rows[] = array("Team Status:", 
-			form_select("", "status", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
+			form_select("", "edit[status]", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 
-		if($formData['name']) {
-			$this->setLocation(array(
-				$formData['name']  => "op=team_view&id=$id",
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => "op=" . $this->op));
-		}
-
 		return form($output);
 	}
 
-	function generateConfirm ( $id )
+	function generateConfirm ( $id, $edit = array() )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$team_name = var_from_getorpost('team_name');
-		$team_website = var_from_getorpost('team_website');
-		$shirt_colour = var_from_getorpost('shirt_colour');
-		$status = var_from_getorpost('status');
-
 		$output = para("Confirm that the data below is correct and click'Submit'  to make your changes");
-		$output .= form_hidden("op", $this->op);
-		$output .= form_hidden("step", 'perform');
-		$output .= form_hidden("id", $id);
+		$output .= form_hidden("edit[step]", 'perform');
 		
-		$rows[] = array("Team Name:", form_hidden('team_name',$team_name) .  $team_name);
-		$rows[] = array("Website:", form_hidden('team_website',$team_website) .  $team_website);
-		$rows[] = array("Shirt Colour:", form_hidden('shirt_colour',$shirt_colour) .  $shirt_colour);
-		$rows[] = array("Team Status:", form_hidden('status',$status) .  $status);
+		$rows[] = array("Team Name:", form_hidden('edit[name]',$edit['name']) .  $edit['name']);
+		$rows[] = array("Website:", form_hidden('edit[website]',$edit['website']) .  $edit['website']);
+		$rows[] = array("Shirt Colour:", form_hidden('edit[shirt_colour]',$edit['shirt_colour']) .  $edit['shirt_colour']);
+		$rows[] = array("Team Status:", form_hidden('edit[status]',$edit['status']) .  $edit['status']);
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 		
-		if($team_name) {
-			$this->setLocation(array(
-				$team_name  => "op=team_view&id=$id",
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => "op=" . $this->op));
-		}
-		
 		return form($output);
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit = array())
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		if(db_num_rows(db_query("SELECT name FROM team WHERE name = '%s'",var_from_getorpost('team_name')))) {
-			$err = "A team with that name already exists; please go back and try again";
-			$this->error_exit($err);
-		}
 
 		db_query("UPDATE team SET name = '%s', website = '%s', shirt_colour = '%s', status = '%s' WHERE team_id = %d",
-				var_from_getorpost('team_name'),
-				var_from_getorpost('team_website'),
-				var_from_getorpost('shirt_colour'),
-				var_from_getorpost('status'),
+				$edit['name'],
+				$edit['website'],
+				$edit['shirt_colour'],
+				$edit['status'],
 				$id
 		);
 		
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
-		return true;
+		return ( 1 != db_affected_rows() );
 	}
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit )
 	{
 		$errors = "";
 
-		$team_name = var_from_getorpost("team_name");
-		if( !validate_nonhtml($team_name) ) {
+		if( !validate_nonhtml($edit['name']) ) {
 			$errors .= "<li>You must enter a valid team name";
 		}
 		
-		$shirt_colour = var_from_getorpost("shirt_colour");
-		if( !validate_nonhtml($shirt_colour) ) {
+		if( !validate_nonhtml($edit['shirt_colour']) ) {
 			$errors .= "<li>Shirt colour cannot be left blank";
 		}
 		
-		$team_website = var_from_getorpost("team_website");
-		if(validate_nonblank($team_website)) {
-			if( ! validate_nonhtml($team_website) ) {
-				$errors .= "<li>If you provide a website URL, it must be valid.";
+		if(validate_nonblank($edit['website'])) {
+			if( ! validate_nonhtml($edit['website']) ) {
+				$errors .= "<li>If you provide a website URL, it must be valid. Otherwise, leave the website field blank.";
 			}
 		}
 		
@@ -353,34 +285,33 @@ class TeamList extends Handler
 /**
  * Player status handler
  */
-class TeamPlayerStatus extends Handler
+class TeamRosterStatus extends Handler
 {
 	function initialize ()
 	{
-		$this->title = "Change Player Status";
+		$this->title = "Roster Status";
+		
 		$this->positions = getRosterPositions();
+		$this->currentStatus = null;
+		
 		$this->section = 'team';
+		$this->_required_perms = array(
+			'require_valid_session',
+			'admin_sufficient',
+			'captain_of:id',
+			'allow'
+		);
 		return true;
 	}
 
-	function has_permission ()
+	/**
+	 * Loads the permitedStates variable, and checks that the session user is
+	 * allowed to change the state of the specified player on this team.
+	 */
+	function loadPermittedStates ($teamId, $playerId)
 	{
-		global $session, $player_id, $current_status;
+		global $session;
 
-		if(!$session->is_valid()) {
-			$this->error_exit("You do not have a valid session");
-		}
-		
-		$id = arg(2);
-		if(!$id) {
-			$this->error_exit("You must provide a team ID");
-		}
-		
-		$player_id = var_from_getorpost('player_id');
-		if(is_null($player_id)) {
-			$this->error_exit("You must provide a player ID");
-		}
-	
 		$is_captain = false;
 		$is_administrator = false;
 		
@@ -388,14 +319,14 @@ class TeamPlayerStatus extends Handler
 			$is_administrator = true;
 		}
 		
-		if($session->is_captain_of($id)) {  
+		if($session->is_captain_of($teamId)) {  
 			$is_captain = true;
 		}
 
 		/* Ordinary player can only set things for themselves */
 		if(!($is_captain  || $is_administrator)) {
 			$allowed_id = $session->attr_get('user_id');
-			if($allowed_id != $player_id) {
+			if($allowed_id != $playerId) {
 				$this->error_exit("You cannot change status for that player ID");
 			}
 		}
@@ -403,10 +334,10 @@ class TeamPlayerStatus extends Handler
 		/* Now, check for the player's status, or set 'none' if
 		 * not currently on team.
 		 */
-		$current_status = db_result(db_query("SELECT status FROM teamroster WHERE team_id = %d and player_id = %d", $id, $player_id));
+		$this->currentStatus = db_result(db_query("SELECT status FROM teamroster WHERE team_id = %d and player_id = %d", $teamId, $playerId));
 		
-		if(!$current_status) {
-			$current_status = 'none';
+		if(!$this->currentStatus) {
+			$this->currentStatus = 'none';
 		}
 
 		/*
@@ -429,20 +360,20 @@ class TeamPlayerStatus extends Handler
 		if($is_administrator) {
 			/* can't change to current value, but all others OK */
 			$this->permittedStates = array_keys($this->positions);
-			array_splice($this->permittedStates, array_search($current_status, $this->permittedStates), 1);
+			array_splice($this->permittedStates, array_search($this->currentStatus, $this->permittedStates), 1);
 
 		} else if ($is_captain) {
-			$this->permittedStates = $this->getStatesForCaptain($id, $current_status);
+			$this->permittedStates = $this->getStatesForCaptain($teamId);
 		} else {
-			$this->permittedStates = $this->getStatesForPlayer($id, $current_status);
+			$this->permittedStates = $this->getStatesForPlayer($teamId);
 		}
 
 		return true;
 	}
 	
-	function getStatesForCaptain($id, $curState)
+	function getStatesForCaptain($id)
 	{
-		switch($curState) {
+		switch($this->currentStatus) {
 		case 'captain':
 			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
 			
@@ -471,9 +402,9 @@ class TeamPlayerStatus extends Handler
 		}
 	}
 
-	function getStatesForPlayer($id, $curState)
+	function getStatesForPlayer($id)
 	{
-		switch($curState) {
+		switch($this->currentStatus) {
 		case 'captain':
 			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
 			
@@ -506,49 +437,69 @@ class TeamPlayerStatus extends Handler
 	
 	function process ()
 	{
+		$teamId   = arg(2);
+		
+		if(!$teamId) {
+			$this->error_exit("You must provide a team ID");
+		}
+		
+		$playerId = arg(3);
 
-		$id = arg(2);
-		$step = var_from_getorpost('step');
-		switch($step) {
-			case 'perform':
-				$this->perform( $id );
-				local_redirect("team/view/$id" );
-				break;
-			default:
-				$rc = $this->generateForm( $id );
+		if( !$playerId ) {
+			/* TODO: team_load() */
+			$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $teamId));
+
+			$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
+			$ops = array(
+				array( 'name' => 'view', 'target' => 'person/view/'),
+				array( 'name' => 'request player', 'target' => "team/roster/$teamId/")	
+			);
+		
+        	$query = "SELECT CONCAT(lastname,', ',firstname) AS value, user_id AS id FROM person WHERE status = 'active' AND lastname LIKE '%s%%' ORDER BY lastname, firstname";
+
+			return
+				para("Select the player you wish to add to the team")
+				. $this->generateAlphaList($query, $ops, 'lastname', 'person', "team/roster/$teamId", $_GET['letter']);
+		}
+
+		$this->loadPermittedStates($teamId, $playerId);
+		$edit = &$_POST['edit'];
+
+		if( $edit['step'] == 'perform' ) {
+				if($this->perform( $teamId, $playerId, $edit )) {
+					local_redirect(url("team/view/$teamId"));
+				} else {
+					return false;
+				}
+		} else {
+				$rc = $this->generateForm( $teamId, $playerId );
 		}
 	
 		return $rc;
 	}
 
-	function generateForm ( $id ) 
+	function generateForm ( $teamId, $playerId ) 
 	{
-		/* TODO: These shouldn't be global variables */
-		global $player_id, $current_status;
-
 		/* TODO: team_load() */
-		$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $id));
+		$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $teamId));
 
-		$this->setLocation(array(
-			$team->name => "team/view/$id",
-			$this->title => 0));
+		$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
 	
 		/* TODO: load_user() or load_person() */
 		$player = db_fetch_object(db_query("SELECT
 			p.firstname, p.lastname, p.member_id
 			FROM person p
-			WHERE p.user_id = %d", $player_id));
+			WHERE p.user_id = %d", $playerId));
 
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('player_id', $player_id);
+		$output .= form_hidden('edit[step]', 'perform');
 		
 		$output .= para("You are attempting to change player status for <b>$player->firstname $player->lastname</b> on team <b>$team->name</b>.");
 		
-		$output .= para("Current status: <b>" . $this->positions[$current_status] . "</b>");
+		$output .= para("Current status: <b>" . $this->positions[$this->currentStatus] . "</b>");
 
 		$options = "";
 		foreach($this->permittedStates as $state) {
-			$options .= form_radio($this->positions[$state], 'status', $state);
+			$options .= form_radio($this->positions[$state], 'edit[status]', $state);
 		}
 		reset($this->permittedStates);
 
@@ -559,53 +510,54 @@ class TeamPlayerStatus extends Handler
 		return form($output);
 	}
 
-	function perform ( $id )
+	function perform ( $teamId, $playerId, $edit )
 	{
-		/* TODO: These shouldn't be global variables */
-		global $session, $player_id, $current_status;
+		global $session;
 		
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
 		 *    has_permission code)
 		 *  - status variable set to a valid value
 		 */
-		$status = trim(var_from_getorpost('status'));
-		if( ! in_array($status, $this->permittedStates) ) {
+		if( ! in_array($edit['status'], $this->permittedStates) ) {
 			$this->error_exit("You do not have permission to set that status.");
 		}
 
-		$status = trim(var_from_getorpost('status'));
 		/* Perms already checked, so just do it */
-		if($current_status != 'none') {
-			switch($status) {
+		if($this->currentStatus != 'none') {
+			switch($edit['status']) {
 			case 'captain':
 			case 'assistant':
 			case 'player':
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $status, $id, $player_id);
+				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $teamId, $playerId);
 				break;
 			case 'none':
-				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $id, $player_id);
+				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $teamId, $playerId);
 				break;
+			default:
+				$this->error_exit("Cannot set player to that state.");
 			}
 			if( 1 != db_affected_rows() ) {
 				return false;
 			}
 		} else {
-			switch($status) {
+			switch($edit['status']) {
 			case 'captain':
 			case 'assistant':
 			case 'player':
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $id, $player_id, $status);
+				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $teamId, $playerId, $edit['status']);
 				if( 1 != db_affected_rows() ) {
 					return false;
 				}
 				break;
+			default:
+				$this->error_exit("Cannot set player to that state.");
 			}
 		}
 
@@ -684,7 +636,7 @@ class TeamView extends Handler
 			
 		if($team->status == 'open') {
 			$links[] = l('join team', 
-				"team/playerstatus/$team->id?player_id=" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
+				"team/roster/$team->id/" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
 				array('title' => 'Request to join this team'));
 		}
 		if($this->_permissions['edit_team']) {
@@ -692,7 +644,7 @@ class TeamView extends Handler
 				"team/edit/$team->id", 
 				array('title' => "Edit team information"));
 			$links[] = l('add player', 
-				"team/addplayer/$team->id", 
+				"team/roster/$team->id", 
 				array('title' => "Request a player for this team"));
             $links[] = l('player emails',
 				"team/emails/$team->id",
@@ -775,7 +727,7 @@ class TeamView extends Handler
 			$player_links = array( l('view', "person/view/$player->id") );
 			if($this->_permissions['edit_team'] || ($player->id == $session->attr_get("user_id"))) {
 				$player_links[] = l('change status',
-					"team/playerstatus/$id?player_id=$player->id");
+					"team/roster/$id/$player->id");
 			}
 			
 			$rows[] = array(
@@ -1014,7 +966,7 @@ class TeamEmails extends Handler
 		$team = db_fetch_object(db_query("SELECT name FROM team WHERE team_id = %d", $id));
 
 		$this->setLocation(array(
-			$team->name => "op=team_view&id=$id",
+			$team->name => "team/view/$id",
 			$this->title => 0));
 
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");

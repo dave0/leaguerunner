@@ -12,14 +12,14 @@ function league_dispatch()
 		case 'edit':
 			return new LeagueEdit; // TODO
 		case 'view':
-			return new LeagueView; // TODO
+			return new LeagueView;
 		case 'list':
 		case '':
 			return new LeagueList; // TODO
 		case 'standings':
 			return new LeagueStandings; // TODO
 		case 'captemail':
-			return new LeagueCaptainEmails; // TODO
+			return new LeagueCaptainEmails;
 		case 'moveteam':
 			return new LeagueMoveTeam; // TODO
 		case 'verifyscores':
@@ -953,13 +953,10 @@ class LeagueView extends Handler
 
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'allow',
 		);
-
-		$this->op = 'league_view';
 		$this->section = 'league';
 		return true;
 	}
@@ -975,10 +972,12 @@ class LeagueView extends Handler
 	{
 		global $session;
 
-		$id = var_from_getorpost('id');
-	
+		$id = arg(2);
+
+		/* TODO: league_load */
 		$result = db_query(
 			"SELECT l.*,
+				IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS league_name,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
 				CONCAT(co.firstname,' ',co.lastname) AS alternate_name
 			FROM 
@@ -996,15 +995,15 @@ class LeagueView extends Handler
 
 		$links = array();
 		if($league->allow_schedule == 'Y') {
-			$links[] = l("schedule", "op=league_schedule_view&id=$id");
-			$links[] = l("standings", "op=league_standings&id=$id");
+			$links[] = l("schedule", "league/schedule_view/$id");
+			$links[] = l("standings", "league/standings/$id");
 			if($this->_permissions['administer_league']) {
-				$links[] = l("approve scores", "op=league_verifyscores&id=$id");
+				$links[] = l("approve scores", "league/verifyscores/$id");
 			}
 		}
 		if($this->_permissions['administer_league']) {
-			$links[] = l("edit info", "op=league_edit&id=$id");
-			$links[] = l("fetch captain emails", "op=league_captemail&id=$id");
+			$links[] = l("edit info", "league/edit/$id");
+			$links[] = l("fetch captain emails", "league/captemail/$id");
 		}
 		
 		$output =  theme_links($links);
@@ -1045,13 +1044,13 @@ class LeagueView extends Handler
 		$rows = array();
 		while($team = db_fetch_object($result)) {
 			$team_links = array(
-				l('view', "op=team_view&id=$team->team_id"),
+				l('view', "team/view/$team->team_id"),
 			);
 			if($team->status == 'open') {
-				$team_links[] = l('join team', "op=team_playerstatus&id=$team->team_id&status=player_request&step=confirm");
+				$team_links[] = l('join team', "team/playerstatus/$team->team_id?status=player_request&step=confirm");
 			}
 			if($this->_permissions['administer_league']) {
-				$team_links[] = l('move team', "op=league_moveteam&id=$id&team_id=$team->team_id");
+				$team_links[] = l('move team', "league/moveteam/$id?team_id=$team->team_id");
 			}
 			
 			$rows[] = array(
@@ -1063,39 +1062,33 @@ class LeagueView extends Handler
 		}
 		
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
-
-		$leagueName = $league->name;
-		if($league->tier) {
-			$leagueName .= " Tier " . $league->tier;
-		}
 		
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
+			$league->league_name => "league/view/$id",
 			$this->title => 0));
 		return $output;
 	}
 }
 
+// TODO: Common email-list displaying, should take query as argument, return
+// formatted list.
 class LeagueCaptainEmails extends Handler
 {
 	function initialize ()
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'deny',
 		);
-		$this->section = 'league';
 		$this->title = 'Captain Emails';
 		return true;
 	}
 
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-
+		$id = arg(2);
 		$result = db_query(
 		   "SELECT 
 				p.firstname, p.lastname, p.email
@@ -1106,7 +1099,6 @@ class LeagueCaptainEmails extends Handler
 				l.league_id = %d
 				AND l.team_id = r.team_id
 				AND (r.status = 'captain' OR r.status = 'assistant')",$id);
-				
 		if( db_num_rows($result) <= 0 ) {
 			return false;
 		}
@@ -1121,16 +1113,13 @@ class LeagueCaptainEmails extends Handler
 			$emails[] = $user->email;
 		}
 
-		/* Get league info */
-		/* TODO: create a league_load() instead */
-		$league = db_fetch_object(db_query("SELECT name,tier,season,ratio,year FROM league WHERE league_id = %d", $id));
+		/* TODO: league_load() */
+		$league = db_fetch_object(db_query("SELECT 
+			IF(tier,CONCAT(name,' Tier ',tier),name) AS league_name
+			FROM league WHERE league_id = %d", $id));
 		
-		$leagueName = $league->name;
-		if($league->tier) {
-			$leagueName .= " Tier ". $league->tier;
-		}
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
+			$league->league_name => "league/view/$id",
 			$this->title => 0
 		));
 
