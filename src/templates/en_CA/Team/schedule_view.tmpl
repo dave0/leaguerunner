@@ -37,7 +37,7 @@
         {if $game.score_type == 'entered'}
           (unofficial, waiting for opponent)
         {else}
-          [ <a href="{$app_cgi_location}?op=game_submitscore&id={$game.id}&team={$team_id}">submit score</a> ]
+          [ <a href="{$app_cgi_location}?op=game_submitscore&id={$game.id}&team_id={$team_id}">submit score</a> ]
         {/if}
       {/if}
     </td>

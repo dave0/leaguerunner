@@ -1,0 +1,41 @@
+{include file="common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+<p>
+  You have entered the following score for the {$date_played} game between
+  {$home_name} and {$away_name}.
+  <br />
+  If this is correct, please click "Submit" to continue.  If not, use your back
+  button to return to the previous page and correct the score.
+</p>
+
+<form action='{$app_cgi_location}' method='POST'>
+<input type='hidden' name='op' value='{$page_op}'>
+<input type='hidden' name='step' value='{$page_step}'>
+<input type='hidden' name='id' value='{$id}'>
+<input type='hidden' name='home_score' value='{$home_score}'>
+<input type='hidden' name='away_score' value='{$away_score}'>
+<input type='hidden' name='home_sotg' value='{$home_sotg}'>
+<input type='hidden' name='away_sotg' value='{$away_sotg}'>
+
+<table border='0' cellpadding='3' cellspacing='0'>
+  <tr class="schedule_title">
+    <td>Team</td>
+    <td>Score</td>
+    <td>SOTG</td>
+  </tr>
+  <tr>
+    <td class='standings_item'>{$home_name}:</td> 
+    <td class='standings_item'>{$home_score}</td>
+    <td class='standings_item'>{$home_sotg}</td>
+  </tr>
+  <tr>
+    <td class='standings_item'>{$away_name}:</td> 
+    <td class='standings_item'>{$away_score}</td>
+    <td class='standings_item'>{$away_sotg}</td>
+  </tr>
+</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+</form>
+{include file="common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

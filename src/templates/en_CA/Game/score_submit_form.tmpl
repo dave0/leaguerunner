@@ -1,0 +1,59 @@
+{include file="common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+<p>
+	Submit the score for the {$date_played} game between {$my_name} and {$opponent_name}.
+  <br />
+  If your opponent has already entered a score, it will be displayed below.  If
+  the score you enter does not agree with this score, posting of the score will
+  be delayed until your coordinator can confirm the correct score.
+</p>
+
+<form action='{$app_cgi_location}' method='POST'>
+<input type='hidden' name='op' value='{$page_op}'>
+<input type='hidden' name='step' value='{$page_step}'>
+<input type='hidden' name='id' value='{$id}'>
+<input type='hidden' name='team_id' value='{$team_id}'>
+<table border='1' cellpadding='3' cellspacing='0'>
+  <tr>
+    <td class='schedule_title'>Team Name</td>
+    <td class='schedule_title'>Your Score Entry</td>
+    <td class='schedule_title'>Opponent's Score Entry</td>
+    <td class='schedule_title'>SOTG</td>
+  </tr>
+  <tr>
+    <td class='row_title'>{$my_name}:</td> 
+    <td class='row_data'><input type='text' name='score_for' size='2' maxlength='2'></td>
+    <td class='row_data'>
+      {$opponent_against}
+    </td>
+    <td class='row_data'>&nbsp;</td>
+  </tr>
+  <tr>
+    <td class='row_title'>{$opponent_name}:</td> 
+    <td class='row_data'><input type='text' name='score_against' size='2' maxlength='2'></td>
+    <td class='row_data'>
+      {$opponent_for}
+    </td>
+    <td class='row_data'>
+      <select name='sotg'>
+        <option value='' selected>---
+        <option>10
+        <option>9
+        <option>8
+        <option>7
+        <option>6
+        <option>5
+        <option>4
+        <option>3
+        <option>2
+        <option>1
+      </select>
+    </td>
+  </tr>
+</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

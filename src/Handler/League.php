@@ -11,6 +11,7 @@ register_page_handler('league_view', 'LeagueView');
 register_page_handler('league_captemail', 'LeagueCaptainEmails');
 //register_page_handler('league_manageteam', 'LeagueManageTeam');
 register_page_handler('league_moveteam', 'LeagueMoveTeam');
+register_page_handler('league_verifyscores', 'LeagueVerifyScores');
 
 /**
  * Create handler
@@ -947,7 +948,7 @@ class LeagueScheduleView extends Handler
 		 * Fetch fields and set league_fields variable 
 		 */
 		$league_fields = $DB->getAll(
-			"SELECT 
+			"SELECT DISTINCT
 				f.field_id AS value, 
 				f.name    AS output
 			  FROM
@@ -1943,6 +1944,116 @@ class LeagueMoveTeam extends Handler
 		$this->tmpl->assign("team_id", $this->_team_id);
 		$this->tmpl->assign("id", $this->_id);
 		$this->tmpl->assign("leagues", $leagues);
+
+		return true;
+	}
+}
+
+class LeagueVerifyScores extends Handler
+{
+
+	var $_id;
+	
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny'
+		);
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$step = var_from_getorpost('step');
+		$this->_id = var_from_getorpost('id');
+		
+		if( !validate_number($this->_id) ) {
+			$this->error_text = "You must supply a valid league ID";
+			return false;
+		}
+
+		/* Get league info */
+		$league = $DB->getRow("SELECT name,tier,season,ratio,year FROM league WHERE league_id = ?", array($this->_id), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($league)) {
+			return false;
+		}
+
+		$title = "Verify Scores for " . $league['name'];
+		if($league['tier'] > 0) {
+			$title .= " Tier ". $league['tier'];
+		}
+
+		$this->set_title($title);
+		$this->set_template_file("League/review_scores.tmpl");
+		$this->tmpl->assign("league_info",$league);
+		$this->tmpl->assign("id",$this->_id);
+
+		/* Now fetch games in need of verification */
+		$games = $DB->query("SELECT DISTINCT
+			se.game_id,
+			UNIX_TIMESTAMP(s.date_played) as timestamp,
+			s.home_team,
+			h.name AS home_name,
+			s.away_team,
+			a.name AS away_name
+			FROM schedule s, score_entry se
+			    LEFT JOIN team h ON (s.home_team = h.team_id)
+			    LEFT JOIN team a ON (s.away_team = a.team_id)
+			WHERE s.league_id = ? AND s.game_id = se.game_id ORDER BY timestamp", 
+			array($this->_id));
+		if($this->is_database_error($games)) {
+			return false;
+		}
+
+		$game_data = array();
+		$se_query = "SELECT score_for, score_against, spirit FROM score_entry WHERE team_id = ? AND game_id = ?";
+		
+		while($game = $games->fetchRow(DB_FETCHMODE_ASSOC)) {
+			$one_game = array(
+				'id' => $game['game_id'],
+				'date'    => strftime("%A %B %d %Y, %H%Mh",$game['timestamp']),
+				'home_name' => $game['home_name'],
+				'home_id' => $game['home_team'],
+				'away_name' => $game['away_name'],
+				'away_id' => $game['away_team']);
+				
+			$home = $DB->getRow($se_query,
+				array($game['home_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
+			if(isset($home)) {
+				$one_game['home_self_score'] = $home['score_for'];
+				$one_game['home_opp_score'] = $home['score_against'];
+				$one_game['home_opp_sotg'] = $home['spirit'];
+			} else {
+				$one_game['home_self_score'] = "not entered";
+				$one_game['home_opp_score'] = "not entered";
+				$one_game['home_opp_sotg'] = "not entered";
+			}
+			$away = $DB->getRow($se_query,
+				array($game['away_team'],$game['game_id']),DB_FETCHMODE_ASSOC);
+			if(isset($away)) {
+				$one_game['away_self_score'] = $away['score_for'];
+				$one_game['away_opp_score'] = $away['score_against'];
+				$one_game['away_opp_sotg'] = $away['spirit'];
+			} else {
+				$one_game['away_self_score'] = "not entered";
+				$one_game['away_opp_score'] = "not entered";
+				$one_game['away_opp_sotg'] = "not entered";
+			}
+			$game_data[] = $one_game;
+			$home = null;
+			$away = null;
+		}
+		$games->free();
+		
+		$this->tmpl->assign("games", $game_data);	
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 
 		return true;
 	}

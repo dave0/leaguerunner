@@ -125,7 +125,6 @@ CREATE TABLE schedule (
     away_score  tinyint,
     home_spirit tinyint,
     away_spirit tinyint,
-    original_date datetime,
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
     defaulted  enum('no','home','away') DEFAULT 'no'
 );

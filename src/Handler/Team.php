@@ -1095,7 +1095,7 @@ class TeamScheduleView extends Handler
 			}
 
 			/* Now, look for a score entry */
-			if(!(is_null($this_row['home_score']) || is_null($this_row['away_score']))) {
+			if(!(is_null($this_row['home_score']) && is_null($this_row['away_score']))) {
 				/* Already entered */
 				$week['score_type'] = 'final';
 				if($week['home_away'] == 'home') {
@@ -1107,25 +1107,17 @@ class TeamScheduleView extends Handler
 				}
 			} else {
 				/* Not finalized yet */
-				$score = $DB->getRow(
-					"SELECT
-						score_for,
-						score_against
-					FROM
-						score_entry
-					WHERE
-						game_id = ?
-						AND team_id = ?",
-				array($this_row['game_id'], $id),
-				DB_FETCHMODE_ASSOC);
+				$entered = $DB->getRow(
+					"SELECT score_for, score_against FROM score_entry WHERE game_id = ? AND team_id = ?",
+				array($week['id'], $id), DB_FETCHMODE_ASSOC);
 				
-				if($this->is_database_error($score) ) {
+				if($this->is_database_error($entered) ) {
 					return false;
 				}
-				if(!is_null($score)) {
+				if(isset($entered)) {
 					$week['score_type'] = 'entered';
-					$week['score_us'] = $score['score_for'];
-					$week['score_them'] = $score['score_against'];
+					$week['score_us'] = $entered['score_for'];
+					$week['score_them'] = $entered['score_against'];
 				}
 				
 			}

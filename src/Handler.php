@@ -8,6 +8,7 @@ require_once("Handler/Person.php");
 require_once("Handler/Team.php");
 require_once("Handler/League.php");
 require_once("Handler/Field.php");
+require_once("Handler/Game.php");
 
 /**
  * This is the base class for all operation handlers used in the web UI.
@@ -85,7 +86,7 @@ class Handler
 	 */
 	function has_permission() 
 	{
-		global $session;
+		global $session, $DB;
 		
 		if(is_null($this->_required_perms)) {
 			$this->error_text = gettext("You do not have permission to perform that operation");
@@ -141,6 +142,14 @@ class Handler
 				$id_field = substr($perm_type, 29);
 				$id_data = var_from_getorpost($id_field);
 				if($session->coordinates_league_containing($id)) {
+					$this->set_permission_flags('coordinator');
+					return true;
+				}
+			} else if($perm_type == 'coordinate_game:id') {
+				$id_field = substr($perm_type, 16);
+				$id_data = var_from_getorpost($id_field);
+				$league_id = $DB->getOne("SELECT league_id FROM schedule WHERE game_id = ?", array($id_data));
+				if($session->is_coordinator_of($league_id)) {
 					$this->set_permission_flags('coordinator');
 					return true;
 				}

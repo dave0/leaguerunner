@@ -1,0 +1,37 @@
+{include file="common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+<p>
+  You have entered the following score for the {$date_played} game between
+  {$my_name} and {$opponent_name}.
+  <br />
+  If this is correct, please click "Submit" to continue.  If not, use your back
+  button to return to the previous page and correct the score.
+</p>
+
+<form action='{$app_cgi_location}' method='POST'>
+<input type='hidden' name='op' value='{$page_op}'>
+<input type='hidden' name='step' value='{$page_step}'>
+<input type='hidden' name='id' value='{$id}'>
+<input type='hidden' name='team_id' value='{$team_id}'>
+<input type='hidden' name='score_for' value='{$score_for}'>
+<input type='hidden' name='score_against' value='{$score_against}'>
+<input type='hidden' name='sotg' value='{$sotg}'>
+<table border='1' cellpadding='3' cellspacing='0'>
+  <tr>
+    <td class='row_title'>{$my_name}:</td> 
+    <td class='row_data'>{$score_for}</td>
+  </tr>
+  <tr>
+    <td class='row_title'>{$opponent_name}:</td> 
+    <td class='row_data'>{$score_against}</td>
+  </tr>
+  <tr>
+    <td class='row_title'>{$opponent_name} SOTG:</td> 
+    <td class='row_data'>{$sotg}</td>
+  </tr>
+</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+</form>
+{include file="common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
