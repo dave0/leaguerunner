@@ -157,7 +157,7 @@ class GameSlotCreate extends Handler
 			l.league_id,
 			IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS fullname
 			FROM league l
-			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0)", $weekday);
+			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0) ORDER BY l.day,l.name,l.tier", $weekday);
 			
 		while($league = db_fetch_object($result)) {
 			$chex .= form_checkbox($league->fullname, 'edit[availability][]', $league->league_id, $league->selected);

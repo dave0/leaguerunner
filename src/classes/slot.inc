@@ -146,7 +146,7 @@ class GameSlot extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into gameslot (fid,m,game_date,game_start) VALUES(%d,%d,'%s','%s')", $this->fid, $this->game_date, $this->game_start);
+		db_query("INSERT into gameslot (fid,game_date,game_start) VALUES(%d, '%s', '%s')", $this->fid, $this->game_date, $this->game_start);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
