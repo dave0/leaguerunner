@@ -204,8 +204,10 @@ function getPrintableGameData( $which, $teamId )
 	global $DB;
 	if($which == 'next') {
 		$dateCompare = "s.date_played > NOW()";
+		$dateSort = 'asc';
 	} else if ($which == 'prev') {
 		$dateCompare = "s.date_played < NOW()";
+		$dateSort = 'desc';
 	} else if ($which == 'today') {
 		$dateCompare = "(CURDATE() == DATE(s.date_played))"; 
 	}
@@ -223,7 +225,7 @@ function getPrintableGameData( $which, $teamId )
 		  LEFT JOIN site ON (f.site_id = site.site_id) 
 		  WHERE $dateCompare
 		    AND ( s.home_team = ? OR s.away_team = ? ) 
-		  ORDER BY date_played desc LIMIT 1",array($teamId,$teamId), DB_FETCHMODE_ASSOC);
+		  ORDER BY date_played $dateSort LIMIT 1",array($teamId,$teamId), DB_FETCHMODE_ASSOC);
 	$err = isDatabaseError($game);
 	if($err != false) {
 		$this->error_exit($err);
