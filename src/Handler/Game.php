@@ -757,6 +757,7 @@ class GameSubmit extends Handler
 		}
 		
 		if( $teamID != $this->game->home_id && $teamID != $this->game->away_id ) {
+			/
 			$this->error_exit("That team did not play in that game!");
 		}
 		
@@ -891,13 +892,13 @@ class GameSubmit extends Handler
 			switch( $home_entry->defaulted ) {
 				case 'us':
 					$this->game->set('status', 'home_default');
-					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('winner'));
-					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('loser'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->game->default_spirit('winner'));
+					$this->game->save_spirit_entry( $this->game->home_id, $this->game->default_spirit('loser'));
 					break;
 				case 'them':
 					$this->game->set('status', 'away_default');
-					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('loser'));
-					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('winner'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->game->default_spirit('loser'));
+					$this->game->save_spirit_entry( $this->game->home_id, $this->game->default_spirit('winner'));
 					break;
 				case 'no':
 				default:
@@ -1113,36 +1114,6 @@ ENDSCRIPT;
 		$output .= para("If confirmed, this would be recorded as a <b>$what</b>.");
 
 		return $output;
-	}
-
-	/** 
-	 * Return spirit to be given to a tean involved in a default
-	 */
-	function default_spirit ( $type )
-	{
-		switch( $type ) {
-			case 'winner':
-				return array(
-					'Timeliness' => 'OnTime',
-					'RulesKnowlege' => 'AcceptableRules',
-					'Sportsmanship' => 'AcceptableSportsmanship',
-					'Enjoyment' => 'MostEnjoyed',
-					'GameOverall' => 'OverallAverage'
-				);
-				break;
-			case 'loser':
-				return array(
-					'Timeliness' => 'MoreThanFive',
-					'RulesKnowlege' => 'AcceptableRules',
-					'Sportsmanship' => 'AcceptableSportsmanship',
-					'Enjoyment' => 'FewEnjoyed',
-					'GameOverall' => 'OverallAverage'
-					
-				);
-				break;
-			default:
-				die("Invalid type $type given to default_spirit()");
-		}
 	}
 }
 
@@ -1453,19 +1424,18 @@ class GameEdit extends Handler
 		$this->game->set('away_score', $edit['away_score']);
 		$this->game->set('approved_by', $session->attr_get('user_id'));
 
-		// TODO: the default_spirit() stuff should be pushed into game.inc
 		switch( $edit['status'] ) {
 			case 'home_default':
-				$home_spirit_values = $this->default_spirit('loser');
-				$away_spirit_values = $this->default_spirit('winner');
+				$home_spirit_values = $this->game->default_spirit('loser');
+				$away_spirit_values = $this->game->default_spirit('winner');
 				break;
 			case 'away_default':
-				$away_spirit_values = $this->default_spirit('loser');
-				$home_spirit_values = $this->default_spirit('winner');
+				$away_spirit_values = $this->game->default_spirit('loser');
+				$home_spirit_values = $this->game->default_spirit('winner');
 				break;
 			case 'forfeit':
-				$away_spirit_values = $this->default_spirit('loser');
-				$home_spirit_values = $this->default_spirit('loser');
+				$away_spirit_values = $this->game->default_spirit('loser');
+				$home_spirit_values = $this->game->default_spirit('loser');
 				break;
 			case 'normal':
 			default:

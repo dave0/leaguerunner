@@ -588,6 +588,37 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
+	 * Return values to be used for winner/loser of a default
+	 * game.
+	 */
+	function default_spirit ( $type )
+	{
+		switch( $type ) {
+			case 'winner':
+				return array(
+					'Timeliness' => 'OnTime',
+					'RulesKnowlege' => 'AcceptableRules',
+					'Sportsmanship' => 'AcceptableSportsmanship',
+					'Enjoyment' => 'MostEnjoyed',
+					'GameOverall' => 'OverallAverage'
+				);
+				break;
+			case 'loser':
+				return array(
+					'Timeliness' => 'MoreThanFive',
+					'RulesKnowlege' => 'AcceptableRules',
+					'Sportsmanship' => 'AcceptableSportsmanship',
+					'Enjoyment' => 'FewEnjoyed',
+					'GameOverall' => 'OverallAverage'
+					
+				);
+				break;
+			default:
+				die("Invalid type $type given to default_spirit()");
+		}
+	}
+
+	/**
 	 * Given the ID for one team in this game, return the ID of the other.
 	 */
 	function get_opponent_id ( $team_id )
