@@ -280,7 +280,7 @@ class Game extends LeaguerunnerObject
 
 		// And, remove any old score_entry for this game if we've entered a
 		// final score
-		if( array_key_exists('home_score', $this->_modified_fields) ) {
+		if( array_key_exists('home_score', $this->_modified_fields) || array_key_exists('away_score', $this->_modified_fields)) {
 			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
 		}
 
@@ -597,7 +597,7 @@ class Game extends LeaguerunnerObject
 			case 'winner':
 				return array(
 					'Timeliness' => 'OnTime',
-					'RulesKnowlege' => 'AcceptableRules',
+					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'MostEnjoyed',
 					'GameOverall' => 'OverallAverage'
@@ -606,7 +606,7 @@ class Game extends LeaguerunnerObject
 			case 'loser':
 				return array(
 					'Timeliness' => 'MoreThanFive',
-					'RulesKnowlege' => 'AcceptableRules',
+					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'FewEnjoyed',
 					'GameOverall' => 'OverallAverage'
