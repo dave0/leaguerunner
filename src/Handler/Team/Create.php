@@ -50,9 +50,8 @@ class TeamCreate extends TeamEdit
 	function perform ()
 	{
 		global $DB, $id, $session;
-		
-		$st = $DB->prepare("INSERT into team (name,established) VALUES ('new team',?, NOW())");
-		$res = $DB->execute($st, array($session->data['user_id']));
+	
+		$res = $DB->query("INSERT into team (name,established) VALUES ('new team', NOW())");
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -62,14 +61,12 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		$st = $DB->prepare("INSERT INTO leagueteams (league_id, team_id, status) VALUES(1, ?, 'requested')");
-		$res = $DB->execute($st,array($id));
+		$res = $DB->query("INSERT INTO leagueteams (league_id, team_id, status) VALUES(1, ?, 'requested')", array($id));
 		if($this->is_database_error($res)) {
 			return false;
 		}
 		
-		$st = $DB->prepare("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, 'captain', NOW())");
-		$res = $DB->execute($st,array($id, $session->data['user_id']));
+		$res = $DB->query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, 'captain', NOW())", array($id, $session->data['user_id']));
 		if($this->is_database_error($res)) {
 			return false;
 		}

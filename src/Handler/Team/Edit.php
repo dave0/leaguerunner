@@ -182,17 +182,8 @@ class TeamEdit extends Handler
 			return $this->generate_form();
 		}
 		
-		$sql = "UPDATE team SET
-			name = ?,
-			website = ?,
-			shirt_colour = ?,
-			status = ?,
-			WHERE team_id = ?
-		";
 
-		$sth = $DB->prepare($sql);
-		
-		$res = $DB->execute($sth, 
+		$res = $DB->query("UPDATE team SET name = ?, website = ?, shirt_colour = ?, status = ? WHERE team_id = ?",
 			array(
 				var_from_getorpost('team_name'),
 				var_from_getorpost('team_website'),
@@ -203,6 +194,7 @@ class TeamEdit extends Handler
 		);
 		
 		if($this->is_database_error($res)) {
+			trigger_error("Database error");
 			return false;
 		}
 		
