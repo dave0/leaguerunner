@@ -143,6 +143,29 @@ function league_splash ()
 }
 
 /**
+ * Periodic tasks to perform.  This should handle any internal checkpointing
+ * necessary, as the cron task may be called more or less frequently than we
+ * expect.
+ */
+function league_cron()
+{
+	$result = db_query("SELECT distinct league_id from league");
+	while( $foo = db_fetch_array($result)) {
+		$id = $foo['league_id'];
+		$league = league_load( array('league_id' => $id) );
+	
+		// Task #1: 
+		// For ladder leagues, find all games older than our expiry time, and
+		// finalize them
+		if($league->schedule_type == 'ladder') {
+			$league->finalize_old_games();
+		}
+	}
+
+	return "<pre>Completed league_cron run</pre>";
+}
+
+/**
  * Create handler
  */
 class LeagueCreate extends LeagueEdit

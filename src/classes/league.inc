@@ -171,19 +171,35 @@ class League extends LeaguerunnerObject
 		return false;
 	}
 
-        function cleanupgames ()
-        {
-           return true;
-         
+	/**
+	 * Finalize any games considered 'old'.  For now, 'old' is 24 hours after
+	 * the end of the previous game. 
+	 */
+	function finalize_old_games()
+	{
+		$result = db_query("SELECT DISTINCT s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) AS start_timestamp FROM schedule s, gameslot g WHERE s.league_id = %d AND g.game_id = s.game_id AND game_date < CURDATE() AND (ISNULL(s.home_score) OR ISNULL(s.away_score))", $this->league_id);
+		while( $foo = db_fetch_array($result) ) {
+			$id = $foo['game_id'];
+#			print "$id is possibly 'old' and in need of approval<br />";
 
-        }
+			$expiry_factor = 27 * 3600; // Expiry is 24 hours after game end, so we'll say 27 hours after start.
+			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
+				$game = game_load( array('game_id' => $id) );
+				$game->finalize();
+			}
+		}
+	}
 
-        //  This function clears all of the scores and rankings in a given round.
-        //
-        function cleanround( $roundNumber ) {
+	function cleanupgames ()
+	{
+		return true;
+	}
 
-           
-        }
+	//  This function clears all of the scores and rankings in a given round.
+	function cleanround( $roundNumber ) 
+	{
+
+	}
 
 	# TODO: add_team and remove_team, same as add and remove coordinator.
 

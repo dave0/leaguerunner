@@ -200,6 +200,50 @@ class Game extends LeaguerunnerObject
             // It's all good.
             return true;
         }
+
+	/**
+	 * Take what is currently known about the game, and finalize it.
+	 * If we have:
+	 * 	0) no scores entered
+	 * 		- forfeit game as 0-0 tie
+	 * 		- give poor spirit to both
+	 * 	1) one score entered
+	 * 		- use single score as final
+	 * 		- give full spirit to entering team, assigned spirit to
+	 * 		  non-entering team.
+	 * 	2) two scores entered, not agreeing
+	 * 		- if there is an agreed winner, but the score itself is in
+	 * 		  dispute, enter as final using the minimum score differential,
+	 * 		  and assigned spirit.
+	 * 		- if there is no agreed-upon winner, send email to the
+	 * 		  coordinator.
+	 *  3) two scores entered, agreeing
+	 *  	- shouldn't occur, unless we want to move all score auto-approval
+	 *  	  into this function for neatness' sake.
+	 *  	- if we do, scores are entered as provided, as are spirit values.
+	 */
+	function finalize()
+	{
+		print "Would finalize " . $this->game_id . "<br/>\n";
+
+		if( $this->is_finalized() ) {
+			return false;
+		}
+
+		$home_entry = $this->get_score_entry( $this->home_id );
+		$away_entry = $this->get_score_entry( $this->away_id );
+		if( $home_entry && $away_entry ) {
+			print $this->game_id ." has two entries<br/>\n";
+		} else if ( $home_entry && !$away_entry ) {
+			print $this->game_id ." has only a home entry<br/>\n";
+		} else if ( !$home_entry && $away_entry ) {
+			print $this->game_id ." has only an away entry<br/>\n";
+		} else if ( !$home_entry && !$away_entry ) {
+			print $this->game_id ." has no entry<br/>\n";
+		} else {
+			die("Unreachable code hit in Game::finalize()");
+		}
+	}
 	
 	function save ()
 	{
