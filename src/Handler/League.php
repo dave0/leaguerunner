@@ -760,6 +760,12 @@ class LeagueScheduleEdit extends Handler
 		$seen_team = array();
 		$seen_field = array();
 		foreach($games as $game) {
+
+			if(! array_key_exists($game['start_time'], $seen_team) ) {
+				$seen_team[$game['start_time']] = array();
+				$seen_field[$game['start_time']] = array();
+			}
+		
 			if( !validate_number($game['game_id']) ) {
 				$this->error_text = "Game entry missing a game ID";
 				return false;
@@ -782,19 +788,19 @@ class LeagueScheduleEdit extends Handler
 				return false;
 			}
 			
-			if( in_array( $game['away_id'], $seen_team ) || array_search( $game['home_id'], $seen_team )) {
+			if( in_array( $game['away_id'], $seen_team[$game['start_time']] ) || in_array( $game['home_id'], $seen_team[$game['start_time']] )) {
 				$this->error_text = "Cannot schedule a team to play multple games in the same timeslot.";
 				return false;
 			}
 
-			if( in_array( $game['field_id'], $seen_field )) {
+			if( in_array( $game['field_id'], $seen_field[$game['start_time']] )) {
 				$this->error_text = "Cannot schedule multiple games to play on the same field.";
 				return false;
 			}
 			// Don't push 0 onto the seen list, as it is 'special'
-			if($game['home_id']) {$seen_team[] = $game['home_id']; }
-			if($game['away_id']) {$seen_team[] = $game['away_id']; }
-			if($game['field_id']){$seen_field[] = $game['field_id']; }
+			if($game['home_id']) {$seen_team[$game['start_time']][] = $game['home_id']; }
+			if($game['away_id']) {$seen_team[$game['start_time']][] = $game['away_id']; }
+			if($game['field_id']){$seen_field[$game['start_time']][] = $game['field_id']; }
 			
 			// TODO Check the database to ensure that no other game is
 			// scheduled on this field for this timeslot
@@ -1041,9 +1047,10 @@ class LeagueScheduleView extends Handler
 				s.round,
 				UNIX_TIMESTAMP(s.date_played) as timestamp
 			  FROM
-			  	schedule s, field f
+			  	schedule s
+				LEFT JOIN field f ON (s.field_id = f.field_id)
 			  WHERE 
-				s.field_id = f.field_id AND s.league_id = ? 
+				s.league_id = ? 
 			  ORDER BY s.date_played",
 			array($id), DB_FETCHMODE_ASSOC);
 			
