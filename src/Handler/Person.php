@@ -1010,8 +1010,8 @@ class PersonEdit extends Handler
 				$fields[] = "$type = '%s'";
 				$fields_data[] = clean_telephone_number($num);
 			} else {
-				$fields[] = "$type = '%s'";
-				$fields_data[] = null;
+				$fields[] = "$type = %s";
+				$fields_data[] = 'NULL';
 			}
 		}
 		
