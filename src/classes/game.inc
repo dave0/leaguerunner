@@ -194,7 +194,7 @@ class Game extends LeaguerunnerObject
 	{
 		switch($format) {
 			case 'debug':
-				$output = "--- <br>\n"
+				$output = "<pre>--- <br>\n"
 					. "GAME_ID: $this->game_id <br>\n"
 					. "LEAGUE_ID: $this->league_id <br>\n"
 					. "ROUND: $this->round <br>\n"
@@ -210,7 +210,7 @@ class Game extends LeaguerunnerObject
 					. "AWAY_NAME: $this->away_name <br>\n"
 					. "AWAY_SCORE: $this->away_score <br>\n"
 					. "AWAY_DEP_GAME: $this->away_dependant_game <br>\n"
-					. "AWAY_DEP_TYPE: $this->away_dependant_type <br>\n";
+					. "AWAY_DEP_TYPE: $this->away_dependant_type <br>\n</pre>";
 				break;
 			case 'vs':
 				$output = "$this->game_date $this->game_start at " 
