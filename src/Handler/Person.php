@@ -1137,7 +1137,44 @@ class PersonCreate extends PersonEdit
 
 		$this->_required_perms = array( 'allow' );
 
+		$this->op = 'person_create';
+
 		return true;
+	}
+	
+	function process ()
+	{
+		$step = var_from_getorpost('step');
+
+		$this->_id = var_from_getorpost('id');
+		
+		switch($step) {
+			case 'confirm':
+				$this->set_template_file("Person/edit_confirm.tmpl");
+				$this->tmpl->assign("page_step", 'perform');
+				$rc = $this->generate_confirm();
+				break;
+			case 'perform':
+				return $this->perform();
+				break;
+			default:
+				$this->set_template_file("Person/edit_form.tmpl");
+				$this->tmpl->assign("instructions", "Edit any of the following fields and click 'Submit' when done.");
+				$this->tmpl->assign("page_step", 'confirm');
+				$rc = $this->generate_form();
+		}
+		
+		$this->tmpl->assign("page_op", $this->op);
+
+		/* ... and set permissions flags */
+		reset($this->_permissions);
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
+
+		return $rc;
 	}
 
 	function generate_form ()
@@ -1192,17 +1229,18 @@ class PersonCreate extends PersonEdit
 		}
 		$this->_id = $DB->getOne("SELECT LAST_INSERT_ID() from person");
 
-		$this->set_template_file("Person/create_result.tmpl");
+		$rc = parent::perform();
 		
-		return parent::perform();
-	}
-	
-	/**
-	 * Override display to avoid redirects.
-	 */
-	function display ()
-	{
-		return Handler::display();
+		print $this->get_header();
+		print h1($this->title);
+		print blockquote(para(
+			"Thank you for creating an account.  It is now being held for one of the administrators to approve.  "
+			. "Once your account is approved, you will receive an email informing you.  "
+			. "You will then be able to log in with your username and password."
+		));
+		print $this->get_footer();
+
+		return $rc;
 	}
 }
 
