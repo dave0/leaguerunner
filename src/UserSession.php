@@ -234,11 +234,14 @@ class UserSession
 	}
 
 	/**
-	 * Check to see if the current user session is valid.
-	 * 
-	 * @return boolean valid or not
+	 * Check to see if the current user session is loaded.
+	 * Note that this session may not be valid, as that is determined by its
+	 * account class.
+	 *
+	 * We assume that a session is loaded if it contains a user_id in its data
+	 * member.
 	 */
-	function is_valid ()
+	function is_loaded ()
 	{
 		global $session;
 
@@ -248,7 +251,23 @@ class UserSession
 		if( !isset($this->data['user_id']) ) {
 			return false;
 		}
-		
+
+		return true;
+	}
+
+	/**
+	 * Check to see if the current user session is valid.
+	 * 
+	 * @return boolean valid or not
+	 */
+	function is_valid ()
+	{
+		global $session;
+
+		if( ! $session->is_loaded() ) {
+			return false;
+		}
+
 		/* 
 		 * 'new', 'inactive' and 'locked' accounts are not considered valid
 		 * and are handled as special cases

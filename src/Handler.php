@@ -98,6 +98,10 @@ class Handler
 	{
 		global $session;
 
+		if( ! $session->is_loaded() ) {
+			return false;
+		}
+		
 		// TODO: This belongs as a config option
 		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
 
