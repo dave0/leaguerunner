@@ -6,36 +6,183 @@
 function person_dispatch() 
 {
 	$op = arg(1);
+	$id = arg(2);
 	switch($op) {
 		case 'create':
-			return new PersonCreate;
+			$obj = new PersonCreate;
+			break;
 		case 'edit':
-			return new PersonEdit;
+			$obj = new PersonEdit;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'view':
-			return new PersonView;
+			$obj = new PersonView;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'delete':
-			return new PersonDelete;
+			$obj = new PersonDelete;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'list':
-			return new PersonList;
+			$obj = new PersonList;
+			break;
 		case 'approve':
-			return new PersonApproveNewAccount;
+			$obj = new PersonApproveNewAccount;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'activate':
-			return new PersonActivate;
-		case 'survey':
-			return new PersonSurvey;
+			$obj = new PersonActivate;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'signwaiver': 
-			return new PersonSignWaiver;
+			$obj = new PersonSignWaiver;
+			break;
 		case 'signdogwaiver':
-			return new PersonSignDogWaiver;
+			$obj = new PersonSignDogWaiver;
+			break;
 		case 'listnew':
-			return new PersonListNewAccounts;
+			$obj = new PersonListNewAccounts;
+			break;
 		case 'changepassword':
-			return new PersonChangePassword;  
+			$obj = new PersonChangePassword;  
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		case 'forgotpassword':
-			return new PersonForgotPassword;
+			$obj = new PersonForgotPassword;
+			break;
+		default:
+			$obj = null;
 	}
-	return null;
+	if( $obj->person ) {
+		person_add_to_menu( $obj->person );
+	}
+	return $obj;
 }
+/**
+ * The permissions check for all Person actions.
+ */
+function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
+{
+	$self_edit_fields = array(' ');
+	$create_fields = array( 'name', 'username', 'password');
+	$create_fields = array_merge($self_edit_fields, $create_fields);
+
+	$all_view_fields = array( 'name', 'gender', 'skill', 'dog' );
+	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
+	
+	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height');
+	$self_view_fields = array_merge($all_view_fields, $restricted_contact_fields, $self_view_fields);
+	
+	switch( $action ) {
+		case 'create':
+			return true;
+			break;
+		case 'edit':
+			if( $user->status != 'active' ) {
+				return false;
+			}
+			if( is_numeric( $arg1 ))  {
+				if( $user->user_id == $arg1 ) {
+					if( $arg2 ) {
+						return( in_array( $arg2, $self_edit_fields ) );
+					} else {
+						return true;
+					}
+				}
+			} else { 
+				if( $arg1 == 'new' ) {
+					// Almost all fields can be edited for new players
+					if( $arg2 ) {
+						return( in_array( $arg2, $create_fields ) );
+					} else {
+						return true;
+					}
+				}
+			}
+			break;
+		case 'password_change':
+			// User can change own password
+			if( is_numeric( $arg1 ))  {
+				if( $user->user_id == $arg1 ) {
+					return true;
+				}
+			}
+			break;
+		case 'view':
+			if( $user->status != 'active' ) {
+				return false;
+			}
+			if( is_numeric( $arg1 )) {
+				if( $user->user_id == $arg1 ) {
+					// Viewing yourself allowed, most fields
+					if( $arg2 ) {
+						return( in_array( $arg2, $self_view_fields ) );
+					} else {
+						return true;
+					}
+				} else {
+					// Other user.  Now comes the hard part
+					$player = person_load( array('user_id' => $arg1) );
+
+					// New or locked players cannot be viewed.
+					if( $player->status == 'new' || $player->status == 'locked' ) {
+						return false;
+					}
+					
+					$sess_user_teams = implode(",",array_keys($user->teams));
+					$viewable_fields = $all_view_fields;
+
+					/* If player is a captain, their email is viewable */
+					if( $player->is_a_captain ) {
+						// Plus, can view email
+						$viewable_fields[] = 'email';
+					}
+
+					/* If the current user is a team captain, and the requested user is on
+					 * their team, they are allowed to view email/phone
+					 */
+					if($user->is_a_captain) {
+						foreach( array_keys($player->teams) as $team_id ) {
+							if( $user->is_captain_of( $team_id ) ) {
+								/* They are, so publish email and phone */
+								$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+								break;
+							}
+						}
+					}
+				
+					/* Coordinator info is viewable */
+					if($player->is_a_coordinator) {
+						$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+					}
+
+					// Finally, perform the check and return
+					if( $arg2 ) {
+						return( in_array( $arg2, $viewable_fields ) );
+					} else {
+						return true;
+					}
+				}
+			}
+			break;
+		case 'list':
+			if( $user->status != 'active' ) {
+				return false;
+			}
+			return($user->class == 'volunteer');
+		case 'approve':
+			// administrator-only
+		case 'delete':
+			// administrator-only
+		case 'listnew':
+			// administrator-only
+		default:
+			return false;
+	}
+
+	return false;
+}
+
 
 /**
  * Generate the menu items for the "Players" and "My Account" sections.
@@ -61,9 +208,7 @@ function person_menu()
 	}
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
-	// TODO: same perms as admin_sufficient and volunteer_sufficient... these
-	// checks need to be consolidated when perms are overhauled
-	if($session->is_admin() || $session->attr_get('class') == 'volunteer') {
+	if($session->has_permission('person','list') ) {
 		menu_add_child('person','person/list/players',"list players", array('link' => url('person/list','class=player')));
 		menu_add_child('person','person/list/visitors',"list visitors", array('link' => url('person/list','class=visitor')));
 	}
@@ -87,183 +232,27 @@ function person_menu()
  */
 class PersonView extends Handler
 {
-	function initialize ()
-	{
-		$this->title = 'View';
-		$this->_permissions = array(
-			'email'		=> false,
-			'home_phone'		=> false,
-			'work_phone'		=> false,
-			'mobile_phone'		=> false,
-			'username'	=> false,
-			'birthdate'	=> false,
-			'height'	=> false,
-			'address'	=> false,
-			'gender'	=> false,
-			'skill' 	=> false,
-			'name' 		=> false,
-			'last_login'		=> false,
-			'waiver_signed'		=> false,
-			'member_id'		=> false,
-			'dog'		=> false,
-			'class'		=> false,
-			'status'		=> false,
-			'publish'			=> false,
-			'user_edit'				=> false,
-#			'user_delete'			=> false,
-			'user_change_password'	=> false,
-		);
-		return true;
-	}
-
-	/**
-	 * Permissions check
-	 *
-	 * This permissions check is much more complex than others, so we
-	 * will override the parent and perform all checks here.
-	 *
-	 * @access public
-	 * @return boolean success/fail
-	 */
+	var $person;
+	
 	function has_permission ()
 	{
 		global $session;
 
-		if(!$session->is_valid()) {
-			$this->error_exit("You do not have a valid session");
-		}
-		
-		$id = arg(2);
-		
-		if(!$id) {
-			$this->error_exit("You must provide a user ID");
+		if(!$this->person) {
+			error_exit("That user does not exist");
 		}
 
-		/* Anyone can see your name,
-		 * Any valid player can see your skill, your account status, and
-		 * whether or not you have a dog 
-		 */
-		$this->_permissions['name'] = true;
-
-		if( $session->is_player() ) {
-			$this->_permissions['skill'] = true;
-			$this->_permissions['dog'] = true;
-		}
-		
-		/* Administrator can view all and do all */
-		if($session->attr_get('class') == 'administrator') {
-			$this->enable_all_perms();
-			$this->_permissions['user_delete'] = true;
-			$this->_permissions['user_change_perms'] = true;
-			return true;
-		}
-
-		/* Can always view self */
-		if($session->attr_get('user_id') == $id) {
-			$this->enable_all_perms();
-			return true;
-		}
-		
-		$player = person_load( array('user_id' => $id) );
-
-		/*
-		 * See what the player's status is.  Some cannot be viewed unless you
-		 * are 'administrator'.  
-		 */
-		switch($player->status) {
-			case 'new':
-			case 'locked':
-				/* players of status 'new' and 'locked' can only be viewed by
-				 * 'administrator' class, and this case is handled above.
-				 */
-				return false;
-				break;
-			case 'active':
-			case 'inactive':
-			default:
-				/* do nothing */
-		}
-
-		$sess_user_teams = implode(",",array_keys($session->user->teams));
-		/* 
-		 * See if we're a captain looking at another team captain.  
-		 * Captains in the same tier are always allowed to view each other for
-		 * contact purposes.
-		 */
-		if($session->user->is_a_captain && $player->is_a_captain) {	
-			/* is captain of at least one team, so we need to check if they
-			 * captain two teams in the same tier */
-			$query = "SELECT count(l.league_id) FROM leagueteams l, leagueteams m, teamroster r, teamroster s WHERE l.league_id = m.league_id AND r.team_id = l.team_id AND s.team_id = m.team_id AND r.status IN ('assistant','captain') AND s.status IN ('assistant','captain') AND r.player_id = %d AND s.player_id = %d;";
-			if( db_result(db_query($query, $session->user->user_id, $player->user_id)) > 0 ) {
-				/* They are, so publish email and phone */
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				return true; /* since the following checks are now irrelevant */
-			}
-		}
-
-		/* If the current user is a team captain, and the requested user is on
-		 * their team, they are allowed to view email/phone
-		 */
-		if($session->user->is_a_captain) {
-			foreach( array_keys($player->teams) as $team_id ) {
-				if( $session->is_captain_of( $team_id ) ) {
-					$this->_permissions['email'] = true;
-					$this->_permissions['home_phone'] = true;
-					$this->_permissions['work_phone'] = true;
-					$this->_permissions['mobile_phone'] = true;
-					return true;
-				}
-			}
-		}
-		
-		/* If the current user is a team captain, and the requested user is
-		 * their coordinator, they are allowed to view email/phone
-		 */
-		if($session->user->is_a_coordinator) {
-			$sess_user_leagues = implode(",",array_keys($session->user->leagues));
-			$query = "SELECT COUNT(*) FROM teamroster r, leagueteams l WHERE r.player_id = %d AND r.status IN ('captain','assistant') AND r.team_id = l.team_id AND l.league_id IN ($sess_user_leagues)";
-			if( db_result(db_query($query,$id )) > 0 ) {
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				return true;
-			}
-		}
-		
-		/* If the current user is a player, and the requested user is
-		 * their captain, they are allowed to view email/phone.
-		 */
-		if($player->is_a_captain) {
-			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.status IN ('captain','assistant') AND r.team_id IN ($sess_user_teams)";
-			if( db_result(db_query($query,$id)) > 0 ) {
-				$this->_permissions['email'] = true;
-				$this->_permissions['home_phone'] = true;
-				$this->_permissions['work_phone'] = true;
-				$this->_permissions['mobile_phone'] = true;
-				return true;
-			}
-		}
-
-		return true;
+		return $session->has_permission('person','view', $this->person->user_id);
 	}
 
 	function process ()
 	{	
-		$id = arg(2);
-		$person = person_load( array('user_id' => $id ) );
-
-		if( !$person ) {
-			$this->error_exit("That person does not exist");
-		}
+		$this->title = 'View';
 		$this->setLocation(array(
-			$person->fullname => "person/view/$id",
+			$this->person->fullname => "person/view/$id",
 			$this->title => 0));
 
-		return $this->generateView($person);
+		return $this->generateView($this->person);
 	}
 	
 	function generateView (&$person)
@@ -273,15 +262,14 @@ class PersonView extends Handler
 		$rows[] = array("Name:", $person->fullname);
 	
 		if( ! ($session->is_player() || ($session->attr_get('user_id') == $person->user_id)) ) {
-			person_add_to_menu( $this, $person );
 			return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		}
 
-		if($this->_permissions['username']) {
+		if($session->has_permission('person','view',$person->user_id, 'username') ) {
 			$rows[] = array("System Username:", $person->username);
 		}
 		
-		if($this->_permissions['member_id']) {
+		if($session->has_permission('person','view',$person->user_id, 'member_id') ) {
 			if($person->member_id) {
 				$rows[] = array("OCUA Member ID:", $person->member_id);
 			} else {
@@ -292,7 +280,7 @@ class PersonView extends Handler
 		if($person->allow_publish_email == 'Y') {
 			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
 		} else {
-			if($this->_permissions['email']) {
+			if($session->has_permission('person','view',$person->user_id, 'email') ) {
 				$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (private)");
 			}
 		}
@@ -303,13 +291,13 @@ class PersonView extends Handler
 			if($person->$publish == 'Y') {
 				$rows[] = array("Phone ($type):", $person->$item . " (published)");
 			} else {
-				if($this->_permissions[$item] && isset($person->$item)) {
+				if($session->has_permission('person','view',$person->user_id, $item)  && isset($person->$item) ) {
 					$rows[] = array("Phone ($type):", $person->$item . " (private)");
 				}
 			}
 		}
 		
-		if($this->_permissions['address']) {
+		if($session->has_permission('person','view',$person->user_id, 'address')) {
 			$rows[] = array("Address:", 
 				format_street_address(
 					$person->addr_street,
@@ -324,31 +312,31 @@ class PersonView extends Handler
 			}
 		}
 		
-		if($this->_permissions['birthdate']) {
+		if($session->has_permission('person','view',$person->user_id, 'birthdate')) {
 			$rows[] = array('Birthdate:', $person->birthdate);
 		}
 		
-		if($this->_permissions['height']) {
+		if($session->has_permission('person','view',$person->user_id, 'height')) {
 			$rows[] = array('Height:', $person->height ? "$person->height inches" : "Please edit your account to enter your height");
 		}
 		
-		if($this->_permissions['gender']) {
+		if($session->has_permission('person','view',$person->user_id, 'gender')) {
 			$rows[] = array("Gender:", $person->gender);
 		}
 		
-		if($this->_permissions['skill']) {
+		if($session->has_permission('person','view',$person->user_id, 'skill')) {
 			$skillAry = getOptionsForSkill();
 			$rows[] = array("Skill Level:", $skillAry[$person->skill_level]);
 			$rows[] = array("Year Started:", $person->year_started);
 		}
 
-		if($this->_permissions['class']) {
+		if($session->has_permission('person','view',$person->user_id, 'class')) {
 			$rows[] = array("Account Class:", $person->class);
 		}
 	
 		$rows[] = array("Account Status:", $person->status);
 		
-		if($this->_permissions['dog']) {
+		if($session->has_permission('person','view',$person->user_id, 'dog')) {
 			$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
 
 			if($person->has_dog == 'Y') {
@@ -356,7 +344,7 @@ class PersonView extends Handler
 			}
 		}
 		
-		if($this->_permissions['last_login']) {
+		if($session->has_permission('person','view',$person->user_id, 'last_login')) {
 			if($person->last_login) {
 				$rows[] = array("Last Login:", 
 					$person->last_login . ' from ' . $person->client_ip);
@@ -391,8 +379,6 @@ class PersonView extends Handler
 			$rows[] = array("Leagues:", table( null, $leagues) );
 		}
 		
-		person_add_to_menu( $this, $person );
-				
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
@@ -402,83 +388,48 @@ class PersonView extends Handler
  */
 class PersonDelete extends PersonView
 {
-	function initialize ()
-	{
-		$this->title = 'Delete';
-		$this->_permissions = array(
-			'email'		=> false,
-			'phone'		=> false,
-			'username'	=> false,
-			'birthdate'	=> false,
-			'height'	=> false,
-			'address'	=> false,
-			'gender'	=> false,
-			'skill' 	=> false,
-			'name' 		=> false,
-			'last_login'		=> false,
-			'user_edit'				=> false,
-			'user_change_password'	=> false,
-			'user_delete'	=> false,
-		);
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny',
-		);
-		return true;
-	}
-
+	var $person;
+	
 	function has_permission()
 	{
-		return Handler::has_permission();
+		global $session;
+
+		if(!$this->person) {
+			error_exit("That user does not exist");
+		}
+
+		return $session->has_permission('person','delete', $id);
 	}
 
-	function set_permission_flags($type) 
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		}
-	}
 
 	function process ()
 	{
 		global $session;
+		$this->title = 'Delete';
 		$edit = $_POST['edit'];
 		
-		$id = arg(2);
-
 		/* Safety check: Don't allow us to delete ourselves */
-		if($session->attr_get('user_id') == $id) {
-			$this->error_exit("You cannot delete your own account!");
+		if($session->attr_get('user_id') == $this->person->user_id) {
+			error_exit("You cannot delete your own account!");
 		}
 		
-		$person = person_load( array( 'user_id' => $id ) );
-		if( ! $person ) {
-			$this->error_exit("That person does not exist");
-		}
-
 		if($edit['step'] == 'perform') {
-			$this->perform( $person );
+			$this->person->delete();
 			local_redirect(url("person/list"));
 			return $rc;
 		}
 
 		$this->setLocation(array(
-			$person->fullname => "person/view/$id",
+			$this->person->fullname => "person/view/" . $this->person->user_id,
 			$this->title => 0));
 		
 		return 
 			para("Confirm that you wish to delete this user from the system.")
-			. $this->generateView($person)
+			. $this->generateView($this->person)
 			. form( 
 				form_hidden('edit[step]', 'perform')
 				. form_submit("Delete")
 			);
-	}
-
-	function perform ( &$person )
-	{
-		return $person->delete();
 	}
 }
 
@@ -487,50 +438,31 @@ class PersonDelete extends PersonView
  */
 class PersonApproveNewAccount extends PersonView
 {
-	function initialize ()
-	{
-		parent::initialize();
-		$this->title = 'Approve Account';
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny',
-		);
-		return true;
-	}
+	var $person;
 
 	function has_permission()
 	{
-		return Handler::has_permission();
-	}
-
-	function set_permission_flags($type) 
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
+		global $session;
+		if(!$this->person) {
+			error_exit("That user does not exist");
 		}
+
+		return $session->has_permission('person','approve', $id);
 	}
 
 	function process ()
 	{
 		$edit = $_POST['edit'];
-		$id = arg(2);
+		$this->title = 'Approve Account';
 
 		if($edit['step'] == 'perform') {
 			/* Actually do the approval on the 'perform' step */
-			$this->perform( $id, $edit );
+			$this->perform( $edit );
 			local_redirect("person/listnew");
 		} 
 
-		/* Otherwise... */
-		$person = person_load( array('user_id' => $id) );
-
-		if( !$person ) {
-			$this->error_exit("That person does not exist");
-		}
-		
-		if($person->status != 'new') {
-			$this->error_exit("That account has already been approved");
+		if($this->person->status != 'new') {
+			error_exit("That account has already been approved");
 		}
 	
 		$dispositions = array(
@@ -556,7 +488,7 @@ class PersonApproveNewAccount extends PersonView
 					OR p.mobile_phone = q.mobile_phone
 					OR p.addr_street = q.addr_street
 					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-				)", $id);
+				)", $this->person->user_id);
 				
 		
 		if(db_num_rows($result) > 0) {
@@ -577,107 +509,105 @@ class PersonApproveNewAccount extends PersonView
 		
 
 		$this->setLocation(array(
-			$person->fullname => "person/view/$id",
+			$this->person->fullname => "person/view/" . $this->person->user_id,
 			$this->title => 0));
 		
 		return 
 			para($duplicates)
 			. form( para($approval_form) )
-			. $this->generateView($person);
+			. $this->generateView($this->person);
 	}
 
-	function perform ( $id, $edit )
+	function perform ( $edit )
 	{
 		global $session; 
 
 		$disposition = $edit['disposition'];
 		
 		if($disposition == '---') {
-			$this->error_exit("You must select a disposition for this account");
+			error_exit("You must select a disposition for this account");
 		}
 		
-		$person = person_load( array('user_id' => $id ) );
-
 		list($disposition,$dup_id) = split(':',$disposition);
 
 		switch($disposition) {
 			case 'approve_player':
-				$person->set('class','player');
-				$person->set('status','inactive');
-				if(! $person->generate_member_id() ) {
-					$this->error_exit("Couldn't get member ID allocation");
+				$this->person->set('class','player');
+				$this->person->set('status','inactive');
+				if(! $this->person->generate_member_id() ) {
+					error_exit("Couldn't get member ID allocation");
 				}
 
-				if( ! $person->save() ) {
-					$this->error_exit("Couldn't save new member activation");
+				if( ! $this->person->save() ) {
+					error_exit("Couldn't save new member activation");
 				}
 				
 				$message = _person_mail_text('approved_body_player', array( 
-					'%fullname' => "$person->firstname $person->lastname",
-					'%username' => $person->username,
-					'%memberid' => $person->member_id,
-					'%url' => url("/"),
+					'%fullname' => $this->person->fullname,
+					'%username' => $this->person->username,
+					'%memberid' => $this->person->member_id,
+					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name', "Leaguerunner Admin"),
 					'%site' => variable_get('app_name','Leaguerunner')));
 					
-				$rc = mail($person->email, 
-					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
+				$rc = mail($this->person->email, 
+					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
 					$message, 
 			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
 					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
-					$this->error_exit("Error sending email to " . $person->email);
+					error_exit("Error sending email to " . $this->person->email);
 				}
 				return true;	
 				
 			case 'approve_visitor':
-				$person->set('class','visitor');
-				$person->set('status','inactive');
-				if( ! $person->save() ) {
-					$this->error_exit("Couldn't save new member activation");
+				$this->person->set('class','visitor');
+				$this->person->set('status','inactive');
+				if( ! $this->person->save() ) {
+					error_exit("Couldn't save new member activation");
 				}
 				
 				$message = _person_mail_text('approved_body_visitor', array( 
-					'%fullname' => "$person->firstname $person->lastname",
-					'%username' => $person->username,
+					'%fullname' => $this->person->fullname,
+					'%username' => $this->person->username,
 					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
-				$rc = mail($person->email, 
-					_person_mail_text('approved_subject', array( '%username' => $person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
+				$rc = mail($this->person->email, 
+					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
 					$message, 
 			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
 					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
-					$this->error_exit("Error sending email to " . $person->email);
+					error_exit("Error sending email to " . $this->person->email);
 				}
 				return true;	
 				
 			case 'delete':
-				if( ! $person->delete() ) {
-					$this->error_exit("Delete of user $person->fullname failed.");
+				if( ! $this->person->delete() ) {
+					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
 				return true;
 				
 			case 'delete_duplicate':
 				$existing = person_load( array('user_id' => $dup_id) );
 				$message = _person_mail_text('dup_delete_body', array( 
-					'%fullname' => "$person->firstname $person->lastname",
-					'%username' => $person->username,
+					'%fullname' => $this->person->fullname,
+					'%username' => $this->person->username,
 					'%existingusername' => $existing->username,
 					'%existingemail' => $existing->email,
 					'%passwordurl' => url("person/forgotpassword"),
 					'%adminname' => $session->user->fullname,
 					'%site' => variable_get('app_name','Leaguerunner')));
 
-				if($person->email != $existing->email) {
-					$to_addr = join(',',array($person->email,$existing->email));
+				if($this->person->email != $existing->email) {
+					$to_addr = join(',',array($this->person->email,$existing->email));
 				} else { 
 					$to_addr = $person->email;
 				}
 				
-				if( ! $person->delete() ) {
-					$this->error_exit("Delete of user $person->fullname failed.");
+				if( ! $this->person->delete() ) {
+					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
 				$addresses = array($to_addr, variable_get('app_admin_email', 'webmaster@ocua.ca') );	
 				$rc = mail(join(', ',$addresses),
@@ -686,16 +616,15 @@ class PersonApproveNewAccount extends PersonView
 			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
 					"-f " . variable_get('app_admin_email','webmaster@localhost'));
 				if($rc == false) {
-					$this->error_exit("Error sending email to " . $person->email);
+					error_exit("Error sending email to " . $this->person->email);
 				}
 				return true;	
 				
 			default:
-				$this->error_exit("You must select a disposition for this account");
+				error_exit("You must select a disposition for this account");
 				
 		}
 	}
-	
 }
 
 
@@ -704,24 +633,15 @@ class PersonApproveNewAccount extends PersonView
  */
 class PersonEdit extends Handler
 {
-	function initialize ()
+	var $person;
+	
+	function has_permission ()
 	{
-		$this->title = 'Edit';
-		$this->_permissions = array(
-			'edit_name'			=> false,
-			'edit_username'		=> false,
-			'edit_class' 		=> false,
-			'edit_status' 		=> false,
-		);
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'self_sufficient',
-			'deny',
-		);
-
-		return true;
+		global $session;
+		if(!$this->person) {
+			error_exit("That user does not exist");
+		}
+		return $session->has_permission('person','edit', $this->person->user_id);
 	}
 
 	function set_permission_flags($type)
@@ -733,27 +653,20 @@ class PersonEdit extends Handler
 
 	function process ()
 	{
-
 		$edit = $_POST['edit'];
-		$id = arg(2);
-		
-		$person = person_load( array('user_id' => $id) );
-		if( ! $person ) {
-			$this->error_exit("That account does not exist");
-		}
-		person_add_to_menu( $this, $person );
+		$this->title = 'Edit';
 		
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $this->person->user_id, $edit );
 				break;
 			case 'perform':
-				$this->perform( $person, $edit );
-				local_redirect("person/view/$id");
+				$this->perform( $this->person, $edit );
+				local_redirect("person/view/" . $this->person->user_id);
 				break;
 			default:
-				$edit = object2array($person);
-				$rc = $this->generateForm($id, $edit, "Edit any of the following fields and click 'Submit' when done.");
+				$edit = object2array($this->person);
+				$rc = $this->generateForm($this->person->user_id, $edit, "Edit any of the following fields and click 'Submit' when done.");
 		}
 		
 		return $rc;
@@ -761,6 +674,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
+		global $session;
 		$output = <<<END_TEXT
 <script language="JavaScript" type="text/javascript">
 <!--
@@ -789,7 +703,7 @@ END_TEXT;
 			. "<b><font color=red><a href='http://www.ocua.ca/ocua/policy/privacy_policy.html' target='_new'>Privacy Policy</a></font></b>"
 		);
 
-		if($this->_permissions['edit_name']) {
+		if($session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
 
 			$group .= form_textfield('Last Name', 'edit[lastname]', $formData['lastname'], 25,100);
@@ -797,13 +711,13 @@ END_TEXT;
 			$group .= form_item('Full Name', $formData['firstname'] . ' ' . $formData['lastname']);
 		}
 
-		if($this->_permissions['edit_username']) {
+		if($session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_textfield('System Username', 'edit[username]', $formData['username'], 25,100, 'Desired login name.');
 		} else {
 			$group .= form_item('System Username', $formData['username'], 'Desired login name.');
 		}
 		
-		if($this->_permissions['edit_password']) {
+		if($session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_password('Password', 'edit[password_once]', '', 25,100, 'Enter your desired password.');
 			$group .= form_password('Re-enter Password', 'edit[password_twice]', '', 25,100, 'Enter your desired password a second time to confirm it.');
 		}
@@ -845,7 +759,7 @@ END_TEXT;
 			$formData['class'] = 'visitor';
 		}
 			
-		if($this->_permissions['edit_class']) {
+		if($session->has_permission('person', 'edit', $id, 'class') ) {
 			$player_classes['administrator'] = "Leaguerunner administrator";
 			$player_classes['volunteer'] = "OCUA volunteer";
 		}
@@ -856,7 +770,7 @@ END_TEXT;
 		}
 		
 		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
-		if($this->_permissions['edit_status']) {
+		if($session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_select('Account Status','edit[status]', $formData['status'], getOptionsFromEnum('person','status'));
 		}
 		
@@ -893,28 +807,29 @@ END_TEXT;
 
 	function generateConfirm ( $id, $edit = array() )
 	{
-		$dataInvalid = $this->isDataInvalid( $edit );
+		global $session;
+		$dataInvalid = $this->isDataInvalid( $id, $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
 		$output .= form_hidden('edit[step]', 'perform');
 
 		$group = '';	
-		if($this->_permissions['edit_username']) {
+		if($session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_item('First Name',
 				form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
 			$group .= form_item('Last Name',
 				form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
 		}
 		
-		if($this->_permissions['edit_username']) {
+		if($session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_item('System Username',
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
 		
-		if($this->_permissions['edit_password']) {
+		if($session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_item('Password',
 				form_hidden('edit[password_once]', $edit['password_once'])
 				. form_hidden('edit[password_twice]', $edit['password_twice'])
@@ -962,7 +877,7 @@ END_TEXT;
 		
 		$group = form_item("Account Class", form_hidden('edit[class]',$edit['class']) . $edit['class']);
 		
-		if($this->_permissions['edit_status']) {
+		if($session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_item("Account Status", form_hidden('edit[status]',$edit['status']) . $edit['status']);
 		}
 		
@@ -998,13 +913,14 @@ END_TEXT;
 
 	function perform ( &$person, $edit = array() )
 	{
+		global $session;
 	
-		$dataInvalid = $this->isDataInvalid( $edit );
+		$dataInvalid = $this->isDataInvalid( $person->id, $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		if($this->_permissions['edit_username']) {
+		if($edit['username'] && $session->has_permission('person', 'edit', $id, 'username') ) {
 			$person->set('username', $edit['username']);
 		}
 		
@@ -1022,11 +938,11 @@ END_TEXT;
 			$status_changed = true;
 		}
 
-		if($this->_permissions['edit_class']) {
+		if($edit['class'] && $session->has_permission('person', 'edit', $id, 'class') ) {
 			$person->set('class', $edit['class']);
 		}
 		
-		if($this->_permissions['edit_status']) {
+		if($edit['status'] && $session->has_permission('person', 'edit', $id, 'status') ) {
 			$person->set('status',$edit['status']);
 		}
 	
@@ -1044,7 +960,7 @@ END_TEXT;
 			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
 		}
 		
-		if($this->_permissions['edit_name']) {
+		if($session->has_permission('person', 'edit', $id, 'name') ) {
 			$person->set('firstname', $edit['firstname']);
 			$person->set('lastname', $edit['lastname']);
 		}
@@ -1077,7 +993,7 @@ END_TEXT;
 		$person->set('has_dog', $edit['has_dog']);
 	
 		if( ! $person->save() ) {
-			$this->error_exit("Internal error: couldn't save changes");
+			error_exit("Internal error: couldn't save changes");
 		} else {
 			/* EVIL HACK
 			 * If a user changes their own status from visitor to player, they
@@ -1097,25 +1013,25 @@ END_TEXT;
 		return true;
 	}
 
-	function isDataInvalid ( $edit = array() )
+	function isDataInvalid ( $id, $edit = array() )
 	{
 		global $session;
 		$errors = "";
 	
-		if($this->_permissions['edit_name']) {
+		if($session->has_permission('person','edit',$id, 'name')) {
 			if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 			}
 		}
 
-		if($this->_permissions['edit_username']) {
+		if($session->has_permission('person','edit',$id, 'username')) {
 			if( ! validate_name_input($edit['username']) ) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 			$user = person_load( array('username' => $edit['username']) );
 			# TODO: BUG: need to check that $user->user_id != current id
 			if( $user && !$session->is_admin()) {
-				$this->error_exit("A user with that username already exists; please go back and try again");
+				error_exit("A user with that username already exists; please go back and try again");
 			}
 		}
 
@@ -1197,18 +1113,12 @@ END_TEXT;
  */
 class PersonCreate extends PersonEdit
 {
-	function initialize ()
+	var $person;
+
+	function has_permission ()
 	{
-		$this->title = 'Create Account';
-		$this->_permissions = array(
-			'edit_name'			=> true,
-			'edit_username'		=> true,
-			'edit_password'		=> true,
-		);
-
-		$this->_required_perms = array( 'allow' );
-
-		return true;
+		global $session;
+		return $session->has_permission('person','create');
 	}
 
 	function checkPrereqs( $next )
@@ -1219,15 +1129,17 @@ class PersonCreate extends PersonEdit
 	function process ()
 	{
 		$edit = $_POST['edit'];
+		
+		$this->title = 'Create Account';
 
-		$id = -1;
+		$id = 'new';
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$person = new Person;
-				return $this->perform( $person, $edit );
+				$this->person = new Person;
+				return $this->perform( $this->person, $edit );
 				
 			default:
 				$edit = array();
@@ -1241,26 +1153,25 @@ class PersonCreate extends PersonEdit
 	{
 		global $session;
 
-		# XXX EVIL: we override the 'edit username' perm so that the 
-		# edit submit won't try to check it.  Otherwise, it will fail
-		# as we've just created a user with that name.
 		if( ! validate_name_input($edit['username']) ) {
 			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 		}
 		$existing_user = person_load( array('username' => $edit['username']) );
 		if( $existing_user ) {
-			$this->error_exit("A user with that username already exists; please go back and try again");
+			error_exit("A user with that username already exists; please go back and try again");
 		}
-		$this->_permissions['edit_username'] = false;
 		
 		if($edit['password_once'] != $edit['password_twice']) {
-			$this->error_exit("First and second entries of password do not match");
+			error_exit("First and second entries of password do not match");
 		}
 		$crypt_pass = md5($edit['password_once']);
 
 		$person->set('username', $edit['username']);
 		$person->set('password', $crypt_pass);
 
+		// Unset the username so parent::perform() doesn't try to validate it.
+		unset($edit['username']);
+		
 		$rc = parent::perform( $person, $edit );
 
 		if( $rc === false ) {
@@ -1283,14 +1194,8 @@ class PersonCreate extends PersonEdit
  */
 class PersonActivate extends PersonEdit
 {
-	function initialize ()
-	{
-		parent::initialize();
-		$this->title = "Activate Account";
-
-		return true;
-	}
-
+	var $person;
+	
 	function checkPrereqs ( $ignored )
 	{
 		return false;
@@ -1304,13 +1209,13 @@ class PersonActivate extends PersonEdit
 	function has_permission ()
 	{
 		global $session;
-		if(!$session->is_valid()) {
-			if ($session->attr_get('status') != 'inactive') {
-				$this->error_exit("You do not have a valid session");
-			} 
-		} else {
+		if($session->is_valid()) {
 			return false;
 		}
+		
+		if ($session->attr_get('status') != 'inactive') {
+			error_exit("You do not have a valid session");
+		} 
 		
 		return true;
 	}
@@ -1319,44 +1224,41 @@ class PersonActivate extends PersonEdit
 	{
 		global $session;
 
-		$id = $session->attr_get('user_id');
 		$edit = $_POST['edit'];
-		$person = person_load( array('user_id' => $id) );
-		if( ! $person ) {
-			$this->error_exit("That account does not exist");
+		$this->title = "Activate Account";
+		
+		$this->person = $session->user;
+		if( ! $this->person ) {
+			error_exit("That account does not exist");
 		}
 		
 		switch($edit['step']) {
 			case 'confirm': 
-				$rc = $this->generateConfirm( $id, $edit );
+				$rc = $this->generateConfirm( $this->person->user_id, $edit );
 				break;
 			case 'perform':
-				$rc = $this->perform( $session->user, $edit );
+				$rc = $this->perform( $this->person, $edit );
+				if( ! $rc ) {
+					error_exit("Failed attempting to activate account");
+				}
+				$person->set('status', 'active');
+				$rc = $person->save();
+				if( !$rc ) {
+					error_exit("Failed attempting to activate account");
+				}
 				local_redirect(url("home"));
 				break;
 			default:
-				$edit = object2array($person);
+				$edit = object2array($this->person);
 				$rc = $this->generateForm( $id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
 		return $rc;
 	}
-	
-	function perform( &$person, $edit = array() )
-	{
-		$rc = parent::perform( $person, $edit );
-		if( ! $rc ) {
-			$this->error_exit("Failed attempting to activate account");
-		}
-
-		$person->set('status', 'active');
-		return ( $person->save() );
-	}
 }
 
 class PersonSignWaiver extends Handler
 {
-
 	function checkPrereqs ( $op ) 
 	{
 		return false;
@@ -1364,18 +1266,17 @@ class PersonSignWaiver extends Handler
 	
 	function initialize ()
 	{
-		global $session;
 		$this->title = "Consent Form for League Play";
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'allow',
-		);
 		$this->formFile = 'waiver_form.html';
-
 		$this->querystring = "UPDATE person SET waiver_signed=NOW() where user_id = %d";
 
 		return true;
+	}
+
+	function has_permission()
+	{
+		global $session;
+		return ($session->is_valid());
 	}
 
 	function process ()
@@ -1411,7 +1312,7 @@ class PersonSignWaiver extends Handler
 		global $session;
 		
 		if('yes' != $edit['signed']) {
-			$this->error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
+			error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
 		}
 
 		/* otherwise, it's yes.  Perform the appropriate query to markt he
@@ -1445,10 +1346,6 @@ class PersonSignDogWaiver extends PersonSignWaiver
 	function initialize ()
 	{
 		$this->title = "Consent Form For Dog Owners";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'allow',
-		);
 		$this->formFile = 'dog_waiver_form.html';
 		$this->querystring = "UPDATE person SET dog_waiver_signed=NOW() where user_id = %d";
 		return true;
@@ -1460,40 +1357,22 @@ class PersonSignDogWaiver extends PersonSignWaiver
  */
 class PersonList extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
 		global $session;
-		$this->_permissions = array(
-			'delete' => false,
-			'create' => false,
-		);
-
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'volunteer_sufficient',
-			'deny',
-		);
-		
-		return true;
+	 	return $session->has_permission('person','list');
 	}
 	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} 
-	}
-
 	function process ()
 	{
+		global $session;
 		$ops = array(
 			array(
 				'name' => 'view',
 				'target' => 'person/view/'
 			),
 		);
-		if($this->_permissions['delete']) {
+		if($session->has_permission('person','delete')) {
 			$ops[] = array(
 				'name' => 'delete',
 				'target' => 'person/delete/'
@@ -1533,20 +1412,16 @@ class PersonList extends Handler
  */
 class PersonListNewAccounts extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "New Accounts";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+	 	return $session->has_permission('person','listnew');
 	}
 
 	function process ()
 	{
 		$letter = $_GET['letter'];
+		$this->title = "New Accounts";
 
 		$ops = array(
 			array(
@@ -1584,51 +1459,35 @@ class PersonListNewAccounts extends Handler
  */
 class PersonChangePassword extends Handler
 {
-	function initialize ()
+	var $person;
+	
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'self_sufficient',
-			'deny',
-		);
-		$this->_permissions = array(
-			'user_change_password'	=> false,
-			'user_edit'		=> false,
-			'user_delete'	=> false,
-		);
-		return true;
+		global $session;
+		if( ! $this->person ) {
+			$this->person =& $session->user;
+		}
+		return $session->has_permission('person','password_change', $this->person->user_id);
 	}
 	
-	function set_permission_flags($type) 
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		}
-	}
-
 	function process()
 	{
 		global $session;
 		$edit = $_POST['edit'];
 		
-		$id = arg(2);
-		if(!$id) {
-			$id = $session->attr_get('user_id');
-		}
-		
-		$user = person_load( array ('user_id' => $id ));
-		if( !$user ) {
-			$this->error_exit("That user does not exist");
-		}
-		
 		switch($edit['step']) {
 			case 'perform':
-				$this->perform( $user, $edit );
-				local_redirect(url("person/view/$id"));
+				if($edit['password_one'] != $edit['password_two']) {
+					error_exit("You must enter the same password twice.");
+				}
+				$user->set('password', md5($edit['password_one']));
+				if( ! $user->save() ) {
+					error_exit("Couldn't change password due to internal error");
+				}
+				local_redirect(url("person/view/" . $this->person->user_id));
 				break;
 			default:
-				$rc = $this->generateForm( $user );
+				$rc = $this->generateForm( $this->person->user_id );
 		}
 		
 		return $rc;
@@ -1655,18 +1514,7 @@ class PersonChangePassword extends Handler
 		
 		$output .= form_submit("Submit") . form_reset("Reset");
 		
-		person_add_to_menu( $this, $user );
-
 		return form($output);
-	}
-
-	function perform ( $user , $edit = array())
-	{
-		if($edit['password_one'] != $edit['password_two']) {
-			$this->error_exit("You must enter the same password twice.");
-		}
-		$user->set('password', md5($edit['password_one']));
-		return($user->save());
 	}
 }
 
@@ -1678,18 +1526,16 @@ class PersonForgotPassword extends Handler
 		return false;
 	}
 
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'allow',
-		);
-		$this->title = "Request New Password";
+		// Can always request a password reset
 		return true;
 	}
 
 	function process()
 	{
 		global $session;
+		$this->title = "Request New Password";
 		$edit = $_POST['edit'];
 		if ($session->is_admin()) {
 			$edit = $_GET['edit'];
@@ -1757,7 +1603,7 @@ END_TEXT;
 		}
 		
 		if( count($fields) < 1 ) {
-			$this->error_exit("You must supply at least one of username, member ID, or email address");
+			error_exit("You must supply at least one of username, member ID, or email address");
 		}
 
 		/* Now, try and find the user */
@@ -1775,7 +1621,7 @@ END_TEXT;
 			$user->set('password', $cryptpass);
 
 			if( ! $user->save() ) {
-				$this->error_exit("Error setting password");
+				error_exit("Error setting password");
 			}
 
 			/* And fire off an email */
@@ -1790,7 +1636,7 @@ END_TEXT;
 			 	"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
 				"-f " . variable_get('app_admin_email','webmaster@localhost'));
 			if($rc == false) {
-				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
+				error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
 		}
 
@@ -1810,31 +1656,26 @@ END_TEXT;
 	}
 }
 
-/**
- * Add view/edit/delete links to the menu for the given person
- * TODO: when permissions are fixed, remove the evil passing of $this
- */
-function person_add_to_menu( $this, &$person ) 
+function person_add_to_menu( &$person ) 
 {
 	global $session;
-	$id = $person->user_id;
-	if( ! ($session->attr_get('user_id') == $id) ) {
+	if( ! ($session->attr_get('user_id') == $person->user_id) ) {
 		// These links already exist in the 'My Account' section if we're
 		// looking at ourself
-		menu_add_child('person', $person->fullname, $person->fullname, array('weight' => -10, 'link' => "person/view/$id"));
-		if($this->_permissions['user_edit']) {
-			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$id"));
+		menu_add_child('person', $person->fullname, $person->fullname, array('weight' => -10, 'link' => "person/view/$person->user_id"));
+		if($session->has_permission('person', 'edit', $person->user_id) ) {
+			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$person->user_id"));
 		}
 	
-		if($this->_permissions['user_change_password']) {
-			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$id"));
+		if($session->has_permission('person', 'password_change', $person->user_id) ) {
+			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
 		}
 		
-		if($this->_permissions['user_delete']) {
-			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$id"));
+		if($session->has_permission('person', 'delete', $person->user_id) ) {
+			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$person->user_id"));
 		}
 		
-		if($session->is_admin()) {
+		if($session->has_permission('person', 'password_reset') ) {
 			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
 		}
 	}

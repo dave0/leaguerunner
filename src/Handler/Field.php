@@ -6,19 +6,69 @@
 function field_dispatch() 
 {
 	$op = arg(1);
+	$id = arg(2);
 	switch($op) {
 		case 'create':
-			return new FieldCreate;
+			$obj = new FieldCreate;
+			break;
 		case 'edit':
-			return new FieldEdit;
+			$obj = new FieldEdit;
+			$obj->field = field_load( array('fid' => $id) );
+			break;
 		case 'view':
-			return new FieldView;
+			$obj = new FieldView;
+			$obj->field = field_load( array('fid' => $id) );
+			break;
 		case 'list':
 			return new FieldList;
+			break;
 		case 'bookings':
-			return new FieldBooking;
+			$obj = new FieldBooking;
+			$obj->field = field_load( array('fid' => $id) );
+			break;
+		default:
+			$obj = null;
 	}
-	return null;
+	if( $obj->field ) {
+		field_add_to_menu( $obj->field );
+	}
+	return $obj;
+}
+
+function field_permissions ( &$user, $action, $fid, $data_field )
+{
+	$public_data = array();
+	$member_data = array( 'site_instructions' );
+	
+	switch( $action )
+	{
+		case 'create':
+		case 'edit':
+			// Only admin can create or edit
+			break;
+		case 'view':
+			// Everyone can view, but valid users get extra info
+			if($user->status == 'active') {
+				$viewable_data = array_merge($public_data, $member_data);
+			} else {
+				$viewable_data = $public_data;
+			}
+			if( $data_field ) {
+				return in_array( $data_field, $viewable_data );
+			} else {
+				return true;
+			}
+		case 'list':
+			// Everyone can list
+			return true;
+		case 'view bookings':
+			// Only valid users can view bookings
+			if($user && ($user->status == 'active')) {
+				return true;
+			}
+	}
+	
+	return false;
 }
 
 function field_menu()
@@ -27,56 +77,56 @@ function field_menu()
 	menu_add_child('_root','field','Fields');
 	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
 
-	
-	if($session->is_admin()) {
+	if( $session->has_permission('field','create') ) {
 		menu_add_child('field','field/create','create field', array('weight' => 5, 'link' => 'field/create') );
 	}
 }
 
 /**
  * Add view/edit/delete links to the menu for the given field
- * TODO: fix ugly evil things like FieldEdit so that this can be called to add
- * site being edited to the menu.
  */
-function field_add_to_menu( &$field, $parent = 'field' ) 
+function field_add_to_menu( &$field ) 
 {
 	global $session;
 	
-	menu_add_child($parent, $field->fullname, $field->fullname, array('weight' => -10, 'link' => "field/view/$field->fid"));
-	menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
-
+	menu_add_child('field', $field->fullname, $field->fullname, array('weight' => -10, 'link' => "field/view/$field->fid"));
 	
-	if($session->is_admin()) {
+	if($session->has_permission('field','view bookings', $field->fid) ) {
+		menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
+	}
+	
+	if($session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
+	} 
+	
+	if($session->has_permission('gameslot','create', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
 	}
 }	
 
 class FieldCreate extends FieldEdit
 {
-	function initialize ()
+	var $field;
+	
+	function has_permission()
 	{
-		$this->title = "Create Field";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		return $session->has_permission('field','create');
 	}
 	
 	function process ()
 	{
 		$edit = $_POST['edit'];
+		$this->title = "Create Field";
 
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm($edit);
 				break;
 			case 'perform':
-				$field = new Field;
-				$this->perform($field, $edit);
-				local_redirect(url("field/view/$field->fid"));
+				$this->field = new Field;
+				$this->perform($this->field, $edit);
+				local_redirect(url("field/view/" . $this->field->fid));
 				break;
 			default:
 				$edit = array();
@@ -89,41 +139,36 @@ class FieldCreate extends FieldEdit
 
 class FieldEdit extends Handler
 {
-	function initialize ()
+	var $field;
+	
+	function has_permission()
 	{
-		$this->title = "Edit Field";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		return true;
+		global $session;
+		if (!$this->field) {
+			error_exit("That field does not exist");
+		}
+		return $session->has_permission('field','edit', $this->field->fid);
 	}
 	
 	function process ()
 	{
-		$id = arg(2);
+		$this->title = "Edit Field";
 		$edit = $_POST['edit'];
-		$field = field_load( array('fid' => $id) );
-		if (!$field) {
-			$this->error_exit("That field does not exist");
-		}
 
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm($edit);
 				break;
 			case 'perform':
-				$this->perform($field, $edit);
-				local_redirect(url("field/view/$id"));
+				$this->perform($this->field, $edit);
+				local_redirect(url("field/view/". $this->field->fid));
 				break;
 			default:
-				$edit = object2array($field);
+				$edit = object2array($this->field);
 				$rc = $this->generateForm( $edit );
 		}
 
-		field_add_to_menu($field);
-		$this->setLocation(array($edit['name']  => "field/view/$id", $this->title => 0));
+		$this->setLocation(array($edit['name']  => "field/view/".$this->field->fid, $this->title => 0));
 		return $rc;
 	}
 	
@@ -178,7 +223,7 @@ class FieldEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$output = form_hidden("edit[step]", "perform");
@@ -216,7 +261,7 @@ class FieldEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		
@@ -241,7 +286,7 @@ class FieldEdit extends Handler
 
 
 		if( !$field->save() ) {
-			$this->error_exit("Internal error: couldn't save changes");
+			error_exit("Internal error: couldn't save changes");
 		}
 
 		return true;
@@ -307,30 +352,16 @@ class FieldEdit extends Handler
 
 class FieldList extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->_permissions = array(
-			"field_admin"    => false,
-		);
-		
-		$this->_required_perms = array(
-			'admin_sufficient',
-			'volunteer_sufficient',
-			'allow'		/* Allow everyone */
-		);
-		$this->setLocation(array('List Fields' => 'field/list'));
-		return true;
-	}
-	
-	function set_permission_flags($type)
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		} 
+		global $session;
+		return $session->has_permission('field','list');
 	}
 
 	function process ()
 	{
+	
+		$this->setLocation(array('List Fields' => 'field/list'));
 
 		ob_start();
 		$retval = @readfile("data/field_caution.html");
@@ -364,74 +395,59 @@ class FieldList extends Handler
 
 class FieldView extends Handler
 {
-	function initialize ()
+	var $field;
+	
+	function has_permission()
 	{
-		$this->title= "View Field";
-		$this->_required_perms = array(
-			'admin_sufficient',
-			'allow',
-		);
-		$this->_permissions = array(
-			'field_edit'		=> false,
-			'field_create'		=> false,
-		);
-		return true;
+		global $session;
+		if (!$this->field) {
+			error_exit("That field does not exist");
+		}
+		return $session->has_permission('field','view', $this->field->fid);
 	}
 	
-	function set_permission_flags($type) 
-	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
-		}
-	}
-
 	function process ()
 	{
 		global $session;
-		$id = arg(2);
+		$this->title= "View Field";
 
-		$field = field_load( array('fid' => $id) );
-		if(!$field) {
-			$this->error_exit("That field does not exist");
-		}
-	
 		$rows = array();
-		$rows[] = array("Field Name:", $field->name);
-		$rows[] = array("Field Code:", $field->code);
-		$rows[] = array("Number:", $field->num);
-		$rows[] = array("Field Region:", $field->region);
+		$rows[] = array("Field Name:", $this->field->name);
+		$rows[] = array("Field Code:", $this->field->code);
+		$rows[] = array("Number:", $this->field->num);
+		$rows[] = array("Field Region:", $this->field->region);
 
-		$ward = ward_load( array('ward_id' => $field->ward_id) );
+		$ward = ward_load( array('ward_id' => $this->field->ward_id) );
 		
 		$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/$field->ward_id"));
 		$rows[] = array("Location Map:", 
-			$field->location_url ? l("Click for map in new window", $field->location_url, array('target' => '_new'))
+			$field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Layout Map:", 
-			$field->layout_url ? l("Click for map in new window", $field->layout_url, array('target' => '_new'))
+			$field->layout_url ? l("Click for map in new window", $this->field->layout_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Field Permit:", 
-			$field->permit_url ? l("Click for permit in new window", $field->permit_url, array('target' => '_new'))
+			$field->permit_url ? l("Click for permit in new window", $this->field->permit_url, array('target' => '_new'))
 				: "N/A");
-		$rows[] = array("Directions:", $field->site_directions);
-		if( $session->is_valid() ) {
-			$rows[] = array("Special Instructions:", $field->site_instructions);
+		$rows[] = array("Directions:", $this->field->site_directions);
+		if( $session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
+			$rows[] = array("Special Instructions:", $this->field->site_instructions);
 		} else {
 			$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
 		}
 		
-		/* TODO: list other fields at this site */
-		if( $field->parent_fid ) {
-			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $field->parent_fid, $field->parent_fid);
+		// list other fields at this site
+		if( $this->field->parent_fid ) {
+			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $this->field->parent_fid, $this->field->parent_fid);
 		} else {
-			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $field->fid, $field->fid);
+			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $this->field->fid, $this->field->fid);
 		}
 
 		$fieldRows = array();
 		$header = array("Fields","&nbsp;");
 		while( $related = db_fetch_object( $result ) ) {
 			$fieldRows[] = array(
-				"$field->code $related->num",
+				$this->field->code . " $related->num",
 				l("view field", "field/view/$related->fid", array('title' => "View field details"))
 			);
 		}
@@ -439,11 +455,10 @@ class FieldView extends Handler
 		$rows[] = array("Fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
 		
 		$this->setLocation(array(
-			$field->fullname => "field/view/$field->fid",
+			$this->field->fullname => "field/view/" .$this->field->fid,
 			$this->title => 0
 		));
 	
-		field_add_to_menu($field);
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
@@ -453,77 +468,54 @@ class FieldView extends Handler
  */
 class FieldBooking extends Handler
 {
-	function initialize ()
-	{
-		$this->title = 'View Field Booking';
-		$this->_required_perms = array(
-			'require_valid_session',
-			'require_player',
-			'admin_sufficient',
-			'allow',
-		);
-		$this->_permissions = array(
-			'field_admin'		=> false,
-		);
+	var $field;
 
-		return true;
-	}
-
-	function set_permission_flags($type) 
+	function has_permission()
 	{
-		if($type == 'administrator') {
-			$this->enable_all_perms();
+		global $session;
+		if (!$this->field) {
+			error_exit("That field does not exist");
 		}
+		return $session->has_permission('field','view', $this->field->fid);
 	}
 
 	function process ()
 	{
-
 		global $session;
 
-		$fid = arg(2);
-
-		$field = field_load( array('fid' => $fid) );
-		if(!$field) {
-			$this->error_exit("That field does not exist");
-		}
-		
 		$this->setLocation(array(
-			$field->fullname => "field/view/$fid",
-			$this->title => 0
+			'Availability and Bookings' => "field/view/" . $this->field->fid,
+			$this->field->fullname => 0
 		));
 
+		// TODO: make the stuff below a get_gameslots() function in field.inc
 		$result = db_query("SELECT 
 			g.*
 			FROM gameslot g
-			WHERE fid = %d ORDER BY g.game_date, g.game_start", $field->fid);
+			WHERE fid = %d ORDER BY g.game_date, g.game_start", $this->field->fid);
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
 		while($slot = db_fetch_object($result)) {
 			$booking = '';
-			if( $this->_permissions['field_admin'] ) {
-				$actions = array(
-					l('change avail', "slot/availability/$slot->slot_id"),
-					l('delete', "slot/delete/$slot->slot_id")
-				);
-			} else {
-				$actions = array();
+			$actions = array();
+			if( $session->has_permission('gameslot','edit', $slot->slot_id)) {
+				$actions[] = l('change avail', "slot/availability/$slot->slot_id");
+			}
+			if( $session->has_permission('gameslot','delete', $slot->slot_id)) {
+				$actions[] = l('delete', "slot/delete/$slot->slot_id");
 			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
 				$booking = l($game->league_name,"game/view/$game->game_id");
-				if( $session->is_coordinator_of($game->league_id) ) {
+				if( $session->has_permission('game','reschedule', $game->game_id)) {
 					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
 				}
 			}
 			$rows[] = array($slot->game_date, $slot->game_start, $slot->game_end, $booking, theme_links($actions));
 		}
 
-		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
-
-		field_add_to_menu($field);
-		return $output;
+		return "<div class='listtable'>" . table($header, $rows) . "</div>";
 	}
 }
 ?>
