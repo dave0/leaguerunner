@@ -1,0 +1,190 @@
+{include file="common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+<blockquote>
+<p>
+  To help with OCUA's efforts to better serve the players of the league, please
+  answer the following questions.  The statistics compiled from these answers
+  will be used to shape future policy, help guide field search efforts, and to
+  provide some demographic information about OCUA's membership for use when
+  lobbying various levels of government, and courting sponsors to support
+  Ultimate.
+</p>
+<p>
+  You will only be asked for this information once a year, when you reactivate
+  your account.  None of this information will be associated with your OCUA
+  user account or traceable to your identity in any way, nor will the raw data
+  be distributed to anyone.
+</p>
+<p>
+  Note that all questions are voluntary and you may choose not to answer some
+  or all of them, however in the interest of helping to grow Ottawa ultimate,
+  we hope that you do.
+</p>
+</blockquote>
+<form action='{$app_cgi_location}' method='POST'>
+	<input type='hidden' name='op' value='{$page_op}'>
+	<input type='hidden' name='step' value='{$page_step}'>
+  <table border='0'>
+  
+    <tr>
+      <td>Your approximate annual household income:</td>
+      <td><select name='demographics[income]'>
+        <option value='---'>Not Specified
+        <option value='000to020K'>Less than $20,000
+        <option value='020to040K'>$20,000 to $39,999
+        <option value='040to060K'>$40,000 to $59,999
+        <option value='060to080K'>$60,000 to $79,999
+        <option value='080to100K'>$80,000 to $99,999
+        <option value='100to150K'>$100,000 to $149,999
+        <option value='150to200K'>$150,000 to $199,999
+        <option value='200Kplus'>Over $200,000
+      </select></td>
+    </tr>
+      
+    <tr>
+      <td>Children:</td>
+      <td><select name='demographics[children]'>
+        <option value='---'>Not Specified
+        <option value='0'>zero
+        <option value='1'>1
+        <option value='2'>2
+        <option value='3'>3
+        <option value='4'>4
+        <option value='4ormore'>more than 4
+      </select</td>
+    </tr>
+
+    <tr>
+      <td>Marital Status:</td>
+      <td><select name='demographics[maritalstatus]'>
+        <option value='---'>Not Specified
+        <option value='single'>Single
+        <option value='married'>Married
+      </select></td>
+    </tr>
+    
+    <tr>
+      <td>Highest level of education completed:</td>
+      <td><select name='demographics[education]'>
+        <option value='---'>Not Specified
+        <option value='none'>None completed
+        <option value='highschool'>High school
+        <option value='trade'>Trade / Technical school
+        <option value='college'>College diploma
+        <option value='undergrad'>University undergraduate degree
+        <option value='masters'>Masters degree
+        <option value='doctorate'>Doctoral degree
+      </td></select>
+    </tr>
+
+    <tr>
+      <td>Field of expertise or employment:</td>
+      <td><select name='demographics[expertise]'>
+        <option value='---'>Not Specified
+        <option>Administration
+        <option>Advertising / Marketing / Public Relations
+        <option>Agriculture / Forestry
+        <option>Arts / Media
+        <option>Biotechnology
+        <option>Construction
+        <option>Customer Service
+        <option>Education
+        <option>Engineering
+        <option>Finance / Accounting
+        <option>Hardware Development
+        <option>Healthcare
+        <option>Human Resources
+        <option>Information Technology
+        <option>Law Enforcement / Security
+        <option>Legal
+        <option>Politics
+        <option>Restaurant / Food Service
+        <option>Sales
+        <option>Software Development
+        <option>Tourism / Hospitality
+        <option>Other (Government)
+        <option>Other (Not Listed)
+      </select></td>
+    </tr>
+    
+    <tr>
+      <td>I live in the area of:</td>
+      <td><select name='demographics[area_live]'>
+        <option value='---'>Not Specified
+        <option value='centralottawa'>Central Ottawa (inside the Ottawa River / Rideau River / Island Park Drive area)
+        <option value='gatineauhull'>Gatineau / Hull / Aylmer
+        <option value='innereast'>Inside Greenbelt - East (From Rideau River east to Greenbelt)
+        <option value='innerwest'>Inside Greenbelt - West (From Rideau River / Island Park west to Greenbelt)
+        <option value='west'>West (Kanata, Stittsville)
+        <option value='east'>East (Orleans)
+        <option value='southwest'>Southwest (Barrhaven, Manotick)
+        <option value='ruralwest'>Rural West (South of Barrhaven, west of Rideau River)
+        <option value='ruraleast'>Rural East (South of Greenbelt, east of Rideau River)
+      </select></td>
+    </tr>
+		
+    <tr>
+      <td>I work in the area of:</td>
+      <td><select name='demographics[area_work]'>
+        <option value='---'>Not Specified
+        <option value='centralottawa'>Central Ottawa (inside the Ottawa River / Rideau River / Island Park Drive area)
+        <option value='gatineauhull'>Gatineau / Hull / Aylmer
+        <option value='innereast'>Inside Greenbelt - East (From Rideau River east to Greenbelt)
+        <option value='innerwest'>Inside Greenbelt - West (From Rideau River / Island Park west to Greenbelt)
+        <option value='west'>West (Kanata, Stittsville)
+        <option value='east'>East (Orleans)
+        <option value='southwest'>Southwest (Barrhaven, Manotick)
+        <option value='ruralwest'>Rural West (South of Barrhaven, west of Rideau River)
+        <option value='ruraleast'>Rural East (South of Greenbelt, east of Rideau River)
+      </select></td>
+    </tr>
+
+    <tr>
+      <td>I spend the following amount on sports activities:</td>
+      <td><select name='demographics[sports_spending]'>
+        <option value='---'>Not Specified
+        <option value='0to100'>Less than $100
+        <option value='100to500'>$100 to $499
+        <option value='500to1000'>$500 to $999
+        <option value='1000plus'>$1000 and over
+      </select></td>
+    </tr>
+    
+    <tr>
+      <td>I prefer to communicate in:</td>
+      <td><select name='demographics[language]'>
+        <option value='---'>Not Specified
+        <option value='en'>English
+        <option value='fr'>French
+        <option value='other'>Other
+      </select></td>
+    </tr>
+        
+    <tr>
+      <td>I play league ultimate:</td>
+      <td><select name='demographics[ultydays]'>
+        <option value='---'>Not Specified
+        <option value='1'>Once a week
+        <option value='2'>2 times a week
+        <option value='3'>3 times a week
+        <option value='4'>4 times a week
+        <option value='5'>5 times a week
+        <option value='6'>6 times a week (liar!)
+      </select></td>
+    </tr>
+
+    <tr>
+      <td valign='top'>I think OCUA's top priority for the next two years should be:</td>
+      <td valign='top'>
+        <label><input type='radio' name='demographics[priority]' value='---'>No answer</label><br />
+        <label><input type='radio' name='demographics[priority]' value='fieldquality'>More good quality fields, even if they're outside the greenbelt</label><br />
+		    <label><input type='radio' name='demographics[priority]' value='fieldlocation'>More fields in-city, even if they're lower quality</label><br />
+		    <label><input type='radio' name='demographics[priority]' value='regionalleague'>Splitting the league along regional lines so I can play closer to home/work</label><br />
+      </select></td>
+    </tr>
+  </table>
+  <input type='submit' name='submit' value='Submit'>
+  <input type='reset' name='reset' value='Reset'>
+</form>
+{include file="common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
