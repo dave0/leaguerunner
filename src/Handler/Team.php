@@ -880,7 +880,7 @@ class TeamView extends Handler
 					league l, leagueteams t, teamroster r
 				WHERE
 					l.season = '%s' AND l.day = '%s' 
-					AND l.allow_schedule = 'Y'
+					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
 					AND r.player_id = %d",$team->league_season,$team->league_day,$player->id));
@@ -1137,7 +1137,7 @@ function team_statistics ( )
         WHERE 
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id 
-                AND l.allow_schedule = 'Y' 
+                AND l.schedule_type != 'none' 
 				AND l.season = '%s'
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id 
@@ -1154,14 +1154,14 @@ function team_statistics ( )
 	}
 	$rows[] = array("$current_season teams with too few players:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.allow_schedule = 'Y' AND l.season = '%s' ORDER BY t.rating DESC LIMIT 10", $current_season);
+	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.schedule_type != 'none' AND l.season = '%s' ORDER BY t.rating DESC LIMIT 10", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Top-rated $current_season teams:", table(null, $sub_table));
 	
-	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.allow_schedule = 'Y' AND l.season = '%s' ORDER BY t.rating ASC LIMIT 10", $current_season);
+	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.schedule_type != 'none' AND l.season = '%s' ORDER BY t.rating ASC LIMIT 10", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);

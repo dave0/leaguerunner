@@ -103,7 +103,13 @@ CREATE TABLE league (
 	current_round int DEFAULT 1,
 	stats_display ENUM('all','currentround') DEFAULT 'all',
 	year        integer,
-	allow_schedule	ENUM("Y","N") DEFAULT 'Y',  -- Should this league have scheduling info?
+
+	-- What type of scheduling should this league have?  
+	-- roundrobin is standard
+	-- biweekly is the 'new' laddering system
+	-- none replaces 'allow_schedule == N'
+	schedule_type	ENUM('none','roundrobin','biweekly') default 'roundrobin',
+
 	PRIMARY KEY (league_id)
 );
 

@@ -61,7 +61,7 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
-	if($league->allow_schedule == 'Y') {
+	if($league->schedule_type != 'none') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($this->_permissions['administer_league']) {
@@ -102,7 +102,7 @@ function league_splash ()
 			l("view", "league/view/$league->league_id"),
 			l("edit", "league/edit/$league->league_id")
 		);
-		if($league->allow_schedule == 'Y') {
+		if($league->schedule_type != 'none') {
 			$links[] = l("schedule", "schedule/view/$league->league_id");
 			$links[] = l("standings", "league/standings/$league->league_id");
 			$links[] = l("approve scores", "league/verifyscores/$league->league_id");
@@ -275,8 +275,8 @@ class LeagueEdit extends Handler
 		$rows[] = array("Current Round:", 
 			form_select("", "edit[current_round]", $formData['current_round'], getOptionsFromRange(1, 5), "New games will be scheduled in this round by default."));
 
-		$rows[] = array("Allow Scheduling:",
-			form_select("", "edit[allow_schedule]", $formData['allow_schedule'], getOptionsFromEnum('league','allow_schedule'), "Whether or not this league can have games scheduled and standings displayed."));
+		$rows[] = array(" Scheduling Type:",
+			form_select("", "edit[schedule_type]", $formData['schedule_type'], getOptionsFromEnum('league','schedule_type'), "What type of scheduling to use.  This affects how games are scheduled and standings displayed."));
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
@@ -317,7 +317,7 @@ class LeagueEdit extends Handler
 			form_hidden('edit[current_round]', $edit['current_round']) . $edit['current_round']);
 
 		$rows[] = array("Allow Scheduling:",
-			form_hidden('edit[allow_schedule]', $edit['allow_schedule']) . $edit['allow_schedule']);
+			form_hidden('edit[schedule_type]', $edit['schedule_type']) . $edit['schedule_type']);
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
@@ -339,7 +339,7 @@ class LeagueEdit extends Handler
 			$league->set('tier', $edit['tier']);
 			$league->set('ratio', $edit['ratio']);
 			$league->set('current_round', $edit['current_round']);
-			$league->set('allow_schedule', $edit['allow_schedule']);
+			$league->set('schedule_type', $edit['schedule_type']);
 		}
 
 		if( !$league->save() ) {
@@ -357,12 +357,17 @@ class LeagueEdit extends Handler
 		if ( ! validate_nonhtml($edit['name'])) {
 			$errors .= "<li>A valid league name must be entered";
 		}
-		
-		if( $edit['allow_schedule'] != 'Y' && $edit['allow_schedule'] != 'N' ) {
-			$errors .= "<li>Values for allow schedule are Y and N";
+	
+		switch($edit['schedule_type']) {
+			case 'none':
+			case 'roundrobin':
+			case 'biweekly':
+				break;
+			default:
+				$errors .= "<li>Values for allow schedule are none, roundrobin, and biweekly";
 		}
 
-		if($edit['allow_schedule'] == 'Y') {
+		if($edit['schedule_type'] != 'none') {
 			if( !$edit['day'] ) {
 				$errors .= "<li>One or more days of play must be selected";
 			}
@@ -456,7 +461,7 @@ class LeagueList extends Handler
 			$links = array(
 				l('view',"league/view/$league->league_id")
 			);
-			if($league->allow_schedule == 'Y') {
+			if($league->schedule_type != 'none') {
 				$links[] = l('schedule',"schedule/view/$league->league_id");
 				$links[] = l('standings',"league/standings/$league->league_id");
 			}
@@ -507,7 +512,7 @@ class LeagueStandings extends Handler
 			$this->error_exit("That league does not exist.");
 		}
 		
-		if($league->allow_schedule == 'N') {
+		if($league->schedule_type == 'none') {
 			$this->error_exit("This league does not have a schedule or standings.");
 		}
 
@@ -878,7 +883,7 @@ class LeagueView extends Handler
 		}
 
 		# Now, if this league should contain schedule info, grab it
-		if($league->allow_schedule == 'Y') {
+		if($league->schedule_type != 'none') {
 			$rows[] = array("Current Round:", $league->current_round);
 			$rows[] = array("League SBF:", $league->calculate_sbf());
 		}

@@ -158,7 +158,7 @@ class GameSlotCreate extends Handler
 			l.name,
 			l.tier
 			FROM league l
-			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0) ORDER BY l.day,l.name,l.tier", $weekday);
+			WHERE l.schedule_type != 'none' AND (FIND_IN_SET('%s', l.day) > 0) ORDER BY l.day,l.name,l.tier", $weekday);
 			
 		while($league = db_fetch_object($result)) {
 			if( $league->tier ) {
@@ -349,7 +349,7 @@ class GameSlotAvailability extends Handler
 			l.name,
 			l.tier
 			FROM league l
-			WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0)", $weekday);
+			WHERE l.schedule_type != 'none' AND (FIND_IN_SET('%s', l.day) > 0)", $weekday);
 			
 		while($league = db_fetch_object($result)) {
 			if( $league->tier ) {
