@@ -33,14 +33,16 @@ function team_menu()
 	menu_add_child('team','team/list','list teams', array('link' => 'team/list') );
 	menu_add_child('team','team/create','create team', array('link' => 'team/create', 'weight' => 1) );
 
-	while(list(,$team) = each($session->user->teams) ) {
-		## TODO: permissions hack must die!
-		if( $session->is_captain_of($team->team_id) ) {
-			$this->_permissions['edit_team'] = true;
+	if( $session->is_valid() ) {
+		while(list(,$team) = each($session->user->teams) ) {
+			## TODO: permissions hack must die!
+			if( $session->is_captain_of($team->team_id) ) {
+				$this->_permissions['edit_team'] = true;
+			}
+			team_add_to_menu($this, $team);
 		}
-		team_add_to_menu($this, $team);
+		reset($session->user->teams);
 	}
-	reset($session->user->teams);
 }
 
 /**
