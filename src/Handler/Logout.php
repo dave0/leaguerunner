@@ -67,8 +67,8 @@ class Logout extends Handler
 	 */
 	function display ()
 	{	
-		/* TODO: Should we ever display an error page? */
-		Header("Location: " . $GLOBALS['APP_CGI_LOCATION'] . "?op=login");
+		global $APP_CGI_LOCATION;
+		Header("Location: $APP_CGI_LOCATION?op=login");
 	}
 }
 
