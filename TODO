@@ -1,8 +1,5 @@
 The Main TODO List
 
-Basic Install Needs:
-	- need install instructions
-
 Docs:	
 	- need better user docs
 	- developer docs
@@ -10,131 +7,111 @@ Docs:
 
 Code Cleanups and Refactoring:
 	- Clean up database schema
-	- (DONE) rewrite of permissions code so that it isn't so crusty.
-	- (DONE) remove the 'alias' section, as it's been decided that OCUA doesn't
-	  want it and I didn't want to write it in the first place anyway. 
+
+Known Bugs:
+	- fix the rankings so that three-way ties are dealt with properly.
+	  Possibly use the elo rating system as a tiebreaker instead?
+	- ensure that all email sent is rfc-compliant and not missing any
+	  headers
+	- login page should have focus on username field
+	- login page tab order should move from username -> password
+	
 
 New Features:
-	- (DONE) add "Leagues Coordinated" to person view page.
-	
-	- (DONE) set full name to be unchangeable by the user after account approval,
-	  but allow admins to access it
-	- start using the 'year' column for leagues, to allow multiple leagues
-	  to co-exist for sequential seasons.
-	- add test for adding teams to multiple leagues.  Basically, as long as
-	  (year, season) for all leagues are different, it's OK.
-	- volunteer info
-	- write score-reminder code for notifying captains of missing scores.
-	- better score approval for coordinators, esp. handling of defaults
-	- carpool arrangements
-	- players looking for teams / teams looking for players
+
+ 1) Playoff Support
 	- handle playoffs.  For now, just allow scheduling of rounds based on Q
 	  (quarters), S (semis), F (finals).  Eventually want to be able to
 	  schedule a ladder that's automatically filled in as results are
 	  provided.
-	- fix the rankings so that three-way ties are dealt with properly.
-	  Possibly use the elo rating system as a tiebreaker instead?
-	- (DONE) rather than selecting a field and a start time, coordinators should
-	  be able to select a "game slot" (for lack of a better term) that
-	  knows start/end times and field location.  For example, a league
-	  might have assigned to it:
-	  	"Sod 12, Summer, Monday, 6:45pm - dark"
-		"Sod 12, Summer, Monday, 6:30pm - 7:40pm"
-		"Sod 12, Summer, Monday, 7:45pm - dark"
-	  or
-	  	"Carleton Fieldhouse 1, Winter, Thursday, 8:45pm - 10:10pm"
-		"Carleton Fieldhouse 1, Winter, Thursday, 10:15pm - 11:40pm"
-	  or whatever.  Then there's no chance of selecting the wrong time,
-	  timecaps are readily visible on the schedule, and overlaps and
-	  double-booking can easily be seen.
 
-	- automatic generation of round-robin schedule (3 game split tier, or
-	  7-game full tier).  This depends on the abovementioned "game slot"
-	  support to allow automatic selection of fields.
+ 2) League History
+	- start using the 'year' column for leagues, to allow multiple leagues
+	  to co-exist for sequential seasons.
+	- also requires multiple team rosters (see below)
+	- add start/end dates 
 	
-	- (DONE) use Mike Reade's spirit system
+ 3) Multi-roster support
+ 	- allow teams to create multiple rosters if they so desire
+	- to do this, extend the teamroster table to have a roster ID, and add
+	  a roster table with (team,rostername)
+	- team also gets an extra field, current_roster, which points to the
+	  roster ID of the current roster.
+	- leagueteams table also gets a 'roster' field, so (team, roster)
+	  defines the players in that league
+	- may want to lock old rosters at the end of the season and auto-create
+	  new ones
 	
+ 4) Automatic email
+	- score-reminder code for notifying captains of missing scores.
 	- send email:
 		+ when account is created
 		+ to captain when player requests to join
 		+ to player, when captain requests them
+	- Better handling of automatic mailing-list generation (for Mailman)
+	  from Leaguerunner.
+
+ 5) Carpool code
+	- carpool arrangements
+	- should allow cross-team carpooling
+
+ 6) Player-team matchups
+	- players looking for teams / teams looking for players
+
+ 7) Scheduling changes 
+ 	- implement pyramid ladder (see other doc)
+	- automatic generation of round-robin schedule (3 game split tier, or
+	  7-game full tier).  This depends on the abovementioned "game slot"
+	  support to allow automatic selection of fields.
+	
+ 8) Field Management
+ 	- extra per-field attributes: for player view
+        	- GPS coordinates and/or mapquest search criteria
+		- public transit info
+		    - specific routes
+		    - OCT stop IDs (can use it to link directly to schedule info)
+		- parking
+		    - parking availability:
+			+ very limited, carpool required
+			+ limited, carpool recommended
+			+ average
+			+ ample
+		    - parking instructions
+			- text field explaining where to park (also, indicate on map if
+			  possible)
+			- list alternate parking locations and/or special restrictions
+			  (ie: illegal parking frequently ticketed, no parking on
+			  game-day for the Renegades, etc)
+		- field permits
+		    - URL of scanned field permit
+		- special instructions
+		    - field setup notes, notification of hazards
+		    
+	- extra data for administrators:
+		- field status
+		    - open, closed, newly located, 
+		- Condition log
+		    - reported conditions based on game result submissions.
+		      This may be something we want to make public, so players know
+		      what to expect:
+			- date of observation
+			- firmness (very soft, soft, average, hard, like cement)
+			- grass cover (barren, poor, average, good, excellent)
+			- overall quality (poor, average, good, excellent)
+			- notes on new potholes, hazards, changes, etc.
+		- Area designation
+		    - ultimate field, soccer field, football field, baseball outfield,
+		      multiuse field, cricket pitch, open greenspace
+		- size (length and width)
+		- lighting availability
+		- ownership
+		    - city of ottawa, city of gatineau, NCC, private, OCUA
+		- contact info for owner/managert
+		    - name, address, phone, email, URL
+		- URL of scanned contract
+		- Year acquired or use started
+		- administrative notes
 		
-	- set up data serialization for user edit, so that all changes can be
-	  logged in a data field for approval/rejection by an admin.  This is
-	  wanted to prevent people from changing their account info to
-	  something bogus.
-
-	- (DONE) automatic mailing-list generation (for Mailman) from Leaguerunner.
-	  We would like to have:
-	     ${season}-captains@lists.ocua.ca
-	     	- goes to all captains and assistants of teams in that season
-	     ${night}-${season}-captains@lists.ocua.ca
-	        - to all captains/ass of teams on that night and season
-	     tier-${tier}-${night}-${season}-captains@lists.ocua.ca
-	        - cap/ass for a tier
-	     ${season}-coordinators@lists.ocua.ca
-	     	- all coordinators for a season
-	  All lists are to be archived and moderated.
-
-Field Management:
-    Add more attributes to fields, auto-generate field websites from DB on
-    periodic basis.
-    
-    Field sites should have the following attributes viewable by all:
-        - GPS coordinates and/or mapquest search criteria
-        - public transit info
-            - specific routes
-            - OCT stop IDs (can use it to link directly to schedule info)
-        - parking
-            - parking availability:
-                + very limited, carpool required
-                + limited, carpool recommended
-                + average
-                + ample
-            - parking instructions
-                - text field explaining where to park (also, indicate on map if
-                  possible)
-                - list alternate parking locations and/or special restrictions
-                  (ie: illegal parking frequently ticketed, no parking on
-                  game-day for the Renegades, etc)
-                - 
-        - field permits
-            - URL of scanned field permit
-        - special instructions
-            - field setup notes, notification of hazards
-
-    And private data for administrators & volunteers:
-        - field status
-            - open, closed, newly located, 
-        - Condition log
-            - reported conditions based on game result submissions.
-              This may be something we want to make public, so players know
-              what to expect:
-                - date of observation
-                - firmness (very soft, soft, average, hard, like cement)
-                - grass cover (barren, poor, average, good, excellent)
-                - overall quality (poor, average, good, excellent)
-                - notes on new potholes, hazards, changes, etc.
-        - Area designation
-            - ultimate field, soccer field, football field, baseball outfield,
-              multiuse field, cricket pitch, open greenspace
-        - size (length and width)
-        - lighting availability
-        - ownership
-            - city of ottawa, city of gatineau, NCC, private, OCUA
-        - contact info for owner/managert
-            - name, address, phone, email, URL
-        - URL of scanned contract
-        - Year acquired or use started
-        - availability.  For each day of week:
-            - start and end time ranges
-                (i)Morning
-                (ii)Afternoon
-                (iii)Evening
-                (i)Before 6:30pm
-                (ii)6:30-8:30pm
-                (iii)After 8:30pm
-        - administrative notes
-
-Known Bugs:
-	None currently known but unfixed.
+ 9) Implement RRI
+ 	- see http://www.upa.org/scores/RRI.html
+	
