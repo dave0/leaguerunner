@@ -67,7 +67,7 @@
     <td class='teamlist_item'>
     [ <a href="{$app_cgi_location}?op=team_view&id={$team.id}">view</a>
     {if $team.team_status == 'open'}
-    | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player_id}&status=player_request&step=confirm">join team</a>
+    | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team.id}&player_id={$player_id}&status=player_request&step=confirm">join team</a>
     {/if}
     {if $perm_administer_league}
       | <a href="{$app_cgi_location}?op=league_moveteam&id={$league_id}&team_id={$team.id}">move team</a>

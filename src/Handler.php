@@ -137,14 +137,14 @@ class Handler
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
-			} else if($perm_type == 'coordinate_league_containing:') {
+			} else if(strncmp($perm_type,'coordinate_league_containing:',28) == 0) {
 				$id_field = substr($perm_type, 29);
 				$id_data = var_from_getorpost($id_field);
 				if($session->coordinates_league_containing($id_data)) {
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
-			} else if($perm_type == 'coordinate_game:id') {
+			} else if(strncmp($perm_type,'coordinate_game:',15) == 0) {
 				$id_field = substr($perm_type, 16);
 				$id_data = var_from_getorpost($id_field);
 				$league_id = $DB->getOne("SELECT league_id FROM schedule WHERE game_id = ?", array($id_data));
