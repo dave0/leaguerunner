@@ -53,13 +53,19 @@ function person_menu()
 	}
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
-	menu_add_child('person','person/list',"list players", array('link' => "person/list"));
+	// TODO: same perms as admin_sufficient and volunteer_sufficient... these
+	// checks need to be consolidated when perms are overhauled
+	if($session->is_admin() || $session->attr_get('class') == 'volunteer') {
+		menu_add_child('person','person/list',"list players", array('link' => "person/list"));
+	}
 	
 	if($session->is_admin()) {
 		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
 		if($newUsers) {
 			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
 		}
+
+		menu_add_child('person', 'person/listnew', "create account", array('link' => "person/list", 'weight' => 1));
 	}
 }
 
@@ -1460,16 +1466,11 @@ class PersonList extends Handler
 				'target' => 'person/delete/'
 			);
 		}
-		$output = "";
-		if($this->_permissions['create']) {
-			$output .= l("Create New User", "person/create");
-		}
-
-
+		
 		$query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE '%s%%' ORDER BY lastname,firstname";
-		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $letter);
+		$output = $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $letter);
 		
 		$this->setLocation(array("List Users" => 'person/list'));
 
