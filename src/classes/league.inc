@@ -168,7 +168,8 @@ class League
 			$fields_data[] = $this->league_id;
 
 			db_query( $sql, $fields_data);
-			if(1 != db_affected_rows()) {
+			# Affecting zero rows is possible
+			if(1 < db_affected_rows()) {
 				error_exit("Internal error: Strange number of rows affected");
 			}
 		}

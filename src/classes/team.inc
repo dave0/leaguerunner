@@ -127,8 +127,9 @@ class Team
 
 		$fields_data[] = $this->team_id;
 
-		db_queryd( $sql, $fields_data);
-		if(1 != db_affected_rows()) {
+		db_query( $sql, $fields_data);
+		if(1 < db_affected_rows()) {
+			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
 		

@@ -93,7 +93,7 @@ class Person
 			 FROM 
 			 	leaguemembers m 
 				INNER JOIN league l ON (m.league_id = l.league_id)
-			 WHERE m.player_id = %d", $this->user_id);
+			 WHERE m.status = 'coordinator' AND m.player_id = %d", $this->user_id);
 		$this->leagues = array();
 		while($league = db_fetch_object($result)) {
 			# TODO: evil hack.
@@ -161,8 +161,9 @@ class Person
 
 		$fields_data[] = $this->user_id;
 
-		db_queryd( $sql, $fields_data);
-		if(1 != db_affected_rows()) {
+		db_query( $sql, $fields_data);
+		if(1 < db_affected_rows()) {
+			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
 		
