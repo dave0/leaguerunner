@@ -171,9 +171,14 @@ function form_hidden($name, $value)
 	return "<input type=\"hidden\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
-function form_submit($value, $name = "op") 
+function form_submit($value, $name = "submit") 
 {
 	return "<input type=\"submit\" class=\"form-submit\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
+}
+
+function form_reset($value, $name = "reset") 
+{
+	return "<input type=\"reset\" class=\"form-reset\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
 /*
@@ -298,6 +303,9 @@ function generate_password()
 	return $pass;
 }
 
+/*
+ * TODO: This should go away once Smarty stuff is removed
+ */
 function map_callback($item)
 {
 	return array("output" => $item, "value" => $item);
@@ -320,7 +328,7 @@ function get_numeric_options ( $start, $finish )
  * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
  * database.
  */
-function get_enum_options ( $table, $col_name) 
+function getEnumOptions( $table, $col_name )
 {
 	global $DB;
 	
@@ -332,8 +340,23 @@ function get_enum_options ( $table, $col_name)
 	$str = str_replace(")","",$str);
 	$str = str_replace("'","",$str);
 	$ary = preg_split("/,/",$str);
+
+	$result = array();
+	foreach($ary as $val) {
+		$result[$val] = $val;
+	}
 	
-	return array_map("map_callback", $ary);
+	return $result;
+}
+
+/**
+ * Deprecated version of get_enum_options. 
+ * TODO Remove when Smarty is gone
+ */
+function get_enum_options ( $table, $col_name ) 
+{
+	$ary = getEnumOptions($table, $col_name);
+	return array_map("map_callback", array_keys($ary));
 }
 
 /* vim: set sw=4 ts=4 et: */

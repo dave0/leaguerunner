@@ -32,6 +32,11 @@ class Handler
 	var $title;
 
 	/**
+	 * The operation this handler deals with
+	 */
+	var $op;
+
+	/**
 	 * Breadcrumbs
 	 */
 	var $breadcrumbs;

@@ -18,32 +18,13 @@ class SiteCreate extends SiteEdit
 			'admin_sufficient',
 			'deny'
 		);
-		return true;
-	}
-	
-	/*
-	 * Overridden, as we have no info to put in that form.
-	 */
-	function generate_form () 
-	{
-		// TODO: This should be populated from database.
-		$this->tmpl->assign("regions", array(
-			array( 'value' => "Central", output => "Central" ), 
-			array( 'value' => "East", output => "East" ),  
-			array( 'value' => "South", output => "South" ),  
-			array( 'value' => "West", output => "West" ), 
-		));
+		$this->op = "site_create";
 		return true;
 	}
 	
 	function perform ()
 	{
 		global $DB, $session;
-		
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
 
 		$site = var_from_getorpost("site");
 		
@@ -57,7 +38,7 @@ class SiteCreate extends SiteEdit
 			return false;
 		}
 		
-		$this->_id = $id;
+		$this->id = $id;
 		
 		return parent::perform();
 	}
@@ -67,17 +48,18 @@ class SiteCreate extends SiteEdit
 class SiteEdit extends Handler
 {
 
-	var $_id;
+	var $id;
 
 	function initialize ()
 	{
-		$this->set_title("Edit Site");
+		$this->set_title("Edit Field Site");
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
 			'deny'
 		);
+		$this->op = "site_edit";
 		return true;
 	}
 
@@ -86,80 +68,150 @@ class SiteEdit extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
-		$this->_id = var_from_getorpost('id');
+		$this->id = var_from_getorpost('id');
+
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Site/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$dataInvalid = $this->isDataInvalid();
+				if($dataInvalid) {
+					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+				}
+				
+				if($this->id) {
+					$name = $DB->getOne("SELECT name FROM site where site_id = ?", array($this->id));
+
+					if($this->is_database_error($name)) {
+						return false;
+					}
+					$this->set_title($this->title . " &raquo; ". $name);
+				}
+				
+				print $this->get_header();
+				print h1($this->title);
+				print $this->generateConfirm(var_from_getorpost('site'));
+				print $this->get_footer();
+				exit;
 				break;
 			case 'perform':
+				$dataInvalid = $this->isDataInvalid();
+				if($dataInvalid) {
+					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+				}
 				$this->perform();
-				local_redirect("op=site_view&id=". $this->_id);
+				local_redirect("op=site_view&id=". $this->id);
 				break;
 			default:
-				$this->set_template_file("Site/edit_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				if($this->id) {
+					$row = $DB->getRow(
+						"SELECT * FROM site WHERE site_id = ?", 
+						array($this->id), DB_FETCHMODE_ASSOC);
+
+					if($this->is_database_error($row)) {
+						return false;
+					}
+					$this->set_title($this->title . " &raquo; ". $row['name']);
+				} else {
+					$row = array();
+				}
+				print $this->get_header();
+				print h1($this->title);
+				print $this->generateForm($row);
+				print $this->get_footer();
+				exit;
 		}
 	
-		if($this->_id) {
-			$this->set_title("Edit Site: " . $DB->getOne("SELECT name FROM site where site_id = ?", array($this->_id)));
-		}
-
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
 		return $rc;
 	}
 
-	function generate_form ()
+	function generateForm( $data = array() )
 	{
-		global $DB;
 
-		$row = $DB->getRow(
-			"SELECT *
-			FROM site WHERE site_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($row)) {
-			return false;
+		$output = form_hidden("op", $this->op);
+		$output .= form_hidden("step", "confirm");
+		if($this->id) {
+			$output .= form_hidden("id", $this->id);
 		}
-
-		// TODO: This should be populated from database.
-		$this->tmpl->assign("regions", array(
-			array( 'value' => "Central", output => "Central" ), 
-			array( 'value' => "East", output => "East" ),  
-			array( 'value' => "South", output => "South" ),  
-			array( 'value' => "West", output => "West" ), 
-		));
-
-		$this->tmpl->assign("site", $row);
 		
-		$this->tmpl->assign("id", $this->_id);
-		return true;
+		$output .= "<table border='0'>";
+
+		$output .= simple_row(
+			"Site Name:",
+			form_textfield("", 'site[name]', $data['name'], 35, 35, "Name of field site"));
+			
+		$output .= simple_row(
+			"Site Code:",
+			form_textfield("", 'site[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site"));
+			
+		$output .= simple_row(
+			"Site Region:",
+			form_select("", 'site[region]', $data['region'], getEnumOptions('site', 'region'), "Area of city this site is located in"));
+			
+		$output .= simple_row(
+			"Site Location Map:",
+			form_textfield("", 'site[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the site"));
+			
+		$output .= simple_row(
+			"Site Layout Map:",
+			form_textfield("", 'site[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site"));
+			
+		$output .= simple_row(
+			"Directions:",
+			form_textarea("", 'site[directions]', $data['directions'], 60, 5, "Directions to field site.  Please ensure that bus and bike directions are also provided if practical."));
+			
+		$output .= simple_row(
+			"Special Instructions:",
+			form_textarea("", 'site[instructions]', $data['instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
+		$output .= simple_row(
+			form_submit('Submit'),
+			form_reset('Reset'));
+		$output .= "</table>";
+		return form($output);	
 	}
 
-	function generate_confirm ()
+	function generateConfirm ($data)
 	{
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
+		$output = form_hidden("op", $this->op);
+		$output .= form_hidden("step", "perform");
+		$output .= form_hidden("id", $this->id);
+		
+		$output .= "<table border='0'>";
 
-		$this->tmpl->assign("site", var_from_getorpost('site'));
-		$this->tmpl->assign("id", $this->_id);
+		$output .= simple_row(
+			"Site Name:",
+			form_hidden('site[name]', $data['name']) . check_form($data['name']));
+			
+		$output .= simple_row(
+			"Site Code:",
+			form_hidden('site[code]', $data['code']) . check_form($data['code']));
+			
+		$output .= simple_row(
+			"Site Region:",
+			form_hidden('site[region]', $data['region']) . check_form($data['region']));
+			
+		$output .= simple_row(
+			"Site Location Map:",
+			form_hidden('site[location_url]', $data['location_url']) . check_form($data['location_url']));
+			
+		$output .= simple_row(
+			"Site Layout Map:",
+			form_hidden('site[layout_url]', $data['layout_url']) . check_form($data['layout_url']));
+			
+		$output .= simple_row(
+			"Directions:",
+			form_hidden('site[directions]', $data['directions']) . check_form($data['directions']));
+			
+		$output .= simple_row(
+			"Special Instructions:",
+			form_hidden('site[instructions]', $data['instructions']) . check_form($data['instructions']));
 
-		return true;
+		$output .= simple_row( form_submit('Submit'), "");
+		$output .= "</table>";
+		return form($output);
 	}
 
 	function perform ()
 	{
 		global $DB;
-
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
 
 		$site = var_from_getorpost('site');
 		
@@ -180,7 +232,7 @@ class SiteEdit extends Handler
 				$site['layout_url'],
 				$site['directions'],
 				$site['instructions'],
-				$this->_id,
+				$this->id,
 			)
 		);
 		
@@ -226,6 +278,11 @@ class SiteEdit extends Handler
 			return false;
 		}
 	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
 }
 
 class SiteList extends Handler
@@ -236,7 +293,7 @@ class SiteList extends Handler
 		$this->_required_perms = array(
 			'allow'		/* Allow everyone */
 		);
-
+		$this->op = "site_list";
 		return true;
 	}
 
@@ -259,11 +316,10 @@ class SiteList extends Handler
 		return true;
 	}
 
-	function display () 
+	function display() 
 	{
-		return true;
+		return true;  // TODO Remove me after smarty is removed
 	}
-
 }
 
 class SiteView extends Handler
@@ -281,6 +337,7 @@ class SiteView extends Handler
 			'site_edit'			=> false,
 			'field_create'		=> false,
 		);
+		$this->op = "site_view";
 		return true;
 	}
 	
