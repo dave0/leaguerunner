@@ -15,6 +15,7 @@ module_register("Handler/Ward.php", 'ward');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
 module_register("Handler/Cron.php",'cron');
+module_register("Handler/Season.php",'season');
 
 /**
  * This is the base class for all operation handlers used in the web UI.
