@@ -126,9 +126,9 @@ class PersonView extends Handler
 			"SELECT 
 				CONCAT(firstname,' ',lastname) AS fullname, 
 				username, 
-				primary_email, 
+				email, 
 				gender, 
-				primary_phone, 
+				telephone, 
 				birthdate, 
 				skill_level, 
 				year_started, 
@@ -152,11 +152,11 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['email']) {
-			$this->tmpl->assign("email", $row['primary_email']);
+			$this->tmpl->assign("email", $row['email']);
 		}
 		
 		if($this->_permissions['phone']) {
-			$ary = explode(" ", $row['primary_phone']);
+			$ary = explode(" ", $row['telephone']);
 			$new_phone = "($ary[0]) $ary[1]-$ary[2]";
 			if(isset($ary[3])) {
 				$new_phone .= " x $ary[3]";

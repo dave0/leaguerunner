@@ -50,9 +50,9 @@
       <td class='row_title'>Email Address:</td> 
       <td class='row_data'>
         {if $perm_edit_email}
-        <input type="text" name="primary_email" size="25" value="{$primary_email}">
+        <input type="text" name="email" size="25" value="{$email}">
         {else}
-          <a href="mailto:{$primary_email}">{$primary_email}</a>
+          <a href="mailto:{$email}">{$email}</a>
         {/if}
       </td>
     </tr>

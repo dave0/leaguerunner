@@ -6,6 +6,7 @@
  */
 require_once("Handler/Person/View.php");
 require_once("Handler/Person/Edit.php");
+require_once("Handler/Person/List.php");
 require_once("Handler/Person/Create.php");
 
 /*

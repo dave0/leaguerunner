@@ -1,0 +1,34 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+{if $letters}
+{foreach from=$letters item=i}
+	{if $letter == $i}
+		{$i}&nbsp;
+	{else}
+		<a href="{$app_cgi_location}?op={$page_op}&letter={$i}">{$i}</a>&nbsp;
+	{/if}
+{/foreach}
+{/if}
+<p>
+<table>
+{foreach from=$list item=each}
+<tr>
+	<td>{$each.value}</td>
+	<td>
+	[
+	{if $view_op}
+		<a href="{$app_cgi_location}?op={$view_op}&id={$each.id_val}">view</a>
+	{/if}
+	{if $add_op}
+		| <a href="{$app_cgi_location}?op={$add_op}&id={$each.id_val}">add</a>
+	{/if}
+	{if $join_op}
+		| <a href="{$app_cgi_location}?op={$join_op}&id={$each.id_val}">request to join</a>
+	{/if}
+  ]
+	</td>
+</tr>
+{/foreach}
+	</table>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

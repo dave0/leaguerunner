@@ -1,0 +1,34 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Editing {$field_name}</h1>
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="confirm">
+{if $id}
+	<input type="hidden" name="id" value="{$id}">
+{/if}
+<table border="0">
+    {if $perm_edit_name}
+    <tr>
+      <td class='row_title'>Field Name:</td> 
+      <td class='row_data'><input type="text" name="field_name" size="35" value="{$field_name}"></td>
+    </tr>
+    {/if}
+    {if $perm_edit_website}
+    <tr>
+      <td class='row_title'>Website:</td> 
+      <td class='row_data'><input type="text" name="field_website" size="35" value="{$field_website}"></td>
+    </tr>
+    {/if}
+</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

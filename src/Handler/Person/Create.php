@@ -98,7 +98,7 @@ class PersonCreate extends PersonEdit
 			$this->error_text = gettext("First and second entries of password do not match");
 			return false;
 		}
-		$crypt_pass = crypt($password_once);
+		$crypt_pass = md5($password_once);
 		
 		$st = $DB->prepare("INSERT into person (username,password,class) VALUES (?,?,'player')");
 		$res = $DB->execute($st, array(var_from_getorpost('username'), $crypt_pass));

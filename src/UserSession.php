@@ -101,7 +101,7 @@ class UserSession
 		}
 
 		/* Now, check password */
-		$cryptpass = crypt($pass, $row['password']);
+		$cryptpass = md5($pass);
 		if ($cryptpass != $row['password']) {
 			return false;
 		}

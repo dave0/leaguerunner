@@ -1,0 +1,28 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Editing {$field_name}</h1>
+<p>
+	Confirm that the data below is correct, and hit continue to make your changes.
+</p>
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="perform">
+{if $id}
+	<input type="hidden" name="id" value="{$id}">
+{/if}
+	<table border="0">
+    <tr>
+      <td class='row_title'>Field Name:</td> 
+      <td class='row_data'><input type="hidden" name="field_name" value="{$field_name}">{$field_name}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Website:</td> 
+      <td class='row_data'><input type="hidden" name="field_website" value="{$field_website}">{$field_website}</td>
+    </tr>
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

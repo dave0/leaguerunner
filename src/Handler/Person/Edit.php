@@ -144,9 +144,9 @@ class PersonEdit extends Handler
 				allow_publish_email, 
 				allow_publish_phone,
 				username, 
-				primary_email, 
+				email, 
 				gender, 
-				primary_phone, 
+				telephone, 
 				birthdate, 
 				skill_level, 
 				year_started, 
@@ -168,9 +168,9 @@ class PersonEdit extends Handler
 
 		$this->tmpl->assign("username", $row['username']);
 		
-		$this->tmpl->assign("primary_email", $row['primary_email']);
+		$this->tmpl->assign("email", $row['email']);
 		
-		$ary = explode(" ", $row['primary_phone']);
+		$ary = explode(" ", $row['telephone']);
 		$this->tmpl->assign("phone_areacode", $ary[0]);
 		$this->tmpl->assign("phone_prefix", $ary[1]);
 		$this->tmpl->assign("phone_number", $ary[2]);
@@ -236,7 +236,7 @@ class PersonEdit extends Handler
 		
 		$this->tmpl->assign("username", var_from_getorpost('username'));
 		
-		$this->tmpl->assign("primary_email", var_from_getorpost('primary_email'));
+		$this->tmpl->assign("email", var_from_getorpost('email'));
 		
 		$this->tmpl->assign("addr_street", var_from_getorpost('addr_street'));
 		$this->tmpl->assign("addr_city", var_from_getorpost('addr_city'));
@@ -284,12 +284,12 @@ class PersonEdit extends Handler
 		}
 		
 		if($this->_permissions['edit_email']) {
-			$fields[] = "primary_email = ?";
-			$fields_data[] = var_from_getorpost('primary_email');
+			$fields[] = "email = ?";
+			$fields_data[] = var_from_getorpost('email');
 		}
 		
 		if($this->_permissions['edit_phone']) {
-			$fields[] = "primary_phone = ?";
+			$fields[] = "telephone = ?";
 			$fields_data[] = join(" ",array(
 				var_from_getorpost('phone_areacode'),
 				var_from_getorpost('phone_prefix'),

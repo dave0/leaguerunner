@@ -12,9 +12,9 @@ $GLOBALS['APP_COOKIE_DOMAIN'] = ".evilplot.org";
 $GLOBALS['APP_COOKIE_PATH'] = "/";
 
 $GLOBALS['APP_DB_HOST'] = "localhost";
-$GLOBALS['APP_DB_USER'] = "ocuaweb";
+$GLOBALS['APP_DB_USER'] = "leaguerunner";
 $GLOBALS['APP_DB_PASS'] = "ocuaweb";
-$GLOBALS['APP_DB_NAME'] = "ocua";
+$GLOBALS['APP_DB_NAME'] = "leaguerunner";
 
 $GLOBALS['APP_ADMIN_NAME'] = "OCUA Webmaster";
 $GLOBALS['APP_ADMIN_EMAIL'] = "dmo@acm.org";
