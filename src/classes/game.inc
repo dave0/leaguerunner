@@ -731,7 +731,10 @@ class Game extends LeaguerunnerObject
 		}
 
 		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
-		$this->set('rating_points', $elo_change);
+		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $elo_change, $this->game_id);
+		if( 1 != db_affected_rows()) {
+			return false;
+		}
 	
 		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $elo_change, $winner);
 		if( 1 != db_affected_rows()) {
