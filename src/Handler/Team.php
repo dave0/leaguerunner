@@ -502,8 +502,8 @@ class TeamPlayerStatus extends Handler
 					trigger_error("Database error");
 					return false;
 				}
-				if($num_captains <= 1) {
-					$this->error_text = "Unable to remove last captain from team.";
+				if($num_captains <= 2) {
+					$this->error_text = "All teams must have at least two players with captain status.";
 					return false;
 				}
 			}
@@ -532,7 +532,7 @@ class TeamPlayerStatus extends Handler
 			 * Administrators can move anyone, players can move
 			 * self.
 			 */
-			if(!$is_captain) {
+			if(!$is_captain || $is_administrator) {
 				$this->_permissions['set_player'] = true;
 				$this->_permissions['set_substitute'] = true;
 			}
