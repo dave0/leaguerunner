@@ -201,31 +201,6 @@ class Handler
 		trigger_error("Missing handler for process() in this class");
 		return false;
 	}
-	/**
-	 * Set template variables for a template
-	 *
-	 * This sets any template variables that should be set for every 
-	 * output page.  Things like app_name, cgi location, and page title
-	 * should be set in here.  DO NOT set any handler-specific variables
-	 * in here.
-	 * 
-	 * @access public
-	 */
-	function set_global_template_vars()
-	{
-		global $session;
-
-		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
-		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
-		$this->tmpl->assign("page_title", $this->title);
-	
-		if(isset($session) && $session->is_valid()) {
-			$this->tmpl->assign("page_user_name", join(" ",array(
-				$session->attr_get("firstname"),
-				$session->attr_get("lastname")
-			)));
-		}
-	}
 	
 	/**
 	 * Set the page title
@@ -250,9 +225,11 @@ class Handler
 	 */
 	function display ()
 	{
-		$this->set_global_template_vars();
 		register_smarty_extensions($this->tmpl);
 
+		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
+		$this->tmpl->assign("page_title", $this->title);
+	
 		/*      
 		 * The following line needs to be set to 'true' for development
 		 * purposes.  It controls whether or not templates are checked for
@@ -261,7 +238,9 @@ class Handler
 		 */
 		$this->tmpl->compile_check = true;
 		$this->tmpl->template_dir  = "./templates/en_CA";
+		$this->get_header();
 		$this->tmpl->display($this->tmplfile);
+		$this->get_footer();
 	}
 
 	function get_header($title = NULL)

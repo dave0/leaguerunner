@@ -1,5 +1,3 @@
-{include file="common/basic_header.tmpl"}
-
 <h1>{$site.name} ({$site.code})</h1>
 <p>
   {if $perm_site_edit}<a href="{$app_cgi_location}?op=site_edit&id={$id}">edit site</a> |{/if}
@@ -67,7 +65,4 @@
 
 <ul>
 </ul>
-
-
-{include file="common/basic_footer.tmpl"}
 {* vim: set sw=2 ts=2 et: *}

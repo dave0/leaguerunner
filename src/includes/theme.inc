@@ -15,6 +15,7 @@ function theme_header($title = "", $breadcrumbs = array())
 	}
 // <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 ?>
+<!-- start header -->
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title><?php print $title ?></title>
@@ -27,12 +28,14 @@ function theme_header($title = "", $breadcrumbs = array())
 	);
 
 	print theme_navbar($breadcrumbs);
-
+	print "<tr><td colspan='2' class='main'>";
+	print "\n<!-- end header -->\n";
 }
 
 function theme_navbar($breadcrumbs = array()) 
 {
 	global $session;
+	print "\n<!-- start navbar -->\n";
 	print "<tr class='lr_navbar'>" ;
 	if($session->is_valid()) {
 		$crumbs = array();
@@ -61,9 +64,8 @@ function theme_navbar($breadcrumbs = array())
 		print "&nbsp;|&nbsp;";
 	}
 	print l("help", "op=help", array( 'class' => 'topbarlink' ));
-?></td></tr><tr><td colspan='2' class='main'>
-
-<?php
+	print "</td></tr>";
+	print "\n<!-- end navbar -->\n";
 }
 
 function theme_links($links, $delimiter = " | ")
@@ -74,6 +76,7 @@ function theme_links($links, $delimiter = " | ")
 function theme_footer()
 {
 ?>
+<!-- start footer -->
 <p />
 <hr noshade />
 <table border="0" width="100%">
@@ -86,6 +89,7 @@ function theme_footer()
 </table>
 </body>
 </html>
+<!-- end footer -->
 <?php
 }
 
