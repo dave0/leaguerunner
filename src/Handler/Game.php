@@ -100,7 +100,7 @@ class GameSubmit extends Handler
 		$rc = true;
 		
 		$defaulted = var_from_getorpost('defaulted');
-		if( ! is_null($defaulted) ) {
+		if( ! (is_null($defaulted) || (strlen($defaulted) == 0))) {
 			switch($defaulted) {
 				case 'us':
 				case 'them':
@@ -339,14 +339,14 @@ class GameSubmit extends Handler
 	{
 		global $DB, $session;
 
-		if(is_null($our_entry['defaulted']) ) {
-			$our_entry['defaulted'] = 'no';
-		} else if($our_entry['defaulted'] == 'us') {
+		if($our_entry['defaulted'] == 'us') {
 			$our_entry['score_for'] = 0;
-			$our_entry['score_against'] = 6;
-		} else {
+			$our_entry['score_against'] = 6; 
+		} else if($our_entry['defaulted'] == 'them') {
 			$our_entry['score_for'] = 6;
 			$our_entry['score_against'] = 0;
+		} else {
+			$our_entry['defaulted'] = 'no';
 		}
 		
 		$res = $DB->query("INSERT INTO score_entry 
