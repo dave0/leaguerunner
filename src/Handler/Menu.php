@@ -77,7 +77,7 @@ class MainMenu extends Handler
 		}
 		if(count($teams) > 0) {
 			foreach($teams as $team) { 
-				$teamData = bold($team['name']) . " (" . $team['position'] . ")";
+				$teamData = $team['name'] . " (" . $team['position'] . ")";
 				$teamsAndLeagues .= tr(
 					td( $teamData, array('colspan' => 3, 'class' => 'highlight'))
 					. td(theme_links(array(
@@ -89,13 +89,13 @@ class MainMenu extends Handler
 				
 				$teamsAndLeagues .= tr(
 					td('&nbsp;')
-					. td( bold("Last game:") )
+					. td("Last game:")
 					. td(getPrintableGameData('prev', $team['id']),
 						array('colspan' => '2'))
 				);
 				$teamsAndLeagues .= tr(
 					td('&nbsp;')
-					. td( bold("Next game:") )
+					. td("Next game:")
 					. td(getPrintableGameData('next', $team['id']),
 						array('colspan' => '3'))
 				);
