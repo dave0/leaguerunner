@@ -807,7 +807,14 @@ class Game extends LeaguerunnerObject
 		// tiebreakers used for standings purposes as in tie cases,
 		// the $elo_change will work out the same regardless of which team is
 		// considered the 'winner'
-		if( $this->home_score >= $this->away_score) {
+		if( $this->home_score == $this->away_score) {
+			# For a tie, we assume the home team wins, but give the game a
+			# value of 0.5
+			$winner = $this->home_id;
+			$loser = $this->away_id;
+			$expected_win = $this->home_expected_win();
+			$game_value = 0.5; 
+		} else if( $this->home_score > $this->away_score) {
 			$winner = $this->home_id;
 			$loser = $this->away_id;
 			$expected_win = $this->home_expected_win();
@@ -822,7 +829,7 @@ class Game extends LeaguerunnerObject
 		// added is the ratio of score difference over winning score.
 		$score_diff = abs($this->home_score - $this->away_score);
 		$score_max  = max($this->home_score, $this->away_score);
-		if( $score_max && ( ($score_diff / $score_max) > 0.333 )) {
+		if( $score_max && ( ($score_diff / $score_max) > (1/3) )) {
 			$score_weight += $score_diff / $score_max;
 		}
 
