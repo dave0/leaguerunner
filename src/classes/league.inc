@@ -66,7 +66,7 @@ class League extends LeaguerunnerObject
 
 		/* set derived attributes */
 		if($this->tier) {
-			$this->fullname = "$this->name Tier $this->tier";
+			$this->fullname = sprintf("$this->name Tier %02d", $this->tier);
 		} else {
 			$this->fullname = $this->name;
 		}

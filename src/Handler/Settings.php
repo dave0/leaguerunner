@@ -48,6 +48,10 @@ function global_settings()
 
 	$group = form_radios("Clean URLs", "clean_url", variable_get("clean_url", 1), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
 	$output .= form_group("General configuration", $group);
+
+	
+	$group = form_select("Current Season", "current_season", variable_get("current_season","Summer"), getOptionsFromEnum('league','season'), "Season of play currently in effect");
+	$output .= form_group("Season Information", $group);
 	
 	return settings_form($output);
 }

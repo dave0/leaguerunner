@@ -417,11 +417,6 @@ class ScheduleView extends Handler
 	{
 		$id = arg(2);
 		
-		$links = array();
-		if($this->_permissions['edit_schedule']) {
-			$links[] = l("add games", "game/create/$id");
-		}
-		
 		$league = league_load( array('league_id' => $id) );
 		
 		if( !$league ) {
@@ -457,10 +452,7 @@ class ScheduleView extends Handler
 			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
 			$prevDayId = $game['day_id'];	
 		}
-		$output = theme_links($links);
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
-		$output .= theme_links($links);
-
 		league_add_to_menu($this, $league);
 		return form($output);
 	}

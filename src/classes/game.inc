@@ -127,6 +127,36 @@ class Game extends LeaguerunnerObject
 		return (1 == db_affected_rows());
 	}
 
+	/** 
+	 * Return string-formatted game info in 'standard' formats
+	 */
+	function sprintf ( $format = 'short', $desired_team = NULL )
+	{
+		switch($format) {
+			case 'vs':
+				$output = "$this->game_date $this->game_start at " 
+					. l($this->field_code, "site/view/$this->site_id")
+					. " vs. ";
+				if( $this->home_id == $desired_team ) {
+					$output .= l($this->away_name, "team/view/$this->away_id");
+					if($this->home_score || $this->away_score) {
+						$output .= " ($this->home_score  - $this->away_score )";
+					}
+				} else if( $this->away_id == $desired_team ) {
+					$output .= l($this->home_name, "team/view/$this->home_id");
+					if($this->home_score || $this->away_score) {
+						$output .= " ($this->away_score - $this->home_score )";
+					}
+				}
+				return $output;
+				break;
+			case 'short':
+			default:
+				// TODO
+				
+		}
+	}
+
 	/**
 	 * Select a random gameslot for this field.
 	 * Gameslot is to be selected from those available for the league in which
@@ -193,6 +223,12 @@ function game_query ( $array = array() )
 		switch( $key ) {
 			case 'game_date':
 				$query[] = "g.game_date = '" . check_query($value) . "'";
+				break;
+			case 'game_date_past':
+				$query[] = "g.game_date < CURDATE()";
+				break;
+			case 'game_date_future':
+				$query[] = "g.game_date > CURDATE()";
 				break;
 			case 'either_team':
 				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';

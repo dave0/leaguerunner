@@ -95,7 +95,9 @@ class FieldView extends Handler
 
 		site_add_to_menu($site);
 		menu_add_child($site->name, "$site->name $field_num", "$site->name $field_num", array('link' => "field/view/$site->site_id/$field_num"));
-		menu_add_child("$site->name $field_num", "$site->name $field_num gameslot", 'new gameslot', array('link' => "slot/create/$site->site_id/$field_num"));
+		if($this->_permissions['field_admin']) {
+			menu_add_child("$site->name $field_num", "$site->name $field_num gameslot", 'new gameslot', array('link' => "slot/create/$site->site_id/$field_num"));
+		}
 
 		return $output;
 	}

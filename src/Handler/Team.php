@@ -48,6 +48,10 @@ function team_menu()
 		}
 		reset($session->user->teams);
 	}
+	
+	if($session->is_admin()) {
+		menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));
+	}
 }
 
 /**
@@ -79,7 +83,64 @@ function team_add_to_menu( $this, &$team, $parent = 'team' )
 	if($this->_permissions['delete_team']) {
 		menu_add_child($team->name, "$team->name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
 	}
-}	
+}
+
+/**
+ * Generate view of teams for initial login splash page.
+ */
+function team_splash ()
+{
+	global $session;
+
+	$header = array(
+		array('data' => 'My Teams', 'width' => 90 ),
+		array('data' => '&nbsp', 'colspan' => 3 )
+	);
+	$rows = array();
+		
+	$rows[] = array('','', array( 'data' => '','width' => 90), '');
+		
+	$rosterPositions = getRosterPositions();
+	$rows = array();
+	while(list(,$team) = each($session->user->teams)) {
+		$position = $rosterPositions[$team->position];
+		
+		$rows[] = 
+			array(
+				array('data' => "$team->name ($team->position)", 
+				      'colspan' => 3, 'class' => 'highlight'),
+				array('data' => theme_links(array(
+						l("info", "team/view/$team->id"),
+						l("scores and schedules", "team/schedule/$team->id"),
+						l("standings", "league/standings/$team->league_id"))),
+					  'align' => 'right', 'class' => 'highlight')
+		);
+
+		$game = game_load( array('either_team' => $team->id, 'game_date_past' => 'CURDATE()', '_order' => 'g.game_date desc LIMIT 1'));
+		$game_text = 'n/a';
+		if( $game ) {
+			$game_text = $game->sprintf('vs', $team->id);
+		}
+		$rows[] = array(
+			'&nbsp;', 
+			"Last game:",
+			array( 'data' => $game_text, 'colspan' => 2)
+		);
+		$game = game_load( array('either_team' => $team->id, 'game_date_future' => 'CURDATE()', '_order' => 'g.game_date asc LIMIT 1'));
+		$game_text = 'n/a';
+		if( $game ) {
+			$game_text = $game->sprintf('vs', $team->id);
+		}
+		$rows[] = array(
+			'&nbsp;', 
+			"Next game:",
+			array( 'data' => $game_text, 'colspan' => 2)
+		);
+	}
+	reset($session->user->teams);
+		
+	return "<div class='myteams'>" . table( $header, $rows ) . "</div>";
+}
 
 
 /**
@@ -985,7 +1046,7 @@ class TeamSchedule extends Handler
 			}
 
 			$rows[] = array(
-				$game->game_date, 
+				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
 				l($opponent_name, "team/view/$opponent_id"),
 				l($game->field_code, "site/view/$game->site_id"),
@@ -1052,6 +1113,63 @@ class TeamEmails extends Handler
 		$output .= pre(join(",\n", $nameAndEmails));
 		return $output;
 	}
+}
+
+function team_statistics ( )
+{
+	$rows = array();
+
+	$current_season = variable_get('current_season', 'Summer');
+
+	$result = db_query("SELECT COUNT(*) FROM team");
+	$rows[] = array("Number of teams (total):", db_result($result));
+
+	$result = db_query("SELECT l.season, COUNT(*) FROM leagueteams t, league l WHERE t.league_id = l.league_id GROUP BY l.season");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Teams by season:", table(null, $sub_table));
+
+	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
+        FROM teamroster r , league l, leagueteams lt
+        LEFT JOIN team t ON (t.team_id = r.team_id) 
+        WHERE 
+                lt.team_id = r.team_id
+                AND l.league_id = lt.league_id 
+                AND l.allow_schedule = 'Y' 
+				AND l.season = '%s'
+                AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
+        GROUP BY t.team_id 
+        HAVING size < 12
+        ORDER BY size desc", $current_season);
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		if( $row['size'] < 12 ) {
+			$substitutes = db_result(db_query("SELECT COUNT(*) FROM teamroster r WHERE r.team_id = %d AND r.status = 'substitute'", $row['team_id']));
+			if( ($row['size'] + floor($substitutes / 3)) < 12 ) {
+				$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), ($row['size'] + floor($substitutes / 3)));
+			}
+		}
+	}
+	$rows[] = array("$current_season teams with too few players:", table(null, $sub_table));
+
+	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.allow_schedule = 'Y' AND l.season = '%s' ORDER BY t.rating DESC LIMIT 10", $current_season);
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
+	}
+	$rows[] = array("Top-rated $current_season teams:", table(null, $sub_table));
+	
+	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.allow_schedule = 'Y' AND l.season = '%s' ORDER BY t.rating ASC LIMIT 10", $current_season);
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
+	}
+	$rows[] = array("Lowest-rated $current_season teams:", table(null, $sub_table));
+	
+	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
+	return form_group("Team Statistics", $output);
 }
 
 ?>

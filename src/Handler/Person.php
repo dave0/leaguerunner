@@ -78,6 +78,7 @@ function person_menu()
 
 		# Admin menu
 		menu_add_child('settings', 'settings/person', 'user settings', array('link' => 'settings/person'));
+		menu_add_child('statistics', 'statistics/person', 'player statistics', array('link' => 'statistics/person'));
 	}
 }
 
@@ -1688,7 +1689,11 @@ class PersonForgotPassword extends Handler
 
 	function process()
 	{
+		global $session;
 		$edit = $_POST['edit'];
+		if ($session->is_admin()) {
+			$edit = $_GET['edit'];
+		}
 		switch($edit['step']) {
 			case 'perform':
 				$rc = $this->perform( $edit );	
@@ -1828,6 +1833,10 @@ function person_add_to_menu( $this, &$person )
 		if($this->_permissions['user_delete']) {
 			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$id"));
 		}
+		
+		if($session->is_admin()) {
+			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
+		}
 	}
 }	
 
@@ -1875,6 +1884,69 @@ function person_settings ( )
 	$output = form_group("User email settings", $group);
 	
 	return settings_form($output);
+}
+
+function person_statistics ( )
+{
+	$rows = array();
+
+	$result = db_query("SELECT COUNT(*) FROM person");
+	$rows[] = array("Number of players (total):", db_result($result));
+
+	$result = db_query("SELECT status, COUNT(*) FROM person GROUP BY status");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by account status:", table(null, $sub_table));
+	
+	$result = db_query("SELECT class, COUNT(*) FROM person GROUP BY class");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by account class:", table(null, $sub_table));
+
+	$result = db_query("SELECT gender, COUNT(*) FROM person GROUP BY gender");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by gender:", table(null, $sub_table));
+	
+	$result = db_query("SELECT FLOOR((YEAR(NOW()) - YEAR(birthdate)) / 5) * 5 as age_bucket, COUNT(*) AS count FROM person GROUP BY age_bucket");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = array($row['age_bucket'] . " to " . ($row['age_bucket'] + 4), $row['count']);
+	}
+	$rows[] = array("Players by age:", table(null, $sub_table));
+
+	$result = db_query("SELECT addr_city, COUNT(*) AS num FROM person GROUP BY addr_city HAVING num > 2 ORDER BY num DESC");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by city:", table(null, $sub_table));
+	
+	$result = db_query("SELECT skill_level, COUNT(*) FROM person GROUP BY skill_level");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by skill level:", table(null, $sub_table));
+	
+	$result = db_query("SELECT year_started, COUNT(*) FROM person GROUP BY year_started");
+	$sub_table = array();
+	while($row = db_fetch_array($result)) {
+		$sub_table[] = $row;
+	}
+	$rows[] = array("Players by starting year:", table(null, $sub_table));
+	
+	$result = db_query("SELECT COUNT(*) FROM person where has_dog = 'Y'");
+	$rows[] = array("Players with dogs :", db_result($result));
+	
+	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
+	return form_group("Player Statistics", $output);
 }
 
 ?>

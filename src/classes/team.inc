@@ -166,17 +166,27 @@ class Team extends LeaguerunnerObject
 			return false;
 		}
 
+		// Can only delete inactive teams
+		if ( $this->league_id != 1 ) {
+			error_exit("Cannot delete team: Team must be in the 'Inactive Teams' league to be deleted");
+		}
+
 		// Check that this team is not scheduled for any games.  If so, we
 		// bail.
+		$num_games = db_result(db_query("SELECT COUNT(*) FROM schedule WHERE home_team = %d OR away_team = %d", $this->team_id, $this->team_id));
+		if( $num_games > 0) {
+			error_exit("Cannot delete team: Team must not have any games on the schedule");
+		}
 
 		// If we have anyone on the roster, remove 'em
-
+		db_query("DELETE FROM teamroster WHERE team_id = %d", $this->team_id);
 		// If we're in a league, remove ourself
+		db_query("DELETE FROM leagueteams WHERE team_id = %d", $this->team_id);
 
-		// Delete from the league table
-
-		die("DMO TODO XXX");
-		
+		// Delete from the team table
+		db_query("DELETE FROM team WHERE team_id = %d", $this->team_id);
+	
+		return true;
 	}
 
 	function get_placeholder( $key, $value )

@@ -59,26 +59,70 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 {
 	global $session;
 
-	$sortname = sprintf("$league->name %02d", $league->tier);
-	menu_add_child($parent, $sortname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
+	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
 	if($league->allow_schedule == 'Y') {
-		menu_add_child($sortname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
-		menu_add_child($sortname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($this->_permissions['administer_league']) {
-			menu_add_child($sortname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
+			menu_add_child("$league->fullname/schedule", 'edit', 'add games', array('link' => "game/create/$league->id"));
+			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
 	}
 	
 	if($this->_permissions['administer_league']) {
-		menu_add_child($sortname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
-		menu_add_child($sortname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
-		menu_add_child($sortname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
 	}
 	if($session->is_admin()) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
-}	
+}
+
+/**
+ * Generate view of leagues for initial login splash page.
+ */
+function league_splash ()
+{
+	global $session;
+	if( ! $session->user->is_a_coordinator ) {
+		return;
+	}
+
+	$header = array(
+			array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+	);
+	$rows = array();
+			
+	// TODO: For each league, need to display # of missing scores,
+	// pending scores, etc.
+	while(list(,$league) = each($session->user->leagues)) {
+		$links = array(
+			l("view", "league/view/$league->league_id"),
+			l("edit", "league/edit/$league->league_id")
+		);
+		if($league->allow_schedule == 'Y') {
+			$links[] = l("schedule", "schedule/view/$league->league_id");
+			$links[] = l("standings", "league/standings/$league->league_id");
+			$links[] = l("approve scores", "league/verifyscores/$league->league_id");
+		}
+
+		$rows[] = array(
+			array( 
+				'data' => $league->fullname,
+				'colspan' => 3
+			),
+			array(
+				'data' => theme_links($links), 
+				'align' => 'right'
+			)
+		);
+	}
+	reset($session->user->leagues);
+			
+	return "<div class='myteams'>" . table( $header, $rows ) . "</div>";
+}
 
 /**
  * Create handler
@@ -365,7 +409,7 @@ class LeagueList extends Handler
 
 		$season = arg(2);
 		if( ! $season ) {
-			$season = 'none';
+			$season = strtolower(variable_get('current_season', "Summer"));
 		}
 		
 		/* Fetch league names */

@@ -107,7 +107,7 @@ class GameCreate extends Handler
 		$this->title = "Add Game";
 		$this->types = array(
 			'single' => 'single regular-season game',
-			'oneday' => 'day of games for all teams in a tier',
+			'oneset' => 'set of games for all teams in a tier',
 			'fullround' => 'full-tier round-robin (does not work yet)',
 			'halfround' => 'half-tier round-robin (does not work yet)',
 			'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
@@ -217,7 +217,7 @@ class GameCreate extends Handler
 		}
 
 		// TODO HACK EVIL DMO
-		if( ($edit['type'] != 'single') && ($edit['type'] != 'oneday')) {
+		if( ($edit['type'] != 'single') && ($edit['type'] != 'oneset')) {
 			$this->error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
 		}
 	
@@ -259,7 +259,7 @@ class GameCreate extends Handler
 				// allocated to it.  
 				$this->error_exit("That is not a valid option right now.");
 				break;
-			case 'oneday':
+			case 'oneset':
 				return $this->createDayOfGames( $league, $edit, $timestamp);
 				break;
 			default:
@@ -730,6 +730,16 @@ class GameView extends Handler
 				
 			$rows[] = array("Score:", "<div class='pairtable'>" . table(null, $scoreRows) . "</div>");
 			$rows[] = array("Rating Points:", $game->rating_points);
+			
+			if($game->approved_by) {
+				if($game->approved_by != -1) {
+					$approver = person_load( array('user_id' => $game->approved_by));
+					$approver = l($approver->fullname, "person/view/$approver->user_id");
+				} else {
+					$approver = 'automatic approval';
+				}
+				$rows[] = array("Score Approved By:", $approver);		
+			}
 
 		} else {
 			/* Use our ratings to try and predict the game outcome */
@@ -743,17 +753,6 @@ class GameView extends Handler
 			/* And of course, show the scores to those who are allowed */	
 			if( $this->_permissions['view_entered_scores'] ) {
 				$rows[] = array("Score:", game_score_entry_display( $game ));
-				if($game->approved_by) {
-					if($game->approved_by != -1) {
-						$approver = person_load( array('user_id' => $game->approved_by));
-						$approver = l($approver->fullname, "person/view/$approver->user_id");
-					} else {
-						$approver = 'automatic';
-					}
-				} else {
-					$approver = 'awaiting approval';
-				}
-				$rows[] = array("Score Approved By:", $approver);		
 			} else {
 				$rows[] = array("Score:","not yet entered");
 				
@@ -764,11 +763,9 @@ class GameView extends Handler
 		$this->setLocation(array(
 			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
 
-		# TODO: this is a little unpleasant
-		$league = league_load( array('league_id' =>  $game->league_id) );
 		league_add_to_menu($this, $league);
 		menu_add_child("$league->fullname", "$league->fullname/games", "Games");
-		menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "$game->home_name vs $game->away_name", array('link' => "game/view/$game->game_id"));
+		menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
 			
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
