@@ -113,6 +113,9 @@ class Team extends LeaguerunnerObject
 		}
 		
 		unset($this->_modified_fields);
+
+		# TODO: process roster list and add/remove as necessary
+		
 		return true;
 	}
 
@@ -131,7 +134,7 @@ class Team extends LeaguerunnerObject
 			return false;
 		}
 
-		$this->user_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
+		$this->team_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
 		
 		return true;
 	}
