@@ -16,6 +16,9 @@ class LeagueEdit extends Handler
 	 */
 	function initialize ()
 	{
+	
+		$this->set_title("Edit League");
+
 		$this->_permissions = array(
 			'edit_info'			=> false,
 			'edit_coordinator'		=> false,
@@ -85,9 +88,6 @@ class LeagueEdit extends Handler
 				$this->tmpl->assign("page_step", 'confirm');
 				$rc = $this->generate_form();
 		}
-	
-		$this->set_title("Edit League");
-
 		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		
 		/* ... and set permissions flags */
@@ -131,7 +131,8 @@ class LeagueEdit extends Handler
 				l.alternate_id,
 				l.stats_display as stats_display,
 				l.current_round as current_round,
-				l.year as year
+				l.year,
+				l.start_time as league_start_time
 			FROM league l WHERE l.league_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
 
@@ -217,6 +218,8 @@ class LeagueEdit extends Handler
 		$this->tmpl->assign("league_tier", var_from_getorpost('league_tier'));
 		$this->tmpl->assign("league_round", var_from_getorpost('league_round'));
 		$this->tmpl->assign("league_ratio", var_from_getorpost('league_ratio'));
+		$this->tmpl->assign("league_start_time_Hour", var_from_getorpost('league_start_time_Hour'));
+		$this->tmpl->assign("league_start_time_Minute", var_from_getorpost('league_start_time_Minute'));
 		
 		$c_id = var_from_getorpost('coordinator_id');
 		$c_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($c_id));
@@ -262,6 +265,8 @@ class LeagueEdit extends Handler
 			$fields_data[] = var_from_getorpost("league_tier");
 			$fields[] = "ratio = ?";
 			$fields_data[] = var_from_getorpost("league_ratio");
+			$fields[] = "start_time = ?";
+			$fields_data[] = var_from_getorpost("league_start_time_Hour") . ":" . var_from_getorpost("league_start_time_Minute");
 		}
 		
 		if($this->_permissions['edit_coordinator']) {

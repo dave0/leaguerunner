@@ -42,8 +42,6 @@ CREATE TABLE person (
 	client_ip      varchar(50),
 );
 
-INSERT INTO person (username,password,firstname,lastname) VALUES ('admin',MD5('admin'), 'System', 'Administrator');
-
 -- to be used for player availability
 CREATE TABLE available (
 	user_id		integer NOT NULL,
@@ -90,9 +88,9 @@ CREATE TABLE league (
 	current_round int DEFAULT 1,
 	stats_display ENUM('all','currentround') DEFAULT 'all',
 	year        integer,
+	start_time	time,
 	PRIMARY KEY (league_id)
 );
-INSERT INTO league (name,coordinator_id) VALUES ('Inactive Teams', 1);
 
 CREATE TABLE leagueteams (
 	league_id 	integer NOT NULL,

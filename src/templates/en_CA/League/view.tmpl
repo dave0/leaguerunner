@@ -1,5 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<h1>{$league_name}{if $league_tier} Tier {$league_tier}{/if}</h1>
+<h1>{$page_title}: {$league_name}{if $league_tier} Tier {$league_tier}{/if}</h1>
 <table border="0">
   <tr>
     <td class='row_title'>Coordinator:</td> 
@@ -22,6 +22,10 @@
   <tr>
     <td class='row_title'>Maximum teams:</td> 
     <td class='row_data'>{$league_maxteams}</a></td>
+  </tr>
+  <tr>
+    <td class='row_title'>Usual Start Time:</td> 
+    <td class='row_data'>{$league_start_time|date_format:"%H:%M"}</a></td>
   </tr>
 </table>
 

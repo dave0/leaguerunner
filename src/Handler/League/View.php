@@ -21,6 +21,7 @@ class LeagueView extends Handler
 		$this->_permissions = array(
 			"administer_league" => false,
 		);
+		$this->set_title("View League");
 
 		return true;
 	}
@@ -76,7 +77,8 @@ class LeagueView extends Handler
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
 				l.coordinator_id,
 				l.alternate_id as co_coordinator_id,
-				l.current_round
+				l.current_round,
+				l.start_time
 			FROM league l, person c, person co
 			WHERE c.user_id = l.coordinator_id 
 				AND l.league_id = ?",
@@ -86,11 +88,6 @@ class LeagueView extends Handler
 			return false;
 		}
 		
-		$title = "View League: " . $row['name'];
-		if($row['tier'] > 0) {
-			$title .= " " . $row['tier'];
-		}
-		$this->set_title($title);
 
 		$this->tmpl->assign("league_id", $id);
 		$this->tmpl->assign("league_name",   $row['name']);
@@ -99,6 +96,7 @@ class LeagueView extends Handler
 		$this->tmpl->assign("league_season", $row['season']);
 		$this->tmpl->assign("league_maxteams", $row['max_teams']);
 		$this->tmpl->assign("league_current_round", $row['current_round']);
+		$this->tmpl->assign("league_start_time", $row['start_time']);
 		$this->tmpl->assign("coordinator_name", $row['coordinator_name']);
 		$this->tmpl->assign("coordinator_id", $row['coordinator_id']);
 

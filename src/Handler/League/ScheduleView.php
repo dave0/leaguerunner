@@ -12,7 +12,7 @@ register_page_handler('league_schedule_view', 'LeagueScheduleView');
 class LeagueScheduleView extends Handler
 {
 	/** 
-	 * Initializer for LeagueScheduleView class
+	 * Initializer
 	 *
 	 * @access public
 	 */
@@ -21,8 +21,8 @@ class LeagueScheduleView extends Handler
 		$this->set_title("League Schedule View");
 		$this->_permissions = array(
 			"edit_schedule" => false,
-			"edit_anytime" => false,
 			"view_spirit" => false,
+			"add_weeks" => false,
 		);
 
 		return true;
@@ -51,12 +51,15 @@ class LeagueScheduleView extends Handler
 		
 		if($session->attr_get('class') == 'administrator') {
 			$this->enable_all_perms();
+			$this->_permissions['edit_anytime'] = true;
 			return true;
 		}
 
-		/* TODO: set edit_schedule perm if:
-		 * 	- coordinator or co-coord
-		 */
+		/* League coordinator or assistant can edit */
+		if($session->is_coordinator_of($id)) { 
+			$this->enable_all_perms();
+			return true;	
+		}
 
 		return true;
 	}
