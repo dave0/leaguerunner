@@ -904,17 +904,18 @@ class GameSubmit extends Handler
 					// No default.  Just finalize score.
 					$this->game->set('home_score', $home_entry->score_for);
 					$this->game->set('away_score', $home_entry->score_against);
-					$this->game->set('approved_by', -1);
 			}
+			
+			$this->game->set('approved_by', -1);
 
 			if ( ! $this->game->save() ) {
 				$this->error_exit("Could not successfully save game results");
 			}
 
-                        // Game has been saved to database.  Now we can update the dependant games.
-                        if (! $this->game->updatedependentgames()) {
-  		          $this->error_exit("Could not update dependant games.");
-                        }
+			// Game has been saved to database.  Now we can update the dependant games.
+			if (! $this->game->updatedependentgames()) {
+				$this->error_exit("Could not update dependant games.");
+			}
 			
 			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
 		} else {
