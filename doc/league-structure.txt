@@ -1,0 +1,51 @@
+League Structure
+
+In order to simplify annual league management, a restructuring of the way
+leagues and teams are currently organized is needed.
+
+At present, the system has several tables:
+	team
+	league
+	leagueteams
+that define the structure of leagues. 
+
+Teams are entities with players, captains, etc that can be scheduled for
+games.  A 'league' is a group of teams that can be scheduled against each
+other (commonly called a 'tier' in the Real World).  The leagueteams table
+associates teams with leagues.
+
+Teams can only exist in one league.  When they are created, they are added
+to the 'Inactive Teams' league, which contains all teams that have been
+newly created or removed from a 'real' league for some reason (tier
+shuffling, end of season, etc).
+
+The problems with this system are:
+	- there is no easy grouping of leagues (aka 'tiers') into seasons or
+	  nights.
+	- teams cannot belong to more than one league at a time, making
+	  things difficult for teams playing in two consecutive seasons
+	  (ie: summer and fall)
+	- since teams cannot belong to more than one league at any time,
+	  the previous year's data must be fully purged before the
+	  following year can be configured.  This removes any useful
+	  historical context that system enhancements could use to aid
+	  ranking and seeding for the following year.
+	- there is no way to differentiate between 'new' teams, older teams
+	  that have been deactivated or abandoned, and current teams that
+	  are 'Inactive' for short periods of time while a coordinator
+	  reassigns them.
+	- multiple 'leagues' are really tiers inside the same league, and
+	  don't really need to duplicate information (such as night of
+	  week, season information, assigned fields, etc).  This
+	  duplication is wasteful, and annoying to manage.
+
+To fix these problems, a number of changes need to be made:
+1) Implement a better way to mark teams as active/inactive
+2) Create a better structure for leagues and tiers to avoid duplicate
+   information and make configuration and management easier.
+3) Allow preservation of historical data in the system so that it can be
+   used as a reference and purged at leisure.
+
+Implementation of these changes will consist of:
+
+TODO
