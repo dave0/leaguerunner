@@ -1,0 +1,9 @@
+<Files ~ "(\.(php|conf|inc|sql|tmpl)|Entries|Repositories|Root)$">
+  deny from all
+</Files>
+
+<Files index.php>
+  allow from all
+</Files>
+
+Options -Indexes
