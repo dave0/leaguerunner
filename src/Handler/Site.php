@@ -129,6 +129,8 @@ class SiteEdit extends Handler
 				$edit = $this->getFormData( $id );
 				$rc = $this->generateForm( $edit );
 		}
+		$edit['site_id'] = $id;
+		site_add_to_menu(array2object($edit));
 		$this->setLocation(array($edit['name']  => "site/view/$id", $this->title => 0));
 		return $rc;
 	}
