@@ -129,6 +129,15 @@ class League extends LeaguerunnerObject
 		return $teams;
 	}
 
+	/**
+	 * Return true if this league has had any games scheduled.
+	 */
+	function has_schedule() 
+	{
+		$result = db_result(db_query("SELECT COUNT(*) from schedule where league_id = %d", $this->league_id));
+		return ($result > 0);
+	}
+
 	/** 
 	 * Return array of rounds, suitable for use in pulldown
 	 * For now, this is just a braindead list, but in future, it

@@ -1370,6 +1370,11 @@ class LeagueLadder extends Handler
 		if( $league->schedule_type != "ladder" ) {
 			$this->error_exit("Ladder cannot be adjusted for a non-ladder league.");
 		}
+
+		// Re-seeding after scheduling is a bad idea, so disallow it
+		if( $league->has_schedule() ) {
+			$this->error_exit("Ladder cannot be adjusted after games have been scheduled.");
+		}
 		
 		$league->load_teams();
 		
