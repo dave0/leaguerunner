@@ -1,0 +1,57 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE book
+  PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+  "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY productname "LeagueRunner">
+]>
+<book>
+  <bookinfo>
+    <title>&productname; Developer Documentation</title>
+    <releaseinfo role="meta">
+      $Id$
+    </releaseinfo>
+    <author>
+      <surname>O'Neill</surname>
+      <firstname>Dave</firstname>
+    </author>
+    <copyright>
+      <year>2002</year>
+      <holder>Dave O'Neill</holder>
+    </copyright>
+  </bookinfo>
+  <preface>
+    <title>Foreword</title>
+    <para>
+      This document is intended to describe the inner workings of the
+      Leaguerunner system, with the end goal of making it easy for other
+      developers to contribute code.
+    </para>
+  </preface>
+  <chapter>
+    <title>Design Goals</title>
+    <para> Blah </para>
+    <sect1>
+      <title>Foo</title>
+      <para> ... </para>
+    </sect1> 
+  </chapter>
+
+  <chapter>
+    <title>System Architecture</title>
+    <para> Blah </para>
+    <sect1>
+      <title>Foo</title>
+      <para> ... </para>
+    </sect1> 
+  </chapter>
+
+  <chapter>
+    <title>Implementation</title>
+    <para> Blah </para>
+    <sect1>
+      <title>Foo</title>
+      <para> ... </para>
+    </sect1> 
+  </chapter>
+</book>
+<!-- vim: set sw=2 ts=2 et: -->

@@ -1,0 +1,65 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE book
+  PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+  "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+  <!ENTITY productname "LeagueRunner">
+]>
+<book>
+  <bookinfo>
+    <title>&productname; Administrator Documentation</title>
+    <releaseinfo role="meta">
+      $Id$
+    </releaseinfo>
+    <author>
+      <surname>O'Neill</surname>
+      <firstname>Dave</firstname>
+    </author>
+    <copyright>
+      <year>2002</year>
+      <holder>Dave O'Neill</holder>
+    </copyright>
+  </bookinfo>
+  <preface>
+    <title>Foreword</title>
+    <para>
+      This document is intended to describe how to use and install the
+      &productname; system.
+    </para>
+  </preface>
+  <chapter>
+    <title>Overview</title>
+    <para>
+  The &productname; system is intended to manage an Ultimate league.  Its
+  goals are simplicity of use for both league coordinators, team captains, and
+  players.
+    </para>
+    <sect1>
+      <title>Features</title>
+      <para> TODO </para>
+    </sect1> 
+  </chapter>
+
+  <chapter>
+    <title>Installing &productname;</title>
+    <para>
+    </para>
+    <sect1>
+      <title>Prerequisites</title>
+      <para></para>
+    </sect1>
+    <sect1>
+      <title>Getting the code</title>
+      <para></para>
+    </sect1>
+    <sect1>
+      <title>Installation</title>
+      <para></para>
+    </sect1>
+    <sect1>
+      <title>Configuration</title>
+      <para></para>
+    </sect1>
+  </chapter>
+
+</book>
+<!-- vim: set sw=2 ts=2 et: -->
