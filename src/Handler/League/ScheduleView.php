@@ -218,7 +218,6 @@ class LeagueScheduleView extends Handler
 		
 		$this->tmpl->assign("schedule_weeks", $schedule_weeks);
 
-
 		/* ... and set permissions flags */
 		while(list($key,$val) = each($this->_permissions)) {
 			if($val) {

@@ -98,17 +98,30 @@ class LeagueScheduleAddWeek extends Handler
 		return parent::display();
 	}
 
-	/*
-	 * Validate that the date provided is OK
+	/**
+	 * Validate that date provided is 
+	 * legitimately a valid date (ie: no Jan 32 or Feb 30)
 	 */
 	function validate_data ()
 	{
-		/* TODO: Validate that date provided is 
-		 * 	a) legitimately a valid date (ie: no Jan 32 or Feb 30)
-		 * 	b) Valid for the user to add.  Only administrator can add weeks in
-		 * 	past.
+		$year = var_from_getorpost('year');
+		$month = var_from_getorpost('month');
+		$day = var_from_getorpost('day');
+
+		/* Need a year check, since checkdate() considers any year between 1
+		 * and 32767 to be valid
 		 */
-		
+
+		if($year < 1990) {
+			$this->error_text = gettext("That year does not appear to be valid");
+			return false;
+		}
+
+		if(!checkdate($month, $day, $year) ) {
+			$this->error_text = gettext("That date is not valid");
+			return false;
+		}
+		return true;
 	}
 
 	/**
@@ -118,7 +131,26 @@ class LeagueScheduleAddWeek extends Handler
 	function generate_form ()
 	{
 		global $DB, $id;
+		
+		$row = $DB->getRow(
+			"SELECT 
+				l.name,
+				l.day,
+				l.season,
+				l.current_round
+			FROM league l
+			WHERE l.league_id = ?",
+			array($id), DB_FETCHMODE_ASSOC);
 
+		if($this->is_database_error($row)) {
+			return false;
+		}
+		
+		$this->tmpl->assign("league_id", $id );
+		$this->tmpl->assign("league_name", $row['name']);
+		$this->tmpl->assign("league_day",   $row['day']);
+		$this->tmpl->assign("league_season", $row['season']);
+		$this->tmpl->assign("league_current_round", $row['current_round']);
 		$today = getdate();
 		
 		$month = var_from_getorpost("month");
@@ -137,25 +169,32 @@ class LeagueScheduleAddWeek extends Handler
 
 		$cal_info = shell_exec("cal $month $year");
 		
-		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$GLOBALS['APP_CGI_LOCATION']."?op=$page_op&step=confirm&id=$id&year=$year;month=$month;day=$1'>$1</a>", $cal_info);
+		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$GLOBALS['APP_CGI_LOCATION']."?op=$page_op&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
 
 		$this->tmpl->assign("calendar_data", $cal_info);
 		$this->tmpl->assign("year", $year);
 		$this->tmpl->assign("current_month", $month);
 		if($month == 1) {
 			$next_month = $month + 1;
-			$prev_month = "12&year=" . ($year - 1);
+			$next_year  = $year;
+			$prev_month = "12";
+			$prev_year  = $year - 1;
 		} else if ($month == 12) {
-			$next_month = "1&year=" . ($year + 1);
+			$next_month = "1";
+			$next_year  = $year + 1;
 			$prev_month = $month - 1;
+			$prev_year  = $year;
 		} else {
 			$next_month = $month + 1;
+			$next_year  = $year;
 			$prev_month = $month - 1;
+			$prev_year  = $year;
 		}
 		$this->tmpl->assign("next_month", $next_month);
 		$this->tmpl->assign("prev_month", $prev_month);
+		$this->tmpl->assign("next_year", $next_year);
+		$this->tmpl->assign("prev_year", $prev_year);
 		$this->tmpl->assign("month_name", $month_name);
-		$this->tmpl->assign("league_id", $id);
 
 		return true;
 	}
@@ -172,6 +211,16 @@ class LeagueScheduleAddWeek extends Handler
 			return false;
 		}
 		
+		$year = var_from_getorpost('year');
+		$month = var_from_getorpost('month');
+		$day = var_from_getorpost('day');
+		
+		$this->tmpl->assign("year", $year);
+		$this->tmpl->assign("month", $month);
+		$this->tmpl->assign("month_name", date("F", mktime (0,0,0,$month,1,0)));
+		$this->tmpl->assign("day", $day);
+		$this->tmpl->assign("league_id", $id);
+		
 		return true;
 	}
 
@@ -186,8 +235,6 @@ class LeagueScheduleAddWeek extends Handler
 		if(! $this->validate_data()) {
 			return false;
 		}
-
-		$this->set_template_file("League/schedule.tmpl");
 
 		$num_teams = $DB->getOne("SELECT COUNT(*) from leagueteams where league_id = ?", array($id));
 
@@ -216,7 +263,7 @@ class LeagueScheduleAddWeek extends Handler
 		/* All the game_ date values have already been validated by
 		 * validate_data()
 		 */
-		$gametime = join("-",var_from_getorpost("game_year"), var_from_getorpost("game_month"), var_from_getorpost("game_day"));
+		$gametime = join("-",array(var_from_getorpost("year"), var_from_getorpost("month"), var_from_getorpost("day")));
 		$gametime .= " " . $row['start_time'];
 
 		$sth = $DB->prepare("INSERT INTO schedule (league_id,date_played,round) values (?,?,?)");

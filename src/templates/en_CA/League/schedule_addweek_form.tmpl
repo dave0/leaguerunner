@@ -25,14 +25,9 @@
 </p>
 <table border="1">
   <tr>
-    <td align="left"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$current_month}&year={php}print $year - 1{/php}">&lt;--</a></td>
-    <td align="middle">{$year}</td>
-    <td align="right"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$current_month}&year={php}print $year + 1{/php}">--&gt;</a></td>
-  </tr>
-  <tr>
-    <td align="left"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$prev_month}">&lt;--</a></td>
-    <td align="middle">{$month_name}</td>
-    <td align="right"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$next_month}">--&gt;</a></td>
+    <td align="left"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$prev_month}&year={$prev_year}">&lt;--</a></td>
+    <td align="middle">{$month_name} {$year}</td>
+    <td align="right"><a href="{$app_cgi_location}?op={$page_op}&id={$league_id}&month={$next_month}&year={$next_year}">--&gt;</a></td>
   </tr>
   <tr>
     <td colspan="3">
