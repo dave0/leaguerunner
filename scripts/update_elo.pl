@@ -10,6 +10,28 @@ use Getopt::Mixed;
 use IO::Handle;
 use IO::Pipe;
 
+sub calculateEloChange($$$$)
+{	
+	my ($winningScore, $losingScore, $winnerRating, $loserRating) = @_;
+	my $weightConstant = 40;
+	my $scoreWeight = 1;
+
+	my $gameValue = 1;
+	if($winningScore == $losingScore) {
+		$gameValue = 0.5;
+	}
+
+	my $scoreDiff = $winningScore - $losingScore;
+	if($winningScore && ($scoreDiff / $winningScore > (1/3))) {
+		$scoreWeight += $scoreDiff / $winningScore;
+	}
+
+	my $power = 10 ** ( (0 - ($winnerRating - $loserRating)) / 400);
+	my $expectedWin = (1 / ($power + 1));
+
+	return $weightConstant * $scoreWeight * ($gameValue - $expectedWin);
+}
+
 my $config = Leaguerunner::parseConfigFile("../src/leaguerunner.conf");
 
 ## Initialise database handle.
@@ -48,7 +70,12 @@ while(my $game  = $query->fetchrow_hashref()) {
 
 	my $change;
 	my $ary;
-	next unless (defined($game->{home_score}) && defined($game->{away_score}));
+
+	unless( defined($game->{home_score}) && defined($game->{away_score}) && ($game->{defaulted} eq "no")) {
+	    ## Skip unscored games and defaulted games
+	    $updateGame->execute(0,$game->{game_id});
+	    next;
+	}
 
 	$getRating->execute($game->{home_team});
 	$ary = $getRating->fetchrow_arrayref();
@@ -58,7 +85,7 @@ while(my $game  = $query->fetchrow_hashref()) {
 	$ary = $getRating->fetchrow_arrayref();
 	$game->{away_rating} = $ary->[0];
 
-	print "Doing game $game->{game_id} ($game->{'home_name'} vs $game->{'away_name'})\n";
+	print "Game $game->{game_id} ($game->{'home_name'} vs $game->{'away_name'}): ";
 	if($game->{home_score} > $game->{away_score}) {
 		$change = calculateEloChange($game->{home_score}, $game->{away_score}, $game->{'home_rating'}, $game->{'away_rating'});
 		$updateTeam->execute($change, $game->{home_team});
@@ -69,30 +96,8 @@ while(my $game  = $query->fetchrow_hashref()) {
 		$updateTeam->execute($change, $game->{away_team});
 		$updateTeam->execute((0 - $change), $game->{home_team});
 	}
-	print "Game change for $game->{game_id} is $change\n";
+	print "$change\n";
 
 	$updateGame->execute($change, $game->{game_id})
 	
-}
-
-sub calculateEloChange($$$$)
-{	
-	my ($winningScore, $losingScore, $winnerRating, $loserRating) = @_;
-	my $weightConstant = 40;
-	my $scoreWeight = 1;
-
-	my $gameValue = 1;
-	if($winningScore == $losingScore) {
-		$gameValue = 0.5;
-	}
-
-	my $scoreDiff = $winningScore - $losingScore;
-	if($winningScore && ($scoreDiff / $winningScore > (1/3))) {
-		$scoreWeight += $scoreDiff / $winningScore;
-	}
-
-	my $power = 10 ** ( (0 - ($winnerRating - $loserRating)) / 400);
-	my $expectedWin = (1 / ($power + 1));
-
-	return $weightConstant * $scoreWeight * ($gameValue - $expectedWin);
 }
