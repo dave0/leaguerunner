@@ -65,7 +65,7 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($this->_permissions['administer_league']) {
-			menu_add_child("$league->fullname/schedule", 'edit', 'add games', array('link' => "game/create/$league->id"));
+			menu_add_child("$league->fullname/schedule", 'edit', 'add games', array('link' => "game/create/$league->league_id"));
 			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
 	}
