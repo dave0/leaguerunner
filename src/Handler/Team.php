@@ -45,7 +45,7 @@ class TeamAddPlayer extends Handler
 				'name' => 'view', 'target' => 'op=person_view&id='
 			),
 			array(
-				'name' => 'request player', 'target' => "op=team_playerstatus&id=$id&step=confirm&status=captain_request&player_id="
+				'name' => 'request player', 'target' => "op=team_playerstatus&id=$id&step=perform&status=captain_request&player_id="
 			)	
 		);
 		

@@ -99,7 +99,6 @@ class UserSession
 		 * and generate a session key.
 		 */
 		
-		/* TODO: We may wish to be selective here */
 		$this->data = $row;
 		
 		$this->session_key = $cookie;
@@ -152,7 +151,6 @@ class UserSession
 		 * and generate a session key.
 		 */
 		
-		/* TODO: We may wish to be selective here */
 		$this->data = $row;
 		
 		$this->session_key = $this->build_session_key($client_ip);
