@@ -217,6 +217,21 @@ class PersonView extends Handler
 			}
 		}
 		
+		/* If the current user is a team captain, and the requested user is
+		 * their coordinator, they are allowed to view email/phone
+		 */
+		if($session->user->is_a_coordinator) {
+			$sess_user_leagues = implode(",",array_keys($session->user->leagues));
+			$query = "SELECT COUNT(*) FROM teamroster r, leagueteams l WHERE r.player_id = %d AND r.status IN ('captain','assistant') AND r.team_id = l.team_id AND l.league_id IN ($sess_user_leagues)";
+			if( db_result(db_query($query,$id )) > 0 ) {
+				$this->_permissions['email'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
+				return true;
+			}
+		}
+		
 		/* If the current user is a player, and the requested user is
 		 * their captain, they are allowed to view email/phone.
 		 */
