@@ -356,7 +356,7 @@ class TeamList extends Handler
 		$ops = array(
 			array(
 				'name' => 'view',
-				'target' => 'op=team_view'
+				'target' => 'op=team_view&id='
 			),
 		);
 		
