@@ -52,6 +52,9 @@ function sess_gc($lifetime)
  */
 class UserSession
 {
+	var $user;
+	var $session_key;
+	
 	/**
 	 * Constructor
 	 */
@@ -85,7 +88,7 @@ class UserSession
 		 * and generate a session key.
 		 */
 		$this->user = $user;
-		
+
 		$this->session_key = $cookie;
 
 		return true;
@@ -119,7 +122,7 @@ class UserSession
 		$this->user = $user;
 		
 		$this->session_key = $this->set_session_key($client_ip);
-
+		
 		return true;
 	}
 
@@ -222,14 +225,23 @@ class UserSession
 		);
 	}
 
+	function has_permission( $module, $action, $a1 = NULL, $a2 = NULL )
+	{
+		// Admin always has permission.
+		if( $this->is_valid() && $this->is_admin()) {
+			return true;
+		}
+		return module_invoke($module, 'permissions', $this->user, $action, $a1, $a2);
+	}
+
 	/** 
 	 * See if this session user is an administrator
 	 */
 	function is_admin ()
 	{
-		return ($this->attr_get('class') == 'administrator');
+		return ($this->user && $this->user->is_admin());
 	}
-
+	
 	/** 
 	 * See if this session user is captain of given team
 	 *
@@ -239,16 +251,7 @@ class UserSession
 	 */
 	function is_captain_of ($team_id)
 	{
-		if( ! array_key_exists($team_id, $this->user->teams) ) {
-			return false;
-		}
-		$status = $this->user->teams[$team_id]->position;
-
-		if( $status == 'captain' || $status == 'assistant') {
-			return true;
-		}
-		
-		return false;
+		return ($this->user && $this->user->is_captain_of($team_id));
 	}
 	
 	/** 
@@ -261,19 +264,7 @@ class UserSession
 	function is_coordinator_of ($league_id)
 	{
 		if($this->is_admin()) { return true; }
-		
-		if(!$this->user->is_a_coordinator) { return false; }
-
-		if($league_id == 1) {
-			/* All coordinators can coordinate "Inactive Teams" */
-			return true;
-		}
-		
-		if( array_key_exists($league_id, $this->user->leagues) ) {
-			return true;
-		}
-		
-		return false;
+		return ($this->user && $this->user->is_coordinator_of($team_id));
 	}
 
 	/**

@@ -286,6 +286,46 @@ class Person extends LeaguerunnerObject
 		$this->set('member_id', $real_id);
 		return true;
 	}
+
+	/* 
+	 * Check functions 
+	 */
+
+	function is_admin()
+	{
+		return ($this->class == 'administrator');
+	}
+	
+	function is_captain_of ($team_id)
+	{
+		if( ! array_key_exists($team_id, $this->teams) ) {
+			return false;
+		}
+		$status = $this->teams[$team_id]->position;
+
+		if( $status == 'captain' || $status == 'assistant') {
+			return true;
+		}
+		
+		return false;
+	}
+
+	function is_coordinator_of($league_id)
+	{
+		if(!$this->is_a_coordinator) { return false; }
+
+		if($league_id == 1) {
+			/* All coordinators can coordinate "Inactive Teams" */
+			return true;
+		}
+		
+		if( array_key_exists($league_id, $this->leagues) ) {
+			return true;
+		}
+		
+		return false;
+	}
+
 }
 
 /**
