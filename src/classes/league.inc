@@ -360,18 +360,25 @@ class League extends LeaguerunnerObject
 				$prev_game = $games[$i-$game_set];
 				// assign the previous game's dependant info to this game
 				$game->set('round', $prev_game->round);
+				// if there's a home team to move...
 				if ($prev_game->home_team) {
 					$game->set('home_team', $prev_game->home_team);
 				}
-				$game->set('home_dependant_game', $prev_game->home_dependant_game);
-				$game->set('home_dependant_type', $prev_game->home_dependant_type);
-				$game->set('home_dependant_rank', $prev_game->home_dependant_rank);
+				// if there's an away team to move...
 				if ($prev_game->away_team) {
 					$game->set('away_team', $prev_game->away_team);
 				}
-				$game->set('away_dependant_game', $prev_game->away_dependant_game);
+				// be careful about when you move the dependant games (game id's)!!!
+				if ( ($i-$game_set) < $game_set ) {
+					$game->set('home_dependant_game', $prev_game->home_dependant_game);
+					$game->set('away_dependant_game', $prev_game->away_dependant_game);
+				}
+				// always move the dependant types
+				$game->set('home_dependant_type', $prev_game->home_dependant_type);
 				$game->set('away_dependant_type', $prev_game->away_dependant_type);
-				$game->set('away_dependant_rank', $prev_game->away_dependant_rank);
+				// TODO: I don't think that we need to move the ranks, do we??  No because of assumption of array order?
+				//$game->set('home_dependant_rank', $prev_game->home_dependant_rank);
+				//$game->set('away_dependant_rank', $prev_game->away_dependant_rank);
 				if (! $game->save() ) {
 					// there was a problem, rollback!
 					foreach ($backup_games as $bgame) {
