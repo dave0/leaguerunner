@@ -71,7 +71,7 @@ class TeamView extends Handler
 
 	function process ()
 	{
-		global $DB, $id;
+		global $DB, $id, $session;
 
 		$this->set_template_file("Team/view.tmpl");
 		
@@ -139,8 +139,19 @@ class TeamView extends Handler
 		if($this->is_database_error($rows)) {
 			return false;
 		}
+
+		for($i = 0; $i < count($rows); $i++) {
+			if($rows[$i]['id'] == $session->attr_get("user_id")) {
+				$rows[$i]['allow_status_change'] = true;
+				
+			}
+			$rows[$i]['status'] = display_roster_status($rows[$i]['status']);
+		}
 		
 		$this->tmpl->assign("roster", $rows);
+
+		/* Assign our own user ID */
+		$this->tmpl->assign("user_id", $session->attr_get("user_id"));
 
 		/* ... and set permissions flags */
 		while(list($key,$val) = each($this->_permissions)) {

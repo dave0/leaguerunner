@@ -1,0 +1,50 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+
+<form action="{$app_cgi_location}" method="POST">
+  <input type="hidden" name="op" value="{$page_op}">
+  <input type="hidden" name="step" value="confirm">
+  <input type="hidden" name="id" value="{$id}">
+  <input type="hidden" name="player_id" value="{$player_id}">
+  <table border="0">
+    <tr>
+      <td colspan='2'>You are attempting to change player status for <b>{$player_name}</b> on team <b>{$team_name}</b></td>
+    </tr>
+    <tr>
+      <td colspan='2'>Current status is: <b>{$current_status}</b>
+    </tr>
+    <tr>
+      <td valign="top">Your potential choices are:</td>
+      <td>
+        {if $perm_set_none}
+        <input type='radio' name='status' value='none'>Remove from team<br>
+        {/if}
+        {if $perm_set_captain_request}
+        <input type='radio' name='status' value='captain_request'>Player requested by captain<br>
+        {/if}
+        {if $perm_set_player_request}
+        <input type='radio' name='status' value='player_request'>Request to join by player<br>
+        {/if}
+        {if $perm_set_captain}
+        <input type='radio' name='status' value='captain'>Set as team captain<br>
+        {/if}
+        {if $perm_set_player}
+        <input type='radio' name='status' value='player'>Set as regular player<br>
+        {/if}
+        {if $perm_set_substitute}
+        <input type='radio' name='status' value='substitute'>Set as substitute player<br>
+        {/if}
+      </td>
+    </tr>
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

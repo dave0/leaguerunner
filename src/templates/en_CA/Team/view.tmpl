@@ -4,7 +4,7 @@
 <p>
   [ <a href="{$app_cgi_location}?op=team_schedule_view&id={$team_id}">schedule and scores</a>
   {if $team_status == 'open'}
-  | <a href="{$app_cgi_location}?op=team_join&id={$team_id}">join team</a>
+  | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$user_id}&status=player_request&step=confirm">join team</a>
   {/if}
   {if $perm_edit_team}
   | <a href="{$app_cgi_location}?op=team_edit&id={$team_id}">edit info</a>
@@ -58,11 +58,9 @@
           <td class="roster_item">&nbsp;{$player.skill_level}</td>
           <td class="roster_item">
             [ <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
-            {if $perm_edit_team}
-              {if $player.status ne 'confirmed'}
-      | <a href="{$app_cgi_location}?op=team_playerconfirm&team_id={$team_id}&user_id={$player.id}">approve</a>
-              {/if}
-      | <a href="{$app_cgi_location}?op=team_removeplayer&team_id={$team_id}&user_id={$player.id}">remove</a>
+            {if $perm_edit_team or $player.allow_status_change}
+      | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player.id}">change status</a>
+      | <a href="{$app_cgi_location}?op=team_playerstatus&id={$team_id}&player_id={$player.id}&status=none&step=confirm">remove</a>
             {/if}
       ]
           </td>

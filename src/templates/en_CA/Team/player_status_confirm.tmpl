@@ -1,0 +1,27 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>{$page_title}</h1>
+{if $error_message}
+<blockquote>
+	{$error_message}
+</blockquote>
+{/if}
+
+<form action="{$app_cgi_location}" method="POST">
+  <input type="hidden" name="op" value="{$page_op}">
+  <input type="hidden" name="step" value="perform">
+  <input type="hidden" name="id" value="{$id}">
+  <input type="hidden" name="player_id" value="{$player_id}">
+  <input type="hidden" name="status" value="{$status}">
+  <blockquote>
+    You are about to change player <b>{$player_name}</b>'s status on the team <b>{$team_name}</b>.<br>
+    This player is currently <b>{$current_status}</b><br>
+    You are attempting to change this to <b>{$new_status}</b>.
+    <p>
+    Is this correct? Click "Submit" to confirm this operation.
+  </blockquote>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
