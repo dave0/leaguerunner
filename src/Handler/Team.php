@@ -79,19 +79,13 @@ class TeamCreate extends TeamEdit
 	function initialize ()
 	{
 		$this->set_title("Create New Team");
-		$this->_permissions = array(
-			'edit_name'			=> true,
-			'edit_website'		=> true,
-			'edit_shirt'		=> true,
-			'edit_captain' 		=> false,
-			'edit_assistant'	=> false,
-			'edit_status'		=> true,
-		);
 
 		$this->_required_perms = array(
 			'require_valid_session',
 			'allow',
 		);
+
+		$this->op = 'team_create';
 
 		return true;
 	}
@@ -99,12 +93,12 @@ class TeamCreate extends TeamEdit
 	/*
 	 * Overridden, as we have no info to put in that form.
 	 */
-	function generate_form () 
+	function getFormData ( $id )
 	{
-		return true;
+		return array();
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB, $session;
 
@@ -139,9 +133,7 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		$this->_id = $id;
-		
-		return parent::perform();
+		return parent::perform( $id );
 	}
 }
 
@@ -150,17 +142,9 @@ class TeamCreate extends TeamEdit
  */
 class TeamEdit extends Handler
 {
-	var $_id;
-	
 	function initialize ()
 	{
 		$this->set_title("Edit Team");
-		$this->_permissions = array(
-			'edit_name'			=> true,
-			'edit_website'		=> true,
-			'edit_shirt'		=> true,
-			'edit_status'		=> true,
-		);
 		$this->_required_perms = array(
 			'require_valid_session',
 			'require_var:id',
@@ -168,6 +152,7 @@ class TeamEdit extends Handler
 			'captain_of:id',
 			'deny'
 		);
+		$this->op = "team_edit";
 		return true;
 	}
 
@@ -175,68 +160,77 @@ class TeamEdit extends Handler
 	{
 		global $DB;
 		
-		$this->_id = var_from_getorpost('id');
+		$id = var_from_getorpost('id');
 		$step = var_from_getorpost('step');
+		
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Team/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generate_confirm( $id );
 				break;
 			case 'perform':
-				$this->perform();
-				local_redirect("op=team_view&id=" . $this->_id);
+				$this->perform( &$id );
+				local_redirect("op=team_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("Team/edit_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$formData = $this->getFormData( $id );
+				$rc = $this->generateForm($id, $formData);
 		}
-	
-		if($this->_id) {
-			$this->set_title("Edit Team: ". $DB->getOne("SELECT name FROM team where team_id = ?", array($this->_id)));
-		}
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-		
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
-
 		return $rc;
 	}
 
-	function generate_form ()
+	/* TODO: remove after Smarty is removed. */
+	function display () 
 	{
-		global $DB;
-
-		$row = $DB->getRow(
-			"SELECT 
-				t.name          AS team_name, 
-				t.website       AS team_website,
-				t.shirt_colour  AS shirt_colour,
-				t.status
-			FROM team t WHERE t.team_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
-
-		if($this->is_database_error($row)) {
-			return false;
-		}
-
-		$this->tmpl->assign("team_name", $row['team_name']);
-		$this->tmpl->assign("id", $this->_id);
-		
-		$this->tmpl->assign("team_website", $row['team_website']);
-		$this->tmpl->assign("shirt_colour", $row['shirt_colour']);
-		$this->tmpl->assign("status", $row['status']);
-
 		return true;
 	}
 
-	function generate_confirm ()
+	function getFormData ( $id )
+	{
+		global $DB;
+
+		$team = $DB->getRow(
+			"SELECT 
+				name,
+				website,
+				shirt_colour,
+				status
+			FROM team WHERE team_id = ?", 
+			array($id), DB_FETCHMODE_ASSOC);
+
+		if($this->is_database_error($team)) {
+			return false;
+		}
+
+		return $team;
+	}
+
+	function generateForm ($id, $formData)
+	{
+		$output = form_hidden("op", $this->op);
+		$output .= form_hidden("step", 'confirm');
+		$output .= form_hidden("id", $id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("Team Name:", form_textfield('', 'team_name', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
+		$output .= simple_row("Website:", form_textfield('', 'team_website', $formData['website'], 35,200, "Your team's website (optional)"));
+		$output .= simple_row("Shirt Colour:", form_textfield('', 'shirt_colour', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
+		$output .= simple_row("Team Status:", 
+			form_select("", "status", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
+
+		$output .= "</table>";
+		$output .= para(form_submit("submit") . form_reset("reset"));
+
+		if($formData['name']) {
+			$this->set_title($this->title . " &raquo; " . $formData['name']);
+		}
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
+		return true;
+	}
+
+	function generate_confirm ( $id )
 	{
 		global $DB;
 
@@ -244,17 +238,37 @@ class TeamEdit extends Handler
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
+
+		$team_name = var_from_getorpost('team_name');
+		$team_website = var_from_getorpost('team_website');
+		$shirt_colour = var_from_getorpost('shirt_colour');
+		$status = var_from_getorpost('status');
+
+		$output = para("Confirm that the data below is correct and hit continue to make your changes");
+		$output .= form_hidden("op", $this->op);
+		$output .= form_hidden("step", 'perform');
+		$output .= form_hidden("id", $id);
 		
-		$this->tmpl->assign("team_name", var_from_getorpost('team_name'));
-		$this->tmpl->assign("id", $this->_id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("Team Name:", form_hidden('team_name',$team_name) .  $team_name);
+		$output .= simple_row("Website:", form_hidden('team_website',$team_website) .  $team_website);
+		$output .= simple_row("Shirt Colour:", form_hidden('shirt_colour',$shirt_colour) .  $shirt_colour);
+		$output .= simple_row("Team Status:", form_hidden('status',$status) .  $status);
+		$output .= "</table>";
+		$output .= para(form_submit("submit"));
 		
-		$this->tmpl->assign("team_website", var_from_getorpost('team_website'));
-		$this->tmpl->assign("shirt_colour", var_from_getorpost('shirt_colour'));
-		$this->tmpl->assign("status", var_from_getorpost('status'));
+		if($team_name) {
+			$this->set_title($this->title . " &raquo; " . $team_name);
+		}
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB;
 
@@ -269,7 +283,7 @@ class TeamEdit extends Handler
 				var_from_getorpost('team_website'),
 				var_from_getorpost('shirt_colour'),
 				var_from_getorpost('status'),
-				$this->_id,
+				$id,
 			)
 		);
 		
@@ -375,15 +389,6 @@ class TeamPlayerStatus extends Handler
 	function initialize ()
 	{
 		$this->set_title("Change Player Status");
-		$this->_permissions = array(
-			'set_player'            => false,
-			'set_substitute'        => false,
-			'set_captain_request'   => false,
-			'set_player_request'    => false,
-			'set_captain'	        => false,
-			'set_assistant'	        => false,
-			'set_none'	        => false,
-		);
 
 		$this->positions = array(
 			'player'            => "regular player",
@@ -394,6 +399,8 @@ class TeamPlayerStatus extends Handler
 			'assistant'	        => "team assistant captain",
 			'none'	        	=> "not on team",
 		);
+
+		$this->op = 'team_playerstatus';
 
 		return true;
 	}
@@ -475,10 +482,7 @@ class TeamPlayerStatus extends Handler
 		} else {
 			$this->permittedStates = $this->getStatesForPlayer($id, $current_status);
 		}
-		foreach($this->permittedStates as $state) {
-			$this->_permissions["set_$state"] = true;
-		}
-		reset($this->permittedStates);
+
 		return true;
 	}
 	
@@ -565,34 +569,28 @@ class TeamPlayerStatus extends Handler
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Team/player_status_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm();
 				break;
 			case 'perform':
 				$this->perform();
 				local_redirect("op=team_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("Team/player_status_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$rc = $this->generateForm();
 		}
 	
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
-		}
-
 		return $rc;
 	}
 
-	function generate_form () 
+	/* TODO: Remove once Smarty is gone */
+	function display ()
 	{
+		return true;
+	}
+
+	function generateForm () 
+	{
+		/* TODO: These shouldn't all be global variables */
 		global $DB, $id, $player_id, $current_status;
 
 		$team = $DB->getRow("SELECT name, status FROM team where team_id = ?", 
@@ -601,7 +599,7 @@ class TeamPlayerStatus extends Handler
 			trigger_error("Database error");
 			return false;
 		}
-
+		
 		$player = $DB->getRow("SELECT 
 			p.firstname, p.lastname, p.member_id
 			FROM person p
@@ -611,17 +609,40 @@ class TeamPlayerStatus extends Handler
 			trigger_error("Database error");
 			return false;
 		}
-		
-		$this->tmpl->assign("team_name", $team['name']);
-		$this->tmpl->assign("player_name", $player['firstname'] . " " . $player['lastname']);
-		$this->tmpl->assign("current_status", $this->positions[$current_status]);
-		$this->tmpl->assign("id", $id);
-		$this->tmpl->assign("player_id", $player_id);
 
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('player_id', $player_id);
+		
+		$output .= "<table border='0'>";
+		$output .= tr(
+			td(para("You are attempting to change player status for <b>"
+				. $player['firstname'] . " " . $player['lastname'] 
+				. "</b> on team <b>" . $team['name'] 
+				. "</b>."), array('colspan' => 2))
+		);
+		$output .= simple_row("Current status:", "<b>" . $this->positions[$current_status] . "</b>");
+
+		$options = "";
+		foreach($this->permittedStates as $state) {
+			$options .= form_radio($this->positions[$state], 'status', $state);
+		}
+		reset($this->permittedStates);
+
+		$output .= simple_row("Choices are:", $options);
+
+		$output .= "</table>";
+		$output .= para( form_submit('submit') . form_reset('reset') );
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function generate_confirm()
+	function generateConfirm()
 	{
 		global $DB, $id, $player_id, $current_status;
 		
@@ -647,16 +668,26 @@ class TeamPlayerStatus extends Handler
 			return false;
 		}
 		
-		$this->tmpl->assign("status", var_from_getorpost('status'));
-		$this->tmpl->assign("new_status", $this->positions[var_from_getorpost('status')]);
-
-		$this->tmpl->assign("team_name", $team['name']);
-		$this->tmpl->assign("player_name", $player['firstname'] . " " . $player['lastname']);
-		$this->tmpl->assign("current_status", display_roster_status($current_status));
-		$this->tmpl->assign("current_status", $this->positions[$current_status]);
-		$this->tmpl->assign("id", $id);
-		$this->tmpl->assign("player_id", $player_id);
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('player_id', $player_id);
+		$output .= form_hidden('status', var_from_getorpost('status'));
 		
+		$output .= blockquote(
+			"You are about to change player <b>" . $player['firstname'] . " " . $player['lastname']
+			. "</b><br>This player is currently <b>" 
+			. $this->positions[$current_status] . "</b>.<br>"
+			. "You are attempting to change this to <b>" . $this->positions[var_from_getorpost('status')] . "</b>."
+			. para("Is this correct? Click 'Submit' to confirm this operation.")
+		);
+
+		$output .= form_submit('submit');
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
