@@ -918,9 +918,14 @@ class TeamView extends Handler
 			$totalSkill += $roster[$i]['skill_level'];
 		}
 
+		if($count > 0) {
+			$avgSkill = sprintf("%.2f", ($totalSkill / $count));
+		} else {
+			$avgSkill = 'N/A';
+		}
 		$rosterdata .= tr(
 			td( "Average Skill", array('colspan' => 3, 'class' => 'roster_item'))
-			. td( sprintf("%.2f", ($totalSkill / $count)), array('class' => 'roster_item'))
+			. td( $avgSkill, array('class' => 'roster_item'))
 			. td( "&nbsp;", array('class' => 'roster_item')));
 		
 		$rosterdata .= "</table>";
