@@ -109,6 +109,25 @@ function validate_nonblank( $string )
  * Helper functions
  */
 
+
+/*
+ * Clean up a telephone number so that it's in a common format
+ * Assumption: phone number has passed validate_telephone_input()
+ */
+function clean_telephone_number( $string ) 
+{
+	$matches = array();
+	preg_match("/^\(?(\d{3})\)?\s*-?\s*(\d{3})\s*-?\s*(\d{4})\s*(?:[ext]*\s*(\d+))?$/", $string, $matches);
+
+	$clean = "(" . $matches[1] . ") " . $matches[2] . "-" . $matches[3];
+	if(count($matches) == 5) {
+		$clean .= " x" . $matches[4];
+	}
+	
+	return $clean;
+}
+
+
 /*
  * PHP doesn't have the Perlish comparisons of cmp and <=>
  * so we fake a numeric cmp() here.

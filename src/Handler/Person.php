@@ -804,11 +804,11 @@ class PersonEdit extends Handler
 		
 		if($this->_permissions['edit_phone']) {
 			$fields[] = "home_phone = ?";
-			$fields_data[] = var_from_getorpost('home_phone');
+			$fields_data[] = clean_telephone_number(var_from_getorpost('home_phone'));
 			$fields[] = "work_phone = ?";
-			$fields_data[] = var_from_getorpost('work_phone');
+			$fields_data[] = clean_telephone_number(var_from_getorpost('work_phone'));
 			$fields[] = "mobile_phone = ?";
-			$fields_data[] = var_from_getorpost('mobile_phone');
+			$fields_data[] = clean_telephone_number(var_from_getorpost('mobile_phone'));
 		}
 		
 		if($this->_permissions['edit_name']) {
@@ -829,8 +829,13 @@ class PersonEdit extends Handler
 			$fields[] = "addr_prov = ?";
 			$fields_data[] = var_from_getorpost('addr_prov');
 			
+			$postcode = var_from_getorpost('addr_postalcode');
+			if(strlen($postcode) == 6) {
+				$foo = substr($postcode,0,3) . " " . substr($postcode,3);
+				$postcode = $foo;
+			}
 			$fields[] = "addr_postalcode = ?";
-			$fields_data[] = str_replace(" ","",var_from_getorpost('addr_postalcode'));
+			$fields_data[] = strtoupper($postcode);
 		}
 		
 		if($this->_permissions['edit_birthdate']) {

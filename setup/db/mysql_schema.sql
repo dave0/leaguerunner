@@ -28,7 +28,7 @@ CREATE TABLE person (
 	addr_street     varchar(50),
 	addr_city       varchar(50),
 	addr_prov       ENUM('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'),
-	addr_postalcode char(6),
+	addr_postalcode char(7),
 
 	gender 		ENUM("Male","Female"),
 
