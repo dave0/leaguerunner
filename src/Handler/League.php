@@ -39,9 +39,6 @@ function league_dispatch()
 		case 'admin':
 			$obj = new LeagueAdmin;
 			break;
-		case 'finalhack':
-			$obj = new LeagueFinalsHack;
-			break;
 	}
 
 	$obj->league = league_load( array('league_id' => $id) );
@@ -174,7 +171,6 @@ function league_splash ()
 	// pending scores, etc.
 	while(list(,$league) = each($session->user->leagues)) {
 		$links = array(
-			l("view", "league/view/$league->league_id"),
 			l("edit", "league/edit/$league->league_id")
 		);
 		if($league->schedule_type != 'none') {
@@ -185,12 +181,11 @@ function league_splash ()
 
 		$rows[] = array(
 			array( 
-				'data' => $league->fullname,
+				'data' => l($league->fullname, "league/view/$league->league_id"),
 				'colspan' => 3
 			),
 			array(
 				'data' => theme_links($links), 
-				'align' => 'right'
 			)
 		);
 	}
@@ -829,7 +824,7 @@ class LeagueStandings extends Handler
 		$b_points = (( 2 * $b->win ) + $b->tie);
 		$a_points = (( 2 * $a->win ) + $a->tie);
 		if( $a_points > $b_points ) {
-			return 0;
+			return -1;
 		} else if( $a_points < $b_points ) {
 			return 1;
 		}
@@ -837,16 +832,16 @@ class LeagueStandings extends Handler
 		/* Then, check head-to-head wins */
 		if(isset($b->vs[$a['id']]) && isset($a->vs[$b['id']])) {
 			if( $b->vs[$a['id']] > $a->vs[$b['id']]) {
-				return 0;
-			} else if( $b->vs[$a['id']] < $a->vs[$b['id']]) {
 				return 1;
+			} else if( $b->vs[$a['id']] < $a->vs[$b['id']]) {
+				return -1;
 			}
 		}
 
 		/* Check SOTG */
 		if($a->games > 0 && $b->games > 0) {
 			if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
-				return 0;
+				return -1;
 			} else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
 				return 1;
 			}
@@ -854,9 +849,9 @@ class LeagueStandings extends Handler
 		
 		/* Next, check +/- */
 		if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
-			return 0;
-		} else if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
 			return 1;
+		} else if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
+			return -1;
 		}
 		
 		/* 
@@ -864,10 +859,11 @@ class LeagueStandings extends Handler
 		 * appear above teams who have losses.
 		 */
 		if( $a->loss < $b->loss ) {
-			return 0;
+			return -1;
 		} else if( $a->loss > $b->loss ) {
 			return 1;
 		}
+		return 0;
 	}
 }
 
