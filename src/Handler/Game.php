@@ -252,6 +252,7 @@ class GameCreate extends Handler
 		// TODO HACK EVIL DMO
 		switch( $edit['type'] ) {
 			case 'ladder':
+			case 'fullladder':
 			case 'oneset':
 				break;
 			default:
@@ -357,11 +358,17 @@ class GameCreate extends Handler
 	 */
 	function createLadderSeason( $edit, $timestamp )
 	{
-		$this->error_exit("TONY IS WORKING ON THIS, AND THIS FUNCTION IS UNTESTED!!!");
+		//$this->error_exit("TONY IS WORKING ON THIS, AND THIS FUNCTION IS UNTESTED!!!");
 		$league = $this->league;  // shorthand
 
 		if ( ! $league->load_teams() ) {
 			$this->error_exit("Error loading teams for league $league->fullname");
+		}
+
+		// get an ordered array of team id's (ordered by rank by default)
+		$team_ids = array();
+		foreach ($league->teams as $key => $value) {
+			array_push ($team_ids, $key);
 		}
 
 		$num_teams = count($league->teams);
@@ -369,78 +376,181 @@ class GameCreate extends Handler
 		if ($num_teams % 4 != 0) {
 			$this->error_exit("The league MUST have a multiple of 4 teams.");
 		}
+		
+		$num_games = $num_teams / 2;
 
-		// start with round 1:
+		// start with round 1, so HOLD game
 		$round = 1;
 
-		// save the first set of games in a game array
-		$game_array = array();
+		// all games array!
+		$all_games = array();
 
 		// DO THE FIRST GAME, SETTINGS TEAM NAMES AND SUCH
-		usort($league->teams, array($this, 'sort_teams_by_ranking'));
-		$sorted_order = &$league->teams;
-		$num_games = $num_teams / 2;
 		for($i = 0; $i < $num_games*2; $i=$i+2) {
 			$ii = $i+1;
 			$g = new Game;
 			$g->set('league_id', $league->league_id);
 			$g->set('round', $round);
-			$g->set('home_team', $sorted_order[$i]->team_id);
-			$g->set('away_team', $sorted_order[$ii]->team_id);
+			$g->set('home_team', $team_ids[$i]);
+			$g->set('away_team', $team_ids[$ii]);
 			if ( ! $g->save() ) {
 				$this->error_exit("Could not successfully create a new game");
 			}
-			$game_array[$i] = $g->game_id;
-			$game_array[$ii] = $g->game_id;
-			if ( $g->select_random_gameslot($timestamp) ) {
-				print "<pre>Success...</pre>\n";
-			} else {
-				print "<pre>Failure...</pre>\n";
-			}
-			//print "<pre>SCHEDULE: " . $g->game_id . " IS " .$sorted_order[$i]->rank ." vs ". $sorted_order[$ii]->rank ." AT " . $g->slot_id . "</pre>\n\n";
+
+			array_push ( $all_games, $g );
 		}
 
-		// timestamp looks like this: 1095652800
-		$keep_scheduling = 1;
-		$home_away_flag = 0;
-		while ($keep_scheduling == 1) {
-			$round ++;
-			$new_timestamp = 0;
-			for($i = 0; $i < $game_array && $keep_scheduling == 1; $i++) {
-				$g = new Game;
-				$g->set('league_id', $league->league_id);
-				$g->set('round', $round);
-				if ( ! $g->save() ) {
-					$this->error_exit("Could not successfully create a new game");
-				}
-				// see if you can find an random gameslot for the very next day
-				$count_attempts = 0;
-				if ($new_timestamp == 0) {
-					$new_timestamp = get_next_day_timestamp($timestamp);
-					while ( !$g->select_random_gameslot($new_timestamp) ) {
-						$new_timestamp = get_next_day_timestamp($timestamp);
-						$count_attempts++;
-						// if you've tried 14 times, give up!  (14 = 2 weeks!)
-						if ($count_attempts >= 14) {
-							break;
-						}
-					}
-				}
-				if ($count_attemps >= 14) {
-					// you reached the end and there are no more games to schedule
-					$keep_scheduling = 0;
+		// repeat the loop, but prepare the next games
+		for($i = 0; $i < $num_games*2; $i=$i+2) {
+			$ii = $i+1;
+			$g = new Game;
+			$g->set('league_id', $league->league_id);
+			$g->set('round', $round+1);
+			if ( ! $g->save() ) {
+				$this->error_exit("Could not successfully create a new game");
+			}
+			
+			array_push ( $all_games, $g );
+		}
+
+		// repeat the loop, but prepare the far games
+		for($i = 0; $i < $num_games*2; $i=$i+2) {
+			$ii = $i+1;
+			$g = new Game;
+			$g->set('league_id', $league->league_id);
+			$g->set('round', $round+2);
+			if ( ! $g->save() ) {
+				$this->error_exit("Could not successfully create a new game");
+			}
+
+			array_push ( $all_games, $g );
+		}
+
+		$all_games = $this->set_dependents($all_games, $num_teams);
+		
+		// print out all the games so that I can see them! (and delete them so that they're not stored in the db!)
+		print "<pre>--------------</pre>\n";
+		foreach ($all_games as $game) {
+			print $game->sprintf('debug');
+			if ( ! $game->delete() ) {
+				$this->error_exit("PROBLEM HERE");
+			}
+		}
+		print "<pre>--------------</pre>\n";
+
+		$this->error_exit("TODO: Tony is working on this!  The output above is indicative of what WOULD have been scheduled had this function been finished.");
+	}
+
+
+	/********************************************************************************
+	 *  This function expects one ORDERED array with any number of sets of games, and will return a copy
+	 *  of the input array with the dependent games filled in.
+	 *  - The array should start with the first set of games with home/away teams already assigned, where
+	 *    the first game is 1 vs 2, second game is 3 vs 4, etc...
+	 *  - The function will skip the first game set, and then use it to assign the dependent games for
+	 *    the second game set.
+	 *  - It will then use the second game set to assign the dependent games for the third game set, and so on
+	 *  - ASSUMPTION: the round number is used to determine HOLD and MOVE transitions, and it is assumed
+	 *    that each game set has a round number incremented by one compared to the previous game set.  Furthermore,
+	 *    it is assumed that the first game set starts with round 1.
+	 */
+	function set_dependents ($games, $number_of_teams) {
+		
+		$games_per_set = $number_of_teams / 2;
+		$sets = count($games) / $games_per_set;
+
+		$return_games = array();
+		$count = 1;
+		$wlflag = 0;
+		$game_set = 1;
+		foreach ($games as $g) {
+			// don't do anything for the first game set
+			if ($count <= $games_per_set) {
+				array_push ( $return_games, $g );
+				$count++;
+				continue;
+			}
+			// first game will always be winners of first 2 "prev" games
+			if ( $count - ($games_per_set*$game_set) == 1 ) {
+				$get = $count - $games_per_set - 1;
+				$game = $games[ $get ];
+				$g->set('home_dependant_game', $game->game_id);
+				$g->set('home_dependant_type', "winner");
+				$game = $games[ $get+1 ];
+				$g->set('away_dependant_game', $game->game_id);
+				$g->set('away_dependant_type', "winner");
+				$g->save();
+				array_push ( $return_games, $g );
+				$count++;
+				continue;
+			}
+			// the last game will always be the losers of the last 2 "prev" games
+			if ( $count - ($games_per_set*$game_set) == $games_per_set ) {
+				$get = $count - $games_per_set - 1;
+				$game = $games[ $get ];
+				$g->set('home_dependant_game', $game->game_id);
+				$g->set('home_dependant_type', "loser");
+				$game = $games[ $get+1 ];
+				$g->set('away_dependant_game', $game->game_id);
+				$g->set('away_dependant_type', "loser");
+				$g->save();
+				array_push ( $return_games, $g );
+				$count++;
+				$game_set++;
+				continue;
+			}
+
+			$holdmove = $g->round % 2;
+			// Invert the holdmove since very first set of games will be round 1, and
+			// so the subsequent games which you're now scheduling should start with
+			// a hold week, but because we're using the next game's round number, 
+			// that number mod 2 will be 0, and we want 1 to start!
+			$holdmove = !$holdmove;
+
+			// if you've got here, you're looking at middle games, and the behaviour
+			// here is dependent on the hold or move weeks!
+			if ($holdmove) {
+				// HOLD TRANSITION:
+				if ($wlflag) {
+					// do winners:
+					$get = $count - $games_per_set - 1;
+					$game = $games[ $get ];
+					$g->set('home_dependant_game', $game->game_id);
+					$g->set('home_dependant_type', "winner");
+					$game = $games[ $get+1 ];
+					$g->set('away_dependant_game', $game->game_id);
+					$g->set('away_dependant_type', "winner");
 				} else {
-					// you've found a gameslot, so go ahead and schedule the dependent game
-					if ($home_away_flag == 0) {
-						$g->set('home_dependant_game', $game_array[$i]);
-						$g->set('home_dependant_type', "winner");
-					} else {
-					}
+					// do losers:
+					$get = $count - $games_per_set - 2;
+					$game = $games[ $get ];
+					$g->set('home_dependant_game', $game->game_id);
+					$g->set('home_dependant_type', "loser");
+					$game = $games[ $get+1 ];
+					$g->set('away_dependant_game', $game->game_id);
+					$g->set('away_dependant_type', "loser");
 				}
+				$g->save();
+				array_push ( $return_games, $g );
+				$count++;
+				$wlflag = !$wlflag;
+			} else {
+				// MOVE TRANSITION:
+				// get the loser:
+				$get = $count - $games_per_set - 2;
+				$game = $games[ $get ];
+				$g->set('home_dependant_game', $game->game_id);
+				$g->set('home_dependant_type', "loser");
+				// get the winner:
+				$game = $games[ $get+2 ];
+				$g->set('away_dependant_game', $game->game_id);
+				$g->set('away_dependant_type', "winner");
+				$g->save();
+				array_push ( $return_games, $g );
+				$count++;
 			}
 		}
-
-		$this->error_exit("TODO: dmo is working on this");
+		return $return_games;
 	}
 
 	/** sorts an array of teams by their rank, from lowest rank (best) to highest rank (worst) **/

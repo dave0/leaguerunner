@@ -193,6 +193,25 @@ class Game extends LeaguerunnerObject
 	function sprintf ( $format = 'short', $desired_team = NULL )
 	{
 		switch($format) {
+			case 'debug':
+				$output = "--- <br>\n"
+					. "GAME_ID: $this->game_id <br>\n"
+					. "LEAGUE_ID: $this->league_id <br>\n"
+					. "ROUND: $this->round <br>\n"
+					. "DATE: $this->game_date <br>\n"
+					. "START: $this->game_start <br>\n"
+					. "FIELDCODE: $this->field_code <br>\n"
+					. "HOME_TEAM: $this->home_team <br>\n"
+					. "HOME_NAME: $this->home_name <br>\n"
+					. "HOME_SCORE: $this->home_score <br>\n"
+					. "HOME_DEP_GAME: $this->home_dependant_game <br>\n"
+					. "HOME_DEP_TYPE: $this->home_dependant_type <br>\n"
+					. "AWAY_TEAM: $this->away_team <br>\n"
+					. "AWAY_NAME: $this->away_name <br>\n"
+					. "AWAY_SCORE: $this->away_score <br>\n"
+					. "AWAY_DEP_GAME: $this->away_dependant_game <br>\n"
+					. "AWAY_DEP_TYPE: $this->away_dependant_type <br>\n";
+				break;
 			case 'vs':
 				$output = "$this->game_date $this->game_start at " 
 					. l($this->field_code, "field/view/$this->fid")
