@@ -88,7 +88,7 @@ class Menu extends Handler
 			),
 			array(
 				'title' => "Change Password",
-				'url_append' => '?op=changepassword'
+				'url_append' => '?op=person_password'
 			),
 			array(
 				'title' => "Log Out",
@@ -179,7 +179,7 @@ class Menu extends Handler
 		$s = "<table>";
 		reset($available_ops);
 		while (list($key, $val) = each($available_ops)) {
-			$s .= "<tr><td>".$val['title']."</td</tr>\n";
+			$s .= "<tr><td><a href='" . $APP_CGI_LOCATION . $val['url_append']."'>".$val['title']."</a></td></tr>\n";
 		}
 		$s .= "</table>";
 		return $s;
