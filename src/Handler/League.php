@@ -26,8 +26,8 @@ class LeagueCreate extends LeagueEdit
 		$this->set_title("Create New League");
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_admin',
-			'allow'
+			'admin_sufficient',
+			'deny'
 		);
 		return true;
 	}

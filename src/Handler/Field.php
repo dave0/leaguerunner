@@ -21,10 +21,11 @@ class FieldAssign extends Handler
 		$this->set_title("Assign Field");
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_admin',
 			'require_var:id',
 			'require_var:day',
-			'allow'
+			'admin_sufficient',
+			'volunteer_sufficient',
+			'deny'
 		);
 		return true;
 	}
@@ -166,8 +167,8 @@ class FieldCreate extends FieldEdit
 		$this->set_title("Create New Field");
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_admin',
-			'allow'
+			'admin_sufficient',
+			'deny'
 		);
 		return true;
 	}
@@ -219,9 +220,9 @@ class FieldEdit extends Handler
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_admin',
 			'require_var:id',
-			'allow'
+			'admin_sufficient',
+			'deny'
 		);
 		return true;
 	}
@@ -408,11 +409,12 @@ class FieldUnassign extends Handler
 		$this->set_title("Unassign Field");
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_admin',
 			'require_var:id',
 			'require_var:day',
 			'require_var:league_id',
-			'allow',
+			'admin_sufficient',
+			'volunteer_sufficient',
+			'deny',
 		);
 		return true;
 	}

@@ -106,16 +106,14 @@ class Handler
 					$this->error_text = gettext("You do not have a valid session");
 					return false;
 				}
-			} else if($perm_type == 'require_admin') {
-				if(!$session->is_admin()) {
-					$this->error_text = gettext("You do not have permission to perform that operation");
-					return false;
-				} else {
-					$this->set_permission_flags('administrator');
-				}
 			} else if($perm_type == 'admin_sufficient') {
 				if($session->is_admin()) {
 					$this->set_permission_flags('administrator');
+					return true;
+				}
+			} else if($perm_type == 'volunteer_sufficient') {
+				if($session->attr_get('class') == 'volunteer') {
+					$this->set_permission_flags('volunteer');
 					return true;
 				}
 			} else if($perm_type == 'self_sufficient') {
