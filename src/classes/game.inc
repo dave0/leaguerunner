@@ -1,4 +1,11 @@
 <?php
+// Define constants for use throughout
+define("APPROVAL_AUTOMATIC", -1);		// approval, scores agree
+define("APPROVAL_AUTOMATIC_HOME", -2);  // approval, home score used
+define("APPROVAL_AUTOMATIC_AWAY", -3);  // approval, away score used
+define("APPROVAL_AUTOMATIC_FORFEIT", -4); // approval, no score entered
+
+
 class Game extends LeaguerunnerObject
 {
 
@@ -224,24 +231,76 @@ class Game extends LeaguerunnerObject
 	 */
 	function finalize()
 	{
-		print "Would finalize " . $this->game_id . "<br/>\n";
+#		print "Would finalize " . $this->game_id . "<br/>\n";
 
 		if( $this->is_finalized() ) {
 			return false;
 		}
 
+		$game_updated = false;
+
 		$home_entry = $this->get_score_entry( $this->home_id );
 		$away_entry = $this->get_score_entry( $this->away_id );
 		if( $home_entry && $away_entry ) {
-			print $this->game_id ." has two entries<br/>\n";
+#			print $this->game_id ." has two entries<br/>\n";
+			if( $this->score_entries_agree( object2array($home_entry), object2array($away_entry)) ) {
+#				print "&nbsp;&nbsp;And both entries agree<br/>\n";
+				switch( $home_entry->defaulted ) {
+					case 'us':
+						$this->set('status', 'home_default');
+						$this->save_spirit_entry( $this->away_id, $this->default_spirit('winner'));
+						$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
+						break;
+					case 'them':
+						$this->set('status', 'away_default');
+						$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
+						$this->save_spirit_entry( $this->home_id, $this->default_spirit('winner'));
+						break;
+					case 'no':
+					default:
+						// No default.  Just finalize score.
+						$this->set('home_score', $home_entry->score_for);
+						$this->set('away_score', $home_entry->score_against);
+				}
+				$this->set('approved_by', APPROVAL_AUTOMATIC);
+				$game_updated = true;
+			} else {
+				print "&nbsp;&nbsp;entries do not agree; mail coordinator<br/>\n";
+			}
 		} else if ( $home_entry && !$away_entry ) {
-			print $this->game_id ." has only a home entry<br/>\n";
+#			print $this->game_id ." has only a home entry<br/>\n";
+			$this->set('home_score', $home_entry->score_for);
+			$this->set('away_score', $home_entry->score_against);
+			$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
+			$game_updated = true;
 		} else if ( !$home_entry && $away_entry ) {
-			print $this->game_id ." has only an away entry<br/>\n";
+#			print $this->game_id ." has only an away entry<br/>\n";
+			$this->set('home_score', $away_entry->score_for);
+			$this->set('away_score', $away_entry->score_against);
+			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
+			$game_updated = true;
 		} else if ( !$home_entry && !$away_entry ) {
-			print $this->game_id ." has no entry<br/>\n";
+#			print $this->game_id ." has no entry<br/>\n";
+			$this->set('status', 'forfeit');
+			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
+			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
+			$this->set('approved_by', APPROVAL_AUTOMATIC_FORFEIT);
+			$game_updated = true;
 		} else {
 			die("Unreachable code hit in Game::finalize()");
+		}
+
+		if( $game_updated ) {
+			if ( ! $this->save() ) {
+				error_exit("Could not successfully save game results");
+			}
+
+			// Game has been saved to database.  Now we can update the dependant games.
+			if (! $this->updatedependentgames()) {
+				error_exit("Could not update dependant games.");
+			}
 		}
 	}
 	
@@ -297,7 +356,7 @@ class Game extends LeaguerunnerObject
 				continue;
 			}
 		
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
+			if( is_null($this->{$key}) ) {
 				$fields[] = "$key = %s";
 				$fields_data[] = 'NULL';
 			} else {
@@ -663,7 +722,15 @@ class Game extends LeaguerunnerObject
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'FewEnjoyed',
 					'GameOverall' => 'OverallAverage'
-					
+				);
+				break;
+			case 'perfect':
+				return array(
+					'Timeliness' => 'OnTime',
+					'RulesKnowledge' => 'ExcellentRules',
+					'Sportsmanship' => 'ExcellentSportsmanship',
+					'Enjoyment' => 'AllEnjoyed',
+					'GameOverall' => 'OverallGood'
 				);
 				break;
 			default:
@@ -871,10 +938,10 @@ function game_query ( $array = array() )
 				$query[] = "g.game_date = '" . check_query($value) . "'";
 				break;
 			case 'game_date_past':
-				$query[] = "g.game_date < CURDATE()";
+				$query[] = "UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) < UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'game_date_future':
-				$query[] = "g.game_date > CURDATE()";
+				$query[] = "UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) > UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'either_team':
 				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';

@@ -177,12 +177,14 @@ class League extends LeaguerunnerObject
 	 */
 	function finalize_old_games()
 	{
-		$result = db_query("SELECT DISTINCT s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) AS start_timestamp FROM schedule s, gameslot g WHERE s.league_id = %d AND g.game_id = s.game_id AND game_date < CURDATE() AND (ISNULL(s.home_score) OR ISNULL(s.away_score))", $this->league_id);
+		$result = db_query("SELECT DISTINCT s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) AS start_timestamp FROM schedule s, gameslot g WHERE s.league_id = %d AND g.game_id = s.game_id AND UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) < UNIX_TIMESTAMP(NOW()) AND (ISNULL(s.home_score) OR ISNULL(s.away_score))", $this->league_id);
 		while( $foo = db_fetch_array($result) ) {
 			$id = $foo['game_id'];
 #			print "$id is possibly 'old' and in need of approval<br />";
 
-			$expiry_factor = 27 * 3600; // Expiry is 24 hours after game end, so we'll say 27 hours after start.
+			// Expiry is 24 hours after game end, so we'll say 27 hours after start.  This is because for
+			// summer games we may just have 'dark' listed rather than an end time.
+			$expiry_factor = 27 * 3600; 
 			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
 				$game = game_load( array('game_id' => $id) );
 				$game->finalize();

@@ -767,7 +767,7 @@ class GameSubmit extends Handler
 					$this->game->set('away_score', $home_entry->score_against);
 			}
 			
-			$this->game->set('approved_by', -1);
+			$this->game->set('approved_by', APPROVAL_AUTOMATIC);
 
 			if ( ! $this->game->save() ) {
 				$this->error_exit("Could not successfully save game results");
@@ -1118,12 +1118,23 @@ class GameEdit extends Handler
 			}
 			
 			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
-			
-			if($game->approved_by != -1) {
-				$approver = person_load( array('user_id' => $game->approved_by));
-				$approver = l($approver->fullname, "person/view/$approver->user_id");
-			} else {
-				$approver = 'automatic approval';
+		
+			switch($game->approved_by) {
+				case APPROVAL_AUTOMATIC:
+					$approver = 'automatic approval';
+					break;
+				case APPROVAL_AUTOMATIC_HOME:
+					$approver = 'automatic approval using home submission';
+					break;
+				case APPROVAL_AUTOMATIC_AWAY:
+					$approver = 'automatic approval using away submission';
+					break;
+				case APPROVAL_AUTOMATIC_FORFEIT:
+					$approver = 'game automatically forfeited due to lack of score submission';
+					break;
+				default:
+					$approver = person_load( array('user_id' => $game->approved_by));
+					$approver = l($approver->fullname, "person/view/$approver->user_id");
 			}
 			$score_group .= form_item("Score Approved By", $approver);		
 		
