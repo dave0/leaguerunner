@@ -34,8 +34,8 @@ class GameSlot extends LeaguerunnerObject
 		}
 
 		/* set derived attributes */
-		if($this->site_id) {
-			$this->site = site_load( array('site_id' => $this->site_id) );
+		if($this->fid) {
+			$this->field = field_load( array('fid' => $this->fid) );
 		}
 
 		return true;
@@ -134,11 +134,7 @@ class GameSlot extends LeaguerunnerObject
 			return false;
 		}
 
-		if ( ! $this->site_id ) {
-			return false;
-		}
-		
-		if ( ! $this->field_num ) {
+		if ( ! $this->fid ) {
 			return false;
 		}
 		
@@ -150,7 +146,7 @@ class GameSlot extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into gameslot (site_id,field_num,game_date,game_start) VALUES(%d,%d,'%s','%s')", $this->site_id, $this->field_num, $this->game_date, $this->game_start);
+		db_query("INSERT into gameslot (fid,m,game_date,game_start) VALUES(%d,%d,'%s','%s')", $this->fid, $this->game_date, $this->game_start);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
@@ -202,9 +198,8 @@ function slot_query ( $array = array() )
 
 	return db_query("SELECT 
 		g.slot_id,
-		g.site_id,
-		site.name AS site_name,
-		g.field_num,
+		field.name AS field_name,
+		g.fid,
 		g.game_date,
 		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
@@ -212,7 +207,7 @@ function slot_query ( $array = array() )
 		g.game_id
 	FROM
 		gameslot g
-		INNER JOIN site ON (g.site_id = site.site_id)
+		INNER JOIN field ON (g.fid = field.fid)
 	WHERE " . implode(' AND ',$query) .  $order);
 }
 

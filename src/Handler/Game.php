@@ -717,9 +717,9 @@ class GameView extends Handler
 			l($game->away_name, "team/view/$game->away_team"));
 
 	
-		$site = site_load( array('site_id' => $game->site_id) );
+		$field = field_load( array('fid' => $game->fid) );
 		$rows[] = array("Field:",
-			l("$site->name $game->field_num ($game->field_code)", "site/view/$game->site_id"));
+			l("$field->fullname ($game->field_code)", "field/view/$game->fid"));
 			
 		$rows[] = array("Round:", $game->round);
 

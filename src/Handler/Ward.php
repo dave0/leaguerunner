@@ -253,7 +253,7 @@ class WardList extends Handler
 			
 			while($ward = db_fetch_object($result) ) {
 			
-				$fieldQuery = db_query("SELECT COUNT(*) FROM field f, site s WHERE f.site_id = s.site_id AND f.status = 'open' AND s.ward_id = %d", $ward->ward_id);
+				$fieldQuery = db_query("SELECT COUNT(*) FROM field f LEFT JOIN field pf ON f.parent_fid = pf.fid WHERE f.status = 'open' AND (f.ward_id = %d OR pf.ward_id = %d)", $ward->ward_id, $ward->ward_id);
 				$fields = db_result($fieldQuery);
 				$rows[] = array(
 					array("&nbsp;", 'width' => 10),
@@ -320,12 +320,12 @@ class WardView extends Handler
 		}
 		
 		/* and list field sites in this ward */
-		$fieldSites = db_query("SELECT * FROM site WHERE ward_id = %d ORDER BY site_id", $id);
+		$fieldSites = db_query("SELECT f.* FROM field f WHERE ISNULL(f.parent_fid) AND f.ward_id = %d", $id);
 
-		$site_listing = "<ul>";
-		while($site = db_fetch_object($fieldSites)) {
-			$field_listing .= "<li>$site->name ($site->code) &nbsp;";
-			$field_listing .= l("view", "site/view/$site->site_id", array('title' => "View site"));
+		$field_listing = "<ul>";
+		while($field = db_fetch_object($fieldSites)) {
+			$field_listing .= "<li>$field->name ($field->code) &nbsp;";
+			$field_listing .= l("view", "field/view/$field->fid", array('title' => "View fields"));
 		}
 		$field_listing .= "</ul>";
 		

@@ -38,17 +38,13 @@ class GameSlotCreate extends Handler
 
 	function process()
 	{
-		$site_id = arg(2);
-		$field_num = arg(3);
-		$year = arg(4);
-		$month = arg(5);
-		$day = arg(6);
+		$fid = arg(2);
+		$year = arg(3);
+		$month = arg(4);
+		$day = arg(5);
 
-		$site = site_load( array('site_id' => $site_id) );
-		if(!$site) {
-			$this->error_exit("That site does not exist");
-		}
-		if( !validate_number($field_num) ) {
+		$field = field_load( array('fid' => $fid) );
+		if(!$field) {
 			$this->error_exit("That field does not exist");
 		}
 		
@@ -58,7 +54,7 @@ class GameSlotCreate extends Handler
 			}
 			$datestamp = mktime(0,0,0,$month,$day,$year);
 		} else {
-			return $this->datePick($site, $field_num, $year, $month, $day);
+			return $this->datePick($field, $year, $month, $day);
 		}
 
 		$edit = &$_POST['edit'];
@@ -69,31 +65,31 @@ class GameSlotCreate extends Handler
 			#   - insert into gameslot table
 			#   - insert availability for gameslot into availability table.
 			# the overlap-checking probably belongs in slot.inc
-				if ( $this->perform( $site, $field_num, $edit, $datestamp) ) {
-					local_redirect(url("field/view/$site->site_id/$field_num"));	
+				if ( $this->perform( $field, $edit, $datestamp) ) {
+					local_redirect(url("field/view/$field->fid"));	
 				} else {
 					$this->error_exit("Aieee!  Bad things happened in gameslot create");
 				}
 				break;
 			case 'confirm':
 				$this->setLocation(array( 
-					"$site->name $field_num" => "site/view/$site->site_id",
+					"$field->fullname $field_num" => "field/view/$field->fid",
 					$this->title => 0
 				));
-				return $this->generateConfirm($site, $field_num, $edit, $datestamp);
+				return $this->generateConfirm($field, $edit, $datestamp);
 				break;
 			default:
 				$this->setLocation(array( 
-					"$site->name $field_num" => "site/view/$site->site_id",
+					$field->fullname => "field/view/$field->fid",
 					$this->title => 0
 				));
-				return $this->generateForm($site, $field_num, $datestamp);
+				return $this->generateForm($field, $datestamp);
 				break;
 		}
 		$this->error_exit("Error: This code should never be reached.");
 	}
 
-	function datePick ( &$site, $field_num, $year, $month, $day)
+	function datePick ( &$field, $year, $month, $day)
 	{
 		$output = para("Select a date below to start adding gameslots.");
 
@@ -107,28 +103,29 @@ class GameSlotCreate extends Handler
 			$year = $today['year'];
 		}
 
-		$output .= generateCalendar( $year, $month, $day, "slot/create/$site->site_id/$field_num", "slot/create/$site->site_id/$field_num");
+		$output .= generateCalendar( $year, $month, $day, "slot/create/$ield->fid", "slot/create/$field->fid");
 
 		return $output;
 	}
 
-	# Processing should:
+	# TODO: Processing should:
 	#   - check for overlaps with existing slots
 	#   - insert into gameslot table
 	#   - insert availability for gameslot into availability table.
 	# the overlap-checking probably belongs in slot.inc
-	function perform ( &$site, $field_num, $edit, $datestamp )
+	function perform ( &$field, $edit, $datestamp )
 	{
 		if($edit['repeat_for'] > 52) {
 			$this->error_exit("You cannot repeat a schedule for more than 52 weeks.");
 		}
 		for( $i = 0; $i < $edit['repeat_for']; $i++) {
 			$slot = new GameSlot;
-			$slot->set('site_id', $site->site_id);
-			$slot->set('field_num', $field_num);
-
+			$slot->set('fid', $field->fid);
 			$slot->set('game_date', strftime("%Y-%m-%d",$datestamp));
 			$slot->set('game_start', $edit['start_time']);
+			if( $edit['end_time'] != '---' ) {
+				$slot->set('game_end', $edit['end_time']);
+			}
 
 			foreach($edit['availability'] as $league_id) {
 				$slot->add_league($league_id);
@@ -144,13 +141,14 @@ class GameSlotCreate extends Handler
 		return true;
 	}
 
-	function generateForm ( &$site, $field_num, $datestamp )
+	function generateForm ( &$field, $datestamp )
 	{
 	
 		$output = form_hidden('edit[step]', 'confirm');
 		
 		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
 		$group .= form_select('Game Start Time','edit[start_time]', '18:30', getOptionsFromTimeRange(0000,2400,5), 'Time for games in this timeslot to start');
+		$group .= form_select('Game Timecap','edit[end_time]', '---', getOptionsFromTimeRange(0000,2400,5), 'Time for games in this timeslot to end.  Choose "---" to assign the default timecap (dark) for that week.');
 		$output .= form_group("Gameslot Information", $group);
 		
 		$weekday = strftime("%A", $datestamp);
@@ -174,13 +172,15 @@ class GameSlotCreate extends Handler
 		return form($output);
 	}
 	
-	function generateConfirm ( &$site, $field_num, &$edit, $datestamp )
+	function generateConfirm ( &$field, &$edit, $datestamp )
 	{
 		$output = form_hidden('edit[step]', 'perform');
 		
 		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
 		$group .= form_item('Game Start Time',
 			form_hidden('edit[start_time]', $edit['start_time']) . $edit['start_time']);
+			$group .= form_item('Game Timecap',
+			form_hidden('edit[end_time]', $edit['end_time']) . $edit['end_time']);
 		$output .= form_group("Gameslot Information", $group);
 
 		$group = '';
@@ -223,17 +223,16 @@ class GameSlotDelete extends Handler
 		}
 		
 		$this->setLocation(array( 
-			$slot->site->name . " $slot->field_num" => "site/view/" . $slot->site->site_id,
+			$slot->field->fullname => "field/view/$field->fid",
 			$this->title => 0
 		));
 
 
 		switch($_POST['edit']['step']) {
 			case 'perform':
-				$site_id = $slot->site_id;
-				$field_num = $slot->field_num;
+				$fid = $slot->fid;
 				if ( $slot->delete() ) {
-					local_redirect(url("field/view/$site_id/$field_num"));	
+					local_redirect(url("field/view/$fid"));
 				} else {
 					$this->error_exit("Failure deleting gameslot");
 				}
@@ -322,7 +321,7 @@ class GameSlotAvailability extends Handler
 				break;
 			default:
 				$this->setLocation(array(
-					$slot->site->name . ' ' . $slot->field_num => "field/view/$slot->site_id/$field_num",
+					$slot->field->fullname => "field/view/$slot->fid",
 					$this->title => 0
 				));
 				return $this->generateForm( $slot );

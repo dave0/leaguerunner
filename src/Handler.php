@@ -12,7 +12,6 @@ module_register("Handler/League.php", 'league');
 module_register("Handler/Schedule.php", 'schedule');
 module_register("Handler/Field.php", 'field');
 module_register("Handler/Ward.php", 'ward');
-module_register("Handler/Site.php",'site');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
 /* 

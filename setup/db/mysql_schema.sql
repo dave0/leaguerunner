@@ -63,15 +63,6 @@ CREATE TABLE person (
 	INDEX person_ward (ward_id)
 );
 
-CREATE TABLE demographics (
-	income enum('000to020K', '020to040K', '040to060K', '060to080K', '080to100K', '100to150K', '150to200K', '200Kplus'),
-	num_children enum('0','1','2','3','4','more than 4'),
-	education enum(	'none', 'highschool', 'trade', 'college', 'undergrad', 'masters', 'doctorate' ),
-	field	varchar(100),
-	language enum('en','fr','enfr'),
-	other_sports varchar(255)
-);
-
 -- For use when assigning member IDs
 CREATE TABLE member_id_sequence (
 	year	year not null,
@@ -138,11 +129,13 @@ CREATE TABLE schedule (
     game_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
     league_id int NOT NULL,
 -- This indicates what round this game is in.
-    round int NOT NULL DEFAULT 1,
-    date_played datetime, -- date and time of game.
+    round varchar(10) NOT NULL DEFAULT '1',
     home_team   integer,
+    home_dependant_game	integer,
+    home_dependant_type enum('winner','loser'),
     away_team   integer,
-    field_id    integer,
+    away_dependant_game	integer,
+    away_dependant_type enum('winner','loser'),
     home_score  tinyint,
     away_score  tinyint,
     home_spirit tinyint,
@@ -171,36 +164,42 @@ CREATE TABLE score_entry (
     PRIMARY KEY (team_id,game_id)
 );
 
-CREATE TABLE site ( 
-	site_id int NOT NULL PRIMARY KEY AUTO_INCREMENT, 
-	name varchar(255) UNIQUE, 
-	code char(3) UNIQUE, 
-	region   enum('Central','East','South','West'),
-	ward_id integer,
-	location_url varchar(255), 
-	layout_url varchar(255), 
-	directions text, 
-	instructions text,
-	INDEX site_ward (ward_id)
-);
-
 CREATE TABLE field (
-	field_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	site_id int NOT NULL,
-	num tinyint,
-	status   enum('open','closed'),
-	notes text,
-	availability set('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
-	INDEX field_site (site_id),
-	INDEX field_status (status)
+	fid	int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	num	tinyint,
+	status  enum('open','closed'),
+	notes	text,
+	parent_fid	int,
+	-- If there's a parent field ID provided, the values below are
+	-- inherited from parent rather than used from the table
+	name	varchar(255),
+	code	char(3),
+	region	enum('Central','East','South','West'),
+	ward_id integer,
+	site_directions	text,
+	site_instructions text,
+	location_url varchar(255),
+	layout_url varchar(255)
+
+	INDEX field_ward (ward_id)
 );
 
--- field assignments
-CREATE TABLE field_assignment (
-    league_id int NOT NULL,
-    field_id  int NOT NULL,
-    day       ENUM('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday') NOT NULL
+-- Game slots for scheduling
+create table gameslot (
+	slot_id		integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	fid		integer NOT NULL,
+	game_date	date,
+	game_start	time,
+	game_end	time,
+	game_id		integer
 );
+
+-- gameslot availability
+create table league_gameslot_availability (
+	league_id 	integer NOT NULL,
+	slot_id		integer NOT NULL
+);
+
 
 -- city wards
 CREATE TABLE ward (
@@ -211,27 +210,6 @@ CREATE TABLE ward (
 	region   enum('Central','East','South','West'),
 	url       varchar(255),
 	INDEX ward_city (city)
-);
-
--- waiting list
-CREATE TABLE waitinglist (
-	wlist_id	integer NOT NULL AUTO_INCREMENT,
-	name		varchar(100) NOT NULL,
-	description	text,
-	max_male	integer,
-	max_female	integer,
-	allow_couples_registration ENUM('Y','N') DEFAULT 'N',
-	selection	ENUM('order submitted', 'draft', 'random draw', 'other') DEFAULT 'order submitted',
-	PRIMARY KEY (wlist_id)
-);
-
-CREATE TABLE waitinglistmembers (
-	wlist_id	integer NOT NULL,
-	user_id		integer NOT NULL,
-	paired_with	integer, -- for couples registration
-	preference	smallint,
-	date_registered datetime,
-	PRIMARY KEY(wlist_id, user_id)
 );
 
 CREATE TABLE variable (

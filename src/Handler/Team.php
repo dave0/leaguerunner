@@ -1049,7 +1049,7 @@ class TeamSchedule extends Handler
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
 				l($opponent_name, "team/view/$opponent_id"),
-				l($game->field_code, "site/view/$game->site_id"),
+				l($game->field_code, "field/view/$game->fid"),
 				$home_away,
 				$game_score,
 				$score_type

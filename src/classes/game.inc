@@ -135,7 +135,7 @@ class Game extends LeaguerunnerObject
 		switch($format) {
 			case 'vs':
 				$output = "$this->game_date $this->game_start at " 
-					. l($this->field_code, "site/view/$this->site_id")
+					. l($this->field_code, "field/view/$this->fid")
 					. " vs. ";
 				if( $this->home_id == $desired_team ) {
 					$output .= l($this->away_name, "team/view/$this->away_id");
@@ -258,16 +258,16 @@ function game_query ( $array = array() )
 		g.slot_id,
 		g.game_date,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
-		g.site_id,
-		g.field_num,
+		g.fid,
 		UNIX_TIMESTAMP(g.game_date) as day_id,
-		CONCAT(t.code, ' ', g.field_num) AS field_code,
+		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
 		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp
 	FROM
 		schedule s
 		INNER JOIN league l ON (l.league_id = s.league_id)
 		LEFT JOIN gameslot g ON (g.game_id = s.game_id)
-		LEFT JOIN site t ON (t.site_id = g.site_id)
+		LEFT JOIN field f ON (f.fid = g.fid)
+		LEFT JOIN field pf ON (pf.fid = f.parent_fid)
 		LEFT JOIN team h ON (h.team_id = s.home_team) 
 		LEFT JOIN team a ON (a.team_id = s.away_team)
 	WHERE " . implode(' AND ',$query) .  $order);

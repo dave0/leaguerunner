@@ -80,7 +80,7 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
-		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, g.site_id, g.field_num') );
+		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
 		
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
@@ -181,10 +181,10 @@ class ScheduleEdit extends Handler
 		$result = db_query(
 			"SELECT 
 				s.slot_id AS slot_id,
-				CONCAT(s.game_start,' ',site.name,' ', s.field_num) AS value
+				CONCAT_WS(' ', s.game_start, field.name, field.num) AS value
 			 FROM
 			 	gameslot s 
-				INNER JOIN site ON (s.site_id = site.site_id) 
+				INNER JOIN field ON (s.fid = field.fid) 
 				LEFT JOIN league_gameslot_availability a ON (s.slot_id = a.slot_id)
 				LEFT JOIN schedule g ON (s.game_id = g.game_id) 
 			 WHERE 
@@ -194,7 +194,7 @@ class ScheduleEdit extends Handler
 					OR
 					g.league_id=%d
 				)
-			 ORDER BY s.game_start, site.name, s.field_num", $timestamp, $id,$id);
+			 ORDER BY s.game_start, field.name, field.num", $timestamp, $id,$id);
 			
 		if( ! db_num_rows($result) ) {
 			$this->error_exit("There are no fields assigned to this league");
@@ -337,7 +337,7 @@ class ScheduleEdit extends Handler
 			$rows[] = array(
 				form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 				form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
-				form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $slot->game_start . " at " . $slot->site_name . ' ' . $slot->field_num,
+				form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $slot->game_start . " at " . $slot->field_name . ' ' . $slot->field_num,
 				form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
 				form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
 			);
@@ -541,7 +541,7 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 	
 	$gameRow = array(
 		$game['round'],
-		l($game['game_start'], 'game/view/' . $game['game_id']) . " at " .  l( $game['field_code'], "site/view/" . $game['site_id']),
+		l($game['game_start'], 'game/view/' . $game['game_id']) . " at " .  l( $game['field_code'], "field/view/" . $game['fid']),
 		$homeTeam,
 		$awayTeam,
 		$game['home_score'],
