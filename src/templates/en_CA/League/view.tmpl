@@ -26,13 +26,13 @@
 </table>
 
 	<p>
-	[ <a href="{$app_cgi_location}?op=league_schedule_view;id={$league_id}">view{if $perm_adminster_league}/edit{/if} schedule</a>
-	| <a href="{$app_cgi_location}?op=league_standings;id={$league_id}">view standings</a>
+	[ <a href="{$app_cgi_location}?op=league_schedule_view&id={$league_id}">view{if $perm_adminster_league}/edit{/if} schedule</a>
+	| <a href="{$app_cgi_location}?op=league_standings&id={$league_id}">view standings</a>
   {if $perm_administer_league}
 	<TMPL_IF NAME='is_league_admin'>
-		| <a href="{$app_cgi_location}?op=league_edit;id={$league_id}">edit info</a>
-		| <a href="{$app_cgi_location}?op=league_verifyscores;id={$league_id}">approve scores</a>
-		| <a href="{$app_cgi_location}?op=league_captemails;id={$league_id}">fetch captain emails</a>
+		| <a href="{$app_cgi_location}?op=league_edit&id={$league_id}">edit info</a>
+		| <a href="{$app_cgi_location}?op=league_verifyscores&id={$league_id}">approve scores</a>
+		| <a href="{$app_cgi_location}?op=league_captemails&id={$league_id}">fetch captain emails</a>
   {/if}
 	]
 	</p>
@@ -46,15 +46,15 @@
     <td class='teamlist_item'>{$team.name}</td>
     <td class='teamlist_item'>{$team.shirt_colour}&nbsp</td>
     <td class='teamlist_item'>
-    [ <a href="{$app_cgi_location}?op=team_view;id={$team.id}">view</a>
+    [ <a href="{$app_cgi_location}?op=team_view&id={$team.id}">view</a>
     {if $team.team_status == 'open'}
-    | <a href="{$app_cgi_location}?op=team_join;id={$team.id}">join team</a>
+    | <a href="{$app_cgi_location}?op=team_join&id={$team.id}">join team</a>
     {/if}
     {if $perm_administer_league}
-      | <a href="{$app_cgi_location}?op=team_move;id={$team.id}">move team</a>
-      | <a href="{$app_cgi_location}?op=team_move;league_to=1;id={$team.id};league_id={$league_id}">deactivate</a>	
+      | <a href="{$app_cgi_location}?op=team_move&id={$team.id}">move team</a>
+      | <a href="{$app_cgi_location}?op=team_move&league_to=1&id={$team.id}&league_id={$league_id}">deactivate</a>	
       {if $team.league_status != 'confirmed'}
-        | <a href="{$app_cgi_location}?op=league_addteam;id={$league_id};team_id={$team.id}">confirm</a>
+        | <a href="{$app_cgi_location}?op=league_addteam&id={$league_id}&team_id={$team.id}">confirm</a>
       {/if}
     {/if}
     ]

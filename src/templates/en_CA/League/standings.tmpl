@@ -32,7 +32,7 @@
   <tr>
     <td class='standings_item'>
     {if $perm_view_team}
-      <a href="{$app_cgi_location}?op=team_view;id={$team.id}">{$team.name}</a>
+      <a href="{$app_cgi_location}?op=team_view&id={$team.id}">{$team.name}</a>
     {else}
       {$team.name}
     {/if}

@@ -57,10 +57,10 @@
       {foreach name=leaguelist from=$leagues item=league}
       <tr>
         <td class="menu_item">{$league.name}</td>
-        <td class="menu_item"><a href="{$app_cgi_location}?op=league_view;id={$league.id}">info</a></td>
-        <td class="menu_item"><a href="{$app_cgi_location}?op=league_schedule_view;id={$league.id}">schedule</a></td>
-        <td class="menu_item"><a href="{$app_cgi_location}?op=league_standings;id={$league.id}">standings</a></td>
-        <td class="menu_item"><a href="{$app_cgi_location}?op=league_score_verify;id={$league.id}">approve scores</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_view&id={$league.id}">info</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_schedule_view&id={$league.id}">schedule</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_standings&id={$league.id}">standings</a></td>
+        <td class="menu_item"><a href="{$app_cgi_location}?op=league_score_verify&id={$league.id}">approve scores</a></td>
       </tr>
       {/foreach}
       </table>

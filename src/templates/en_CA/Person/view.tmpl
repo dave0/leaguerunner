@@ -87,16 +87,16 @@
 
   <ul>
   {if $perm_user_edit}
-	  <li><a href="{$app_cgi_location}?op=person_edit;id={$user_id}">edit</a> this information.
+	  <li><a href="{$app_cgi_location}?op=person_edit&id={$user_id}">edit</a> this information.
   {/if}
   {if $perm_user_change_perms}
-	  <li><a href="{$app_cgi_location}?op=person_editperms;id={$user_id}">change permissions</a> for this user.
+	  <li><a href="{$app_cgi_location}?op=person_editperms&id={$user_id}">change permissions</a> for this user.
   {/if}
   {if $perm_user_change_password}
-	  <li><a href="{$app_cgi_location}?op=person_changepassword;id={$user_id}">change password</a> for this user.
+	  <li><a href="{$app_cgi_location}?op=person_changepassword&id={$user_id}">change password</a> for this user.
   {/if}
   {if $perm_user_delete}
-	  <li><a href="{$app_cgi_location}?op=person_delete;id={$user_id}">permanently delete</a> this user.
+	  <li><a href="{$app_cgi_location}?op=person_delete&id={$user_id}">permanently delete</a> this user.
   {/if}
   </ul>
 

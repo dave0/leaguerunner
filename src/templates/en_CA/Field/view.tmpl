@@ -24,16 +24,16 @@
           {/if}
           &nbsp;
         </td>
-        <td class="{$row_style}"><a href="{$app_cgi_location}?op=league_view;id={$league.league_id}">{$league.name}</a></td>
+        <td class="{$row_style}"><a href="{$app_cgi_location}?op=league_view&id={$league.league_id}">{$league.name}</a></td>
         <td class="{$row_style}">
         {if $perm_field_edit}
-				  [ <A href="{$app_cgi_location}?op=field_unassign;id={$field_id};league_id={$league.league_id};day={$booking.day}">delete booking</a> ]
+				  [ <A href="{$app_cgi_location}?op=field_unassign&id={$field_id}&league_id={$league.league_id}&day={$booking.day}">delete booking</a> ]
         {/if}
         </td>
         {if $perm_field_edit}
         <td class='{$row_style}'>
           {if $smarty.foreach.leagues.first}
-					[ <A href="{$app_cgi_location}?op=field_assign;id={$field_id};day={$booking.day}">add new booking</a> ]
+					[ <A href="{$app_cgi_location}?op=field_assign&id={$field_id}&day={$booking.day}">add new booking</a> ]
           {else}
           &nbsp;
           {/if}
@@ -48,8 +48,8 @@
 </table>
 
 <ul>
-  <li><a href="{$app_cgi_location}?op=field_edit;id={$field_id}">edit field</a>.
-  <li><a href="{$app_cgi_location}?op=field_assign;id={$field_id}">assign field</a>.
+  <li><a href="{$app_cgi_location}?op=field_edit&id={$field_id}">edit field</a>.
+  <li><a href="{$app_cgi_location}?op=field_assign&id={$field_id}">assign field</a>.
 </ul>
 
 

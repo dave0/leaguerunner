@@ -2,7 +2,7 @@
 
 <h1>Schedule for {$team_name}</h1>
 <p>
-  <b><a href="{$app_cgi_location}?op=league_view;id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
+  <b><a href="{$app_cgi_location}?op=league_view&id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
 </p>
 
 <table border="0" cellpadding="3" cellspacing="0">
@@ -17,8 +17,8 @@
   <tr>
     <td class="schedule_item">{$game.date}</td>
     <td class="schedule_item">{$game.time}</td>
-    <td class="schedule_item"><a href="{$app_cgi_location}?op=team_view;id={$game.opponent_id}">{$game.opponent_name}</a>&nbsp;</td>
-    <td class="schedule_item"><a href="{$app_cgi_location}?op=field_view;id={$game.field_id}">{$game.field_name}</a>&nbsp;</td>
+    <td class="schedule_item"><a href="{$app_cgi_location}?op=team_view&id={$game.opponent_id}">{$game.opponent_name}</a>&nbsp;</td>
+    <td class="schedule_item"><a href="{$app_cgi_location}?op=field_view&id={$game.field_id}">{$game.field_name}</a>&nbsp;</td>
     <td class="schedule_item">({$game.home_away})&nbsp;</td>
     <td class="schedule_item">
       {if $game.score_type eq 'final'}
@@ -37,7 +37,7 @@
         {if $game.score_type eq 'entered'}
           (unofficial, waiting for opponent)
         {else}
-          [ <a href="{$app_cgi_location}?op=game_submitscore;id={$game.id};team={$team_id}">submit score</a> ]
+          [ <a href="{$app_cgi_location}?op=game_submitscore&id={$game.id}&team={$team_id}">submit score</a> ]
         {/if}
       {/if}
     </td>

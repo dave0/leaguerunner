@@ -2,15 +2,15 @@
 
 <h1>{$team_name}</h1>
 <p>
-  [ <a href="{$app_cgi_location}?op=team_schedule_view;id={$team_id}">schedule and scores</a>
+  [ <a href="{$app_cgi_location}?op=team_schedule_view&id={$team_id}">schedule and scores</a>
   {if $team_status == 'open'}
-  | <a href="{$app_cgi_location}?op=team_join;id={$team_id}">join team</a>
+  | <a href="{$app_cgi_location}?op=team_join&id={$team_id}">join team</a>
   {/if}
   {if $perm_edit_team}
-  | <a href="{$app_cgi_location}?op=team_edit;id={$team_id}">edit info</a>
-  | <a href="{$app_cgi_location}?op=team_addplayer;id={$team_id}">add player</a>
+  | <a href="{$app_cgi_location}?op=team_edit&id={$team_id}">edit info</a>
+  | <a href="{$app_cgi_location}?op=team_addplayer&id={$team_id}">add player</a>
   {/if}
-  | <a href="{$app_cgi_location}?op=league_standings;id={$league_id}">view standings</a>
+  | <a href="{$app_cgi_location}?op=league_standings&id={$league_id}">view standings</a>
   ]
 </p>
 
@@ -20,11 +20,11 @@
       <table border="0">
         <tr>
           <td class='row_title'>Captain:</td>
-          <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$captain_id}">{$captain_name}</a></td>
+          <td class='row_data'><a href="{$app_cgi_location}?op=person_view&id={$captain_id}">{$captain_name}</a></td>
         </tr>
         <tr>
           <td class='row_title'>Assistant:</td>
-          <td class='row_data'><a href="{$app_cgi_location}?op=person_view;id={$assistant_id}">{$assistant_name}</a></td>
+          <td class='row_data'><a href="{$app_cgi_location}?op=person_view&id={$assistant_id}">{$assistant_name}</a></td>
         </tr>
         <tr>
           <td class='row_title'>Website:</td>
@@ -36,7 +36,7 @@
         </tr>
         <tr>
           <td class='row_title'>League/Tier:</td>
-          <td class='row_data'><a href="{$app_cgi_location}?op=league_view;id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
+          <td class='row_data'><a href="{$app_cgi_location}?op=league_view&id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
           </td>
         </tr>
         <tr>
@@ -63,12 +63,12 @@
           <td class="roster_item">{$player.status}</td>
           <td class="roster_item">{$player.gender}</td>
           <td class="roster_item">
-            [ <a href="{$app_cgi_location}?op=person_view;id={$player.id}">view</a>
+            [ <a href="{$app_cgi_location}?op=person_view&id={$player.id}">view</a>
             {if $perm_edit_team}
               {if $player.status ne 'confirmed'}
-      | <a href="{$app_cgi_location}?op=team_playerconfirm;team_id={$team_id};user_id={$player.id}">approve</a>
+      | <a href="{$app_cgi_location}?op=team_playerconfirm&team_id={$team_id}&user_id={$player.id}">approve</a>
               {/if}
-      | <a href="{$app_cgi_location}?op=team_removeplayer;team_id={$team_id};user_id={$player.id}">remove</a>
+      | <a href="{$app_cgi_location}?op=team_removeplayer&team_id={$team_id}&user_id={$player.id}">remove</a>
             {/if}
       ]
           </td>
