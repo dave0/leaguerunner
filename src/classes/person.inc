@@ -267,7 +267,7 @@ class Person extends LeaguerunnerObject
 			db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
 				$this->year_started, $this->gender);
 
-			db_query("SELECT RELEASE_LOCK('${lockname}')");
+			db_query("SELECT RELEASE_LOCK('$lockname')");
 					
 			$member_id = 1;
 		} else {

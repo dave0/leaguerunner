@@ -1,6 +1,6 @@
 <?php
 /*
- * Handle operations specific to a single game
+ * Handle operations specific to games
  */
 
 function game_dispatch() 
@@ -16,6 +16,9 @@ function game_dispatch()
 		case 'approve':
 			return new GameApprove;
 /* TODO:
+		case 'delete':
+			// Allow deletion of a game (not gameslot!)
+			return new GameDelete;
 		case 'edit':
 			# TODO: Allow editing of all game data
 			#       Not of gameslot data, aside from rescheduling, though
@@ -289,39 +292,33 @@ class GameCreate extends Handler
 		/* Now, randomly create our games.  Don't add any teams, or set a
 		 * round, or anything.  Then, use that game ID to randomly allocate us
 		 * a gameslot.
+		 * TODO This would be soooo much nicer with transactions...
 		 */
-		db_query('START TRANSACTION');
+		$rollback_list = array();
 		for($i = 0; $i < $num_games; $i++) {
 			$g = new Game;
 			$g->set('league_id', $league->league_id);
 			if ( ! $g->save() ) {
 				$this->error_exit("Could not successfully create a new game");
 			}
+			$rollback_list[] = $g;
 
-			// This is how we randomly select a field. 
-			// TODO: Need to switch to transactional tables!  Major breakage!
-			// TODO WARNING DMO: the following is untested.  Check return
-			// codes!
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d ORDER BY RAND() LIMIT 1", $timestamp, $league->league_id);
-			$slot_id = db_result($result);
-			print "Slot ID is $slot_id";
-			if( ! $slot_id ) {
-				db_query('ROLLBACK');			
-				$this->error_exit("Not enough field slots available for that league");
-			}
-
-			db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $g->game_id, $slot_id);
-			if(1 != db_affected_rows() ) {
-				db_query('ROLLBACK');			
-				$this->error_exit("Not enough field slots available for that league");
+			if( ! $g->select_random_gameslot($timestamp) ) {
+				/* Argh, something failed, so roll back the whole pile of
+				 * games */
+				foreach( $rollback_list as $to_rollback ) {
+					if( ! $to_rollback->delete() ) {
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+					}
+				}
+				$this->error_exit("Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
 			}
 		}
-		db_query('COMMIT');
 	
-		$this->error_exit("Not completed yet");
 		// TODO: schedule/edit should edit a week of the schedule, similar to
 		// how it's done now  (but without all the context?)
-		local_redirect(url("schedule/edit/$league->league_id/$timestamp"));
+		// local_redirect(url("schedule/edit/$league->league_id/$timestamp"));
+		local_redirect(url("schedule/view/$league->league_id"));
 	}
 }
 

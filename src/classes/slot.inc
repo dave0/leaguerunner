@@ -203,6 +203,7 @@ function slot_query ( $array = array() )
 	return db_query("SELECT 
 		g.slot_id,
 		g.site_id,
+		site.name AS site_name,
 		g.field_num,
 		g.game_date,
 		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
@@ -211,6 +212,7 @@ function slot_query ( $array = array() )
 		g.game_id
 	FROM
 		gameslot g
+		INNER JOIN site ON (g.site_id = site.site_id)
 	WHERE " . implode(' AND ',$query) .  $order);
 }
 

@@ -35,7 +35,13 @@ create table league_gameslot_availability (
 );
 insert into league_gameslot_availability (league_id, slot_id) select s.league_id,g.slot_id from gameslot g, schedule s WHERE g.game_id = s.game_id;
 
+-- Drop now-unused information
 drop table field_assignment;
 drop table field;
 
+-- Support for future non-numeric rounds (finals, semis, etc)
 alter table schedule change round round varchar(10);
+
+-- Support for rescheduling
+alter table schedule add status enum('normal','locked','rescheduled','cancelled','forfeit') DEFAULT 'normal' NOT NULL;
+alter table schedule add rescheduled_slot integer;

@@ -30,8 +30,7 @@ class FieldView extends Handler
 			'allow',
 		);
 		$this->_permissions = array(
-			'field_edit'		=> false,
-			'field_assign'		=> false,
+			'field_admin'		=> false,
 		);
 
 		return true;
@@ -46,6 +45,9 @@ class FieldView extends Handler
 
 	function process ()
 	{
+
+		global $session;
+
 		$site_id = arg(2);
 		$field_num = arg(3);
 
@@ -71,14 +73,20 @@ class FieldView extends Handler
 		$rows = array();
 		while($slot = db_fetch_object($result)) {
 			$booking = '';
-			$actions = array(
-				l('availability', "slot/availability/$slot->slot_id"),
-				l('delete slot', "slot/delete/$slot->slot_id")
-			);
+			if( $this->_permissions['field_admin'] ) {
+				$actions = array(
+					l('set avail', "slot/availability/$slot->slot_id"),
+					l('delete', "slot/delete/$slot->slot_id")
+				);
+			} else {
+				$actions = array();
+			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
-				$booking = l($game->game_id,"game/view/$game->game_id");
-				$actions[] = l('postpone game', "game/reschedule/$game->game_id");
+				$booking = l($game->league_name,"game/view/$game->game_id");
+				if( $session->is_coordinator_of($game->league_id) ) {
+					$actions[] = l('postpone game', "game/reschedule/$game->game_id");
+				}
 			}
 			$rows[] = array($slot->game_date, $slot->game_start, $slot->game_end, $booking, theme_links($actions));
 		}
