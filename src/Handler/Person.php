@@ -19,7 +19,8 @@ require_once("Handler/Person/View.php");
 function get_teams_for_user($userid) 
 {
 	global $DB;
-	$sth = $DB->prepare("SELECT 
+	$rows = $DB->getAll(
+		"SELECT 
             t.team_id AS id,
             t.name AS name, 
             if(t.captain_id = r.player_id, 
@@ -28,23 +29,14 @@ function get_teams_for_user($userid)
                     'assistant',
                     if(r.status = 'confirmed',
                         'player',
-                        'unconfirmed'))) as position
+                        r.status))) as position
         FROM 
             team t,
             teamroster r
         WHERE 
             r.team_id = t.team_id AND 
-            r.player_id = ?");
-	$res = $DB->execute($sth,$userid);
-	if(DB::isError($res)) {
-	 	/* TODO: Handle database error */
-		return false;
-	}
-	$rows = array();
-	while($row = $res->fetchRow(DB_FETCHMODE_ASSOC)) {
-		$rows[] = $row;
-	}
-	$res->free();
+            r.player_id = ?",
+	array($userid), DB_FETCHMODE_ASSOC);
 	return $rows;
 }
 
