@@ -1064,12 +1064,16 @@ class LeagueCaptainEmails extends Handler
 		if(count($addrs) <= 0) {
 			return false;
 		}
-
+		
+		$emails = array();
+		$nameAndEmails = array();
 		foreach($addrs as $addr) {
-			$output .= sprintf("\"%s %s\" &lt;%s&gt;,\n",
+			$output .= 
+			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
 				$addr['firstname'],
 				$addr['lastname'],
 				$addr['email']);
+			$emails[] = $addr['email'];
 		}
 
 		/* Get league info */
@@ -1077,14 +1081,19 @@ class LeagueCaptainEmails extends Handler
 		if($this->is_database_error($league)) {
 			return false;
 		}
-		$title = $this->title . " &raquo; " . $league['name'];
+		$leagueName = $league['name'];
 		if($league['tier'] > 0) {
-			$title .= " Tier ". $league['tier'];
+			$leagueName .= " Tier ". $league['tier'];
 		}
-		$this->set_title($title);
+		$this->breadcrumbs[] = l($leagueName,"op=league_view&id=$id");
+		$this->breadcrumbs[] = $this->title;
+		$this->set_title($this->title . " &raquo; $leagueName");
 
-		
-		return pre($output);
+
+		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");
+	
+		$output .= pre(join(",\n", $nameAndEmails));
+		return $output;
 	}
 }
 

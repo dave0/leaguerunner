@@ -14,19 +14,8 @@ register_page_handler('team_view', 'TeamView');
 register_page_handler('team_schedule_view', 'TeamScheduleView');
 register_page_handler('team_emails', 'TeamEmails');
 
-
-/**
- * List players for addition to team
- *
- * @todo this is an evil duplication of Person/List.php
- */
 class TeamAddPlayer extends Handler
 {
-	/** 
-	 * Initializer for PersonList class
-	 *
-	 * @access public
-	 */
 	function initialize ()
 	{
 		$this->set_title("Add Player");
@@ -1139,12 +1128,15 @@ class TeamEmails extends Handler
 		if(count($addrs) <= 0) { 
 			return false;
 		}
-		
+		$emails = array();
+		$nameAndEmails = array();
 		foreach($addrs as $addr) {
-			$output .= sprintf("\"%s %s\" &lt;%s&gt;,\n",
+			$output .= 
+			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
 				$addr['firstname'],
 				$addr['lastname'],
 				$addr['email']);
+			$emails[] = $addr['email'];
 		}
 
 		/* Get team info */
@@ -1152,10 +1144,14 @@ class TeamEmails extends Handler
 		if($this->is_database_error($league)) {
 			return false;
 		}
-		$title = $this->title . " &raquo; " . $team['name'];
-		$this->set_title($title);
-		
-		return pre($output);
+		$this->breadcrumbs[] = l($team['name'],"op=team_view&id=$id");
+		$this->breadcrumbs[] = $this->title;
+		$this->set_title($this->title . " &raquo; " . $team['name']);
+
+		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");
+	
+		$output .= pre(join(",\n", $nameAndEmails));
+		return $output;
 	}
 }
 ?>
