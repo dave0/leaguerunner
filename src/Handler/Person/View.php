@@ -29,7 +29,11 @@ class PersonView extends Handler
 			'gender'	=> false,
 			'skill' 	=> false,
 			'name' 		=> false,
-			'last_login'	=> false,
+			'last_login'		=> false,
+			'user_edit'				=> false,
+#			'user_delete'			=> false,
+#			'user_change_perms'		=> false,
+			'user_change_password'	=> false,
 		);
 
 		return true;
@@ -63,6 +67,16 @@ class PersonView extends Handler
 
 		/* Anyone with a valid session can see your name */
 		$this->_permissions['name'] = true;
+		
+		/* Administrator can view all and do all */
+		if($session->attr_get('class') == 'administrator') {
+			$this->enable_all_perms();
+			if($session->attr_get('user_id') != $id) {
+				$this->_permissions['user_delete'] = true;
+			}
+			$this->_permissions['user_change_perms'] = true;
+			return true;
+		}
 
 		/* Can always view self */
 		if($session->attr_get('user_id') == $id) {
@@ -72,11 +86,6 @@ class PersonView extends Handler
 			return true;
 		}
 
-		/* Administrator can view all */
-		if($session->attr_get('class') == 'administrator') {
-			$this->enable_all_perms();
-			return true;
-		}
 
 		/* 
 		 * TODO: 
@@ -188,6 +197,14 @@ class PersonView extends Handler
 		/* Now, fetch teams */
 		$this->tmpl->assign("teams",
 			get_teams_for_user($id));
+
+		/* ... and set permissions flags */
+		reset($this->_permissions);
+		while(list($key,$val) = each($this->_permissions)) {
+			if($val) {
+				$this->tmpl->assign("perm_$key", true);
+			}
+		}
 
 		return true;
 	}
