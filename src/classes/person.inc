@@ -296,6 +296,15 @@ class Person extends LeaguerunnerObject
 		return ($this->class == 'administrator');
 	}
 	
+	function is_player()
+	{
+		return (
+			$this->class == 'player'
+			|| $this->class == 'volunteer'
+			|| $this->class == 'administrator'
+		);
+	}
+	
 	function is_captain_of ($team_id)
 	{
 		if( ! array_key_exists($team_id, $this->teams) ) {

@@ -218,11 +218,7 @@ class UserSession
 	 */
 	function is_player()
 	{
-		return (
-			$this->attr_get('class') == 'player'
-			|| $this->attr_get('class') == 'volunteer'
-			|| $this->attr_get('class') == 'administrator'
-		);
+		return ($this->user && $this->user->is_player() );
 	}
 
 	function has_permission( $module, $action, $a1 = NULL, $a2 = NULL )
