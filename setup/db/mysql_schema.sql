@@ -143,9 +143,11 @@ CREATE TABLE schedule (
     home_team   integer,
     home_dependant_game	integer,
     home_dependant_type enum('winner','loser'),
+    home_dependant_rank	integer,
     away_team   integer,
     away_dependant_game	integer,
     away_dependant_type enum('winner','loser'),
+    away_dependant_rank	integer,
     
     home_score  tinyint,
     away_score  tinyint,
