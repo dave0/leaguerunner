@@ -10,20 +10,19 @@ Docs:
 
 Code Cleanups and Refactoring:
 	- Clean up database schema
-	- (DONE) de-templateify this code; Smarty is too much of a pain in the ass.
-	- (DONE) change includes/config.inc to be some sort of parsed configfile
-	  so that both Perl and PHP code can use it for db settings, etc.
-	- (DONE) better DB code -- use wrapper code similar to Drupal's.  Rewrite
-	  some of the looping algorithms to fetch rows one at a time for
-	  processing rather than stuffing into an array.
+	- rewrite of permissions code so that it isn't so crusty.
 
 New Features:
+	- remove the 'alias' section, as it's been decided that OCUA doesn't
+	  want it and I didn't want to write it in the first place anyway. 
+	- set full name to be unchangeable by the user after account approval,
+	  but allow admins to access it
 	- start using the 'year' column for leagues, to allow multiple leagues
 	  to co-exist for sequential seasons.
 	- add test for adding teams to multiple leagues.  Basically, as long as
 	  (year, season) for all leagues are different, it's OK.
 	- volunteer info
-	- integrate Tony's score-reminder code
+	- write score-reminder code for notifying captains of missing scores.
 	- better score approval for coordinators, esp. handling of defaults
 	- carpool arrangements
 	- players looking for teams / teams looking for players
@@ -52,7 +51,8 @@ New Features:
 	  double-booking can easily be seen.
 
 	- automatic generation of round-robin schedule (3 game split tier, or
-	  7-game full tier)
+	  7-game full tier).  This depends on the abovementioned "game slot"
+	  support to allow automatic selection of fields.
 	
 	- use Mike Reade's spirit system
 	
@@ -64,22 +64,29 @@ New Features:
 	- integrate survey questions into database, rather than having them
 	  hardcoded in an HTML file
 
+	- set up data serialization for user edit, so that all changes can be
+	  logged in a data field for approval/rejection by an admin.  This is
+	  wanted to prevent people from changing their account info to
+	  something bogus.
+
+	- automatic mailing-list generation (for Mailman) from Leaguerunner.
+	  We would like to have:
+	     ${season}-captains@lists.ocua.ca
+	     	- goes to all captains and assistants of teams in that season
+	     ${night}-${season}-captains@lists.ocua.ca
+	        - to all captains/ass of teams on that night and season
+	     tier-${tier}-${night}-${season}-captains@lists.ocua.ca
+	        - cap/ass for a tier
+	     ${season}-coordinators@lists.ocua.ca
+	     	- all coordinators for a season
+	  All lists are to be archived and moderated.
+
 Field Management:
     Add more attributes to fields, auto-generate field websites from DB on
     periodic basis.
     
-    Fields should have the following attributes viewable by all:
-        - (DONE) full name of field
-        - (DONE) field code (a unique shorthand notation for the field, consisting of
-          3 letters and 2 numbers (ie: UPI01, SOD10, LYL01, RIV03)
-        - location info
-            - (DONE) region (east, west, south, north/gatineau)
-            - street address
-            - (DONE) URL to location map (where the field is)
-            - (DONE) URL to field layout map (where to put the field at the location)
-            - (DONE) text field for directions
-            - GPS coordinates
-	    - city ward
+    Field sites should have the following attributes viewable by all:
+        - GPS coordinates and/or mapquest search criteria
         - public transit info
             - specific routes
             - OCT stop IDs (can use it to link directly to schedule info)
@@ -134,8 +141,5 @@ Field Management:
                 (iii)After 8:30pm
         - administrative notes
 
-Bugs:
-	- (DONE) player selecting "join team" rather than "change status" gets
-	  told that they don't have permission.  This should be fixed so that
-	  they get the changestatus page if they're already on the roster in
-	  some capacity.
+Known Bugs:
+	None currently known but unfixed.
