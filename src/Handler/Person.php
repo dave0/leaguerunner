@@ -549,9 +549,8 @@ class PersonApproveNewAccount extends PersonView
 			return false;
 		}
 
-		$year_started = $person_info['year_started'];
-
-		$result = $DB->query('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ?', array($year_started));
+		$result = $DB->query('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ? AND gender = ?', 
+			array($person_info['year_started'], $person_info['gender']));
 		if($this->is_database_error($result)) {
 			return false;
 		}
@@ -564,7 +563,12 @@ class PersonApproveNewAccount extends PersonView
 			}
 		} else {
 			/* Possible empty, so fill it */
-			$lock = $DB->getOne("SELECT GET_LOCK('member_id_${year_started}_lock',10)");
+			$lockname = "member_id_" 
+				. $person_info['year_started'] 
+				. "_" 
+				. $person_info['gender'] 
+				. "_lock";
+			$lock = $DB->getOne("SELECT GET_LOCK('${lockname}',10)");
 			if($this->is_database_error($lock)) {
 				$this->error_text = "Couldn't get lock for member_id allocation";
 				return false;
@@ -574,8 +578,10 @@ class PersonApproveNewAccount extends PersonView
 				$this->error_text = "Couldn't get lock for member_id allocation";
 				return false;
 			}
-			$result = $DB->query("REPLACE INTO member_id_sequence values(?,1)", array($year_started));
-			$lock = $DB->getOne("SELECT RELEASE_LOCK('member_id_${year_started}_lock')");
+			$result = $DB->query(
+				"REPLACE INTO member_id_sequence values(?,?,1)", 
+				array($person_info['year_started'], $person_info['gender']));
+			$lock = $DB->getOne("SELECT RELEASE_LOCK('${lockname}')");
 			if($this->is_database_error($lock)) {
 				return false;
 			}

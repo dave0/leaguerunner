@@ -67,8 +67,10 @@ CREATE TABLE demographics (
 
 -- For use when assigning member IDs
 CREATE TABLE member_id_sequence (
-	year	year not null PRIMARY KEY,
-	id 	integer not null
+	year	year not null,
+	gender 	ENUM("Male","Female"),
+	id 	integer not null,
+ 	KEY (year,gender)
 );
 
 -- to be used for player availability
