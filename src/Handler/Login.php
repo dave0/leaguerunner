@@ -29,7 +29,6 @@ class Login extends Handler
 
 		$username = var_from_post('username');
 		$password = var_from_post('password');
-		$remember_me = var_from_post('remember_me');
 
 		if( !(isset($username) || isset($password)) ) {
 			/* Check if session is already valid */
@@ -61,6 +60,9 @@ class Login extends Handler
 	function handle_valid()
 	{
 		global $session, $_SERVER;
+		
+		$remember_me = var_from_post('remember_me');
+
 		switch($session->attr_get('class')) {
 			case 'new':
 				print $this->get_header();
