@@ -462,8 +462,11 @@ class GameCreate extends Handler
 			}
 		}
 
-		$all_games = $this->set_dependents($all_games, $num_teams);
-		
+		$result = $league->set_dependants($all_games, $num_teams);
+		if ($result) {
+			rollback_games($all_games, $result);
+		}
+
 		local_redirect(url("schedule/view/$league->league_id"));
 	}
 
@@ -503,148 +506,6 @@ class GameCreate extends Handler
 			}
 		}
 		return $game_dates;
-	}
-
-	/********************************************************************************
-	 *  This function expects one ORDERED array with any number of sets of games, and will return a copy
-	 *  of the input array with the dependent games filled in.
-	 *  - The array should start with the first set of games with home/away teams already assigned, where
-	 *    the first game is 1 vs 2, second game is 3 vs 4, etc...
-	 *  - The function will skip the first game set, and then use it to assign the dependent games for
-	 *    the second game set.
-	 *  - It will then use the second game set to assign the dependent games for the third game set, and so on
-	 *  - ASSUMPTION: the round number is used to determine HOLD and MOVE transitions, and it is assumed
-	 *    that each game set has a round number incremented by one compared to the previous game set.  Furthermore,
-	 *    it is assumed that the first game set starts with round 1.
-	 */
-	function set_dependents ($games, $number_of_teams) {
-		
-		$games_per_set = $number_of_teams / 2;
-		$sets = count($games) / $games_per_set;
-
-		$return_games = array();
-		$count = 1;
-		$wlflag = 0;
-		$game_set = 1;
-		$rankings = 1;
-		foreach ($games as $g) {
-			// don't do anything for the first game set
-			if ($count <= $games_per_set) {
-				array_push ( $return_games, $g );
-				$count++;
-				continue;
-			}
-			// first game will always be winners of first 2 "prev" games
-			if ( $count - ($games_per_set*$game_set) == 1 ) {
-				// you ALWAYS want to start the rankings at 1 here!
-				$rankings = 1;
-				$get = $count - $games_per_set - 1;
-				$game = $games[ $get ];
-				$g->set('home_dependant_game', $game->game_id);
-				$g->set('home_dependant_type', "winner");
-				$g->set('home_dependant_rank', $rankings);
-				$rankings++;
-				$game = $games[ $get+1 ];
-				$g->set('away_dependant_game', $game->game_id);
-				$g->set('away_dependant_type', "winner");
-				$g->set('away_dependant_rank', $rankings);
-				$rankings++;
-				if ( !$g->save() ) {
-					$this->rollback_games($return_games, "Could not save a game!");
-				}
-				array_push ( $return_games, $g );
-				$count++;
-				continue;
-			}
-			// the last game will always be the losers of the last 2 "prev" games
-			if ( $count - ($games_per_set*$game_set) == $games_per_set ) {
-				$get = $count - $games_per_set - 2;
-				$game = $games[ $get ];
-				$g->set('home_dependant_game', $game->game_id);
-				$g->set('home_dependant_type', "loser");
-				$g->set('home_dependant_rank', $rankings);
-				$rankings++;
-				$game = $games[ $get+1 ];
-				$g->set('away_dependant_game', $game->game_id);
-				$g->set('away_dependant_type', "loser");
-				$g->set('away_dependant_rank', $rankings);
-				$rankings++;
-				if ( !$g->save() ) {
-					$this->rollback_games($return_games, "Could not save a game!");
-				}
-				array_push ( $return_games, $g );
-				$count++;
-				$game_set++;
-				continue;
-			}
-
-			$holdmove = $g->round % 2;
-			// Invert the holdmove since very first set of games will be round 1, and
-			// so the subsequent games which you're now scheduling should start with
-			// a hold week, but because we're using the next game's round number, 
-			// that number mod 2 will be 0, and we want 1 to start!
-			$holdmove = !$holdmove;
-
-			// if you've got here, you're looking at middle games, and the behaviour
-			// here is dependent on the hold or move weeks!
-			if ($holdmove) {
-				// HOLD TRANSITION:
-				if ($wlflag) {
-					// do winners:
-					$get = $count - $games_per_set - 1;
-					$game = $games[ $get ];
-					$g->set('home_dependant_game', $game->game_id);
-					$g->set('home_dependant_type', "winner");
-					$g->set('home_dependant_rank', $rankings);
-					$rankings++;
-					$game = $games[ $get+1 ];
-					$g->set('away_dependant_game', $game->game_id);
-					$g->set('away_dependant_type', "winner");
-					$g->set('away_dependant_rank', $rankings);
-					$rankings++;
-				} else {
-					// do losers:
-					$get = $count - $games_per_set - 2;
-					$game = $games[ $get ];
-					$g->set('home_dependant_game', $game->game_id);
-					$g->set('home_dependant_type', "loser");
-					$g->set('home_dependant_rank', $rankings);
-					$rankings++;
-					$game = $games[ $get+1 ];
-					$g->set('away_dependant_game', $game->game_id);
-					$g->set('away_dependant_type', "loser");
-					$g->set('away_dependant_rank', $rankings);
-					$rankings++;
-				}
-				if ( !$g->save() ) {
-					$this->rollback_games($return_games, "Could not save a game!");
-				}
-				array_push ( $return_games, $g );
-				$count++;
-				$wlflag = !$wlflag;
-			} else {
-				// MOVE TRANSITION:
-				// get the loser:
-				$get = $count - $games_per_set - 2;
-				$game = $games[ $get ];
-				$g->set('home_dependant_game', $game->game_id);
-				$g->set('home_dependant_type', "loser");
-				$g->set('home_dependant_rank', $rankings);
-				$rankings++;
-				// get the winner:
-				$game = $games[ $get+2 ];
-				$g->set('away_dependant_game', $game->game_id);
-				$g->set('away_dependant_type', "winner");
-				$g->set('away_dependant_rank', $rankings);
-				$rankings++;
-				if ( !$g->save() ) {
-					$this->rollback_games($return_games, "Could not save a game!");
-				}
-				array_push ( $return_games, $g );
-				$count++;
-			}
-		}
-		return $return_games;
 	}
 
 	/** sorts an array of teams by their rank, from lowest rank (best) to highest rank (worst) **/
