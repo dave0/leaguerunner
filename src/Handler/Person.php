@@ -662,7 +662,7 @@ member number is
 This number will be used in the future to identify you for member services
 discounts, etc, so please do not lose it.
 You may now log in to the system at
-	http://{$GLOBALS['APP_SERVER']}{$_SERVER["PHP_SELF"]}
+	http://{$_SERVER['SERVER_NAME']}{$_SERVER["PHP_SELF"]}
 with the username
 	{$person_info['username']}
 and the password you specified when you created your account.  You will be
