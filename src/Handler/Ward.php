@@ -146,7 +146,7 @@ class WardEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		$output .= form_hidden("edit[step]", "perform");
 		
@@ -181,7 +181,7 @@ class WardEdit extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		$rc = db_query("UPDATE ward SET 
@@ -311,7 +311,7 @@ class WardView extends Handler
 
 		$ward = ward_load( array('ward_id' => $id) );
 		if( !$ward ) { 
-			$this->error_exit("That ward does not exist");
+			error_exit("That ward does not exist");
 		}
 
 		$links = array();
