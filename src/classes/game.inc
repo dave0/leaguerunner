@@ -41,7 +41,7 @@ class Game extends LeaguerunnerObject
 			$this->game_end = 'dark';
 		}
 
-		$this->load_spirit_entries();
+		$this->load_score_entries();
 
 		return true;
 	}
@@ -251,12 +251,10 @@ class Game extends LeaguerunnerObject
 			die("Too many score entries in DB for game $game->game_id");
 		}
 		
-		if( db_num_rows($result) < 1 ) {
-			return false;
-		}
-
-		while( $entry = db_fetch_object($result) ) {
-			$this->_score_entries[ $entry->team_id ] = $entry;
+		if( db_num_rows($result) > 0 ) {
+			while( $entry = db_fetch_object($result) ) {
+				$this->_score_entries[ $entry->team_id ] = $entry;
+			}
 		}
 
 		$this->load_spirit_entries();
@@ -269,9 +267,9 @@ class Game extends LeaguerunnerObject
 		if( ! $this->_in_database ) {
 			die( "Cannot load entered scores for game not in database!");
 		}
-		$result = db_query("SELECT tid_created,qkey,akey FROM team_spirit_answers WHERE gid = %d", $this->game_id);
+		$result = db_query("SELECT tid,qkey,akey FROM team_spirit_answers WHERE gid = %d", $this->game_id);
 		while( $row = db_fetch_array( $result ) ) {
-			$this->_spirit_entries[ $row['tid_created'] ][ $row['qkey'] ] = $row['akey'] ;
+			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
 
 		return true;
@@ -366,6 +364,28 @@ class Game extends LeaguerunnerObject
 		}
 
 		return false;
+	}
+
+	/**
+	 * Calculates a numeric value for the spirit associated with the
+	 * given entry
+	 */
+	function get_spirit_numeric( $team_id )
+	{
+		$entry = $this->get_spirit_entry($team_id);
+		if( !$entry ) {
+			return 0;
+		}
+
+		// Start with 10 spirit, subtract down
+		$spirit = 10;
+		while( list($qkey, $answer) = each($entry) ) {
+			$result = db_query("SELECT value from multiplechoice_answers WHERE qkey = '%s' AND akey = '%s'", $qkey, $answer);
+
+			$spirit += db_result($result);
+		}
+
+		return $spirit;
 	}
 
 	/**
@@ -590,6 +610,7 @@ function game_query ( $array = array() )
 {
 
 	$order = '';
+	$tables = array( 'schedule s');
 	foreach ($array as $key => $value) {
 		switch( $key ) {
 			case 'game_date':
@@ -610,6 +631,9 @@ function game_query ( $array = array() )
 				break;
 			case '_order':
 				$order = ' ORDER BY ' . $value;
+				break;
+			case '_extra_table':
+				array_push($tables, $value);
 				break;
 			default:
 				$query[] = "s.$key = '" . check_query($value) . "'";
@@ -634,9 +658,8 @@ function game_query ( $array = array() )
 		UNIX_TIMESTAMP(g.game_date) as day_id,
 		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
 		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp
-	FROM
-		schedule s
-		INNER JOIN league l ON (l.league_id = s.league_id)
+	FROM " . join(',', $tables) . 
+		" INNER JOIN league l ON (l.league_id = s.league_id)
 		LEFT JOIN gameslot g ON (g.game_id = s.game_id)
 		LEFT JOIN field f ON (f.fid = g.fid)
 		LEFT JOIN field pf ON (pf.fid = f.parent_fid)

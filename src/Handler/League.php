@@ -531,15 +531,11 @@ class LeagueStandings extends Handler
 		return $this->generate_standings($id, $round);
 	}
 
-	function calculate_sotg( &$stats, $drop_best_worst = false ) 
+	function calculate_sotg( &$stats ) 
 	{	
 		$raw = $stats['spirit'];
-		$games = $stats['games'] - ($stats['defaults_for'] + $stats['defaults_against']);
+		$games = 1;#$stats['games'] - ($stats['defaults_for'] + $stats['defaults_against']);
 		if($games > 0) {
-			if($games >= 3 && $drop_best_worst) {
-				$raw = $raw - ($stats['best_spirit'] + $stats['worst_spirit']);
-				$games = $games - 2;
-			}
 			return $raw / $games;
 		} else {
 			return 0;
@@ -555,6 +551,9 @@ class LeagueStandings extends Handler
 	 */
 	function generate_standings ($id, $current_round = 0)
 	{
+
+		// TODO: instead of all this cruft, why not just do a
+		// $season = team_load_many(...)
 		$result = db_query(
 				"SELECT t.team_id AS id, 
 			 	 t.name, t.rating
@@ -574,22 +573,15 @@ class LeagueStandings extends Handler
 		 * currently in this league, regardless of whether or not their
 		 * opponents are still here
 		 */
-		$result = db_query(
-			"SELECT DISTINCT s.*
-			 FROM
-			  	schedule s, leagueteams t
-			 WHERE 
-				t.league_id = %d 
-				AND (s.home_team = t.team_id OR s.away_team = t.team_id)
-		 		ORDER BY s.game_id", $id);
+		$games = game_load_many( array( '_extra_table' => 'leagueteams t', '_extra' => "t.league_id = " . check_query($id) . " AND (s.home_team = t.team_id OR s.away_team = t.team_id)", '_order' => 's.game_id'));
 
-		while($game = db_fetch_array($result) ) {
-			if(is_null($game['home_score']) || is_null($game['away_score'])) {
+		while(list(,$game) = each($games)) {
+			if( ! $game->is_finalized() ) {
 				/* Skip unscored games */
 				continue;
 			}
 			$this->record_game($season, $game);
-			if($current_round == $game['round']) {
+			if($current_round == $game->round) {
 				$this->record_game($round, $game);
 			}
 		}
@@ -662,7 +654,7 @@ class LeagueStandings extends Handler
 			if($season[$id]['games'] < 3 && !($this->_permissions['administer_league'])) {
 				 $sotg = "---";
 			} else {
-				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id], true));
+				$sotg = sprintf("%.2f", $sotg = $this->calculate_sotg($season[$id]));
 			}
 			
 			$row[] = $sotg;
@@ -683,8 +675,6 @@ class LeagueStandings extends Handler
 			'points_for' => 0,
 			'points_against' => 0,
 			'spirit' => 0,
-			'worst_spirit' => 99999,
-			'best_spirit' => 0,
 			'win' => 0,
 			'loss' => 0,
 			'tie' => 0,
@@ -699,78 +689,68 @@ class LeagueStandings extends Handler
 	function record_game(&$season, &$game)
 	{
 
-		if(isset($season[$game['home_team']])) {
-			$data = &$season[$game['home_team']];
+		$game->home_spirit = $game->get_spirit_numeric( $game->home_team );
+		$game->away_spirit = $game->get_spirit_numeric( $game->away_team );
+		if(isset($season[$game->home_team])) {
+			$data = &$season[$game->home_team];
 			
 			$data['games']++;
-			$data['points_for'] += $game['home_score'];
-			$data['points_against'] += $game['away_score'];
+			$data['points_for'] += $game->home_score;
+			$data['points_against'] += $game->away_score;
 
 			/* Need to initialize if not set */
-			if(!isset($data['vs'][$game['away_team']])) {
-				$data['vs'][$game['away_team']] = 0;
+			if(!isset($data['vs'][$game->away_team])) {
+				$data['vs'][$game->away_team] = 0;
 			}
 			
-			if($game['status'] == 'home_default') {
+			if($game->status == 'home_default') {
 				$data['defaults_against']++;
-			} else if($game['status'] == 'away_default') {
+			} else if($game->status == 'away_default') {
 				$data['defaults_for']++;
 			} else {
-				$data['spirit'] += $game['home_spirit'];
-				if($data['worst_spirit'] > $game['home_spirit']) {
-					$data['worst_spirit'] = $game['home_spirit'];
-				}
-				if($data['best_spirit'] < $game['home_spirit']) {
-					$data['best_spirit'] = $game['home_spirit'];
-				}
+				$data['spirit'] += $game->home_spirit;
 			}
 
-			if($game['home_score'] == $game['away_score']) {
+			if($game->home_score == $game->away_score) {
 				$data['tie']++;
-				$data['vs'][$game['away_team']]++;
-			} else if($game['home_score'] > $game['away_score']) {
+				$data['vs'][$game->away_team]++;
+			} else if($game->home_score > $game->away_score) {
 				$data['win']++;
-				$data['vs'][$game['away_team']] += 2;
+				$data['vs'][$game->away_team] += 2;
 			} else {
 				$data['loss']++;
-				$data['vs'][$game['away_team']] += 0;
+				$data['vs'][$game->away_team] += 0;
 			}
 		}
-		if(isset($season[$game['away_team']])) {
-			$data = &$season[$game['away_team']];
+		if(isset($season[$game->away_team])) {
+			$data = &$season[$game->away_team];
 			
 			$data['games']++;
-			$data['points_for'] += $game['away_score'];
-			$data['points_against'] += $game['home_score'];
+			$data['points_for'] += $game->away_score;
+			$data['points_against'] += $game->home_score;
 
 			/* Need to initialize if not set */
-			if(!isset($data['vs'][$game['home_team']])) {
-				$data['vs'][$game['home_team']] = 0;
+			if(!isset($data['vs'][$game->home_team])) {
+				$data['vs'][$game->home_team] = 0;
 			}
 			
-			if($game['status'] == 'away_default') {
+			if($game->status == 'away_default') {
 				$data['defaults_against']++;
-			} else if($game['status'] == 'home_default') {
+			} else if($game->status == 'home_default') {
 				$data['defaults_for']++;
 			} else {
-				$data['spirit'] += $game['away_spirit'];
-				if($data['worst_spirit'] > $game['away_spirit']) {
-					$data['worst_spirit'] = $game['away_spirit'];
-				}
-				if($data['best_spirit'] < $game['away_spirit']) {
-					$data['best_spirit'] = $game['away_spirit'];
-				}
+				$data['spirit'] += $game->away_spirit;
 			}
 
-			if($game['away_score'] == $game['home_score']) {
+			if($game->away_score == $game->home_score) {
 				$data['tie']++;
-				$data['vs'][$game['home_team']]++;
-			} else if($game['away_score'] > $game['home_score']) {
+				$data['vs'][$game->home_team]++;
+			} else if($game->away_score > $game->home_score) {
 				$data['win']++;
-				$data['vs'][$game['home_team']] += 2;
+				$data['vs'][$game->home_team] += 2;
 			} else {
 				$data['loss']++;
-				$data['vs'][$game['home_team']] += 0;
+				$data['vs'][$game->home_team] += 0;
 			}
 		}
 	}
@@ -796,7 +776,7 @@ class LeagueStandings extends Handler
 
 		/* Check SOTG */
 		if($a['games'] > 0 && $b['games'] > 0) {
-			$rc = cmp( $this->calculate_sotg($b,true), $this->calculate_sotg($b,true));
+			$rc = cmp( $this->calculate_sotg($b), $this->calculate_sotg($b));
 			if($rc != 0) {
 				return $rc;
 			}

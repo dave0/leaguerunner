@@ -486,7 +486,7 @@ class GameSubmit extends Handler
 			}
 			
 			// Save the spirit entry if non-default
-			if( !$this->game->save_spirit_entry( $this->team->team_id, $questions->bulk_get_answers()) ) {
+			if( !$this->game->save_spirit_entry( $opponent, $questions->bulk_get_answers()) ) {
 				$this->error_exit("Error saving spirit entry for " . $this->team->team_id);
 			}
 		}
@@ -511,13 +511,13 @@ class GameSubmit extends Handler
 			switch( $home_entry->defaulted ) {
 				case 'us':
 					$this->game->set('status', 'home_default');
-					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('winner'));
-					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('loser'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('winner'));
+					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('loser'));
 					break;
 				case 'them':
 					$this->game->set('status', 'away_default');
-					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('loser'));
-					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('winner'));
+					$this->game->save_spirit_entry( $this->game->away_id, $this->default_spirit('loser'));
+					$this->game->save_spirit_entry( $this->game->home_id, $this->default_spirit('winner'));
 					break;
 				case 'no':
 				default:

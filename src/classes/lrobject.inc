@@ -4,9 +4,13 @@ class LeaguerunnerObject
 	var $_modified_fields;
 	var $_in_database;
 
-	function LeaguerunnerObject ()
+	function LeaguerunnerObject ( $array = null )
 	{
 		$this->_in_database = false;
+
+		if( is_array($array) ) {
+			$this->load($array);
+		}
 	}
 
 	/**

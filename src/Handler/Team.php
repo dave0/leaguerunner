@@ -995,7 +995,7 @@ class TeamSchedule extends Handler
 		/*
 		 * Grab schedule info 
 		 */
-		$result = game_query( array( 'either_team' => $id, '_order' => 'g.game_date') );
+		$games = game_load_many( array( 'either_team' => $id, '_order' => 'g.game_date') );
 
 		$header = array(
 			"Date",
@@ -1006,8 +1006,7 @@ class TeamSchedule extends Handler
 		);
 		$rows = array();
 			
-		while($game = db_fetch_object($result)) {
-		
+		while(list(,$game) = each($games)) {
 			if($game->home_id == $id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
@@ -1021,7 +1020,7 @@ class TeamSchedule extends Handler
 			$game_score = "&nbsp;";
 			$score_type = "&nbsp;";
 			
-			if($game->home_score && $game->away_score) {
+			if($game->is_finalized()) {
 				/* Already entered */
 				$score_type = '(accepted final)';
 				if($game->home_id == $id) {
@@ -1031,12 +1030,10 @@ class TeamSchedule extends Handler
 				}
 			} else {
 				/* Not finalized yet */
-				$entered = db_fetch_array(db_query(
-					"SELECT score_for, score_against FROM score_entry WHERE game_id = %d AND team_id = %d",$game->game_id, $id));
-				
+				$entered = $game->get_score_entry( $id );
 				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
-					$game_score = $entered['score_for']." - ".$entered['score_against'];
+					$game_score = "$entered->score_for - $entered->score_against";
 				} else if($this->_permissions['submit_score']) {
 					$score_type = l("submit score", "game/submitscore/$game->game_id/$id");
 				}
