@@ -137,7 +137,7 @@ password emailed to you (click on \"Forgot your password?\").</i>"
 		$output .= table(null, $rows, array('align'=>'center', 'width' => '300' ));
 		$output .=<<<EOF
 <script language="JavaScript">
-document.lrlogin.username.focus();
+document.lrlogin.elements[0].focus();
 </script>
 EOF;
 		return form($output, 'post', 0, " name='lrlogin'");
