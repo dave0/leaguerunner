@@ -1033,8 +1033,16 @@ class LeagueMoveTeam extends Handler
 
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
-		foreach( $session->user->leagues as $league ) {
-			$leagues[$league->league_id] = $league->fullname;
+		if( $session->is_admin() ) { 
+			$result = db_query("SELECT league_id as theKey, IF(tier,CONCAT(name,' Tier ',tier), name) as theValue from league ORDER BY season,name,tier");
+			while($row = db_fetch_array($result)) {
+				$leagues[$row['theKey']] = $row['theValue'];	
+			}
+		} else {
+			$leagues[1] = 'Inactive Teams';
+			foreach( $session->user->leagues as $league ) {
+				$leagues[$league->league_id] = $league->fullname;
+			}
 		}
 		
 		$output = form_hidden('edit[step]', 'confirm');
