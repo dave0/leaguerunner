@@ -79,18 +79,4 @@ class LeaguerunnerObject
 		die("Implemented by subclass");
 	}
 }
-
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function team_load( $array = array() )
-{
-	$t = new Team;
-	if($t->load($array)) {
-		return $t;
-	} else {
-		return null;
-	}
-}
-
 ?>
