@@ -1700,38 +1700,32 @@ class LeagueMoveTeam extends Handler
 
 		$step = var_from_getorpost('step');
 
-		$this->_id = var_from_getorpost('id');
-		$this->_team_id = var_from_getorpost('team_id');
+		$id = var_from_getorpost('id');
+		$team_id = var_from_getorpost('team_id');
 		
-		if( !validate_number($this->_id) ) {
+		if( !validate_number($id) ) {
 			$this->error_exit("You must supply a valid league ID");
 		}
-		if( !validate_number($this->_team_id) ) {
+		if( !validate_number($team_id) ) {
 			$this->error_exit("You must supply a valid team ID");
 		}
 		
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("League/move_team_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id, $team_id );
 				break;
 			case 'perform':
-				$this->perform();
-				local_redirect("op=league_view&id=".$this->_id);
+				$this->perform( $id, $team_id );
+				local_redirect("op=league_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("League/move_team_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$rc = $this->generateForm( $id, $team_id );
 		}
-		
-		$this->tmpl->assign("page_op", $this->op);
 
 		return $rc;
 	}
 	
-	function perform ()
+	function perform ( $id, $team_id )
 	{
 		global $DB, $session;
 
@@ -1743,7 +1737,7 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
-		$res = $DB->query("UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?", array( $target_id, $this->_team_id, $this->_id ));
+		$res = $DB->query("UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?", array( $target_id, $team_id, $id ));
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -1755,7 +1749,7 @@ class LeagueMoveTeam extends Handler
 		return true;
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id, $team_id )
 	{
 		global $DB, $session;
 
@@ -1764,53 +1758,66 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 		}
 
-		$from_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $this->_id ), DB_FETCHMODE_ASSOC);
+		$from_league = $DB->getRow("SELECT * FROM league WHERE league_id = ?", array( $id ), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($from_league)) {
 			return false;
 		}
 		if( ! $from_league ) {
 			$this->error_exit("That is not a valid league to move from");
 		}
+		$from_name = $from_league['name'];
+		if($from_league['tier']) {
+			$from_name .= " Tier " . $from_league['tier'];
+		}
 
-		$to_league = $DB->getRow("SELECT l.league_id AS id, l.season, l.day, l.name, l.tier FROM league l WHERE l.league_id = ?", array( $target_id ), DB_FETCHMODE_ASSOC);
+		$to_league = $DB->getRow("SELECT * FROM league WHERE league_id = ?", array( $target_id ), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($to_league)) {
 			return false;
 		}
 		if( ! $to_league ) {
 			$this->error_exit("That is not a valid league to move to");
 		}
+		$to_name = $to_league['name'];
+		if($to_league['tier']) {
+			$to_name .= " Tier " . $to_league['tier'];
+		}
 
-		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($this->_team_id));
+		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($team_id));
 		if($this->is_database_error($team_name)) {
 			return false;
 		}
 		if(! $team_name ) {
 			$this->error_exit("That is not a valid team");
-			return false;
 		}
 
-		$this->set_title("Moving $team_name");
+		$this->set_title("Move Team &raquo; $team_name");
+		
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('team_id', $team_id);
+		$output .= form_hidden('target_id', $target_id);
+		
+		$output .= blockquote( 
+			"You are attempting to move the team <b>$team_name</b> "
+			. "from <b>$from_name</b> to <b>$to_name</b>. "
+			. "If this is correct, please click 'Submit' below."
+		);
 
-		$this->tmpl->assign("team_name", $team_name);
-		$this->tmpl->assign("team_id", $this->_team_id);
-		$this->tmpl->assign("id", $this->_id);
-		$this->tmpl->assign("from_league", $from_league);
-		$this->tmpl->assign("to_league", $to_league);
+		$output .= form_submit("Submit");
 
-		return true;
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
+		return true;	
 	}
 	
-	function generate_form ()
+	function generateForm ( $id, $team_id)
 	{
 		global $DB, $session;
 
-		$leagues = $DB->getAll("SELECT DISTINCT
-				l.league_id AS id,
-				l.season,
-				l.day,
-				l.name,
-				l.tier
-		  	FROM
+		$leagues = getOptionsFromQuery("SELECT league_id, IF(tier,CONCAT(name, ' Tier ', tier), name) FROM
 		  		league l,
 				person p
 			WHERE
@@ -1819,14 +1826,9 @@ class LeagueMoveTeam extends Handler
 				OR l.alternate_id = ?
 				OR (p.class = 'administrator' AND p.user_id = ?)
 			ORDER BY l.season,l.day,l.name,l.tier",
-			array( $session->attr_get('user_id'), $session->attr_get('user_id'), $session->attr_get('user_id')),
-			DB_FETCHMODE_ASSOC
-		);
-		if($this->is_database_error($leagues)) {
-			return false;
-		}
+			array( $session->attr_get('user_id'), $session->attr_get('user_id'), $session->attr_get('user_id')));
 
-		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($this->_team_id));
+		$team_name = $DB->getOne("SELECT name FROM team WHERE team_id = ?",array($team_id));
 		if($this->is_database_error($team_name)) {
 			return false;
 		}
@@ -1834,14 +1836,32 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("That is not a valid team");
 		}
 
-		$this->set_title("Moving $team_name");
+		$this->set_title("Move Team &raquo; $team_name");
+		
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('id', $id);
+		$output .= form_hidden('team_id', $team_id);
+		
+		$output .= blockquote( 
+			para("You are attempting to move the team <b>"
+				. $team_name . "</b>. "
+				. "Select the league you wish to move it to")
+			. form_select('', 'target_id', '', $leagues)
+		);
 
-		$this->tmpl->assign("team_name", $team_name);
-		$this->tmpl->assign("team_id", $this->_team_id);
-		$this->tmpl->assign("id", $this->_id);
-		$this->tmpl->assign("leagues", $leagues);
+		$output .= form_submit("Submit");
 
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
+	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
