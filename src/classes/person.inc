@@ -94,7 +94,7 @@ class Person extends LeaguerunnerObject
 			# TODO: evil hack.
 			$this->is_a_coordinator = true;
 			if($league->tier) {
-				$league->fullname = "$league->name Tier $league->tier";
+				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
 			} else {
 				$league->fullname = $league->name;
 			}

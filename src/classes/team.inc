@@ -23,7 +23,8 @@ class Team extends LeaguerunnerObject
 		
 		$result = db_query_range("SELECT 
 			t.*,
-			IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS league_name,
+			l.name AS league_name,
+			l.tier AS league_tier,
 			l.day AS league_day, 
 			l.season AS league_season, 
 			l.league_id
@@ -41,6 +42,11 @@ class Team extends LeaguerunnerObject
 		$item = db_fetch_array($result);
 		foreach ($item as $key => $value) {
 			$this->{$key} = $value;
+		}
+
+		# Fix up league_name if necessary
+		if($this->league_tier) {
+			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
 
 		return true;
