@@ -312,7 +312,44 @@ class GameCreate extends Handler
 	 */
 	function createLadderRound( $edit, $timestamp )
 	{
-		$this->error_exit("TODO: dmo is working on this");
+		$league = $this->league;  // shorthand
+
+		if ( ! $league->load_teams() ) {
+			$this->error_exit("Error loading teams for league $league->fullname");
+		}
+
+		$num_teams = count($league->teams);
+
+		if ($num_teams % 4 != 0) {
+			$this->error_exit("The league MUST have a multiple of 4 teams.");
+		}
+
+		usort($league->teams, array($this, 'sort_teams_by_ranking'));
+		$sorted_order = &$league->teams;
+
+		//print "<pre>SORTED ORDER:</pre>\n";
+		//foreach ( $sorted_order as $value ) {
+ 			//print "<pre>VALUE = $value->team_id $value->name</pre>\n";
+		//}
+
+		$num_games = $num_teams / 2;
+
+		for($i = 0; $i < $num_games*2; $i=$i+2) {
+			$ii = $i+1;
+			$g = new Game;
+			$g->set('league_id', $league->league_id);
+			$g->set('home_team', $sorted_order[$i]->team_id);
+			$g->set('away_team', $sorted_order[$ii]->team_id);
+			if ( ! $g->save() ) {
+				$this->error_exit("Could not successfully create a new game");
+			}
+			if ( $g->select_random_gameslot($timestamp) ) {
+				print "<pre>Success...</pre>\n";
+			} else {
+				print "<pre>Failure...</pre>\n";
+			}
+			//print "<pre>SCHEDULE: " . $g->game_id . " IS " .$sorted_order[$i]->rank ." vs ". $sorted_order[$ii]->rank ." AT " . $g->slot_id . "</pre>\n\n";
+		}
 	}
 	
 	/**
@@ -320,7 +357,106 @@ class GameCreate extends Handler
 	 */
 	function createLadderSeason( $edit, $timestamp )
 	{
+		$this->error_exit("TONY IS WORKING ON THIS, AND THIS FUNCTION IS UNTESTED!!!");
+		$league = $this->league;  // shorthand
+
+		if ( ! $league->load_teams() ) {
+			$this->error_exit("Error loading teams for league $league->fullname");
+		}
+
+		$num_teams = count($league->teams);
+
+		if ($num_teams % 4 != 0) {
+			$this->error_exit("The league MUST have a multiple of 4 teams.");
+		}
+
+		// start with round 1:
+		$round = 1;
+
+		// save the first set of games in a game array
+		$game_array = array();
+
+		// DO THE FIRST GAME, SETTINGS TEAM NAMES AND SUCH
+		usort($league->teams, array($this, 'sort_teams_by_ranking'));
+		$sorted_order = &$league->teams;
+		$num_games = $num_teams / 2;
+		for($i = 0; $i < $num_games*2; $i=$i+2) {
+			$ii = $i+1;
+			$g = new Game;
+			$g->set('league_id', $league->league_id);
+			$g->set('round', $round);
+			$g->set('home_team', $sorted_order[$i]->team_id);
+			$g->set('away_team', $sorted_order[$ii]->team_id);
+			if ( ! $g->save() ) {
+				$this->error_exit("Could not successfully create a new game");
+			}
+			$game_array[$i] = $g->game_id;
+			$game_array[$ii] = $g->game_id;
+			if ( $g->select_random_gameslot($timestamp) ) {
+				print "<pre>Success...</pre>\n";
+			} else {
+				print "<pre>Failure...</pre>\n";
+			}
+			//print "<pre>SCHEDULE: " . $g->game_id . " IS " .$sorted_order[$i]->rank ." vs ". $sorted_order[$ii]->rank ." AT " . $g->slot_id . "</pre>\n\n";
+		}
+
+		// timestamp looks like this: 1095652800
+		$keep_scheduling = 1;
+		$home_away_flag = 0;
+		while ($keep_scheduling == 1) {
+			$round ++;
+			$new_timestamp = 0;
+			for($i = 0; $i < $game_array && $keep_scheduling == 1; $i++) {
+				$g = new Game;
+				$g->set('league_id', $league->league_id);
+				$g->set('round', $round);
+				if ( ! $g->save() ) {
+					$this->error_exit("Could not successfully create a new game");
+				}
+				// see if you can find an random gameslot for the very next day
+				$count_attempts = 0;
+				if ($new_timestamp == 0) {
+					$new_timestamp = get_next_day_timestamp($timestamp);
+					while ( !$g->select_random_gameslot($new_timestamp) ) {
+						$new_timestamp = get_next_day_timestamp($timestamp);
+						$count_attempts++;
+						// if you've tried 14 times, give up!  (14 = 2 weeks!)
+						if ($count_attempts >= 14) {
+							break;
+						}
+					}
+				}
+				if ($count_attemps >= 14) {
+					// you reached the end and there are no more games to schedule
+					$keep_scheduling = 0;
+				} else {
+					// you've found a gameslot, so go ahead and schedule the dependent game
+					if ($home_away_flag == 0) {
+						$g->set('home_dependant_game', $game_array[$i]);
+						$g->set('home_dependant_type', "winner");
+					} else {
+					}
+				}
+			}
+		}
+
 		$this->error_exit("TODO: dmo is working on this");
+	}
+
+	/** sorts an array of teams by their rank, from lowest rank (best) to highest rank (worst) **/
+        function sort_teams_by_ranking (&$a, &$b)
+        {
+		// A first as we want ascending
+                if ($a->rank == $b->rank) {
+			return 0;
+		}
+		return ($a->rank < $b->rank) ? -1 : 1;
+	}
+
+	/** returns the unix timestamp for the next day **/
+	function get_next_day_timestamp ($timestamp) {
+		// there are 86400 seconds per day, so just return the old timestamp plus that number
+		return $timestamp + 86400 ;
 	}
 
 	function createDayOfGames( &$edit, $timestamp ) 

@@ -425,7 +425,7 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_start') );
+		$result = game_query ( array( 'league_id' => $id, '_order' => 'g.game_date, g.game_id, g.game_start') );
 		if( ! $result ) {
 			$this->error_exit("That league does not have a schedule");
 		}
@@ -471,7 +471,7 @@ function schedule_heading( $date, $canEdit = false, $dayId = 0, $leagueId = 0 )
 
 function schedule_subheading( )
 {
-	$subheadings = array("Rnd", "Time/Place", "Home", "Away", "Home<br />Score", "Away<br />Score");
+	$subheadings = array("GameID", "Rnd", "Time/Place", "Home", "Away", "Home<br />Score", "Away<br />Score");
 	foreach($subheadings as $subheading) {
 		$subheadingRow[] = array('data' => $subheading, 'class' => 'column-heading');
 	}
@@ -529,6 +529,7 @@ function schedule_render_viewable( &$game )
 	}
 	
 	$gameRow = array(
+		$game['game_id'],
 		$game['round'],
 		l($game['game_start'], 'game/view/' . $game['game_id']) . " at " .  l( $game['field_code'], "field/view/" . $game['fid']),
 		$homeTeam,
