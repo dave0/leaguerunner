@@ -7,37 +7,60 @@
 function slot_dispatch() 
 {
 	$op = arg(1);
+	$id = arg(2);
 	switch($op) {
 		case 'create':
-			return new GameSlotCreate;
+			$obj = new GameSlotCreate;
+			break;
 		case 'delete':
-			return new GameSlotDelete;
+			$obj = new GameSlotDelete;
+			$obj->slot = slot_load( array('slot_id' => $id) );
+			break;
+		case 'availability':
+			$obj = new GameSlotAvailability;
+			$obj->slot = slot_load( array('slot_id' => $id) );
+			break;
+		case 'day':
+			$obj = new GameSlotListDay;
+			break;
+/*
 		case 'edit':
 			# TODO: allow admin to manually edit gameslots + times
 			#       Necessary for editing end times (?)
-			return new GameSlotEdit;
-		case 'availability':
-			return new GameSlotAvailability;
+			$obj = new GameSlotEdit;
+			$obj->slot = slot_load( array('slot_id' => $id) );
+ */
+		default:
+			$obj = null;;
 	}
-	return null;
+	return $obj;
+}
+
+function slot_permissions ( &$user, $action, $sid )
+{
+	switch($action)
+	{
+		case 'create':
+		case 'edit':
+		case 'delete':
+		case 'availability':
+			// admin-only
+			break;
+	}
+	return false;
 }
 
 class GameSlotCreate extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->title = "Create Game Slot";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		
-		return true;
+		global $session;
+		return $session->has_permission('slot','create');
 	}
 
 	function process()
 	{
+		$this->title = "Create Game Slot";
 		$fid = arg(2);
 		$year = arg(3);
 		$month = arg(4);
@@ -45,12 +68,12 @@ class GameSlotCreate extends Handler
 
 		$field = field_load( array('fid' => $fid) );
 		if(!$field) {
-			$this->error_exit("That field does not exist");
+			error_exit("That field does not exist");
 		}
 		
 		if ( $day ) {
 			if ( ! validate_date_input($year, $month, $day) ) {
-				$this->error_exit("That date is not valid");
+				error_exit("That date is not valid");
 			}
 			$datestamp = mktime(0,0,0,$month,$day,$year);
 		} else {
@@ -68,7 +91,7 @@ class GameSlotCreate extends Handler
 				if ( $this->perform( $field, $edit, $datestamp) ) {
 					local_redirect(url("field/view/$field->fid"));	
 				} else {
-					$this->error_exit("Aieee!  Bad things happened in gameslot create");
+					error_exit("Aieee!  Bad things happened in gameslot create");
 				}
 				break;
 			case 'confirm':
@@ -86,7 +109,7 @@ class GameSlotCreate extends Handler
 				return $this->generateForm($field, $datestamp);
 				break;
 		}
-		$this->error_exit("Error: This code should never be reached.");
+		error_exit("Error: This code should never be reached.");
 	}
 
 	function datePick ( &$field, $year, $month, $day)
@@ -117,7 +140,7 @@ class GameSlotCreate extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
 		for( $i = 0; $i < $edit['repeat_for']; $i++) {
@@ -184,7 +207,7 @@ class GameSlotCreate extends Handler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$output = form_hidden('edit[step]', 'perform');
@@ -234,67 +257,60 @@ class GameSlotCreate extends Handler
 
 class GameSlotDelete extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->title = "Delete Game Slot";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		
-		return true;
+		global $session;
+		return $session->has_permission('slot','delete', $this->slot->slot_id);
 	}
 
 	function process()
 	{
-		$slot_id = arg(2);
-
-		$slot = slot_load( array('slot_id' => $slot_id) );
-		if(!$slot) {
-			$this->error_exit("That game slot does not exist");
+		$this->title = "Delete Game Slot";
+		
+		if(!$this->slot) {
+			error_exit("That game slot does not exist");
 		}
 		
 		$this->setLocation(array( 
-			$slot->field->fullname => "field/view/$field->fid",
+			$slot->field->fullname => "field/view/" . $slot->field->fid,
 			$this->title => 0
 		));
 
 
 		switch($_POST['edit']['step']) {
 			case 'perform':
-				$fid = $slot->fid;
-				if ( $slot->delete() ) {
+				$fid = $this->slot->fid;
+				if ( $this->slot->delete() ) {
 					local_redirect(url("field/view/$fid"));
 				} else {
-					$this->error_exit("Failure deleting gameslot");
+					error_exit("Failure deleting gameslot");
 				}
 				break;
 			case 'confirm':
 			default:
-				return $this->generateConfirm($slot);
+				return $this->generateConfirm();
 				break;
 		}
-		$this->error_exit("Error: This code should never be reached.");
+		error_exit("Error: This code should never be reached.");
 	}
 
-	function generateConfirm ( &$slot )
+	function generateConfirm ()
 	{
 		// Check that the slot has no games scheduled
-		if ($slot->game_id) {
-			$this->error_exit("Cannot delete a gameslot with a currently-scheduled game");
+		if ($this->slot->game_id) {
+			error_exit("Cannot delete a gameslot with a currently-scheduled game");
 		}
 		
 		// Print confirmation info
 		$output = form_hidden('edit[step]', 'perform');
 		
-		$group = form_item("Date", strftime("%A %B %d %Y", $slot->date_timestamp));
-		$group .= form_item('Game Start Time', $slot->game_start);
-		$group .= form_item('Game End Time', $slot->game_end);
+		$group = form_item("Date", strftime("%A %B %d %Y", $this->slot->date_timestamp));
+		$group .= form_item('Game Start Time', $this->slot->game_start);
+		$group .= form_item('Game End Time', $this->slot->game_end);
 		$output .= form_group("Gameslot Information", $group);
 
 		$group = '';
-		foreach( $slot->leagues as $l ) {
+		foreach( $this->slot->leagues as $l ) {
 			$league = league_load( array('league_id' => $l->league_id) );
 			$group .= $league->fullname . "<br />";
 		}
@@ -311,63 +327,54 @@ class GameSlotDelete extends Handler
  */
 class GameSlotAvailability extends Handler
 {
-	function initialize ()
+	function has_permission()
 	{
-		$this->title = "View Availability";
-		$this->_required_perms = array(
-			'require_valid_session',
-			'admin_sufficient',
-			'deny'
-		);
-		
-		return true;
+		global $session;
+		return $session->has_permission('slot', 'availability', $this->slot->slot_id);
 	}
 
 	function process()
 	{
-		$id = arg(2);
-		
-		$slot = slot_load( array('slot_id' => $id) );
-		if(!$slot) {
-			$this->error_exit("That gameslot does not exist");
+		if(!$this->slot) {
+			error_exit("That gameslot does not exist");
 		}
 		
 		$edit = &$_POST['edit'];
 
 		switch($edit['step']) {
 			case 'perform':
-				foreach( $slot->leagues as $league) { 
+				foreach( $this->slot->leagues as $league) { 
 					if( !count( $edit['availability']) || !in_array( $league->league_id, $edit['availability']) ) {
-						$slot->remove_league( $league );
+						$this->slot->remove_league( $league );
 					}
 				}
 				if( count($edit['availability']) > 0 ) {
 					foreach ( $edit['availability'] as $league ) {
-						$slot->add_league($league);
+						$this->slot->add_league($league);
 					}
 				}
-				if( $slot->save() ) {
+				if( $this->slot->save() ) {
 				} else {
-					$this->error_exit("Internal error: couldn't save gameslot");
+					error_exit("Internal error: couldn't save gameslot");
 				}
-				local_redirect(url("slot/availability/$slot->slot_id"));
+				local_redirect(url("slot/availability/" . $this->slot->slot_id));
 				break;
 			default:
 				$this->setLocation(array(
-					$slot->field->fullname => "field/view/$slot->fid",
+					$slot->field->fullname => "field/view/" . $this->slot->fid,
 					$this->title => 0
 				));
 				return $this->generateForm( $slot );
 		}
 	}
 
-	function generateForm( &$slot )
+	function generateForm()
 	{
 
 		# What day is this weekday?
-		$weekday = strftime("%A", $slot->date_timestamp);
+		$weekday = strftime("%A", $this->slot->date_timestamp);
 
-		$output = "<p>Availability for $slot->game_date $slot->game_start</p>";
+		$output = "<p>Availability for " . $this->slot->game_date . " " . $this->slot->game_start. "</p>";
 
 		$leagues = array();
 		
@@ -388,7 +395,7 @@ class GameSlotAvailability extends Handler
 			$leagues[$league->league_id] = $league;
 		}
 	
-		foreach($slot->leagues as $league) {
+		foreach($this->slot->leagues as $league) {
 			$leagues[$league->league_id]->selected = true;
 		}
 
@@ -402,6 +409,84 @@ class GameSlotAvailability extends Handler
 		$output .= form_group('Make Gameslot Available To:', $chex);
 
 		return form($output);
+	}
+}
+
+class GameSlotListDay extends Handler
+{
+	function has_permission()
+	{
+		global $session;
+		return $session->has_permission('slot', 'day');
+	}
+
+	function process ()
+	{
+		$this->title = "View Day";
+
+		$today = getdate();
+
+		$year  = arg(2);
+		$month = arg(3);
+		$day   = arg(4);
+		
+		if(! validate_number($month)) {
+			$month = $today['mon'];
+		}
+
+		if(! validate_number($year)) {
+			$year = $today['year'];
+		}
+		
+		if( $day ) {
+			if( !validate_date_input($year, $month, $day) ) {
+				return "That date is not valid";
+			}
+			$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
+			$this->setLocation(array(
+				"$this->title &raquo; $formattedDay" => 0));
+			return $this->display_for_day( $year, $month, $day );
+		} else {
+			$this->setLocation(array( "$this->title" => 0));
+			$output = para("Select a date below on which to view all available fields");
+			$output .= generateCalendar( $year, $month, $day, 'slot/day', 'slot/day');
+			return $output;
+		}
+	}
+	
+	function display_for_day ( $year, $month, $day )
+	{
+		global $session;
+		$result = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
+		
+		if( ! $result ) {
+			error_exit("Nothing available on that day");
+		}
+
+		$header = array("Field","Start Time","End Time","Booking", "Actions");
+		$rows = array();
+		while($slot = db_fetch_object($result)) {
+			$booking = '';
+
+			$field = field_load( array('fid' => $slot->fid));
+			
+			$actions = array();
+			if( $session->has_permission('gameslot','edit', $slot->slot_id)) {
+				$actions[] = l('change avail', "slot/availability/$slot->slot_id");
+			}
+			if( $session->has_permission('gameslot','delete', $slot->slot_id)) {
+				$actions[] = l('delete', "slot/delete/$slot->slot_id");
+			}
+			if($slot->game_id) {
+				$game = game_load( array('game_id' => $slot->game_id) );
+				$booking = l($game->league_name,"game/view/$game->game_id");
+				if( $session->has_permission('game','reschedule', $game->game_id)) {
+					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
+				}
+			}
+			$rows[] = array(l("$field->code $field->num","field/view/$field->fid"), $slot->game_start, $slot->game_end, $booking, theme_links($actions));
+		}
+		return "<div class='listtable'>" . table($header, $rows) . "</div>";
 	}
 }
 
