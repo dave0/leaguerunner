@@ -152,7 +152,7 @@ class MainMenu extends Handler
 						l("edit", "league/edit/$league->id")
 					);
 					if($league->allow_schedule == 'Y') {
-						$links[] = l("schedule", "league/schedule_view/$league->id");
+						$links[] = l("schedule", "schedule/view/$league->id");
 						$links[] = l("standings", "league/standings/$league->id");
 						$links[] = l("approve scores", "league/verifyscores/$league->id");
 					}

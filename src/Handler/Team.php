@@ -819,7 +819,7 @@ class TeamSchedule extends Handler
 		$links = array(
 			l("view team", "team/view/$id"),
 			l("view league", "league/view/$team->league_id"),
-			l("view league schedule", "league/schedule_view/$team->league_id")
+			l("view league schedule", "schedule/view/$team->league_id")
 		);
 
 		$this->setLocation(array(

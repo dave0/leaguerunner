@@ -4,12 +4,14 @@ function schedule_dispatch()
 {
 	$op = arg(1);
 	switch($op) {
-		case 'view_day':
-			return new ScheduleViewDay; // TODO
-		// TODO: Note the other classes in this file are NOT dispatched
-		// via this function.  This is an artifact of some bad decisions made
-		// previously and will be fixed eventually.  See League.php for other
-		// comments.
+		case 'day':
+			return new ScheduleViewDay;
+		case 'add':
+			return new ScheduleAddDay; // TODO
+		case 'edit':
+			return new ScheduleEdit;
+		case 'view':
+			return new ScheduleView;
 	}
 	return null;
 }
@@ -18,163 +20,108 @@ function schedule_dispatch()
 /**
  * League schedule add week
  */
-class LeagueScheduleAddWeek extends Handler
+class ScheduleAddDay extends Handler
 {
 	function initialize ()
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'deny',
 		);
 
-		$this->op = 'league_schedule_addweek';
 		$this->section = 'league';
-		$this->title = "Add Week";
-
+		$this->title = "Add Day";
 		return true;
 	}
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
-		switch($step) {
-			case 'confirm':
-				$rc = $this->generateConfirm( $id );
-				break;
-			case 'perform':
-				$this->perform( $id );
-				local_redirect("op=league_schedule_view&id=$id");
-				break;
-			default:
-				$rc = $this->generateForm( $id );
-		}
+		$today = getdate();
+
+		$id    = arg(2);
+		$year  = arg(3);
+		$month = arg(4);
+		$day   = arg(5);
 		
-		return $rc;
+		if( $day ) {
+			if( !validate_date_input($year, $month, $day) ) {
+				return "That date is not valid";
+			}
+			$edit = $_POST['edit'];
+			if( $edit['step'] == 'perform' ) {
+				$this->perform( $id, $year, $month, $day );
+				local_redirect(url("schedule/view/$id"));
+			} else {
+				return $this->generateConfirm( $id, $year, $month, $day );
+			}
+		} else {
+			return $this->generateForm( $id, $year, $month, $day);
+		}
 	}
 	
-	/**
-	 * Validate that date provided is 
-	 * legitimately a valid date (ie: no Jan 32 or Feb 30)
-	 */
-	function isDataInvalid ()
+	function generateForm( $id, $year = 0, $month = 0, $day = 0 )
 	{
-		$year = var_from_getorpost('year');
-		$month = var_from_getorpost('month');
-		$day = var_from_getorpost('day');
-
-		if( !validate_date_input($year, $month, $day) ) {
-			return "That date is not valid";
-		}
-		
-		return false;
-	}
-
-	/**
-	 * Generate the calendar for selecting day to add to schedule.  
-	 * Days of play for this league are highlighted.
-	 */
-	function generateForm ( $id )
-	{
-
 		/* TODO: league_load() */
-		$result = db_query(
-			"SELECT 
-				name,
-				tier,
-				day
-			 FROM league WHERE league_id = %d", $id);
-			 
+		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
 		if( 1 != db_num_rows($result)) {
 			return false;
 		}
-		
-		$league = db_fetch_array($result);
+		$league = db_fetch_object($result);
 
-		$league['day'] = split(',',$league['day']);
+		$league->day = split(',',$league->day);
 
 		$output = para("Select a date below to add a new week of 
 			games to the schedule.  Days on which this league usually 
 			plays are highlighted.");
 
 		$today = getdate();
-		
-		$month = var_from_getorpost("month");
+	
 		if(! ctype_digit($month)) {
 			$month = $today['mon'];
 		}
 
-		$year = var_from_getorpost("year");
 		if(! ctype_digit($year)) {
 			$year = $today['year'];
 		}
 
-		$output .= generateCalendar( $year, $month, -1, 
-			$this->op . "&id=$id",
-			$this->op . "&step=confirm&id=$id",
-			$league['day']
-		);
+		$output .= generateCalendar( $year, $month, $day, "schedule/add/$league->league_id", "schedule/add/$league->league_id", $league->day);
 
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
-		}
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
+			$league->name => "league/view/$id",
 			$this->title => 0));
 
 		return $output;
 	}
-
+	
 	/**
 	 * Generate simple confirmation page
 	 */
-	function generateConfirm ( $id )
+	function generateConfirm ( $id, $year, $month, $day )
 	{
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid);
+		if( !validate_date_input($year, $month, $day) ) {
+			$this->error_exit("That date is not valid");
 		}
 		
 		/* TODO: league_load() */
-		$result = db_query(
-			"SELECT 
-				name,
-				tier,
-				day
-			 FROM league WHERE league_id = %d", $id);
+		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
 		if( 1 != db_num_rows($result)) {
 			return false;
 		}
-		
-		$league = db_fetch_array($result);
+		$league = db_fetch_object($result);
 
-		$year = var_from_getorpost('year');
-		$month = var_from_getorpost('month');
-		$day = var_from_getorpost('day');
-		$date = date("d F Y", mktime (0,0,0,$month,$day,$year));
+		$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
 
-		$output = para("Do you wish to add games on <b>$date</b>?")
+		$output = para("Do you wish to add games on <b>$formattedDay</b>?")
 			. para("If so, click 'Submit' to continue.  Otherwise, use your browser's back button to go back and select a new date.");
 
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
-		$output .= form_hidden('year', $year);
-		$output .= form_hidden('month', $month);
-		$output .= form_hidden('day', $day);
+		$output .= form_hidden('edit[step]', 'perform');
 		$output .= para(form_submit('submit'));
 		
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
-		}
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
-			$this->title => 0));
+			$league->name => "league/view/$id",
+			"$this->title &raquo; $formattedDay" => 0));
 		
 		return form($output);
 	}
@@ -182,11 +129,10 @@ class LeagueScheduleAddWeek extends Handler
 	/**
 	 * Add week to schedule.
 	 */
-	function perform ( $id )
+	function perform ( $id, $year, $month, $day )
 	{
-		$dataInvalid = $this->isDataInvalid();
-		if($dataInvalid) {
-			$this->error_exit($dataInvalid);
+		if( !validate_date_input($year, $month, $day) ) {
+			$this->error_exit("That date is not valid");
 		}
 
 		$num_teams = db_result(db_query( "SELECT COUNT(*) from leagueteams where league_id = %d", $id));
@@ -205,29 +151,23 @@ class LeagueScheduleAddWeek extends Handler
 		$num_games = floor($num_teams / 2);
 		
 		/* TODO: league_load() */
-		$result = db_query(
-			"SELECT 
-				current_round,
-				start_time
-			 FROM league WHERE league_id = %d", $id);
-			 
+		$result = db_query( "SELECT * FROM league WHERE league_id = %d", $id);
 		if( 1 != db_num_rows($result)) {
 			return false;
 		}
-		$league = db_fetch_array($result);
+		$league = db_fetch_object($result);
 
 		/* Use the first start time in the list, by default */
-		$startTimes = split(",", $league['start_time']);
+		$startTimes = split(",", $league->start_time);
 
 		/* All the game_ date values have already been validated by
 		 * isDataInvalid()
 		 */
-		$gametime = join("-",array(var_from_getorpost("year"), var_from_getorpost("month"), var_from_getorpost("day")));
+		$gametime = join("-",array($year,$month, $day));
 		$gametime .= " " . $startTimes[0];
 
 		for($i = 0; $i < $num_games; $i++) {
-			db_query("INSERT INTO schedule (league_id,date_played,round) values (%d,'%s',%d)", $id, $gametime, $league['current_round']);
-			
+			db_query("INSERT INTO schedule (league_id,date_played,round) values (%d,'%s',%d)", $id, $gametime, $league->current_round);
 			if(1 != db_affected_rows() ) {
 				return false;
 			}
@@ -244,69 +184,60 @@ class ScheduleViewDay extends Handler
 {
 	function initialize ()
 	{
+		$this->section = 'league';
+		$this->title = "View Day";
+
+		$this->_permissions = array(
+			"view_spirit" => false,
+		);
+		
 		$this->_required_perms = array(
 			'require_valid_session',
 			'allow',
 		);
 
-		$this->op = 'schedule_view_day';
-		$this->section = 'league';
-		$this->title = "View Day";
-
 		return true;
+	}
+
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} else if($type == 'coordinator') {
+			$this->enable_all_perms();
+		} 
 	}
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		
 		$today = getdate();
+
+		$year  = arg(2);
+		$month = arg(3);
+		$day   = arg(4);
 		
-		$month = var_from_getorpost("month");
 		if(! ctype_digit($month)) {
 			$month = $today['mon'];
 		}
 
-		$year = var_from_getorpost("year");
 		if(! ctype_digit($year)) {
 			$year = $today['year'];
 		}
 		
-		$day = var_from_getorpost('day');
-		if(! ctype_digit($day)) {
-			$day = $today['mday'];
+		if( $day ) {
+			if( !validate_date_input($year, $month, $day) ) {
+				return "That date is not valid";
+			}
+			$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
+			$this->setLocation(array(
+				"$this->title &raquo; $formattedDay" => 0));
+			return $this->displayGamesForDay( $year, $month, $day );
+		} else {
+			$this->setLocation(array( "$this->title" => 0));
+			$output = para("Select a date below on which to view all scheduled games");
+			$output .= generateCalendar( $year, $month, $day, 'schedule/day', 'schedule/day');
+			return $output;
 		}
-		
-		switch($step) {
-			case 'perform':
-				if( !validate_date_input($year, $month, $day) ) {
-					return "That date is not valid";
-				}
-				$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
-				$this->setLocation(array(
-					"$this->title &raquo; $formattedDay" => 0));
-				return $this->displayGamesForDay( $year, $month, $day );
-				break;
-			default:
-				$this->setLocation(array( "$this->title" => 0));
-				return $this->generateCalendar( $year, $month, $day );
-		}
-	}
-
-	/**
-	 * Generate the calendar for selecting day to view.
-	 * Today is highlighted.
-	 */
-	function generateCalendar ( $year, $month, $day = 0 )
-	{
-		$output = para("Select a date below on which to view all scheduled games");
-
-		$output .= generateCalendar( $year, $month, $day, 
-			$this->op,
-			"$this->op&step=perform"
-		);
-		
-		return $output;
 	}
 
 	/**
@@ -314,35 +245,47 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
+		/* 
+		 * Now, grab the schedule
+		 */
 		$result = db_query(
-			"SELECT
-				s.game_id,
+			"SELECT 
+				s.game_id     AS id, 
+				s.league_id,
+				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
 				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
+				s.home_team   AS home_id,
+				s.away_team   AS away_id, 
+				h.name        AS home_name,
+				a.name        AS away_name,
+				s.field_id, 
+				s.defaulted,
 				f.site_id, 
-				s.home_team,
-				s.away_team,
-				s.field_id,
-				h.name AS home_name, 
-				a.name AS away_name
-			 FROM
-			    schedule s
+				s.home_score, 
+				s.away_score,
+				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
+				s.home_spirit, 
+				s.away_spirit,
+				s.round
+			  FROM
+			  	schedule s
 				LEFT JOIN field f ON (s.field_id = f.field_id)
-				LEFT JOIN team h ON (s.home_team = h.team_id)
-				LEFT JOIN team a ON (s.away_team = a.team_id)
-			 WHERE
+				LEFT JOIN team  h ON (s.home_team = h.team_id)
+				LEFT JOIN team  a ON (s.away_team = a.team_id)
+			  WHERE 
 			    YEAR(s.date_played) = %d
 				AND DAYOFYEAR(s.date_played) = DAYOFYEAR('%d-%d-%d')
 			 ORDER BY time,site_id",$year,$year,$month,$day);
-		$rows = array();
-		$header = array( "Time", "Home", "Away", "Location", "&nbsp;");
-		while($game = db_fetch_object($result)) {
-			$rows[] = array(
-				$game->time,
-				l($game->home_name, "op=team_view&id=$game->home_team"),
-				l($game->away_name, "op=team_view&id=$game->away_team"),
-				get_field_name($game->field_id),
-				l('details', "op=game_view&id=$game->game_id")
-			);
+		if( ! $result ) {
+			$this->error_exit("That league does not have a schedule");
+		}
+
+		$rows = array( 
+			schedule_heading(strftime('%a %b %d %Y',mktime(0,0,0,$month,$day,$year))),
+			schedule_subheading( $this->_permissions['view_spirit'] ),
+		);
+		while($game = db_fetch_array($result)) {
+			$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
 		return $output;
@@ -352,37 +295,185 @@ class ScheduleViewDay extends Handler
 /**
  * Edit league schedule
  */
-class LeagueScheduleEdit extends Handler
+class ScheduleEdit extends Handler
 {
 	function initialize ()
 	{
-		$this->title = "Edit";
+		$this->title = "Edit Schedule";
+		$this->_permissions = array(
+			"view_spirit" => false,
+		);
+
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'coordinator_sufficient',
+			'deny'
 		);
-		$this->op = 'league_schedule_edit';
 		$this->section = 'league';
 		return true;
 	}
 	
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} else if($type == 'coordinator') {
+			$this->enable_all_perms();
+		} 
+	}
+	
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-		$step = var_from_getorpost('step');
-		switch($step) {
+		$id    = arg(2);
+		$dayId = arg(3);
+		$edit = $_POST['edit'];
+		
+		switch($edit['step']) {
 			case 'perform':
-				$this->perform();
-				local_redirect("op=league_schedule_view&id=$id");
+				$this->perform($id, $dayId, $edit);
+				local_redirect(url("schedule/view/$id"));
 				break;
 			case 'confirm':
+				$rc = $this->generateConfirm( $id, $dayId, $edit );
+				break;
 			default:
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateForm( $id, $dayId );
 				break;
 		}
 		return $rc;
+	}
+
+	function generateForm ( $id, $editDayId )
+	{
+		/* TODO: league_load() */
+		$result = db_query( "SELECT IF(l.tier,CONCAT(l.name, ' Tier ', l.tier),l.name) AS name, l.* FROM league l WHERE l.league_id = %d", $id);
+		if( 1 != db_num_rows($result)) {
+			$this->error_exit("That league does not exist");
+		}
+		$league = db_fetch_array($result);
+
+		$this->setLocation(array(
+			$league['name'] => "league/view/$id",
+			$this->title => 0));
+			
+		/* Grab data for pulldowns if we need an edit form */
+		$league['starttimes'] = getOptionsFromTimeRange(900,2400,15);
+		$result = db_query(
+			"SELECT t.team_id, t.name 
+			 FROM leagueteams l
+			 LEFT JOIN team t ON (l.team_id = t.team_id) 
+		     WHERE l.league_id = %s", $id);
+		 
+		if( ! db_num_rows($result) ) {
+			$this->error_exit("There may be no teams in this league");
+		}
+		$league['teams'][0] = "---";
+		while($team = db_fetch_object($result)) {
+			$league['teams'][$team->team_id] = $team->name;
+		}
+
+		$result = db_query(
+			"SELECT DISTINCT
+				f.field_id,
+				CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')') as name
+			  FROM
+			    field_assignment a
+				LEFT JOIN field f ON (a.field_id = f.field_id)
+				LEFT JOIN site s ON (f.site_id = s.site_id)
+		 	  WHERE
+		    	a.league_id = %d", $id);
+			
+		if( ! db_num_rows($result) ) {
+			$this->error_exit("There are no fields assigned to this league");
+		}
+
+		$league['fields'][0] = "---";
+		while($field = db_fetch_object($result)) {
+			$league['fields'][$field->field_id] = $field->name;
+		}
+
+		/* 
+		 * Rounds
+		 */
+		$league['rounds'] = array();
+		for($i = 1; $i <= 5;  $i++) {
+			$league['rounds'][$i] = $i;
+		}
+
+		/* 
+		 * Now, grab the schedule
+		 */
+		$result = db_query(
+			"SELECT 
+				s.game_id     AS id, 
+				s.league_id,
+				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date, 
+				TIME_FORMAT(s.date_played,'%%H:%%i') as time,
+				s.home_team   AS home_id,
+				s.away_team   AS away_id, 
+				h.name        AS home_name,
+				a.name        AS away_name,
+				s.field_id, 
+				s.defaulted,
+				f.site_id, 
+				s.home_score, 
+				s.away_score,
+				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
+				s.home_spirit, 
+				s.away_spirit,
+				s.round
+			  FROM
+			  	schedule s
+				LEFT JOIN field f ON (s.field_id = f.field_id)
+				LEFT JOIN team  h ON (s.home_team = h.team_id)
+				LEFT JOIN team  a ON (s.away_team = a.team_id)
+			  WHERE 
+				s.league_id =  %d
+			  ORDER BY s.date_played", $id);
+			
+		if( ! $result ) {
+			$this->error_exit("That league does not have a schedule");
+		}
+
+		$prevDayId = -1;
+		$rows = array();
+		/* For each game in the schedule for this league */
+		while($game = db_fetch_array($result)) {
+
+			if( $game['day_id'] != $prevDayId ) {
+				if( $editDayId == $prevDayId) {
+					/* ensure we add the submit buttons for schedule editing */
+					$rows[] = array(
+						array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
+					);
+				}
+				
+				$rows[] = schedule_heading( 
+					$game['date'], 
+					$this->_permissions['view_spirit'], 
+					false,
+					$game['day_id'], $id );
+				$rows[] = schedule_subheading( $this->_permissions['view_spirit'] );
+			}
+			
+			if($editDayId == $game['day_id']) {
+				$rows[] = schedule_render_editable($game, $league);
+			} else {
+				$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
+			}
+			$prevDayId = $game['day_id'];	
+		}
+		if( $editDayId == $prevDayId ) {
+			/* ensure we add the submit buttons for schedule editing */
+			$rows[] = array(
+				array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
+			);
+		}
+
+		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
+
+		return form($output);
 	}
 	
 	function isDataInvalid ($games) 
@@ -438,47 +529,36 @@ class LeagueScheduleEdit extends Handler
 		return false;
 	}
 
-	function generateConfirm ( $id ) 
+	function generateConfirm ( $id, $gameId, $edit )
 	{
-		$id = var_from_getorpost('id');
-		$games = $_POST['games'];
-		
-		$dataInvalid = $this->isDataInvalid( $games );
+		$dataInvalid = $this->isDataInvalid( $edit['games'] );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		/* TODO: league_load() */
-		$result = db_query(
-			"SELECT 
-				name,
-				tier
-			 FROM league WHERE league_id = %d", $id);
-			 
+		$result = db_query( "SELECT IF(l.tier, CONCAT(l.name, ' Tier ', l.tier), l.name), l.* FROM league l WHERE l.league_id = %d", $id);
 		if( 1 != db_num_rows($result)) {
 			return false;
 		}
-		$league = db_fetch_array($result);
+		$league = db_fetch_object($result);
 
 		$output = para(
 			"Confirm that the changes below are correct, and click 'Submit' to proceed.");
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
+		$output .= form_hidden('edit[step]', 'perform');
 
 		$header = array(
 			"Game ID", "Round", "Game Time", "Home", "Away", "Field",
 		);
 		$rows = array();
 
-		while (list ($game_id, $game_info) = each ($games) ) {
+		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 			$rows[] = array(
-				form_hidden("games[$game_id][game_id]", $game_id) . $game_id,
-				form_hidden("games[$game_id][round]", $game_info['round']) . $game_info['round'],
-				form_hidden("games[$game_id][start_time]", $game_info['start_time']) . $game_info['start_time'],
-				form_hidden("games[$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
-				form_hidden("games[$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
-				form_hidden("games[$game_id][field_id]", $game_info['field_id']) . get_field_name($game_info['field_id'])
+				form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
+				form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
+				form_hidden("edit[games][$game_id][start_time]", $game_info['start_time']) . $game_info['start_time'],
+				form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
+				form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
+				form_hidden("edit[games][$game_id][field_id]", $game_info['field_id']) . get_field_name($game_info['field_id'])
 			);
 		}
 		
@@ -486,27 +566,21 @@ class LeagueScheduleEdit extends Handler
 		
 		$output .= para(form_submit('submit'));
 		
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
-		}
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
+			$league->name => "op=league_view&id=$id",
 			$this->title => 0));
 
 		return form($output);
 	}
 	
-	function perform () 
+	function perform ( $id, $gameId, $edit ) 
 	{
-		$games = $_POST['games'];
-		
-		$dataInvalid = $this->isDataInvalid( $games );
+		$dataInvalid = $this->isDataInvalid( $edit['games'] );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid);
 		}
 
-		while (list ($game_id, $game_info) = each ($games) ) {
+		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 
 			/* 
 			 * TODO: Fix this
@@ -527,17 +601,15 @@ class LeagueScheduleEdit extends Handler
 				return false;
 			}
 		}
-		reset($games);
 
 		return true;
-		
 	}
 }
 
 /**
  * League schedule viewing handler
  */
-class LeagueScheduleView extends Handler
+class ScheduleView extends Handler
 {
 	function initialize ()
 	{
@@ -549,13 +621,10 @@ class LeagueScheduleView extends Handler
 		
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'coordinator_sufficient',
 			'allow',
 		);
-
-		$this->op = 'league_schedule_view';
 		$this->section = 'league';
 
 		return true;
@@ -572,36 +641,24 @@ class LeagueScheduleView extends Handler
 
 	function process ()
 	{
-		$id = var_from_getorpost('id');
-		$week_id = var_from_getorpost('week_id');
-
+		$id = arg(2);
+		
 		$links = array();
 		if($this->_permissions['edit_schedule']) {
-			$links[] = l("add new week", "op=league_schedule_addweek&id=$id");
-		}
-		/* TODO: league_load() */
-		$result = db_query(
-			"SELECT 
-				name, 
-				tier,
-				start_time,
-				current_round
-			 FROM league WHERE league_id = %d", $id);
-			 
-		if( 1 != db_num_rows($result)) {
-			return false;
+			$links[] = l("add new week", "schedule/add/$id");
 		}
 		
+		/* TODO: league_load() */
+		$result = db_query( "SELECT IF(l.tier,CONCAT(l.name, ' Tier ', l.tier),l.name) AS name, l.* FROM league l WHERE l.league_id = %d", $id);
+		if( 1 != db_num_rows($result)) {
+			$this->error_exit("That league does not exist");
+		}
 		$league = db_fetch_array($result);
 
-		$leagueName = $league['name'];
-		if($league['tier']) {
-			$leagueName .= " Tier " . $league['tier'];
-		}
 		$this->setLocation(array(
-			$leagueName => "op=league_view&id=$id",
+			$league['name'] => "league/view/$id",
 			$this->title => 0));
-
+			
 		/* 
 		 * Now, grab the schedule
 		 */
@@ -620,11 +677,10 @@ class LeagueScheduleView extends Handler
 				f.site_id, 
 				s.home_score, 
 				s.away_score,
-				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as week_id,
+				CONCAT(YEAR(s.date_played),DAYOFYEAR(s.date_played)) as day_id,
 				s.home_spirit, 
 				s.away_spirit,
-				s.round,
-				UNIX_TIMESTAMP(s.date_played) as timestamp
+				s.round
 			  FROM
 			  	schedule s
 				LEFT JOIN field f ON (s.field_id = f.field_id)
@@ -635,183 +691,117 @@ class LeagueScheduleView extends Handler
 			  ORDER BY s.date_played", $id);
 			
 		if( ! $result ) {
-			$this->error_exit("The league [$id] does not exist");
-			return false;
+			$this->error_exit("That league does not have a schedule");
 		}
 
-		$prevWeekId = 0;
-		$thisWeekGames = array();
+		$prevDayId = -1;
 		$rows = array();
 		/* For each game in the schedule for this league */
 		while($game = db_fetch_array($result)) {
 
-			if( ($prevWeekId != 0) && ($game['week_id'] != $prevWeekId) ) {	
-				$this->processOneWeek( $rows, $thisWeekGames, $league, $week_id, $id );
-				$thisWeekGames = array($game);
-				$prevWeekId = $game['week_id'];	
-			} else {
-				$thisWeekGames[] = $game;
-				$prevWeekId = $game['week_id'];	
+			if( $game['day_id'] != $prevDayId ) {
+				$rows[] = schedule_heading( 
+					$game['date'], 
+					$this->_permissions['view_spirit'], 
+					$this->_permissions['edit_schedule'], 
+					$game['day_id'], $id );
+				$rows[] = schedule_subheading( $this->_permissions['view_spirit'] );
 			}
+			
+			$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
+			$prevDayId = $game['day_id'];	
 		}
-
-		/* Make sure to process the last week obtained */
-		$this->processOneWeek( $rows, $thisWeekGames, $league, $week_id, $id );
 		$output = theme_links($links);
-		
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
-
 		$output .= theme_links($links);
 
 		return form($output);
 	}
-
-	function processOneWeek( &$rows, &$games, &$league, $week_id, $id )
-	{
-		$weekData = $games[0];
+}
 	
-		if( $this->_permissions['edit_schedule'] && ($week_id != $weekData['week_id'])) {
-			$editLink = l("edit week", "op=league_schedule_view&id=$id&week_id=" . $weekData['week_id'], array('class' => 'topbarlink'));
-		} else {
-			$editLink = "&nbsp";
-		}
+function schedule_heading( $date, $canViewSpirit = false, $canEdit = false, $dayId = 0, $leagueId = 0 )
+{
+	$header = array(
+		array('data' => $date, 'colspan' => 7, 'class' => 'gamedate')
+	);
 
-		$rows[] = array(
-			array('data' => $weekData['date'], 'colspan' => 7, 'class' => 'gamedate'),
-			array('data' => $editLink, 'colspan' => 2, 'class' => 'gamedate')
+	if( $canEdit ) {
+		$header[] = array(
+			'data' => l("edit week", "schedule/edit/$leagueId/$dayId"),
+			'colspan' => 2,
+			'class' => 'gamedate'
 		);
-
-		$subheadings = array("Round", "Game Time", "Home", "Away", "Field", "Home<br />Score", "Away<br />Score");
-
-		if($this->_permissions['view_spirit']) {
-			$subheadings[] = "Home<br />SOTG";
-			$subheadings[] = "Away<br /> SOTG";
-		} else {
-			$subheadings[] = "";
-			$subheadings[] = "";
-		}
-		$subheadingRow = array();
-		foreach($subheadings as $subheading) {
-			$subheadingRow[] = array('data' => $subheading, 'class' => 'column-heading');
-		}
-
-		$rows[] = $subheadingRow;
-			
-		if( $this->_permissions['edit_schedule'] && ($week_id == $weekData['week_id'])) {
-			/* If editable, start off an editable form */
-			$this->createEditableWeek( $rows, $games, $league, $week_id, $id);
-		} else {
-			$this->createViewableWeek( $rows, $games, $league );
-		}
-	}
-
-	function createEditableWeek( &$rows, &$games, &$league, $weekId, $id )
-	{
-		$startTimes = getOptionsFromTimeRange(900,2400,15);
-		
-		$result = db_query(
-			"SELECT t.team_id, t.name 
-			 FROM leagueteams l
-			 LEFT JOIN team t ON (l.team_id = t.team_id) 
-		     WHERE l.league_id = %s", $id);
-			 
-		if( ! db_num_rows($result) ) {
-			$this->error_exit("There may be no teams in this league");
-		}
-		$leagueTeams[0] = "---";
-		while($team = db_fetch_object($result)) {
-			$leagueTeams[$team->team_id] = $team->name;
-		}
-
-		$result = db_query(
-			"SELECT DISTINCT
-				f.field_id,
-				CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')') as name
-			  FROM
-			    field_assignment a
-				LEFT JOIN field f ON (a.field_id = f.field_id)
-				LEFT JOIN site s ON (f.site_id = s.site_id)
-		 	  WHERE
-		    	a.league_id = %d", $id);
-				
-		if( ! db_num_rows($result) ) {
-			$this->error_exit("There are no fields assigned to this league");
-		}
-		
-		$leagueFields[0] = "---";
-		while($field = db_fetch_object($result)) {
-			$leagueFields[$field->field_id] = $field->name;
-		}
-
-		/* 
-		 * Rounds
-		 */
-		$leagueRounds = array();
-		for($i = 1; $i <= 5;  $i++) {
-			$leagueRounds[$i] = $i;
-		}
-	
-		while(list(,$game) = each($games)) {
-			$rows[] = array(
-				form_hidden('games[' . $game['id'] . '][game_id]', $game['id']) 
-				. form_select('','games[' . $game['id'] . '][round]', $game['round'], $leagueRounds),
-
-				form_select('','games[' . $game['id'] . '][start_time]', $game['time'], $startTimes),
-				form_select('','games[' . $game['id'] . '][home_id]', $game['home_id'], $leagueTeams),
-				form_select('','games[' . $game['id'] . '][away_id]', $game['away_id'], $leagueTeams),
-				form_select('','games[' . $game['id'] . '][field_id]', $game['field_id'], $leagueFields),
-				$game['home_score'],
-				$game['away_score'],
-				$game['home_spirit'],
-				$game['away_spirit']
-			);
-		}
-		
-		$hiddenFields = form_hidden('op', 'league_schedule_edit');
-		$hiddenFields .= form_hidden('week_id', $weekId);
-		$hiddenFields .= form_hidden('id', $id);
-
-		$rows[] = array(
-			array('data' => $hiddenFields . para(form_submit('submit') . form_reset('reset')), 'colspan' => 9)
+	} else if( $canViewSpirit ) {
+		$header[] = array(
+			'data' => '&nbsp;',
+			'colspan' => 2,
+			'class' => 'gamedate'
 		);
 	}
-	
-	function createViewableWeek( &$rows, &$games, &$league )
-	{
-		while(list(,$game) = each($games)) {
-		
-			if($game['home_name']) {
-				$homeTeam = l($game['home_name'], "op=team_view&id=" . $game['home_id']);
-			} else {
-				$homeTeam = "Not yet scheduled.";
-			}
-			if($game['away_name']) {
-				$awayTeam = l($game['away_name'], "op=team_view&id=" . $game['away_id']);
-			} else {
-				$awayTeam = "Not yet scheduled.";
-			}
-			
-			$gameRow = array(
-				$game['round'],
-				$game['time'],
-				$homeTeam,
-				$awayTeam,
-				l( get_field_name($game['field_id']), "op=site_view&id=" . $game['site_id']),
-				$game['home_score'],
-				$game['away_score']
-			);
-			
-			if($game['defaulted'] != 'no') {
-				$gameRow[] = array('data' => '(default)', 'colspan' => 2);
-			} else {
-				if($this->_permissions['view_spirit']) {
-					$gameRow[] = $game['home_spirit'];
-					$gameRow[] = $game['away_spirit'];
-				}
-			}
-			$rows[] = $gameRow;
-		}
-	}
+	return $header;
 }
 
+function schedule_subheading( $canViewSpirit )
+{
+	$subheadings = array("Round", "Game Time", "Home", "Away", "Field", "Home<br />Score", "Away<br />Score");
+	if($canViewSpirit) {
+		$subheadings[] = "Home<br />SOTG";
+		$subheadings[] = "Away<br /> SOTG";
+	}
+	foreach($subheadings as $subheading) {
+		$subheadingRow[] = array('data' => $subheading, 'class' => 'column-heading');
+	}
+	return $subheadingRow;
+}
+
+function schedule_render_editable( &$game, &$league )
+{
+	return array(
+		form_hidden('edit[games][' . $game['id'] . '][game_id]', $game['id']) 
+		. form_select('','edit[games][' . $game['id'] . '][round]', $game['round'], $league['rounds']),
+		form_select('','edit[games][' . $game['id'] . '][start_time]', $game['time'], $league['starttimes']),
+		form_select('','edit[games][' . $game['id'] . '][home_id]', $game['home_id'], $league['teams']),
+		form_select('','edit[games][' . $game['id'] . '][away_id]', $game['away_id'], $league['teams']),
+		form_select('','edit[games][' . $game['id'] . '][field_id]', $game['field_id'], $league['fields']),
+		$game['home_score'],
+		$game['away_score'],
+		$game['home_spirit'],
+		$game['away_spirit']
+	);
+}
+
+function schedule_render_viewable( $canViewSpirit, &$game )
+{
+	if($game['home_name']) {
+		$homeTeam = l($game['home_name'], "team/view/" . $game['home_id']);
+	} else {
+		$homeTeam = "Not yet scheduled.";
+	}
+	if($game['away_name']) {
+		$awayTeam = l($game['away_name'], "team/view/" . $game['away_id']);
+	} else {
+		$awayTeam = "Not yet scheduled.";
+	}
+			
+	$gameRow = array(
+		$game['round'],
+		$game['time'],
+		$homeTeam,
+		$awayTeam,
+		l( get_field_name($game['field_id']), "site/view/" . $game['site_id']),
+		$game['home_score'],
+		$game['away_score']
+	);
+	
+	if($game['defaulted'] != 'no') {
+		$gameRow[] = array('data' => '(default)', 'colspan' => 2);
+	} else {
+		if($canViewSpirit) {
+			$gameRow[] = $game['home_spirit'];
+			$gameRow[] = $game['away_spirit'];
+		}
+	}
+
+	return $gameRow;
+}
 ?>

@@ -24,14 +24,6 @@ function league_dispatch()
 			return new LeagueMoveTeam;
 		case 'approvescores':
 			return new LeagueApproveScores;
-		// TODO: The following should all be renamed, or moved back into
-		// Schedule.php	
-		case 'schedule_addweek':
-			return new LeagueScheduleAddWeek; // TODO
-		case 'schedule_edit':
-			return new LeagueScheduleEdit; // TODO
-		case 'schedule_view':
-			return new LeagueScheduleView; // TODO
 	}
 	return null;
 }
@@ -485,7 +477,7 @@ class LeagueList extends Handler
 				l('view',"league/view/$league->league_id")
 			);
 			if($league->allow_schedule == 'Y') {
-				$links[] = l('schedule',"league/schedule_view/$league->league_id");
+				$links[] = l('schedule',"schedule/view/$league->league_id");
 				$links[] = l('standings',"league/standings/$league->league_id");
 			}
 			if($this->_permissions['delete']) {
@@ -955,7 +947,7 @@ class LeagueView extends Handler
 
 		$links = array();
 		if($league->allow_schedule == 'Y') {
-			$links[] = l("schedule", "league/schedule_view/$id");
+			$links[] = l("schedule", "schedule/view/$id");
 			$links[] = l("standings", "league/standings/$id");
 			if($this->_permissions['administer_league']) {
 				$links[] = l("approve scores", "league/approvescores/$id");
