@@ -1571,6 +1571,7 @@ class PersonChangePassword extends Handler
 			'self_sufficient',
 			'deny',
 		);
+		$this->op = 'person_changepassword';
 		return true;
 	}
 
@@ -1580,46 +1581,50 @@ class PersonChangePassword extends Handler
 		$id = var_from_getorpost('id');
 		switch($step) {
 			case 'perform':
-				$this->perform();	
+				$this->perform( $id );
 				local_redirect("op=person_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("Person/change_password.tmpl");
-				$rc = $this->generate_form();
+				$rc = $this->generateForm( $id );
 		}
-
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
+		
 		return $rc;
 	}
 	
-	function generate_form()
+	function generateForm( $id )
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-		
-		$row = $DB->getRow(
-			"SELECT 
-				firstname,
-				lastname,
-				username 
-			 FROM 
-			 	person WHERE user_id = ?",
+		$user = $DB->getRow(
+			"SELECT firstname, lastname, username 
+			 FROM person WHERE user_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($user)) {
 			return false;
 		}
-		if(!isset($row)) {
+		if(!isset($user)) {
 			$this->error_exit("That user does not exist");
 		}
 		
-		$this->set_title("Changing Password for " . $row['firstname'] . " " .$row['lastname'] );
+		$this->set_title("Change Password &raquo; " . $user['firstname'] . " " .$user['lastname'] );
 
-		$this->tmpl->assign("firstname", $row['firstname']);
-		$this->tmpl->assign("lastname", $row['lastname']);
-		$this->tmpl->assign("username", $row['username']);
-		$this->tmpl->assign("id", $id);
+		$output = para("You are changing the password for '"
+			. $user['firstname'] . " " . $user['lastname']
+			. "' (username '" . $user['username'] . "').");
+
+		$output .= form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("New Password:", form_password('', 'password_one', '', 25, 100, "Enter your new password"));
+		$output .= simple_row("New Password (again):", form_password('', 'password_two', '', 25, 100, "Enter your new password a second time to confirm"));
+		$output .= "</table>";
+		$output .= form_submit("Submit") . form_reset("Reset");
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 
 		return true;
 	}
@@ -1635,7 +1640,6 @@ class PersonChangePassword extends Handler
 		if($pass_one != $pass_two) {
 			$this->error_exit("You must enter the same password twice.");
 		}
-
 		
 		$sth = $DB->prepare("UPDATE person set password = ? WHERE user_id = ?");
 		if($this->is_database_error($sth)) {
@@ -1650,6 +1654,11 @@ class PersonChangePassword extends Handler
 		
 		return true;
 	}
+
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
 }
 
 class PersonForgotPassword extends Handler
@@ -1659,6 +1668,8 @@ class PersonForgotPassword extends Handler
 		$this->_required_perms = array(
 			'allow',
 		);
+		$this->title = "Request New Password";
+		$this->op = 'person_forgotpassword';
 		return true;
 	}
 
@@ -1667,17 +1678,46 @@ class PersonForgotPassword extends Handler
 		$step = var_from_getorpost('step');
 		switch($step) {
 			case 'perform':
-				$this->set_template_file("Person/forgot_password_result.tmpl");
 				$rc = $this->perform();	
 				break;
 			default:
-				$this->set_template_file("Person/forgot_password_form.tmpl");
-				$rc = true;
+				$rc = $this->generateForm();
 		}
 
-		$this->tmpl->assign("page_op", var_from_getorpost('op'));
-
 		return $rc;
+	}
+
+	function generateForm()
+	{
+		$output = <<<END_TEXT
+<p>
+	If you've forgotten your password, please enter as much information
+	as you can in the following fields.   If you can only remember one
+	or two things, that's OK... we'll try and figure it out.  Member ID 
+	or username are required if you are sharing an email address with
+	another registered player.
+</p><p>
+	If you don't receive an email within a few hours, you may not have
+	remembered correctly, or the system may be encountering problems.
+</p>
+END_TEXT;
+
+		$output .= form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("Username:", form_textfield('', 'username', '', 25, 100));
+		$output .= simple_row("Member ID Number:", form_textfield('', 'member_id', '', 25, 100));
+		$output .= simple_row("Email Address:", form_textfield('', 'email', '', 40, 100));
+		$output .= "</table>";
+		$output .= form_submit("Submit") . form_reset("Reset");
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
+
+		return true;
 	}
 
 	function perform ()
@@ -1724,20 +1764,17 @@ class PersonForgotPassword extends Handler
 		 * the user with the same output; that prevents them from using this
 		 * to guess valid usernames.
 		 */
-		if(count($users) != 1) {
-			/* Just return true, even though we did nothing */
-			return true;
-		}
+		if(count($users) == 1) {
 	
-		/* Generate a password */
-		$pass = generate_password();
-		$cryptpass = md5($pass);
-		$res = $DB->query("UPDATE person SET password = ? WHERE user_id = ?", array($cryptpass, $users[0]['user_id']));
-		if($this->is_database_error($res)) {
-			return false;
-		}
+			/* Generate a password */
+			$pass = generate_password();
+			$cryptpass = md5($pass);
+			$res = $DB->query("UPDATE person SET password = ? WHERE user_id = ?", array($cryptpass, $users[0]['user_id']));
+			if($this->is_database_error($res)) {
+				return false;
+			}
 
-		$message = <<<EOM
+			$message = <<<EOM
 Dear {$users[0]['firstname']} {$users[0]['lastname']},
 
 Someone, probably you, just requested that your password for the account
@@ -1754,13 +1791,36 @@ be attempting to gain unauthorized access to your account, please contact
 the system administrator.
 EOM;
 
-		/* And fire off an email */
-		$rc = mail($users[0]['email'], $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
-		if($rc == false) {
-			$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
+			/* And fire off an email */
+			$rc = mail($users[0]['email'], $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+			if($rc == false) {
+				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
+			}
 		}
+
+		$output = <<<END_TEXT
+<p>
+	The password for the user matching the criteria you've entered has been
+	reset to a randomly generated password.  The new password has been mailed
+	to that user's email address.  No, we won't tell you what that email 
+	address or user's name are -- if it's you, you'll know soon enough.
+</p><p>
+	If you don't receive an email within a few hours, you may not have
+	remembered your information correctly, or the system may be encountering
+	problems.
+</p>
+END_TEXT;
+		print $this->get_header();
+		print h1($this->title);
+		print blockquote($output);
+		print $this->get_footer();
 		
 		return true;
+	}
+	
+	function display() 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 ?>
