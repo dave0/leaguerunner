@@ -1117,8 +1117,7 @@ class LeagueMoveTeam extends Handler
 			$this->error_exit("That is not a valid league to move to");
 		}
 		
-		/* TODO: team_load() */
-		$team = db_fetch_object(db_query("SELECT * FROM team WHERE team_id = %d",$teamId));
+		$team = team_load( array('team_id', $teamId) );
 		if(! $team ) {
 			$this->error_exit("That is not a valid team");
 		}
@@ -1139,9 +1138,8 @@ class LeagueMoveTeam extends Handler
 	{
 		global $session;
 
-		/* TODO: team_load() */
-		$teamName = db_result(db_query("SELECT name FROM team WHERE team_id = %d",$teamId));
-		if(! $teamName ) {
+		$team = team_load( array('team_id', $teamId) );
+		if(!$team ) {
 			$this->error_exit("That is not a valid team");
 		}
 
@@ -1158,7 +1156,7 @@ class LeagueMoveTeam extends Handler
 		
 		$output = form_hidden('edit[step]', 'confirm');
 		$output .= 
-			para("You are attempting to move the team <b>$teamName</b>. Select the league you wish to move it to")
+			para("You are attempting to move the team <b>$team->name</b>. Select the league you wish to move it to")
 			. form_select('', 'edit[target]', '', $leagues);
 		$output .= form_submit("Submit");
 

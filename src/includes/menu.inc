@@ -17,14 +17,22 @@ function menu_add_child( $parentName, $name, $title, $args = array() )
 {
 	global $_menu;
 
+	if(!is_array($_menu) ) {
+		$_menu = array();
+	}
+
+	if(array_key_exists($name, $_menu)) {
+		return;
+	}
+
 	/* Concat parent/child names together to prevent collisions */
-	$_menu[$name] = array(
+	$item = array(
 		'title'    => $title,
 		'parent'   => $parentName,
 		'weight'   => 0,  // Default weight
 	); 
-		
-	$_menu[$name] = array_merge($_menu[$name], $args);
+
+	$_menu[$name] = array_merge($item, $args);
 
 	/* and add to children of parent if parent exists */
 	if($parentName) { 

@@ -54,23 +54,9 @@ class MainMenu extends Handler
 		
 		$rows[] = array('','', array( 'data' => '','width' => 90), '');
 		
-		$result = db_query(
-			"SELECT 
-				r.status AS position,
-				r.team_id AS id,
-				t.name AS name,
-				l.league_id
-			FROM 
-				teamroster r 
-				INNER JOIN team t ON (r.team_id = t.team_id)
-				INNER JOIN leagueteams l ON (l.team_id = t.team_id)
-			WHERE 
-				r.player_id = %d", $id);
-			
 		$rosterPositions = getRosterPositions();
-
 		$rows = array();
-		while($team = db_fetch_object($result)) {
+		while(list(,$team) = each($session->user->teams)) {
 			$position = $rosterPositions[$team->position];
 			
 			$rows[] = 
@@ -101,6 +87,7 @@ class MainMenu extends Handler
 				)
 			);
 		}
+		reset($session->user->teams);
 		
 		$teams = "<div class='myteams'>" . table( $header, $rows ) . "</div>";
 		if( $session->may_coordinate_league() ) {

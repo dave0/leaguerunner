@@ -53,6 +53,8 @@ function theme_navbar($section, $breadcrumbs = array())
 	print "\n<!-- start navbar -->\n";
 	print "<tr><td colspan='2'>" ;
 	print "<div class='lr_topbar'><table>";
+	$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
+	
 	if($session->is_valid()) {
 		$crumbs = array(
 			"<b>" . $session->attr_get("fullname") . "</b>",
@@ -60,10 +62,7 @@ function theme_navbar($section, $breadcrumbs = array())
 		);
 
 		$crumbs = array_merge($crumbs, $breadcrumbs);
-		
 		$leftLink = theme_links($crumbs, "&nbsp;&raquo;&nbsp;");
-		$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
-
 	} else {
 		$leftLink = "&nbsp;";
 		$rightLink = theme_links( array( l('log in','login'), $rightLink));

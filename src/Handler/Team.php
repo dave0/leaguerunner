@@ -28,9 +28,51 @@ function team_dispatch()
 
 function team_menu()
 {
-	menu_add_child('_root','team','Teams');
+	global $session;
+	menu_add_child('_root','team','Teams', array('weight' => -8));
 	menu_add_child('team','team/list','list teams', array('link' => 'team/list') );
+	menu_add_child('team','team/create','create team', array('link' => 'team/create', 'weight' => 1) );
+
+	while(list(,$team) = each($session->user->teams) ) {
+		## TODO: permissions hack must die!
+		if( $session->is_captain_of($team->team_id) ) {
+			$this->_permissions['edit_team'] = true;
+		}
+		team_add_to_menu($this, $team);
+	}
+	reset($session->user->teams);
 }
+
+/**
+ * Add view/edit/delete links to the menu for the given team
+ * TODO: when permissions are fixed, remove the evil passing of $this
+ * TODO: fix ugly evil things like TeamEdit so that this can be called to add
+ * team being edited to the menu.
+ */
+function team_add_to_menu( $this, &$team, $parent = 'team' ) 
+{
+	global $session;
+	
+	menu_add_child($parent, $team->name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
+	menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id"));
+	menu_add_child($team->name, "$team->name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
+
+	if( ! array_key_exists( $team->team_id, $session->user->teams ) ) {
+		if($team->status != 'closed') {
+			menu_add_child($team->name, "$team->name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $session->attr_get('user_id')));
+		}
+	} 
+	
+	if($this->_permissions['edit_team']) {
+		menu_add_child($team->name, "$team->name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
+		menu_add_child($team->name, "$team->name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
+		menu_add_child($team->name, "$team->name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
+	}
+		
+	if($this->_permissions['delete_team']) {
+		menu_add_child($team->name, "$team->name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
+	}
+}	
 
 
 /**
@@ -114,6 +156,10 @@ class TeamEdit extends Handler
 {
 	function initialize ()
 	{
+		$this->_permissions = array(
+			'edit_team'	  => false,
+			'delete_team' => false,
+		);
 		$this->title = "Edit Team";
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -123,6 +169,15 @@ class TeamEdit extends Handler
 		);
 		$this->section = 'team';
 		return true;
+	}
+
+	function set_permission_flags($type)
+	{
+		if($type == 'administrator') {
+			$this->enable_all_perms();
+		} else if ($type == 'captain') {
+			$this->_permissions['edit_team'] = true;
+		}
 	}
 
 	function process ()
@@ -148,8 +203,8 @@ class TeamEdit extends Handler
 
 	function getFormData ( $id )
 	{
-		/* TODO: team_load() */
-		return db_fetch_array(db_query("SELECT * FROM team WHERE team_id = %d", $id));
+		$team = team_load( array('team_id' => $id) );
+		return object2array($team);
 	}
 
 	function generateForm ($id, $formData)
@@ -242,7 +297,6 @@ class TeamList extends Handler
 	{
 		$this->_permissions = array(
 			'delete' => false,
-			'create' => true,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -250,7 +304,6 @@ class TeamList extends Handler
 			'allow',
 		);
 		$this->section = 'team';
-		$this->setLocation(array("List Teams" => 'team/list'));
 		return true;
 	}
 	
@@ -263,8 +316,6 @@ class TeamList extends Handler
 	
 	function process ()
 	{
-		$query = "SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name";
-		
 		$ops = array(
 			array(
 				'name' => 'view',
@@ -277,13 +328,11 @@ class TeamList extends Handler
 				'target' => 'team/delete/'
 			);
 		}
-		$output = "";
-		if($this->_permissions['create']) {
-			$output .= l("Create New Team", "team/create");
-		}
 		
-		$output .= $this->generateAlphaList($query, $ops, 'name', 'team', 'team/list', $_GET['letter']);
-		return $output;
+		$query = "SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name";
+		
+		$this->setLocation(array("List Teams" => 'team/list'));
+		return $this->generateAlphaList($query, $ops, 'name', 'team', 'team/list', $_GET['letter']);
 	}
 }
 
@@ -442,6 +491,8 @@ class TeamRosterStatus extends Handler
 	
 	function process ()
 	{
+		global $session;
+		
 		$teamId   = arg(2);
 		
 		if(!$teamId) {
@@ -451,8 +502,11 @@ class TeamRosterStatus extends Handler
 		$playerId = arg(3);
 
 		if( !$playerId ) {
-			/* TODO: team_load() */
-			$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $teamId));
+			if( !$session->is_captain_of($team_id)) {
+				$this->error_exit("You cannot add a person to that team!");
+			}
+			
+			$team = team_load( array('team_id' => $teamId) );
 
 			$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
 			$ops = array(
@@ -485,20 +539,15 @@ class TeamRosterStatus extends Handler
 
 	function generateForm ( $teamId, $playerId ) 
 	{
-		/* TODO: team_load() */
-		$team = db_fetch_object(db_query("SELECT * FROM team where team_id = %d", $teamId));
+		$team = team_load( array('team_id' => $teamId) );
 
 		$this->setLocation(array( $team->name => "team/view/$id", $this->title => 0));
 	
-		/* TODO: load_user() or load_person() */
-		$player = db_fetch_object(db_query("SELECT
-			p.firstname, p.lastname, p.member_id
-			FROM person p
-			WHERE p.user_id = %d", $playerId));
+		$player = person_load( array('user_id' => $playerId) );
 
 		$output .= form_hidden('edit[step]', 'perform');
 		
-		$output .= para("You are attempting to change player status for <b>$player->firstname $player->lastname</b> on team <b>$team->name</b>.");
+		$output .= para("You are attempting to change player status for <b>$player->fullname</b> on team <b>$team->name</b>.");
 		
 		$output .= para("Current status: <b>" . $this->positions[$this->currentStatus] . "</b>");
 
@@ -578,7 +627,8 @@ class TeamView extends Handler
 	function initialize ()
 	{
 		$this->_permissions = array(
-			'edit_team'	=> false,
+			'edit_team'	  => false,
+			'delete_team' => false,
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
@@ -606,23 +656,7 @@ class TeamView extends Handler
 
 		$id = arg(2);
 
-		/* TODO: team_load() */
-		$team = db_fetch_object(db_query(
-			"SELECT 
-				t.team_id as id, 
-				t.name AS name, 
-				t.website AS website, 
-				t.status AS status, 
-				IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS league_name,
-				l.day AS league_day, 
-				l.season AS league_season, 
-				l.league_id,
-				t.shirt_colour
-			FROM 
-				leagueteams s 
-				LEFT JOIN team t ON (s.team_id = t.team_id) 
-				LEFT JOIN league l ON (s.league_id = l.league_id) 
-			WHERE s.team_id = %d", $id));
+		$team = team_load( array('team_id' => $id) );
 
 		if(!$team) {
 			$this->error_exit("That is not a valid team ID");
@@ -633,33 +667,6 @@ class TeamView extends Handler
 		$this->setLocation(array(
 			$team_name => "team/view/$id",
 			$this->title => 0));
-
-		$links = array();
-		$links[] = l('schedule and scores', 
-			"team/schedule/$team->id", 
-			array('title' => 'View schedule and scores'));
-			
-		if($team->status == 'open') {
-			$links[] = l('join team', 
-				"team/roster/$team->id/" . $session->attr_get('user_id') . "&status=player_request&step=confirm", 
-				array('title' => 'Request to join this team'));
-		}
-		if($this->_permissions['edit_team']) {
-			$links[] = l('edit info', 
-				"team/edit/$team->id", 
-				array('title' => "Edit team information"));
-			$links[] = l('add player', 
-				"team/roster/$team->id", 
-				array('title' => "Request a player for this team"));
-            $links[] = l('player emails',
-				"team/emails/$team->id",
-				array('title' => "Get team email addresses"));
-
-		}
-		$links[] = l('view standings', 
-			"league/standings/$team->league_id", 
-			array('title' => 'View league standings'));
-
 
 		/* Now build up team data */
 		$rows = array();
@@ -679,7 +686,7 @@ class TeamView extends Handler
 		 * evenly-matched games.
 		 */
 		$leagueSBF = league_calculate_sbf( $team->league_id);
-		$teamSBF = team_calculate_sbf( $team->id );
+		$teamSBF = team_calculate_sbf( $id );
 		$rows[] = array("Team SBF:", "$teamSBF (league $leagueSBF)");
 		
 
@@ -759,13 +766,12 @@ class TeamView extends Handler
 		
 		$rosterdata = "<div class='listtable'>" . table($header, $rows) . "</div>";
 
-		$output = theme_links($links);
+
+		team_add_to_menu($this, $team);
 		
-		$output .= table(null, array(
+		return table(null, array(
 			array( $teamdata, $rosterdata ),
 		));
-		
-		return $output;
 	}
 }
 
@@ -808,24 +814,11 @@ class TeamSchedule extends Handler
 	{
 		$id = arg(2);
 
-		/* TODO: team_load() */
-		$team = db_fetch_object(db_query("SELECT
-				lt.league_id, t.name 
-			FROM
-		  		leagueteams lt, team t
-			WHERE
-				t.team_id = lt.team_id 
-				AND lt.team_id = %d", $id));
+		$team = team_load( array('team_id' => $id) );
 		
 		if(!$team) {
 			$this->error_exit("That team does not exist");
 		}
-
-		$links = array(
-			l("view team", "team/view/$id"),
-			l("view league", "league/view/$team->league_id"),
-			l("view league schedule", "schedule/view/$team->league_id")
-		);
 
 		$this->setLocation(array(
 			$team->name => "team/view/$id",
@@ -918,9 +911,8 @@ class TeamSchedule extends Handler
 			);
 
 		}
-		$output = theme_links($links);
-		$output .= "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
-		return $output;
+		team_add_to_menu($this, $team);
+		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
 	}
 }
 
@@ -966,9 +958,7 @@ class TeamEmails extends Handler
 			$emails[] = $user->email;
 		}
 
-		/* Get team info */
-		/* TODO: team_load() */
-		$team = db_fetch_object(db_query("SELECT name FROM team WHERE team_id = %d", $id));
+		$team = team_load( array('team_id' => $id) );
 
 		$this->setLocation(array(
 			$team->name => "team/view/$id",
@@ -996,4 +986,46 @@ function team_calculate_sbf( $teamId )
 {
 	return db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $teamId, $teamId));
 }
+
+/**
+ * Load a single team object from the database using the supplied query data.
+ * If more than one account matches, we will return only the first one.  If
+ * fewer than one matches, we return null.
+ *
+ * @param	mixed 	$array key-value pairs that identify the team to be loaded.
+ */
+function team_load ( $array = array() )
+{
+	$query = array();
+
+	foreach ($array as $key => $value) {
+		if($key == '_extra') {
+			/* Just slap on any extra query fields desired */
+			$query[] = $value;
+		} else {
+			$query[] = "t.$key = '" . check_query($value) . "'";
+		}
+	}
+	
+	$result = db_query_range("SELECT 
+		t.*,
+		IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS league_name,
+		l.day AS league_day, 
+		l.season AS league_season, 
+		l.league_id
+		FROM team t
+		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
+		INNER JOIN league l ON (s.league_id = l.league_id)
+		WHERE " . implode(' AND ',$query),0,1);
+
+	/* TODO: we may want to abort here instead */
+	if(1 != db_num_rows($result)) {
+		return null;
+	}
+
+	$team = db_fetch_object($result);
+
+	return $team;
+}
+
 ?>

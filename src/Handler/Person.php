@@ -150,11 +150,15 @@ class PersonView extends Handler
 			}
 			return true;
 		}
+		
+		$player = person_load( array('user_id' => $id) );
 
 		/* 
 		 * See if we're a captain looking at another team captain.  
 		 * Captains are always allowed to view each other for 
 		 * contact purposes.
+		 * TODO: now that we fetch team info in person_load, rewrite to use
+		 * that instead.
 		 */
 		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE (a.status = 'captain' OR a.status = 'assistant') AND a.player_id = %d AND (b.status = 'captain' OR b.status = 'assistant') AND b.player_id = %d",$id, $session->attr_get('user_id'));
 
@@ -170,6 +174,8 @@ class PersonView extends Handler
 
 		/* If the current user is a team captain, and the requested user is on
 		 * their team, they are allowed to view email/phone
+		 * TODO: now that we fetch team info in person_load, rewrite to use
+		 * that instead.
 		 */
 		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = %d AND a.status <> 'captain_request' AND b.player_id = %d AND (b.status = 'captain' OR b.status='assistant')",$id, $session->attr_get('user_id'));
 		$is_on_team = db_result($result);
@@ -185,8 +191,6 @@ class PersonView extends Handler
 		 * See what the player's status is.  Some cannot be viewed unless you
 		 * are 'administrator'.  
 		 */
-		$player = person_load( array('user_id' => $id) );
-		
 		switch($player->status) {
 			case 'new':
 			case 'locked':
@@ -307,24 +311,16 @@ class PersonView extends Handler
 			}
 		}
 		
-		$result = db_query(
-			"SELECT 
-				r.status AS position,
-				r.team_id AS id,
-				t.name AS name
-			FROM 
-				teamroster r LEFT JOIN team t USING(team_id)
-			WHERE 
-				r.player_id = %d", $person->user_id);
 		$rosterPositions = getRosterPositions();
 		$teams = array();
-		while($team = db_fetch_array($result)) {
+		while(list(,$team) = each($person->teams)) {
 			$teams[] = array(
-				$rosterPositions[$team['position']],
+				$rosterPositions[$team->position],
 				"on",
-				l($team['name'], "team/view/" . $team['id'])
+				l($team->name, "team/view/$team->id")
 			);
 		}
+		reset($person->teams);
 		
 		$rows[] = array("Teams:", table( null, $teams) );
 		
@@ -1452,8 +1448,6 @@ class PersonList extends Handler
 
 	function process ()
 	{
-		$letter = $_GET['letter'];
-		
 		$ops = array(
 			array(
 				'name' => 'view',
@@ -1470,11 +1464,9 @@ class PersonList extends Handler
 		$query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE '%s%%' ORDER BY lastname,firstname";
-		$output = $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $letter);
 		
 		$this->setLocation(array("List Users" => 'person/list'));
-
-		return $output;
+		return $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $_GET['letter']);
 	}
 }
 
@@ -1804,6 +1796,26 @@ function person_load ( $array = array() )
 
 	/* set derived attributes */
 	$user->fullname = "$user->firstname $user->lastname";
+
+	/* Now fetch team info */
+	$result = db_query(
+		"SELECT 
+			r.status AS position,
+			r.team_id AS id,
+			t.name AS name,
+			l.league_id
+		FROM 
+			teamroster r 
+			INNER JOIN team t ON (r.team_id = t.team_id)
+			INNER JOIN leagueteams l ON (l.team_id = t.team_id)
+		WHERE 
+			r.player_id = %d", $user->user_id);
+
+	$user->teams = array();
+	while($team = db_fetch_object($result)) {
+		$user->teams[ $team->id ] = $team;
+		$user->teams[ $team->id ]->team_id = $team->id;
+	}
 
 	return $user;
 }

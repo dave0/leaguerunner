@@ -227,9 +227,10 @@ class UserSession
 	 */
 	function is_captain_of ($team_id)
 	{
-		$result = db_query("SELECT status FROM teamroster where player_id = %d AND team_id = %d",$this->user->user_id, $team_id);
-
-		$status = db_result($result);
+		if( ! array_key_exists($team_id, $this->user->teams) ) {
+			return false;
+		}
+		$status = $this->user->teams[$team_id]->status;
 
 		if( $status == 'captain' || $status == 'assistant') {
 			return true;
