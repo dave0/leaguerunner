@@ -43,7 +43,7 @@ class GameSlot extends LeaguerunnerObject
 
 	function add_league ( &$thing )
 	{
-		if( ! is_object($thing) ) {
+		if( is_integer($thing) ) {
 			$object->league_id = $thing;
 			$thing = &$object;
 		}
@@ -58,7 +58,7 @@ class GameSlot extends LeaguerunnerObject
 
 	function remove_league( &$thing )
 	{
-		if( ! is_object($thing) ) {
+		if( is_integer($thing) ) {
 			$object->league_id = $thing;
 			$thing = &$object;
 		}

@@ -48,26 +48,44 @@ class Team extends LeaguerunnerObject
 
 	/**
 	 * Add a player to the roster, with the given status
-	 * TODO:
 	 */
 	function add_player( &$player, $status )
 	{
+		if( is_integer($player) ) {
+			$object->user_id = $player;
+			$player = &$object;
+		}
+
+		// TODO 
+		return false;
 	}
 
 	/**
 	 * Update status of a player currently on the roster
-	 * TODO:
 	 */
 	function set_player_status( &$player, $status )
 	{
+		if( is_integer($player) ) {
+			$object->user_id = $player;
+			$player = &$object;
+		}
+
+		// TODO 
+		return false;
 	}
 
 	/**
 	 * Remove a player from the roster.
-	 * TODO:
 	 */
 	function remove_player( &$player )
 	{
+		if( is_integer($player) ) {
+			$object->user_id = $player;
+			$player = &$object;
+		}
+
+		// TODO 
+		return false;
 	}
 
 	function save ()
@@ -137,6 +155,28 @@ class Team extends LeaguerunnerObject
 		$this->team_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
 		
 		return true;
+	}
+
+	/*
+	 * Wow, this would be so much safer if we used transactions...
+	 */
+	function delete()
+	{
+		if ( ! $this->_in_database ) {
+			return false;
+		}
+
+		// Check that this team is not scheduled for any games.  If so, we
+		// bail.
+
+		// If we have anyone on the roster, remove 'em
+
+		// If we're in a league, remove ourself
+
+		// Delete from the league table
+
+		die("DMO TODO XXX");
+		
 	}
 
 	function get_placeholder( $key, $value )

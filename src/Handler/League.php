@@ -846,6 +846,7 @@ class LeagueView extends Handler
 			}
 			if($this->_permissions['administer_league']) {
 				$team_links[] = l('move team', "league/moveteam/$id/$team->team_id");
+				$team_links[] = l('delete team', "team/delete/$team->team_id");
 			}
 			
 			$rows[] = array(
