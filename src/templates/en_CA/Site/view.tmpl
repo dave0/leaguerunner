@@ -1,0 +1,49 @@
+{include file="common/basic_header.tmpl"}
+
+<h1>{$site.name}</h1>
+
+<table border="0" cellpadding="3" cellspacing="0">
+    <tr>
+      <td class='row_title'>Site Name:</td> 
+      <td class='row_data'>{$site.name}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Code:</td> 
+      <td class='row_data'>{$site.code}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Location Map URL:</td> 
+      <td class='row_data'><a href='{$site.location_url}' target='_new'>{$site.location_url}</a></td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Layout Map URL:</td> 
+      <td class='row_data'><a href='{$site.layout_url}' target='_new'>{$site.layout_url}</a></td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Site Directions:</td> 
+      <td class='row_data'>{$site.directions}</td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Site-specific instructions:</td> 
+      <td class='row_data'>{$site.instructions}</td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Fields:</td> 
+      <td class='row_data'>
+      <ul>
+      {foreach name=fields from=$site.fields item=field}
+        <li>{$site.code}{$field.num} ({$field.status}) <a href="{$app_cgi_location}?op=field_view&id={$field.field_id}">view</a> | <a href="{$app_cgi_location}?op=field_edit&id={$field.field_id}">edit</a> | <a href="{$app_cgi_location}?op=field_delete&id={$field.field_id}">delete</a>
+      {/foreach}
+      </ul>
+      </td>
+    </tr>
+</table>
+
+<ul>
+  <li><a href="{$app_cgi_location}?op=site_edit&id={$id}">edit site</a>.
+  <li><a href="{$app_cgi_location}?op=field_create&site_id={$id}">add field at this site</a>.
+</ul>
+
+
+{include file="common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

@@ -1,0 +1,54 @@
+{include file="common/basic_header.tmpl"}
+<h1>{if $id}Editing {$site.name}{else}Create New Site{/if}</h1>
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="confirm">
+{if $id}
+	<input type="hidden" name="id" value="{$id}">
+{/if}
+<table border="0">
+    <tr>
+      <td class='row_title'>Site Name:</td> 
+      <td class='row_data'><input type="text" name="site[name]" size="35" value="{$site.name}"></td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Code:</td> 
+      <td class='row_data'><input type="text" name="site[code]" size="3" value="{$site.code}"> (3 letters only)</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Location Map URL:</td> 
+      <td class='row_data'><input type="text" name="site[location_url]" size="50" value="{$site.location_url}"></td>
+    </tr>
+    <tr>
+      <td class='row_title'>Site Layout Map URL:</td> 
+      <td class='row_data'><input type="text" name="site[layout_url]" size="50" value="{$site.layout_url}"></td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Site Directions:</td> 
+      <td class='row_data'>
+{strip}
+        <textarea name="site[directions]" rows='5' cols='40' wrap='virtual'>
+          {$site.directions}
+        </textarea>
+{/strip}
+      </td>
+    </tr>
+    <tr>
+      <td class='row_title' valign='top'>Site-specific Instructions:</td> 
+      <td class='row_data' valign='top'>
+{strip}
+        <textarea name="site[instructions]" rows='5' cols='40' wrap='virtual'>
+          {$site.instructions}
+        </textarea>
+{/strip}
+      </td>
+    </tr>
+    
+</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}
