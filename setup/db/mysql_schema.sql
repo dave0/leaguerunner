@@ -106,9 +106,9 @@ CREATE TABLE league (
 
 	-- What type of scheduling should this league have?  
 	-- roundrobin is standard
-	-- biweekly is the 'new' laddering system
+	-- ladder is the 'new' laddering system
 	-- none replaces 'allow_schedule == N'
-	schedule_type	ENUM('none','roundrobin','biweekly') default 'roundrobin',
+	schedule_type	ENUM('none','roundrobin','ladder') default 'roundrobin',
 
 	PRIMARY KEY (league_id)
 );

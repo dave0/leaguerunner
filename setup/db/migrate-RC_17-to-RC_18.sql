@@ -108,6 +108,6 @@ drop table demographics;
 alter table league drop max_teams;
 
 -- Add scheduling type to league table
-alter table league add schedule_type ENUM('none','roundrobin','biweekly') default 'roundrobin';
+alter table league add schedule_type ENUM('none','roundrobin','ladder') default 'roundrobin';
 update league set schedule_type = 'none' where allow_schedule = 'N';
 alter table league drop allow_schedule;

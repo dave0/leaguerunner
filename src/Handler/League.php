@@ -361,10 +361,10 @@ class LeagueEdit extends Handler
 		switch($edit['schedule_type']) {
 			case 'none':
 			case 'roundrobin':
-			case 'biweekly':
+			case 'ladder':
 				break;
 			default:
-				$errors .= "<li>Values for allow schedule are none, roundrobin, and biweekly";
+				$errors .= "<li>Values for allow schedule are none, roundrobin, and ladder";
 		}
 
 		if($edit['schedule_type'] != 'none') {
