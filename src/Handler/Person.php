@@ -983,22 +983,6 @@ class PersonEdit extends Handler
 			}
 		}
 		
-		if($this->_permissions['edit_skill']) {
-			$skill = var_from_getorpost('skill');
-			if( $skill < 0 || $skill > 5 ) {
-				$rc = false;
-				$this->error_text .= "\n<br>You must select a skill level between 0 and 5";
-			}
-			
-			$year_started = var_from_getorpost('started_Year');
-			$current = localtime(time(),1);
-			$this_year = $current['tm_year'] + 1900;
-			if( $year_started < ($this_year - 30)  || $year_started > $this_year ) {
-				$rc = false;
-				$this->error_text .= "\n<br>You must select the year you started playing the sport";
-			}
-		}
-		
 		if($this->_permissions['edit_birthdate']) {
 			$birthyear = var_from_getorpost('birth_Year');
 			$birthmonth = var_from_getorpost('birth_Month');
@@ -1006,6 +990,26 @@ class PersonEdit extends Handler
 			if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
 				$rc = false;
 				$this->error_text .= "\n<br>You must provide a valid birthdate";
+			}
+		}
+		
+		if($this->_permissions['edit_skill']) {
+			$skill = var_from_getorpost('skill_level');
+			if( $skill < 1 || $skill > 5 ) {
+				$rc = false;
+				$this->error_text .= "\n<br>You must select a skill level between 1 and 5";
+			}
+			
+			$year_started = var_from_getorpost('started_Year');
+			$current = localtime(time(),1);
+			$this_year = $current['tm_year'] + 1900;
+			if( $year_started > $this_year ) {
+				$this->error_text .= "\n<br>Year started must be before current year.";
+				$rc = false;
+			}
+			if( $year_started < $birthyear + 8) {
+				$this->error_text .= "\n<br>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
+				$rc = false;
 			}
 		}
 		
