@@ -423,27 +423,44 @@ class GameView extends Handler
 			$rows[] = array("Rating Points:", $game->rating_points);
 
 		} else {
+			/* Use our ratings to try and predict the game outcome */
+			$homePct = elo_expected_win($game->home_rating, $game->away_rating);
+			$awayPct = 1 - $homePct;
+
+			$rows[] = array("Chance to win:", table(null, array(
+				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
+				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))))));
+
+			/* And of course, show the scores to those who are allowed */	
 			if( $this->_permissions['view_entered_scores'] ) {
 				$rows[] = array("Score:", game_score_entry_display( $game ));
+				if($game->approved_by) {
+					if($game->approved_by != -1) {
+						$approver = person_load( array('user_id' => $game->approved_by));
+						$approver = l($approver->fullname, "person/view/$approver->user_id");
+					} else {
+						$approver = 'automatic';
+					}
+				} else {
+					$approver = 'awaiting approval';
+				}
+				$rows[] = array("Score Approved By:", $approver);		
 			} else {
 				$rows[] = array("Score:","not yet entered");
+				
 			}
 		}
 
-		if($game->approved_by) {
-			if($game->approved_by != -1) {
-				$approver = person_load( array('user_id' => $game->approved_by));
-				$approver = l($approver->fullname, "person/view/$approver->user_id");
-			} else {
-				$approver = 'automatic';
-			}
-		} else {
-			$approver = 'awaiting approval';
-		}
-		$rows[] = array("Score Approved By:", $approver);		
 
 		$this->setLocation(array(
 			"$this->title &raquo; $game->home_name vs. $game->away_name" => 0));
+
+		# TODO: this is a little unpleasant
+		$league = league_load( array('league_id' =>  $game->league_id) );
+		league_add_to_menu($this, $league);
+		menu_add_child("$league->fullname", "$league->fullname/games", "Games");
+		menu_add_child("$league->fullname/games", "$league->fullname/games/$game->game_id", "$game->home_name vs $game->away_name", array('link' => "game/view/$game->game_id"));
+			
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
@@ -734,8 +751,10 @@ function game_load ( $array = array() )
 		  UNIX_TIMESTAMP(s.date_played) as timestamp, 
 		  s.home_team AS home_id,
 		  h.name AS home_name, 
+		  h.rating AS home_rating,
 		  s.away_team AS away_id,
 		  a.name AS away_name,
+		  a.rating AS away_rating,
 		  s.home_score,
 		  s.away_score
 		FROM schedule s 
@@ -912,10 +931,21 @@ function calculate_elo_change($scoreA, $scoreB, $ratingA, $ratingB)
 		$scoreWeight += $scoreDiff / $scoreMax;
 	}
 
-	$power = pow(10, ((0 - ($ratingA - $ratingB)) / 400));
-	$expectedWin = (1 / ($power + 1));
+	$expectedWin = elo_expected_win($ratingA, $ratingB);
 
 	return $weightConstant * $scoreWeight * ($gameValue - $expectedWin);
+}
+
+/* 
+ * Calculate the expected win percentage for team A over team B
+ * Used both in the elo calculations and as a fun thing to display on the
+ * schedule.
+ */
+function elo_expected_win( $ratingA, $ratingB ) 
+{
+	$power = pow(10, ((0 - ($ratingA - $ratingB)) / 400));
+	$expectedWin = (1 / ($power + 1));
+	return $expectedWin;
 }
 
 ?>

@@ -174,7 +174,7 @@ class ScheduleViewDay extends Handler
 		$this->title = "View Day";
 
 		$this->_permissions = array(
-			"view_spirit" => false,
+			"administer_league" => false,
 		);
 		
 		$this->_required_perms = array(
@@ -268,10 +268,10 @@ class ScheduleViewDay extends Handler
 
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(0,0,0,$month,$day,$year))),
-			schedule_subheading( $this->_permissions['view_spirit'] ),
+			schedule_subheading( $this->_permissions['administer_league'] ),
 		);
 		while($game = db_fetch_array($result)) {
-			$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
+			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
 		return $output;
@@ -287,7 +287,7 @@ class ScheduleEdit extends Handler
 	{
 		$this->title = "Edit Schedule";
 		$this->_permissions = array(
-			"view_spirit" => false,
+			"administer_league" => false,
 		);
 
 		$this->_required_perms = array(
@@ -434,16 +434,16 @@ class ScheduleEdit extends Handler
 				
 				$rows[] = schedule_heading( 
 					$game['date'], 
-					$this->_permissions['view_spirit'], 
+					$this->_permissions['administer_league'], 
 					false,
 					$game['day_id'], $id );
-				$rows[] = schedule_subheading( $this->_permissions['view_spirit'] );
+				$rows[] = schedule_subheading( $this->_permissions['administer_league'] );
 			}
 			
 			if($editDayId == $game['day_id']) {
 				$rows[] = schedule_render_editable($game, $league);
 			} else {
-				$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
+				$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
 			}
 			$prevDayId = $game['day_id'];	
 		}
@@ -599,7 +599,7 @@ class ScheduleView extends Handler
 		$this->title = "View Schedule";
 		$this->_permissions = array(
 			"edit_schedule" => false,
-			"view_spirit" => false,
+			"administer_league" => false,
 		);
 		
 		$this->_required_perms = array(
@@ -651,6 +651,8 @@ class ScheduleView extends Handler
 				s.away_team   AS away_id, 
 				h.name        AS home_name,
 				a.name        AS away_name,
+				h.rating      AS home_rating,
+				a.rating      AS away_rating,
 				s.field_id, 
 				s.defaulted,
 				f.site_id, 
@@ -681,19 +683,20 @@ class ScheduleView extends Handler
 			if( $game['day_id'] != $prevDayId ) {
 				$rows[] = schedule_heading( 
 					$game['date'], 
-					$this->_permissions['view_spirit'], 
+					$this->_permissions['administer_league'], 
 					$this->_permissions['edit_schedule'], 
 					$game['day_id'], $id );
-				$rows[] = schedule_subheading( $this->_permissions['view_spirit'] );
+				$rows[] = schedule_subheading( $this->_permissions['administer_league'] );
 			}
 			
-			$rows[] = schedule_render_viewable($this->_permissions['view_spirit'], $game);
+			$rows[] = schedule_render_viewable($this->_permissions['administer_league'], $game);
 			$prevDayId = $game['day_id'];	
 		}
 		$output = theme_links($links);
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
 		$output .= theme_links($links);
 
+		league_add_to_menu($this, $league);
 		return form($output);
 	}
 }
