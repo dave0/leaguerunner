@@ -436,10 +436,10 @@ sub record_game
 		} else {
 			$sref->{$away_id}->{spirit} += $away_sotg;
 			if($sref->{$away_id}->{worst_spirit} > $away_sotg) {
-				$sref->{$away_id}->{worst_spirit} = $away_sotg
+				$sref->{$away_id}->{worst_spirit} = $away_sotg;
 			}
 			if($sref->{$away_id}->{best_spirit} < $away_sotg) {
-				$sref->{$away_id}->{best_spirit} = $away_sotg
+				$sref->{$away_id}->{best_spirit} = $away_sotg;
 			}
 		}
 
