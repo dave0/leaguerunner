@@ -3,23 +3,22 @@
 <xsl:stylesheet
 	xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 	version="1.0"
-	xmlns:redirect="org.apache.xalan.xslt.extensions.Redirect"
-	extension-element-prefixes="redirect"
 	>
 
 <xsl:strip-space elements="*"/>
 
-<xsl:output method="html"
-            encoding="ISO-8859-1"/>
+<xsl:output method="html" encoding="ISO-8859-1"/>
 
-<!-- Created by Johan Lindgren (TT, Sweden) to show various possible outputs from SportsML.
-     It's not intended to handle all possible combinations of data in SportsML -
-     but to show how some date can be grouped and presented.
-     Primarily for the development process of SportsML itself.
-     -->
+<!-- 
+	SportsML formatting for OCUA league schedules/scores by Dave O'Neill
+	Only deals with <schedule> and <standing> subelements.
+	
+	Based on sample XSLT code originally created by Johan Lindgren (TT,
+	Sweden) to show various possible outputs from SportsML.
+  -->
 
 
-<!--      MAIN TEMPLATE   -->
+<!-- main template -->
 <xsl:template match="sports-content">
 	<html>
 		<head>
@@ -46,12 +45,9 @@
 				<xsl:apply-templates select="sports-metadata"/>
 				-->
 
-				<xsl:apply-templates select="article"/>
 				<xsl:apply-templates select="sports-event"/>
-				<xsl:apply-templates select="tournament"/>
 				<xsl:apply-templates select="standing"/>
 				<xsl:apply-templates select="schedule"/>
-				<xsl:apply-templates select="statistic"/>
 				</td></tr></table>
 			</xsl:otherwise>
 			</xsl:choose>
@@ -59,108 +55,6 @@
 	</html>
 </xsl:template>
 <!-- end main template -->
-
-
-
-<!-- below is used for roster -->
-<xsl:template match="statistic">
-	<br />
-	<!-- for a statistic with a list of teams -->
-	<xsl:for-each select="team">
-	<b>
-	<xsl:call-template name="choose-name">
-	<xsl:with-param name="team-meta" select="team-metadata"/>
-	<xsl:with-param name="shownickname" select="'no'"/>
-	</xsl:call-template>:</b>
-	<br />
-	<table cellpadding="3" border="1" class="roster">
-	<tr>
-	<xsl:if test="player[1]/player-metadata/@uniform-number"><th>#</th></xsl:if>
-	<th>name</th>
-	<xsl:if test="player[1]/player-metadata/@date-of-birth"><th>date of birth</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/@height"><th>height</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/@weight"><th>weight</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/@position-regular"><th>position</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/@health"><th>health</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/home-location/@city"><th>home city</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/player-metadata-baseball/@batting-hand"><th>bats</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/player-metadata-baseball/@throwing-hand"><th>throws</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/career-phase/@phase-type='college' and player[1]/player-metadata/career-phase/@name"><th>college</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/career-phase/@phase-type='college' and player[1]/player-metadata/career-phase/@end-date"><th>grad.</th></xsl:if>
-	<xsl:if test="player[1]/player-metadata/career-phase/@phase-type='professional' and player[1]/player-metadata/career-phase/@duration"><th>yrs. pro</th></xsl:if>
-	</tr>
-	<xsl:for-each select="player">
-		<tr>
-		<xsl:if test="player-metadata/@uniform-number"><td><xsl:value-of select="player-metadata/@uniform-number"/></td></xsl:if>
-		<td nowrap="nowrap"><b>
-			<xsl:call-template name="choose-name">
-				<xsl:with-param name="team-meta" select="player-metadata"/>
-				<xsl:with-param name="shownickname" select="'no'"/>
-				<xsl:with-param name="showuniform" select="'no'"/>
-			</xsl:call-template>
-		</b></td>
-		<xsl:if test="player-metadata/@date-of-birth"><td nowrap="nowrap"><xsl:value-of select="player-metadata/@date-of-birth"/></td></xsl:if>
-		<xsl:if test="player-metadata/@height"><td><xsl:value-of select="player-metadata/@height"/></td></xsl:if>
-		<xsl:if test="player-metadata/@weight"><td><xsl:value-of select="player-metadata/@weight"/></td></xsl:if>
-		<xsl:if test="player-metadata/@position-regular"><td><xsl:value-of select="player-metadata/@position-regular"/></td></xsl:if>
-		<xsl:if test="player-metadata/@health"><td><xsl:value-of select="player-metadata/@health"/></td></xsl:if>
-		<xsl:if test="player-metadata/home-location/@city"><td><xsl:value-of select="player-metadata/home-location/@city"/></td></xsl:if>
-		<xsl:if test="player-metadata/player-metadata-baseball/@batting-hand"><td><xsl:value-of select="player-metadata/player-metadata-baseball/@batting-hand"/></td></xsl:if>
-		<xsl:if test="player-metadata/player-metadata-baseball/@throwing-hand"><td><xsl:value-of select="player-metadata/player-metadata-baseball/@throwing-hand"/></td></xsl:if>
-		<xsl:if test="player-metadata/career-phase/@phase-type='college' and player-metadata/career-phase/@name"><td><xsl:value-of select="player-metadata/career-phase/@name"/></td></xsl:if>
-		<xsl:if test="player-metadata/career-phase/@phase-type='college' and player-metadata/career-phase/@end-date"><td><xsl:value-of select="player-metadata/career-phase/@end-date"/></td></xsl:if>
-		<xsl:if test="player-metadata/career-phase/@phase-type='professional' and player-metadata/career-phase/@duration"><td><xsl:value-of select="player-metadata/career-phase/@duration"/></td></xsl:if>
-
-	<!--
-	<career-phase type="professional" duration="R">
-	</career-phase>
-	<career-phase type="college" name="Colorado" end-date="00">
-	</career-phase>
-	-->
-		<!--
-		      <xsl:choose>
-		       <xsl:when test="player-metadata/name/@full">
-		        <xsl:value-of select="player-metadata/name/@full"/>
-		       </xsl:when>
-		       <xsl:otherwise>
-		        <xsl:value-of select="player-metadata/name/@first"/><xsl:text> </xsl:text>
-		        <xsl:value-of select="player-metadata/name/@last"/>
-		       </xsl:otherwise>
-		      </xsl:choose>
-		-->
-		</tr>
-	</xsl:for-each>
-	</table><br/>
-	</xsl:for-each>
-
-	<!-- for a statistic with a list of players -->
-     <xsl:for-each select="player">
-
-       <li>
-       <xsl:call-template name="choose-name">
-        <xsl:with-param name="team-meta" select="player-metadata"/>
-        <xsl:with-param name="shownickname" select="'no'"/>
-        <xsl:with-param name="showuniform" select="'yes'"/>
-       </xsl:call-template>
-       <xsl:value-of select="player-metadata/@height"/><xsl:text>, </xsl:text>
-       <xsl:value-of select="player-metadata/@weight"/><xsl:text> </xsl:text>
-       from <xsl:value-of select="player-metadata/home-location/@city"/>
-
-<!--      <xsl:choose>
-       <xsl:when test="player-metadata/name/@full">
-        <xsl:value-of select="player-metadata/name/@full"/>
-       </xsl:when>
-       <xsl:otherwise>
-        <xsl:value-of select="player-metadata/name/@first"/><xsl:text> </xsl:text>
-        <xsl:value-of select="player-metadata/name/@last"/>
-       </xsl:otherwise>
-      </xsl:choose>
-      -->
-      </li>
-
-     </xsl:for-each>
-
- </xsl:template>
 
 
 <!-- template for standings -->
@@ -176,69 +70,21 @@
 	</td></tr></table>
 	-->
 
-	<table class="smalltable" valign="top" cellpadding="4">  <!--start a table-->
-	<tr class="blueline">
-		<td colspan="10"><b><xsl:value-of select="standing-metadata/sports-content-codes/sports-content-code[1]/@code-name"/></b></td>
-		<xsl:for-each select="team[1]/team-stats/outcome-totals">
-			<xsl:choose>
-			<xsl:when test="(@duration-scope = 'events-most-recent-10')">
-				<td colspan="3">Last 10</td>
-			</xsl:when>
-			<xsl:when test="(@competition-scope = 'conference-opposing')">
-				<td colspan="3">Interleague</td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-home')">
-				<td colspan="3" align="center">home</td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-away')">
-				<td colspan="3" align="center">away</td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@alignment-scope) and (@competition-scope = 'division')">
-				<td colspan="3" align="center">division</td>
-			</xsl:when>
-			</xsl:choose>
-		</xsl:for-each>
+	<table border="0" cellpadding="3" cellspacing="0"><tdata>
+  	<tr>
+	  <td class='standings_title' valign='middle' colspan='2' rowspan='2'>Team Name</td>
+          <td class='standings_title' valign='bottom' colspan='7'>Season To Date</td>
+	  <td class='standings_title' valign='middle' rowspan='2'>Avg. SOTG</td>
 	</tr>
 
-	<tr class="blueline">
-		<td>Rank</td>
-		<td>Team</td>
-		<td>W</td>
-		<td>L</td>
-		<td>T</td>
-		
-		<td><span title="points scored for">PF</span></td>
-		<td><span title="points scored against">PA</span></td>
-
-		<xsl:for-each select="team[1]/team-stats/outcome-totals">
-		<xsl:choose>
-		<xsl:when test="(@duration-scope = 'events-most-recent-10')">
-			<td>W</td>
-			<td>L</td>
-			<td>T</td>
-		</xsl:when>
-		<xsl:when test="(@competition-scope = 'conference-opposing')">
-			<td>W</td>
-			<td>L</td>
-			<td>T</td>
-		</xsl:when>
-		<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-home')">
-			<td>W</td>
-			<td>L</td>
-			<td>T</td>
-		</xsl:when>
-		<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-away')">
-			<td>W</td>
-			<td>L</td>
-			<td>T</td>
-		</xsl:when>
-		<xsl:when test="not(@duration-scope) and not(@alignment-scope) and (@competition-scope = 'division')">
-			<td>W</td>
-			<td>L</td>
-			<td>T</td>
-		</xsl:when>
-		</xsl:choose>
-		</xsl:for-each>
+	<tr>
+	  <td class='standings_subtitle' valign='bottom' >Win</td>
+	  <td class='standings_subtitle' valign='bottom' >Loss</td>
+	  <td class='standings_subtitle' valign='bottom' >Tie</td>
+	  <td class='standings_subtitle' valign='bottom' ><span title="Defaulted games">Dfl</span></td>
+	  <td class='standings_subtitle' valign='bottom' ><span title="Points For">PF</span></td>
+	  <td class='standings_subtitle' valign='bottom' ><span title="Points Against">PA</span></td>
+	  <td class='standings_subtitle' valign='bottom' ><span title="Plus/Minus ranking">+/-</span></td>
 	</tr>
 
 	<xsl:for-each select="team">             <!--process all teams-->
@@ -246,7 +92,7 @@
 			<xsl:with-param name="oneteam" select="."/>
 		</xsl:call-template>
 	</xsl:for-each>
-	</table>
+	</tdata></table>
 </xsl:template>
 <!-- end template for standing -->
 
@@ -254,79 +100,108 @@
 <!-- Named template to process a  team in a standing -->
 <xsl:template name="standing-team">
 	<xsl:param name="oneteam"/>
-	<tr valign="top">                                    <!--one row for each team-->
-		<td>
-		<xsl:value-of select="$oneteam/team-stats/rank/@value"/> <!-- put the rank in the first field-->
+	<tr valign="top">
+		<!-- put the rank in the first field-->
+		<td class='standings_item'>
+		  <xsl:value-of select="$oneteam/team-stats/rank/@value"/> 
 		</td>
 
-		<td nowrap="nowrap"><b>
-			<xsl:for-each select="$oneteam/team-metadata/name"> <!--Build the name in the second field-->
-			<xsl:if test="@language">
-			<xsl:value-of select="@language"/>:
-			</xsl:if>
-			<xsl:call-template name="choose-name">
-			<xsl:with-param name="team-meta" select="$oneteam/team-metadata"/>
+		<!--Build the name in the second field-->
+		<td class='standings_item' nowrap="nowrap">
+		  <xsl:for-each select="$oneteam/team-metadata/name">
+		    <xsl:if test="@language">
+		      <xsl:value-of select="@language"/>:
+		    </xsl:if>
+		      <xsl:call-template name="choose-name">
+		        <xsl:with-param name="team-meta" select="$oneteam/team-metadata"/>
 			<xsl:with-param name="shownickname" select="'yes'"/>
-			</xsl:call-template>
-			<br/>
-			</xsl:for-each>
-		</b></td>
-
-		<td class="wincell">
-			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@wins"/>
-		</td>
-		<td>
-			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@losses"/>
-		</td>
-		<td>
-			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@ties"/>
+		      </xsl:call-template>
+		    <br/>
+		  </xsl:for-each>
 		</td>
 
-		<td>
-			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@points-scored-for"/>
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@wins"/>
+		</td>
+		<td class="standings_item">
+	  	  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@losses"/>
+		</td>
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@ties"/>
+		</td>
+		
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-miscellaneous/@defaults"/>
 		</td>
 
-		<td>
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/outcome-totals/@points-scored-for"/>
+		</td>
+
+		<td class="standings_item">
 			<xsl:value-of select="$oneteam/team-stats/outcome-totals/@points-scored-against"/>
 		</td>
 
-		<!-- NOTE: Should add in logic for overtime losses and other combinations -->
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-miscellaneous/@plusminus"/>
+		</td>
 
-		<xsl:for-each select="$oneteam/team-stats/outcome-totals">
-			<xsl:choose>
-			<xsl:when test="(@duration-scope = 'events-most-recent-10')">
-				<td class="wincell"><xsl:value-of select="@wins"/></td>
-				<td><xsl:value-of select="@losses"/></td>
-				<td><xsl:value-of select="@ties"/></td>
-			</xsl:when>
-			<xsl:when test="(@competition-scope = 'conference-opposing')">
-				<td class="wincell"><xsl:value-of select="@wins"/></td>
-				<td><xsl:value-of select="@losses"/></td>
-				<td><xsl:value-of select="@ties"/></td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-home')">
-				<td class="wincell"><xsl:value-of select="@wins"/></td>
-				<td><xsl:value-of select="@losses"/></td>
-				<td><xsl:value-of select="@ties"/></td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@competition-scope) and (@alignment-scope = 'events-away')">
-				<td class="wincell"><xsl:value-of select="@wins"/></td>
-				<td><xsl:value-of select="@losses"/></td>
-				<td><xsl:value-of select="@ties"/></td>
-			</xsl:when>
-			<xsl:when test="not(@duration-scope) and not(@alignment-scope) and (@competition-scope = 'division')">
-				<td class="wincell"><xsl:value-of select="@wins"/></td>
-				<td><xsl:value-of select="@losses"/></td>
-				<td><xsl:value-of select="@ties"/></td>
-			</xsl:when>
-			</xsl:choose>
-		</xsl:for-each>
+		<td class="standings_item">
+		  <xsl:value-of select="$oneteam/team-stats/team-stats-ultimate/stats-ultimate-spirit/@value"/>
+		</td>
 	</tr>
 </xsl:template>
 <!-- end template for team lists in standings -->
 
 
 <!-- Template to catch schedules -->
+	<!--
+<table border="0" cellpadding="3" cellspacing="0"><tdata>
+  <tr>
+    <td class="schedule_title" valign='top' colspan='7'> 
+      <font face="verdana,arial,helvetica" color='#FFFF00'><b>Mon May 19 2003</b></font>
+    </td>
+    <td class="schedule_title" colspan='2'>
+                  <a class="topbarlink" href="/leaguerunner/index.php?op=league_schedule_view&id=11&week_id=2003139">edit week</a>
+              </td>
+
+  </tr>
+
+  <tr>
+    <td class="schedule_subtitle" rowspan="2">Round</td>
+    <td class="schedule_subtitle" rowspan="2">Game Time</td>
+    <td class="schedule_subtitle" rowspan="2">Home</td>
+    <td class="schedule_subtitle" rowspan="2">Away</td>
+
+    <td class="schedule_subtitle" rowspan="2">Field</td>
+    <th class="schedule_subtitle" colspan="2">Score</td>
+          <td class="schedule_subtitle" colspan="2">SOTG</td>
+      </tr>
+  <tr>
+    <td class="schedule_subtitle">Home</td>
+    <td class="schedule_subtitle">Away</td>
+
+          <td class="schedule_subtitle">Home</td>
+	    <td class="schedule_subtitle">Away</td>
+      </tr>
+
+ 
+    <tr>
+    <td>1</td>
+    <td>18:30</td>
+
+    <td>
+              <a href="/leaguerunner/index.php?op=team_view&id=323">Bionic Monkeys</a>          </td>
+    <td>
+              <a href="/leaguerunner/index.php?op=team_view&id=253">Dingoes (Monday)</a>          </td>
+    <td><a href="/leaguerunner/index.php?op=site_view&id=7">Potvin Green Space 2 (POT2)</a>&nbsp;</td>
+    <td>6</td>
+
+    <td>15</td>
+               	 	<td>9</td>
+       	<td>8</td>
+            </tr>
+	-->
 <xsl:template match="schedule">
 	<xsl:if test="@date-label or @content-label">
 		<h2 class="schedline"> Schedule: <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></h2>
@@ -680,54 +555,6 @@
 	<xsl:apply-templates select="event-actions-ice-hockey"/>
 </xsl:template>
 <!-- end template for various event actions -->
-
-<!-- Template for ice hockey events -->
-<xsl:template match="event-actions-ice-hockey">
- <tr><th bgcolor="black" colspan="2"><font color="white">actions</font></th></tr>
- <xsl:for-each select="action-ice-hockey-score">
-  <tr>
-   <td> </td>
-   <td class="hockeygoal">
-    Period: <xsl:value-of select="@period-value"/> (<xsl:value-of select="@period-time-elapsed"/>) <xsl:value-of select="@score-team"/>-<xsl:value-of select="@score-team-opposing"/>,
-
-    <xsl:call-template name="choose-name">
-     <xsl:with-param name="team-meta" select="id(@player-idref)/player-metadata"/>
-     <xsl:with-param name="shownickname" select="'yes'"/>
-    </xsl:call-template>
-
-<!--    <xsl:choose>
-     <xsl:when test="id(@player-idref)/player-metadata/name/@full">
-     <xsl:value-of select="id(@player-idref)/player-metadata/name/@full"/>
-    </xsl:when>
-    <xsl:otherwise>
-    <xsl:value-of select="id(@player-idref)/player-metadata/name/@first"/><xsl:text> </xsl:text><xsl:value-of select="id(@player-idref)/player-metadata/name/@last"/>
-    </xsl:otherwise>
-    </xsl:choose>-->
-        <!-- period-value="1" period-time-elapsed="2.16"  team-idref="E3" score-team="0" score-team-opposing="1" player-idref="F1"-->
-    <xsl:if test="@comment">
-     (<xsl:value-of select="@comment"/>)
-    </xsl:if>
-
-   </td>
-  </tr>
- </xsl:for-each>
-
-</xsl:template>
-<!-- end template for ice hockey events -->
-
-
-<!-- template for the highlight -->
-<xsl:template match="highlight">
-	<tr><th bgcolor="black" colspan="2"><font color="white">highlights</font></th></tr>
-	<tr>
-		<td> </td>
-		<td class="highlight">
-		<xsl:apply-templates />
-		</td>
-	</tr>
-</xsl:template>
-<!-- end template for highlight -->
-
 
 <!-- Template to output all officials-->
 <xsl:template match="officials">
@@ -1255,189 +1082,5 @@
  </table>
 </xsl:template>
 <!-- end template for team lists in competitions -->
-
-
-<!-- Named template to process all players in a competitions tyle event -->
-<xsl:template name="players">
- <table width="100%" class="smalltable">
-  <xsl:for-each select="player"> <!--Process all palyers-->
-   <tr> <!--build a row for each player-->
-    <td align="right">
-     <xsl:value-of select="player-stats/rank/@value"/>  <!--Put the rank in the first field-->
-    </td>
-    <td>
-     <xsl:if test="player-stats/award/@name">
-      <xsl:choose>
-       <xsl:when test="player-stats/award/@name = 'Gold' or player-stats/award/@name = 'Gold'">
-        <img align="absmiddle"  width="30" height="24" border="0" alt="Gold medal" src="images/medal-gold.gif" />
-       </xsl:when>
-       <xsl:when test="player-stats/award/@name = 'Silver'">
-        <img align="absmiddle"  width="30" height="24" border="0" alt="Silver medal" src="images/medal-silver.gif" />
-       </xsl:when>
-       <xsl:when test="player-stats/award/@name = 'Bronze' or player-stats/award/@name = 'Brons'">
-        <img align="absmiddle" width="30" height="24" border="0" alt="Bronze medal" src="images/medal-bronze.gif" />
-       </xsl:when>
-      </xsl:choose>
-     </xsl:if>
-     <xsl:if test="player-stats/@result-effect">
-      (<xsl:value-of select="player-stats/@result-effect"/>)
-     </xsl:if>
-    </td>
-    <td>                    <!-- Name information is built into second field -->
-     <xsl:for-each select="player-metadata/name">
-      <xsl:if test="@language">
-       <xsl:value-of select="@language"/>:
-      </xsl:if>
-      <xsl:choose>
-       <xsl:when test="@full">
-        <xsl:value-of select="@full"/>
-        <xsl:if test="@first">
-         <small>(<xsl:value-of select="@first"/><xsl:text> </xsl:text><xsl:value-of select="@last"/>)</small>
-        </xsl:if>
-       </xsl:when>
-       <xsl:otherwise>
-        <xsl:value-of select="@first"/><xsl:text> </xsl:text><xsl:value-of select="@last"/>
-       </xsl:otherwise>
-      </xsl:choose>
-      <xsl:if test="@nickname">
-       <xsl:text> &quot;</xsl:text><xsl:value-of select="@nickname"/><xsl:text> &quot;</xsl:text>
-      </xsl:if>
-     </xsl:for-each>
-    </td>
-    <td>
-     <xsl:if test="player-metadata/home-location/@city"><xsl:value-of select="player-metadata/home-location/@city"/> </xsl:if>
-     <xsl:if test="player-metadata/home-location/@county"><xsl:value-of select="player-metadata/home-location/@county"/> </xsl:if>
-     <xsl:if test="player-metadata/home-location/@state"><xsl:value-of select="player-metadata/home-location/@state"/> </xsl:if>
-     <xsl:if test="player-metadata/home-location/@country"><xsl:value-of select="player-metadata/home-location/@country"/> </xsl:if>
-    </td>
-    <td>
-     <xsl:value-of select="player-stats/@score"/>
-     <xsl:if test="player-stats/event-record">
-      <b><i color="#FF00FF">
-      <xsl:for-each select="player-stats/event-record">
-       <xsl:text> </xsl:text>
-       <xsl:value-of select="./@type"/>-record
-       <xsl:if test="not(position() = last())">, </xsl:if>
-      </xsl:for-each>
-      </i></b>
-     </xsl:if>
-    </td>
-   </tr>
-  </xsl:for-each>
- </table>
-</xsl:template>
-
-
-<!--       Tests and old stuff    -->
-
-<!--<xsl:for-each select="@*">
-<tr><td><xsl:value-of select="name()"/></td><td><xsl:value-of select="."/></td></tr>
-</xsl:for-each>-->
-
-<!--
-<xsl:if test="@">
-<tr><td>:</td><td><xsl:value-of select="@"/></td></tr>
-</xsl:if>
-
-<xsl:for-each select="@*">
-			<xsl:value-of select="{name()}"/><xsl:text>=</xsl:text><xsl:value-of select="."/>
-		<br/>
-		</xsl:for-each>
-	<xsl:element name="{name()}">
-		<xsl:for-each select="@*">
-		<p>
-			<xsl:value-of select="{name()}"/><xsl:text>=</xsl:text><xsl:value-of select="."/>
-		</p>
-		</xsl:for-each>
-		<xsl:apply-templates select="*|text()"/>
-	</xsl:element>
--->
-
-
-<!--	NITF Formatting		-->
-
-<xsl:template match="nitf">
-	<xsl:apply-templates />
-</xsl:template>
-
-<xsl:template match="body.head|body.content|hedline">
-	<xsl:apply-templates />
-</xsl:template>
-
-<xsl:template match="p">
-	<p class="nitfp"><xsl:apply-templates /></p>
-</xsl:template>
-
-<xsl:template match="note">
-	<p class="nitfnote"><xsl:apply-templates /></p>
-</xsl:template>
-
-<xsl:template match="byline">
-	<p class="nitfbyline"><xsl:apply-templates/></p>
-</xsl:template>
-
-<xsl:template match="person">
-<span class="nitfperson"><xsl:value-of select="."/></span>
-</xsl:template>
-
-<xsl:template match="byttl">
-<br /><span class="nitfbylinetitle"><xsl:value-of select="."/></span>
-</xsl:template>
-
-<xsl:template match="hl1">
-	<h3 class="nitfhl1"><xsl:apply-templates /></h3>
-</xsl:template>
-
-<xsl:template match="hl2">
-	<h3 class="nitfhl2"><xsl:apply-templates /></h3>
-</xsl:template>
-
-<xsl:template match="hl3">
-	<h3 class="nitfhl3"><xsl:apply-templates /></h3>
-</xsl:template>
-
-<xsl:template match="td">
-	<td class="nitftd"><xsl:apply-templates /></td>
-</xsl:template>
-
-<xsl:template match="th">
-	<td class="nitfth"><xsl:apply-templates /></td>
-</xsl:template>
-
-<xsl:template match="tr">
-	<tr class="nitftr"><xsl:apply-templates /></tr>
-</xsl:template>
-
-<xsl:template match="table">
-	<table class="smalltable" cellspacing="4">
-	<xsl:apply-templates /></table>
-</xsl:template>
-
-<xsl:template match="ol">
-	<ol class="nitfol">
-	<xsl:apply-templates />
-	</ol>
-</xsl:template>
-
-<xsl:template match="ul">
-	<dl class="nitful">
-	<xsl:apply-templates />
-	</dl>
-</xsl:template>
-
-<xsl:template match="li">
-	<dt class="nitfli">
-	<xsl:apply-templates />
-	</dt>
-</xsl:template>
-
-<xsl:template match="media">
-	<xsl:apply-templates /><br /><br />
-</xsl:template>
-
-<!--
-	What about media-caption, etc.?
-	Add stylesheet .css attributes here?
--->
 
 </xsl:stylesheet>

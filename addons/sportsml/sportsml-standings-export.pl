@@ -53,7 +53,7 @@ sub print_header
 		'language' => 'en-US',
 		'fixture-name' => 'Standings');
 	$x->dataElement("sports-title", 
-		"Standings and Schedule: $league_name $season $day");
+		"$league_name $season $day");
 	$x->startTag("sports-content-codes");
 		$x->emptyTag("sports-content-code",
 			'doc-id' => 'u1',
@@ -297,10 +297,10 @@ sub print_one_team
 	    $x->startTag("team-stats-ultimate");
 	      $x->emptyTag("stats-ultimate-spirit",
 	      	'value' => $team->{sotg});
-	      $x->emptyTag("stats-ultimate-defaults",
-	      	'value' => $team->{defaults_against});
-	      $x->emptyTag("stats-ultimate-plusminus",
-	      	'value' => $team->{plusminus});
+	      $x->emptyTag("stats-ultimate-miscellaneous",
+	      	'defaults' => $team->{defaults_against},
+	      	'plusminus' => $team->{plusminus}
+	      );
 	    $x->endTag("team-stats-ultimate");
 	    $x->emptyTag("rank", 
 	    	'competition-scope' => 'tier',

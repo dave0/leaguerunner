@@ -19,32 +19,19 @@
 	out-of                                  Maximum score for value represented in 'value' attribute.
         -->
 	
-<!ELEMENT stats-ultimate-defaults EMPTY>
-<!ATTLIST stats-ultimate-defaults
+<!ELEMENT stats-ultimate-miscellaneous EMPTY>
+<!ATTLIST stats-ultimate-miscellaneous
         %global-attributes;
 
-        value                                   CDATA              #REQUIRED
+	defaults                                CDATA              #IMPLIED
+        plusminus                               CDATA              #IMPLIED
         >
         <!--
-        Element                                 stats-ultimate-defaults
+        Element                                 stats-ultimate-miscellaneous
         Partial description                     TBD.
         Full description                        TBD.
 
         id                                      An XML-specific identifier for the element.
-        value                                   Number of defaulted games by team
-        -->
-	
-<!ELEMENT stats-ultimate-plusminus EMPTY>
-<!ATTLIST stats-ultimate-plusminus
-        %global-attributes;
-
-        value                                   CDATA              #REQUIRED
-        >
-        <!--
-        Element                                 stats-ultimate-plusminus
-        Partial description                     TBD.
-        Full description                        TBD.
-
-        id                                      An XML-specific identifier for the element.
-        value                                   Calculated by formula: points for minus points against.
+        defaults                                Number of defaulted games by team
+        plusminus                               Calculated by formula: points for minus points against.
         -->
