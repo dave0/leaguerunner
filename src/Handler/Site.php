@@ -8,14 +8,14 @@ function site_dispatch()
 	$op = arg(1);
 	switch($op) {
 		case 'create':
-			return new SiteCreate; // TODO
+			return new SiteCreate;
 		case 'edit':
-			return new SiteEdit; // TODO
+			return new SiteEdit;
 		case 'view':
-			return new SiteView; // TODO
+			return new SiteView;
 		case 'list':
 		case '':
-			return new SiteList; // TODO
+			return new SiteList;
 	}
 	return null;
 }
@@ -31,204 +31,151 @@ class SiteCreate extends SiteEdit
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = "site_create";
 		$this->section = 'field';
 		return true;
 	}
 	
-	function perform ()
+	function process ()
 	{
-		$site = var_from_getorpost("site");
+		$id = -1;
+		$edit = $_POST['edit'];
+
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm($id, $edit);
+				break;
+			case 'perform':
+				$this->perform(&$id, $edit);
+				local_redirect(url("site/view/$id"));
+				break;
+			default:
+				$edit = $this->getFormData( $id );
+				$rc = $this->generateForm($id, $edit);
+		}
+		$this->setLocation(array($this->title => 0));
+		return $rc;
+	}
 	
+	function perform ( $id, $edit )
+	{
 		db_query("INSERT into site (name,code) VALUES ('%s','%s')", $site['name'], $site['code']);
 		if(1 != db_affected_rows() ) {
 			return false;
 		}
 	
-		/* TODO Make $this->id go away */
-		$this->id = db_result(db_query("SELECT LAST_INSERT_ID() from site"));
+		$result = db_query("SELECT LAST_INSERT_ID() from site");
+		if( !db_num_rows($result) ) {
+			return false;
+		}
+		$id = db_result($result);
 	
-		return parent::perform();
+		return parent::perform($id, $edit);
 	}
-
 }
 
 class SiteEdit extends Handler
 {
-
-	var $id;
-
 	function initialize ()
 	{
 		$this->title = "Edit Field Site";
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = "site_edit";
 		$this->section = 'field';
 		return true;
 	}
-
+	
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		$this->id = var_from_getorpost('id');
+		$id = arg(2);
+		$edit = $_POST['edit'];
 
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$dataInvalid = $this->isDataInvalid();
-				if($dataInvalid) {
-					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-				}
-
-				return $this->generateConfirm(var_from_getorpost('site'));
+				$rc = $this->generateConfirm($id, $edit);
 				break;
 			case 'perform':
-				$dataInvalid = $this->isDataInvalid();
-				if($dataInvalid) {
-					$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-				}
-				$this->perform();
-				local_redirect("op=site_view&id=". $this->id);
+				$this->perform($id, $edit);
+				local_redirect(url("site/view/$id"));
 				break;
 			default:
-				if($this->id) {
-					
-					$result = db_query(
-						"SELECT * FROM site WHERE site_id = %d", $this->id);
-					if( 1 != db_num_rows($result) ) {
-						return false;
-					}
-					$row = db_fetch_array($result);
-
-				} else {
-					$row = array();
-				}
-				return $this->generateForm($row);
+				$edit = $this->getFormData( $id );
+				$rc = $this->generateForm( $edit );
 		}
+		$this->setLocation(array($edit['name']  => "site/view/$id", $this->title => 0));
+		return $rc;
+	}
+	
+	function getFormData( $id ) 
+	{
+		/* TODO: site_load() */
+		return db_fetch_array(db_query("SELECT * FROM site WHERE site_id = %d", $id));
 	}
 
 	function generateForm( $data = array() )
 	{
-
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", "confirm");
-		if($this->id) {
-			$output .= form_hidden("id", $this->id);
-		}
+		$output = form_hidden("edit[step]", "confirm");
 		
 		$rows = array();
-		$rows[] = array(
-			"Site Name:",
-			form_textfield("", 'site[name]', $data['name'], 35, 35, "Name of field site"));
+		$rows[] = array( "Site Name:", form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of field site"));
 			
-		$rows[] = array(
-			"Site Code:",
-			form_textfield("", 'site[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site"));
+		$rows[] = array( "Site Code:", form_textfield("", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site"));
 			
-		$rows[] = array(
-			"Site Region:",
-			form_select("", 'site[region]', $data['region'], getOptionsFromEnum('site', 'region'), "Area of city this site is located in"));
+		$rows[] = array( "Site Region:", form_select("", 'edit[region]', $data['region'], getOptionsFromEnum('site', 'region'), "Area of city this site is located in"));
 			
-		$rows[] = array(
-			"City Ward:",
-			form_select("", 'site[ward_id]', $data['ward_id'],
-				getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
-				"Official city ward this site is located in"));
+		$rows[] = array( "City Ward:", form_select("", 'edit[ward_id]', $data['ward_id'],
+			getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
+			"Official city ward this site is located in"));
 			
-		$rows[] = array(
-			"Site Location Map:",
-			form_textfield("", 'site[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the site"));
+		$rows[] = array( "Site Location Map:", form_textfield("", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the site"));
 			
-		$rows[] = array(
-			"Site Layout Map:",
-			form_textfield("", 'site[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site"));
+		$rows[] = array( "Site Layout Map:", form_textfield("", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site"));
 			
-		$rows[] = array(
-			"Directions:",
-			form_textarea("", 'site[directions]', $data['directions'], 60, 5, "Directions to field site.  Please ensure that bus and bike directions are also provided if practical."));
+		$rows[] = array( "Directions:", form_textarea("", 'edit[directions]', $data['directions'], 60, 5, "Directions to field site.  Please ensure that bus and bike directions are also provided if practical."));
 			
-		$rows[] = array(
-			"Special Instructions:",
-			form_textarea("", 'site[instructions]', $data['instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
+		$rows[] = array( "Special Instructions:", form_textarea("", 'edit[instructions]', $data['instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
 		$rows[] = array(
 			form_submit('Submit'),
 			form_reset('Reset'));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
-		if($this->id) {
-			$this->setLocation(array(
-				$data['name'] => "op=site_view&id=" . $this->id,
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => 0));
-		}
-		
 		return form($output);	
 	}
 
-	function generateConfirm ($data)
+	function generateConfirm ( $id, $edit )
 	{
-		$output = form_hidden("op", $this->op);
-		$output .= form_hidden("step", "perform");
-		$output .= form_hidden("id", $this->id);
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		$output = form_hidden("edit[step]", "perform");
 		
 		$rows = array();
-
-		$rows[] = array(
-			"Site Name:",
-			form_hidden('site[name]', $data['name']) . check_form($data['name']));
-			
-		$rows[] = array(
-			"Site Code:",
-			form_hidden('site[code]', $data['code']) . check_form($data['code']));
-			
-		$rows[] = array(
-			"Site Region:",
-			form_hidden('site[region]', $data['region']) . check_form($data['region']));
-			
-		$rows[] = array(
-			"City Ward:",
-			form_hidden('site[ward_id]', $data['ward_id']) . 
-				getWardName($data['ward_id']));
-			
-		$rows[] = array(
-			"Site Location Map:",
-			form_hidden('site[location_url]', $data['location_url']) . check_form($data['location_url']));
-			
-		$rows[] = array(
-			"Site Layout Map:",
-			form_hidden('site[layout_url]', $data['layout_url']) . check_form($data['layout_url']));
-			
-		$rows[] = array(
-			"Directions:",
-			form_hidden('site[directions]', $data['directions']) . check_form($data['directions']));
-			
-		$rows[] = array(
-			"Special Instructions:",
-			form_hidden('site[instructions]', $data['instructions']) . check_form($data['instructions']));
-
+		$rows[] = array( "Site Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
+		$rows[] = array( "Site Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
+		$rows[] = array( "Site Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
+		$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  getWardName($edit['ward_id']));
+		$rows[] = array( "Site Location Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
+		$rows[] = array( "Site Layout Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
+		$rows[] = array( "Directions:", form_hidden('edit[directions]', $edit['directions']) . check_form($edit['directions']));
+		$rows[] = array( "Special Instructions:", form_hidden('edit[instructions]', $edit['instructions']) . check_form($edit['instructions']));
 		$rows[] = array( form_submit('Submit'), "");
 		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		
-		if($this->id) {
-			$this->setLocation(array(
-				$data['name'] => "op=site_view&id=" . $this->id,
-				$this->title => 0));
-		} else {
-			$this->setLocation(array( $this->title => 0));
-		}
 		return form($output);
 	}
 
-	function perform ()
+	function perform ( $id, $edit )
 	{
-		$site = var_from_getorpost('site');
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
 		
 		db_query("UPDATE site SET 
 			name = '%s', code = '%s', 
@@ -238,14 +185,14 @@ class SiteEdit extends Handler
 			instructions = '%s' 
 			WHERE site_id = %d",
 			array(
-				$site['name'],
-				$site['code'],
-				$site['region'],
-				($site['ward_id'] == 0) ? NULL : $site['ward_id'],
-				$site['location_url'],
-				$site['layout_url'],
-				$site['directions'],
-				$site['instructions'],
+				$edit['name'],
+				$edit['code'],
+				$edit['region'],
+				($edit['ward_id'] == 0) ? NULL : $edit['ward_id'],
+				$edit['location_url'],
+				$edit['layout_url'],
+				$edit['directions'],
+				$edit['instructions'],
 				$this->id,
 			)
 		);
@@ -257,35 +204,33 @@ class SiteEdit extends Handler
 		return true;
 	}
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit )
 	{
 		$errors = "";
 
-		$site = var_from_getorpost('site');
-		
-		if( !validate_nonhtml($site['name'] ) ) {
+		if( !validate_nonhtml($edit['name'] ) ) {
 			$errors .= "<li>Name cannot be left blank, and cannot contain HTML";
 		}
-		if( !validate_nonhtml($site['code'] ) ) {
+		if( !validate_nonhtml($edit['code'] ) ) {
 			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
 		}
 		
-		if( ! validate_number($site['ward_id']) ) {
+		if( ! validate_number($edit['ward_id']) ) {
 			$errors .= "<li>Ward must be selected";
 		}
 
-		if( ! validate_nonhtml($site['region']) ) {
+		if( ! validate_nonhtml($edit['region']) ) {
 			$errors .= "<li>Region cannot be left blank and cannot contain HTML";
 		}
 		
-		if(validate_nonblank($site['location_url'])) {
-			if( ! validate_nonhtml($site['location_url']) ) {
+		if(validate_nonblank($edit['location_url'])) {
+			if( ! validate_nonhtml($edit['location_url']) ) {
 				$errors .= "<li>If you provide a location URL, it must be valid.";
 			}
 		}
 		
-		if(validate_nonblank($site['layout_url'])) {
-			if( ! validate_nonhtml($site['layout_url']) ) {
+		if(validate_nonblank($edit['layout_url'])) {
+			if( ! validate_nonhtml($edit['layout_url']) ) {
 				$errors .= "<li>If you provide a site layout URL, it must be valid.";
 			}
 		}
@@ -311,9 +256,8 @@ class SiteList extends Handler
 			'volunteer_sufficient',
 			'allow'		/* Allow everyone */
 		);
-		$this->op = "site_list";
 		$this->section = 'field';
-		$this->setLocation(array("List Field Sites" => 'op=' . $this->op));
+		$this->setLocation(array('List Field Sites' => 'field/list'));
 		return true;
 	}
 	
@@ -329,7 +273,7 @@ class SiteList extends Handler
 		$links = array();
 		
 		if($this->_permissions['field_admin']) {
-			$links[] = l("create field site", "op=site_create");
+			$links[] = l("create field site", "site/create");
 		}
 		
 		$output = theme_links( $links );
@@ -349,7 +293,7 @@ class SiteList extends Handler
 				$fieldsByRegion[$field->region] = "";
 			}
 			$fieldsByRegion[$field->region] 
-				.= l($field->name, "op=site_view&id=$field->site_id") . "<br />";
+				.= l($field->name, "site/view/$field->site_id") . "<br />";
 		}
 
 		$fieldColumns = array();
@@ -370,7 +314,6 @@ class SiteView extends Handler
 	{
 		$this->title= "View Field Site";
 		$this->_required_perms = array(
-			'require_var:id',
 			'admin_sufficient',
 			'allow',
 		);
@@ -378,7 +321,6 @@ class SiteView extends Handler
 			'site_edit'			=> false,
 			'field_create'		=> false,
 		);
-		$this->op = "site_view";
 		$this->section = 'field';
 		return true;
 	}
@@ -392,48 +334,46 @@ class SiteView extends Handler
 
 	function process ()
 	{
-		global $session;
-
-		$id = var_from_getorpost('id');
+		$id = arg(2);
 
 		/* TODO: site_load() ? */
 		$site = db_fetch_object(db_query("SELECT * FROM site WHERE site_id = %d", $id));
-
 		if(!$site) {
 			$this->error_exit("The site [$id] does not exist");
 		}
 	
 		$links = array();
 		if($this->_permissions['site_edit']) {
-			$links[] = l('edit site', "op=site_edit&id=$id", array("title" => "Edit this field site"));
+			$links[] = l('edit site', "site/edit/$id", array("title" => "Edit this field site"));
 		}
 		if($this->_permissions['field_create']) {
-			$links[] = l('add field', "op=field_create&site_id=$id", array("title" => "Add a new field to this site"));
+			$links[] = l('add field', "field/create/$id", array("title" => "Add a new field to this site"));
 		}
 		
 		/* and list fields at this site */
 		$result = db_query("SELECT * FROM field WHERE site_id = %d ORDER BY num", $id);
 
-		$field_listing = "<ul>";
+		$fieldRows = array();
+		$header = array("Field","Status","&nbsp;");
 		while($field = db_fetch_object($result)) {
-			$field_listing .= "<li>$site->code $field->num ($field->status)";
-			$field_listing .= l("view", 
-				"op=field_view&id=$field->field_id", 
-				array('title' => "View field entry"));
+			$fieldOps = array( 
+				l("view", "field/view/$field->field_id", array('title' => "View field entry"))
+			);
 			if($this->_permissions["site_edit"]) {
-				$field_listing .= " | " . l("edit", 
-					"op=field_edit&id=$field->field_id", 
-					array('title' => "Edit field entry"));
+				$fieldOps[] = l("edit", "field/edit/$field->field_id", array('title' => "Edit field entry"));
 			}
+			$fieldRows[] = array(
+				"$site->code $field->num",
+				$field->status,
+				theme_links($fieldOps)
+			);
 		}
-		$field_listing .= "</ul>";
 		
-
 		$rows = array();
 		$rows[] = array("Site Name:", $site->name);
 		$rows[] = array("Site Code:", $site->code);
 		$rows[] = array("Site Region:", $site->region);
-		$rows[] = array("City Ward:", l(getWardName($site->ward_id), "op=ward_view&id=$site->ward_id"));
+		$rows[] = array("City Ward:", l(getWardName($site->ward_id), "ward/view/$site->ward_id"));
 		$rows[] = array("Site Location Map:", 
 			$site->location_url ? l("Click for map in new window", $site->location_url, array('target' => '_new'))
 				: "No Map");
@@ -443,19 +383,16 @@ class SiteView extends Handler
 		$rows[] = array("Directions:", $site->directions);
 		$rows[] = array("Special Instrutions:", $site->instructions);
 		
-		$rows[] = array("Fields:", $field_listing);
-		
+		$rows[] = array("Fields:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
 		
 		$this->setLocation(array(
-			$site->name => "op=site_view&id=$site->site_id",
+			$site->name => "site/view/$site->site_id",
 			$this->title => 0
 		));
 		
 		$output = theme_links($links);
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		
 		return $output;
 	}
 }
-
 ?>

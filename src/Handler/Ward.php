@@ -36,7 +36,7 @@ class WardCreate extends WardEdit
 	
 	function process ()
 	{
-		$id = arg(2);
+		$id = -1;
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {
