@@ -29,9 +29,47 @@ function league_dispatch()
 
 function league_menu()
 {
+	global $session;
 	menu_add_child('_root','league','Leagues');
 	menu_add_child('league','league/list','list leagues', array('link' => 'league/list') );
+	if( $session->is_valid() ) {
+		while(list(,$league) = each($session->user->leagues) ) {
+			## TODO: permissions hack must die!
+			$this->_permissions['administer_league'] = true;
+			league_add_to_menu($this, $league);
+		}
+		reset($session->user->leagues);
+	}
 }
+
+/**
+ * Add view/edit/delete links to the menu for the given league
+ * TODO: when permissions are fixed, remove the evil passing of $this
+ * TODO: fix ugly evil things like LeagueEdit so that this can be called to add
+ * league being edited to the menu.
+ */
+function league_add_to_menu( $this, &$league, $parent = 'league' ) 
+{
+	global $session;
+	
+	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
+	
+	if($league->allow_schedule == 'Y') {
+		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
+		if($this->_permissions['administer_league']) {
+			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
+		}
+	}
+	
+	if($this->_permissions['administer_league']) {
+		menu_add_child($league->fullname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 2, 'link' => "league/captemail/$league->league_id"));
+	}
+	if($session->is_admin()) {
+		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
+	}
+}	
 
 /**
  * Create handler
@@ -427,12 +465,7 @@ class LeagueList extends Handler
 			$season => 0
 		));
 
-		$output = "";
-		if($this->_permissions['create']) {
-			$output .= para(l("create league", "league/create"));
-		}
-		
-		$output .= para(theme_links($seasonLinks));
+		$output = para(theme_links($seasonLinks));
 
 		$header = array( "Name", "Ratio", "&nbsp;") ;
 		$rows = array();
@@ -893,20 +926,6 @@ class LeagueView extends Handler
 			$this->error_exit("That league does not exist.");
 		}
 
-		$links = array();
-		if($league->allow_schedule == 'Y') {
-			$links[] = l("schedule", "schedule/view/$id");
-			$links[] = l("standings", "league/standings/$id");
-			if($this->_permissions['administer_league']) {
-				$links[] = l("approve scores", "league/approvescores/$id");
-			}
-		}
-		if($this->_permissions['administer_league']) {
-			$links[] = l("edit info", "league/edit/$id");
-			$links[] = l("fetch captain emails", "league/captemail/$id");
-		}
-		
-		$output =  theme_links($links);
 		$rows = array();
 		$rows[] = array("Coordinator:", 
 			l($league->coordinator_name, "person/view/$league->coordinator_id"));
@@ -966,6 +985,7 @@ class LeagueView extends Handler
 		$this->setLocation(array(
 			$league->fullname => "league/view/$id",
 			$this->title => 0));
+		league_add_to_menu($this, $league);
 		return $output;
 	}
 }

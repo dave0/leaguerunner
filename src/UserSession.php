@@ -230,7 +230,7 @@ class UserSession
 		if( ! array_key_exists($team_id, $this->user->teams) ) {
 			return false;
 		}
-		$status = $this->user->teams[$team_id]->status;
+		$status = $this->user->teams[$team_id]->position;
 
 		if( $status == 'captain' || $status == 'assistant') {
 			return true;
@@ -249,35 +249,19 @@ class UserSession
 	function is_coordinator_of ($league_id)
 	{
 		if($this->is_admin()) { return true; }
+		
+		if(!$this->user->is_a_coordinator) { return false; }
 
 		if($league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
-			if ($this->user->class == 'volunteer') {
-				return true;
-			}
+			return true;
 		}
-
-		$result = db_query("SELECT coordinator_id, alternate_id from league where league_id = %d", $league_id);
-
-		$coordInfo = db_fetch_object($result);
-
-		if( ($this->user->user_id == $coordInfo->coordinator_id) || ($this->user->user_id == $coordInfo->alternate_id)) {
+		
+		if( array_key_exists($league_id, $this->user->leagues) ) {
 			return true;
 		}
 		
 		return false;
-	}
-
-	/** 
-	 * Check if this session might coordinate a league.  Used 
-	 * as a preliminary check to avoid db queries.
-	 */
-	function may_coordinate_league()
-	{
-		return (
-			($this->attr_get('class') == 'administrator')
-			|| ($this->attr_get('class') == 'volunteer')
-		);
 	}
 
 	/**
@@ -287,6 +271,8 @@ class UserSession
 	function coordinates_league_containing($team_id)
 	{
 		if($this->is_admin()) { return true; }
+
+		if(!$this->user->is_a_coordinator) { return false; }
 
 		$result = db_query("SELECT l.league_id, l.coordinator_id, l.alternate_id FROM league l, leagueteams t WHERE t.team_id = %d and t.league_id = l.league_id", $team_id);
 

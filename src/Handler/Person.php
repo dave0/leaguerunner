@@ -65,7 +65,7 @@ function person_menu()
 			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
 		}
 
-		menu_add_child('person', 'person/listnew', "create account", array('link' => "person/list", 'weight' => 1));
+		menu_add_child('person', 'person/create', "create account", array('link' => "person/create", 'weight' => 1));
 	}
 }
 
@@ -1784,8 +1784,8 @@ function person_load ( $array = array() )
 	$result = db_query(
 		"SELECT 
 			r.status AS position,
-			r.team_id AS id,
-			t.name AS name,
+			r.team_id,
+			t.name,
 			l.league_id
 		FROM 
 			teamroster r 
@@ -1800,10 +1800,31 @@ function person_load ( $array = array() )
 			# TODO: evil hack.
 			$user->is_a_captain = true;
 		}
-		$user->teams[ $team->id ] = $team;
-		$user->teams[ $team->id ]->team_id = $team->id;
+		$user->teams[ $team->team_id ] = $team;
+		$user->teams[ $team->team_id ]->id = $team->team_id;
 	}
 
+	/* Fetch league info */
+	$result = db_query(
+		"SELECT 
+			l.league_id, 
+			l.name,
+			l.tier
+		 FROM 
+		 	league l,
+			leagueteams t
+		 WHERE l.coordinator_id = %d OR l.alternate_id = %d", $user->user_id, $user->user_id);
+	$user->leagues = array();
+	while($league = db_fetch_object($result)) {
+		# TODO: evil hack.
+		$user->is_a_coordinator = true;
+		if($league->tier) {
+			$league->fullname = "$league->name Tier $league->tier";
+		} else {
+			$league->fullname = $league->name;
+		}
+		$user->leagues[ $league->league_id ] = $league;
+	}
 	return $user;
 }
 

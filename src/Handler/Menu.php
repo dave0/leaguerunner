@@ -89,49 +89,39 @@ class MainMenu extends Handler
 		reset($session->user->teams);
 		
 		$teams = "<div class='myteams'>" . table( $header, $rows ) . "</div>";
-		if( $session->may_coordinate_league() ) {
+		if( $session->user->is_a_coordinator ) {
 
-			$result = db_query(
-				"SELECT 
-					league_id AS id, name, allow_schedule, tier
-				FROM 
-					league 
-				WHERE 
-					coordinator_id = %d OR (alternate_id <> 1 AND alternate_id = %d)
-				ORDER BY name, tier", $id, $id);
-				
-
-			if(db_num_rows($result) > 0) {
-				$header = array(
-					array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+			$header = array(
+				array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+			);
+			$rows = array();
+			
+			// TODO: For each league, need to display # of missing scores,
+			// pending scores, etc.
+			while(list(,$league) = each($session->user->leagues)) {
+				$links = array(
+					l("view", "league/view/$league->league_id"),
+					l("edit", "league/edit/$league->league_id")
 				);
-				$rows = array();
-				
-				// TODO: For each league, need to display # of missing scores,
-				// pending scores, etc.
-				while($league = db_fetch_object($result)) {
-					$links = array(
-						l("view", "league/view/$league->id"),
-						l("edit", "league/edit/$league->id")
-					);
-					if($league->allow_schedule == 'Y') {
-						$links[] = l("schedule", "schedule/view/$league->id");
-						$links[] = l("standings", "league/standings/$league->id");
-						$links[] = l("approve scores", "league/verifyscores/$league->id");
-					}
-
-					$rows[] = array(
-						array( 
-							'data' => $league->tier ? "$league->name Tier $league->tier" : $league->name, 
-							'colspan' => 3
-						),
-						array(
-							'data' => theme_links($links), 
-							'align' => 'right'
-						)
-					);
+				if($league->allow_schedule == 'Y') {
+					$links[] = l("schedule", "schedule/view/$league->league_id");
+					$links[] = l("standings", "league/standings/$league->league_id");
+					$links[] = l("approve scores", "league/verifyscores/$league->league_id");
 				}
+
+				$rows[] = array(
+					array( 
+						'data' => $league->fullname,
+						'colspan' => 3
+					),
+					array(
+						'data' => theme_links($links), 
+						'align' => 'right'
+					)
+				);
 			}
+			reset($session->user->leagues);
+			
 			$leagues = "<div class='myteams'>" . table( $header, $rows ) . "</div>";
 		}
 				
