@@ -75,7 +75,7 @@ class Menu extends Handler
 		  	FROM 
 				league 
 		    WHERE 
-				coordinator_id = ? OR (alternate_id = ? AND NOT alternate_id = 1)
+				coordinator_id = ? OR (alternate_id <> 1 AND alternate_id = ?)
 		  	ORDER BY name, tier",
 			array($id,$id), 
 			DB_FETCHMODE_ASSOC);
