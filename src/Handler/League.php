@@ -105,7 +105,7 @@ function league_splash ()
 		if($league->schedule_type != 'none') {
 			$links[] = l("schedule", "schedule/view/$league->league_id");
 			$links[] = l("standings", "league/standings/$league->league_id");
-			$links[] = l("approve scores", "league/verifyscores/$league->league_id");
+			$links[] = l("approve scores", "league/approvescores/$league->league_id");
 		}
 
 		$rows[] = array(
