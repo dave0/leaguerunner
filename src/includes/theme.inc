@@ -103,6 +103,11 @@ function theme_navbar($section, $breadcrumbs = array())
 	print "\n<!-- end navbar -->\n";
 }
 
+function theme_error( $message ) 
+{
+	return "<div class=\"error\">$message</div>";
+}
+
 function theme_links($links, $delimiter = " | ")
 {
 	return implode($delimiter, $links);

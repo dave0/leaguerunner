@@ -96,8 +96,8 @@ if($handler->initialize()) {
 			$handler->error_exit("Uncaught failure performing $op");
 		}
 
-		print $handler->get_header();
-		print h1($handler->title);
+		print theme_header($handler->title, $handler->section, $handler->breadcrumbs);
+		print "<h1>$handler->title</h1>";
 		print $result;
 		print theme_footer();
 		

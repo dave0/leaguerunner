@@ -282,18 +282,6 @@ class Handler
 		return true;
 	}
 
-	function get_header($title = NULL)
-	{
-		$title = $title ? $title : $this->title;
-
-		return theme_header($title, $this->section, $this->breadcrumbs);	
-	}
-
-	function get_footer()
-	{
-		return theme_footer();
-	}
-
 	/**
 	 * Display the error message and exit.
 	 *
@@ -304,13 +292,15 @@ class Handler
 	function error_exit($error = NULL)
 	{
 		global $DB;
-		$title = $this->title ? $this->title : "Error";
+		
+		$title = "Error";
+		
 		$error = $error ? $error : "An unknown error has occurred.";
 
-		print $this->get_header($title);
-		print h1($title, array('align' => 'left'));
-		print blockquote($error);
-		print $this->get_footer();
+		print theme_header($title, $this->section, $this->breadcrumbs);
+		print "<h1>$title</h1>";
+		print theme_error( $error );
+		print theme_footer();
 		$DB->disconnect();
 		exit;
 	}
