@@ -337,6 +337,8 @@ class League extends LeaguerunnerObject
 			return false;
 		}
 
+		// Super important!  We make a back-up copy of all the game objects in case we have to rollback!
+		$backup_games = array();
 		$games = array();
 		while($game = db_fetch_array($result)) {
 			if ($game['round'] >= $round) {
@@ -346,12 +348,10 @@ class League extends LeaguerunnerObject
 						" But, can't cancel games because Game # $game->game_id has results! ");
 				}
 				array_push($games, $game);
+				array_push($backup_games, $game);
 			}
 		}
 		reset($games);
-
-		// Super important!  We make a back-up copy of all the game objects in case we have to rollback!
-		$backup_games = $games;
 
 		// ASSUMPTION: the array is properly sorted such that games that swap info are "$game_set" apart
 		for ($i = count($games)-1; $i >= 0; $i--) {
