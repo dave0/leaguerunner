@@ -55,7 +55,7 @@ class TeamAddPlayer extends Handler
 			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
-			'captain_sufficient',
+			'captain_of:id',
 			'deny',
 		);
 
@@ -70,19 +70,7 @@ class TeamAddPlayer extends Handler
 
 		$id = var_from_getorpost("id");
 		$letter = var_from_getorpost("letter");
-
-		$found = $DB->getAll(
-			"SELECT 
-				CONCAT(lastname,', ',firstname) AS value, 
-				user_id AS id_val 
-			 FROM person 
-			 WHERE lastname LIKE ? ORDER BY lastname",
-			array($letter . "%"), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
-		
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
+		$letters = $DB->getCol("SELECT DISTINCT UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
 		if($this->is_database_error($letters)) {
 			return false;
 		}
@@ -90,6 +78,18 @@ class TeamAddPlayer extends Handler
 		if(!isset($letter)) {
 			$letter = $letters[0]; 
 		}
+
+		$found = $DB->getAll(
+			"SELECT 
+				CONCAT(lastname,', ',firstname) AS value, 
+				user_id AS id_val 
+			 FROM person
+			 WHERE lastname LIKE ? ORDER BY lastname",
+			array($letter . "%"), DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($found)) {
+			return false;
+		}
+		
 		$letter = strtoupper($letter);
 		$this->tmpl->assign("letter", $letter);
 		
@@ -97,7 +97,7 @@ class TeamAddPlayer extends Handler
 		$this->tmpl->assign("list", $found);
 		$this->tmpl->assign("id", $id);
 		
-		$this->tmpl->assign("page_op", $op);
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
 		
 		return true;
 	}
@@ -235,9 +235,6 @@ class TeamEdit extends Handler
 		return $rc;
 	}
 
-	/**
-	 * Override parent display to redirect to 'view' on success
-	 */
 	function display ()
 	{
 		$id = var_from_getorpost('id');
@@ -386,6 +383,14 @@ class TeamList extends Handler
 		$this->set_template_file("common/generic_list.tmpl");
 
 		$letter = var_from_getorpost("letter");
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(name,1,1)) as letter from team order by letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
+		
+		if(!isset($letter)) {
+			$letter = $letters[0];
+		}
 
 		$found = $DB->getAll(
 			"SELECT 
@@ -394,6 +399,7 @@ class TeamList extends Handler
 			 FROM team 
 			 WHERE name LIKE ? ORDER BY name",
 			array($letter . "%"), DB_FETCHMODE_ASSOC);
+			
 		if($this->is_database_error($found)) {
 			return false;
 		}
@@ -405,13 +411,6 @@ class TeamList extends Handler
 			),
 		));
 		$this->tmpl->assign("page_op", "team_list");
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(name,1,1)) as letter from team order by letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
 		$this->tmpl->assign("letter", $letter);
 		
 		$this->tmpl->assign("letters", $letters);
@@ -864,7 +863,7 @@ class TeamView extends Handler
 			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
-			'captain_sufficient',
+			'captain_of:id',
 			'allow'
 		);
 
@@ -899,21 +898,17 @@ class TeamView extends Handler
 				l.league_id,
 				t.shirt_colour
 			FROM 
-				team t, 
-				league l,
 				leagueteams s 
-			WHERE 
-				s.team_id = t.team_id 
-				AND l.league_id = s.league_id 
-				AND t.team_id = ?
-		", array($id), DB_FETCHMODE_ASSOC);
+				LEFT JOIN team t ON (s.team_id = t.team_id) 
+				LEFT JOIN league l ON (s.league_id = l.league_id) 
+			WHERE s.team_id = ?", 
+		array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($row)) {
-			$this->error_text = gettext("The team [$id] may not exist");
 			return false;
 		}
 
 		if(!isset($row)) {
-			$this->error_text = gettext("The team [$id] does not exist");
+			$this->error_text = gettext("That is not a valid team ID");
 			return false;
 		}
 
@@ -940,11 +935,10 @@ class TeamView extends Handler
 				p.skill_level,
 				r.status
 			FROM
-				person p,
 				teamroster r
+				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				p.user_id = r.player_id
-				AND r.team_id = ?
+				r.team_id = ?
 			ORDER BY r.status, p.gender, p.lastname",
 			array($id),
 			DB_FETCHMODE_ASSOC);
@@ -992,7 +986,7 @@ class TeamScheduleView extends Handler
 			'require_valid_session',
 			'require_var:id',
 			'admin_sufficient',
-			'captain_sufficient',
+			'captain_of:id',
 			'allow'
 		);
 
@@ -1100,7 +1094,7 @@ class TeamScheduleView extends Handler
 			}
 
 			/* Now, look for a score entry */
-			if(isset($this_row['home_score']) && isset($this_row['away_score']) ) {
+			if(!(is_null($this_row['home_score']) || is_null($this_row['away_score']))) {
 				/* Already entered */
 				$week['score_type'] = 'final';
 				if($week['home_away'] == 'home') {
@@ -1123,7 +1117,11 @@ class TeamScheduleView extends Handler
 						AND team_id = ?",
 				array($this_row['game_id'], $id),
 				DB_FETCHMODE_ASSOC);
-				if(! $this->is_database_error($score) ) {
+				
+				if($this->is_database_error($score) ) {
+					return false;
+				}
+				if(!is_null($score)) {
 					$week['score_type'] = 'entered';
 					$week['score_us'] = $score['score_for'];
 					$week['score_them'] = $score['score_against'];

@@ -37,8 +37,8 @@ require_once "lib/smarty_extensions.php";
 $current_language = $APP_DEFAULT_LANGUAGE;
 
 /* Connect to the database */
-#$dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
-$dsn = "mysql://leaguerunner:ocuaweb@unix(/var/run/mysqld/mysqld.sock)/leaguerunner";
+$dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
+#$dsn = "mysql://leaguerunner:ocuaweb@unix(/var/run/mysqld/mysqld.sock)/leaguerunner";
 $DB = DB::connect($dsn, true);
 if (DB::isError($DB)) {
 	die($DB->getMessage());

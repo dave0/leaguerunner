@@ -137,9 +137,10 @@ class Handler
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
-			} else if($perm_type == 'captain_sufficient') {
-				$id = var_from_getorpost('id');
-				if($session->is_captain_of($id)) {
+			} else if(strncmp($perm_type,'captain_of:',10) == 0) {
+				$id_field = substr($perm_type, 11);
+				$id_data = var_from_getorpost($id_field);
+				if($session->is_captain_of($id_data)) {
 					$this->set_permission_flags('captain');
 					return true;
 				}

@@ -922,15 +922,11 @@ class LeagueScheduleView extends Handler
 		 * Fetch teams and set league_teams variable
 		 */
 		$league_teams = $DB->getAll(
-			"SELECT 
-				t.team_id AS value, 
-				t.name    AS output
-			  FROM
-			  	team t, leagueteams l
-			  WHERE
-			  	l.league_id = ?
-				AND l.status = 'confirmed'
-				AND l.team_id = t.team_id",
+			"SELECT t.team_id AS value, t.name AS output 
+			 FROM 
+			 	leagueteams l 
+			    LEFT JOIN team t ON (l.team_id = t.team_id) 
+		     WHERE l.league_id = 1 AND l.status = 'confirmed'",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_teams)) {
 			$this->error_text .= gettext("There may be no teams in this league");
@@ -948,10 +944,10 @@ class LeagueScheduleView extends Handler
 				f.field_id AS value, 
 				f.name    AS output
 			  FROM
-		  		field_info f, field_assignment a
+			    field_assignment a
+				LEFT JOIN field_info f ON (a.field_id = f.field_id)
 		 	  WHERE
-		    	a.league_id = ?
-			  AND a.field_id = f.field_id",
+		    	a.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_fields)) {
 			$this->error_text .= gettext("There may be no fields assigned to this league");
@@ -1142,14 +1138,12 @@ class LeagueStandings extends Handler
 		global $DB;
 		$teams = $DB->getAll(
 				"SELECT
-					lt.team_id AS id,
-					t.name
+					t.team_id AS id, t.name
 				FROM
-					leagueteams lt, 
-					team t
+					leagueteams l
+					LEFT JOIN team t ON (lt.team_id = t.team_id)
 				WHERE
-					lt.team_id = t.team_id
-					AND league_id = ?",
+					league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($teams)) {
 			return false;
@@ -1409,13 +1403,17 @@ class LeagueView extends Handler
 				l.max_teams,
 				CONCAT(c.firstname,' ',c.lastname) AS coordinator_name, 
 				l.coordinator_id,
+				CONCAT(co.firstname,' ',co.lastname) AS co_coordinator_name, 
 				l.alternate_id as co_coordinator_id,
 				l.current_round,
 				l.allow_schedule,
 				l.start_time
-			FROM league l, person c, person co
-			WHERE c.user_id = l.coordinator_id 
-				AND l.league_id = ?",
+			FROM 
+				league l
+				LEFT JOIN person c ON (l.coordinator_id = c.user_id) 
+				LEFT JOIN person co ON (l.alternate_id = co.user_id)
+			WHERE 
+				l.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($row)) {
@@ -1437,8 +1435,7 @@ class LeagueView extends Handler
 		$this->tmpl->assign("league_allow_schedule", $row['allow_schedule']);
 
 		if( $row['co_coordinator_id'] > 1 ) {
-			$co_name = $DB->getOne("SELECT CONCAT(co.firstname,' ',co.lastname) FROM person co where user_id = ?", array($row['co_coordinator_id'])); 
-			$this->tmpl->assign("co_coordinator_name", $co_name);
+			$this->tmpl->assign("co_coordinator_name", $row['co_coordinator_name']);
 			$this->tmpl->assign("co_coordinator_id", $row['co_coordinator_id']);
 		}
 
@@ -1451,11 +1448,10 @@ class LeagueView extends Handler
 				t.status AS team_status,
 				l.status AS league_status
 			 FROM
-			 	team t,
 				leagueteams l
+				LEFT JOIN team t ON (l.team_id = t.team_id)
 			 WHERE
-			 	t.team_id = l.team_id
-				AND l.league_id = ?
+				l.league_id = ?
 			 ORDER BY 
 			 	name",
 			array($id), DB_FETCHMODE_ASSOC);

@@ -21,20 +21,20 @@
     <td class="schedule_item"><a href="{$app_cgi_location}?op=field_view&id={$game.field_id}">{$game.field_name}</a>&nbsp;</td>
     <td class="schedule_item">({$game.home_away})&nbsp;</td>
     <td class="schedule_item">
-      {if $game.score_type eq 'final'}
+      {if $game.score_type == 'final'}
         {$game.score_us} - {$game.score_them}{if $game.default}(default {$default}){/if}
       {else}
-        {if $game.score_type eq 'entered'}
+        {if $game.score_type == 'entered'}
           {$game.score_us} - {$game.score_them}
         {/if}
       {/if}
       &nbsp;
     </td>
     <td class="schedule_item">
-      {if $game.score_type eq 'final'}
+      {if $game.score_type == 'final'}
       (accepted final)
       {else}
-        {if $game.score_type eq 'entered'}
+        {if $game.score_type == 'entered'}
           (unofficial, waiting for opponent)
         {else}
           [ <a href="{$app_cgi_location}?op=game_submitscore&id={$game.id}&team={$team_id}">submit score</a> ]

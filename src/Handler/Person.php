@@ -1227,6 +1227,14 @@ class PersonList extends Handler
 		$this->set_template_file("common/generic_list.tmpl");
 
 		$letter = var_from_getorpost("letter");
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
+		
+		if(!isset($letter)) {
+			$letter = $letters[0];
+		}
 
 		$found = $DB->getAll(
 			"SELECT 
@@ -1254,15 +1262,6 @@ class PersonList extends Handler
 		$this->tmpl->assign("available_ops", $ops);
 		
 		$this->tmpl->assign("page_op", "person_list");
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
-		
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
-		
 		$this->tmpl->assign("letter", $letter);
 		$this->tmpl->assign("letters", $letters);
 		$this->tmpl->assign("list", $found);
