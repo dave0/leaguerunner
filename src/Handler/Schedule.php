@@ -193,7 +193,8 @@ class ScheduleEdit extends Handler
 					(a.league_id=%d AND ISNULL(s.game_id)) 
 					OR
 					g.league_id=%d
-				)", $timestamp, $id,$id);
+				)
+			 ORDER BY s.game_start, site.name, s.field_num", $timestamp, $id,$id);
 			
 		if( ! db_num_rows($result) ) {
 			$this->error_exit("There are no fields assigned to this league");
