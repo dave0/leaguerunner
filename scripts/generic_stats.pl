@@ -128,11 +128,15 @@ while($ary  = $sth->fetchrow_arrayref()) {
 
 $sth = $DB->prepare(q{
 	SELECT t.team_id,t.name, COUNT(r.player_id) as size 
-	FROM teamroster r 
+	FROM teamroster r, league l, leagueteams lt
 	LEFT JOIN team t ON (t.team_id = r.team_id) 
- 	WHERE r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant'
+	WHERE
+		lt.team_id = r.team_id
+		AND l.league_id = lt.league_id
+		AND l.allow_schedule = 'Y'
+		AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
 	GROUP BY t.team_id 
-	HAVING size < 10 
+	HAVING size < 12 
 	ORDER BY size desc});
 $sth->execute();
 my $subs = $DB->prepare(q{SELECT COUNT(*) FROM teamroster r WHERE r.team_id = ? AND r.status = 'substitute'});
