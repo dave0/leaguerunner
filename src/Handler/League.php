@@ -152,7 +152,7 @@ class LeagueEdit extends Handler
 				l.stats_display as stats_display,
 				l.current_round as league_round,
 				l.year,
-				l.allow_schedule,
+				l.allow_schedule as league_allow_schedule,
 				l.start_time as league_start_time
 			FROM league l WHERE l.league_id = ?", 
 			array($id), DB_FETCHMODE_ASSOC);
