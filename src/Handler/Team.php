@@ -165,7 +165,7 @@ class TeamEdit extends Handler
 		
 		switch($step) {
 			case 'confirm':
-				$rc = $this->generate_confirm( $id );
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
 				$this->perform( &$id );
@@ -230,7 +230,7 @@ class TeamEdit extends Handler
 		return true;
 	}
 
-	function generate_confirm ( $id )
+	function generateConfirm ( $id )
 	{
 		global $DB;
 
@@ -244,7 +244,7 @@ class TeamEdit extends Handler
 		$shirt_colour = var_from_getorpost('shirt_colour');
 		$status = var_from_getorpost('status');
 
-		$output = para("Confirm that the data below is correct and hit continue to make your changes");
+		$output = para("Confirm that the data below is correct and click'Submit'  to make your changes");
 		$output .= form_hidden("op", $this->op);
 		$output .= form_hidden("step", 'perform');
 		$output .= form_hidden("id", $id);

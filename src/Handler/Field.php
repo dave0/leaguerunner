@@ -23,13 +23,15 @@ class FieldCreate extends FieldEdit
 			'admin_sufficient',
 			'deny'
 		);
+		$this->set_title("Create New Field");
+		$this->op = 'field_create';
 		return true;
 	}
 
-	function generate_form () 
+	function generateForm ( $id )
 	{
 		global $DB;
-
+		
 		$site_id = var_from_getorpost('site_id');
 		if(! validate_number($site_id) ) {
 			$this->error_exit("You cannot add a field to an invalid site.");
@@ -49,14 +51,37 @@ class FieldCreate extends FieldEdit
 			'Friday' => false,
 			'Saturday' => false,
 		);
-		$field['site_id'] = $site_id;
 
-		$this->tmpl->assign("field", $field);
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('site_id', $site_id);
 
+		$output .= "<table border='0'>";
+
+		$output .= simple_row('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
+		$output .= simple_row('Field Number:', 
+			form_textfield('', 'field[num]', '', 2, 2, "Number for this field at the given site"));
+			
+		$output .= simple_row('Field Status:', 
+			form_select('', 'field[status]', '', getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
+
+		$availability = '';
+		while(list($day,$isAvailable) = each($field['availability'])) {
+			$availability .= form_checkbox($day,'field[availability][]', $day, $isAvailable);
+		}
+
+		$output .= simple_row('Availability:',  $availability);
+		$output .= "</table>";
+		$output .= para(form_submit("submit") . form_reset("reset"));
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 	
-	function generate_confirm ()
+	function generateConfirm ( $id )
 	{
 		global $DB;
 		
@@ -75,21 +100,37 @@ class FieldCreate extends FieldEdit
 			$this->error_exit("You cannot add a field to an invalid site.");
 		}
 
-
 		$field = var_from_getorpost('field');
 
 		$field['availability'] = is_array($field['availability']) ? join(",", $field['availability']) : "";
-		$field['site_name'] = $site['site_name'];
-		$field['site_code'] = $site['site_code'];
-		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
 
-		$this->tmpl->assign("field", $field);
-		$this->tmpl->assign("id", $this->_id);
-		$this->tmpl->assign("site_id", $site_id);
+		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
+
+		$output .= form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('site_id', $site_id);
+
+		$output .= "<table border='0'>";
+
+		$output .= simple_row('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
+		$output .= simple_row('Field Number:', 
+			form_hidden('field[num]', $field['num']) . $field['num']);
+		$output .= simple_row('Field Status:', 
+			form_hidden('field[status]', $field['status']) . $field['status']);
+		$output .= simple_row('Availability:', 
+			form_hidden('field[availability]', $field['availability']) . $field['availability']);
+			
+		$output .= "</table>";
+		$output .= para(form_submit("submit"));
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 	
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB, $session;
 		
@@ -115,9 +156,7 @@ class FieldCreate extends FieldEdit
 			return false;
 		}
 		
-		$this->_id = $id;
-		
-		return parent::perform();
+		return parent::perform( $id );
 	}
 
 }
@@ -138,6 +177,8 @@ class FieldEdit extends Handler
 			'admin_sufficient',
 			'deny'
 		);
+
+		$this->set_title("Edit Field");
 		$this->op = 'field_edit';
 		return true;
 	}
@@ -147,29 +188,30 @@ class FieldEdit extends Handler
 		global $DB;
 
 		$step = var_from_getorpost('step');
-		$this->_id = var_from_getorpost('id');
+		$id = var_from_getorpost('id');
+		
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("Field/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
-				$this->perform();
-				local_redirect("op=field_view&id=". $this->_id);
+				$this->perform( &$id );
+				local_redirect("op=field_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("Field/edit_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
+				$rc = $this->generateForm($id);
 		}
-
-		$this->tmpl->assign("page_op", $this->op);
 
 		return $rc;
 	}
 
-	function generate_form ()
+	/* TODO: Remove when Smarty is removed */
+	function display ()
+	{
+		return true;
+	}
+
+	function generateForm ( $id )
 	{
 		global $DB;
 
@@ -178,7 +220,7 @@ class FieldEdit extends Handler
 				f.field_id, f.site_id, f.num, f.status, f.availability, s.name as site_name, s.code as site_code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
 			 WHERE f.field_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
+			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($field)) {
 			return false;
@@ -198,14 +240,38 @@ class FieldEdit extends Handler
 			$field['availability'][$day] = true;
 		}
 
-		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
+		$output = form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'confirm');
+		$output .= form_hidden('id', $id);
 
-		$this->tmpl->assign("field", $field);
-		$this->tmpl->assign("id", $this->_id);
+		$output .= "<table border='0'>";
+
+		$output .= simple_row('Site Name:', $field['site_name'] . ' (' . $field['site_code'] . ')');
+		$output .= simple_row('Field Number:', 
+			form_textfield('', 'field[num]', $field['num'], 2, 2, "Number for this field at the given site"));
+			
+		$output .= simple_row('Field Status:', 
+			form_select('', 'field[status]', $field['status'], getOptionsFromEnum('field','status'), "Is this field open for scheduling, or not?"));
+
+		$availability = '';
+		while(list($day,$isAvailable) = each($field['availability'])) {
+			$availability .= form_checkbox($day,'field[availability][]', $day, $isAvailable);
+		}
+
+		$output .= simple_row('Availability:',  $availability);
+		$output .= "</table>";
+		$output .= para(form_submit("submit") . form_reset("reset"));
+
+		$this->set_title($this->title . " &raquo; " . $field['site_name'] . " " . $field['num']);
+		
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id )
 	{
 		global $DB;
 		
@@ -219,7 +285,7 @@ class FieldEdit extends Handler
 				f.site_id, s.name as site_name, s.code as site_code
 			 FROM field f LEFT JOIN site s ON (s.site_id = f.site_id)
 			 WHERE f.field_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
+			array($id), DB_FETCHMODE_ASSOC);
 
 		if($this->is_database_error($site)) {
 			return false;
@@ -228,16 +294,37 @@ class FieldEdit extends Handler
 		$field = var_from_getorpost('field');
 
 		$field['availability'] = is_array($field['availability']) ? join(",", $field['availability']) : "";
-		$field['site_name'] = $site['site_name'];
-		$field['site_code'] = $site['site_code'];
-		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
 
-		$this->tmpl->assign("field", $field);
-		$this->tmpl->assign("id", $this->_id);
+		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
+
+		$output .= form_hidden('op', $this->op);
+		$output .= form_hidden('step', 'perform');
+		$output .= form_hidden('id', $id);
+
+		$output .= "<table border='0'>";
+
+		$output .= simple_row('Site Name:', $site['site_name'] . ' (' . $site['site_code'] . ')');
+		$output .= simple_row('Field Number:', 
+			form_hidden('field[num]', $field['num']) . $field['num']);
+		$output .= simple_row('Field Status:', 
+			form_hidden('field[status]', $field['status']) . $field['status']);
+		$output .= simple_row('Availability:', 
+			form_hidden('field[availability]', $field['availability']) . $field['availability']);
+			
+		$output .= "</table>";
+		$output .= para(form_submit("submit"));
+
+		
+		$this->set_title($this->title . " &raquo; " . $site['site_name'] . " " . $field['num']);
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB;
 
@@ -257,7 +344,7 @@ class FieldEdit extends Handler
 				$field['num'],
 				$field['status'],
 				$field['availability'],
-				$this->_id,
+				$id,
 			)
 		);
 		
@@ -374,7 +461,7 @@ class FieldView extends Handler
 					}
 					$bookings .= "&nbsp;]<br />";
 				}
-				$bookings .= "</td>";
+				$bookings .= "&nbsp;</td>";
 				if($this->_permissions['field_assign']) {
 					$bookings .= td(l("add new booking", "op=field_assign&id=$id&day=$curDay"), array('class' => 'booking_item', 'valign' => 'top'));
 				}
