@@ -603,7 +603,7 @@ class LeagueScheduleAddWeek extends Handler
 
 		$cal_info = shell_exec("cal $month $year");
 		
-		$cal_info = preg_replace("/(?:(?<=^)|(?<=\s))(\d{1,2})(?=(?:\s|$))/", "<a href='".$_SERVER['PHP_SELF']."?op=$this->op&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
+		$cal_info = preg_replace("/(?:(?<=^)|(?<=\D))(\d{1,2})(?=(?:\D|$))/", "<a href='".$_SERVER['PHP_SELF']."?op=$page_op&step=confirm&id=$id&year=$year&month=$month&day=$1'>$1</a>", $cal_info);
 
 		$this->tmpl->assign("calendar_data", $cal_info);
 		$this->tmpl->assign("year", $year);
