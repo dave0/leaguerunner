@@ -232,7 +232,7 @@ class SiteList extends Handler
 {
 	function initialize ()
 	{
-		$this->set_title("List Sites");
+		$this->set_title("List Field Sites");
 		$this->_required_perms = array(
 			'allow'		/* Allow everyone */
 		);
@@ -242,31 +242,28 @@ class SiteList extends Handler
 
 	function process ()
 	{
-		global $DB, $id;
+		global $DB;
 
-		$this->set_template_file("common/generic_list.tmpl");
-
-		$found = $DB->getAll(
-			"SELECT 
-				CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value, 
-				s.site_id AS id_val from site s LEFT JOIN field f ON (f.site_id = s.site_id) 
-			GROUP BY f.site_id ORDER BY s.name",
-			array(), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
-		
-		$this->tmpl->assign("available_ops", array(
-			array(
-				'description' => 'view',
-				'action' => 'site_view'
-			),
-		));
-		$this->tmpl->assign("page_op", "site_list");
-		$this->tmpl->assign("list", $found);
+		$query = $DB->prepare(
+			"SELECT CONCAT(s.name, ' (', COUNT(f.field_id), ' fields)') as value, 
+				s.site_id AS id FROM site s LEFT JOIN field f ON (f.site_id = s.site_id) 
+			GROUP BY f.site_id ORDER BY s.name");
+	
+		$output = $this->generateSingleList($query,
+			array(array( 'name' => 'view', 'target' => 'op=site_view')));
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
 		
 		return true;
 	}
+
+	function display () 
+	{
+		return true;
+	}
+
 }
 
 class SiteView extends Handler

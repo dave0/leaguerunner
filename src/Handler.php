@@ -310,5 +310,70 @@ class Handler
 		}
 		reset($this->_permissions);
 	}
+	
+	/**
+	 * Generates list output.  Query should generate rows with two
+	 * fields; one named 'id' containing the ID of the object listed,
+	 * and 'value', containing a name or descriptive text for each
+	 * object
+	 */
+	function generateSingleList($preparedQuery, $ops, $dbParams = array())
+	{
+		global $DB;
+		$result = $DB->execute($preparedQuery, $dbParams);
+		if($this->is_database_error($result)) {
+			return false;
+		}
+		$output = "<table border='0'>";
+		while($row = $result->fetchRow(DB_FETCHMODE_ASSOC)) {
+			$opsLinks = $this->generateOpsLinks($ops, $row['id']);
+			$output .= tr( td($row['value']) . td(theme_links($opsLinks)) );
+		}
+		$output .= "</table>";
+		return $output;
+	}
+
+	/**
+	 * Generate a list, similar to generateSingleList, but separated into
+	 * pages based on the first letter of a given field.
+	 */
+	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array())
+	{
+		global $DB;
+		$letters = $DB->getCol("select distinct UPPER(SUBSTRING($letterField,1,1)) as letter from $fromWhere ORDER BY letter asc");
+		if($this->is_database_error($letters)) {
+			return false;
+		}
+		if(!isset($letter)) {
+			$letter = $letters[0];
+		}
+		$output = "<p>";
+		foreach($letters as $curLetter) {
+			if($curLetter == $letter) {
+				$output .= $curLetter;
+			} else {
+				$output .= l($curLetter, "op=$listOp&letter=$curLetter");
+			}
+			$output .= "&nbsp;";
+		}
+		$output .= "</p>\n";
+		$dbParams[] = "$letter%";
+		$output .= $this->generateSingleList($query, $ops, $dbParams);
+		return $output;
+	
+		
+		if(!isset($letter)) {
+			$letter = $letters[0];
+		}
+	}
+
+	function generateOpsLinks($opsList, $idValue)
+	{
+		$opsLinks = array();
+		foreach($opsList as $op) {
+			$opsLinks[] = l($op['name'], $op['target'] . "&id=$idValue");			
+		}
+		return $opsLinks;
+	}
 }
 ?>

@@ -1564,52 +1564,41 @@ class PersonList extends Handler
 	function process ()
 	{
 		global $DB;
-
-		$this->set_template_file("common/generic_list.tmpl");
-
-		$letter = var_from_getorpost("letter");
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person ORDER BY letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
 		
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
-
-		$found = $DB->getAll(
-			"SELECT 
-				CONCAT(lastname,', ',firstname) AS value, 
-				user_id AS id_val 
-			 FROM person 
-			 WHERE lastname LIKE ? ORDER BY lastname",
-			array($letter . "%"), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
+		$letter = var_from_getorpost("letter");
 		
 		$ops = array(
 			array(
-				'description' => 'view',
-				'action' => 'person_view'
+				'name' => 'view',
+				'target' => 'op=person_view'
 			),
 		);
 		if($this->_permissions['delete']) {
 			$ops[] = array(
-				'description' => 'delete',
-				'action' => 'person_delete'
+				'name' => 'delete',
+				'target' => 'op=person_delete'
 			);
 		}
-		$this->tmpl->assign("available_ops", $ops);
+
+        $query = $DB->prepare("SELECT 
+			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
+			FROM person WHERE lastname LIKE ? ORDER BY lastname");
 		
-		$this->tmpl->assign("page_op", "person_list");
-		$this->tmpl->assign("letter", $letter);
-		$this->tmpl->assign("letters", $letters);
-		$this->tmpl->assign("list", $found);
-			
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person_list', $letter);
+		
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
 		
 		return true;
 	}
+
+	function display () 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
+
 }
 
 /**
@@ -1632,55 +1621,44 @@ class PersonListNewAccounts extends Handler
 	{
 		global $DB;
 
-		$this->set_template_file("common/generic_list.tmpl");
+		$ops = array(
+			array(
+				'name' => 'view',
+				'target' => 'op=person_view'
+			),
+			array(
+				'name' => 'approve',
+				'target' => 'op=person_approvenew'
+			),
+			array(
+				'name' => 'delete',
+				'target' => 'op=person_delete'
+			),
+		);
 
-		$letter = var_from_getorpost("letter");
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(lastname,1,1)) as letter from person where class = 'new' ORDER BY letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
-		
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
-
-		$found = $DB->getAll(
-			"SELECT 
+        $query = $DB->prepare("SELECT 
 				CONCAT(lastname,', ',firstname) AS value, 
-				user_id AS id_val 
+				user_id AS id 
 			 FROM person 
 			 WHERE
 			 	class = 'new'
 			 AND
 			 	lastname LIKE ? 
-			 ORDER BY lastname", 
-			 array($letter . "%"), DB_FETCHMODE_ASSOC);
-		if($this->is_database_error($found)) {
-			return false;
-		}
+			 ORDER BY lastname");
 		
-		$this->tmpl->assign("available_ops", array(
-			array(
-				'description' => 'view',
-				'action' => 'person_view'
-			),
-			array(
-				'description' => 'approve',
-				'action' => 'person_approvenew'
-			),
-			array(
-				'description' => 'delete',
-				'action' => 'person_delete'
-			),
-		));
-
-		$this->tmpl->assign("page_op", "person_listnew");
-		$this->tmpl->assign("letter", $letter);
-		$this->tmpl->assign("letters", $letters);
-
-		$this->tmpl->assign("list", $found);
+		$output =  $this->generateAlphaList($query, $ops, 'lastname', "person WHERE class = 'new'", 'person_list', $letter);
+		
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
 		
 		return true;
+	}
+
+	function display () 
+	{
+		return true;  // TODO Remove me after smarty is removed
 	}
 }
 

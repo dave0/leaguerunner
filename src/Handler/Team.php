@@ -346,48 +346,33 @@ class TeamList extends Handler
 	{
 		global $DB;
 
-		$id = var_from_getorpost('id');
-
-		$this->set_template_file("common/generic_list.tmpl");
-
 		$letter = var_from_getorpost("letter");
-		$letters = $DB->getCol("select distinct UPPER(SUBSTRING(name,1,1)) as letter from team order by letter asc");
-		if($this->is_database_error($letters)) {
-			return false;
-		}
 		
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
-
-		$found = $DB->getAll(
-			"SELECT 
-				name AS value, 
-				team_id AS id_val 
-			 FROM team 
-			 WHERE name LIKE ? ORDER BY name",
-			array($letter . "%"), DB_FETCHMODE_ASSOC);
-			
-		if($this->is_database_error($found)) {
-			return false;
-		}
+		$query = $DB->prepare("SELECT 
+			name AS value, team_id AS id
+			FROM team WHERE name LIKE ? ORDER BY name");
 		
-		$this->tmpl->assign("available_ops", array(
+		$ops = array(
 			array(
-				'description' => 'view',
-				'action' => 'team_view'
+				'name' => 'view',
+				'target' => 'op=team_view'
 			),
-		));
-		$this->tmpl->assign("page_op", "team_list");
-		$this->tmpl->assign("letter", $letter);
+		);
 		
-		$this->tmpl->assign("letters", $letters);
-		$this->tmpl->assign("list", $found);
-			
+		$output =  $this->generateAlphaList($query, $ops, 'name', 'team', 'team_list', $letter);
 		
+		print $this->get_header();
+		print h1($this->title);
+		print $output;
+		print $this->get_footer();
+
 		return true;
 	}
-
+	
+	function display () 
+	{
+		return true;  // TODO Remove me after smarty is removed
+	}
 }
 
 /**
