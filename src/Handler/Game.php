@@ -117,6 +117,12 @@ function game_splash ()
 			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 3)
 		);
 	}
+
+	# If no recent games, don't display the table
+	if( count($rows) < 1)  {
+		return;
+	}
+	
 	return table(array(  array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows);
 }
 
