@@ -946,7 +946,7 @@ class PersonEdit extends Handler
 		
 		if($edit['height']) {
 			$fields[] = "height = %d";
-			$fields_data[] = $height;
+			$fields_data[] = $edit['height'];
 		}
 		
 		$fields[] = "gender = '%s'";
