@@ -284,7 +284,7 @@ class UserSession
 			return false;
 		}
 
-		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['coordinator_id'])) {
+		if( ($this->data['user_id'] == $res['coordinator_id']) || ($this->data['user_id'] == $res['alternate_id'])) {
 			return true;
 		}
 		
