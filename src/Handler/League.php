@@ -1357,10 +1357,11 @@ class LeagueAdmin extends Handler
 	{
 		$this->title = "League Administration";
 
+# Coordinator access commented out until we're sure rollback can work
+#			'coordinator_sufficient',
 		$this->_required_perms = array(
 			'require_valid_session',
 			'admin_sufficient',
-			'coordinator_sufficient',
 			'deny',
 		);
 		return true;
@@ -1370,8 +1371,9 @@ class LeagueAdmin extends Handler
 	{
 		if($type == 'administrator') {
 			$this->_permissions['administer_league'] = true;
-		} else if($type == 'coordinator') {
-			$this->_permissions['administer_league'] = true;
+# Commented out until we're sure rollback can work
+#		} else if($type == 'coordinator') {
+#			$this->_permissions['administer_league'] = true;
 		} 
 	}
 
