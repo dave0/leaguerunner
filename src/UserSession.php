@@ -208,6 +208,32 @@ class UserSession
 		return true;
 	}
 
+	/** 
+	 * See if this session user is captain of given team
+	 *
+	 * @param team_id Team identifier.
+	 *
+	 * @return boolean 
+	 */
+	function is_captain_of ($team_id)
+	{
+		global $DB;
+
+		$res = $DB->getRow("SELECT captain_id, assistant_id from team where team_id = ?",
+			array($team_id),
+			DB_FETCHMODE_ASSOC
+		);
+		if(DB::isError($res)) {
+			return false;
+		}
+
+		if( ($this->data['user_id'] == $res['captain_id']) || ($this->data['user_id'] == $res['assistant_id'])) {
+			return true;
+		}
+		
+		return false;
+	}
+
 
 	/**
 	 * UUID generation function
