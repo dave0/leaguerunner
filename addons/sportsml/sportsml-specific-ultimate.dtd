@@ -1,0 +1,50 @@
+<!-- ****************************************************************************** -->
+<!--      SportsML: specific ultimate DTD                                         -->
+<!-- ****************************************************************************** -->
+
+<!ELEMENT stats-ultimate-spirit EMPTY>
+<!ATTLIST stats-ultimate-spirit
+        %global-attributes;
+
+        value                                   CDATA              #REQUIRED
+        out-of                                  CDATA              #REQUIRED
+        >
+        <!--
+        Element                                 stats-ultimate-spirit
+        Partial description                     TBD.
+        Full description                        TBD.
+
+        id                                      An XML-specific identifier for the element.
+        value                                   Spirit Of The Game ranking for team
+	out-of                                  Maximum score for value represented in 'value' attribute.
+        -->
+	
+<!ELEMENT stats-ultimate-defaults EMPTY>
+<!ATTLIST stats-ultimate-defaults
+        %global-attributes;
+
+        value                                   CDATA              #REQUIRED
+        >
+        <!--
+        Element                                 stats-ultimate-defaults
+        Partial description                     TBD.
+        Full description                        TBD.
+
+        id                                      An XML-specific identifier for the element.
+        value                                   Number of defaulted games by team
+        -->
+	
+<!ELEMENT stats-ultimate-plusminus EMPTY>
+<!ATTLIST stats-ultimate-plusminus
+        %global-attributes;
+
+        value                                   CDATA              #REQUIRED
+        >
+        <!--
+        Element                                 stats-ultimate-plusminus
+        Partial description                     TBD.
+        Full description                        TBD.
+
+        id                                      An XML-specific identifier for the element.
+        value                                   Calculated by formula: points for minus points against.
+        -->
