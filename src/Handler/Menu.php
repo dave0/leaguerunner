@@ -59,66 +59,41 @@ class MainMenu extends Handler
 		
 
 		$teamsAndLeagues = "<div class='myteams'><table border='0'>";
-		$teamsAndLeagues .= tr(th("My Teams", array('colspan' => 4)));
+		$teamsAndLeagues .= tr(th("My Teams", array('width' => 90)) . th("&nbsp;", array('colspan' => 3)));
+		$teamsAndLeagues .= tr(td('').td('').td('',array('width' => 90)).td(''));
+				
 		
 		$teams = get_teams_for_user($id);
 		if($this->is_database_error($teams)) {
 			return false;
 		}
 		if(count($teams) > 0) {
-			$queryString = "SELECT 
-					s.game_id, s.home_score, s.away_score,
-					DATE_FORMAT(s.date_played, '%a %b %d %Y %H:%i') as date, 
-					s.home_team, h.name AS home_name, 
-					s.away_team, a.name AS away_name, 
-					site.site_id AS site_id, site.code AS site_code, 
-					f.num AS site_num
-				  FROM schedule s 
-				  LEFT JOIN team h ON (h.team_id = s.home_team) 
-				  LEFT JOIN team a ON (a.team_id = s.away_team) 
-				  LEFT JOIN field f ON (f.field_id = s.field_id) 
-				  LEFT JOIN site ON (f.site_id = site.site_id) ";
 			foreach($teams as $team) { 
-				$nextGame = $DB->getRow( $queryString . " WHERE s.date_played > NOW()
-				    AND ( s.home_team = ? OR s.away_team = ? ) 
-				  ORDER BY date_played desc LIMIT 1",array($team['id'],$team['id']), DB_FETCHMODE_ASSOC);
-				if($this->is_database_error($nextGame)) {
-					return false;
-				}
-
-				$prevGame = $DB->getRow($queryString . " WHERE s.date_played < NOW() 
-				    AND (s.home_team = ? OR s.away_team = ?) 
-				  ORDER BY date_played desc LIMIT 1",array($team['id'],$team['id']), DB_FETCHMODE_ASSOC);
-				if($this->is_database_error($nextGame)) {
-					return false;
-				}
-
+				$teamData = bold($team['name']) . " (" . $team['position'] . ")";
 				$teamsAndLeagues .= tr(
-					td( bold($team['name']) . " (" . $team['position'] . ")", array('colspan' => 3))
-				);
-				$teamsAndLeagues .= tr(
-					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
+					td( $teamData, array('foo' => 'bar', 'colspan' => 3))
 					. td(theme_links(array(
 						l("info", "op=team_view&id=" . $team['id']),
 						l("scores and schedules", "op=team_schedule_view&id=" . $team['id']),
-						l("standings", "op=team_standings&id=" . $team['id']))), array('colspan' => 2))
+						l("standings", "op=team_standings&id=" . $team['id']))), array('align' => 'right'))
 				);
+				
 				$teamsAndLeagues .= tr(
-					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
-					. td( 
-						bold("Most recent game:") . " " . getPrintableGameData($prevGame, $team['id']),
+					td('&nbsp;')
+					. td( bold("Last game:") )
+					. td(getPrintableGameData('prev', $team['id']),
 						array('colspan' => '2'))
 				);
 				$teamsAndLeagues .= tr(
-					td('&nbsp;&nbsp;&nbsp;', array('width' => 25))
-					. td( 
-						bold("Next game:") . " " . getPrintableGameData($nextGame, $team['id']),
-						array('colspan' => '2'))
+					td('&nbsp;')
+					. td( bold("Next game:") )
+					. td(getPrintableGameData('next', $team['id']),
+						array('colspan' => '3'))
 				);
 			}
 		}
 
-		if( $session->may_coordinate_league() ) {
+		if( $session->may_coordinate_league() === 'foo') {
 			/* Fetch leagues coordinated */
 			$leagues = $DB->getAll("
 				SELECT 
@@ -136,7 +111,7 @@ class MainMenu extends Handler
 			}
 
 			if(count($leagues) > 0) {
-				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 3)));
+				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 4)));
 				$data = "<table border='0' cellpadding='3' cellspacing='0'>";
 				// TODO: For each league, need to display # of missing scores,
 				// pending scores, etc.
@@ -158,7 +133,7 @@ class MainMenu extends Handler
 					$data .= "<td>" . theme_links($links) . "</td></tr>";
 				}
 				$data .= "</table>";
-				$teamsAndLeagues .= tr(td( $data, array('colspan' => '3' )));
+				$teamsAndLeagues .= tr(td( $data, array('colspan' => '4' )));
 			}
 		}
 				
@@ -224,8 +199,36 @@ class AdminMenu extends Handler
 	}
 }
 
-function getPrintableGameData( &$game, $teamId )
+function getPrintableGameData( $which, $teamId )
 {
+	global $DB;
+	if($which == 'next') {
+		$dateCompare = "s.date_played > NOW()";
+	} else if ($which == 'prev') {
+		$dateCompare = "s.date_played < NOW()";
+	} else if ($which == 'today') {
+		$dateCompare = "(CURDATE() == DATE(s.date_played))"; 
+	}
+	$game = $DB->getRow( "SELECT
+			s.game_id, s.home_score, s.away_score,
+			DATE_FORMAT(s.date_played, '%a %b %d %Y %H:%i') as date, 
+			s.home_team, h.name AS home_name, 
+			s.away_team, a.name AS away_name, 
+			site.site_id AS site_id, site.code AS site_code, 
+			f.num AS site_num
+		  FROM schedule s 
+		  LEFT JOIN team h ON (h.team_id = s.home_team) 
+		  LEFT JOIN team a ON (a.team_id = s.away_team) 
+		  LEFT JOIN field f ON (f.field_id = s.field_id) 
+		  LEFT JOIN site ON (f.site_id = site.site_id) 
+		  WHERE $dateCompare
+		    AND ( s.home_team = ? OR s.away_team = ? ) 
+		  ORDER BY date_played desc LIMIT 1",array($teamId,$teamId), DB_FETCHMODE_ASSOC);
+	$err = isDatabaseError($game);
+	if($err != false) {
+		$this->error_exit($err);
+	}
+
 	if(count($game) < 1) {
 		return "n/a";
 	}
