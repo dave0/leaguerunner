@@ -334,13 +334,13 @@ class TeamEdit extends Handler
 		$rc = true;
 		
 		$team_name = var_from_getorpost("team_name");
-		if( !validate_name_input($team_name) ) {
-			$this->error_text .= "Team name cannot be left blank<br>";
+		if( !validate_nonhtml($team_name) ) {
+			$this->error_text .= "You must enter a valid team name<br>";
 			$rc = false;
 		}
 		
 		$shirt_colour = var_from_getorpost("shirt_colour");
-		if( !validate_name_input($shirt_colour) ) {
+		if( !validate_nonhtml($shirt_colour) ) {
 			$this->error_text .= "Shirt colour cannot be left blank<br>";
 			$rc = false;
 		}

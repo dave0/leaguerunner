@@ -345,7 +345,7 @@ class FieldEdit extends Handler
 		$rc = true;
 		
 		$field_name = var_from_getorpost("field_name");
-		if( !validate_name_input($field_name) ) {
+		if( !validate_nonhtml($field_name) ) {
 			$this->error_text .= "Field name cannot be left blank<br>";
 			$rc = false;
 		}

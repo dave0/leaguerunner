@@ -11,7 +11,7 @@ function validate_nonhtml ( $string )
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	if ( preg_match("/<>&/", $string) ) {
+	if ( preg_match("/<>/", $string) ) {
 		return false;
 	}
 	return true;

@@ -361,8 +361,8 @@ class LeagueEdit extends Handler
 		$rc = true;
 
 		$league_name = var_from_getorpost("league_name");
-		if ( ! validate_name_input($league_name)) {
-			$this->error_text .= "Name cannot be left blank<br>";
+		if ( ! validate_nonhtml($league_name)) {
+			$this->error_text .= "A valid league name must be entered<br>";
 			$rc = false;
 		}
 
@@ -419,7 +419,7 @@ class LeagueList extends Handler
 		if(!isset($season)) {
 			$season = 'none';
 		} else {
-			if( !validate_name_input($season) ) {
+			if( !validate_nonhtml($season) ) {
 				$this->error_text = "That is not a valid season"; 
 				return false;
 			}
