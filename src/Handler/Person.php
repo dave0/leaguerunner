@@ -210,7 +210,7 @@ class PersonView extends Handler
 			
 		$links_html =  "";
 		if(count($links) > 0) {
-			$links_html .= blockquote(theme_links($links));
+			$links_html .= theme_links($links);
 		}
 
 		return $links_html . $this->generateView($person);
@@ -869,7 +869,7 @@ class PersonEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$output = blockquote("Confirm that the data below is correct and click 'Submit' to make your changes.");
+		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
 		$output .= form_hidden('op', $this->op);
 		$output .= form_hidden('step', 'perform');
 		$output .= form_hidden('id', $id);
@@ -1285,11 +1285,11 @@ class PersonCreate extends PersonEdit
 		if( $rc === false ) {
 			return false;
 		} else {
-			return blockquote(para(
+			return para(
 				"Thank you for creating an account.  It is now being held for one of the administrators to approve.  "
 				. "Once your account is approved, you will receive an email informing you.  "
 				. "You will then be able to log in with your username and password."
-			));
+			);
 		}
 	}
 }
@@ -1647,7 +1647,7 @@ class PersonList extends Handler
 		}
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= blockquote(l("Create New User", "op=person_create"));
+			$output .= l("Create New User", "op=person_create");
 		}
 
         $query = $DB->prepare("SELECT 
@@ -1964,7 +1964,7 @@ EOM;
 	problems.
 </p>
 END_TEXT;
-		return blockquote($output);
+		return $output;
 	}
 }
 ?>
