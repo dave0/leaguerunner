@@ -9,11 +9,10 @@ function cron_dispatch()
 
 class CronHandler extends Handler
 {
-	function initialize ()
+	function has_permission ()
 	{
-		$this->_required_perms = array(
-			'allow'
-		);
+		// Always have permission to run cron.  In the future,we may want to
+		// restrict this to 127.0.0.1 or something.
 		return true;
 	}
 
