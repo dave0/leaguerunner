@@ -844,11 +844,11 @@ function game_save_score_final( $game, $entry )
 		/* And, calculate the Elo value for this game.  It's only
 		 * applicable iff we're not defaulted.
 		 */
-		$rating_points = calculate_elo_change(
-			$entry['home_score'],
-			$entry['away_score'],
-			$home->rating,
-			$away->rating);
+		if($entry['home_score'] > $entry['away_score']) {
+			$rating_points = calculate_elo_change( $entry['home_score'], $entry['away_score'], $home->rating, $away->rating);
+		} else {
+			$rating_points = calculate_elo_change( $entry['away_score'], $entry['home_score'], $away->rating, $home->rating);
+		}
 	}
 	if( !array_key_exists("approved_by", $entry) ) {
 		$entry['approved_by'] = -1;
@@ -905,6 +905,15 @@ function game_save_score_final( $game, $entry )
  * 	- score differential bonus modified for Ultimate
  * 	- no bonus given for 'home field advantage' since there's no
  * 	  real advantage in OCUA.
+ *
+ * Now, this code should work regardless of which score is passed as A and B,
+ * but since we'd like to have positive change numbers as much as possible (in
+ * the case of ties, we sometimes won't) we'll make sure when calling this
+ * code to pass the winning score as scoreA and the losing score as scoreB.
+ *
+ * TODO: The 'right' way to fix this would probably be to modify this (and the
+ * calling code) to use 'home' and 'away' everywhere instead of winner/loser
+ * or A/B, as there's no chance of screwing up the order.
  */
 function calculate_elo_change($scoreA, $scoreB, $ratingA, $ratingB)
 {
