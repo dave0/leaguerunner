@@ -100,7 +100,7 @@ CREATE TABLE league (
     name		varchar(100),
 	-- can play more than one day a week, so make it a set.	
 	day 		SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
-	season		ENUM('none','Spring','Summer','Fall','Winter','Winter Indoor'),
+	season		ENUM('none','Spring','Summer','Fall','Winter'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
 	coordinator_id	integer,	-- coordinator
