@@ -56,9 +56,9 @@ class MainMenu extends Handler
 		$accountMenu = div($accountMenu, array('class' => 'oldmenu'));
 		
 
-		$teamsAndLeagues = "<div class='myteams'><table border='0'>";
-		$teamsAndLeagues .= tr(th("My Teams", array('width' => 90)) . th("&nbsp;", array('colspan' => 3)));
+		$teamsAndLeagues = "<div class='myteams'><table border='0' cellspacing='0' cellpadding='3'>";
 		$teamsAndLeagues .= tr(td('').td('').td('',array('width' => 90)).td(''));
+		$teamsAndLeagues .= tr(th("My Teams", array('width' => 90)) . th("&nbsp;", array('colspan' => 3)));
 				
 		
 		$teams = get_teams_for_user($id);
@@ -69,11 +69,12 @@ class MainMenu extends Handler
 			foreach($teams as $team) { 
 				$teamData = bold($team['name']) . " (" . $team['position'] . ")";
 				$teamsAndLeagues .= tr(
-					td( $teamData, array('colspan' => 3))
+					td( $teamData, array('colspan' => 3, 'class' => 'highlight'))
 					. td(theme_links(array(
 						l("info", "op=team_view&id=" . $team['id']),
 						l("scores and schedules", "op=team_schedule_view&id=" . $team['id']),
-						l("standings", "op=team_standings&id=" . $team['id']))), array('align' => 'right'))
+						l("standings", "op=team_standings&id=" . $team['id']))),
+						array('align' => 'right', 'class' => 'highlight'))
 				);
 				
 				$teamsAndLeagues .= tr(
