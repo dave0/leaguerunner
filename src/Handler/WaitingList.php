@@ -1,12 +1,31 @@
 <?php
-register_page_handler('wlist_create', 'WaitingListCreate');
-register_page_handler('wlist_edit', 'WaitingListEdit');
-register_page_handler('wlist_view', 'WaitingListView');
-register_page_handler('wlist_viewperson', 'WaitingListViewPerson');
-#register_page_handler('wlist_delete', 'WaitingListDelete');
-register_page_handler('wlist_list', 'WaitingListList');
-register_page_handler('wlist_join', 'WaitingListJoin');
-register_page_handler('wlist_quit', 'WaitingListQuit');
+/*
+ * Handlers for waiting list
+ */
+
+function wlist_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new WaitingListCreate; // TODO
+		case 'edit':
+			return new WaitingListEdit; // TODO
+		case 'view':
+			return new WaitingListView; // TODO
+		case 'list':
+		case '':
+			return new WaitingListList; // TODO
+		case 'viewperson':
+			return new WaitingListViewPerson; // TODO
+		case 'join':
+			return new WaitingListJoin; // TODO
+		case 'quit':
+			return new WaitingListQuit; // TODO
+	}
+	return null;
+}
+
 
 class WaitingListEdit extends Handler
 {
@@ -711,7 +730,7 @@ class WaitingListQuit extends Handler
 		}
 		
 		$this->setLocation(
-			array( $fullName => "op=person_view&id=$user", $this->title => 0,));
+			array( $fullName => "person/view/$user", $this->title => 0,));
 		
 		$listName = db_result(db_query("SELECT name from waitinglist WHERE wlist_id = %d", $id));
 
@@ -791,7 +810,7 @@ class WaitingListViewPerson extends Handler
 			$fullName = $session->attr_get('firstname') . " " . $session->attr_get('lastname');
 		}
 		
-		$this->setLocation(array( $fullName => "op=person_view&id=$id", $this->title => 0));
+		$this->setLocation(array( $fullName => "person/view/$id", $this->title => 0));
 
 		$result = db_query(
 			"SELECT w.*, m.preference,m.paired_with

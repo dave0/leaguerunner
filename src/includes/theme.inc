@@ -6,7 +6,7 @@
 
 function theme_header($title = "", $section = "", $breadcrumbs = array())
 {
-	global $session, $APP_NAME;
+	global $session, $APP_NAME, $BASE_URL;
 	
 	if ($title) {
 		$title = $title . " - " . $APP_NAME;
@@ -18,7 +18,10 @@ function theme_header($title = "", $section = "", $breadcrumbs = array())
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title><?php print $title ?></title>
-    <link rel='stylesheet' href="style.css" type="text/css">
+    <base href="<?php print $BASE_URL ?>/" />
+	<style type="text/css">
+      @import url(style.css);
+	</style>
   </head>
   <body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#FFFFFF">
   <table border='0' cellpadding='0' cellspacing='0' width='760' bgcolor='white'><?php
@@ -66,7 +69,7 @@ function theme_navbar($section, $breadcrumbs = array())
 			. "</b>",
 		);
 		
-		$crumbs[] = l($sectionTabs[$section], "op=$section");
+		$crumbs[] = l($sectionTabs[$section], $section);
 
 		$crumbs = array_merge($crumbs, $breadcrumbs);
 		
@@ -78,7 +81,7 @@ function theme_navbar($section, $breadcrumbs = array())
 			} else {
 				$class = 'off';
 			}
-			print "<td class='$class' width='$tdWidth%'>" . l($name,"op=$key") . "</td>";
+			print "<td class='$class' width='$tdWidth%'>" . l($name,$key) . "</td>";
 		}
 		print "</tr>";
 		
@@ -88,7 +91,7 @@ function theme_navbar($section, $breadcrumbs = array())
 		print "</tr>";
 		
 	} else {
-		$rightLink = theme_links( array( l('log in','op=login'), $rightLink));
+		$rightLink = theme_links( array( l('log in','login'), $rightLink));
 		print "<tr>";
 		print "<td class='nav'>&nbsp;</td>";
 		print "<td class='nav' align='right'>$rightLink</td>";

@@ -3,12 +3,23 @@
 /*
  * Handlers for dealing with field sites
  */
-register_page_handler('field', 'SiteList');
+function site_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new SiteCreate; // TODO
+		case 'edit':
+			return new SiteEdit; // TODO
+		case 'view':
+			return new SiteView; // TODO
+		case 'list':
+		case '':
+			return new SiteList; // TODO
+	}
+	return null;
+}
 
-register_page_handler('site_create', 'SiteCreate');
-register_page_handler('site_edit', 'SiteEdit');
-register_page_handler('site_list', 'SiteList');
-register_page_handler('site_view', 'SiteView');
 
 class SiteCreate extends SiteEdit
 {

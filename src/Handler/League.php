@@ -1,14 +1,40 @@
 <?php
+/* 
+ * Handle operations specific to leagues
+ */
 
-register_page_handler('league_create', 'LeagueCreate');
-register_page_handler('league_edit', 'LeagueEdit');
-register_page_handler('league_list', 'LeagueList');
-register_page_handler('league', 'LeagueList');
-register_page_handler('league_standings', 'LeagueStandings');
-register_page_handler('league_view', 'LeagueView');
-register_page_handler('league_captemail', 'LeagueCaptainEmails');
-register_page_handler('league_moveteam', 'LeagueMoveTeam');
-register_page_handler('league_verifyscores', 'LeagueVerifyScores');
+function league_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new LeagueCreate; // TODO
+		case 'edit':
+			return new LeagueEdit; // TODO
+		case 'view':
+			return new LeagueView; // TODO
+		case 'list':
+		case '':
+			return new LeagueList; // TODO
+		case 'standings':
+			return new LeagueStandings; // TODO
+		case 'captemail':
+			return new LeagueCaptainEmails; // TODO
+		case 'moveteam':
+			return new LeagueMoveTeam; // TODO
+		case 'verifyscores':
+			return new LeagueVerifyScores; // TODO
+		// TODO: The following should all be renamed, or moved back into
+		// Schedule.php	
+		case 'schedule_addweek':
+			return new LeagueScheduleAddWeek; // TODO
+		case 'schedule_edit':
+			return new LeagueScheduleEdit; // TODO
+		case 'schedule_view':
+			return new LeagueScheduleView; // TODO
+	}
+	return null;
+}
 
 /**
  * Create handler
@@ -984,10 +1010,10 @@ class LeagueView extends Handler
 		$output =  theme_links($links);
 		$rows = array();
 		$rows[] = array("Coordinator:", 
-			l($league->coordinator_name, "op=person_view&id=$league->coordinator_id"));
+			l($league->coordinator_name, "person/view/$league->coordinator_id"));
 		if($league->alternate_id) {
 			$rows[] = array("Co-Coordinator:", 
-				l($league->alternate_name, "op=person_view&id=$league->alternate_id"));
+				l($league->alternate_name, "person/view&/league->alternate_id"));
 		}
 		$rows[] = array("Season:", $league->season);
 		$rows[] = array("Day(s):", $league->day);

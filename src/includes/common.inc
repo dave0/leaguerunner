@@ -75,6 +75,33 @@ function queryUnpickle( $q )
 	return base64_decode($q);
 }
 
+function request_uri() {
+  /*
+  ** Since request_uri() is only available on Apache, we generate
+  ** equivalent using other environment vars.
+  */
+
+  if (isset($_SERVER["REQUEST_URI"])) {
+    $uri = $_SERVER["REQUEST_URI"];
+  }
+  else {  
+    $uri = $_SERVER["PHP_SELF"] ."?". $_SERVER["QUERY_STRING"];
+  }
+
+  return check_url($uri);
+}
+
+function arg($index) {
+
+  static $arguments;
+
+  if (empty($arguments)) {
+    $arguments = explode("/", $_GET["q"]);
+  }
+
+  return $arguments[$index];
+}
+
 
 
 /*
@@ -197,20 +224,80 @@ function l($text, $query = NULL, $attributes = array())
 	return simple_tag("a", check_form($text), $attributes);
 }
 
-function url($query = NULL) 
-{
-	$base_url = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
 
-    if (isset($query)) {
-        return "$base_url?$query";
-    } else {
-        return "$base_url";
+function url($url = NULL, $query = NULL) {
+  global $CLEAN_URLS, $BASE_URL;
+  static $script;
+
+  $base_url = $BASE_URL;
+  $cleanURL = $CLEAN_URLS;
+  //$cleanURL = variable_get("clean_url", "0");
+
+
+  if (empty($script)) {
+    /*
+    ** On some webservers such as IIS we can't omit "index.php".  As such we
+    ** generate "index.php?q=foo" instead of "?q=foo" on anything that is not
+    ** Apache.
+    */
+    $script = (strpos($_SERVER["SERVER_SOFTWARE"], "Apache") === false) ? "index.php" : "";
+  }
+
+  if (!$cleanURL) {
+    if (isset($url)) {
+      if (isset($query)) {
+        return "$base_url/$script?q=$url&amp;$query";
+      }
+      else {
+        return "$base_url/$script?q=$url";
+      }
     }
+    else {
+      if (isset($query)) {
+        return "$base_url/$script?$query";
+      }
+      else {
+        return "$base_url/";
+      }
+    }
+  }
+  else {
+    if (isset($url)) {
+      if (isset($query)) {
+        return "$base_url/$url?$query";
+      }
+      else {
+        return "$base_url/$url";
+      }
+    }
+    else {
+      if (isset($query)) {
+        return "$base_url/$script?$query";
+      }
+      else {
+        return "$base_url/";
+      }
+    }
+  }
 }
+
 
 function format_street_address( $street, $city, $province, $postalcode)
 {
 	return "$street<br />\n$city, $province<br />\n$postalcode";
+}
+
+function check_url($uri) {
+  $uri = check_form($uri, ENT_QUOTES);
+
+  /*
+  ** We replace ( and ) with their entity equivalents to prevent XSS
+  ** attacks.
+  */
+
+  $uri = strtr($uri, array("(" => "&040;", ")" => "&041;"));
+  
+  return $uri;
 }
 
 function check_form($input, $quotes = ENT_QUOTES)
@@ -229,7 +316,7 @@ function check_query($text) {
 function form($form, $method = "post", $action = 0, $options = 0)
 {
 	if (!$action) {
-		$action = $_SERVER['PHP_SELF'];
+		$action = request_uri();
 	}
 	return "<form action=\"$action\" method=\"$method\"". ($options ? " $options" : "") .">\n$form\n</form>\n";
 }
@@ -300,11 +387,11 @@ function form_select($title, $name, $value, $options, $description = 0, $extra =
 function form_select_date($title,$prefix,$value, $startYear, $endYear, $description)
 {
 	list($value_year, $value_month, $value_day) = split("-", $value);
-	$allSelect = __form_select($prefix . '_year', $value_year, 
+	$allSelect = __form_select($prefix . '[year]', $value_year, 
 		getOptionsFromRange($startYear, $endYear, 'reverse'));
-	$allSelect .= __form_select($prefix . '_month', $value_month, 
+	$allSelect .= __form_select($prefix . '[month]', $value_month, 
 		getOptionsFromRange('1','12'));
-	$allSelect .= __form_select($prefix . '_day', $value_day, 
+	$allSelect .= __form_select($prefix . '[day]', $value_day, 
 		getOptionsFromRange('1','31'));
 		
 	return form_item($title, $allSelect, $description);

@@ -1,8 +1,19 @@
 <?php
-register_page_handler('league_schedule_addweek', 'LeagueScheduleAddWeek');
-register_page_handler('league_schedule_edit', 'LeagueScheduleEdit');
-register_page_handler('league_schedule_view', 'LeagueScheduleView');
-register_page_handler('schedule_view_day', 'ScheduleViewDay');
+
+function schedule_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'view_day':
+			return new ScheduleViewDay; // TODO
+		// TODO: Note the other classes in this file are NOT dispatched
+		// via this function.  This is an artifact of some bad decisions made
+		// previously and will be fixed eventually.  See League.php for other
+		// comments.
+	}
+	return null;
+}
+
 
 /**
  * League schedule add week
@@ -374,9 +385,8 @@ class LeagueScheduleEdit extends Handler
 		return $rc;
 	}
 	
-	function isDataInvalid () 
+	function isDataInvalid ($games) 
 	{
-		$games = var_from_post('games');
 		if(!is_array($games) ) {
 			return "Invalid data supplied for games";
 		}
@@ -431,13 +441,12 @@ class LeagueScheduleEdit extends Handler
 	function generateConfirm ( $id ) 
 	{
 		$id = var_from_getorpost('id');
+		$games = $_POST['games'];
 		
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $games );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
-		$games = var_from_post('games');
 		
 		/* TODO: league_load() */
 		$result = db_query(
@@ -449,7 +458,6 @@ class LeagueScheduleEdit extends Handler
 		if( 1 != db_num_rows($result)) {
 			return false;
 		}
-		
 		$league = db_fetch_array($result);
 
 		$output = para(
@@ -491,12 +499,12 @@ class LeagueScheduleEdit extends Handler
 	
 	function perform () 
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$games = $_POST['games'];
+		
+		$dataInvalid = $this->isDataInvalid( $games );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid);
 		}
-		
-		$games = var_from_post('games');
 
 		while (list ($game_id, $game_info) = each ($games) ) {
 

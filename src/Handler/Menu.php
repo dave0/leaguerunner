@@ -1,7 +1,13 @@
 <?php
-register_page_handler('home','MainMenu');
-register_page_handler('menu','MainMenu');
-register_page_handler('admin','AdminMenu');
+
+function home_dispatch() 
+{
+	return new MainMenu;
+}
+function admin_dispatch() 
+{
+	return new AdminMenu;
+}
 
 class MainMenu extends Handler
 {
@@ -16,7 +22,6 @@ class MainMenu extends Handler
 			'admin_sufficient',
 			'allow'
 		);
-		$this->op = 'home';
 		$this->section = 'home';
 		return true;
 	}
@@ -41,23 +46,23 @@ class MainMenu extends Handler
 		$header = array( "Account Settings" );
 		$rows = array();	
 
-		$rows[] = array(l("View/Edit My Account", "op=person_view&id=$id"));
+		$rows[] = array(l("View/Edit My Account", "person/view/$id"));
 		$rows[] = array(
-			l("Change My Password", "op=person_changepassword&id=$id"));
+			l("Change My Password", "person/changepassword/$id"));
 
 		$rows[] = array( 
-			l("View/Sign Player Waiver", "op=person_signwaiver"));
+			l("View/Sign Player Waiver", "person/signwaiver"));
 			
 		if( $session->attr_get('has_dog') == 'Y' ) {
 			$rows[] = array( 
-				l("View/Sign Dog Waiver", "op=person_signdogwaiver"));
+				l("View/Sign Dog Waiver", "person/signdogwaiver"));
 		}
 
 		/* TODO: This should be a config option */
 		$signupTime = mktime(9,0,0,10,22,2003);
 		if(	time() >= $signupTime) {
 			$rows[] = array( 
-				l("Winter Indoor Signup", "op=wlist_viewperson&id=$id"));
+				l("Winter Indoor Signup", "wlist/viewperson/$id"));
 		} else {
 			$rows[] = array("Indoor Signup opens<br/>" . date("F j Y h:i A", $signupTime));
 		}
@@ -76,9 +81,12 @@ class MainMenu extends Handler
 			"SELECT 
 				r.status AS position,
 				r.team_id AS id,
-				t.name AS name
+				t.name AS name,
+				l.league_id
 			FROM 
-				teamroster r LEFT JOIN team t USING(team_id)
+				teamroster r 
+				INNER JOIN team t ON (r.team_id = t.team_id)
+				INNER JOIN leagueteams l ON (l.team_id = t.team_id)
 			WHERE 
 				r.player_id = %d", $id);
 			
@@ -93,9 +101,9 @@ class MainMenu extends Handler
 					array('data' => "$team->name ($team->position)", 
 					      'colspan' => 3, 'class' => 'highlight'),
 					array('data' => theme_links(array(
-							l("info", "op=team_view&id=$team->id"),
-							l("scores and schedules", "op=team_schedule_view&id=$team->id"),
-							l("standings", "op=team_standings&id=$team->id"))),
+							l("info", "team/view/$team->id"),
+							l("scores and schedules", "team/schedule/$team->id"),
+							l("standings", "league/standings/$team->league_id"))),
 						  'align' => 'right', 'class' => 'highlight')
 			);
 			
@@ -140,13 +148,13 @@ class MainMenu extends Handler
 				// pending scores, etc.
 				while($league = db_fetch_object($result)) {
 					$links = array(
-						l("view", "op=league_view&id=$league->id"),
-						l("edit", "op=league_edit&id=$league->id")
+						l("view", "league/view/$league->id"),
+						l("edit", "league/edit/$league->id")
 					);
 					if($league->allow_schedule == 'Y') {
-						$links[] = l("schedule", "op=league_schedule_view&id=$league->id");
-						$links[] = l("standings", "op=league_standings&id=$league->id");
-						$links[] = l("approve scores", "op=league_verifyscores&id=$league->id");
+						$links[] = l("schedule", "league/schedule_view/$league->id");
+						$links[] = l("standings", "league/standings/$league->id");
+						$links[] = l("approve scores", "league/verifyscores/$league->id");
 					}
 
 					$rows[] = array(
@@ -189,7 +197,6 @@ class AdminMenu extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = 'admin';
 		$this->section = 'admin';
 		return true;
 	}
@@ -200,10 +207,10 @@ class AdminMenu extends Handler
 		$newUsers = db_result($result);
 				
 		$links = array(
-			array(l("List City Wards", "op=ward_list")),
-			array(l("Approve New Accounts", "op=person_listnew") . " ($newUsers awaiting approval)"),
-			array(l("Create New Waiting List", "op=wlist_create")),
-			array(l("List Waiting Lists", "op=wlist_list")),
+			array(l("List City Wards", "ward/list")),
+			array(l("Approve New Accounts", "person/listnew") . " ($newUsers awaiting approval)"),
+			array(l("Create New Waiting List", "wlist/create")),
+			array(l("List Waiting Lists", "wlist/list")),
 		);
 
 		$header = array ("Admin Tools");
@@ -260,18 +267,18 @@ function getPrintableGameData( $which, $teamId )
 	$data = "$game->date vs. ";
 	
 	if( $game->home_team == $teamId ) {
-		$data .= l($game->away_name, "op=team_view&id=$game->away_team");
+		$data .= l($game->away_name, "team/view/$game->away_team");
 		if($game->home_score || $game->away_score) {
 			$score = " ($game->home_score  - $game->away_score )";
 		}
 	} else if( $game->away_team == $teamId ) {
-		$data .= l($game->home_name, "op=team_view&id=$game->home_team");
+		$data .= l($game->home_name, "team/view/$game->home_team");
 		if($game->home_score || $game->away_score) {
 			$score = " ($game->away_score - $game->home_score )";
 		}
 	}
 
-	$data .= " at " . l("$game->site_code $game->site_num", "op=site_view&id=$game->site_id");
+	$data .= " at " . l("$game->site_code $game->site_num", "site/view/$game->site_id");
 
 	$data .= $score;
 

@@ -107,17 +107,17 @@ class Handler
 
 		$time = $session->attr_get('waiver_timestamp');
 		if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
-			return "op=person_signwaiver&next=$next";
+			return url("person/signwaiver","next=$next");
 		}
 
 		$time = $session->attr_get('dog_waiver_timestamp');
 		if(($session->attr_get('has_dog') =='Y') 
 			&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
-			return "op=person_signdogwaiver&next=$next";
+			return url("person/signdogwaiver","next=$next");
 		}
 
 		if( $session->attr_get('survey_completed') != 'Y' ) {
-			return "op=person_survey&next=$next";
+			return url("person/survey","next=$next");
 		}
 
 		return false;
@@ -126,6 +126,8 @@ class Handler
 	/**
 	 * Check if the logged-in user has permission for the current op
 	 * Returns true/false indicating success/failure.
+	 *
+	 * TODO: This permissions-checking system sucks.  Replace it.
 	 * 
 	 * @access public
 	 * @return boolean 	Permission success/fail
@@ -160,41 +162,56 @@ class Handler
 					return true;
 				}
 			} else if($perm_type == 'self_sufficient') {
-				$id = var_from_getorpost('id');
+				$id = arg(2);
 				if($session->attr_get('user_id') == $id) {
 					$this->set_permission_flags('self');
 					return true;
 				}
 			} else if(strncmp($perm_type,'self_sufficient:',16) == 0) {
 				$id_field = substr($perm_type, 16);
-				$id_data = var_from_getorpost($id_field);
+				// TODO: The following is an evil hack...
+				if($id_field = 'id') {
+					$id_data = arg(2);
+				} else {
+					$id_data = var_from_getorpost($id_field);
+				}
 				if($session->attr_get('user_id') == $id_data) {
 					$this->set_permission_flags('self');
 					return true;
 				}
 			} else if($perm_type == 'require_coordinator') {
-				$id = var_from_getorpost('id');
+				$id = arg(2);
 				if(!$session->is_coordinator_of($id)) {
 					$this->error_exit("You do not have permission to perform that operation");
 				} else {
 					$this->set_permission_flags('coordinator');
 				}
 			} else if($perm_type == 'coordinator_sufficient') {
-				$id = var_from_getorpost('id');
+				$id = arg(2);
 				if($session->is_coordinator_of($id)) {
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
 			} else if(strncmp($perm_type,'coordinate_league_containing:',28) == 0) {
 				$id_field = substr($perm_type, 29);
-				$id_data = var_from_getorpost($id_field);
+				// TODO: The following is an evil hack...
+				if($id_field = 'id') {
+					$id_data = arg(2);
+				} else {
+					$id_data = var_from_getorpost($id_field);
+				}
 				if($session->coordinates_league_containing($id_data)) {
 					$this->set_permission_flags('coordinator');
 					return true;
 				}
 			} else if(strncmp($perm_type,'coordinate_game:',15) == 0) {
 				$id_field = substr($perm_type, 16);
-				$id_data = var_from_getorpost($id_field);
+				// TODO: The following is an evil hack...
+				if($id_field = 'id') {
+					$id_data = arg(2);
+				} else {
+					$id_data = var_from_getorpost($id_field);
+				}
 				$result = db_query("SELECT league_id FROM schedule WHERE game_id = %d", $id_data);
 				$league_id = db_result($result);
 				if($session->is_coordinator_of($league_id)) {
@@ -203,7 +220,12 @@ class Handler
 				}
 			} else if(strncmp($perm_type,'captain_of:',10) == 0) {
 				$id_field = substr($perm_type, 11);
-				$id_data = var_from_getorpost($id_field);
+				// TODO: The following is an evil hack...
+				if($id_field = 'id') {
+					$id_data = arg(2);
+				} else {
+					$id_data = var_from_getorpost($id_field);
+				}
 				if($session->is_captain_of($id_data)) {
 					$this->set_permission_flags('captain');
 					return true;
@@ -340,7 +362,8 @@ class Handler
 	 */
 	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array())
 	{
-	
+
+		$letters = array();
 		$letterQuery = db_query("select distinct UPPER(SUBSTRING($letterField,1,1)) as letter from $fromWhere ORDER BY letter asc");
 		while($l = db_fetch_object($letterQuery)) {
 			$letters[] = $l->letter;
@@ -354,7 +377,7 @@ class Handler
 			if($curLetter == $letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$letterLinks[] = l($curLetter, "op=$listOp&letter=$curLetter");
+				$letterLinks[] = l($curLetter, "$listOp?letter=$curLetter");
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));

@@ -1,12 +1,25 @@
 <?php
-
 /*
  * Handlers for dealing with city ward data
  */
-register_page_handler('ward_create', 'WardCreate');
-register_page_handler('ward_edit', 'WardEdit');
-register_page_handler('ward_list', 'WardList');
-register_page_handler('ward_view', 'WardView');
+
+function ward_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new WardCreate; // TODO
+		case 'edit':
+			return new WardEdit; // TODO
+		case 'view':
+			return new WardView; // TODO
+		case 'list':
+		case '':
+			return new WardList; // TODO
+	}
+	return null;
+}
+
 
 class WardCreate extends WardEdit
 {

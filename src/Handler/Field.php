@@ -3,11 +3,27 @@
 /*
  * Handlers for dealing with fields
  */
-register_page_handler('field_create', 'FieldCreate');
-register_page_handler('field_edit', 'FieldEdit');
-register_page_handler('field_view', 'FieldView');
-register_page_handler('field_assign', 'FieldAssign');
-register_page_handler('field_unassign', 'FieldUnassign');
+
+function field_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new FieldCreate; // TODO
+		case 'edit':
+			return new FieldEdit; // TODO
+		case 'view':
+			return new FieldView; // TODO
+		case 'assign':
+			return new FieldAssign; // TODO
+		case 'unassign':
+			return new FieldUnassign; // TODO
+		case '':
+			// TODO: this doesn't belong...
+			return new SiteList; // TODO
+	}
+	return null;
+}
 
 /**
  * Field create handler

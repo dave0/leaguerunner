@@ -1,7 +1,21 @@
 <?php
-register_page_handler('game_submitscore', 'GameSubmit');
-register_page_handler('game_finalize', 'GameFinalizeScore');
-register_page_handler('game_view', 'GameView');
+/*
+ * Handle operations specific to a single game
+ */
+
+function game_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'submitscore':
+			return new GameSubmit; // TODO
+		case 'finalize':
+			return new GameFinalizeScore; // TODO
+		case 'view':
+			return new GameView; // TODO
+	}
+	return null;
+}
 
 class GameSubmit extends Handler
 {

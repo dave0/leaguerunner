@@ -24,3 +24,19 @@ DirectoryIndex index.php
 	php_value session.cache_limiter   none
 	php_value allow_call_time_pass_reference  On
 </IfModule>
+
+# Various rewrite rules
+<IfModule mod_rewrite.c>
+  RewriteEngine on
+
+  # Modify the RewriteBase if you are using Leaguerunner in a subdirectory
+  # and the rewrite rules are not working properly.  Don't add a trailing
+  # slash.
+  #RewriteBase /leaguerunner
+
+  # Rewrite URLs to the form 'index.php?q=x':
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
+</IfModule>
+

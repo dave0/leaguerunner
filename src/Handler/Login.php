@@ -1,6 +1,13 @@
 <?php
-register_page_handler('login','Login');
-register_page_handler('logout','Logout');
+function login_dispatch() 
+{
+	return new Login;
+}
+
+function logout_dispatch() 
+{
+	return new Logout;
+}
 
 /**
  * Login handler 
@@ -29,21 +36,20 @@ class Login extends Handler
 	 */
 	function process () 
 	{
-		global $session, $_SERVER;
+		global $session;
 
-		$username = var_from_post('username');
-		$password = var_from_post('password');
+		$edit = $_POST['edit'];
 
-		if( !(isset($username) || isset($password)) ) {
+		if( !($edit['username'] && $edit['password']) ) {
 			/* Check if session is already valid */
 			if($session->is_valid()) {
-				return $this->handle_valid();
+				return $this->handle_valid($edit['remember_me']);
 			}
 			return $this->login_form();
 		}
 		
 		/* Now, if we can, we will create a new user session */
-		$rc = $session->create_from_login($username, $password, $_SERVER['REMOTE_ADDR']);
+		$rc = $session->create_from_login($edit['username'], $edit['password'], $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
 			return $this->login_form("Incorrect username or password");
 		}
@@ -52,14 +58,12 @@ class Login extends Handler
 		 * Now that we know their username/password is valid, check to see if
 		 * there are restrictions on their account.
 		 */
-		return $this->handle_valid();
+		return $this->handle_valid( $edit['remember_me'] );
 	}
 
-	function handle_valid()
+	function handle_valid( $remember_me = 0 )
 	{
-		global $session, $_SERVER;
-		
-		$remember_me = var_from_post('remember_me');
+		global $session;
 
 		switch($session->attr_get('status')) {
 			case 'new':
@@ -71,7 +75,7 @@ class Login extends Handler
 				break;
 			case 'inactive':
 				/* Inactive.  Send this person to the revalidation page(s) */
-				local_redirect("op=person_activate");
+				local_redirect(url("person/activate"));
 				break;
 			case 'active':
 				/* These accounts are active and can continue */
@@ -88,7 +92,7 @@ class Login extends Handler
 					setcookie(session_name(), session_id(), FALSE, $path);
 				}
 
-				local_redirect("op=menu");
+				local_redirect(url("home"));
 				break;
 		}
 		return true;
@@ -104,18 +108,18 @@ class Login extends Handler
 			$output .= "</div>";
 		}
 		$rows = array();
-		$rows[] = array("Username:", form_textfield("", "username", "", 25, 25));
-		$rows[] = array("Password:", form_password("", "password", "", 25, 25));
+		$rows[] = array("Username:", form_textfield("", "edit[username]", "", 25, 25));
+		$rows[] = array("Password:", form_password("", "edit[password]", "", 25, 25));
 
 		$rows[] = array(
-			array('data' => form_checkbox("Remember Me","remember_me"),
+			array('data' => form_checkbox("Remember Me","edit[remember_me]"),
 				  "colspan" => 2, "align" => "center")
 		);
 		$rows[] = array(
 			array('data' => form_submit("Log In","submit")
 				  . "<br />" . theme_links(array(
-			l("Forgot your password", "op=person_forgotpassword"),
-			l("Create New Account", "op=person_create"))),
+			l("Forgot your password", "person/forgotpassword"),
+			l("Create New Account", "person/create"))),
 				  "colspan" => 2, "align" => "center")
 		);
 
@@ -132,7 +136,6 @@ password emailed to you (click on \"Forgot your password?\").</i>"
 
 		$output .= table(null, $rows, array('align'=>'center', 'width' => '300' ));
 		$output .=<<<EOF
-<input type='hidden' name='op' value='login'>
 <script language="JavaScript">
 document.lrlogin.username.focus();
 </script>
@@ -163,7 +166,7 @@ class Logout extends Handler
 	{
 		global $session;
 		$session->expire();
-		local_redirect("op=login");
+		local_redirect(url("login"));
 		return true;
 	}
 }

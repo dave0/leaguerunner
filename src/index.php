@@ -36,6 +36,7 @@ $phpCode = file_get_contents("./leaguerunner.conf");
 eval($phpCode);
 
 require_once("includes/common.inc");
+require_once("includes/module.inc");
 require_once("includes/theme.inc");
 require_once("includes/database.inc");
 
@@ -43,20 +44,19 @@ if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
 }
 
-$APP_PAGE_MAP = array();
-
 require_once "UserSession.php";
 require_once "Handler.php";
-
-$op = var_from_getorpost('op');
-if( is_null($op) ) {
-	$op = 'login';
-}
 
 /* Instantiate a handler of the appropriate class to handle this 
  * operation 
  */
-$handler = get_page_handler($op);
+$mod = arg(0);
+if(isset($mod) && module_hook($mod, 'dispatch')) {
+	$handler = module_invoke($mod, 'dispatch');
+} else {
+	$handler = new Login;
+}
+
 if(is_null($handler)) {
 	$handler = new Handler;
 	$handler->error_exit("No handler exists for $op");
@@ -97,43 +97,4 @@ if($handler->initialize()) {
 }
 
 /* And, that's all, folks.  */
-
-/**
- * Return instance of a Handler subclass to handle the given operation
- *
- * This creates the appropriate subclass of Handler, based on the operation
- * given.  
- * 
- * @access	public
- * @param	string	$op	The operation
- */
-function get_page_handler( $op ) 
-{
-	global $APP_PAGE_MAP;
-	if(isset($APP_PAGE_MAP[$op])) {
-		return new $APP_PAGE_MAP[$op];	
-	} 
-	
-	return null;
-}
-
-/**
- * Register a page handler with the handler generator
- *
- * Registers a handler so that it can be generated with the handler generator
- * at call-time.
- *
- * @access public
- * @param	string	$op  The operation
- * @param 	string  $class The class name to associate with the operation.
- */
-function register_page_handler($op, $class)
-{
-	global $APP_PAGE_MAP;
-	if(isset($APP_PAGE_MAP[$op])) {
-		/* TODO: Warn here that an existing handler is being overridden? */
-	}
-	$APP_PAGE_MAP[$op] = $class;
-}
-
 ?>

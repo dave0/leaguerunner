@@ -2,20 +2,41 @@
 /*
  * Code for dealing with user accounts
  */
-register_page_handler('person_view', 'PersonView');
-register_page_handler('person_delete', 'PersonDelete');
-register_page_handler('person_approvenew', 'PersonApproveNewAccount');
-register_page_handler('person_edit', 'PersonEdit');
-register_page_handler('person_create', 'PersonCreate');
-register_page_handler('person_activate', 'PersonActivate');
-register_page_handler('person_survey', 'PersonSurvey');
-register_page_handler('person_signwaiver', 'PersonSignWaiver');
-register_page_handler('person_signdogwaiver', 'PersonSignDogWaiver');
-register_page_handler('person_list', 'PersonList');
-register_page_handler('person', 'PersonList');
-register_page_handler('person_listnew', 'PersonListNewAccounts');
-register_page_handler('person_changepassword', 'PersonChangePassword');
-register_page_handler('person_forgotpassword', 'PersonForgotPassword');
+
+function person_dispatch() 
+{
+	$op = arg(1);
+	switch($op) {
+		case 'create':
+			return new PersonCreate;
+		case 'edit':
+			return new PersonEdit;
+		case 'view':
+			return new PersonView;
+		case 'delete':
+			return new PersonDelete;
+		case 'list':
+		case '':
+			return new PersonList;
+		case 'approve':
+			return new PersonApproveNewAccount;
+		case 'activate':
+			return new PersonActivate;
+		case 'survey':
+			return new PersonSurvey;
+		case 'signwaiver': 
+			return new PersonSignWaiver;
+		case 'signdogwaiver':
+			return new PersonSignDogWaiver;
+		case 'listnew':
+			return new PersonListNewAccounts;
+		case 'changepassword':
+			return new PersonChangePassword;  
+		case 'forgotpassword':
+			return new PersonForgotPassword;
+	}
+	return null;
+}
 
 /**
  * Player viewing handler
@@ -48,7 +69,6 @@ class PersonView extends Handler
 #			'user_delete'			=> false,
 			'user_change_password'	=> false,
 		);
-		$this->op = 'person_view';
 		$this->section = 'person';
 		return true;
 	}
@@ -64,14 +84,15 @@ class PersonView extends Handler
 	 */
 	function has_permission ()
 	{
-		global $session, $id;
+		global $session;
 
 		if(!$session->is_valid()) {
 			$this->error_exit("You do not have a valid session");
 		}
 		
-		$id = var_from_getorpost('id');
-		if(is_null($id)) {
+		$id = arg(2);
+		
+		if(!$id) {
 			$this->error_exit("You must provide a user ID");
 		}
 
@@ -84,6 +105,7 @@ class PersonView extends Handler
 		/* Administrator can view all and do all */
 		if($session->attr_get('class') == 'administrator') {
 			$this->enable_all_perms();
+			$this->_permissions['user_delete'] = true;
 			$this->_permissions['user_change_perms'] = true;
 			return true;
 		}
@@ -175,8 +197,9 @@ class PersonView extends Handler
 
 	function process ()
 	{	
-		global $id;
-		
+
+		$id = arg(2);
+
 		$result = db_query(
 			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
 
@@ -189,19 +212,19 @@ class PersonView extends Handler
 		$links = array();
 		
 		if($this->_permissions['user_edit']) {
-			$links[] = l("edit account", "op=person_edit&id=" . $person['user_id'], array('title' => "Edit the currently-displayed account"));
+			$links[] = l("edit account", "person/edit/" . $person['user_id'], array('title' => "Edit the currently-displayed account"));
 		}
 		
 		if($this->_permissions['user_change_password']) {
-			$links[] = l("change password", "op=person_changepassword&id=" . $person['user_id'], array('title' => "Change password for the currently-displayed account"));
+			$links[] = l("change password", "person/changepassword/" . $person['user_id'], array('title' => "Change password for the currently-displayed account"));
 		}
 		
 		if($this->_permissions['user_delete']) {
-			$links[] = l("delete account", "op=person_delete&id=" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
+			$links[] = l("delete account", "person/delete/" . $person['user_id'], array('title' => "Delete the currently-displayed account"));
 		}
 
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
 			$this->title => 0));
 			
 		$links_html =  "";
@@ -214,9 +237,8 @@ class PersonView extends Handler
 	
 	function generateView (&$person)
 	{
-		$fullname = $person['firstname'] . " " . $person['lastname'];
-		
-		$rows[] = array("Name:", $fullname);
+		$rows[] = array("Name:", 
+			$person['firstname'] . " " . $person['lastname']);
 
 		if($this->_permissions['username']) {
 			$rows[] = array("System Username:", $person['username']);
@@ -351,11 +373,9 @@ class PersonDelete extends PersonView
 		);
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'deny',
 		);
-		$this->op = 'person_delete';
 		$this->section = 'person';
 		return true;
 	}
@@ -375,40 +395,38 @@ class PersonDelete extends PersonView
 	function process ()
 	{
 		global $session;
-		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
+		$edit = $_POST['edit'];
+		
+		$id = arg(2);
 
 		/* Safety check: Don't allow us to delete ourselves */
 		if($session->attr_get('user_id') == $id) {
 			$this->error_exit("You cannot delete the currently logged in user");
 		}
 
-		if($step == 'perform') {
-			$this->perform();
-			local_redirect("op=person_list");
-			exit; // redundant, local_redirect will exit.
+		if($edit['step'] == 'perform') {
+			$this->perform( $id );
+			local_redirect(url("person/list"));
+			return $rc;
 		}
 
 		/* Otherwise... */
 		$result = db_query(
 			"SELECT p.*, w.name as ward_name, w.num as ward_number, w.city as ward_city FROM person p LEFT JOIN ward w ON (p.ward_id = w.ward_id) WHERE user_id = %d", $id);
-		$person = db_fetch_array($result);
-
-		if(!isset($person)) {
+		if(1 != db_num_rows($result)) {
 			$this->error_exit("That person does not exist");
 		}
+		$person = db_fetch_array($result);
 		
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
 			$this->title => 0));
 		
 		return 
 			para("Confirm that you wish to delete this user from the system.")
 			. $this->generateView($person)
 			. form( 
-				form_hidden('op', $this->op)
-				. form_hidden('step', 'perform')
-				. form_hidden('id', $id)
+				form_hidden('edit[step]', 'perform')
 				. form_submit("Delete")
 			);
 	}
@@ -421,31 +439,26 @@ class PersonDelete extends PersonView
 	 * 	- ensure user is not a league coordinator
 	 * 	- remove user from all team rosters
 	 */
-	function perform ()
+	function perform ( $id )
 	{
-		$id = var_from_getorpost('id');
-
+	
 		/* check if user is team captain       */
-		$result = db_query("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = %d", $id);
-
-		$numTeams = db_result($result);
+		$numTeams = db_result(db_query("SELECT COUNT(*) from teamroster where status = 'captain' AND player_id = %d", $id));
 		
 		if($numTeams > 0) {
 			$this->error_exit("Account cannot be deleted while player is a team captain.");
 		}
 		
 		/* check if user is league coordinator */
-		$result = db_query("SELECT COUNT(*) from league where coordinator_id = %d OR alternate_id = %d", $id, $id);
-		$numLeagues = db_result($result);	
+		$numLeagues = db_result(db_query("SELECT COUNT(*) from league where coordinator_id = %d OR alternate_id = %d", $id, $id));
 		if($numLeagues > 0) {
 			$this->error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
 		
-		/* remove user from team rosters  */
+		/* remove user from team rosters.  Don't check for affected
+		 * rows, as there may not be any
+		 */
 		db_query("DELETE from teamroster WHERE player_id = %d",$id);
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
 		
 		/* remove user account */
 		db_query("DELETE from person WHERE user_id = %d", $id);
@@ -468,11 +481,9 @@ class PersonApproveNewAccount extends PersonView
 		$this->title = 'Approve Account';
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'deny',
 		);
-		$this->op = 'person_approvenew';
 		$this->section = 'person';
 		return true;
 	}
@@ -491,14 +502,13 @@ class PersonApproveNewAccount extends PersonView
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
+		$edit = $_POST['edit'];
+		$id = arg(2);
 
-		if($step == 'perform') {
+		if($edit['step'] == 'perform') {
 			/* Actually do the approval on the 'perform' step */
-			$this->perform();
-			local_redirect("op=person_listnew");
-			exit; // redundant, local_redirect will exit.
+			$this->perform( $id );
+			local_redirect("person/listnew");
 		} 
 
 		/* Otherwise... */
@@ -539,29 +549,25 @@ class PersonApproveNewAccount extends PersonView
 			$text .= "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
 			while($user = db_fetch_object($result)) {
 				$text .= "<li>$user->firstname $user->lastname";
-				$text .= "[&nbsp;" . l("view", "op=person_view&id=$user->user_id") . "&nbsp;]";
+				$text .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
 			}
 			$text .= "</ul></div>";
 		}
 
 		$this->setLocation(array(
-			$person['firstname'] . " " . $person['lastname'] => "op=person_view&id=$id",
+			$person['firstname'] . " " . $person['lastname'] => "person/view/$id",
 			$this->title => 0));
 		
 		return para($instructions)
 			. $this->generateView($person)
 			. form( 
-			form_hidden('op', $this->op)
-			. form_hidden('step', 'perform')
-			. form_hidden('id', $id)
-			. form_submit("Approve")
-		);
+				form_hidden('edit[step]', 'perform')
+				. form_submit("Approve")
+			);
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
-
-		$id = var_from_getorpost('id');
 
 		$result = db_query("SELECT * FROM person where user_id = %d", $id);
 		$person = db_fetch_object($result);
@@ -660,13 +666,11 @@ class PersonEdit extends Handler
 
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'self_sufficient',
 			'deny',
 		);
 
-		$this->op = "person_edit";
 		$this->section = 'person';
 		return true;
 	}
@@ -680,17 +684,17 @@ class PersonEdit extends Handler
 
 	function process ()
 	{
-		$step = var_from_getorpost('step');
 
-		$id = var_from_getorpost('id');
+		$edit = $_POST['edit'];
+		$id = arg(2);
 		
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$this->perform( $id );
-				local_redirect("op=person_view&id=$id");
+				$this->perform( $id, $edit );
+				local_redirect(url("person/view/$id"));
 				break;
 			default:
 				$formData = $this->getFormData($id);
@@ -707,9 +711,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		$output = form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'confirm');
-		$output .= form_hidden('id', $id);
+		$output .= form_hidden('edit[step]', 'confirm');
 
 		$output .= para($instructions);
 		$output .= para(
@@ -724,90 +726,90 @@ class PersonEdit extends Handler
 
 		$rows = array();
 		$rows[] = array("First Name:",
-			form_textfield('', 'firstname', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
+			form_textfield('', 'edit[firstname]', $formData['firstname'], 25,100, "First (and, if desired, middle) name."));
 
 		$rows[] = array("Last Name:",
-			form_textfield('', 'lastname', $formData['lastname'], 25,100, "Last name"));
+			form_textfield('', 'edit[lastname]', $formData['lastname'], 25,100, "Last name"));
 
 		if($this->_permissions['edit_username']) {
 			$rows[] = array("System Username:",
-				form_textfield('', 'username', $formData['username'], 25,100, "Desired login name."));
+				form_textfield('', 'edit[username]', $formData['username'], 25,100, "Desired login name."));
 		} else {
 			$rows[] = array("System Username:", $formData['username']);
 		}
 
 		if($this->_permissions['edit_password']) {
 			$rows[] = array("Password:",
-				form_password('', 'password_once', '', 25,100, "Enter your desired password."));
+				form_password('', 'edit[password_once]', '', 25,100, "Enter your desired password."));
 			$rows[] = array("Re-Enter Password:",
-				form_password('', 'password_twice', '', 25,100, "Enter your desired password a second time to confirm it."));
+				form_password('', 'edit[password_twice]', '', 25,100, "Enter your desired password a second time to confirm it."));
 		}
 
 		$rows[] = array("Email Address:",
-			form_textfield('', 'email', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
-			. form_checkbox("Allow other players to view my email address",'allow_publish_email','Y',($formData['allow_publish_email'] == 'Y')));
+			form_textfield('', 'edit[email]', $formData['email'], 25, 100, "Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters")
+			. form_checkbox("Allow other players to view my email address",'edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y')));
 
 		$addrRows = array();
 		$addrRows[] = array("Street Address:",
-			form_textfield('','addr_street',$formData['addr_street'], 25, 100, "Number, street name, and apartment number if necessary"));
+			form_textfield('','edit[addr_street]',$formData['addr_street'], 25, 100, "Number, street name, and apartment number if necessary"));
 		$addrRows[] = array("City:",
-			form_textfield('','addr_city',$formData['addr_city'], 25, 100, "Name of city.  If you are a resident of the amalgamated Ottawa, please enter 'Ottawa' (instead of Kanata, Nepean, etc.)"));
+			form_textfield('','edit[addr_city]',$formData['addr_city'], 25, 100, "Name of city.  If you are a resident of the amalgamated Ottawa, please enter 'Ottawa' (instead of Kanata, Nepean, etc.)"));
 			
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
 		$addrRows[] = array("Province:",
-			form_select('', 'addr_prov', $formData['addr_prov'], getProvinceNames(), "Select a province from the list"));
+			form_select('', 'edit[addr_prov]', $formData['addr_prov'], getProvinceNames(), "Select a province from the list"));
 
 		$addrRows[] = array("Postal Code:",
-			form_textfield('', 'addr_postalcode', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
+			form_textfield('', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, "Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members."));
 
 		$rows[] = array("Address:", table(null, $addrRows));
 	
 		$phoneRows = array();
-		$phoneRows[] = array("Home:", form_textfield('', 'home_phone', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_home_phone','Y',($formData['publish_home_phone'] == 'Y'))));
-		$phoneRows[] = array("Work:", form_textfield('', 'work_phone', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_work_phone','Y',($formData['publish_work_phone'] == 'Y'))));
-		$phoneRows[] = array("Mobile:", form_textfield('', 'mobile_phone', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'publish_mobile_phone','Y',($formData['publish_mobile_phone'] == 'Y'))));
+		$phoneRows[] = array("Home:", form_textfield('', 'edit[home_phone]', $formData['home_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_home_phone]','Y',($formData['publish_home_phone'] == 'Y'))));
+		$phoneRows[] = array("Work:", form_textfield('', 'edit[work_phone]', $formData['work_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_work_phone]','Y',($formData['publish_work_phone'] == 'Y'))));
+		$phoneRows[] = array("Mobile:", form_textfield('', 'edit[mobile_phone]', $formData['mobile_phone'], 25, 100, form_checkbox("Allow other players to view this number",'edit[publish_mobile_phone]','Y',($formData['publish_mobile_phone'] == 'Y'))));
 
 		$rows[] = array("Telephone:", table(null, $phoneRows));
 
 		$rows[] = array("Gender:",
-			form_select('', 'gender', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
+			form_select('', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender')));
 			
 		$rows[] = array("Skill Level:",
-			form_radiogroup('', 'skill_level', $formData['skill_level'],
+			form_radiogroup('', 'edit[skill_level]', $formData['skill_level'],
 				getOptionsForSkill()));
 
 		$thisYear = strftime("%Y", time());
 
 		$rows[] = array("Year Started:",
-			form_select('', 'year_started', $formData['year_started'], 
+			form_select('', 'edit[year_started]', $formData['year_started'], 
 				getOptionsFromRange(1986, $thisYear, 'reverse'), "The year you started playing Ultimate in Ottawa."));
 
 		$rows[] = array("Birthdate:",
-			form_select_date('', 'birth', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
+			form_select_date('', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), "Please enter a correct birthdate; having accurate information is important for insurance purposes"));
 
 		$rows[] = array('Height:',
-			form_textfield('','height',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
+			form_textfield('','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams in hat leagues and winter indoor.'));
 			
 		if($this->_permissions['edit_class']) {
 			$rows[] = array("Account Class:",
-				form_select('','class', $formData['class'], getOptionsFromEnum('person','class')));
+				form_select('','edit[class]', $formData['class'], getOptionsFromEnum('person','class')));
 		}
 		
 		if($this->_permissions['edit_status']) {
 			$rows[] = array("Account Status:",
-				form_select('','status', $formData['status'], getOptionsFromEnum('person','status')));
+				form_select('','edit[status]', $formData['status'], getOptionsFromEnum('person','status')));
 		}
 
 		$rows[] = array("Has dog:",
-			form_radiogroup('', 'has_dog', $formData['has_dog'], array(
+			form_radiogroup('', 'edit[has_dog]', $formData['has_dog'], array(
 				'Y' => 'Yes, I have a dog I will be bringing to games',
 				'N' => 'No, I will not be bringing a dog to games')));
 		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$this->setLocation(array(
-			$formData['firstname'] . " " . $formData['lastname'] => "op=person_view&id=$id",
+			$formData['firstname'] . " " . $formData['lastname'] => "person/view/$id",
 			$this->title => 0));
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
@@ -816,133 +818,104 @@ class PersonEdit extends Handler
 		return form($output);
 	}
 
-	function generateConfirm ( $id )
+	function generateConfirm ( $id, $edit = array() )
 	{
-		$dataInvalid = $this->isDataInvalid();
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
+		$output .= form_hidden('edit[step]', 'perform');
 
 		$rows = array();
 
-		$firstname = var_from_post('firstname');
 		$rows[] = array("First Name:",
-			form_hidden('firstname',$firstname) . $firstname);
+			form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
 			
-		$lastname = var_from_post('lastname');
 		$rows[] = array("Last Name:",
-			form_hidden('lastname',$lastname) . $lastname);
+			form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
 		
 		if($this->_permissions['edit_username']) {
-			$username = var_from_post('username');
 			$rows[] = array("System Username:",
-				form_hidden('username',$username) . $username);
+				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
 		
 		if($this->_permissions['edit_password']) {
-			$password_once = var_from_post('username');
 			$rows[] = array("Password:",
-				form_hidden('password_once', var_from_post('password_once'))
-				. form_hidden('password_twice', var_from_post('password_twice'))
+				form_hidden('edit[password_once]', $edit['password_once'])
+				. form_hidden('edit[password_twice]', $edit['password_twice'])
 				. '<i>(entered)</i>');
 		}
 		
-		$email = var_from_post('email');
 		$rows[] = array("Email Address:",
-			form_hidden('email',$email) . $email);
+			form_hidden('edit[email]',$edit['email']) . $edit['email']);
 			
-		$allow_publish_email = var_from_post('allow_publish_email');
 		$rows[] = array("Show Email:",
-			form_hidden('allow_publish_email',$allow_publish_email) . $allow_publish_email);
+			form_hidden('edit[allow_publish_email]',$edit['allow_publish_email']) . $edit['allow_publish_email']);
 
-		$addr_street = var_from_post('addr_street');
-		$addr_city = var_from_post('addr_city');
-		$addr_prov = var_from_post('addr_prov');
-		$addr_postalcode = var_from_post('addr_postalcode');
 		$rows[] = array("Address:",
-			form_hidden('addr_street',$addr_street)
-			. form_hidden('addr_city',$addr_city)
-			. form_hidden('addr_prov',$addr_prov)
-			. form_hidden('addr_postalcode',$addr_postalcode)
-			. "$addr_street<br>$addr_city, $addr_prov<br> $addr_postalcode");
-
-		$phone['home'] = var_from_post('home_phone');
-		$phone['work'] = var_from_post('work_phone');
-		$phone['mobile'] = var_from_post('mobile_phone');
-		$phone['publish_home'] =  var_from_post('publish_home_phone');
-		$phone['publish_work'] =  var_from_post('publish_work_phone');
-		$phone['publish_mobile'] =  var_from_post('publish_mobile_phone');
+			form_hidden('edit[addr_street]',$edit['addr_street'])
+			. form_hidden('edit[addr_city]',$edit['addr_city'])
+			. form_hidden('edit[addr_prov]',$edit['addr_prov'])
+			. form_hidden('edit[addr_postalcode]',$edit['addr_postalcode'])
+			. $edit['addr_street'] . "<br>" . $edit['addr_city'] . ", " . $edit['addr_prov'] . "<br>" . $edit['addr_postalcode']);
 
 		foreach( array('home','work','mobile') as $location) {
-			if($phone[$location]) {
-				$phoneBlock .= form_hidden($location . '_phone', $phone[$location]);
-				$phoneBlock .= ucfirst($location) . ": " . $phone[$location];
-				if($phone["publish_$location"] == 'Y') {
+			if($edit["${location}_phone"]) {
+				$phoneBlock .= form_hidden("edit[${location}_phone]", $edit["${location}_phone"]);
+				$phoneBlock .= ucfirst($location) . ": " . $edit["${location}_phone"];
+				if($edit["publish_${location}_phone"] == 'Y') {
 					$phoneBlock .= " (published)";
-					$phoneBlock .= form_hidden('publish_' . $location . '_phone', 'Y');
+					$phoneBlock .= form_hidden("edit[publish_${location}_phone]", 'Y');
 				} else {
 					$phoneBlock .= " (private)";
 				}
 			}
 		}
 		$rows[] = array("Telephone:", $phoneBlock);
-
-		$gender = var_from_post('gender');
-		$rows[] = array("Gender:", form_hidden('gender',$gender) . $gender);
+		$rows[] = array("Gender:", form_hidden('edit[gender]',$edit['gender']) . $edit['gender']);
 		
-		$skill_level = var_from_post('skill_level');
 		$levels = getOptionsForSkill();
-		$rows[] = array("Skill Level:", form_hidden('skill_level',$skill_level) . $levels[$skill_level]);
+		$rows[] = array("Skill Level:", form_hidden('edit[skill_level]',$edit['skill_level']) . $levels[$edit['skill_level']]);
 		
-		$year_started = var_from_post('year_started');
-		$rows[] = array("Year Started:", form_hidden('year_started',$year_started) . $year_started);
+		$rows[] = array("Year Started:", form_hidden('edit[year_started]',$edit['year_started']) . $edit['year_started']);
 
-		$birth_year = var_from_post('birth_year');
-		$birth_month = var_from_post('birth_month');
-		$birth_day = var_from_post('birth_day');
 		$rows[] = array("Birthdate:", 
-			form_hidden('birth_year',$birth_year) 
-			. form_hidden('birth_month',$birth_month) 
-			. form_hidden('birth_day',$birth_day) 
-			. "$birth_year / $birth_month / $birth_day");
+			form_hidden('edit[birth][year]',$edit['birth']['year']) 
+			. form_hidden('edit[birth][month]',$edit['birth']['month']) 
+			. form_hidden('edit[birth][day]',$edit['birth']['day']) 
+			. $edit['birth']['year'] . " / " . $edit['birth']['month'] . " / " . $edit['birth']['day']);
 		
-		$height = var_from_post('height');
-		if($height) {
-			$rows[] = array("Height:", form_hidden('height',$height) . $height . " inches");
+		if($edit['height']) {
+			$rows[] = array("Height:", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
 		}
 	
 		if($this->_permissions['edit_class']) {
-			$class = var_from_post('class');
-			$rows[] = array("Account Class:", form_hidden('class',$class) . $class);
+			$rows[] = array("Account Class:", form_hidden('edit[class]',$edit['class']) . $edit['class']);
 		}
 		
 		if($this->_permissions['edit_status']) {
-			$status = var_from_post('status');
-			$rows[] = array("Account Status:", form_hidden('status',$status) . $status);
+			$rows[] = array("Account Status:", form_hidden('edit[status]',$edit['status']) . $edit['status']);
 		}
 		
-		$has_dog = var_from_post('has_dog');
-		$rows[] = array("Has dog:", form_hidden('has_dog',$has_dog) . $has_dog);
+		$rows[] = array("Has dog:", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 			
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		$this->setLocation(array(
-			"$firstname $lastname" => "op=person_view&id=$id",
+			$edit['firstname'] . " " . $edit['lastname'] => "person/view/$id",
 			$this->title => 0));
 
 		return form($output);
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit = array() )
 	{
-		$dataInvalid = $this->isDataInvalid();
+	
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
@@ -952,23 +925,23 @@ class PersonEdit extends Handler
 
 		if($this->_permissions['edit_username']) {
 			$fields[] = "username = '%s'";
-			$fields_data[] = var_from_getorpost('username');
+			$fields_data[] = $edit['username'];
 		}
 		
 		if($this->_permissions['edit_class']) {
 			$fields[] = "class = '%s'";
-			$fields_data[] = var_from_getorpost('class');
+			$fields_data[] = $edit['class'];
 		}
 		if($this->_permissions['edit_status']) {
 			$fields[] = "status = '%s'";
-			$fields_data[] = var_from_getorpost('status');
+			$fields_data[] = $edit['status'];
 		}
 		
 		$fields[] = "email = '%s'";
-		$fields_data[] = var_from_getorpost('email');
+		$fields_data[] = $edit['email'];
 		
 		foreach(array('home_phone','work_phone','mobile_phone') as $type) {
-			$num = var_from_getorpost($type);
+			$num = $edit[$type];
 			if(strlen($num) > 0) {
 				$fields[] = "$type = '%s'";
 				$fields_data[] = clean_telephone_number($num);
@@ -979,21 +952,21 @@ class PersonEdit extends Handler
 		}
 		
 		$fields[] = "firstname = '%s'";
-		$fields_data[] = var_from_getorpost('firstname');
+		$fields_data[] = $edit['firstname'];
 		
 		$fields[] = "lastname = '%s'";
-		$fields_data[] = var_from_getorpost('lastname');
+		$fields_data[] = $edit['lastname'];
 		
 		$fields[] = "addr_street = '%s'";
-		$fields_data[] = var_from_getorpost('addr_street');
+		$fields_data[] = $edit['addr_street'];
 		
 		$fields[] = "addr_city = '%s'";
-		$fields_data[] = var_from_getorpost('addr_city');
+		$fields_data[] = $edit['addr_city'];
 		
 		$fields[] = "addr_prov = '%s'";
-		$fields_data[] = var_from_getorpost('addr_prov');
+		$fields_data[] = $edit['addr_prov'];
 		
-		$postcode = var_from_getorpost('addr_postalcode');
+		$postcode = $edit['addr_postalcode'];
 		if(strlen($postcode) == 6) {
 			$foo = substr($postcode,0,3) . " " . substr($postcode,3);
 			$postcode = $foo;
@@ -1003,35 +976,34 @@ class PersonEdit extends Handler
 		
 		$fields[] = "birthdate = '%s'";
 		$fields_data[] = join("-",array(
-			var_from_getorpost('birth_year'),
-			var_from_getorpost('birth_month'),
-			var_from_getorpost('birth_day')));
+			$edit['birth']['year'],
+			$edit['birth']['month'],
+			$edit['birth']['day']));
 		
-		$height = var_from_getorpost('height');
-		if($height) {
+		if($edit['height']) {
 			$fields[] = "height = %d";
 			$fields_data[] = $height;
 		}
 		
 		$fields[] = "gender = '%s'";
-		$fields_data[] = var_from_getorpost('gender');
+		$fields_data[] = $edit['gender'];
 		
 		$fields[] = "skill_level = '%s'";
-		$fields_data[] = var_from_getorpost('skill_level');
+		$fields_data[] = $edit['skill_level'];
 		$fields[] = "year_started = '%s'";
-		$fields_data[] = var_from_getorpost('year_started');
+		$fields_data[] = $edit['year_started'];
 
 		$fields[] = "allow_publish_email = '%s'";
-		$fields_data[] = var_from_getorpost('allow_publish_email');
+		$fields_data[] = $edit['allow_publish_email'];
 		$fields[] = "publish_home_phone = '%s'";
-		$fields_data[] = var_from_getorpost('publish_home_phone') ? 'Y' : 'N';
+		$fields_data[] = $edit['publish_home_phone'] ? 'Y' : 'N';
 		$fields[] = "publish_work_phone = '%s'";
-		$fields_data[] = var_from_getorpost('publish_work_phone') ? 'Y' : 'N';
+		$fields_data[] = $edit['publish_work_phone'] ? 'Y' : 'N';
 		$fields[] = "publish_mobile_phone = '%s'";
-		$fields_data[] = var_from_getorpost('publish_mobile_phone') ? 'Y' : 'N';
+		$fields_data[] = $edit['publish_mobile_phone'] ? 'Y' : 'N';
 		
 		$fields[] = "has_dog = '%s'";
-		$fields_data[] = var_from_getorpost('has_dog');
+		$fields_data[] = $edit['has_dog'];
 
 		if(count($fields_data) != count($fields)) {
 			$this->error_exit("Internal error: Incorrect number of fields set");
@@ -1056,99 +1028,83 @@ class PersonEdit extends Handler
 		return true;
 	}
 
-	function isDataInvalid ()
+	function isDataInvalid ( $edit = array() )
 	{
 		$errors = "";
 	
-		$firstname = var_from_getorpost('firstname');
-		$lastname = var_from_getorpost('lastname');
-		if( ! validate_name_input($firstname) || ! validate_name_input($lastname)) {
+		if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
 			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 		}
 
 		if($this->_permissions['edit_username']) {
-			$username = var_from_getorpost('username');
-			if( ! validate_name_input($username) ) {
+			if( ! validate_name_input($edit['username']) ) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 		}
 
-		$email = var_from_getorpost('email');
-		if ( ! validate_email_input($email) ) {
+		if ( ! validate_email_input($edit['email']) ) {
 			$errors .= "\n<li>You must supply a valid email address";
 		}
 
-		$home_phone = var_from_getorpost('home_phone');
-		$work_phone = var_from_getorpost('work_phone');
-		$mobile_phone = var_from_getorpost('mobile_phone');
-		if( !validate_nonblank($home_phone) &&
-			!validate_nonblank($work_phone) &&
-			!validate_nonblank($mobile_phone) ) {
+		if( !validate_nonblank($edit['home_phone']) &&
+			!validate_nonblank($edit['work_phone']) &&
+			!validate_nonblank($edit['mobile_phone']) ) {
 			$errors .= "\n<li>You must supply at least one valid telephone number.  Please supply area code, number and (if any) extension.";
 		}
-		if(validate_nonblank($home_phone) && !validate_telephone_input($home_phone)) {
+		if(validate_nonblank($edit['home_phone']) && !validate_telephone_input($edit['home_phone'])) {
 			$errors .= "\n<li>Home telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
-		if(validate_nonblank($work_phone) && !validate_telephone_input($work_phone)) {
+		if(validate_nonblank($edit['work_phone']) && !validate_telephone_input($edit['work_phone'])) {
 			$errors .= "\n<li>Work telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
-		if(validate_nonblank($mobile_phone) && !validate_telephone_input($mobile_phone)) {
+		if(validate_nonblank($edit['mobile_phone']) && !validate_telephone_input($edit['mobile_phone'])) {
 			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
 
-		$addr_street = var_from_getorpost('addr_street');
-		if( !validate_nonhtml($addr_street) ) {
+		if( !validate_nonhtml($edit['addr_street']) ) {
 			$errors .= "\n<li>You must supply a street address.";
 		}
 		$addr_city = var_from_getorpost('addr_city');
-		if( !validate_nonhtml($addr_city) ) {
+		if( !validate_nonhtml($edit['addr_city']) ) {
 			$errors .= "\n<li>You must supply a city.";
 		}
-		$addr_prov = var_from_getorpost('addr_prov');
-		if( !validate_nonhtml($addr_prov) ) {
+		if( !validate_nonhtml($edit['addr_prov']) ) {
 			$errors .= "\n<li>You must supply a province.";
 		}
-		$addr_postalcode = var_from_getorpost('addr_postalcode');
-		if( !validate_postalcode($addr_postalcode) ) {
+		if( !validate_postalcode($edit['addr_postalcode']) ) {
 			$errors .= "\n<li>You must supply a valid Canadian postal code.";
 		}
 		
-		$gender = var_from_getorpost('gender');
-		if( !preg_match("/^[mf]/i",$gender ) ) {
+		if( !preg_match("/^[mf]/i",$edit['gender'] ) ) {
 			$errors .= "\n<li>You must select either male or female for gender.";
 		}
 		
-		$birthyear = var_from_getorpost('birth_year');
-		$birthmonth = var_from_getorpost('birth_month');
-		$birthday = var_from_getorpost('birth_day');
-		if( !validate_date_input($birthyear, $birthmonth, $birthday) ) {
+		if( !validate_date_input($edit['birth']['year'], $edit['birth']['month'], $edit['birth']['day']) ) {
 			$errors .= "\n<li>You must provide a valid birthdate";
 		}
 
-		$height = var_from_getorpost('height');
-		if( validate_nonblank($height) ) {
-			if( ($height < 36) || ($height > 84) ) {
+		if( validate_nonblank($edit['height']) ) {
+			if( ($edit['height'] < 36) || ($edit['height'] > 84) ) {
 				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
 			}
 		}
 		
-		$skill = var_from_getorpost('skill_level');
-		if( $skill < 1 || $skill > 10 ) {
-			$errors .= "\n<li>You must select a skill level between 1 and 5";
+		if( $edit['skill_level'] < 1 || $edit['skill_level'] > 10 ) {
+			$errors .= "\n<li>You must select a skill level between 1 and 10";
 		}
 		
-		$year_started = var_from_getorpost('year_started');
 		$current = localtime(time(),1);
 		$this_year = $current['tm_year'] + 1900;
-		if( $year_started > $this_year ) {
+		if( $edit['year_started'] > $this_year ) {
 			$errors .= "\n<li>Year started must be before current year.";
 		}
 
-		if( $year_started < 1986 ) {
+		if( $edit['year_started'] < 1986 ) {
 			$errors .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
 		}
-		if( $year_started < $birthyear + 8) {
-			$errors .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
+		$yearDiff = $edit['year_started'] - $edit['birth']['year'];
+		if( $yearDiff < 8) {
+			$errors .= "\n<li>You can't have started playing when you were $yearDiff years old!  Please correct your birthdate, or your starting year";
 		}
 	
 		if(strlen($errors) > 0) {
@@ -1174,7 +1130,6 @@ class PersonCreate extends PersonEdit
 
 		$this->_required_perms = array( 'allow' );
 
-		$this->op = 'person_create';
 		$this->section = 'person';
 		return true;
 	}
@@ -1186,15 +1141,15 @@ class PersonCreate extends PersonEdit
 	
 	function process ()
 	{
-		$step = var_from_getorpost('step');
+		$edit = $_POST['edit'];
 
 		$id = -1;
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				return $this->perform( &$id );
+				return $this->perform( &$id, $edit );
 				break;
 			default:
 				$formData = $this->getFormData($id);
@@ -1209,30 +1164,31 @@ class PersonCreate extends PersonEdit
 		return array();
 	}
 
-	function perform ( $id )
+	function perform ( $id, $edit = array())
 	{
-		$password_once = var_from_getorpost("password_once");
-		$password_twice = var_from_getorpost("password_twice");
-		if($password_once != $password_twice) {
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+		
+		if($edit['password_once'] != $edit['password_twice']) {
 			$this->error_exit("First and second entries of password do not match");
 		}
-		$crypt_pass = md5($password_once);
+		$crypt_pass = md5($edit['password_once']);
 
-		$username = var_from_getorpost('username');
-
-		if(db_num_rows(db_query("SELECT username FROM person WHERE username = '%s'",$username))) {
+		if(db_num_rows(db_query("SELECT username FROM person WHERE username = '%s'",$edit['username']))) {
 			$err = "A user with that username already exists; please go back and try again";
 			$this->error_exit($err);
 		}
 	
-		db_query("INSERT into person (username,password,status) VALUES '%s','%s','new')", $username, $crypt_pass);
+		db_query("INSERT into person (username,password,status) VALUES('%s','%s','new')", $edit['username'], $crypt_pass);
 		if( 1 != db_affected_rows() ) {
 			return false;
 		}
 
 		$id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
 
-		$rc = parent::perform( $id );
+		$rc = parent::perform( $id, $edit );
 
 		if( $rc === false ) {
 			return false;
@@ -1259,7 +1215,6 @@ class PersonActivate extends PersonEdit
 		parent::initialize();
 		$this->title = "Activate Account";
 
-		$this->op = 'person_activate';
 		$this->section = 'person';
 		return true;
 	}
@@ -1291,16 +1246,17 @@ class PersonActivate extends PersonEdit
 	function process ()
 	{
 		global $session;
-		$step = var_from_getorpost('step');
+
 		$id = $session->attr_get('user_id');
+		$edit = $_POST['edit'];
 		
-		switch($step) {
+		switch($edit['step']) {
 			case 'confirm': 
-				$rc = $this->generateConfirm( $id );
+				$rc = $this->generateConfirm( $id, $edit );
 				break;
 			case 'perform':
-				$rc = $this->perform( $id );
-				local_redirect("op=menu");
+				$rc = $this->perform( $id, $edit );
+				local_redirect(url("home"));
 				break;
 			default:
 				$formData = $this->getFormData($id);
@@ -1310,9 +1266,9 @@ class PersonActivate extends PersonEdit
 		return $rc;
 	}
 	
-	function perform( $id )
+	function perform( $id, $edit = array() )
 	{
-		$rc = parent::perform( $id );
+		$rc = parent::perform( $id, $edit );
 		if( ! $rc ) {
 			return false;
 		}
@@ -1340,18 +1296,16 @@ class PersonSurvey extends PersonSignWaiver
 			'require_valid_session',
 			'allow',
 		);
-		$this->op = 'person_survey';
 		$this->section = 'person';
-
 		$this->formFile = 'member_survey.html';
-
 		return true;
 	}
 
 	function perform()
 	{
 		global $session;
-		$dem = var_from_getorpost('demographics');
+		
+		$dem = $_POST['demographics'];
 		$items = array( 'income','num_children','education','field','language','other_sports');
 
 		$fields = array();
@@ -1416,26 +1370,26 @@ class PersonSignWaiver extends Handler
 			'require_valid_session',
 			'allow',
 		);
-		$this->op = 'person_signwaiver';
 		$this->section = 'person';
-
 		$this->formFile = 'waiver_form.html';
+
+		$this->querystring = "UPDATE person SET waiver_signed=NOW() where user_id = %d";
 
 		return true;
 	}
 
 	function process ()
 	{
-		$step   = var_from_getorpost('step');
-		$next = var_from_getorpost('next');
+		$edit = $_POST['edit'];
+		$next = $_POST['next'];
+		
 		if(is_null($next)) {
 			$next = queryPickle("menu");
 		}
 		
-		switch($step) {
-
+		switch($edit['step']) {
 			case 'perform':
-				$this->perform();
+				$this->perform( $edit );
 				local_redirect( queryUnpickle($next));
 			default:
 				$rc = $this->generateForm( $next );
@@ -1452,20 +1406,18 @@ class PersonSignWaiver extends Handler
 	 * User will not be permitted to log in if they have not signed the
 	 * waiver.
 	 */
-	function perform()
+	function perform( $edit = array() )
 	{
 		global $session;
 		
-		$id = $session->attr_get('user_id');
-		$signed = var_from_getorpost('signed');
-		
-		if('yes' != $signed) {
+		if('yes' != $edit['signed']) {
 			$this->error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
 		}
 
-		/* otherwise, it's yes.  Mark the signed_waiver field to the current
-		 * date */
-		db_query("UPDATE person SET waiver_signed=NOW() where user_id = %d", $id);
+		/* otherwise, it's yes.  Perform the appropriate query to markt he
+		 * waiver as signed.
+		 */
+		db_query($this->querystring, $session->attr_get('user_id'));
 
 		if( 1 != db_affected_rows()) {
 			return false;
@@ -1476,9 +1428,8 @@ class PersonSignWaiver extends Handler
 
 	function generateForm( $next )
 	{
-		$output = form_hidden('op', $this->op);
-		$output .= form_hidden('next', $next);
-		$output .= form_hidden('step', 'perform');
+		$output = form_hidden('next', $next);
+		$output .= form_hidden('edit[step]', 'perform');
 
 		ob_start();
 		$retval = @readfile("data/" . $this->formFile);
@@ -1497,46 +1448,14 @@ class PersonSignDogWaiver extends PersonSignWaiver
 {
 	function initialize ()
 	{
-		global $session;
 		$this->title = "Consent Form For Dog Owners";
-
 		$this->_required_perms = array(
 			'require_valid_session',
 			'allow',
 		);
-		$this->op = 'person_signdogwaiver';
 		$this->section = 'person';
-
 		$this->formFile = 'dog_waiver_form.html';
-
-		return true;
-	}
-
-	/**
-	 * Process input from the waiver form.
-	 *
-	 * User will not be permitted to log in if they have not signed the
-	 * waiver.
-	 */
-	function perform()
-	{
-		global $$session;
-		
-		$id = $session->attr_get('user_id');
-		$signed = var_from_getorpost('signed');
-		
-		if('yes' != $signed) {
-			$this->error_exit("Sorry, if you wish to bring a dog to the fields, you must sign this waiver.");
-		}
-
-		/* otherwise, it's yes.  Set the user to 'active' and marked the
-		 * signed_waiver field to the current date */
-		db_query("UPDATE person SET dog_waiver_signed=NOW() where user_id = %d",$id);
-
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-		
+		$this->querystring = "UPDATE person SET dog_waiver_signed=NOW() where user_id = %d";
 		return true;
 	}
 }
@@ -1560,11 +1479,8 @@ class PersonList extends Handler
 			'volunteer_sufficient',
 			'deny',
 		);
-		$this->op = 'person_list';
 		$this->section = 'person';
 		
-		$this->setLocation(array("List Users" => 'op=' . $this->op));
-
 		return true;
 	}
 	
@@ -1577,30 +1493,32 @@ class PersonList extends Handler
 
 	function process ()
 	{
-		$letter = var_from_getorpost("letter");
+		$letter = $_GET['letter'];
 		
 		$ops = array(
 			array(
 				'name' => 'view',
-				'target' => 'op=person_view&id='
+				'target' => 'person/view/'
 			),
 		);
 		if($this->_permissions['delete']) {
 			$ops[] = array(
 				'name' => 'delete',
-				'target' => 'op=person_delete&id='
+				'target' => 'person/delete/'
 			);
 		}
 		$output = "";
 		if($this->_permissions['create']) {
-			$output .= l("Create New User", "op=person_create");
+			$output .= l("Create New User", "person/create");
 		}
 
 
 		$query = "SELECT 
 			CONCAT(lastname,', ',firstname) AS value, user_id AS id 
 			FROM person WHERE lastname LIKE '%s%%' ORDER BY lastname,firstname";
-		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', $this->op, $letter);
+		$output .= $this->generateAlphaList($query, $ops, 'lastname', 'person', 'person/list', $letter);
+		
+		$this->setLocation(array("List Users" => 'person/list'));
 
 		return $output;
 	}
@@ -1619,27 +1537,26 @@ class PersonListNewAccounts extends Handler
 			'admin_sufficient',
 			'deny'
 		);
-		$this->op = 'person_listnew';
 		$this->section = 'admin';
 		return true;
 	}
 
 	function process ()
 	{
-		$letter = var_from_getorpost("letter");
+		$letter = $_GET['letter'];
 
 		$ops = array(
 			array(
 				'name' => 'view',
-				'target' => 'op=person_view&id='
+				'target' => 'person/view/'
 			),
 			array(
 				'name' => 'approve',
-				'target' => 'op=person_approvenew&id='
+				'target' => 'person/approve/'
 			),
 			array(
 				'name' => 'delete',
-				'target' => 'op=person_delete&id='
+				'target' => 'person/delete/'
 			),
 		);
 
@@ -1653,9 +1570,9 @@ class PersonListNewAccounts extends Handler
 			 	lastname LIKE '%s%%'
 			 ORDER BY lastname, firstname";
 
-		$this->setLocation(array( $this->title => 'op=person_listnew' ));
+		$this->setLocation(array( $this->title => 'person/listnew' ));
 		
-		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE status = 'new'", $this->op, $letter);
+		return $this->generateAlphaList($query, $ops, 'lastname', "person WHERE status = 'new'", 'person/listnew', $letter);
 	}
 }
 
@@ -1668,24 +1585,28 @@ class PersonChangePassword extends Handler
 	{
 		$this->_required_perms = array(
 			'require_valid_session',
-			'require_var:id',
 			'admin_sufficient',
 			'self_sufficient',
 			'deny',
 		);
-		$this->op = 'person_changepassword';
 		$this->section = 'person';
 		return true;
 	}
 
 	function process()
 	{
-		$step = var_from_getorpost('step');
-		$id = var_from_getorpost('id');
-		switch($step) {
+		global $session;
+		$edit = $_POST['edit'];
+		
+		$id = arg(2);
+		if(!$id) {
+			$id = $session->attr_get('user_id');
+		}
+		
+		switch($edit['step']) {
 			case 'perform':
-				$this->perform( $id );
-				local_redirect("op=person_view&id=$id");
+				$this->perform( $id, $edit );
+				local_redirect(url("person/view/$id"));
 				break;
 			default:
 				$rc = $this->generateForm( $id );
@@ -1697,31 +1618,26 @@ class PersonChangePassword extends Handler
 	function generateForm( $id )
 	{
 
+		/* TODO: person_load */
 		$result = db_query( "SELECT firstname, lastname, username FROM person WHERE user_id = %d", $id);
-
-		$user = db_fetch_array($result);
-			
-		if(!isset($user)) {
+		if(1 != db_num_rows($result)) {
 			$this->error_exit("That user does not exist");
 		}
+		$user = db_fetch_object($result);
 		
 		$this->setLocation(array(
-			$user['firstname'] . " " .$user['lastname'] => "op=person_view&id=$id",
+			"$user->firstname $user->lastname" => "person/view/$id",
 			'Change Password' => 0
 		));
 
-		$output = para("You are changing the password for '"
-			. $user['firstname'] . " " . $user['lastname']
-			. "' (username '" . $user['username'] . "').");
+		$output = para("You are changing the password for '$user->firstname $user->lastname' (username '$user->username').");
 
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
+		$output .= form_hidden('edit[step]', 'perform');
 		$output .= "<div class='pairtable'>";
 		$output .= table( null, 
 			array(
-				array("New Password:", form_password('', 'password_one', '', 25, 100, "Enter your new password")),
-				array("New Password (again):", form_password('', 'password_two', '', 25, 100, "Enter your new password a second time to confirm")),
+				array("New Password:", form_password('', 'edit[password_one]', '', 25, 100, "Enter your new password")),
+				array("New Password (again):", form_password('', 'edit[password_two]', '', 25, 100, "Enter your new password a second time to confirm")),
 			)
 		);
 		$output .= "</div>";
@@ -1731,18 +1647,14 @@ class PersonChangePassword extends Handler
 		return form($output);
 	}
 
-	function perform ()
+	function perform ( $id , $edit = array())
 	{
-		$id = var_from_getorpost('id');
-		$pass_one = var_from_getorpost('password_one');
-		$pass_two = var_from_getorpost('password_two');
-
-		if($pass_one != $pass_two) {
+		if($edit['password_one'] != $edit['password_two']) {
 			$this->error_exit("You must enter the same password twice.");
 		}
 		
 		db_query("UPDATE person set password = '%s' WHERE user_id = %d",
-			md5($pass_one), $id);
+			md5($edit['password_one']), $id);
 	
 		if( 1 != db_affected_rows() ) {
 			return false;
@@ -1766,17 +1678,16 @@ class PersonForgotPassword extends Handler
 			'allow',
 		);
 		$this->title = "Request New Password";
-		$this->op = 'person_forgotpassword';
 		$this->section = 'person';
 		return true;
 	}
 
 	function process()
 	{
-		$step = var_from_getorpost('step');
-		switch($step) {
+		$edit = $_POST['edit'];
+		switch($edit['step']) {
 			case 'perform':
-				$rc = $this->perform();	
+				$rc = $this->perform( $edit );	
 				break;
 			default:
 				$rc = $this->generateForm();
@@ -1800,14 +1711,12 @@ class PersonForgotPassword extends Handler
 </p>
 END_TEXT;
 
-		$output .= form_hidden('op', $this->op);
-		$output .= form_hidden('step', 'perform');
-		$output .= form_hidden('id', $id);
+		$output .= form_hidden('edit[step]', 'perform');
 		$output .= "<div class='pairtable'>";
 		$output .= table(null, array(
-			array("Username:", form_textfield('', 'username', '', 25, 100)),
-			array("Member ID Number:", form_textfield('', 'member_id', '', 25, 100)),
-			array("Email Address:", form_textfield('', 'email', '', 40, 100))
+			array("Username:", form_textfield('', 'edit[username]', '', 25, 100)),
+			array("Member ID Number:", form_textfield('', 'edit[member_id]', '', 25, 100)),
+			array("Email Address:", form_textfield('', 'edit[email]', '', 40, 100))
 		));
 		$output .= "</div>";
 		$output .= form_submit("Submit") . form_reset("Reset");
@@ -1815,25 +1724,21 @@ END_TEXT;
 		return form($output);
 	}
 
-	function perform ()
+	function perform ( $edit = array() )
 	{
-		$username = var_from_getorpost('username');
-		$member_id = var_from_getorpost('member_id');
-		$email = var_from_getorpost('email');
-	
 		$fields = array();
 		$fields_data = array();
-		if(validate_nonblank($username)) {
+		if(validate_nonblank($edit['username'])) {
 			$fields[] = "username = '%s'";
-			$fields_data[] = $username;
+			$fields_data[] = $edit['username'];
 		}
-		if(validate_nonblank($email)) {
+		if(validate_nonblank($edit['email'])) {
 			$fields[] = "email = '%s'";
-			$fields_data[] = $email;
+			$fields_data[] = $edit['email'];
 		}
-		if(validate_nonblank($member_id)) {
+		if(validate_nonblank($edit['member_id'])) {
 			$fields[] = "member_id = %d";
-			$fields_data[] = $member_id;
+			$fields_data[] = $edit['member_id'];
 		}
 		
 		if( count($fields) < 1 || (count($fields) != count($fields_data))) {
@@ -1868,10 +1773,10 @@ END_TEXT;
 			}
 
 			$message = <<<EOM
-Dear {$users[0]['firstname']} {$users[0]['lastname']},
+Dear $user->firstname $user->lastname,
 
 Someone, probably you, just requested that your password for the account
-	{$users[0]['username']}
+	$user->username
 be reset.  Your new password is
 	$pass
 Since this password has been sent via unencrypted email, you should change
@@ -1885,7 +1790,7 @@ the system administrator.
 EOM;
 
 			/* And fire off an email */
-			$rc = mail($users[0]['email'], $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+			$rc = mail($user->email, $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 			if($rc == false) {
 				$this->error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
