@@ -146,8 +146,7 @@ class PersonApproveNewAccount extends PersonView
 			($person_info['gender'] == "Male") ? 0 : 1,
 			$member_id);
 		
-		$sth = $DB->prepare("UPDATE person SET class = 'inactive', member_id = ?  where user_id = ?");
-		$res = $DB->execute($sth, array($full_member_id, $id));
+		$res = $DB->query("UPDATE person SET class = 'inactive', member_id = ?  where user_id = ?", array($full_member_id, $id));
 		
 		if($this->is_database_error($res)) {
 			return false;

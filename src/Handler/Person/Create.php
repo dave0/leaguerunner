@@ -91,8 +91,7 @@ class PersonCreate extends PersonEdit
 		}
 		$crypt_pass = md5($password_once);
 		
-		$st = $DB->prepare("INSERT into person (username,password,class) VALUES (?,?,'new')");
-		$res = $DB->execute($st, array(var_from_getorpost('username'), $crypt_pass));
+		$res = $DB->query("INSERT into person (username,password,class) VALUES (?,?,'new')", array(var_from_getorpost('username'), $crypt_pass));
 		if($this->is_database_error($res)) {
 			return false;
 		}

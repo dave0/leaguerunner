@@ -50,8 +50,18 @@ class TeamCreate extends TeamEdit
 	function perform ()
 	{
 		global $DB, $id, $session;
+
+		if(! $this->validate_data()) {
+			/* Oops... invalid data.  Redisplay the confirmation page */
+			$this->set_template_file("Team/edit_form.tmpl");
+			$this->tmpl->assign("error_message", $this->error_text);
+			$this->tmpl->assign("page_step", 'confirm');
+			return $this->generate_form();
+		}
+
+		$team_name = trim(var_from_getorpost("team_name"));
 	
-		$res = $DB->query("INSERT into team (name,established) VALUES ('new team', NOW())");
+		$res = $DB->query("INSERT into team (name,established) VALUES (?, NOW())", array($team_name));
 		if($this->is_database_error($res)) {
 			return false;
 		}
@@ -73,27 +83,6 @@ class TeamCreate extends TeamEdit
 		
 		return parent::perform();
 	}
-
-	function validate_data ()
-	{
-		global $_POST, $session;
-		$err = true;
-		
-		$team_name = trim(var_from_getorpost("team_name"));
-		if(0 == strlen($team_name)) {
-			$this->error_text .= gettext("team name cannot be left blank") . "<br>";
-			$err = false;
-		}
-		
-		$shirt_colour = trim(var_from_getorpost("shirt_colour"));
-		if(0 == strlen($shirt_colour)) {
-			$this->error_text .= gettext("shirt colour cannot be left blank") . "<br>";
-			$err = false;
-		}
-
-		return $err;
-	}
-
 }
 
 ?>

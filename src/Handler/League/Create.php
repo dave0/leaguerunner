@@ -63,9 +63,9 @@ class LeagueCreate extends LeagueEdit
 	function perform ()
 	{
 		global $DB, $id, $session;
+		$league_name = trim(var_from_getorpost("league_name"));
 		
-		$st = $DB->prepare("INSERT into league (name,coordinator_id) VALUES ('new league',?)");
-		$res = $DB->execute($st, array($session->data['user_id']));
+		$res = $DB->query("INSERT into league (name,coordinator_id) VALUES (?,?)", array($league_name, $session->data['user_id']));
 		if($this->is_database_error($res)) {
 			return false;
 		}

@@ -64,8 +64,8 @@ class FieldCreate extends FieldEdit
 			return $this->generate_form();
 		}
 		
-		$st = $DB->prepare("INSERT into field_info (name) VALUES ('new field')");
-		$res = $DB->execute($st, array($session->data['user_id']));
+		$field_name = trim(var_from_getorpost("field_name"));
+		$res = $DB->query("INSERT into field_info (name) VALUES (?)", array($field_name));
 		if($this->is_database_error($res)) {
 			return false;
 		}
