@@ -45,6 +45,8 @@ require_once("includes/database.inc");
 $conf = variable_init();
 
 require_once("classes/person.inc");
+require_once("classes/league.inc");
+require_once("classes/team.inc");
 
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");

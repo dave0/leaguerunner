@@ -106,8 +106,6 @@ CREATE TABLE league (
 	season		ENUM('none','Spring','Summer','Fall','Winter'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
-	coordinator_id	integer,	-- coordinator
-	alternate_id	integer,	-- alternate coordinator
 	max_teams	integer,
 -- This information is for handling different rounds in the schedule
 -- The current round is used to determine what round a new week will be 
@@ -115,7 +113,6 @@ CREATE TABLE league (
 	current_round int DEFAULT 1,
 	stats_display ENUM('all','currentround') DEFAULT 'all',
 	year        integer,
-	start_time	time,
 	allow_schedule	ENUM("Y","N") DEFAULT 'Y',  -- Should this league have scheduling info?
 	PRIMARY KEY (league_id)
 );
@@ -125,6 +122,14 @@ CREATE TABLE leagueteams (
 	team_id		integer NOT NULL,
 	PRIMARY KEY (team_id,league_id),
 	INDEX leagueteams_league (league_id)
+);
+
+CREATE TABLE leaguemembers (
+	league_id	integer NOT NULL,
+	player_id	integer NOT NULL,
+	status		varchar(64),
+	PRIMARY KEY	(league_id, player_id),
+	INDEX leaguemembers_league (league_id)
 );
 
 -- Tables for scheduling/scorekeeping

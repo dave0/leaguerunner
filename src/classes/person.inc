@@ -88,11 +88,12 @@ class Person
 			"SELECT 
 				l.league_id, 
 				l.name,
-				l.tier
+				l.tier,
+				m.status
 			 FROM 
-				league l,
-				leagueteams t
-			 WHERE l.coordinator_id = %d OR l.alternate_id = %d", $this->user_id, $this->user_id);
+			 	leaguemembers m 
+				INNER JOIN league l ON (m.league_id = l.league_id)
+			 WHERE m.player_id = %d", $this->user_id);
 		$this->leagues = array();
 		while($league = db_fetch_object($result)) {
 			# TODO: evil hack.

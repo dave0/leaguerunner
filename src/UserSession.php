@@ -286,7 +286,7 @@ class UserSession
 
 		if(!$this->user->is_a_coordinator) { return false; }
 
-		$result = db_query("SELECT l.league_id, l.coordinator_id, l.alternate_id FROM league l, leagueteams t WHERE t.team_id = %d and t.league_id = l.league_id", $team_id);
+		$result = db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $team_id);
 
 		$league = db_fetch_object($result);	
 		
@@ -295,8 +295,10 @@ class UserSession
 			return true;
 		}
 
-		if( ($this->user->user_id == $league->coordinator_id) || ($this->user->user_id == $league->alternate_id)) {
-			return true;
+		if( array_key_exists( $league->league_id, $this->user->leagues ) ) {
+			if($this->user->leagues[ $league->league_id ]->status == 'coordinator') {
+				return true;
+			}
 		}
 
 		return false;

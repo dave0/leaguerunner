@@ -149,9 +149,11 @@ class ScheduleAddDay extends Handler
 
 		/* All the game_ date values have already been validated by
 		 * isDataInvalid()
+		 * TODO: This sucks and will be replaced by something that schedules
+		 * games when fields are actually available.
 		 */
 		$gametime = join("-",array($year,$month, $day));
-		$gametime .= " " . $league->start_time;
+		$gametime .= " 18:30:00";
 
 		for($i = 0; $i < $num_games; $i++) {
 			db_query("INSERT INTO schedule (league_id,date_played,round) values (%d,'%s',%d)", $id, $gametime, $league->current_round);

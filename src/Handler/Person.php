@@ -751,8 +751,6 @@ END_TEXT;
 			. "<b><font color=red><a href='http://www.ocua.ca/ocua/policy/privacy_policy.html' target='_new'>Privacy Policy</a></font></b>"
 		);
 
-		$rows = array();
-		
 		if($this->_permissions['edit_name']) {
 			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
 
@@ -863,8 +861,6 @@ END_TEXT;
 
 		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
 		$output .= form_hidden('edit[step]', 'perform');
-
-		$rows = array();
 
 		$group = '';	
 		if($this->_permissions['edit_username']) {

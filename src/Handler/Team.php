@@ -701,9 +701,10 @@ class TeamView extends Handler
 		 * Average of all score differentials.  Lower SBF means more
 		 * evenly-matched games.
 		 */
-		$teamSBF = team_calculate_sbf( $id );
+		$teamSBF = $team->calculate_sbf( );
 		if( $teamSBF ) {
-			$leagueSBF = league_calculate_sbf( $team->league_id);
+			$league = league_load( array('league_id' => $team->league_id) );
+			$leagueSBF = $league->calculate_sbf();
 			if( $leagueSBF ) {
 				$teamSBF .= " (league $leagueSBF)";
 			} 
@@ -1003,63 +1004,6 @@ class TeamEmails extends Handler
 		$output .= pre(join(",\n", $nameAndEmails));
 		return $output;
 	}
-}
-
-/* Team helper functions */
-
-/**
- * Calculates the "Spence Balancing Factor" or SBF for the team.
- * This is the average of all score differentials for games played 
- * to-date.  A lower value indicates more even match-ups with opponents.
- *
- * The team SBF can be compared to the SBF for the division.  If it's too far
- * off from the division/league SBF, it's an indication that the team is
- * involved in too many blowout wins/losses.
- */
-function team_calculate_sbf( $teamId )
-{
-	return db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $teamId, $teamId));
-}
-
-/**
- * Load a single team object from the database using the supplied query data.
- * If more than one account matches, we will return only the first one.  If
- * fewer than one matches, we return null.
- *
- * @param	mixed 	$array key-value pairs that identify the team to be loaded.
- */
-function team_load ( $array = array() )
-{
-	$query = array();
-
-	foreach ($array as $key => $value) {
-		if($key == '_extra') {
-			/* Just slap on any extra query fields desired */
-			$query[] = $value;
-		} else {
-			$query[] = "t.$key = '" . check_query($value) . "'";
-		}
-	}
-	
-	$result = db_query_range("SELECT 
-		t.*,
-		IF(l.tier,CONCAT(l.name,' Tier ',l.tier),l.name) AS league_name,
-		l.day AS league_day, 
-		l.season AS league_season, 
-		l.league_id
-		FROM team t
-		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
-		INNER JOIN league l ON (s.league_id = l.league_id)
-		WHERE " . implode(' AND ',$query),0,1);
-
-	/* TODO: we may want to abort here instead */
-	if(1 != db_num_rows($result)) {
-		return null;
-	}
-
-	$team = db_fetch_object($result);
-
-	return $team;
 }
 
 ?>
