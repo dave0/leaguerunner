@@ -771,7 +771,18 @@ class TeamView extends Handler
 			$league_name .= " Tier $team->league_tier";
 		}
 		$teamdata .= simple_row("League/Tier:", l($league_name, "op=league_view&id=$team->league_id"));
+		
 		$teamdata .= simple_row("Team Status:", $team->status);
+
+		/* Spence Balancing Factor:
+		 * Average of all score differentials.  Lower SBF means more
+		 * evenly-matched games.
+		 */
+		
+		$leagueSBF = league_calculate_sbf( $team->league_id);
+		$teamSBF = team_calculate_sbf( $team->id );
+		$teamdata .= simple_row("Team SBF:", "$teamSBF (league $leagueSBF)");
+		
 
 		$teamdata .= "</table>";
 
@@ -946,8 +957,8 @@ class TeamScheduleView extends Handler
 		$result = db_query(
 			"SELECT 
 				s.game_id, 
-				DATE_FORMAT(s.date_played, '%a %b %d %Y') as date,
-				TIME_FORMAT(s.date_played,'%l:%i %p') as time,
+				DATE_FORMAT(s.date_played, '%%a %%b %%d %%Y') as date,
+				TIME_FORMAT(s.date_played,'%%l:%%i %%p') as time,
 				s.home_team AS home_id, 
 				s.away_team AS away_id, 
 				s.field_id, 
@@ -1081,5 +1092,21 @@ class TeamEmails extends Handler
 		$output .= pre(join(",\n", $nameAndEmails));
 		return $output;
 	}
+}
+
+/* Team helper functions */
+
+/**
+ * Calculates the "Spence Balancing Factor" or SBF for the team.
+ * This is the average of all score differentials for games played 
+ * to-date.  A lower value indicates more even match-ups with opponents.
+ *
+ * The team SBF can be compared to the SBF for the division.  If it's too far
+ * off from the division/league SBF, it's an indication that the team is
+ * involved in too many blowout wins/losses.
+ */
+function team_calculate_sbf( $teamId )
+{
+	return db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $teamId, $teamId));
 }
 ?>

@@ -1012,6 +1012,7 @@ class LeagueView extends Handler
 			$output .= simple_row("Current Round:", $league->current_round);
 			$output .= simple_row("Usual Start Time:", $league->start_time);
 			$output .= simple_row("Maximum teams:", $league->max_teams);
+			$output .= simple_row("League SBF:", league_calculate_sbf($league->league_id));
 		}
 		$output .= "</table>";
 
@@ -1452,6 +1453,18 @@ function cmp ($a, $b)
 		return -1;
 	}
 	return 0;
+}
+
+/* League helper functions */
+
+/**
+ * Calculates the "Spence Balancing Factor" or SBF.
+ * This is the average of all score differentials for games played 
+ * to-date.  A lower value indicates a more evenly matched league.
+ */
+function league_calculate_sbf( $leagueId )
+{
+	return db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.league_id = %d", $leagueId));
 }
 
 ?>
