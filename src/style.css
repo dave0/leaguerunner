@@ -93,7 +93,7 @@ TABLE {
 	font-size: 11px;
 }
 
-.standings_subtitle, .roster_subtitle {
+.standings_subtitle, .schedule_subtitle, .roster_subtitle {
 	font-weight:         bold;
 	border-bottom-width: 1px;
 	border-bottom-color: black;

@@ -1,0 +1,128 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Schedule for {$league_name}{if $league_tier} Tier {$league_tier}{/if}</h1>
+
+<table border="0" cellpadding="3" cellspacing="0"><tdata>
+{foreach name=schedule_weeks from=$schedule_weeks item=week}
+  <tr>
+    <td class="schedule_title" valign='top' colspan='7'> 
+      <font face="verdana,arial,helvetica" color='#FFFF00'><b>{$week.date}</b></font>
+    </td>
+    <td class="schedule_title" colspan='2'>
+    {if $week.current_edit}
+      &nbsp;
+    {else}
+      {if $perm_edit_schedule and $week.editable}
+        <a href="{$app_cgi_location}?op=league_schedule_view;id={$league_id};week_id={$week.id}">edit week</a>
+      {/if}
+    {/if}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="schedule_subtitle" rowspan="2">Round</td>
+    <td class="schedule_subtitle" rowspan="2">Game Time</td>
+    <td class="schedule_subtitle" rowspan="2">Home</td>
+    <td class="schedule_subtitle" rowspan="2">Away</td>
+    <td class="schedule_subtitle" rowspan="2">Field</td>
+    <th class="schedule_subtitle" colspan="2">Score</td>
+    {if $perm_view_spirit}
+      <td class="schedule_subtitle" colspan="2">SOTG</td>
+    {else}
+      <td class="schedule_subtitle" colspan="2" rowspan="2" width='10%'>&nbsp;</td>
+    {/if}
+  </tr>
+  <tr>
+    <td class="schedule_subtitle">Home</td>
+    <td class="schedule_subtitle">Away</td>
+    {if $perm_view_spirit}
+      <td class="schedule_subtitle">Home</td>
+	    <td class="schedule_subtitle">Away</td>
+    {/if}
+  </tr>
+
+{if $perm_edit_schedule and $week.current_edit and $week.editable}
+  <form action='{$app_cgi_location}' method='POST'>
+  <input type='hidden' name='op' value='league_schedule_edit'>
+  <input type='hidden' name='week_id' value='{$week.id}'>
+  <input type='hidden' name='league_id' value='{$league_id}'>
+  {foreach name=games from=$week.games item=game}
+  <tr>
+    <td>
+      <input type='hidden' name='game_id' value='{$game.id}'>
+      <select name='round[{$game.id}]'>
+      {create_options data=$league_rounds selected=$game.round}
+      </select>
+    </td>
+    <td>
+      {* does this work OK, or do I need a custom one *}
+      <select name='game_time[{$game.id}]'>
+      {create_options data=$league_starttime selected=$game.time}
+      </select>
+    </td>
+    <td>
+      <select name='home[{$game.id}]'>
+      {create_options data=$league_teams selected=$game.home_id}
+      </select>
+    </td>
+    <td>
+      <select name='away[{$game.id}]'>
+      {create_options data=$league_teams selected=$game.away_id}
+      </select>
+    </td>
+    <td>
+      <select name='field[{$game.id}]'>
+      {create_options data=$league_fields selected=$game.field_id}
+      </select>
+    </td>
+    <!-- blanks for score -->
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  {/foreach}
+  <tr>
+    <td colspan=8>
+      <input name='submit' value='Submit' type='submit'>
+      <input type='reset'>
+    </td>
+  </tr>
+  </form>
+{else} {* week.edit_this *}
+  {foreach name=games from=$week.games item=game}
+  <tr>
+    <td>{$game.round}</td>
+    <td>{$game.time}</td>
+    <td>
+      {if $game.home_id}
+        <a href="{$app_cgi_location}?op=team_view;id={$game.home_id}">{$game.home_name}</a>{if $game.home_shirt}({$game.home_shirt}){/if}
+      {else}
+			Not yet scheduled.
+      {/if}
+    </td>
+    <td>
+      {if $game.away_id}
+        <a href="{$app_cgi_location}?op=team_view;id={$game.away_id}">{$game.away_name}</a>{if $game.away_shirt}({$game.away_shirt}){/if}
+      {else}
+			Not yet scheduled.
+      {/if}
+    </td>
+    <td><a href="{$app_cgi_location}?op=field_view;id={$game.field_id}">{$game.field_name}</a>&nbsp;</td>
+    <td>{$game.home_score}</td>
+    <td>{$game.away_score}</td>
+    {if $game.default}
+			<td colspan='2'>(default)</td>
+    {else}
+      {if $perm_view_spirit}
+     	 	<td>{$game.home_spirit}</td>
+       	<td>{$game.away_spirit}</td>
+      {/if}
+    {/if}
+  </tr>
+  {/foreach}
+{/if} {* week.edit_this *}
+{/foreach}
+</tdata></table>
+
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set sw=2 ts=2 et: *}

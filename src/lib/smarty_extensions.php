@@ -17,57 +17,49 @@
  * 
  * <pre>
  * This is to be called as
- * {create_pulldown name='this_select' data=$array_var, multiple=true, size=3}
+ * <select name=foo>
+ * {create_options  data=$array_var selected=$item multiple=true size=3}
+ * </select>
  *
  * $array_var should consist of a regular array of associative arrays.The
  * internal associative arrays should be of the format:
  * array(
- * 	'value' => 'THis is a foo', # The value to be displayed
- * 	'key'   => 'foo',           # The value to be returned when submitted
- * 	'selected' => false         # Whether or not this should be marked as
- * 	                            # selected 
+ * 	'output' => 'THis is a foo', # The value to be displayed
+ * 	'value'   => 'foo',           # The value to be returned when submitted
  * )
  * </pre>
  *
  * @param string $params parameter list
  */
-function create_pulldown( $params )
+function create_options( $params )
 {
 	extract($params);
-	if(empty($name)) {
-		echo "ERROR: No name= attribute given to create_pulldown()";
-		return;
-	}
 	if(is_null($data)) {
 		echo "ERROR: No data= attribute given to create_pulldown()";
 		return;
 	}
-	if(empty($multiple)) {
-		$multiple = false;
-	}
-	if(empty($size)) {
-		$size = 1;
+
+	if(empty($selected)) {
+		$selected = array();
+	} else {
+		if(!is_array($selected)) {
+			$selected = array($selected);
+		}
 	}
 
-	$output = "<select name='$name' size='$size'";
-	if($multiple) {
-		$output .= " multiple";
-	}
-	$output .= ">\n";
 	foreach($data as $this_entry) {
-		$output .= "<option value='" . $this_entry['key'] . "'";
-		if(!empty($this_entry['selected']) && $this_entry['selected']) {
+		$output .= "<option value='" . $this_entry['value'] . "'";
+		if(in_array($this_entry['value'], $selected)) {
 			$output .= " selected";
 		}
 		$output .= ">";
-		if($this_entry['value']) {
-			$output .= $this_entry['value'];
+		if($this_entry['output']) {
+			$output .= $this_entry['output'];
 		} else {
-			$output .= $this_entry['key'];
+			$output .= $this_entry['value'];
 		}
 		$output .= "</option>\n";
 	}
-	$output .= "</select>";
 
 	echo $output;
 }
@@ -79,7 +71,7 @@ function create_pulldown( $params )
  */
 function register_smarty_extensions  ( &$smarty )
 {
-	$smarty->register_function("create_pulldown","create_pulldown");
+	$smarty->register_function("create_options","create_options");
 }
 
 ?>
