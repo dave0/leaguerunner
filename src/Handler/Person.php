@@ -498,7 +498,6 @@ class PersonApproveNewAccount extends PersonView
 				AND p.user_id <> q.user_id
 				AND (
 					p.email = q.email
-					OR p.birthdate = q.birthdate
 					OR p.home_phone = q.home_phone
 					OR p.work_phone = q.work_phone
 					OR p.mobile_phone = q.mobile_phone
