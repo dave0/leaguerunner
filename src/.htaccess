@@ -7,3 +7,20 @@
 </Files>
 
 Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_php4.c>
+	php_value register_globals        0
+	php_value track_vars              1
+	php_value magic_quotes_gpc        0
+	php_value magic_quotes_runtime    0
+	php_value magic_quotes_sybase     0
+	php_value arg_separator.output    "&amp;"
+	php_value session.cache_expire    200000
+	php_value session.gc_maxlifetime  200000
+	php_value session.cookie_lifetime 2000000
+	php_value session.auto_start      0
+	php_value session.save_handler    user
+	php_value session.cache_limiter   none
+	php_value allow_call_time_pass_reference  On
+</IfModule>

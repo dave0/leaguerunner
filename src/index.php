@@ -50,16 +50,6 @@ if (DB::isError($DB)) {
 require_once "UserSession.php";
 require_once "Handler.php";
 
-set_magic_quotes_runtime(0);
-if (get_magic_quotes_gpc ()) {
-	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		array_stripslashes($_GET);
-	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		array_stripslashes($_POST);
-	} 
-	array_stripslashes($_COOKIES);
-}
-
 $op = var_from_getorpost('op');
 if( is_null($op) ) {
 	$op = 'login';

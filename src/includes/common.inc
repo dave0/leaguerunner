@@ -391,20 +391,6 @@ function isDatabaseError( &$res )
  ** TODO: Some of this is old code that might be best removed entirely.
  */
 
-function array_stripslashes(&$array) {
-	if( !is_array($array)) {
-		return;
-	}
-	while (list($key) = each($array)) {
-		if (is_array($array[$key])) {
-			array_stripslashes($array[$key]);
-		} else {
-			$array[$key] = stripslashes($array[$key]);
-		}
-	}
-	reset($array);
-}
-
 /* 
  * To be safe, PHP's auto-global-variable stuff should be turned off, so we
  * will use the functions below to access GET, POST and cookie variables.
