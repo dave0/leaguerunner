@@ -839,7 +839,7 @@ class TeamView extends Handler
 
 			$player_name = l($player->fullname, "person/view/$player->id");
 			if( $conflictText ) {
-				$player_name = "<div class='roster_conflict'>$conflictText</div>";
+				$player_name .= "<div class='roster_conflict'>$conflictText</div>";
 			}
 			
 			if($session->has_permission('team','player status', $this->team->team_id, $player->id) ) {
