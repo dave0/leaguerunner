@@ -276,8 +276,8 @@ class Game extends LeaguerunnerObject
 			$game_updated = true;
 		} else if ( !$home_entry && $away_entry ) {
 #			print $this->game_id ." has only an away entry<br/>\n";
-			$this->set('home_score', $away_entry->score_for);
-			$this->set('away_score', $away_entry->score_against);
+			$this->set('home_score', $away_entry->score_against);
+			$this->set('away_score', $away_entry->score_for);
 			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 			$game_updated = true;
