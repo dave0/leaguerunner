@@ -1046,8 +1046,8 @@ class PersonEdit extends Handler
 				$rc = false;
 			}
 
-			if( $year_started < 1985 ) {
-				$this->error_text .= "\n<li>Year started must be after 1985.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
+			if( $year_started < 1986 ) {
+				$this->error_text .= "\n<li>Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
 				$rc = false;
 			}
 			if( $year_started < $birthyear + 8) {
