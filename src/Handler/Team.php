@@ -178,12 +178,6 @@ class TeamEdit extends Handler
 		return $rc;
 	}
 
-	/* TODO: remove after Smarty is removed. */
-	function display () 
-	{
-		return true;
-	}
-
 	function getFormData ( $id )
 	{
 		global $DB;
@@ -373,11 +367,6 @@ class TeamList extends Handler
 		print $this->get_footer();
 
 		return true;
-	}
-	
-	function display () 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -580,12 +569,6 @@ class TeamPlayerStatus extends Handler
 		}
 	
 		return $rc;
-	}
-
-	/* TODO: Remove once Smarty is gone */
-	function display ()
-	{
-		return true;
 	}
 
 	function generateForm () 
@@ -995,11 +978,6 @@ class TeamView extends Handler
 		print $this->get_footer();
 		return true;
 	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 /**
@@ -1168,11 +1146,6 @@ class TeamScheduleView extends Handler
 		print $output;
 		print $this->get_footer();
 		return true;
-	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 ?>

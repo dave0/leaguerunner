@@ -251,11 +251,6 @@ class WardEdit extends Handler
 			return false;
 		}
 	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 class WardList extends Handler
@@ -319,11 +314,6 @@ class WardList extends Handler
 		print $this->get_footer();
 		
 		return true;
-	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -411,11 +401,5 @@ class WardView extends Handler
 		print $this->get_footer();
 		return true;
 	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
-
 ?>

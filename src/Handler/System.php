@@ -37,11 +37,5 @@ class SystemViewFile extends Handler
 
 		return true;
 	}
-	
-	function display()
-	{
-		// TODO DELETEME remove when Smarty is no longer in use
-		return true;
-	}
 }
 ?>

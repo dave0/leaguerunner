@@ -349,6 +349,22 @@ function getOptionsFromRange( $start, $finish )
 }
 
 /**
+ * Helper fn for generating time ranges
+ */
+function getOptionsFromTimeRange( $start, $finish, $increment )
+{
+	$result = array();
+	$result["---"] = "---";
+	for($hour = ($start / 100); $hour <= ($finish / 100); $hour++) {
+		for($minute = 0; $minute < 60; $minute += $increment) {
+			$time = sprintf("%02d:%02d", $hour, $minute);
+			$result[$time] = $time;
+		}
+	}
+	return $result;
+}
+
+/**
  * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
  * database.
  */

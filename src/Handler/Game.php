@@ -69,11 +69,6 @@ class GameSubmit extends Handler
 		return $rc;
 	}
 
-	function display ()
-	{
-		return true;  // TODO: remove when smarty removed
-	}
-
 	function isDataInvalid()
 	{
 		$errors = "";
@@ -504,12 +499,6 @@ class GameFinalizeScore extends Handler
 		return $rc;
 	}
 
-	/* TODO: Remove when smarty removed */
-	function display ()
-	{
-		return true;
-	}
-	
 	function isDataInvalid()
 	{
 		$errors = "";

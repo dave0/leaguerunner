@@ -296,11 +296,6 @@ class SiteEdit extends Handler
 			return false;
 		}
 	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 class SiteList extends Handler
@@ -332,11 +327,6 @@ class SiteList extends Handler
 		print $this->get_footer();
 		
 		return true;
-	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -437,11 +427,6 @@ class SiteView extends Handler
 		print $output;
 		print $this->get_footer();
 		return true;
-	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 

@@ -29,21 +29,19 @@ class LeagueCreate extends LeagueEdit
 			'deny'
 		);
 		$this->op = 'league_create';
+		$this->set_title("Create New League");
 		return true;
 	}
 
 	/**
-	 * Fill in pulldowns for form.
+	 *  No data to fill in.
 	 */
-	function generate_form () 
+	function getFormData ( $id ) 
 	{
-		if($this->populate_pulldowns() == false) {
-			return false;
-		}
-		return true;
+		return array();
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB, $session;
 		$league_name = trim(var_from_getorpost("league_name"));
@@ -58,11 +56,6 @@ class LeagueCreate extends LeagueEdit
 			return false;
 		}
 
-		$this->_id = $id;
-		
-		$this->tmpl->assign("perm_edit_info", true);
-		$this->tmpl->assign("perm_edit_coordinator", true);
-		$this->tmpl->assign("perm_edit_flags", true);
 		return parent::perform();
 	}
 
@@ -89,9 +82,6 @@ class LeagueCreate extends LeagueEdit
  */
 class LeagueEdit extends Handler
 {
-
-	var $_id;
-
 	function initialize ()
 	{
 		$this->set_title("Edit League");
@@ -99,7 +89,6 @@ class LeagueEdit extends Handler
 		$this->_permissions = array(
 			'edit_info'			=> false,
 			'edit_coordinator'		=> false,
-			'edit_flags'		=> false,
 		);
 		
 		$this->_required_perms = array(
@@ -119,55 +108,39 @@ class LeagueEdit extends Handler
 	{
 		if($type == 'administrator') {
 			$this->_permissions['edit_info'] = true;
-			$this->_permissions['edit_flags'] = true;
 			$this->_permissions['edit_coordinator'] = true;
 		} else if($type == 'coordinator') {
 			$this->_permissions['edit_info'] = true;
-			$this->_permissions['edit_flags'] = true;
 		} 
 	}
 
 	function process ()
 	{
-		global $DB;
-
 		$step = var_from_getorpost('step');
 
-		$this->_id = var_from_getorpost('id');
+		$id = var_from_getorpost('id');
 		
 		switch($step) {
 			case 'confirm':
-				$this->set_template_file("League/edit_confirm.tmpl");
-				$this->tmpl->assign("page_step", 'perform');
-				$rc = $this->generate_confirm();
+				$rc = $this->generateConfirm( $id );
 				break;
 			case 'perform':
-				$this->perform();
-				local_redirect("op=league_view&id=".$this->_id);
+				$this->perform( &$id );
+				local_redirect("op=league_view&id=$id");
 				break;
 			default:
-				$this->set_template_file("League/edit_form.tmpl");
-				$this->tmpl->assign("page_step", 'confirm');
-				$rc = $this->generate_form();
-		}
-		$this->tmpl->assign("page_op", $this->op);
-		
-		/* ... and set permissions flags */
-		reset($this->_permissions);
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
-			}
+				$formData = $this->getFormData( $id );
+				$rc = $this->generateForm( $id, $formData );
 		}
 
 		return $rc;
 	}
 
-	function generate_form ()
+	function getFormData ( $id )
 	{
 		global $DB;
 
-		$row = $DB->getRow(
+		$formData = $DB->getRow(
 			"SELECT 
 				l.name as league_name,
 				l.day  as league_day,
@@ -183,80 +156,99 @@ class LeagueEdit extends Handler
 				l.allow_schedule,
 				l.start_time as league_start_time
 			FROM league l WHERE l.league_id = ?", 
-			array($this->_id), DB_FETCHMODE_ASSOC);
+			array($id), DB_FETCHMODE_ASSOC);
 
-		if($this->is_database_error($row)) {
+		if($this->is_database_error($formData)) {
 			return false;
 		}
-
-		if($this->populate_pulldowns() == false) {
-			return false;
-		}
-
-		/* Deal with multiple days */
-		if(strpos($row['league_day'], ",")) {
-			$row['league_day'] = split(",",$row['league_day']);
-		}
-
-		$this->tmpl->assign($row);
-		$this->tmpl->assign("id", $this->_id);
 		
-		return true;
+		/* Deal with multiple days */
+		if(strpos($formData['league_day'], ",")) {
+			$formData['league_day'] = split(",",$formData['league_day']);
+		}
+		return $formData;
 	}
 
-	function populate_pulldowns ( )
+	function generateForm ( $id, $formData )
 	{
 		global $DB;
 
-
+		$output = form_hidden("op", $this->op);
+		$output .= form_hidden("step", 'confirm');
+		$output .= form_hidden("id", $id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("League Name:", form_textfield('', 'league_name', $formData['league_name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
+		
 		if($this->_permissions['edit_coordinator']) {
-				$volunteers = $DB->getAll(
-					"SELECT
-						p.user_id AS value,
-						CONCAT(p.firstname,' ',p.lastname) AS output
-					 FROM
-						person p
-					 WHERE
-						p.class = 'volunteer'
-						OR p.class = 'administrator'
-					 ORDER BY p.lastname",
-					DB_FETCHMODE_ASSOC);
-					
-				if($this->is_database_error($volunteers)) {
-					return false;
-				}
-				/* Pop in a --- element */
-				array_unshift($volunteers, array('value' => 0, 'output' => '---'));
-				$this->tmpl->assign("volunteers", $volunteers);
-		}
+			## TODO: coord.
 
-		$days = get_enum_options('league','day');
-		if(is_bool($days)) {
-			return $days;
-		}
-		$this->tmpl->assign("days", $days);
-		
-		$ratios = get_enum_options('league','ratio');
-		if(is_bool($ratios)) {
-			return $ratios;
-		}
-		$this->tmpl->assign("ratios", $ratios);
-		
-		$seasons = get_enum_options('league','season');
-		if(is_bool($seasons)) {
-			return $seasons;
-		}
-		$this->tmpl->assign("seasons", $seasons);
+			$volunteers = $DB->getAssoc(
+				"SELECT
+					p.user_id,
+					CONCAT(p.firstname,' ',p.lastname)
+				 FROM
+					person p
+				 WHERE
+					p.class = 'volunteer'
+					OR p.class = 'administrator'
+				 ORDER BY p.lastname");
+				
+			if($this->is_database_error($volunteers)) {
+				return false;
+			}
+			/* Pop in a --- element.  Can't use unshift() or array_merge() on
+			 * the assoc array, unfortunately. */
+    		$volunteers = array_reverse($volunteers, true);
+	    	$volunteers["0"] = "---";
+		    $volunteers = array_reverse($volunteers, true); 
 
+			$output .= simple_row("Coordinator",
+				form_select("", "coordinator_id", $formData['coordinator_id'], $volunteers, "League Coordinator.  Must be set."));
+			$output .= simple_row("Assistant Coordinator",
+				form_select("", "alternate_id", $formData['alternate_id'], $volunteers, "Assistant Coordinator (optional)"));
+		}
+		
+		$output .= simple_row("Season:", 
+			form_select("", "league_season", $formData['league_season'], getOptionsFromEnum('league','season'), "Season of play for this league. Choose 'none' for administrative groupings and comp teams."));
+			
+		$output .= simple_row("Day(s) of play:", 
+			form_select("", "league_day", $formData['league_day'], getOptionsFromEnum('league','day'), "Day, or days, on which this league will play.", 0, true));
+			
 		/* TODO: 10 is a magic number.  Make it a config variable */
-		$this->tmpl->assign("tiers", get_numeric_options(0,10));
-		/* TODO: 4 is a magic number.  Make it a config variable */
-		$this->tmpl->assign("rounds", get_numeric_options(1,4));
-	
+		$output .= simple_row("Tier:", 
+			form_select("", "league_tier", $formData['league_tier'], getOptionsFromRange(0, 10), "Tier number.  Choose 0 to not have numbered tiers."));
+			
+		$output .= simple_row("Gender Ratio:", 
+			form_select("", "league_ratio", $formData['league_ratio'], getOptionsFromEnum('league','ratio'), "Gender format for the league."));
+			
+		/* TODO: 5 is a magic number.  Make it a config variable */
+		$output .= simple_row("Current Round:", 
+			form_select("", "league_round", $formData['league_round'], getOptionsFromRange(1, 5), "New games will be scheduled in this round by default."));
+
+		$output .= simple_row("Regular Start Time(s):",
+			form_select("", "league_start_time", split(",",$formData['league_start_time']), getOptionsFromTimeRange(900,2400,15), "One or more times at which games will start in this league", "size=5", true));
+
+		$output .= simple_row("Allow Scheduling:",
+			form_select("", "league_allow_schedule", $formData['league_allow_schedule'], getOptionsFromEnum('league','allow_schedule'), "Whether or not this league can have games scheduled and standings displayed."));
+
+		$output .= "</table>";
+		$output .= para(form_submit("submit") . form_reset("reset"));
+
+		if($formData['league_name']) {
+			$this->set_title($this->title . " &raquo; " . $formData['league_name']);
+			if($formData['league_tier']) {
+				$this->set_title($this->title . " Tier " . $formData['league_tier']);
+			}
+		}
+
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function generate_confirm ()
+	function generateConfirm ( $id )
 	{
 		global $DB;
 
@@ -265,39 +257,77 @@ class LeagueEdit extends Handler
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		$this->tmpl->assign("id", $this->_id);
-
-		$this->tmpl->assign("league_name", var_from_getorpost('league_name'));
-		$this->tmpl->assign("league_season", var_from_getorpost('league_season'));
-		$this->tmpl->assign("league_day", join(",",var_from_getorpost('league_day')));
-		$this->tmpl->assign("league_tier", var_from_getorpost('league_tier'));
-		$this->tmpl->assign("league_round", var_from_getorpost('league_round'));
-		$this->tmpl->assign("league_ratio", var_from_getorpost('league_ratio'));
-		$this->tmpl->assign("league_allow_schedule", var_from_getorpost('league_allow_schedule'));
-		$this->tmpl->assign("league_start_time_Hour", var_from_getorpost('league_start_time_Hour'));
-		$this->tmpl->assign("league_start_time_Minute", var_from_getorpost('league_start_time_Minute'));
+		$league_name = var_from_getorpost('league_name');
+		$league_season = var_from_getorpost('league_season');
+		$league_day = join(",",var_from_getorpost('league_day'));
+		$league_tier = var_from_getorpost('league_tier');
+		$league_round = var_from_getorpost('league_round');
+		$league_ratio = var_from_getorpost('league_ratio');
+		$league_allow_schedule = var_from_getorpost('league_allow_schedule');
+		$league_start_time = join(",",var_from_getorpost('league_start_time'));
+		
+		$output = blockquote("Confirm that the data below is correct and click 'Submit' to make your changes.");
+		$output .= form_hidden("op", $this->op);
+		$output .= form_hidden("step", 'perform');
+		$output .= form_hidden("id", $id);
+		$output .= "<table border='0'>";
+		$output .= simple_row("League Name:", 
+			form_hidden('league_name', $league_name) . $league_name);
 		
 		if($this->_permissions['edit_coordinator']) {
 				$c_id = var_from_getorpost('coordinator_id');
 				$c_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($c_id));
-				$this->tmpl->assign("coordinator_id",   $c_id);
-				$this->tmpl->assign("coordinator_name", $c_name);
+				
+				$output .= simple_row("Coordinator:",
+					form_hidden("coordinator_id", $c_id) . $c_name);
 			
 				$a_id = var_from_getorpost('alternate_id');
 				if($a_id > 0) {
 					$a_name = $DB->getOne("SELECT CONCAT(p.firstname,' ',p.lastname) FROM person p WHERE p.user_id = ?",array($a_id));
-					$this->tmpl->assign("alternate_id",   $a_id);
-					$this->tmpl->assign("alternate_name", $a_name);
 				} else {
-					$this->tmpl->assign("alternate_id",   $a_id);
-					$this->tmpl->assign("alternate_name", "N/A");
+					$a_name = "N/A";
 				}
+				$output .= simple_row("Assistant Coordinator:", 
+					form_hidden("alternate_id", $a_id) . $a_name);
+		}
+		
+		$output .= simple_row("Season:", 
+			form_hidden('league_season', $league_season) . $league_season);
+			
+		$output .= simple_row("Day(s) of play:", 
+			form_hidden('league_day',$league_day) . $league_day);
+			
+		$output .= simple_row("Tier:", 
+			form_hidden('league_tier', $league_tier) . $league_tier);
+			
+		$output .= simple_row("Gender Ratio:", 
+			form_hidden('league_ratio', $league_ratio) . $league_ratio);
+			
+		$output .= simple_row("Current Round:", 
+			form_hidden('league_round', $league_round) . $league_round);
+
+		$output .= simple_row("Regular Start Time(s):",
+			form_hidden('league_start_time', $league_start_time) . $league_start_time);
+
+		$output .= simple_row("Allow Scheduling:",
+			form_hidden('league_allow_schedule', $league_allow_schedule) . $league_allow_schedule);
+
+		$output .= "</table>";
+		$output .= para(form_submit("submit"));
+
+		$this->set_title($this->title . " &raquo; " . $league_name);
+		if($league_tier) {
+			$this->set_title($this->title . " Tier " . $league_tier);
 		}
 
+		print $this->get_header();
+		print h1($this->title);
+		print form($output);
+		print $this->get_footer();
 		return true;
 	}
 
-	function perform ()
+	function perform ( $id )
 	{
 		global $DB;
 
@@ -325,7 +355,7 @@ class LeagueEdit extends Handler
 			$fields[] = "allow_schedule = ?";
 			$fields_data[] = var_from_getorpost("league_allow_schedule");
 			$fields[] = "start_time = ?";
-			$fields_data[] = var_from_getorpost("league_start_time_Hour") . ":" . var_from_getorpost("league_start_time_Minute");
+			$fields_data[] = var_from_getorpost("league_start_time");
 		}
 		
 		if($this->_permissions['edit_coordinator']) {
@@ -341,7 +371,7 @@ class LeagueEdit extends Handler
 
 		$sth = $DB->prepare($sql);
 		
-		$fields_data[] = $this->_id;
+		$fields_data[] = $id;
 		$res = $DB->execute($sth, $fields_data);
 
 		if($this->is_database_error($res)) {
@@ -377,6 +407,10 @@ class LeagueEdit extends Handler
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
 				$errors .= "<li>One or more days of play must be selected";
+			}
+			$league_start_time = var_from_getorpost("league_start_time");
+			if( !isset($league_start_time) ) {
+				$errors .= "<li>One or more start times must be selected";
 			}
 		}
 		
@@ -476,11 +510,6 @@ class LeagueList extends Handler
 		print $this->get_footer();
 		
 		return true;
-	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -1162,11 +1191,6 @@ class LeagueStandings extends Handler
 		return true;
 	}
 
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
-
 	function calculate_sotg( &$stats, $drop_best_worst = false ) 
 	{	
 		$raw = $stats['spirit'];
@@ -1182,7 +1206,6 @@ class LeagueStandings extends Handler
 			return 0;
 		}
 	}
-		
 
 	function generate_standings ($id, $current_round = 0)
 	{
@@ -1610,12 +1633,6 @@ class LeagueView extends Handler
 		print $this->get_footer();
 		return true;
 	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
-
 }
 
 class LeagueCaptainEmails extends Handler
@@ -1668,11 +1685,6 @@ class LeagueCaptainEmails extends Handler
 		print $output;
 		
 		return true;
-	}
-
-	function display ()
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -1858,11 +1870,6 @@ class LeagueMoveTeam extends Handler
 		print $this->get_footer();
 		return true;
 	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 class LeagueVerifyScores extends Handler
@@ -1996,12 +2003,5 @@ class LeagueVerifyScores extends Handler
 
 		return true;
 	}
-
-	/* TODO: Remove when Smarty is gone */
-	function display( )
-	{
-		return true;
-	}
 }
-
 ?>

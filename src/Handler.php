@@ -231,22 +231,27 @@ class Handler
 	 */
 	function display ()
 	{
-		register_smarty_extensions($this->tmpl);
 
-		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
-		$this->tmpl->assign("page_title", $this->title);
-	
-		/*      
-		 * The following line needs to be set to 'true' for development
-		 * purposes.  It controls whether or not templates are checked for
-		 * recompilation.  If you don't set this to 'true' when doing
-		 * development, your changes to the templates will not be noticed!
-		 */
-		$this->tmpl->compile_check = true;
-		$this->tmpl->template_dir  = "./templates/en_CA";
-		$this->get_header();
-		$this->tmpl->display($this->tmplfile);
-		$this->get_footer();
+		if(!isset($this->tmplfile)) {
+			return true;
+		} else {
+			register_smarty_extensions($this->tmpl);
+
+			$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
+			$this->tmpl->assign("page_title", $this->title);
+		
+			/*      
+			 * The following line needs to be set to 'true' for development
+			 * purposes.  It controls whether or not templates are checked for
+			 * recompilation.  If you don't set this to 'true' when doing
+			 * development, your changes to the templates will not be noticed!
+			 */
+			$this->tmpl->compile_check = true;
+			$this->tmpl->template_dir  = "./templates/en_CA";
+			$this->get_header();
+			$this->tmpl->display($this->tmplfile);
+			$this->get_footer();
+		}
 	}
 
 	function get_header($title = NULL)

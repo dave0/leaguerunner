@@ -171,11 +171,5 @@ class Menu extends Handler
 		
 		return true;
 	}
-	
-	function display ()
-	{	
-		// DELETEME: Remove this once Smarty is gone.
-		return true;
-	}
 }
 ?>

@@ -103,12 +103,6 @@ class Login extends Handler
 		return true;
 	}
 
-	function display ()
-	{	
-		// DELETEME: Remove this once Smarty is gone.
-		return true;
-	}
-
 	function login_form($error = "")
 	{
 		$output = "<table align='center' border='0' cellpadding='5' width='300'>";
@@ -174,12 +168,6 @@ class Logout extends Handler
 		global $session;
 		$session->expire();
 		local_redirect("op=login");
-		return true;
-	}
-
-	function display ()
-	{	
-		// DELETEME: Remove this once Smarty is gone.
 		return true;
 	}
 }

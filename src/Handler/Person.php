@@ -227,11 +227,6 @@ class PersonView extends Handler
 		return true;
 	}
 	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
-
 	function generateView (&$person)
 	{
 		$fullname = $person['firstname'] . " " . $person['lastname'];
@@ -1209,8 +1204,6 @@ class PersonCreate extends PersonEdit
 	{
 		return Handler::display();
 	}
-
-
 }
 
 /**
@@ -1485,12 +1478,6 @@ class PersonList extends Handler
 		
 		return true;
 	}
-
-	function display () 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
-
 }
 
 /**
@@ -1549,11 +1536,6 @@ class PersonListNewAccounts extends Handler
 		print $this->get_footer();
 		
 		return true;
-	}
-
-	function display () 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -1653,11 +1635,6 @@ class PersonChangePassword extends Handler
 		}
 		
 		return true;
-	}
-
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
@@ -1816,11 +1793,6 @@ END_TEXT;
 		print $this->get_footer();
 		
 		return true;
-	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 ?>

@@ -205,12 +205,6 @@ class FieldEdit extends Handler
 		return $rc;
 	}
 
-	/* TODO: Remove when Smarty is removed */
-	function display ()
-	{
-		return true;
-	}
-
 	function generateForm ( $id )
 	{
 		global $DB;
@@ -496,11 +490,6 @@ class FieldView extends Handler
 
 		return true;
 	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 
@@ -626,11 +615,6 @@ class FieldAssign extends Handler
 		print $this->get_footer();
 		return true;	
 	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
-	}
 }
 
 /**
@@ -720,11 +704,6 @@ class FieldUnassign extends Handler
 		print form($output);
 		print $this->get_footer();
 		return true;	
-	}
-	
-	function display() 
-	{
-		return true;  // TODO Remove me after smarty is removed
 	}
 }
 
