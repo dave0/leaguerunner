@@ -339,9 +339,13 @@ class GameCreate extends Handler
 
 class GameSubmit extends Handler
 {
+
+	var $game;
+	var $team;
+
 	function initialize ()
 	{
-		$this->title = "Submit Game Score";
+		$this->title = "Submit Game Results";
 		return true;
 	}
 
@@ -360,21 +364,20 @@ class GameSubmit extends Handler
 
 		$gameID = arg(2);
 		$teamID = arg(3);
-		if( !$gameID ) {
+
+		$this->game = game_load( array('game_id' => $gameID) );
+
+		if( !$this->game ) {
+			$this->error_exit("That game does not exist");
+		}
+	
+		$this->team = team_load( array('team_id' => $teamID) );
+		if( !$this->team ) {
+			$this->error_exit("That team does not exist");
 			return false;
 		}
-
-		if( !$teamID ) {
-			/* TODO: write code to allow coordinators/admins to submit
-			 * final scores for entire games, not just one team.  Probably
-			 * should do it as a game/edit/ handler.
-			 */
-			return false;
-		}
-
-		$game = game_load( array('game_id' => $gameID) );
 		
-		if( $teamID != $game->home_id && $teamID != $game->away_id ) {
+		if( $teamID != $this->game->home_id && $teamID != $this->game->away_id ) {
 			$this->error_exit("That team did not play in that game!");
 		}
 		
@@ -398,43 +401,45 @@ class GameSubmit extends Handler
 
 	function process ()
 	{
-		$gameID = arg(2);
-		$teamID = arg(3);
-
-		$game = game_load( array('game_id' => $gameID) );
-		if( !$game ) {
-			$this->error_exit("That game does not exist");
-		}
-		
-		if(isset($game->home_score) && isset($game->away_score) ) {
+		if( $this->game->is_finalized() ) {
 			$this->error_exit("The score for that game has already been submitted.");
 		}
-		
-		$result = db_query(
-			"SELECT entered_by FROM score_entry WHERE game_id = %d AND team_id = %d", $gameID, $teamID);
 
-		if(db_num_rows($result) > 0) {
+		$this->game->load_score_entries();
+
+		if ( $this->game->get_score_entry( $this->team->team_id ) ) {
 			$this->error_exit("The score for your team has already been entered.");
 		}
 
-		$edit = $_POST['edit'];
-		
-		switch($edit['step']) {
-			case 'confirm':
-				$rc = $this->generateConfirm($game, $teamID, $edit);
-				break;
-			case 'perform':
-				$rc = $this->perform($game, $teamID, $edit);
-				break;
-			default:
-				$rc = $this->generateForm($game, $teamID);
+		if($game->home_id == $this->team->team_id) {
+			$opponent->name = $this->game->away_name;
+			$opponent->team_id = $this->game->away_id;
+		} else {
+			$opponent->name = $this->game->home_name;
+			$opponent->team_id = $this->game->home_id;
 		}
-	
+
+		$edit = $_POST['edit'];
+
+		switch($edit['step']) {
+			case 'spirit':
+				$rc = $this->generateSpiritForm($edit, $opponent);
+				break;
+			case 'confirm':
+				$rc = $this->generateConfirm($edit, $opponent);
+				break;	
+			case 'save':
+				$rc = $this->perform($edit, $opponent);
+				break;	
+			default:
+				$rc = $this->generateForm( $opponent );
+		}
+		
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 
-	function isDataInvalid( $edit )
+	function isScoreDataInvalid( $edit )
 	{
 		$errors = "";
 		
@@ -457,10 +462,6 @@ class GameSubmit extends Handler
 			$errors .= "<br>You must enter a valid number for your opponent's score";
 		}
 
-		if( !validate_number($edit['spirit']) ) {
-			$errors .= "<br>You must enter a valid number for your opponent's SOTG";
-		}
-		
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -468,26 +469,55 @@ class GameSubmit extends Handler
 		}
 	}
 	
-	function perform ($game, $teamID, $edit)
+	function perform ($edit, $opponent)
 	{
 		global $session;
 
-		$dataInvalid = $this->isDataInvalid( $edit );
+		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
-		$result = db_query("SELECT score_for, score_against, spirit, defaulted FROM score_entry WHERE game_id = %d",$game->game_id);
-		$opponent_entry = db_fetch_array($result);
 
-		if( ! db_num_rows($result) ) {
-			// No opponent entry, so just add to the score_entry table
-			if(game_save_score_entry($game->game_id, $teamID, $edit) == false) {
-				return false;
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$questions = formbuilder_load('team_spirit');
+			$questions->bulk_set_answers( $_POST['team_spirit'] );
+			$dataInvalid = $questions->answers_invalid();
+			if( $dataInvalid ) {
+				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
+		}
+
+		// Now, we know we haven't finalized the game, so we first
+		// save this team's score entry, as there isn't one already.
+		if( !$this->game->save_score_entry( $this->team->team_id, $session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'], $questions->bulk_get_answers()) ) {
+			$this->error_exit("Error saving score entry for " . $this->team->team_id);
+		}
+
+		// now, check if the opponent has an entry
+		if( ! $this->game->get_score_entry( $opponent->team_id ) ) {
+			// No, so we just mention that it's been saved and move on
 			$resultMessage ="This score has been saved.  Once your opponent has entered their score, it will be officially posted";
+			return para($resultMessage);
+		}
+
+		// Otherwise, both teams have an entry.  So, compare them:
+		if( $this->game->score_entries_agree( $this->team->team_id, $opponent->team_id) ) {
+			// They agree, so we need to:
+			//   - set home/away score in game object
+			//   - set default appropriately
+			//   - if a default exists, set appropriate spirit for both teams
+			//   TODO TODO TODO 
 		} else {
-			/* See if we agree with opponent score */
+			// Or, we have a disagreement.  Since we've already saved the
+			// score, just say so, and continue.
+			$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
+			return para($resultMessage);
+		}
+
+die("TODO: unfinished.  Bug dmo")
+		if( ! $this->game->load_score_entries() ) {
+		} else {
+			// See if we agree with opponent score 
 			if( defaults_agree($edit, $opponent_entry) ) {
 				// Both teams agree that a default has occurred. 
 				if(
@@ -527,121 +557,111 @@ class GameSubmit extends Handler
 				}
 
 				$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
-			} else {
-				if(game_save_score_entry($game->game_id, $teamID, $edit) == false) {
-					return false;
-				}
-				$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
 			}
 		}
 		
 		return para($resultMessage);
 	}
-
-	function generateConfirm ($game, $teamID, $edit )
+	
+	function generateSpiritForm ($edit, $opponent )
 	{
-		$dataInvalid = $this->isDataInvalid( $edit );
+		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
 			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-	
-		if($game->home_id == $teamID) {
-			$myName = $game->home_name;
-			$opponentName = $game->away_name;
-			$opponentId = $game->away_id;
-		} else {
-			$myName = $game->away_name;
-			$opponentName = $game->home_name;
-			$opponentId = $game->home_id;
+
+		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
+			// If it's a default, short-circuit the spirit-entry form and skip
+			// straight to the confirmation
+			return $this->generateConfirm($edit, $opponent);
 		}
 
-		$output = para( "You have entered the following score for the $game->game_date $game->game_start game between $myName and $opponentName.");
-		$output .= para("If this is correct, please click 'Submit' to continue.  "
-			. "If not, use your back button to return to the previous page and correct the score."
+		$output = $this->interim_game_result(&$edit, &$opponent);
+		$output .= form_hidden('edit[step]', 'confirm');
+			
+		$output .= para("Now, you must rate your opponent's spirit using the following questions.  These are used both to generate an average spirit rating for each team, and to indicate to the league what areas might be problematic.");
+
+		$questions = formbuilder_load('team_spirit');
+		$output .= $questions->render_editable(false);
+
+		$output .= para(form_submit("submit") . form_reset("reset"));
+
+		return form($output);
+	}
+
+
+	function generateConfirm ($edit, $opponent )
+	{
+		$dataInvalid = $this->isScoreDataInvalid( $edit );
+		if($dataInvalid) {
+			$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		}
+
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$questions = formbuilder_load('team_spirit');
+			$questions->bulk_set_answers( $_POST['team_spirit'] );
+			$dataInvalid = $questions->answers_invalid();
+			if( $dataInvalid ) {
+				$this->error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			}
+		}
+		
+		$output = $this->interim_game_result(&$edit, &$opponent);
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$output .= para("The following answers will be used to assign your opponents' spirit:");
+			$output .= $questions->render_viewable();
+			$output .= $questions->render_hidden();
+		} else {
+			$output .= para("A spirit score will be automatically generated for your opponents.");
+		}
+		$output .= form_hidden('edit[step]', 'save');
+	
+		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score."
 		);
 
-		$output .= form_hidden('edit[step]', 'perform');
-		$output .= form_hidden('edit[defaulted]', $edit['defaulted']);
-
-		$rows = array();
-		switch($edit['defaulted']) {
-		case 'us':
-			$rows[] = array("$myName:", "0 (defaulted)");
-			$rows[] = array("$opponentName:", 6);
-			break;
-		case 'them':
-			$rows[] = array("$myName:", 6);
-			$rows[] = array("$opponentName:", "0 (defaulted)");
-			break;
-		default:
-			$rows[] = array("$myName:", $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
-			$rows[] = array("$opponentName:", $edit['score_against'] . form_hidden('edit[score_against]', $edit['score_against']));
-			$rows[] = array("SOTG for $opponentName:", $edit['spirit'] . form_hidden('edit[spirit]', $edit['spirit']));
-			break;
-		}
-
-		$output .= '<div class="pairtable">' . table(null, $rows) . "</div>";
 		$output .= para(form_submit('submit'));
 
 		return form($output);
 	}
 
-	function generateForm ( $game, $teamID ) 
+	function generateForm ( $opponent )
 	{
 
-		if($game->home_id == $teamID) {
-			$myName = $game->home_name;
-			$opponentName = $game->away_name;
-			$opponentId = $game->away_id;
-		} else {
-			$myName = $game->away_name;
-			$opponentName = $game->home_name;
-			$opponentId = $game->home_id;
-		}
+		$output = para( "Submit the score for the $game->game_date, $game->game_start game between " . $this->team->name . " and $opponent->name.");
+		$output .= para("If your opponent has already entered a score, it will be displayed below.  If the score you enter does not agree with this score, posting of the score will be delayed until your coordinator can confirm the correct score.");
 
-		$output = para( "Submit the score for the $game->game_date, $game->game_start game between $myName and $opponentName.");
-		$output .= para("If your opponent has already entered a score, it will be displayed below.  "
-  			. "If the score you enter does not agree with this score, posting of the score will "
-			. "be delayed until your coordinator can confirm the correct score.");
+		$output .= form_hidden('edit[step]', 'spirit');
 
-		$output .= form_hidden('edit[step]', 'confirm');
+		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
 
-		$result = db_query("SELECT score_for, score_against, defaulted FROM score_entry WHERE game_id = %d AND team_id = %d", $game->game_id, $opponentId);
-				
-		$opponent = db_fetch_array($result);
-
-		if($opponent) {
-			if($opponent['defaulted'] == 'us') {
-				$opponent['score_for'] .= " (defaulted)"; 
-			} else if ($opponent['defaulted'] == 'them') {
-				$opponent['score_against'] .= " (defaulted)"; 
+		if($opponent_entry) {
+			if($opponent_entry->defaulted == 'us') {
+				$opponent_entry->score_for .= " (defaulted)"; 
+			} else if ($opponent_entry->defaulted == 'them') {
+				$opponent_entry->score_against .= " (defaulted)"; 
 			}
 			
 		} else {
-			$opponent = array();
-			$opponent['score_for'] = "not yet entered";
-			$opponent['score_against'] = "not yet entered";
+			$opponent_entry->score_for = "not yet entered";
+			$opponent_entry->score_against = "not yet entered";
 		}
 		
 		$rows = array();
-		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry", "SOTG");
+		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry");
 	
 	
 		$rows[] = array(
-			$myName,
+			$this->team->name,
 			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
 			form_textfield("","edit[score_for]","",2,2),
-			$opponent['score_against'],
-			"&nbsp;"
+			$opponent_entry->score_against
 		);
 		
 		$rows[] = array(
-			$opponentName,
+			$opponent->name,
 			"<input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'>",
 			form_textfield("","edit[score_against]","",2,2),
-			$opponent['score_for'],
-			form_select("", "edit[spirit]", "--", getOptionsFromRange(1,10))
-				. "<font size='-2'>(<a href='/leagues/spirit_guidelines.html' target='_new'>spirit guideline</a>)</font>"
+			$opponent_entry->score_for
 		);
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
@@ -655,19 +675,16 @@ class GameSubmit extends Handler
         document.forms[0].elements['edit[score_for]'].disabled = true;
         document.forms[0].elements['edit[score_against]'].value = "6";
         document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][1].disabled = true;
     } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
         document.forms[0].elements['edit[score_for]'].value = "6";
         document.forms[0].elements['edit[score_for]'].disabled = true;
         document.forms[0].elements['edit[score_against]'].value = "0";
         document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[spirit]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][0].disabled = true;
     } else {
         document.forms[0].elements['edit[score_for]'].disabled = false;
         document.forms[0].elements['edit[score_against]'].disabled = false;
-        document.forms[0].elements['edit[spirit]'].disabled = false;
         document.forms[0].elements['edit[defaulted]'][0].disabled = false;
         document.forms[0].elements['edit[defaulted]'][1].disabled = false;
     }
@@ -677,6 +694,43 @@ class GameSubmit extends Handler
 ENDSCRIPT;
 
 		return $script . form($output);
+	}
+
+	function interim_game_result( $edit, $opponent )
+	{
+		$output = para( "For the game of " . $this->game->sprintf('short') . " you have entered:");
+		$rows = array();
+		switch($edit['defaulted']) {
+		case 'us':
+			$rows[] = array($this->team->name, "0 (defaulted)");
+			$rows[] = array($opponent->name, 6);
+			break;
+		case 'them':
+			$rows[] = array($this->team->name, 6);
+			$rows[] = array($opponent->name, "0 (defaulted)");
+			break;
+		default:
+			$rows[] = array($this->team->name, $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
+			$rows[] = array($opponent->name, $edit['score_against'] . form_hidden('edit[score_against]', $edit['score_against']));
+			break;
+		}
+
+		$output .= form_hidden('edit[defaulted]', $edit['defaulted']);
+
+		$output .= '<div class="pairtable">' 
+			. table(null, $rows) 
+			. "</div>";
+
+		if( $edit['defaulted']== 'them' || ($edit['score_for'] > $edit['score_against']) ) {
+			$what = 'win for your team';
+		} else if( $edit['defaulted']=='us' || ($edit['score_for'] < $edit['score_against']) ) {
+			$what = 'loss for your team';
+		} else {
+			$what = 'tie game';
+		}
+		$output .= para("If confirmed, this would be recorded as a <b>$what</b>.");
+
+		return $output;
 	}
 }
 

@@ -1,6 +1,9 @@
 <?php
 class Game extends LeaguerunnerObject
 {
+
+	var $_score_entries;
+
 	/**
 	 * Load a single game object from the database using the supplied query
 	 * data.  If more than one matches, we will load only the first one.  If
@@ -85,6 +88,10 @@ class Game extends LeaguerunnerObject
 				return false;
 			}
 		}
+
+		/* TODO: And, remove any old score_entry for this game if we've 
+		   entered a final score
+         */
 		
 		unset($this->_modified_fields);
 		return true;
@@ -153,17 +160,134 @@ class Game extends LeaguerunnerObject
 						$output .= " ($this->away_score - $this->home_score )";
 					}
 				}
-				return $output;
 				break;
 			case 'short':
 			default:
-				// TODO
-				
+				$output = "$this->game_date $this->game_start at $this->field_code";
+				break;	
 		}
+		
+		return $output;
 	}
 
 	/**
-	 * Select a random gameslot for this field.
+	 * Check if this game has been finalized
+	 * Currently, game is considered finalized if both scores have been
+	 * entered.
+	 */
+	function is_finalized ( )
+	{
+		if( ! $this->_in_database ) {
+			die( "Cannot check finalization for game not in database!");
+		}
+
+		if( isset($this->home_score) && isset($this->away_score) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Load any entered scores for this game.  Returns false if none
+	 * could be loaded, true if one or more loaded.
+	 * TODO: spirit
+	 */
+	function load_score_entries ( )
+	{
+		if( ! $this->_in_database ) {
+			die( "Cannot load entered scores for game not in database!");
+		}
+
+		$result = db_query("SELECT * from score_entry WHERE game_id = %d", $this->game_id);
+		if( db_num_rows($result) > 2 ) {
+			die("Too many score entries in DB for game $game->game_id");
+		}
+		
+		if( db_num_rows($result) < 1 ) {
+			return false;
+		}
+
+		while( $entry = db_fetch_object($result) ) {
+			$this->_score_entries[ $entry->team_id ] = $entry;
+		}
+
+		// TODO: load spirit here
+
+		return true;
+	}
+
+	/** 
+	 * Retrieve score entry for given team 
+	 * returns value, or false otherwise
+	 */
+	function get_score_entry( $team_id )
+	{
+		if( ! $this->_in_database ) {
+			die( "Cannot get entered scores for game not in database!");
+		}
+
+		if( !is_array($this->_score_entries) ) {
+			// No entries
+			return false;
+		}
+	
+		if( array_key_exists( $team_id, $this->_score_entries) ) {
+			return $this->_score_entries[ $team_id ]; 
+		}
+
+		return false;
+	}
+
+	/**
+	 * Save a score entry for a given team
+	 * This writes directly to the database
+	 * TODO: spirit
+	 */
+	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted, $spirit )
+	{
+		$entry->team_id = $team_id;
+		$entry->entry_id = $this->entry_id;
+		$entry->entered_by = $user_id;
+		$entry->score_for = $score_for;
+		$entry->score_against = $score_against;
+		$entry->defaulted = $defaulted;
+
+		// TODO: Set spirit on entry object here
+		$this->_score_entries[$team_id] = $entry;
+
+		// TODO Save entry object in DB
+		// TODO Save spirit answers in DB
+
+		/// TODO Should return true on success
+		return false;		
+	}
+
+	/**
+	 * Compare two score entries
+	 */
+	function score_entries_agree ( $team_one_id, $team_two_id )
+	{
+		$one = $this->get_score_entry($team_one_id);
+		$two = $this->get_score_entry($team_two_id);
+
+		if(
+			($one['defaulted'] == 'us' && $two['defaulted'] == 'them') 
+			||
+			($one['defaulted'] == 'them' && $two['defaulted'] == 'us')
+		) {
+			return true;
+		} 
+
+		if(($one['score_for'] == $two['score_against']) && ($one['score_against'] == $two['score_for']) ) {
+			return true;
+		} 
+
+		return false;
+	}
+
+	/**
+	 * Select a random gameslot for this game.
 	 * Gameslot is to be selected from those available for the league in which
 	 * this game exists.  
 	 * Single argument is to be the timestamp representing the date of the

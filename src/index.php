@@ -51,6 +51,7 @@ require_once("classes/league.inc");
 require_once("classes/team.inc");
 require_once("classes/game.inc");
 require_once("classes/slot.inc");
+require_once("classes/formbuilder.inc");
 
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");

@@ -115,3 +115,6 @@ alter table league drop max_teams;
 alter table league add schedule_type ENUM('none','roundrobin','ladder') default 'roundrobin';
 update league set schedule_type = 'none' where allow_schedule = 'N';
 alter table league drop allow_schedule;
+
+-- Spirit System
+-- TODO: Pull in here when finalized

@@ -164,8 +164,6 @@ CREATE TABLE schedule (
     INDEX game_away_team (away_team)
 );
 
-
-
 -- score_entry table is used to store scores entered by either team
 -- before they are approved
 CREATE TABLE score_entry (
@@ -178,6 +176,34 @@ CREATE TABLE score_entry (
     defaulted enum('no','us','them') DEFAULT 'no',
     PRIMARY KEY (team_id,game_id)
 );
+
+-- Spirit System
+CREATE TABLE question (
+	qkey	varchar(255) PRIMARY KEY, -- question key
+	genre	varchar(255),
+	question varchar(255),
+	qtype   varchar(255),
+	restrictions   varchar(255),  -- used for start/end dates, upper/lower limits, etc.
+	required	ENUM('Y','N') DEFAULT 'Y',
+	sorder	int default 0
+);
+
+CREATE TABLE multiplechoice_answers (
+	akey	varchar(255) PRIMARY KEY,
+	qkey	varchar(255),
+	answer	varchar(255),
+	value	varchar(255),
+	sorder	int default 0		-- sort order
+);
+
+CREATE TABLE team_spirit_answers (
+	tid_created	int NOT NULL, -- ID of team providing this answer
+	tid		int NOT NULL, -- id of team receiving this answer
+	gid		int NOT NULL, -- ID of game this entry relates to
+	qkey		varchar(255), -- Question asked
+	akey		varchar(255), -- Answer provided
+);
+
 
 CREATE TABLE field (
 	fid	int NOT NULL PRIMARY KEY AUTO_INCREMENT,
