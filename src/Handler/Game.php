@@ -1345,13 +1345,34 @@ class GameEdit extends Handler
 		$dataInvalid = $this->isDataInvalid( $edit );
 		
 		$home_spirit = formbuilder_load('team_spirit');
-		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
 		$away_spirit = formbuilder_load('team_spirit');
-		$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
-	
-		if($edit['status'] == 'normal') {
-			$dataInvalid .= $home_spirit->answers_invalid();
-			$dataInvalid .= $away_spirit->answers_invalid();
+
+		switch($edit['status']) {
+			case 'home_default':
+				$home_spirit->bulk_set_answers($this->game->default_spirit('loser'));
+				$away_spirit->bulk_set_answers($this->game->default_spirit('winner'));
+				$edit['home_score'] = '0 (defaulted)';
+				$edit['away_score'] = '6';
+				break;
+			case 'away_default':
+				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
+				$home_spirit->bulk_set_answers($this->game->default_spirit('winner'));
+				$edit['home_score'] = '6';
+				$edit['away_score'] = '0 (defaulted)';
+				break;
+			case 'forfeit':
+				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
+				$home_spirit->bulk_set_answers($this->game->default_spirit('loser'));
+				$edit['home_score'] = '0 (forfeit)';
+				$edit['away_score'] = '0 (forfeit)';
+				break;
+			case 'normal':
+			default:
+				$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
+				$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
+				$dataInvalid .= $home_spirit->answers_invalid();
+				$dataInvalid .= $away_spirit->answers_invalid();
+				break;
 		}
 		
 		if( $dataInvalid ) {
@@ -1362,22 +1383,11 @@ class GameEdit extends Handler
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
 
 		$output .= form_hidden('edit[step]', 'perform');
-		if($edit['defaulted'] == 'home' || $edit['defaulted'] == 'away') {
-			$output .= form_hidden('edit[defaulted]', $edit['defaulted']);		
-		} else {
-			$output .= form_hidden('edit[home_score]', $edit['home_score']);		
-			$output .= form_hidden('edit[away_score]', $edit['away_score']);		
-			$output .= $home_spirit->render_hidden('home');
-			$output .= $away_spirit->render_hidden('away');
-		}
-		
-		if($edit['defaulted'] == 'home') {
-			$edit['home_score'] = '0 (defaulted)';
-			$edit['away_score'] = '6';
-		} else if ($edit['defaulted'] == 'away') {
-			$edit['home_score'] = '6';
-			$edit['away_score'] = '0 (defaulted)';
-		}
+		$output .= form_hidden('edit[status]', $edit['status']);
+		$output .= form_hidden('edit[home_score]', $edit['home_score']);		
+		$output .= form_hidden('edit[away_score]', $edit['away_score']);		
+		$output .= $home_spirit->render_hidden('home');
+		$output .= $away_spirit->render_hidden('away');
 		
 		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
@@ -1422,6 +1432,7 @@ class GameEdit extends Handler
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
+		$this->game->set('status', $edit['status']);
 		$this->game->set('approved_by', $session->attr_get('user_id'));
 
 		switch( $edit['status'] ) {
