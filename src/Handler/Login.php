@@ -130,12 +130,18 @@ class Login extends Handler
 
 		$rows[] = array(
 			array( 'colspan' => 2,
-				   'data' => "<b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
+				   'data' => "<p><b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
 have an invalid session then cookies may be turned off in your browser.<br />
 <br />
 <i>
-If you cannot login after receiving your Account Activiation notification, try getting a new 
-password emailed to you (click on \"Forgot your password?\").</i>"
+If you cannot login after receiving your Account Activation notification, try getting a new 
+password emailed to you (click on \"Forgot your password?\").</i>
+</p>
+<p>
+Do NOT create a new account if you already have one.  Use the 'Forgot your
+password' feature to have your login info emailed to the address on file. 
+</p>
+"
 			)
 		);
 
