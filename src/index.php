@@ -20,27 +20,28 @@
  * Authors: Dave O'Neill <dmo@acm.org>
  * 
  */
-require_once("lib/variables.php");
-require_once("lib/common.inc");
+ini_set('include_path','.:/usr/share/pear:/usr/local/lib/php:./lib/smarty');
+
+require_once("includes/config.inc");
+require_once("includes/common.inc");
+require_once("includes/theme.inc");
+
+require_once("lib/variables.php"); // TODO: Deprecate me.
+require_once("lib/common.inc");  // TODO: Deprecate me.
 
 $APP_PAGE_MAP = array();
 
 require_once 'DB.php';
+/* Connect to the database */
+$DB = DB::connect($DB_URL, true);
+if (DB::isError($DB)) {
+	die($DB->getMessage());
+}
 
 require_once "UserSession.php";
 require_once "Handler.php";
 require_once "Smarty.class.php";
 require_once "lib/smarty_extensions.php";
-
-/* Connect to the database */
-$dsn = "mysql://$APP_DB_USER:$APP_DB_PASS@$APP_DB_HOST/$APP_DB_NAME";
-#$dsn = "mysql://leaguerunner:ocuaweb@unix(/var/run/mysqld/mysqld.sock)/leaguerunner";
-$DB = DB::connect($dsn, true);
-if (DB::isError($DB)) {
-	die($DB->getMessage());
-}
-
-$session = new UserSession;
 
 set_magic_quotes_runtime(0);
 if (get_magic_quotes_gpc ()) {
@@ -52,28 +53,7 @@ if (get_magic_quotes_gpc ()) {
 	array_stripslashes($_COOKIES);
 }
 
-function array_stripslashes(&$array) {
-	if( !is_array($array)) {
-		return;
-	}
-	while (list($key) = each($array)) {
-		if (is_array($array[$key])) {
-			array_stripslashes($array[$key]);
-		} else {
-			$array[$key] = stripslashes($array[$key]);
-		}
-	}
-	reset($array);
-}
-
-/* Grab the variables we care about right now */
-$session_cookie = var_from_cookie($APP_COOKIE_NAME);
 $op = var_from_getorpost('op');
-
-if( isset($session_cookie) ) {
-	$session->create_from_cookie($session_cookie, $_SERVER['REMOTE_ADDR']);
-}
-
 if( is_null($op) ) {
 	$op = 'login';
 }
@@ -152,75 +132,6 @@ function register_page_handler($op, $class)
 		/* TODO: Warn here that an existing handler is being overridden? */
 	}
 	$APP_PAGE_MAP[$op] = $class;
-}
-
-/* 
- * To be safe, PHP's auto-global-variable stuff should be turned off, so we
- * will use the functions below to access GET, POST and cookie variables.
- */
-/**
- * Get variable from cookie
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_cookie($name) 
-{
-	global $_COOKIE;
-	if(isset($_COOKIE[$name])) {
-		return $_COOKIE[$name];
-	}
-	return null;
-}
-
-/**
- * Get variable from POST submission.
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_post($name)
-{
-	global $_SERVER, $_POST;
-	
-	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		if(isset($_POST[$name])) {
-			if(is_array($_POST[$name])) {
-				return $_POST[$name];
-			} else {
-				return stripslashes($_POST[$name]);
-			}
-		}
-	} 
-	return null;
-}
-
-/**
- * Get variable from either a GET or a POST submission.
- *
- * We could use the PHP magic array $_REQUEST, but it also includes cookie
- * data, which can confuse things.  We just want GET and POST values, so we'll
- * do it ourselves.
- *
- * TODO: modify function to take optional $flags arg, with available flags:
- * 	ALLOW_HTML
- * 	ALLOW_JAVASCRIPT
- * and add code to strip out otherwise.
- * 
- * @param string $name name of variable we're looking for
- * @return mixed
- */
-function var_from_getorpost($name)
-{
-	/* Don't want to use $_REQUEST, since that can contain cookie info */
-	global $_SERVER, $_GET, $_POST;
-	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		$vars = &$_GET[$name];
-	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		$vars = &$_POST[$name];
-	} 
-	if(isset($vars)) {
-		return $vars;
-	}
-	return null;
 }
 
 ?>

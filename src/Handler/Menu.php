@@ -44,6 +44,15 @@ class Menu extends Handler
 		}
 	}
 
+	function menu_title($title)
+	{
+		return "<tr><td class='menu_title'>$title</td</tr>";
+	}
+	function menu_item($value)
+	{
+		return "<tr><td class='menu_item'>$value</td</tr>";
+	}
+
 	/**
 	 * Generate the menu
 	 *
@@ -53,24 +62,46 @@ class Menu extends Handler
 	function process ()
 	{
 		global $session, $DB;
+		$output = "";
 
 		$id =  $session->attr_get("user_id");
 		
-		$this->set_template_file("Menu.tmpl");
-		
-		$this->tmpl->assign("user_name", join(" ",array(
-			$session->attr_get("firstname"),
-			$session->attr_get("lastname")
-			)));
-		$this->tmpl->assign("user_id", $id);
+		/* General Account Info */
+		$output .= $this->menu_title("My Account");
+		$output .= $this->menu_item(
+			l("View/Edit My Account", "op=person_view&id=$id"));
+		$output .= $this->menu_item(
+			l("Change My Password", "op=person_changepassword&id=$id"));
+		$output .= $this->menu_item(
+			l("View Player Waiver", "op=system_viewfile&id=player_waiver"));
+		$output .= $this->menu_item(
+			l("View Dog Waiver", "op=system_viewfile&id=dog_waiver"));
+		$output .= $this->menu_item( l("Log Out", "op=logout"));
 
-		/* Fetch team info */
+		$output .= $this->menu_title("Teams");
 		$teams = get_teams_for_user($id);
 		if($this->is_database_error($teams)) {
 			return false;
 		}
-		$this->tmpl->assign("teams", $teams);
+		if(count($teams) > 0) {
+			$data = "<table border='0' cellpadding='3' cellspacing='0'>";
+			foreach($teams as $team) {
+				$data .= "<tr><td class='menu_item'>" . $team['name'] . "</td>";
+				$data .= "<td class='menu_item'>(" . $team['position'] . ")</td>";
+				$data .= "<td class='menu_item'>" . l("info", "op=team_view&id=" . $team['id']) . "</td>";
+				$data .= "<td class='menu_item'>" . l("scores and schedules", "op=team_schedule_view&id=" . $team['id']) . "</td>";
+				$data .= "<td class='menu_item'>" . l("standings", "op=team_standings&id=" . $team['id']) . "</td>";
+				$data .= "</tr>";
+			}
+			$data .= "</table>";
+			$output .= $this->menu_item( $data );
+		}
+		
+		$output .= $this->menu_item( l("List Other Teams", "op=team_list"));
+		$output .= $this->menu_item( l("Create New Team", "op=team_create"));
+	
 
+		$output .= $this->menu_title("Leagues");
 		/* Fetch leagues coordinated */
 		$leagues = $DB->getAll("
 			SELECT 
@@ -89,30 +120,60 @@ class Menu extends Handler
 		if($this->is_database_error($leagues)) {
 			return false;
 		}
-
 		if(count($leagues) > 0) {
-			$this->_permissions['league_admin'] = true;
-			$this->tmpl->assign("leagues", $leagues);
-		}
-		
-		if($session->is_admin()) {
-			/* Fetch count of pending new users */
-			$new_users = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
-			if($this->is_database_error($new_users)) {
-				return false;
+			$data = "<table border='0' cellpadding='3' cellspacing='0'>";
+			foreach($leagues as $league) {
+				$name = $league['name'];
+				if($league['tier']) {
+					$name .= " Tier " . $league['tier'];
+				}
+				$data .= "<tr><td class='menu_item'>$name</td>";
+				$data .= "<td class='menu_item'>" . l("view", "op=league_view&id=" . $league['id']) . "</td>";
+				if($league['view_schedule'] == 'Y') {
+					$data .= "<td class='menu_item'>" . l("schedule", "op=league_schedule_view&id=" . $league['id']) . "</td>";
+					$data .= "<td class='menu_item'>" . l("standings", "op=league_standings&id=" . $league['id']) . "</td>";
+					$data .= "<td class='menu_item'>" . l("approve scores", "op=league_verifyscores&id=" . $league['id']) . "</td>";
+				} else {
+					$data .= "<td colspan='3' class='menu_item'>&nbsp;</td>";
+				}
+				$data .= "</tr>";
 			}
+			$data .= "</table>";
+			$output .= $this->menu_item( $data );
+		}
+		$output .= $this->menu_item( l("List Leagues", "op=league_list"));
+		
 
-			$this->tmpl->assign("new_user_count", $new_users);
+		$output .= $this->menu_title("Fields");
+		$output .= $this->menu_item(
+			l("List Field Sites", "op=site_list"));
+		if($this->_permissions['field_admin']) {
+			$output .= $this->menu_item( l("Create New Field Site", "op=site_create"));
 		}
-			
-		
-		/* ... and set permissions flags */
-		while(list($key,$val) = each($this->_permissions)) {
-			if($val) {
-				$this->tmpl->assign("perm_$key", true);
+				
+		if($this->_permissions['user_list']) {
+			$output .= $this->menu_title("Users");
+			$output .= $this->menu_item( l("List Users", "op=person_list"));
+			if($this->_permissions['user_admin']) {
+				$new_users = $DB->getOne("SELECT COUNT(*) FROM person WHERE class = 'new'");
+				if($this->is_database_error($new_users)) {
+					return false;
+				}
+				$output .= $this->menu_item( l("List New Users", "op=person_listnew") . " ($new_users awaiting approval)");
+				$output .= $this->menu_item( l("Create New User", "op=person_create"));
 			}
 		}
 		
+		print theme_header("Main Menu");
+		print "<table>$output</table>";
+		print theme_footer();
+		
+		return true;
+	}
+	
+	function display ()
+	{	
+		// DELETEME: Remove this once Smarty is gone.
 		return true;
 	}
 }

@@ -964,12 +964,13 @@ class PersonEdit extends Handler
 		}
 		
 		$sql = "UPDATE person SET ";
-		$sql .= join(",", $fields);	
+		$sql .= join(", ", $fields);	
 		$sql .= "WHERE user_id = ?";
 		
 		$fields_data[] = $this->_id;
 		
-		$res = $DB->query($sql, $fields_data);
+		$handle = $DB->prepare($sql);
+		$res = $DB->execute($handle, $fields_data);
 		
 		if($this->is_database_error($res)) {
 			return false;

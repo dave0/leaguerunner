@@ -1,5 +1,44 @@
 <?php
 
+session_set_save_handler("sess_open","sess_close","sess_read","sess_write","sess_destroy","sess_gc");
+session_start();
+
+/** 
+ * Session functions.  
+ */
+function sess_open($save_path, $session_name) 
+{
+	return 1;
+}
+
+function sess_close() 
+{
+	return 1;
+}
+
+function sess_read($key)
+{
+	global $session;
+	$session = new UserSession;
+	$session->create_from_cookie($key, $_SERVER['REMOTE_ADDR']);
+	return $session->is_valid();
+}
+
+function sess_write($key, $value)
+{
+	return '';
+}
+
+function sess_destroy($key)
+{
+	db_query("UPDATE person SET session_cookie = '' WHERE session_cookie = '$key'");
+}
+
+function sess_gc($lifetime)
+{
+	return 1;
+}
+
 /**
  * User Session class for Leaguerunner
  *
@@ -180,7 +219,7 @@ class UserSession
 	{
 		global $DB;
 		
-		$sesskey = $this->uuidgen();
+		$sesskey = session_id();
 		$timestamp = strftime("%Y%m%d%H%M%S");
 
 		$sth = $DB->prepare("UPDATE person SET session_cookie = ?, last_login = ?, client_ip = ? WHERE user_id = ?");
@@ -317,40 +356,6 @@ class UserSession
 			return true;
 		}
 		return false;
-	}
-
-	/**
-	 * UUID generation function
-	 * Algorithm stolen from uuidgen(1) code
-	 */
-	function uuidgen()
-	{
-		$buf = array();
-
-		## Get random bytes
-		## rand() on Linux should use /dev/random and be reasonably good
-		## YMMV on other platforms.
-		## Just to be safe, though, we'll use PHP's mt_rand(), which should also be faster than rand().
-		for($i=0; $i<16; $i++) {
-			$buf[$i] = mt_rand(0,255);
-		}
-
-		## This is the only PITA left.  I haven't bothered b/c I'm too lazy to 
-		## unravel the bitops required to clean it up.
-		$clock_seq = ((($buf[8] << 8) | $buf[9]) & 0x3FFF) | 0x8000;
-
-		return sprintf("%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-			(($buf[0] << 24) | ($buf[1] << 16) | ($buf[2] << 8) | $buf[3]),
-			(($buf[4] << 8) | $buf[5]),
-			((($buf[6] << 8) | $buf[7] & 0x0FFF) | 0x4000),
-			$clock_seq >> 8,
-			$clock_seq & 0xFF,
-			$buf[10],
-			$buf[11],
-			$buf[12],
-			$buf[13],
-			$buf[14],
-			$buf[15]);
 	}
 }
 ?>

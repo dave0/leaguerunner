@@ -29,7 +29,7 @@ class Handler
 	 * @access private
 	 * @var string
 	 */
-	var $_page_title;
+	var $title;
 
 	/**
 	 * Instance of Smarty template file
@@ -214,8 +214,7 @@ class Handler
 
 		$this->tmpl->assign("app_name", $GLOBALS['APP_NAME']);
 		$this->tmpl->assign("app_cgi_location", $_SERVER['PHP_SELF']);
-		$this->tmpl->assign("app_graphics_dir", $GLOBALS['APP_DIR_GRAPHICS'] . "/en_CA");
-		$this->tmpl->assign("page_title", $this->_page_title);
+		$this->tmpl->assign("page_title", $this->title);
 	
 		if(isset($session) && $session->is_valid()) {
 			$this->tmpl->assign("page_user_name", join(" ",array(
@@ -230,7 +229,7 @@ class Handler
 	 */
 	function set_title( $title )
 	{
-		$this->_page_title = $title;
+		$this->title = $title;
 	}
 
 	/**
@@ -279,31 +278,20 @@ class Handler
 	/**
 	 * Display the error message.
 	 *
-	 * Generates an error message using the ErrorMessage.tmpl template.
+	 * Generates an error message.
 	 * Caller should fill in $this->error_text before calling.
-	 *
-	 * Note that we don't use display() to do this, but instead call the
-	 * underlying template displaying stuff ourselves.
 	 *
 	 * @access public
 	 */
 	function display_error()
 	{
-		$this->tmpl = new Smarty;
-		$this->set_template_file("ErrorMessage.tmpl");
-		$this->name = "Error";
-		
-		if(is_null($this->error_text)) {
-			$this->error_text = "Unknown Error";
-		}
-		
-		$this->tmpl->assign("error_message", 
-			$this->error_text);
-			
-		$this->set_global_template_vars();
-		
-		$this->tmpl->template_dir  = "./templates/en_CA/";
-		$this->tmpl->display($this->tmplfile);
+		$title = $this->title ? $this->title : "Error";
+		$error = $this->error_text ? $this->error_text : "An unknown error has occurred.";
+
+		print theme_header($title);
+		print "<h1 align='left'>$title</h1>";
+		print "<blockquote>$error</blockquote>";
+		print theme_footer();
 	}
 
 	/** 
@@ -351,6 +339,7 @@ class Handler
 	/**
 	 * Helper fn to fetch 'allowed' values for a set or enum from a MySQL
 	 * database.
+	 * TODO: put in include/common.inc
 	 */
 	function get_enum_options ( $table, $col_name) 
 	{
@@ -374,6 +363,7 @@ class Handler
 
 	/** 
 	 * Helper fn to generate an option-listable sequence of numbers
+	 * TODO: put in include/common.inc
 	 */
 	function get_numeric_options ( $start, $finish )
 	{
