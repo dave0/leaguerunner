@@ -589,7 +589,7 @@ class PersonApproveNewAccount extends PersonView
 		/* Now, that's really not the full member ID.  We need to build that
 		 * from other info too.
 		 */
-		$full_member_id = sprintf("%.4d%.1d%04d", 
+		$full_member_id = sprintf("%.4d%.1d%03d", 
 			$person_info['year_started'],
 			($person_info['gender'] == "Male") ? 0 : 1,
 			$member_id);
