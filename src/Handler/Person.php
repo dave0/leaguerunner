@@ -640,7 +640,7 @@ class PersonApproveNewAccount extends PersonView
 				$message = _person_mail_text('approved_body_visitor', array( 
 					'%fullname' => "$person->firstname $person->lastname",
 					'%username' => $person->username,
-					'%url' => url("/"),
+					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 				$rc = mail($person->email, 
