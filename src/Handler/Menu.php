@@ -112,7 +112,6 @@ class MainMenu extends Handler
 
 			if(count($leagues) > 0) {
 				$teamsAndLeagues .= tr(th("Leagues Coordinated", array('colspan' => 4)));
-				$data = "<table border='0' cellpadding='3' cellspacing='0'>";
 				// TODO: For each league, need to display # of missing scores,
 				// pending scores, etc.
 				foreach($leagues as $league) {
@@ -120,7 +119,6 @@ class MainMenu extends Handler
 					if($league['tier']) {
 						$name .= " Tier " . $league['tier'];
 					}
-					$data .= "<tr><td>$name</td>";
 					$links = array(
 						l("view", "op=league_view&id=" . $league['id']),
 						l("edit", "op=league_edit&id=" . $league['id'])
@@ -130,9 +128,12 @@ class MainMenu extends Handler
 						$links[] = l("standings", "op=league_standings&id=" . $league['id']);
 						$links[] = l("approve scores", "op=league_verifyscores&id=" . $league['id']);
 					}
-					$data .= "<td>" . theme_links($links) . "</td></tr>";
+
+					$teamsAndLeagues .= tr(
+						td( $name, array('colspan' => 3))
+						. td( theme_links($links), array('align' => 'right'))
+					);
 				}
-				$data .= "</table>";
 				$teamsAndLeagues .= tr(td( $data, array('colspan' => '4' )));
 			}
 		}
