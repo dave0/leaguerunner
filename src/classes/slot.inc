@@ -1,6 +1,17 @@
 <?php
 class GameSlot extends LeaguerunnerObject
 {
+
+	var $leagues;
+	var $_leagues_loaded;
+
+	function GameSlot ()
+	{
+		$this->LeaguerunnerObject(); // Upcall to parent
+		$this->_leagues_loaded = false;
+		$this->leagues = array();
+	}
+
 	function load ( $array = array() )
 	{
 		$result = slot_query( &$array );
@@ -16,6 +27,12 @@ class GameSlot extends LeaguerunnerObject
 			$this->{$key} = $value;
 		}
 
+		$result = db_query("SELECT league_id from league_gameslot_availability WHERE slot_id = %d", $this->slot_id);
+		while( $league = db_fetch_object( $result ) ) {
+			$league->league_status = 'loaded';
+			$this->leagues[$league->league_id] = $league;
+		}
+
 		/* set derived attributes */
 		if($this->site_id) {
 			$this->site = site_load( array('site_id' => $this->site_id) );
@@ -23,50 +40,121 @@ class GameSlot extends LeaguerunnerObject
 
 		return true;
 	}
+
+	function add_league ( &$thing )
+	{
+		if( ! is_object($thing) ) {
+			$object->league_id = $thing;
+			$thing = &$object;
+		}
+		
+		if( array_key_exists( $thing->league_id, $this->leagues) ) {
+			return false;
+		}
+		
+		$this->leagues[$thing->league_id] = $thing;
+		$this->leagues[$thing->league_id]->league_status = 'add';
+	}
+
+	function remove_league( &$thing )
+	{
+		if( ! is_object($thing) ) {
+			$object->league_id = $thing;
+			$thing = &$object;
+		}
+		if( array_key_exists( $thing->league_id, $this->leagues) ) {
+			$this->leagues[$thing->league_id]->league_status = 'delete';
+		}
+		return false;
+	}
 	
 	function save ()
 	{
-		if(! count($this->_modified_fields)) {
-			// No modifications, no need to save
-			return true;
-		}
-
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
 				error_exit("Couldn't create user account");
 			}
 		}
-	
-		$fields      = array();
-		$fields_data = array();
+		
+		if(count($this->_modified_fields)) {
+			$fields      = array();
+			$fields_data = array();
 
-		foreach ( $this->_modified_fields as $key => $value) {
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
-			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
-				$fields_data[] = $this->{$key};
+			foreach ( $this->_modified_fields as $key => $value) {
+				if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
+					$fields[] = "$key = %s";
+					$fields_data[] = 'NULL';
+				} else {
+					$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
+					$fields_data[] = $this->{$key};
+				}
+			}
+			
+			if(count($fields_data) != count($fields)) {
+				error_exit("Internal error: Incorrect number of fields set");
+			}
+			
+			$sql = "UPDATE gameslot SET ";
+			$sql .= join(", ", $fields);	
+			$sql .= " WHERE id = %d";
+
+			$fields_data[] = $this->slot_id;
+
+			db_query( $sql, $fields_data);
+			if(1 < db_affected_rows()) {
+				# Affecting zero rows is possible
+				error_exit("Internal error: Strange number of rows affected");
+			}
+			unset($this->_modified_fields);
+		}
+
+		foreach ( $this->leagues as $l ) {
+			switch( $l->league_status ) {
+				case 'add':
+					db_query('INSERT INTO league_gameslot_availability (slot_id, league_id) VALUES (%d,%d)', $this->slot_id, $l->league_id);
+					$this->leagues[$l->league_id]->league_status = 'loaded';
+					break;
+				case 'delete':
+					db_query("DELETE FROM league_gameslot_availability WHERE slot_id = %d AND league_id = %d", $this->slot_id, $l->league_id);
+					unset($this->leagues[$l->league_id]);
+					break;
+				default:
+					# Skip if not add or delete
+					break;
 			}
 		}
 		
-		if(count($fields_data) != count($fields)) {
-			error_exit("Internal error: Incorrect number of fields set");
+		return true;
+	}
+
+	function create ()
+	{
+		if ($this->_in_database) {
+			return false;
+		}
+
+		if ( ! $this->site_id ) {
+			return false;
 		}
 		
-		$sql = "UPDATE gameslot SET ";
-		$sql .= join(", ", $fields);	
-		$sql .= " WHERE id = %d";
-
-		$fields_data[] = $this->slot_id;
-
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
-			# Affecting zero rows is possible
-			error_exit("Internal error: Strange number of rows affected");
+		if ( ! $this->field_num ) {
+			return false;
 		}
 		
-		unset($this->_modified_fields);
+		if ( ! $this->game_date ) {
+			return false;
+		}
+		
+		if ( ! $this->game_start ) {
+			return false;
+		}
+
+		db_query("INSERT into gameslot (site_id,field_num,game_date,game_start) VALUES(%d,%d,'%s','%s')", $this->site_id, $this->field_num, $this->game_date, $this->game_start);
+		if( 1 != db_affected_rows() ) {
+			return false;
+		}
+		
+		$this->slot_id = db_result(db_query("SELECT LAST_INSERT_ID() from gameslot"));
 		return true;
 	}
 }
@@ -94,6 +182,7 @@ function slot_query ( $array = array() )
 		g.site_id,
 		g.field_num,
 		g.game_date,
+		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
 		TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
 		g.game_id

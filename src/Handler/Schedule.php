@@ -375,7 +375,7 @@ class ScheduleEdit extends Handler
 				}
 				
 				$rows[] = schedule_heading( 
-					$game['date'], 
+					strftime('%a %b %d %Y', $game['timestamp']),
 					$this->_permissions['administer_league'], 
 					false,
 					$game['day_id'], $id );
@@ -476,14 +476,14 @@ class ScheduleEdit extends Handler
 		$rows = array();
 
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
-			$field = field_load( array('field_id' => $game_info['field_id']) );
+			$site = site_load( array('site_id' => $game_info['site_id']) );
 			$rows[] = array(
 				form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 				form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
 				form_hidden("edit[games][$game_id][start_time]", $game_info['start_time']) . $game_info['start_time'],
 				form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
 				form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
-				form_hidden("edit[games][$game_id][field_id]", $game_info['field_id']) . $field->fullname
+				form_hidden("edit[games][$game_id][field_id]", $game_info['field_id']) . $site->name . " FIELD TODO!"
 			);
 		}
 		
@@ -597,7 +597,7 @@ class ScheduleView extends Handler
 
 			if( $game['day_id'] != $prevDayId ) {
 				$rows[] = schedule_heading( 
-					$game['date'], 
+					strftime('%a %b %d %Y', $game['timestamp']),
 					$this->_permissions['administer_league'], 
 					$this->_permissions['edit_schedule'], 
 					$game['day_id'], $id );
@@ -683,14 +683,12 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 		$awayTeam = "Not yet scheduled.";
 	}
 	
-	$field = field_load( array('field_id' => $game['field_id']) );
-			
 	$gameRow = array(
 		$game['round'],
 		l($game['game_start'], 'game/view/' . $game['game_id']),
 		$homeTeam,
 		$awayTeam,
-		l( $field->abbrev, "site/view/" . $game['site_id']),
+		l( $game['field_code'], "site/view/" . $game['site_id']),
 		$game['home_score'],
 		$game['away_score']
 	);

@@ -117,6 +117,7 @@ function game_query ( $array = array() )
 		g.game_date,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
 		g.site_id,
+		g.field_num,
 		CONCAT(YEAR(g.game_date),DAYOFYEAR(g.game_date)) as day_id,
 		CONCAT(t.code, ' ', g.field_num) AS field_code,
 		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp

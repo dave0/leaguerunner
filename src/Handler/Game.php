@@ -15,7 +15,13 @@ function game_dispatch()
 			return new GameApprove;
 /* TODO:
 		case 'edit':
+			# TODO: Allow editing of all game data
+			#       Not of gameslot data, aside from rescheduling, though
 			return new GameEdit;
+		case 'reschedule:
+			# TODO: move a game from one gameslot to another.
+			#       Requires addition of a 'rescheduled' flag in db
+			return new GameReschedule;
 */
 	}
 	return null;
@@ -415,10 +421,10 @@ class GameView extends Handler
 		$rows[] = array("Away Team:", 
 			l($game->away_name, "team/view/$game->away_team"));
 
-		
-		$field = field_load( array('field_id' => $game->field_id) );
+	
+		$site = site_load( array('site_id' => $game->site_id) );
 		$rows[] = array("Field:",
-			l("$field->fullname ($field->abbrev)", "field/view/$game->field_id"));
+			l("$site->name $game->field_num ($game->field_code)", "site/view/$game->site_id"));
 			
 		$rows[] = array("Round:", $game->round);
 
