@@ -1045,6 +1045,11 @@ class PersonEdit extends Handler
 				$this->error_text .= "\n<li>Year started must be before current year.";
 				$rc = false;
 			}
+
+			if( $year_started < 1985 ) {
+				$this->error_text .= "\n<li>Year started must be after 1985.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
+				$rc = false;
+			}
 			if( $year_started < $birthyear + 8) {
 				$this->error_text .= "\n<li>You can't have started playing when you were " . ($year_started - $birthyear) . " years old!  Please correct your birthdate, or your starting year";
 				$rc = false;
