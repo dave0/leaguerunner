@@ -97,7 +97,6 @@ CREATE TABLE league (
 	season		ENUM('none','Spring','Summer','Fall','Winter'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
-	max_teams	integer,
 -- This information is for handling different rounds in the schedule
 -- The current round is used to determine what round a new week will be 
 -- and to determine what to display (if stats_display == currentround)

@@ -874,7 +874,6 @@ class LeagueView extends Handler
 		# Now, if this league should contain schedule info, grab it
 		if($league->allow_schedule == 'Y') {
 			$rows[] = array("Current Round:", $league->current_round);
-			$rows[] = array("Maximum teams:", $league->max_teams);
 			$rows[] = array("League SBF:", $league->calculate_sbf());
 		}
 		

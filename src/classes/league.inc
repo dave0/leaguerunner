@@ -210,7 +210,6 @@ class League extends LeaguerunnerObject
 		switch($key) {
 			case 'league_id':
 			case 'tier':
-			case 'max_teams':
 			case 'current_round':
 			case 'year':
 				return "%d";

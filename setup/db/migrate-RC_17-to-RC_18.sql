@@ -103,3 +103,6 @@ alter table schedule add away_dependant_type enum('winner','loser') after away_d
 
 -- Nuke ancient demographic info
 drop table demographics;
+
+-- Drop unused max_teams variable from league table
+alter table league drop max_teams;
