@@ -1006,6 +1006,8 @@ class TeamSchedule extends Handler
 		}
 
 		$header = array(
+			'&nbsp;',
+			"Game",
 			"Date",
 			"Time",
 			"Opponent",
@@ -1014,7 +1016,11 @@ class TeamSchedule extends Handler
 		);
 		$rows = array();
 			
+		$empty_row_added = 0;
+		$prev_game_id = 0;
 		while(list(,$game) = each($games)) {
+			$space = '&nbsp;';
+			$dash = '-';
 			if($game->home_id == $id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
@@ -1025,8 +1031,8 @@ class TeamSchedule extends Handler
 				$home_away = '(away)';
 			}
 
-			$game_score = "&nbsp;";
-			$score_type = "&nbsp;";
+			$game_score = $space;
+			$score_type = $space;
 			
 			if($game->is_finalized()) {
 				/* Already entered */
@@ -1050,7 +1056,29 @@ class TeamSchedule extends Handler
 				$score_type .= " (default)";
 			}
 
+			if ($game->home_id == "" && $game->away_id == "") {
+				if (!$empty_row_added) {
+					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+					$empty_row_added = 1;
+				}
+				if ($game->home_dependant_game = $prev_game_id) {
+					if ($game->home_dependant_type == "winner") {
+						$space = "W: ";
+					} else {
+						$space = "L: ";
+					}
+				}
+				if ($game->away_dependant_game = $prev_game_id) {
+					if ($game->away_dependant_type == "winner") {
+						$space = "W: ";
+					} else {
+						$space = "L: ";
+					}
+				}
+			}
 			$rows[] = array(
+				$space,
+				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
 				l($opponent_name, "team/view/$opponent_id"),
@@ -1060,7 +1088,11 @@ class TeamSchedule extends Handler
 				$score_type
 			);
 
+			$prev_game_id = $game->game_id;
 		}
+		// add another row of dashes when you're done.
+		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
+
 		team_add_to_menu($this, $team);
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
 	}
