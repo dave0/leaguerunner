@@ -35,7 +35,7 @@ function theme_header($title = "", $breadcrumbs = array())
 		print "<td width='180'><div class='menu'>" . menu_render('_root') . "</div></td>";
 		print "<td class='main'>";
 	} else {
-		print "<td align='center'>";
+		print "<td>";
 	}
 }
 
