@@ -1,1 +1,14 @@
-This tree is soon to be home to phpultimate - a new, improved PHP version of the OCUA engine.
+Leaguerunner - PHP software to run an ultimate league
+
+This is a redesign and rewrite of a piece of code formerly known as the "OCUA
+Engine".  It runs the Ottawa-Carleton Ultimate Association's summer, fall, and
+winter indoor leagues, handling over 350 teams and 3500 players per year.
+Unfortunately, the original OCUA Engine was written as organically-grown Perl
+CGI scripts, and isn't easily maintainable.  This codebase is a rework of that
+initial design.
+
+Prerequisites:
+	- Apache webserver with mod_php, version 4.x or newer
+	- Smarty templating system, version 2.x or newer (see http://smarty.php.net/)
+	- MySQL database
+	- a lot of patience
