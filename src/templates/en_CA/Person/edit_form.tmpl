@@ -123,12 +123,14 @@
     </tr>
     
     <tr>
-      <td class='row_title'>Skill Level:</td> 
+      <td class='row_title' valign="top">Skill Level:</td> 
       <td class='row_data'>
         {if $perm_edit_skill}
-        {foreach name=skill_list from=$skill_list item=skill}
-          <input type="radio" name="skill_level" value="{$skill.value}" {if $skill.value eq $skill_level}checked{/if}>{$skill.output} &nbsp;
-        {/foreach}
+          <input type="radio" name="skill_level" value="1" {if $skill_level eq 1}checked{/if}>1 = Just learning the game<br />
+          <input type="radio" name="skill_level" value="2" {if $skill_level eq 2}checked{/if}>2<br />
+          <input type="radio" name="skill_level" value="3" {if $skill_level eq 3}checked{/if}>3<br />
+          <input type="radio" name="skill_level" value="4" {if $skill_level eq 4}checked{/if}>4<br />
+          <input type="radio" name="skill_level" value="5" {if $skill_level eq 5}checked{/if}>5 = Expert player<br />
         {else}
           {$skill_level}
         {/if}
