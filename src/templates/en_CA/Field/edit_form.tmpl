@@ -30,13 +30,13 @@
     <tr>
       <td class='row_title' valign='top'>Availability:</td> 
       <td class='row_data'>
-        <input type="checkbox" name="field[availability][]" value="Sunday" {if !is_null(array_search('Sunday',$field.availability))}checked{/if}>Sunday<br />
-        <input type="checkbox" name="field[availability][]" value="Monday" {if !is_null(array_search('Monday',$field.availability))}checked{/if}>Monday<br />
-        <input type="checkbox" name="field[availability][]" value="Tuesday" {if !is_null(array_search('Tuesday',$field.availability))}checked{/if}>Tuesday<br />
-        <input type="checkbox" name="field[availability][]" value="Wednesday" {if !is_null(array_search('Wednesday',$field.availability))}checked{/if}>Wednesday<br />
-        <input type="checkbox" name="field[availability][]" value="Thursday" {if !is_null(array_search('Thursday',$field.availability))}checked{/if}>Thursday<br />
-        <input type="checkbox" name="field[availability][]" value="Friday" {if !is_null(array_search('Friday',$field.availability))}checked{/if}>Friday<br />
-        <input type="checkbox" name="field[availability][]" value="Saturday" {if !is_null(array_search('Saturday',$field.availability))}checked{/if}>Saturday<br />
+        <input type="checkbox" name="field[availability][]" value="Sunday" {if $field.availability.Sunday}checked{/if}>Sunday<br />
+        <input type="checkbox" name="field[availability][]" value="Monday" {if $field.availability.Monday}checked{/if}>Monday<br />
+        <input type="checkbox" name="field[availability][]" value="Tuesday" {if $field.availability.Tuesday}checked{/if}>Tuesday<br />
+        <input type="checkbox" name="field[availability][]" value="Wednesday" {if $field.availability.Wednesday}checked{/if}>Wednesday<br />
+        <input type="checkbox" name="field[availability][]" value="Thursday" {if $field.availability.Thursday}checked{/if}>Thursday<br />
+        <input type="checkbox" name="field[availability][]" value="Friday" {if $field.availability.Friday}checked{/if}>Friday<br />
+        <input type="checkbox" name="field[availability][]" value="Saturday" {if $field.availability.Saturday}checked{/if}>Saturday<br />
       </td>
     </tr>
     

@@ -38,9 +38,6 @@
 {if $perm_site_edit}
 | <a href="{$app_cgi_location}?op=field_edit&id={$field.field_id}">edit</a> 
 {/if}
-{if $perm_site_edit}
-| <a href="{$app_cgi_location}?op=field_delete&id={$field.field_id}">delete</a>
-{/if}
 |
       {/foreach}
       </ul>

@@ -326,7 +326,7 @@ class SiteView extends Handler
 			return false;
 		}
 	
-		$this->set_title("View Site: " . $row['name']);
+		$this->set_title("View Site: " . $site['name'] . " (" . $site['code'] . ")");
 
 		/* and list fields at this site */
 		$site['fields'] = $DB->getAll("SELECT * FROM field WHERE site_id = ? ORDER BY num",

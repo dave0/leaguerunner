@@ -42,7 +42,15 @@ class FieldCreate extends FieldEdit
 			return false;
 		}
 
-		$field['availability'] = array();
+		$field['availability'] = array(
+			'Sunday' => false,
+			'Monday' => false,
+			'Tuesday' => false,
+			'Wednesday' => false,
+			'Thursday' => false,
+			'Friday' => false,
+			'Saturday' => false,
+		);
 		$field['site_id'] = $site_id;
 
 		$this->tmpl->assign("field", $field);
@@ -74,7 +82,7 @@ class FieldCreate extends FieldEdit
 
 		$field = var_from_getorpost('field');
 
-		$field['availability'] = join(",", $field['availability']);
+		$field['availability'] = is_array($field['availability']) ? join(",", $field['availability']) : "";
 		$field['site_name'] = $site['site_name'];
 		$field['site_code'] = $site['site_code'];
 		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
@@ -191,8 +199,21 @@ class FieldEdit extends Handler
 		if($this->is_database_error($field)) {
 			return false;
 		}
+		
+		$days_available = strlen($field['availability']) ? split(",", $field['availability']) : array();
+		$field['availability'] = array(
+			'Sunday' => false,
+			'Monday' => false,
+			'Tuesday' => false,
+			'Wednesday' => false,
+			'Thursday' => false,
+			'Friday' => false,
+			'Saturday' => false,
+		);
+		while(list(,$day) = each($days_available)) {
+			$field['availability'][$day] = true;
+		}
 
-		$field['availability'] = split(",", $field['availability']);
 		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
 
 		$this->tmpl->assign("field", $field);
@@ -222,7 +243,7 @@ class FieldEdit extends Handler
 
 		$field = var_from_getorpost('field');
 
-		$field['availability'] = join(",", $field['availability']);
+		$field['availability'] = is_array($field['availability']) ? join(",", $field['availability']) : "";
 		$field['site_name'] = $site['site_name'];
 		$field['site_code'] = $site['site_code'];
 		$this->set_title("Edit Field: " . $field['site_name'] . " " . $field['num']);
@@ -332,7 +353,7 @@ class FieldView extends Handler
 		
 		$this->set_title("View Field: " . $field['site_name'] . " " . $field['num']);
 
-		$field['availability'] = split(",", $field['availability']);
+		$field['availability'] = strlen($field['availability']) ? split(",", $field['availability']) : array();
 
 		$this->tmpl->assign("field", $field);
 		$this->tmpl->assign("id", $this->_id);
@@ -369,8 +390,10 @@ class FieldView extends Handler
 		);
 
 		/* Now, show only available days on booking list */
-		while(list(,$day) = each($field['availability'])) {
-			$assignments[$daynum[$day]]['avail'] = true;
+		if($field['status'] == 'open') {
+			while(list(,$day) = each($field['availability'])) {
+				$assignments[$daynum[$day]]['avail'] = true;
+			}
 		}
 		
 		while(list(,$booking) = each($rows)) {
