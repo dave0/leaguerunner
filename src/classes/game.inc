@@ -1,14 +1,6 @@
 <?php
-class Game
+class Game extends LeaguerunnerObject
 {
-	var $_modified_fields;
-	var $_in_database;
-
-	function Team ()
-	{
-		$this->_in_database = false;
-	}
-	
 	/**
 	 * Load a single game object from the database using the supplied query
 	 * data.  If more than one matches, we will load only the first one.  If
@@ -36,22 +28,6 @@ class Game
 			$this->field = field_load( array('field_id' => $this->field_id) );
 		}
 
-		return true;
-	}
-	
-	function set ( $key, $value )
-	{
-		// TODO: check that key is in fact a valid key before doing this
-
-		// No need to set it if it already has the same value
-		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
-			if( $this->{$key} == $value ) {
-				return true;
-			}
-		}
-
-		$this->_modified_fields[$key] = true;	
-		$this->{$key} = $value;
 		return true;
 	}
 	
@@ -101,20 +77,10 @@ class Game
 		return true;
 	}
 
-
 	/**
 	 * TODO
 	 */
 	function create ()
-	{
-		return false;
-	}
-	
-	/**
-	 * Delete a game from the system.
-	 * TODO:
-	 */
-	function delete ()
 	{
 		return false;
 	}
@@ -123,18 +89,25 @@ class Game
 function game_query ( $array = array() )
 {
 
-	$query[] = 's.gameslot = g.id';
+	$query[] = 's.game_id = g.game_id';
 	$order = '';
 	foreach ($array as $key => $value) {
-		if($key == 'game_date') {
-			$query[] = "g.game_date = '" . check_query($value) . "'";
-		} else if($key == '_extra') {
-			/* Just slap on any extra query fields desired */
-			$query[] = $value;
-		} else if($key == '_order') {
-			$order = ' ORDER BY ' . $value;
-		} else {
-			$query[] = "s.$key = '" . check_query($value) . "'";
+		switch( $key ) {
+			case 'game_date':
+				$query[] = "g.game_date = '" . check_query($value) . "'";
+				break;
+			case 'either_team':
+				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';
+				break;
+			case '_extra':
+				/* Just slap on any extra query fields desired */
+				$query[] = $value;
+				break;
+			case '_order':
+				$order = ' ORDER BY ' . $value;
+				break;
+			default:
+				$query[] = "s.$key = '" . check_query($value) . "'";
 		}
 	}
 
@@ -174,4 +147,4 @@ function game_load( $array = array() )
 		return null;
 	}
 }
-
+?>

@@ -1,14 +1,6 @@
 <?php
-class Person 
+class Person extends LeaguerunnerObject
 {
-	var $_modified_fields;
-	var $_in_database;
-
-	function Person ()
-	{
-		$this->_in_database = false;
-	}
-	
 	/**
 	 * Load a single user account object from the database using the 
 	 * supplied query data.  If more than one account matches, we will
@@ -83,7 +75,9 @@ class Person
 			$this->teams[ $team->team_id ]->id = $team->team_id;
 		}
 
-		/* Fetch league info */
+		/* Fetch league info.  Can't use league_load as it calls person_load,
+		 * which makes this recursively painful.
+		 */
 		$result = db_query(
 			"SELECT 
 				l.league_id, 
@@ -106,22 +100,15 @@ class Person
 			$this->leagues[ $league->league_id ] = $league;
 		}
 
-		return true;
-	}
-
-	function set ( $key, $value )
-	{
-		// TODO: check that key is in fact a valid key before doing this
-
-		// No need to set it if it already has the same value
-		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
-			if( $this->{$key} == $value ) {
-				return true;
-			}
+		/* Evil hack to get 'Inactive Teams' into menu */
+		if( $this->is_a_coordinator ) {
+			$result = db_query(
+				"SELECT l.* FROM league l where league_id = 1");
+			$league = db_fetch_object($result);
+			$league->fullname = $league->name;
+			$this->leagues[ 1 ] = $league;
 		}
 
-		$this->_modified_fields[$key] = true;	
-		$this->{$key} = $value;
 		return true;
 	}
 

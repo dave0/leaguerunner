@@ -1,17 +1,9 @@
 <?php
-class Team 
+class Team extends LeaguerunnerObject
 {
-	var $_modified_fields;
-	var $_in_database;
-
-	function Team ()
-	{
-		$this->_in_database = false;
-	}
-
 	/**
 	 * Load a single team object from the database using the supplied query data.
-	 * If more than one account matches, we will load only the first one.  If
+	 * If more than one object matches, we will load only the first one.  If
 	 * fewer than one matches, this object remains empty.
 	 *
 	 * @param	mixed 	$array key-value pairs that identify the team to be loaded.
@@ -51,22 +43,6 @@ class Team
 			$this->{$key} = $value;
 		}
 
-		return true;
-	}
-
-	function set ( $key, $value )
-	{
-		// TODO: check that key is in fact a valid key before doing this
-
-		// No need to set it if it already has the same value
-		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
-			if( $this->{$key} == $value ) {
-				return true;
-			}
-		}
-
-		$this->_modified_fields[$key] = true;	
-		$this->{$key} = $value;
 		return true;
 	}
 
@@ -158,15 +134,6 @@ class Team
 		$this->user_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
 		
 		return true;
-	}
-
-	/**
-	 * Delete a team account from the system.
-	 * TODO:
-	 */
-	function delete ()
-	{
-		return false;
 	}
 
 	function get_placeholder( $key, $value )

@@ -1,17 +1,15 @@
 <?php
-class League 
+class League extends LeaguerunnerObject
 {
-	var $_modified_fields;
-	var $_in_database;
 	var $_teams_loaded;
 	var $coordinators;
 	var $teams;
 
 	function League ()
 	{
-		$this->_in_database = false;
+		$this->LeaguerunnerObject(); // Upcall to parent
+		
 		$this->_teams_loaded = false;
-		$this->_modified_fields = array();
 		$this->coordinators = array();
 		$this->teams = array();
 	}
@@ -42,7 +40,7 @@ class League
 
 		/* TODO: we may want to abort here instead */
 		if(1 != db_num_rows($result)) {
-			return null;
+			return false;
 		}
 		
 		$this->_in_database = true;
@@ -95,22 +93,6 @@ class League
 			$this->teams[$t->team_id] = $t;
 		}
 		$this->_teams_loaded = true;	
-		return true;
-	}
-
-	function set ( $key, $value )
-	{
-		// TODO: check that key is in fact a valid key before doing this
-
-		// No need to set it if it already has the same value
-		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
-			if( $this->{$key} == $value ) {
-				return true;
-			}
-		}
-
-		$this->_modified_fields[$key] = true;	
-		$this->{$key} = $value;
 		return true;
 	}
 
@@ -212,15 +194,6 @@ class League
 		$this->league_id = db_result(db_query("SELECT LAST_INSERT_ID() from league"));
 
 		return true;
-	}
-
-	/**
-	 * Delete a league from the system.
-	 * TODO:
-	 */
-	function delete ()
-	{
-		return false;
 	}
 
 	function get_placeholder( $key, $value )
