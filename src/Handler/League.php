@@ -1257,7 +1257,7 @@ class LeagueStandings extends Handler
 		while(list(, $data) = each($sorted_order)) {
 			$id = $data['id'];
 			$srow = $season[$id];
-			if($season[$id]['games'] > 1) {
+			if($season[$id]['games'] > 2) {
 				$srow['sotg'] = sprintf("%.2f", $season[$id]['spirit'] / ($season[$id]['games'] - ($season[$id]['defaults_for'] + $season[$id]['defaults_against'])));
 				
 			} else {
@@ -1568,7 +1568,7 @@ class LeagueCaptainEmails extends Handler
 			WHERE
 				l.league_id = ?
 				AND l.team_id = r.team_id
-				AND r.status = 'captain'",array($id), DB_FETCHMODE_ASSOC);
+				AND (r.status = 'captain' OR r.status = 'assistant')",array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($addrs)) {
 			return false;
 		}
