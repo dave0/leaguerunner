@@ -63,17 +63,17 @@ function league_add_to_menu( $this, &$league, $parent = 'league' )
 	menu_add_child($parent, $sortname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
 	if($league->allow_schedule == 'Y') {
-		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
-		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
+		menu_add_child($sortname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
+		menu_add_child($sortname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($this->_permissions['administer_league']) {
-			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
+			menu_add_child($sortname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
 	}
 	
 	if($this->_permissions['administer_league']) {
-		menu_add_child($league->fullname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
-		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
-		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
+		menu_add_child($sortname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
+		menu_add_child($sortname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
+		menu_add_child($sortname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
 	}
 	if($session->is_admin()) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
