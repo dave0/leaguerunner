@@ -1,5 +1,5 @@
 {include file="common/basic_header.tmpl"}
-<h1>{if $id}Editing {$league_name}{else}Create New League{/if}</h1>
+<h1>{if $id}Editing {$league_name}{if $tier}Tier {$tier}{/if}{else}Create New League{/if}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}
