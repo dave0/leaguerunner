@@ -1085,7 +1085,7 @@ class TeamScheduleView extends Handler
 				s.away_score, 
 				h.name AS home_name, 
 				a.name AS away_name, 
-				CONCAT(t.code,f.num) AS field_code,
+				CONCAT(t.code,' ',f.num) AS field_code,
 				s.defaulted 
 			FROM schedule s 
 				LEFT JOIN team h ON (s.home_team = h.team_id) 

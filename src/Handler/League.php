@@ -985,7 +985,7 @@ class LeagueScheduleView extends Handler
 		$league_fields = $DB->getAll(
 			"SELECT DISTINCT
 				f.field_id AS value, 
-				CONCAT(s.name,' ',f.num,' (',s.code,f.num,')') AS output
+				CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')') AS output
 			  FROM
 			    field_assignment a
 				LEFT JOIN field f ON (a.field_id = f.field_id)
