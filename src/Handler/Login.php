@@ -77,9 +77,9 @@ class Login extends Handler
 	 */
 	function display ()
 	{	
-		global $APP_CGI_LOCATION, $APP_COOKIE_NAME, $session;
+		global $APP_COOKIE_NAME, $session;
 		setcookie($APP_COOKIE_NAME, $session->get_session_key());
-		Header("Location: $APP_CGI_LOCATION?op=menu");
+		return $this->output_redirect("op=menu");
 	}
 
 	/**

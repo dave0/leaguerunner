@@ -76,9 +76,7 @@ class TeamStandings extends Handler
 	 */
 	function display()
 	{
-		global $APP_CGI_LOCATION;
-		Header("Location: $APP_CGI_LOCATION?op=league_standings;id=" . $this->_league_id);
-		return true;
+		return $this->output_redirect("op=league_standings;id=" . $this->_league_id);
 	}
 }
 

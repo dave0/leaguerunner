@@ -67,8 +67,7 @@ class Logout extends Handler
 	 */
 	function display ()
 	{	
-		global $APP_CGI_LOCATION;
-		Header("Location: $APP_CGI_LOCATION?op=login");
+		return $this->output_redirect("op=login");
 	}
 }
 
