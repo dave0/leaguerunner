@@ -9,6 +9,7 @@ register_page_handler('league_schedule_view', 'LeagueScheduleView');
 register_page_handler('league_standings', 'LeagueStandings');
 register_page_handler('league_view', 'LeagueView');
 register_page_handler('league_captemail', 'LeagueCaptainEmails');
+register_page_handler('league_manageteam', 'LeagueManageTeam');
 
 /**
  * Create handler
@@ -70,7 +71,7 @@ class LeagueCreate extends LeagueEdit
 		
 		$league_name = trim(var_from_getorpost("league_name"));
 		if(0 == strlen($league_name)) {
-			$this->error_text .= gettext("League name cannot be left blank") . "<br>";
+			$this->error_text .= "League name cannot be left blank<br>";
 			$err = false;
 		}
 
@@ -380,7 +381,7 @@ class LeagueEdit extends Handler
 		if($league_allow_schedule == 'Y') {
 			$league_day = var_from_getorpost("league_day");
 			if( !isset($league_day) ) {
-				$this->error_text .= gettext("One or more days of play must be selected") . "<br>";
+				$this->error_text .= "One or more days of play must be selected<br>";
 				$rc = false;
 			}
 		}
@@ -537,7 +538,7 @@ class LeagueScheduleAddWeek extends Handler
 		$day = var_from_getorpost('day');
 
 		if( !validate_date_input($year, $month, $day) ) {
-			$this->error_text = gettext("That date is not valid");
+			$this->error_text = "That date is not valid";
 			return false;
 		}
 		
@@ -666,7 +667,7 @@ class LeagueScheduleAddWeek extends Handler
 		}
 
 		if($num_teams < 2) {
-			$this->error_text = gettext("Cannot schedule games in a league with less than two teams");
+			$this->error_text = "Cannot schedule games in a league with less than two teams";
 			return false;
 		}
 
@@ -756,7 +757,7 @@ class LeagueScheduleEdit extends Handler
 	{
 		$games = var_from_post('games');
 		if(!is_array($games) ) {
-			$this->error_text = gettext("Invalid data supplied for games");
+			$this->error_text = "Invalid data supplied for games";
 			return false;
 		}
 	
@@ -940,7 +941,7 @@ class LeagueScheduleView extends Handler
 		     WHERE l.league_id = ? AND l.status = 'confirmed'",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_teams)) {
-			$this->error_text .= gettext("There may be no teams in this league");
+			$this->error_text .= "There may be no teams in this league";
 			return false;
 		}
 		/* Pop in a --- element */
@@ -961,7 +962,7 @@ class LeagueScheduleView extends Handler
 		    	a.league_id = ?",
 			array($id), DB_FETCHMODE_ASSOC);
 		if($this->is_database_error($league_fields)) {
-			$this->error_text .= gettext("There may be no fields assigned to this league");
+			$this->error_text .= "There may be no fields assigned to this league";
 			return false;
 		}
 		/* Pop in a --- element */
@@ -1020,7 +1021,7 @@ class LeagueScheduleView extends Handler
 			array($id), DB_FETCHMODE_ASSOC);
 			
 		if($this->is_database_error($sched_rows)) {
-			$this->error_text .= gettext("The league [$id] may not exist");
+			$this->error_text .= "The league [$id] may not exist";
 			return false;
 		}
 			
@@ -1555,6 +1556,204 @@ class LeagueCaptainEmails extends Handler
 	{
 		Header("Content-type: text/plain");
 		print $this->page_data;
+	}
+}
+
+class LeagueManageTeam extends Handler
+{
+	var $_id;
+	var $_team_id;
+	
+	function initialize ()
+	{
+		$this->set_title("Change Team Status");
+		
+		$this->_required_perms = array(
+			'require_valid_session',
+			'require_var:id',
+			'require_var:action',
+			'admin_sufficient',
+			'coordinator_sufficient',
+			'deny',
+		);
+
+		return true;
+	}
+
+	function process ()
+	{
+		global $DB;
+
+		$step = var_from_getorpost('step');
+		$this->_id      = var_from_getorpost('id');
+		$this->_team_id = var_from_getorpost('team_id');
+		$action 		= var_from_getorpost('action');
+
+		if($action != "add" && $action != "remove") {
+			$this->error_text = "Only possible actions are to add or remove a team";
+			return false;
+		}
+		
+		switch($step) {
+			case 'perform':
+				return $this->perform($action);
+				break;
+			case 'confirm':
+			default:
+				$this->set_template_file("League/team_status_confirm.tmpl");
+				$this->tmpl->assign("page_step", 'perform');
+				$rc = $this->generate_confirm($action);
+				break;
+		}
+	
+		$this->tmpl->assign("action", $action);
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+		return $rc;
+	}
+
+	/**
+	 * Override parent display to redirect to 'view' on success
+	 */
+	function display ()
+	{
+		$step = var_from_getorpost('step');
+		if($step == 'perform') {
+			return $this->output_redirect("op=league_view&id=" . $this->_id);
+		}
+		return parent::display();
+	}
+
+	function generate_confirm( $action )
+	{
+		global $DB;
+
+		$league = $DB->getRow("SELECT name, day, season, year, tier  FROM league WHERE league_id = ?",
+			array($this->_id), DB_FETCHMODE_ASSOC);
+		
+		if($this->is_database_error($league)) {
+			trigger_error("Database error");
+			return false;
+		}
+		if(is_null($league)) {
+			$this->error_text = "That is not a valid league ID";
+			return false;
+		}
+		
+		$team = $DB->getRow("SELECT name FROM team WHERE team_id = ?",
+			array($this->_team_id), DB_FETCHMODE_ASSOC);
+		
+		if($this->is_database_error($team)) {
+			trigger_error("Database error");
+			return false;
+		}
+		if(is_null($team)) {
+			$this->error_text = "That is not a valid team ID";
+			return false;
+		}
+	
+		switch($action) {
+			case 'add':
+				$this->tmpl->assign("instructions","You are about to add the following team to this league");
+				break;
+			case 'remove':
+				$this->tmpl->assign("instructions","You are about to remove the following team from this league");
+				break;
+			default:
+				trigger_error("Unreachable error");
+				$this->error_text = "That is not a valid action";
+				return false;
+		}
+		
+		$this->tmpl->assign("team_name", $team['name']);
+		$this->tmpl->assign("league",$league);
+		$this->tmpl->assign("id", $this->_id);
+		$this->tmpl->assign("team_id", $this->_team_id);
+		
+		return true;
+	}
+
+
+	function perform ( $action )
+	{
+		global $DB;
+
+		$league = $DB->getRow("SELECT name, day, season, year, tier  FROM league WHERE league_id = ?",
+			array($this->_id), DB_FETCHMODE_ASSOC);
+		
+		if($this->is_database_error($league)) {
+			trigger_error("Database error");
+			return false;
+		}
+		if(is_null($league)) {
+			$this->error_text = "That is not a valid league ID";
+			return false;
+		}
+		
+		$team = $DB->getRow("SELECT name FROM team WHERE team_id = ?",
+			array($this->_team_id), DB_FETCHMODE_ASSOC);
+		
+		if($this->is_database_error($team)) {
+			trigger_error("Database error");
+			return false;
+		}
+		if(is_null($team)) {
+			$this->error_text = "That is not a valid team ID";
+			return false;
+		}
+	
+		switch($action) {
+			case 'add':
+				/* Can only add team to league if 
+				 * a) it's not already there, and
+				 * b) team isn't in a conflicting league
+				 */
+				$res = $DB->getOne("
+					SELECT 
+						l.league_id
+					FROM
+						league l,
+						leagueteams t
+					WHERE
+						l.year = ? AND l.season = ?
+						AND t.league_id = l.league_id
+						AND t.team_id = ?",
+					array($league['year'],$league['season'],$this->_team_id));
+				if($this->is_database_error($res)) {
+					trigger_error("Database error");
+					return false;
+				}
+				if(isset($res)) {
+					$this->error_text = "That team is already registered in a league that conflicts with this one.";
+					return false;
+				}
+				
+				$res = $DB->query("INSERT INTO leagueteams VALUES(?,?,'confirmed')", array($this->_id, $this->_team_id));
+				if($this->is_database_error($res)) {
+					if(strstr($this->error_text,"already exists: INSERT")) {
+						$this->error_text = "That team is already part of this league.";
+					}
+					trigger_error("Database error");
+					return false;
+				}
+				break;
+			case 'remove':
+				$res = $DB->query("DELETE FROM leagueteams WHERE league_id = ? AND team_id = ?", array($this->_id, $this->_team_id));
+				if($this->is_database_error($res)) {
+					trigger_error("Database error");
+					return false;
+				}
+				break;
+			default:
+				trigger_error("Unreachable error");
+				$this->error_text = "That is not a valid action";
+				return false;
+		}
+		
+		/* TODO See if we've orphaned this team, and if so, add it to
+		 * "Inactive Teams"
+		 */
+
+		return true;	
 	}
 }
 ?>
