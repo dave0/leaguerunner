@@ -178,7 +178,6 @@ class ScheduleViewDay extends Handler
 		);
 		
 		$this->_required_perms = array(
-			'require_valid_session',
 			'allow',
 		);
 
@@ -341,7 +340,7 @@ class ScheduleEdit extends Handler
 			$this->title => 0));
 			
 		/* Grab data for pulldowns if we need an edit form */
-		$league->starttimes = getOptionsFromTimeRange(900,2400,15);
+		$league->starttimes = getOptionsFromTimeRange(1600,2400,5);
 		$result = db_query(
 			"SELECT t.team_id, t.name 
 			 FROM leagueteams l
@@ -376,9 +375,6 @@ class ScheduleEdit extends Handler
 			$league->fields[$field->field_id] = $field->name;
 		}
 
-		/* 
-		 * Rounds
-		 */
 		$league->rounds = array();
 		for($i = 1; $i <= 5;  $i++) {
 			$league->rounds[$i] = $i;
@@ -534,13 +530,14 @@ class ScheduleEdit extends Handler
 		$rows = array();
 
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
+			$field = field_load( array('field_id' => $game_info['field_id']) );
 			$rows[] = array(
 				form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 				form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
 				form_hidden("edit[games][$game_id][start_time]", $game_info['start_time']) . $game_info['start_time'],
 				form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
 				form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
-				form_hidden("edit[games][$game_id][field_id]", $game_info['field_id']) . get_field_name($game_info['field_id'])
+				form_hidden("edit[games][$game_id][field_id]", $game_info['field_id']) . $field->fullname
 			);
 		}
 		
@@ -726,7 +723,7 @@ function schedule_heading( $date, $canViewSpirit = false, $canEdit = false, $day
 
 function schedule_subheading( $canViewSpirit )
 {
-	$subheadings = array("Round", "Game Time", "Home", "Away", "Field", "Home<br />Score", "Away<br />Score");
+	$subheadings = array("Rnd", "Time", "Home", "Away", "Field", "Home<br />Score", "Away<br />Score");
 	if($canViewSpirit) {
 		$subheadings[] = "Home<br />SOTG";
 		$subheadings[] = "Away<br /> SOTG";
@@ -767,13 +764,15 @@ function schedule_render_viewable( $canViewSpirit, &$game )
 	} else {
 		$awayTeam = "Not yet scheduled.";
 	}
+	
+	$field = field_load( array('field_id' => $game['field_id']) );
 			
 	$gameRow = array(
 		$game['round'],
 		l($game['time'], 'game/view/' . $game['id']),
 		$homeTeam,
 		$awayTeam,
-		l( get_field_name($game['field_id']), "site/view/" . $game['site_id']),
+		l( $field->abbrev, "site/view/" . $game['site_id']),
 		$game['home_score'],
 		$game['away_score']
 	);

@@ -409,8 +409,10 @@ class GameView extends Handler
 		$rows[] = array("Away Team:", 
 			l($game->away_name, "team/view/$game->away_team"));
 
+		
+		$field = field_load( array('field_id' => $game->field_id) );
 		$rows[] = array("Field:",
-			l(get_field_name($game->field_id), "field/view/$game->field_id"));
+			l("$field->fullname ($field->abbrev)", "field/view/$game->field_id"));
 			
 		$rows[] = array("Round:", $game->round);
 

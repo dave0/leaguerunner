@@ -181,11 +181,13 @@ class SiteEdit extends Handler
 
 		$output = form_hidden("edit[step]", "perform");
 		
+		$ward = ward_load( array('ward_id' => $site->ward_id) );
+		
 		$rows = array();
 		$rows[] = array( "Site Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
 		$rows[] = array( "Site Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 		$rows[] = array( "Site Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
-		$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  getWardName($edit['ward_id']));
+		$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
 		$rows[] = array( "Site Location Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 		$rows[] = array( "Site Layout Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
 		$rows[] = array( "Directions:", form_hidden('edit[directions]', $edit['directions']) . check_form($edit['directions']));
@@ -374,12 +376,14 @@ class SiteView extends Handler
 				theme_links($fieldOps)
 			);
 		}
+
+		$ward = ward_load( array('ward_id' => $site->ward_id) );
 		
 		$rows = array();
 		$rows[] = array("Site Name:", $site->name);
 		$rows[] = array("Site Code:", $site->code);
 		$rows[] = array("Site Region:", $site->region);
-		$rows[] = array("City Ward:", l(getWardName($site->ward_id), "ward/view/$site->ward_id"));
+		$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/$site->ward_id"));
 		$rows[] = array("Site Location Map:", 
 			$site->location_url ? l("Click for map in new window", $site->location_url, array('target' => '_new'))
 				: "No Map");

@@ -366,6 +366,7 @@ function ward_load ( $array = array() )
 	
 	$result = db_query_range("SELECT 
 		w.* 
+		FROM ward w
 		WHERE " . implode(' AND ',$query),0,1);
 
 	/* TODO: we may want to abort here instead */

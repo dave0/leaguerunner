@@ -745,27 +745,6 @@ function getOptionsFromQuery( $sql, $data = array() )
 	return $options;
 }
 
-function getWardName($id)
-{
-	$result = db_query("SELECT CONCAT(name, ' (', city, ' Ward ', num, ')') FROM ward WHERE ward_id = %d", $id);
-	return db_result($result);
-}
-
-/**
- * Return name of field, given a field ID
- * TODO: replace with field_load() and put in Field.php
- */
-function get_field_name($id)
-{
-	$result = db_query("SELECT
-		CONCAT(s.name,' ',f.num,' (',s.code,' ',f.num,')')
-		FROM field f
-		LEFT JOIN site s ON (f.site_id = s.site_id)
-		WHERE f.field_id = %d", $id);
-	return db_result($result);
-}
-
-
 /**
  * Generate a calendar where individual days are clickable.  Calendar is
  * generated for $year and $month.  If given and > 0, $day is highlighted.

@@ -391,10 +391,13 @@ class FieldAssign extends Handler
 	}
 
 	function generateForm( $id, $day ) {
-	
-		$field_name = get_field_name($id);
+
+		$field = field_load( array( 'field_id' => $id) );
+		if(!$field) {
+			$this->error_exit("You must provide a valid field ID");
+		}
 		$this->setLocation(array(
-			$field_name => "field/view/$id",
+			"$field->fullname ($field->abbrev)" => "field/view/$id",
 			$this->title => 0
 		));
 
@@ -402,9 +405,7 @@ class FieldAssign extends Handler
 		
 		$leagues = getOptionsFromQuery("SELECT l.league_id AS theKey, IF(l.tier,CONCAT(l.name, ' Tier ', l.tier), l.name) AS theValue FROM league l WHERE l.allow_schedule = 'Y' AND (FIND_IN_SET('%s', l.day) > 0)", array($day));
 
-		$output .= para("Select a league to assign field <b>"
-				. $field_name . "</b> to for <b>"
-				. $day . "</b>")
+		$output .= para("Select a league to assign field <b>$field->fullname</b> to for <b>$day </b>")
 			. form_select('', 'edit[league_id]', '', $leagues);
 
 		$output .= form_submit("Submit");
