@@ -4,7 +4,9 @@ Basic Install Needs:
 	- need install instructions
 
 Docs:	
-	- check in Mack's user instructions
+	- need better user docs
+	- developer docs
+	- code is mostly uncommented =(
 
 Reimplementation:
 	- send email:
@@ -14,7 +16,7 @@ Reimplementation:
 
 Redesign:
 	- Clean up database schema
-	- de-templateify this code; Smarty is too much of a pain in the ass.
+	- (DONE) de-templateify this code; Smarty is too much of a pain in the ass.
 
 New Features:
 	- start using the 'year' column for leagues, to allow multiple leagues
@@ -28,20 +30,47 @@ New Features:
 	- players looking for teams / teams looking for players
 	- add "Leagues Coordinated" to person view page.
 
+	- handle playoffs.  For now, just allow scheduling of rounds based on Q
+	  (quarters), S (semis), F (finals).  Eventually want to be able to
+	  schedule a ladder that's automatically filled in as results are
+	  provided.
+
+	- fix the rankings so that three-way ties are dealt with properly.
+	  Possibly use a modified Elo system (see soccer rankings for details).
+	
+	- rather than selecting a field and a start time, coordinators should
+	  be able to select a "game slot" (for lack of a better term) that
+	  knows start/end times and field location.  For example, a league
+	  might have assigned to it:
+	  	"Sod 12, Summer, Monday, 6:45pm - dark"
+		"Sod 12, Summer, Monday, 6:30pm - 7:40pm"
+		"Sod 12, Summer, Monday, 7:45pm - dark"
+	  or
+	  	"Carleton Fieldhouse 1, Winter, Thursday, 8:45pm - 10:10pm"
+		"Carleton Fieldhouse 1, Winter, Thursday, 10:15pm - 11:40pm"
+	  or whatever.  Then there's no chance of selecting the wrong time,
+	  timecaps are readily visible on the schedule, and overlaps and
+	  double-booking can easily be seen.
+
+	- automatic generation of round-robin schedule (3 game split tier, or
+	  7-game full tier)
+	
+	- use Mike Reade's spirit system
+
 Field Management:
     Add more attributes to fields, auto-generate field websites from DB on
     periodic basis.
     
     Fields should have the following attributes viewable by all:
-        - full name of field
-        - field code (a unique shorthand notation for the field, consisting of
+        - (DONE) full name of field
+        - (DONE) field code (a unique shorthand notation for the field, consisting of
           3 letters and 2 numbers (ie: UPI01, SOD10, LYL01, RIV03)
         - location info
-            - region (east, west, south, north/gatineau)
+            - (DONE) region (east, west, south, north/gatineau)
             - street address
-            - URL to location map (where the field is)
-            - URL to field layout map (where to put the field at the location)
-            - text field for directions
+            - (DONE) URL to location map (where the field is)
+            - (DONE) URL to field layout map (where to put the field at the location)
+            - (DONE) text field for directions
             - GPS coordinates
 	    - city ward
         - public transit info
@@ -99,7 +128,8 @@ Field Management:
         - administrative notes
 
 Bugs:
-	- player selecting "join team" rather than "change status" gets told
-	  that they don't have permission.  This should be fixed so that they
-	  get the changestatus page if they're already on the roster in some
+	- (DONE) player selecting "join team" rather than "change status" gets
+	  told that they don't have permission.  This should be fixed so that
+	  they get the changestatus page if they're already on the roster in
+	  some
 	  capacity.
