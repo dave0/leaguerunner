@@ -690,7 +690,9 @@ class LeagueStandings extends Handler
 			$row[] = $season[$id]->points_against;
 			$row[] = $season[$id]->points_for - $season[$id]->points_against;
 			$row[] = $season[$id]->rating;
-		
+	
+			// initialize the sotg to dashes!
+                        $sotg = "---";
 			if($season[$id]->games < 3 && !($this->_permissions['administer_league'])) {
 				 $sotg = "---";
 			} else if ($season[$id]->games > 0) {
