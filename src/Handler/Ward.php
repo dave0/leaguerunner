@@ -51,7 +51,7 @@ class WardCreate extends WardEdit
 				$rc = $this->generateConfirm($id, $edit);
 				break;
 			case 'perform':
-				$this->perform(&$id, $edit);
+				$this->perform($id, $edit);
 				local_redirect(url("ward/view/$id"));
 				break;
 			default:
