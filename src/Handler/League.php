@@ -769,6 +769,10 @@ class LeagueScheduleEdit extends Handler
 			 * 	away_id
 			 * 	field_id
 			 * All except start_time should be integer values.
+			 * TODO: should also check that:
+			 * 	- no team is scheduled against itself
+			 * 	- no team is scheduled twice in one timeslot
+			 * 	- no field is scheduled twice in one timeslot
 			 */
 		}
 		
