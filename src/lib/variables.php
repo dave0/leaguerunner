@@ -5,7 +5,7 @@
 
 $GLOBALS['APP_NAME'] = "OCUA Leaguerunner";
 
-$GLOBALS['APP_COOKIE_NAME']   = "ocua_session";
+$GLOBALS['APP_COOKIE_NAME']   = "leaguerunner_session";
 $GLOBALS['APP_COOKIE_DOMAIN'] = ".evilplot.org";
 $GLOBALS['APP_COOKIE_PATH'] = "/";
 
