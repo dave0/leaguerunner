@@ -37,7 +37,6 @@ class PersonView extends Handler
 			'publish'			=> false,
 			'user_edit'				=> false,
 #			'user_delete'			=> false,
-#			'user_change_perms'		=> false,
 			'user_change_password'	=> false,
 		);
 
