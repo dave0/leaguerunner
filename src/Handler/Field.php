@@ -387,6 +387,7 @@ class FieldView extends Handler
 
 	function process ()
 	{
+		global $session;
 		$id = arg(2);
 
 		$field = field_load( array('fid' => $id) );
@@ -413,7 +414,11 @@ class FieldView extends Handler
 			$field->permit_url ? l("Click for permit in new window", $field->permit_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Directions:", $field->site_directions);
-		$rows[] = array("Special Instrutions:", $field->site_instructions);
+		if( $session->is_valid() ) {
+			$rows[] = array("Special Instrutions:", $field->site_instructions);
+		} else {
+			$rows[] = array("Special Instrutions:", "You must be logged in to see the special instructions for this site.");
+		}
 		
 		/* TODO: list other fields at this site */
 		if( $field->parent_fid ) {
