@@ -98,7 +98,6 @@ class Menu extends Handler
 			),
 		);
 		return array(
-			'icon' => "menu/account.png",
 			'title' => "My Account",
 			'content' => $this->generate_menu_html($ops),
 		);
@@ -137,7 +136,6 @@ class Menu extends Handler
 		}
 
 		return array(
-			'icon' => "menu/teams.png",
 			'title' => "My Teams",
 			'content' => $output, 
 		);
