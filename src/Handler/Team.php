@@ -826,6 +826,10 @@ class TeamView extends Handler
 		}
 		$rows[] = array("Shirt Colour:", check_form($team->shirt_colour));
 		$rows[] = array("League/Tier:", l($team->league_name, "league/view/$team->league_id"));
+
+		if($team->rank) {
+			$rows[] = array("Ranked:", $team->rank);
+		}
 		
 		$rows[] = array("Team Status:", $team->status);
 
