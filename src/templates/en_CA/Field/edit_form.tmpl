@@ -1,5 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<h1>Editing {$field_name}</h1>
+<h1>{if $id}Editing {$field_name}{else}Create New Field{/if}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}

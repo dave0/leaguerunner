@@ -22,6 +22,7 @@ class Menu extends Handler
 			"league_admin"  => false,
 			"league_create" => false,
 			"user_admin"    => false,
+			"field_admin"    => false,
 		);
 		
 		return true;
