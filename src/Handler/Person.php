@@ -286,7 +286,7 @@ class PersonView extends Handler
 		}
 		
 		if($this->_permissions['height']) {
-			$output .= simple_row('Height:', $person['height'] . 'in');
+			$output .= simple_row('Height:', $person['height'] ? $person['height'] : 0 . ' inches');
 		}
 		
 		if($this->_permissions['gender']) {
@@ -965,7 +965,9 @@ class PersonEdit extends Handler
 			. "$birth_year / $birth_month / $birth_day");
 		
 		$height = var_from_post('height');
-		$output .= simple_row("Height:", form_hidden('height',$height) . $height . "in");
+		if($height) {
+			$output .= simple_row("Height:", form_hidden('height',$height) . $height . " inches");
+		}
 	
 		if($this->_permissions['edit_class']) {
 			$class = var_from_post('class');
@@ -1051,9 +1053,12 @@ class PersonEdit extends Handler
 			var_from_getorpost('birth_year'),
 			var_from_getorpost('birth_month'),
 			var_from_getorpost('birth_day')));
-			
-		$fields[] = "height = ?";
-		$fields_data[] = var_from_getorpost('height');
+		
+		$height = var_from_getorpost('height');
+		if($height) {
+			$fields[] = "height = ?";
+			$fields_data[] = $height;
+		}
 		
 		$fields[] = "gender = ?";
 		$fields_data[] = var_from_getorpost('gender');
@@ -1170,9 +1175,7 @@ class PersonEdit extends Handler
 		}
 
 		$height = var_from_getorpost('height');
-		if( !validate_nonblank($height) ) {
-			$errors .= "\n<li>Please enter a value for your height.";
-		} else {
+		if( validate_nonblank($height) ) {
 			if( ($height < 36) || ($height > 84) ) {
 				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
 			}
