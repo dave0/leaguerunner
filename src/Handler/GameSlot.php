@@ -95,11 +95,11 @@ class GameSlotCreate extends Handler
 
 		$today = getdate();
 	
-		if(! ctype_digit($month)) {
+		if(! validate_number($month)) {
 			$month = $today['mon'];
 		}
 
-		if(! ctype_digit($year)) {
+		if(! validate_number($year)) {
 			$year = $today['year'];
 		}
 
