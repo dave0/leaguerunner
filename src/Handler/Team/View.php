@@ -124,7 +124,7 @@ class TeamView extends Handler
 
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
-		if( !strstr($row['team_website']) && (strlen($row['team_website']) > 0 ) ) {
+		if( !strstr($row['team_website'], "http://") && (strlen($row['team_website']) > 0 ) ) {
 			$row['team_website'] = "http://" . $row['team_website'];
 		}
 		$this->tmpl->assign("team_website", $row['team_website']);
