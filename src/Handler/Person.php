@@ -157,13 +157,8 @@ class PersonView extends Handler
 		 * See if we're a captain looking at another team captain.  
 		 * Captains are always allowed to view each other for 
 		 * contact purposes.
-		 * TODO: now that we fetch team info in person_load, rewrite to use
-		 * that instead.
 		 */
-		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE (a.status = 'captain' OR a.status = 'assistant') AND a.player_id = %d AND (b.status = 'captain' OR b.status = 'assistant') AND b.player_id = %d",$id, $session->attr_get('user_id'));
-
-		$count = db_result($result);
-		if($count > 0) {
+		if($session->user->is_a_captain && $person->is_a_captain) {	
 			/* is captain of at least one team, so we publish email and phone */
 			$this->_permissions['email'] = true;
 			$this->_permissions['home_phone'] = true;
@@ -174,17 +169,18 @@ class PersonView extends Handler
 
 		/* If the current user is a team captain, and the requested user is on
 		 * their team, they are allowed to view email/phone
-		 * TODO: now that we fetch team info in person_load, rewrite to use
 		 * that instead.
 		 */
-		$result = db_query("SELECT COUNT(*) FROM teamroster a, teamroster b WHERE a.team_id = b.team_id AND a.player_id = %d AND a.status <> 'captain_request' AND b.player_id = %d AND (b.status = 'captain' OR b.status='assistant')",$id, $session->attr_get('user_id'));
-		$is_on_team = db_result($result);
-		if($is_on_team > 0) {
-			$this->_permissions['email'] = true;
-			$this->_permissions['home_phone'] = true;
-			$this->_permissions['work_phone'] = true;
-			$this->_permissions['mobile_phone'] = true;
-			/* we must continue, since this player could be 'locked' */
+		if($session->user->is_a_captain) {
+			$teams = array_keys($session->user->teams);
+			$query = "SELECT COUNT(*) FROM teamroster r WHERE r.player_id = %d AND r.team_id IN (" . implode(",", $teams) . ")";
+			if( db_result(db_query($query,$id )) > 0 ) {
+				$this->_permissions['email'] = true;
+				$this->_permissions['home_phone'] = true;
+				$this->_permissions['work_phone'] = true;
+				$this->_permissions['mobile_phone'] = true;
+				/* we must continue, since this player could be 'locked' */
+			}
 		}
 
 		/*
@@ -1756,8 +1752,8 @@ END_TEXT;
  * Load a single user account object from the database using the 
  * supplied query data.  If more than one account matches, we will
  * return only the first one.  If fewer than one matches, we return null.
- *
- * @param	mixed 	$array key-value pairs that identify the user to be loaded.
+ * TODO: This should turn into a full-fledged object at some point.
+ * @param	array 	$array key-value pairs that identify the user to be loaded.
  */
 function person_load ( $array = array() )
 {
@@ -1813,6 +1809,10 @@ function person_load ( $array = array() )
 
 	$user->teams = array();
 	while($team = db_fetch_object($result)) {
+		if($team->position == 'captain' || $team->position == 'assistant') {
+			# TODO: evil hack.
+			$user->is_a_captain = true;
+		}
 		$user->teams[ $team->id ] = $team;
 		$user->teams[ $team->id ]->team_id = $team->id;
 	}
