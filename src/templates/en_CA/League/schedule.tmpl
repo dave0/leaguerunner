@@ -95,14 +95,14 @@
     <td>{$game.time}</td>
     <td>
       {if $game.home_id}
-        <a href="{$app_cgi_location}?op=team_view&id={$game.home_id}">{$game.home_name}</a>{if $game.home_shirt}({$game.home_shirt}){/if}
+        <a href="{$app_cgi_location}?op=team_view&id={$game.home_id}">{$game.home_name|escape}</a>{if $game.home_shirt}({$game.home_shirt|escape}){/if}
       {else}
 			Not yet scheduled.
       {/if}
     </td>
     <td>
       {if $game.away_id}
-        <a href="{$app_cgi_location}?op=team_view&id={$game.away_id}">{$game.away_name}</a>{if $game.away_shirt}({$game.away_shirt}){/if}
+        <a href="{$app_cgi_location}?op=team_view&id={$game.away_id}">{$game.away_name|escape}</a>{if $game.away_shirt}({$game.away_shirt|escape}){/if}
       {else}
 			Not yet scheduled.
       {/if}

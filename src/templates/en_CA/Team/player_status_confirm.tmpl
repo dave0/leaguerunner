@@ -13,7 +13,7 @@
   <input type="hidden" name="player_id" value="{$player_id}">
   <input type="hidden" name="status" value="{$status}">
   <blockquote>
-    You are about to change player <b>{$player_name}</b>'s status on the team <b>{$team_name}</b>.<br>
+    You are about to change player <b>{$player_name}</b>'s status on the team <b>{$team_name|escape}</b>.<br>
     This player is currently <b>{$current_status}</b><br>
     You are attempting to change this to <b>{$new_status}</b>.
     <p>

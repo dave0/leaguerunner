@@ -62,8 +62,8 @@
   </tr>
 {foreach name=teamlist from=$teams item=team}
   <tr>
-    <td class='teamlist_item'>{$team.name}</td>
-    <td class='teamlist_item'>{$team.shirt_colour}&nbsp</td>
+    <td class='teamlist_item'>{$team.name|escape}</td>
+    <td class='teamlist_item'>{$team.shirt_colour|escape}&nbsp</td>
     <td class='teamlist_item'>
     [ <a href="{$app_cgi_location}?op=team_view&id={$team.id}">view</a>
     {if $team.team_status == 'open'}

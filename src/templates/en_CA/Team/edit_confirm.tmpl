@@ -1,5 +1,5 @@
 {include file="common/basic_header.tmpl"}
-<h1>{if $id}Editing {$team_name}{else}Create New Team{/if}</h1>
+<h1>{if $id}Editing {$team_name|escape}{else}Create New Team{/if}</h1>
 <p>
 	Confirm that the data below is correct, and hit continue to make your changes.
 </p>
@@ -13,7 +13,7 @@
 	<table border="0">
     <tr>
       <td class='row_title'>Team Name:</td> 
-      <td class='row_data'><input type="hidden" name="team_name" value="{$team_name}">{$team_name}</td>
+      <td class='row_data'><input type="hidden" name="team_name" value="{$team_name}">{$team_name|escape}</td>
     </tr>
     <tr>
       <td class='row_title'>Website:</td> 

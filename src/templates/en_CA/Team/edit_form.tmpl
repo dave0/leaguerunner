@@ -1,5 +1,5 @@
 {include file="common/basic_header.tmpl"}
-<h1>{if $id}Editing {$team_name}{else}Create New Team{/if}</h1>
+<h1>{if $id}Editing {$team_name|escape}{else}Create New Team{/if}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}

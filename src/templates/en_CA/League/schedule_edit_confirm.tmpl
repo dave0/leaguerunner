@@ -22,8 +22,8 @@
     <td><input type='hidden' name='games[{$game.game_id}][game_id]' value='{$game.game_id}'>{$game.game_id}</td>
     <td><input type='hidden' name='games[{$game.game_id}][round]' value='{$game.round}'>{$game.round}</td>
     <td><input type='hidden' name='games[{$game.game_id}][start_time]' value='{$game.start_time}'>{$game.start_time}</td>
-    <td><input type='hidden' name='games[{$game.game_id}][home_id]' value='{$game.home_id}'>{$game.home_name}</td>
-    <td><input type='hidden' name='games[{$game.game_id}][away_id]' value='{$game.away_id}'>{$game.away_name}</td>
+    <td><input type='hidden' name='games[{$game.game_id}][home_id]' value='{$game.home_id}'>{$game.home_name|escape}</td>
+    <td><input type='hidden' name='games[{$game.game_id}][away_id]' value='{$game.away_id}'>{$game.away_name|escape}</td>
     <td><input type='hidden' name='games[{$game.game_id}][field_id]' value='{$game.field_id}'>{$game.field_name}</td>
   </tr>
 {/foreach}

@@ -13,7 +13,7 @@
   <input type="hidden" name="player_id" value="{$player_id}">
   <table border="0">
     <tr>
-      <td colspan='2'>You are attempting to change player status for <b>{$player_name}</b> on team <b>{$team_name}</b></td>
+      <td colspan='2'>You are attempting to change player status for <b>{$player_name}</b> on team <b>{$team_name|escape}</b></td>
     </tr>
     <tr>
       <td colspan='2'>Current status is: <b>{$current_status}</b>

@@ -923,7 +923,7 @@ class TeamView extends Handler
 		$this->set_title("View Team: " . $row['team_name']);
 		$this->tmpl->assign("team_name", $row['team_name']);
 		$this->tmpl->assign("team_id", $id);
-		if( strncmp($row['team_website'], "http://", 7) != 0 ) {
+		if( $row['team_website'] && strncmp($row['team_website'], "http://", 7) != 0 ) {
 			$row['team_website'] = "http://" . $row['team_website'];
 		}
 		$this->tmpl->assign("team_website", $row['team_website']);

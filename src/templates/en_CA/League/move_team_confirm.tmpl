@@ -9,7 +9,7 @@
 	<input type="hidden" name="team_id" value="{$team_id}">
   
 	<blockquote>
-        You are attempting to move the team <b>{$team_name}</b> from 
+        You are attempting to move the team <b>{$team_name|escape}</b> from 
          <b>{$from_league.name}{if $from_league.tier} Tier {$from_league.tier}{/if}</b> to
          <b>{$to_league.name}{if $to_league.tier} Tier {$to_league.tier}{/if}</b>.  If this is correct, please click "Submit" below.
         league you wish to move it to.

@@ -1,6 +1,6 @@
 {include file="common/basic_header.tmpl"}
 
-<h1>Schedule for {$team_name}</h1>
+<h1>Schedule for {$team_name|escape}</h1>
 <p>
   <b><a href="{$app_cgi_location}?op=league_view&id={$league_id}">{$league_name}{if $league_tier} Tier {$league_tier}{/if}</a>
 </p>
@@ -17,7 +17,7 @@
   <tr>
     <td class="schedule_item">{$game.date}</td>
     <td class="schedule_item">{$game.time}</td>
-    <td class="schedule_item"><a href="{$app_cgi_location}?op=team_view&id={$game.opponent_id}">{$game.opponent_name}</a>&nbsp;</td>
+    <td class="schedule_item"><a href="{$app_cgi_location}?op=team_view&id={$game.opponent_id}">{$game.opponent_name|escape}</a>&nbsp;</td>
     <td class="schedule_item"><a href="{$app_cgi_location}?op=site_view&id={$game.site_id}">{$game.field_code}</a>&nbsp;</td>
     <td class="schedule_item">({$game.home_away})&nbsp;</td>
     <td class="schedule_item">
