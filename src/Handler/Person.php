@@ -2,7 +2,6 @@
 /*
  * Code for dealing with user accounts
  */
-
 register_page_handler('person_view', 'PersonView');
 register_page_handler('person_delete', 'PersonDelete');
 register_page_handler('person_approvenew', 'PersonApproveNewAccount');
@@ -12,6 +11,7 @@ register_page_handler('person_activate', 'PersonActivate');
 register_page_handler('person_list', 'PersonList');
 register_page_handler('person_listnew', 'PersonListNewAccounts');
 register_page_handler('person_changepassword', 'PersonChangePassword');
+register_page_handler('person_forgotpassword', 'PersonForgotPassword');
 
 /**
  * Player viewing handler
@@ -79,6 +79,7 @@ class PersonView extends Handler
 
 		/* Can always view self */
 		if($session->attr_get('user_id') == $id) {
+			reset($this->_permissions);
 			while(list($key,) = each($this->_permissions)) {
 				$this->_permissions[$key] = true;
 			}
@@ -534,18 +535,24 @@ class PersonApproveNewAccount extends PersonView
 		}
 
 		/* Ok, it's done.  Now send a mail to the user and tell them. */
-		$message = "Dear " . $person_info['firstname'] . " " . $person_info['lastname'] . ",\n\n";
-		$message .= "Your " . $GLOBALS['APP_NAME'] . " account has been approved. Your new permanent\n";
-		$message .= "member number is\n\t$full_member_id\n";
-		$message .= "This number will be used in the future to identify you for member\n";
-		$message .= "services, discounts, etc, so please do not lose it.\n\n";
-		$message .= "You may now log in to the system at\n";
-		$message .= "\thttp://" . $GLOBALS['APP_SERVER'].$_SERVER["PHP_SELF"] . "\n";
-		$message .= "with the username\n\t" . $person_info['username'];
-		$message .= "\nand the password you specified when you created your account.  You will\n";
-		$message .= "be asked to confirm your account information and sign a waiver form,\n";
-		$message .= "before your account will be activated.\n";
-		$message .= "\nThanks,\n". $GLOBALS['APP_ADMIN_NAME'] ."\n";
+		$message = <<<EOM
+Dear {$person_info['firstname']} {$person_info['lastname']},
+
+Your {$GLOBALS['APP_NAME']} account has been approved. Your new permanent
+member number is
+	$full_member_id
+This number will be used in the future to identify you for member services
+discounts, etc, so please do not lose it.
+You may now log in to the system at
+	http://{$GLOBALS['APP_SERVER']}{$_SERVER["PHP_SELF"]}
+with the username
+	{$person_info['username']}
+and the password you specified when you created your account.  You will be
+asked to confirm your account information and sign a waiver form before
+your account will be activated.
+Thanks,
+{$GLOBALS['APP_ADMIN_NAME']}
+EOM;
 
 		$rc = mail($person_info['email'], $GLOBALS['APP_NAME'] . " Account Activation", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
 		if($rc == false) {
@@ -871,11 +878,10 @@ class PersonEdit extends Handler
 		$sql = "UPDATE person SET ";
 		$sql .= join(",", $fields);	
 		$sql .= "WHERE user_id = ?";
-
-		$sth = $DB->prepare($sql);
 		
 		$fields_data[] = $this->_id;
-		$res = $DB->execute($sth, $fields_data);
+		
+		$res = $DB->query($sql, $fields_data);
 		
 		if($this->is_database_error($res)) {
 			return false;
@@ -1451,6 +1457,121 @@ class PersonChangePassword extends Handler
 	}
 }
 
+class PersonForgotPassword extends Handler
+{
+	function initialize ()
+	{
+		$this->_required_perms = array(
+			'allow',
+		);
+		return true;
+	}
+
+	function process()
+	{
+		$step = var_from_getorpost('step');
+		switch($step) {
+			case 'perform':
+				$this->set_template_file("Person/forgot_password_result.tmpl");
+				$rc = $this->perform();	
+				break;
+			default:
+				$this->set_template_file("Person/forgot_password_form.tmpl");
+				$rc = true;
+		}
+
+		$this->tmpl->assign("page_op", var_from_getorpost('op'));
+
+		return $rc;
+	}
+
+	function perform ()
+	{
+		global $DB;
+
+		$username = var_from_getorpost('username');
+		$member_id = var_from_getorpost('member_id');
+		$email = var_from_getorpost('email');
+		
+		$fields = array();
+		$fields_data = array();
+		if(validate_nonblank($username)) {
+			$fields[] = "username = ?";
+			$fields_data[] = $username;
+		}
+		if(validate_nonblank($email)) {
+			$fields[] = "email = ?";
+			$fields_data[] = $email;
+		}
+		if(validate_nonblank($member_id)) {
+			$fields[] = "member_id = ?";
+			$fields_data[] = $member_id;
+		}
+		
+		if( count($fields) < 1 || (count($fields) != count($fields_data))) {
+			$this->error_text = "You must supply at least one of username, member ID, or email address";
+			return false;
+		}
+
+		/* Now, try and find the user */
+		$sql = "SELECT user_id,firstname,lastname,username,email FROM person WHERE ";
+		$sql .= join(" AND ",$fields);
+
+		$users = $DB->getAll($sql, $fields_data, DB_FETCHMODE_ASSOC);
+		if($this->is_database_error($users)) {
+			return false;
+		}
+		
+		if(count($users) > 1) {
+			$this->error_text = "You did not supply enough identifying information.  Try filling in more data.";
+			return false;
+		}
+
+		/* Now, we either have one or zero users.  Regardless, we'll present
+		 * the user with the same output; that prevents them from using this
+		 * to guess valid usernames.
+		 */
+		if(count($users) != 1) {
+			/* Just return true, even though we did nothing */
+			return true;
+		}
+	
+		/* Generate a password */
+		$pass = generate_password();
+		$cryptpass = md5($pass);
+		$res = $DB->query("UPDATE person SET password = ? WHERE user_id = ?", array($cryptpass, $users[0]['user_id']));
+		if($this->is_database_error($res)) {
+			return false;
+		}
+
+		$message = <<<EOM
+Dear {$users[0]['firstname']} {$users[0]['lastname']},
+
+Someone, probably you, just requested that your password for the account
+	{$users[0]['username']}
+be reset.  Your new password is
+	$pass
+Since this password has been sent via unencrypted email, you should change
+it as soon as possible.
+
+If you didn't request this change, don't worry.  Your account password
+can only ever be mailed to the email address specified in your 
+{$GLOBALS['APP_NAME']} system account.  However, if you think someone may
+be attempting to gain unauthorized access to your account, please contact
+the system administrator.
+EOM;
+
+		/* And fire off an email */
+		$rc = mail($users[0]['email'], $GLOBALS['APP_NAME'] . " Password Update", $message, "From: " . $GLOBALS['APP_ADMIN_EMAIL'] . "\r\n");
+		if($rc == false) {
+			$this->error_text = "System was unable to send email to that user.  Please contact system administrator.";
+			return false;
+		}
+		
+		return true;
+	}
+}
+
 /**
  * Return array of team information for the given userid
  * 
@@ -1474,6 +1595,16 @@ function get_teams_for_user($userid)
 		$rows[$i]['position'] = display_roster_status($rows[$i]['position']);
 	}
 	return $rows;
+}
+
+function generate_password()
+{
+	$chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+	$pass = '';
+	for($i=0;$i<8;$i++) {
+		$pass .= $chars{mt_rand(0,strlen($chars)-1)};
+	}
+	return $pass;
 }
 
 function map_callback($item)
