@@ -68,7 +68,7 @@ function validate_telephone_input( $string )
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	if ( ! preg_match("/^\(?\d{3}\)?\s*-?\s*\d{3}\s*-?\s*\d{4}\s*([ext]*\s*\d+)?$/", $string) ) {
+	if ( ! preg_match("/^\(?\d{3}\)?\s*[-.]?\s*\d{3}\s*[-.]?\s*\d{4}\s*([ext]*\s*\d+)?$/", $string) ) {
 		return false;
 	}
 	return true;
@@ -127,7 +127,7 @@ function validate_nonblank( $string )
 function clean_telephone_number( $string ) 
 {
 	$matches = array();
-	preg_match("/^\(?(\d{3})\)?\s*-?\s*(\d{3})\s*-?\s*(\d{4})\s*(?:[ext]*\s*(\d+))?$/", $string, $matches);
+	preg_match("/^\(?(\d{3})\)?\s*[-.]?\s*(\d{3})\s*[-.]?\s*(\d{4})\s*(?:[ext]*\s*(\d+))?$/", $string, $matches);
 
 	$clean = "(" . $matches[1] . ") " . $matches[2] . "-" . $matches[3];
 	if(count($matches) == 5) {
