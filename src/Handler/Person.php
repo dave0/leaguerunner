@@ -5,6 +5,8 @@
  * entities.
  */
 require_once("Handler/Person/View.php");
+require_once("Handler/Person/Edit.php");
+require_once("Handler/Person/Create.php");
 
 /*
  * Helper functions for person.  These are used amongst multiple handlers.

@@ -1,0 +1,137 @@
+{include file="$app_template_dir/common/basic_header.tmpl"}
+<h1>Editing {$firstname} {$lastname}</h1>
+
+<form action="{$app_cgi_location}" method="POST">
+	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="{$page_step}">
+	<input type="hidden" name="id" value="{$user_id}">
+	<table border="0">
+    <tr>
+      <td class='row_title'>First Name:</td> 
+      <td class='row_data'><input type="hidden" name="firstname" value="{$firstname}">{$firstname}</td>
+    </tr>
+    <tr>
+      <td class='row_title'>Last Name:</td> 
+      <td class='row_data'><input type="hidden" name="lastname" value="{$lastname}">{$lastname}</td>
+    </tr>
+
+    <tr>
+      <td class='row_title'>System Username:</td> 
+      <td class='row_data'>
+        {if $perm_edit_username}
+        <input type="hidden" name="username" value="{$username}">
+        {/if}
+        {$username}
+      </td>
+    </tr>
+
+    {if $perm_edit_password}
+    <tr>
+      <td class='row_title'>Password:</td> 
+      <td class='row_data'>
+        <i>(entered)</i>
+        <input type="hidden" name="password_once" value="{$password_once}">
+        <input type="hidden" name="password_twice" value="{$password_twice}">
+      </td>
+    </tr>
+    {/if}
+    
+    <tr>
+      <td class='row_title'>Email Address:</td> 
+      <td class='row_data'>
+        {if $perm_edit_email}
+        <input type="hidden" name="primary_email" value="{$primary_email}">
+        {/if}
+        {$primary_email}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title' valign="top">Address:</td> 
+      <td class='row_data'>
+        {if $perm_edit_address}
+        <input type="hidden" name="addr_street" value="{$addr_street}">
+        <input type="hidden" name="addr_city" value="{$addr_city}">
+        <input type="hidden" name="addr_prov" value="{$addr_prov}">
+        <input type="hidden" name="addr_postalcode" value="{$addr_postalcode}">
+        {/if}
+        {$addr_street|escape}<br>
+        {$addr_city|escape}, {$addr_prov|escape} <br>
+        {$addr_postalcode|escape}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Phone Number:</td> 
+      <td class='row_data'>
+        {if $perm_edit_phone}
+        <input type="hidden" name="phone_areacode" value="{$phone_areacode}">
+        <input type="hidden" name="phone_prefix" value="{$phone_prefix}">
+        <input type="hidden" name="phone_number" value="{$phone_number}">
+          {if $phone_extension}
+          <input type="hidden" name="phone_number" value="{$phone_number}">
+          {/if}
+        {/if}
+        ({$phone_areacode}) {$phone_prefix}-{$phone_number} {if $phone_extension}x{$phone_extension}{/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Gender:</td> 
+      <td class='row_data'>
+        {if $perm_edit_gender}
+        <input type="hidden" name="gender" value="{$gender}">
+        {/if}
+        {$gender}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Skill Level:</td> 
+      <td class='row_data'>
+        {if $perm_edit_skill}
+        <input type="hidden" name="skill_level" value="{$skill_level}">
+        {/if}
+        {$skill_level}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Year Started:</td> 
+      <td class='row_data'>
+        {if $perm_edit_skill}
+        <input type="hidden" name="started_Year" value="{$started_Year}">
+        {/if}
+        {$started_Year}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Birthday:</td> 
+      <td class='row_data'>
+        <input type="hidden" name="birth_Year" value="{$birth_Year}">
+        <input type="hidden" name="birth_Month" value="{$birth_Month}">
+        <input type="hidden" name="birth_Day" value="{$birth_Day}">
+        {$birth_Year} / {$birth_Month} / {$birth_Day}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class="row_title">Show email:</td>
+      <td class="row_data">
+        <input type="hidden" name="allow_publish_email" value="{$allow_publish_email}">{$allow_publish_email}
+      </td>
+    </tr>
+    <tr>
+      <td class="row_title">Show phone:</td>
+      <td class="row_data">
+        <input type="hidden" name="allow_publish_phone" value="{$allow_publish_phone}">{$allow_publish_phone}
+      </td>
+    </tr>
+	</table>
+<br>
+<input type="submit" name="submit" value="Submit">
+<input type="reset" name="reset" value="Reset">
+	</form>
+{include file="$app_template_dir/common/basic_footer.tmpl"}
+{* vim: set ai sw=2 ts=2 et: *}

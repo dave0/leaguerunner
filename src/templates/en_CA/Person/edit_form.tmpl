@@ -1,5 +1,5 @@
 {include file="$app_template_dir/common/basic_header.tmpl"}
-<h1>{$full_name}</h1>
+<h1>Editing {$firstname} {$lastname}</h1>
 {if $error_message}
 <blockquote>
 	{$error_message}
@@ -8,6 +8,7 @@
 
 <form action="{$app_cgi_location}" method="POST">
 	<input type="hidden" name="op" value="{$page_op}">
+	<input type="hidden" name="step" value="{$page_step}">
 	<input type="hidden" name="id" value="{$user_id}">
 	<table border="0">
     <tr>
@@ -29,6 +30,21 @@
         {/if}
       </td>
     </tr>
+
+    {if $perm_edit_password}
+    <tr>
+      <td class='row_title'>Password:</td> 
+      <td class='row_data'>
+        <input type="password" name="password_once" size="25" value="">
+      </td>
+    </tr>
+    <tr>
+      <td class='row_title'>Re-Enter Password:</td> 
+      <td class='row_data'>
+        <input type="password" name="password_twice" size="25" value="">
+      </td>
+    </tr>
+    {/if}
     
     <tr>
       <td class='row_title'>Email Address:</td> 
@@ -88,75 +104,69 @@
         {/if}
       </td>
     </tr>
-  <!--DMO: Got this far with re-write-->  
-	<tr>
-		<td><B>Gender:</b></td>
-		<td>
-			<TMPL_LOOP NAME="gender">
-				<input type="radio" name="gender" value="<TMPL_VAR NAME="value">" <TMPL_IF NAME="selected">checked</TMPL_IF>><TMPL_VAR NAME="value"> <br>
-			</TMPL_LOOP>
-		</td>
-	</tr>
-	<tr>
-		<td><B>Skill Level:</b></td>
-		<td>
-			(never played) &nbsp;
-			<TMPL_LOOP NAME="skill_level">
-				<input type="radio" name="skill_level" value=<TMPL_VAR NAME="value"> <TMPL_IF NAME="selected">checked</TMPL_IF>><TMPL_VAR NAME="value"> &nbsp;
-			</TMPL_LOOP>
-			(godlike ability) 
-		</td>
-	</tr>
-	<tr>
-		<td><B>Year Started:</b></td>
-		<td>
-			<select name="year_started">
-			<TMPL_LOOP NAME="year_started">
-				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value"></option>
-			</TMPL_LOOP>
-			</select>
-		</td>
-	</tr>
-	<tr>
-		<td><B>Birthday: (yyyy/mm/dd)</b></td>
-		<td>
-			<select name="birthyear">
-			<TMPL_LOOP NAME="birthyear">
-				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
-			</TMPL_LOOP>
-			</select> / <select name="birthmonth">
-			<TMPL_LOOP NAME="birthmonth">
-				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
-			</TMPL_LOOP>
-			</select> / <select name="birthday">
-			<TMPL_LOOP NAME="birthday">
-				<option <TMPL_IF NAME="selected">selected</TMPL_IF>><TMPL_VAR NAME="value">
-			</TMPL_LOOP>
-			</select>
-		</td>
-	</tr>
-	<tr>
-		<td colspan=2>May we list your email address for other members to see?  
-		<TMPL_IF NAME="allow_publish_email">
-			<input type="radio" name="allow_publish_email" value="Y" checked> Yes /  
-			<input type="radio" name="allow_publish_email" value="N"> No <br>
-		<TMPL_ELSE>
-			<input type="radio" name="allow_publish_email" value="Y"> Yes /  
-			<input type="radio" name="allow_publish_email" value="N" checked> No <br>
-		</TMPL_IF>
-		</td>
-	</tr>
-	<tr>
-		<td colspan=2>May we list your phone number for other members to see?  
-		<TMPL_IF NAME="allow_publish_phone">
-			<input type="radio" name="allow_publish_phone" value="Y" checked> Yes /  
-			<input type="radio" name="allow_publish_phone" value="N"> No <br>
-		<TMPL_ELSE>
-			<input type="radio" name="allow_publish_phone" value="Y"> Yes /  
-			<input type="radio" name="allow_publish_phone" value="N" checked> No <br>
-		</TMPL_IF>
-		</td>
-	</tr>
+    
+    <tr>
+      <td class='row_title'>Gender:</td> 
+      <td class='row_data'>
+        {if $perm_edit_gender}
+        {foreach name=gender_list from=$gender_list item=g}
+          <input type="radio" name="gender" value="{$g.value}" {if $g.value eq $gender}checked{/if}>{$g.output} &nbsp;
+        {/foreach}
+        {else}
+          {$gender}
+        {/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Skill Level:</td> 
+      <td class='row_data'>
+        {if $perm_edit_skill}
+        {foreach name=skill_list from=$skill_list item=skill}
+          <input type="radio" name="skill_level" value="{$skill.value}" {if $skill.value eq $skill_level}checked{/if}>{$skill.output} &nbsp;
+        {/foreach}
+        {else}
+          {$skill_level}
+        {/if}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Year Started:</td> 
+      <td class='row_data'>
+        {html_select_date prefix=started_ start_year=-20 end_year=-0 display_days=no display_months=no reverse_years=yes time=$started_year}
+      </td>
+    </tr>
+    
+    <tr>
+      <td class='row_title'>Birthday:</td> 
+      <td class='row_data'>
+        {html_select_date prefix=birth_ start_year=-60 end_year=-10 reverse_years=yes time=$birthdate}
+      </td>
+    </tr>
+    
+    <tr>
+      <td colspan=2>May we list your email address for other members to see?  
+      {if $allow_publish_email}
+        <input type="radio" name="allow_publish_email" value="Y" checked> Yes /  
+        <input type="radio" name="allow_publish_email" value="N"> No <br>
+      {else}
+        <input type="radio" name="allow_publish_email" value="Y"> Yes /  
+        <input type="radio" name="allow_publish_email" value="N" checked> No <br>
+      {/if}
+      </td>
+    </tr>
+    <tr>
+      <td colspan=2>May we list your phone number for other members to see?  
+      {if $allow_publish_phone}
+        <input type="radio" name="allow_publish_phone" value="Y" checked> Yes /  
+        <input type="radio" name="allow_publish_phone" value="N"> No <br>
+      {else}
+        <input type="radio" name="allow_publish_phone" value="Y"> Yes /  
+        <input type="radio" name="allow_publish_phone" value="N" checked> No <br>
+      {/if}
+      </td>
+    </tr>
 	</table>
 <br>
 <input type="submit" name="submit" value="Submit">
