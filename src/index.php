@@ -47,6 +47,30 @@ if (DB::isError($DB)) {
 
 $session = new UserSession;
 
+set_magic_quotes_runtime(0);
+if (get_magic_quotes_gpc ()) {
+	if($_SERVER['REQUEST_METHOD'] == 'GET') {
+		array_stripslashes($_GET);
+	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+		array_stripslashes($_POST);
+	} 
+	array_stripslashes($_COOKIES);
+}
+
+function array_stripslashes(&$array) {
+	if( !is_array($array)) {
+		return;
+	}
+	while (list($key) = each($array)) {
+		if (is_array($array[$key])) {
+			array_stripslashes($array[$key]);
+		} else {
+			$array[$key] = stripslashes($array[$key]);
+		}
+	}
+	reset($array);
+}
+
 /* Grab the variables we care about right now */
 $session_cookie = var_from_cookie($APP_COOKIE_NAME);
 $op = var_from_getorpost('op');
@@ -194,22 +218,13 @@ function var_from_getorpost($name)
 	/* Don't want to use $_REQUEST, since that can contain cookie info */
 	global $_SERVER, $_GET, $_POST;
 	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		if(isset($_GET[$name])) {
-			if(is_array($_GET[$name])) {
-				return $_GET[$name];
-			} else {
-				return stripslashes($_GET[$name]);
-			}
-		}
+		$vars = &$_GET[$name];
 	} else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-		if(isset($_POST[$name])) {
-			if(is_array($_POST[$name])) {
-				return $_POST[$name];
-			} else {
-				return stripslashes($_POST[$name]);
-			}
-		}
+		$vars = &$_POST[$name];
 	} 
+	if(isset($vars)) {
+		return $vars;
+	}
 	return null;
 }
 
