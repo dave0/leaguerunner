@@ -319,16 +319,18 @@ class PersonView extends Handler
 		
 		$rows[] = array("Teams:", table( null, $teams) );
 
-		$leagues = array();
-		while(list(,$league) = each($person->leagues)) {
-			$leagues[] = array(
-				"Coordinator of",
-				l($league->fullname, "team/view/$league->id")
-			);
+		if( $person->is_a_coordinator ) {
+			$leagues = array();
+			while(list(,$league) = each($person->leagues)) {
+				$leagues[] = array(
+					"Coordinator of",
+					l($league->fullname, "team/view/$league->id")
+				);
+			}
+			reset($person->leagues);
+			
+			$rows[] = array("Leagues:", table( null, $leagues) );
 		}
-		reset($person->leagues);
-		
-		$rows[] = array("Leagues:", table( null, $leagues) );
 		
 		person_add_to_menu( $this, $person );
 				
