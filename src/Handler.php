@@ -151,13 +151,13 @@ class Handler
 	{
 		$this->set_global_template_vars();
 		register_smarty_extensions($this->tmpl);
+
 		/*      
 		 * The following line needs to be set to 'true' for development
 		 * purposes.  It controls whether or not templates are checked for
 		 * recompilation.  If you don't set this to 'true' when doing
 		 * development, your changes to the templates will not be noticed!
 		 */
-
 		$this->tmpl->compile_check = true;
 		$this->tmpl->display($this->tmplfile);
 	}
@@ -245,6 +245,7 @@ class Handler
 	 */
 	function enable_all_perms()
 	{
+		reset($this->_permissions);
 		while(list($key,) = each($this->_permissions)) {
 			$this->_permissions[$key] = true;
 		}

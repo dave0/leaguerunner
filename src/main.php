@@ -54,11 +54,7 @@ if( isset($session_cookie) ) {
 	$session->create_from_cookie($session_cookie);
 }
 
-/* 
- * If we're not attempting to log in, try to resume the session using
- * the saved token.
- */
-if( !($session->is_valid()) || is_null($op) ) {
+if( is_null($op) ) {
 	$op = 'login';
 }
 

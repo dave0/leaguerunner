@@ -17,34 +17,15 @@ register_page_handler('notfound','NotFound');
  */
 class NotFound extends Handler 
 {
-
-	function initialize ()
-	{
-		$this->name = "Operation Not Found";
-		return true;
-	}
-
 	/**
 	 * Check if the current session has permission for this operation
-	 *
-	 * If there is a current session, the user is allowed to receive the
-	 * "operation not found" error.  Otherwise, they get a "Not Logged In"
-	 * error.
 	 * 
 	 * @access public
 	 * @return boolean success/fail
 	 */
 	function has_permission () 
 	{
-		global $session;
-		/* Check that there is a session first */
-		if($session->is_valid()) {
-			return true;
-		}
-		/* If no session, it's error time. */
-		$this->name = "Not Logged In";
-		$this->error_text = gettext("Sorry, you aren't logged in");
-		return false;
+		return true;
 	}
 
 	/**
@@ -55,12 +36,8 @@ class NotFound extends Handler
 	 */
 	function process () 
 	{
-		global $op;
-		$this->set_template_file("ErrorMessage.tmpl");
-		$this->tmpl->assign("message",
-			gettext("Sorry, you cannot perform the operation") . " <b>" . $op . "</b><br>"
-			);
-		return true;	
+		$this->error_text = gettext("Sorry, that operation does not exist");
+		return false;	
 	}
 }
 ?>
