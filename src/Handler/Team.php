@@ -552,7 +552,7 @@ class TeamPlayerStatus extends Handler
 			$this->_permissions['set_none'] = true;
 			break;
 		case 'none':
-			if($is_captain || $is_administrator) {
+			if($is_captain) {
 				$this->_permissions['set_captain_request'] = true;
 			} else if ($is_administrator) {
 				$this->_permissions['set_captain'] = true;
