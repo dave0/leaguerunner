@@ -92,7 +92,11 @@ drop table site;
 alter table schedule change round round varchar(10);
 
 -- Support for rescheduling
-alter table schedule add status enum('normal','locked','rescheduled','cancelled','forfeit') DEFAULT 'normal' NOT NULL;
+alter table schedule add status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL,
+update schedule set status = 'home_default' where defaulted = 'home';
+update schedule set status = 'away_default' where defaulted = 'away';
+alter table schedule drop defaulted;
+
 alter table schedule add rescheduled_slot integer;
 
 -- Support for dependant games

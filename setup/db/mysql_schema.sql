@@ -133,21 +133,31 @@ CREATE TABLE leaguemembers (
 CREATE TABLE schedule (
     game_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
     league_id int NOT NULL,
+    
 -- This indicates what round this game is in.
     round varchar(10) NOT NULL DEFAULT '1',
+   
+    -- Teams for home/away can be specified either directly, or
+    -- by providing a game and result identifier
     home_team   integer,
     home_dependant_game	integer,
     home_dependant_type enum('winner','loser'),
     away_team   integer,
     away_dependant_game	integer,
     away_dependant_type enum('winner','loser'),
+    
     home_score  tinyint,
     away_score  tinyint,
     home_spirit tinyint,
     away_spirit tinyint,
+    
     rating_points int, -- rating points exchanged for this game
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
     defaulted  enum('no','home','away') DEFAULT 'no',
+
+    -- Game status.  Indicates rescheduling, defaults, etc.
+    status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL,
+    
     INDEX game_date (date_played),
     INDEX game_league (league_id),
     INDEX game_home_team (home_team),
