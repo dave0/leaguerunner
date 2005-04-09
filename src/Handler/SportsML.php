@@ -47,13 +47,21 @@ class SportsMLExporter extends Handler
 		return true;
 	}
 
-	function render_header()
+	function render_header( $type = 'html' )
 	{
 		header("Content-type: text/xml");
 		print '<?';
 ?>
 xml version="1.0" encoding="ISO-8859-1"?>
-<?php print '<?'?>xml-stylesheet type="text/xsl" href="/leaguerunner/data/ocuasportsml2html.xsl"?>
+<?php 
+		print '<?xml-stylesheet type="text/xsl" href="';
+		if( $type == 'text') {
+			print '/leaguerunner/data/ocuasportsml2text.xsl';
+		} else {
+			print '/leaguerunner/data/ocuasportsml2html.xsl';
+		}
+		print "\" ?>\n";
+?>
 <sports-content>
 <?php
 	}
@@ -173,7 +181,11 @@ class SportsMLStandings extends SportsMLExporter
 
 	function process()
 	{
-		$this->render_header();
+		$type = $_GET['type'];
+		if ($type != 'text') {
+			$type = 'html';
+		}
+		$this->render_header($type);
 		$this->render_metadata();
 		$this->render_standings();
 		$this->render_footer();
@@ -192,7 +204,11 @@ class SportsMLSchedule extends SportsMLExporter
 	
 	function process()
 	{
-		$this->render_header();
+		$type = $_GET['type'];
+		if ($type != 'text') {
+			$type = 'html';
+		}
+		$this->render_header($type);
 		$this->render_metadata();
 		$this->render_schedule();
 		$this->render_footer();
@@ -212,7 +228,11 @@ class SportsMLCombined extends SportsMLExporter
 	
 	function process()
 	{
-		$this->render_header();
+		$type = $_GET['type'];
+		if ($type != 'text') {
+			$type = 'html';
+		}
+		$this->render_header($type);
 		$this->render_metadata();
 		$this->render_standings();
 		$this->render_schedule();
