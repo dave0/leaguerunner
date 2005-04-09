@@ -27,28 +27,27 @@
 		</head>
 		<body>
 		
-		<h1 class="docTitle"><xsl:value-of select="sports-metadata/sports-title"/></h1>
-			<xsl:choose>
-			<xsl:when test="sports-content">
-				<xsl:apply-templates/>    <!-- Call all subtemplates -->
-			</xsl:when>
-			<xsl:otherwise>
-				<table width="100%" class="bodyTable" cellpadding="3"><tr valign="top"><td>
-				<!--
-				<xsl:apply-templates />
-				-->
+		<xsl:choose>
+		<xsl:when test="sports-content">
+			<xsl:apply-templates/>    <!-- Call all subtemplates -->
+		</xsl:when>
+		<xsl:otherwise>
+			<table width="100%" class="bodyTable" cellpadding="3"><tr valign="top"><td>
+			<!--
+			<xsl:apply-templates />
+			-->
 
-				<!-- comment out below when you do not want metadata block -->
-				<!--
-				<xsl:apply-templates select="sports-metadata"/>
-				-->
+			<!-- comment out below when you do not want metadata block -->
+			<!--
+			<xsl:apply-templates select="sports-metadata"/>
+			-->
 
-				<xsl:apply-templates select="sports-event"/>
-				<xsl:apply-templates select="standing"/>
-				<xsl:apply-templates select="schedule"/>
-				</td></tr></table>
-			</xsl:otherwise>
-			</xsl:choose>
+			<xsl:apply-templates select="sports-event"/>
+			<xsl:apply-templates select="standing"/>
+			<xsl:apply-templates select="schedule"/>
+			</td></tr></table>
+		</xsl:otherwise>
+		</xsl:choose>
 		</body>
 	</html>
 </xsl:template>
@@ -155,7 +154,7 @@
 	<xsl:if test="@date-label or @content-label">
 		<h2 class="schedline"> Schedule: <xsl:value-of select="@content-label"/><xsl:text> </xsl:text><xsl:value-of select="@date-label"/></h2>
 	</xsl:if>
-	<div class='schedule'><table border="0" cellpadding="3" cellspacing="0"><tdata>
+	<div class='schedule'><table border="0" cellpadding="3" cellspacing="0">
 	  <tr>
      	    <td class="column-heading">Game Date</td>
    	    <td class="column-heading">Home</td>
@@ -167,7 +166,7 @@
 			<xsl:with-param name="oneevent" select="."/>
 		</xsl:call-template>
 	  </xsl:for-each>
-	</tdata></table></div>
+	</table></div>
 </xsl:template>
 <!-- end template for schedules -->
 

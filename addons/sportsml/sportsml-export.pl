@@ -13,7 +13,9 @@ use Leaguerunner;
 use Pod::Usage;
 use Getopt::Mixed;
 use XML::Writer;
-use IO;
+use IO::File;
+use File::Path;
+use File::Basename;
 
 use constant TIER_PAGE => 1;
 use constant DIVISION_PAGE => 2;
@@ -45,7 +47,7 @@ if ( length($season) == 0 ) {
 	pod2usage("Must specify a season");
 }
 
-my $config = Leaguerunner::parseConfigFile("../..//src/leaguerunner.conf");
+my $config = Leaguerunner::parseConfigFile("../../src/leaguerunner.conf");
 
 ## Initialise database handle.
 my $dsn = join("",
@@ -61,7 +63,7 @@ sub END { $DB->disconnect() if defined($DB); }
 my $leagues = get_leagues_for_season($season);
 
 export_to_files($location,$leagues, 
-	\&export_tier_schedule,
+#	\&export_tier_schedule,
 	\&export_tier_standing,
 );
 
@@ -463,6 +465,7 @@ sub start_export_page
 	my $filename = league_make_filename($filebase, $league);
 	print "Starting new file $filename for " , $league->{'name'}, "\n";
 
+	mkpath(dirname($filename));
 	my $fh = new IO::File $filename, O_RDWR|O_CREAT|O_TRUNC or croak("Couldn't create $filename: $!");
 	my $x = new XML::Writer(
 		DATA_MODE => 1,

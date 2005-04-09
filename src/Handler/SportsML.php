@@ -12,6 +12,9 @@ function sportsml_dispatch()
 		case 'schedule':
 			$obj = new SportsMLSchedule;
 			break;
+		case 'combined':
+			$obj = new SportsMLCombined;
+			break;
 		default:
 			return null;
 	}
@@ -35,7 +38,7 @@ function sportsml_cron()
 	return true;
 }
 
-class SportsMLStandings extends Handler
+class SportsMLExporter extends Handler
 {
 	var $league;
 	
@@ -44,7 +47,32 @@ class SportsMLStandings extends Handler
 		return true;
 	}
 
-	function process()
+	function render_header()
+	{
+		header("Content-type: text/xml");
+		print '<?';
+?>
+xml version="1.0" encoding="ISO-8859-1"?>
+<?php print '<?'?>xml-stylesheet type="text/xsl" href="/leaguerunner/data/ocuasportsml2html.xsl"?>
+<sports-content>
+<?php
+	}
+
+	function render_metadata()
+	{
+?>
+  <sports-metadata>
+    <sports-title><?php print $this->league->fullname ?></sports-title>
+  </sports-metadata>
+<?php
+	}
+
+	function render_footer()
+	{
+		print  "\n</sports-content>\n";
+	}
+
+	function render_standings()
 	{
 		
 		if($this->league->schedule_type == 'none') {
@@ -52,16 +80,7 @@ class SportsMLStandings extends Handler
 		}
 
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
-
-		header("Content-type: text/xml");
-		print '<?';
 ?>
-xml version="1.0" encoding="ISO-8859-1"?>
-<?php print '<?'?>xml-stylesheet type="text/xsl" href="/leaguerunner/data/ocuasportsml2html.xsl"?>
-<sports-content>
-  <sports-metadata>
-    <sports-title><?php print $this->league->fullname ?></sports-title>
-  </sports-metadata>
   <standing content-label="<?php print $this->league->fullname ?>">
     <standing-metadata date-coverage-type="season-regular" date-coverage-value="<?php print $this->league->year ?>" />
 <?php
@@ -89,10 +108,119 @@ xml version="1.0" encoding="ISO-8859-1"?>
 
 ?>
   </standing>
-</sports-content>
 <?php
+	}
+	
+	function render_schedule()
+	{
+		
+		if($this->league->schedule_type == 'none') {
+			error_exit("This league does not have a schedule or standings.");
+		}
+?>
+  <schedule content-label="<?php print $this->league->fullname ?>">
+    <schedule-metadata team-coverage-type="multi-team" date-coverage-type='season-regular' date-coverage-value="<?php print $this->league->year ?>" />
+<?php
+		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+
+		$currentTime = time();
+		while( $ary = db_fetch_array($result) ) {
+			$game = new Game;
+			$game->load_from_query_result($ary);
+			$event_status = 'pre-event';
+			if( $currentTime > $game->game_date ) {
+				$event_status = 'post-event';
+			}
+?>
+    <sports-event>
+		<event-metadata
+			site-name="<?php print $game->field_code; ?>"
+			site-id="<?php print $game->field_code; ?>"
+			start-date-time="<?php print strftime("%Y-%m-%dT%H:%M", $game->timestamp); ?>"
+			event-status="<?php print $event_status ?>"
+		/>
+		<team>
+        	<team-metadata alignment="home">
+            	<name full="<?php print $game->home_name ?>" />
+        	</team-metadata>
+        	<team-stats score="<?php print $game->home_score ?>" />
+		</team>
+		<team>
+        	<team-metadata alignment="away">
+            	<name full="<?php print $game->away_name ?>" />
+        	</team-metadata>
+        	<team-stats score="<?php print $game->away_score ?>" />
+		</team>
+	</sports-event>
+<?php
+		}
+
+?>
+  </schedule>
+<?php
+	}
+}
+
+
+class SportsMLStandings extends SportsMLExporter
+{
+	var $league;
+	
+	function has_permission()
+	{
+		return true;
+	}
+
+	function process()
+	{
+		$this->render_header();
+		$this->render_metadata();
+		$this->render_standings();
+		$this->render_footer();
 		exit(); // To prevent header/footer being displayed.
 	}
 }
+
+class SportsMLSchedule extends SportsMLExporter
+{
+	var $league;
+	
+	function has_permission()
+	{
+		return true;
+	}
+	
+	function process()
+	{
+		$this->render_header();
+		$this->render_metadata();
+		$this->render_schedule();
+		$this->render_footer();
+		exit(); // To prevent header/footer being displayed.
+	}
+
+}
+
+class SportsMLCombined extends SportsMLExporter
+{
+	var $league;
+	
+	function has_permission()
+	{
+		return true;
+	}
+	
+	function process()
+	{
+		$this->render_header();
+		$this->render_metadata();
+		$this->render_standings();
+		$this->render_schedule();
+		$this->render_footer();
+		exit(); // To prevent header/footer being displayed.
+	}
+
+}
+
 
 ?>
