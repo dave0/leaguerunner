@@ -205,12 +205,24 @@ CREATE TABLE field (
 	fid	int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	num	tinyint,
 	status  enum('open','closed'),
+
+	rating  varchar(16),
+	
 	notes	text,
 	parent_fid	int,
+	
 	-- If there's a parent field ID provided, the values below are
 	-- inherited from parent rather than used from the table
 	name	varchar(255),
 	code	char(3),
+
+	-- Physical location of field (not location for billing/ownership purposes)
+	location_street     varchar(50),
+	location_city       varchar(50),
+	location_province   varchar(50),
+	latitude   double,
+	longitude  double,
+	
 	region	enum('Central','East','South','West'),
 	ward_id integer,
 	site_directions	text,

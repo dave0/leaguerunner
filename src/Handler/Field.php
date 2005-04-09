@@ -176,11 +176,10 @@ class FieldEdit extends Handler
 	{
 		$output = form_hidden("edit[step]", "confirm");
 
-		$rows = array();
-
-		$rows[] = array( "Field Number:", form_textfield("", 'edit[num]', $data['num'], 3, 3, "Number of this field at the given site"));
-
+		$output .= form_textfield("Field Number", 'edit[num]', $data['num'], 3, 3, "Number of this field at the given site");
 		
+		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
+
 		// if( ! $edit['is_parent'] ) {
 		$result = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
 		$parents = array();
@@ -188,33 +187,37 @@ class FieldEdit extends Handler
 		while($p = db_fetch_object($result)) {
 			$parents[$p->fid] = $p->fullname;
 		}
-
-		$rows[] = array( "Parent Field", form_select("", 'edit[parent_fid]', $data['parent_fid'], $parents, "Inherit location and name from other field"));
 		
-		$rows[] = array( "Field Name:", form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)"));
+		$output .= form_select("Parent Field", 'edit[parent_fid]', $data['parent_fid'], $parents, "Inherit location and name from other field");
+		
+		$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)");
 
-		$rows[] = array( "Field Code:", form_textfield("", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site"));
+		$output .= form_textfield("Field Code", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site");
 
-		$rows[] = array( "Region:", form_select("", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in"));
+		$output .= form_select("Region", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in");
+		
+		$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
+		
+		$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city (Ottawa, Gatineau)');
+			
+		$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
+		$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
+		$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
 
-		$rows[] = array( "City Ward:", form_select("", 'edit[ward_id]', $data['ward_id'],
+		$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
 			getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
-			"Official city ward this field is located in"));
+			"Official city ward this field is located in");
 
-		$rows[] = array( "Location Map:", form_textfield("", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field"));
+		$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
-		$rows[] = array( "Layout Map:", form_textfield("", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site"));
+		$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
 		
-		$rows[] = array( "Field Permit:", form_textfield("", 'edit[permit_url]', $data['permit_url'], 50, 255, "URL for field permit (if required)"));
+		$output .= form_textfield("Field Permit", 'edit[permit_url]', $data['permit_url'], 50, 255, "URL for field permit (if required)");
 
-		$rows[] = array( "Directions:", form_textarea("", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical."));
+		$output .= form_textarea("Site Directions", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical.");
 
-		$rows[] = array( "Special Instructions:", form_textarea("", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)"));
-		$rows[] = array(
-			form_submit('Submit'),
-			form_reset('Reset'));
-
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)");
+		$output .= form_submit('Submit') .  form_reset('Reset');
 
 		return form($output);	
 	}
@@ -228,20 +231,30 @@ class FieldEdit extends Handler
 
 		$output = form_hidden("edit[step]", "perform");
 
+		$ratings = field_rating_values();
 		if ( $edit['parent_fid'] ) {
 			$parent = field_load( array('fid' => $edit['parent_fid']));
 			$rows = array();
 			$rows[] = array( "Name:", $parent->name );
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
-			$rows[] = array( "Parent Field:", form_hidden('edit[parent_fid]', $edit['parent_fid']) . $parent->fullname);
+			$rows[] = array("Field Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
+			$rows[] = array("Parent Field:", form_hidden('edit[parent_fid]', $edit['parent_fid']) . $parent->fullname);
 		} else {
 			$ward = ward_load( array('ward_id' => $edit['ward_id']) );
 			
 			$rows = array();
 			$rows[] = array( "Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
-			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
+			$rows[] = array("Field Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
+			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 			$rows[] = array( "Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
+			
+			$rows[] = array( "Street:", form_hidden('edit[location_street]', $edit['location_street']) . check_form($edit['location_street']));
+			$rows[] = array( "City:", form_hidden('edit[location_city]', $edit['location_city']) . check_form($edit['location_city']));
+			$rows[] = array( "Province:", form_hidden('edit[location_province]', $edit['location_province']) . check_form($edit['location_province']));
+			$rows[] = array( "Latitude:", form_hidden('edit[latitude]', $edit['latitude']) . check_form($edit['latitude']));
+			$rows[] = array( "Longitude:", form_hidden('edit[longitude]', $edit['longitude']) . check_form($edit['longitude']));
+			
 			$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
 			$rows[] = array( "Location Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
@@ -266,6 +279,7 @@ class FieldEdit extends Handler
 
 		
 		$field->set('num', $edit['num']);
+		$field->set('rating', $edit['rating']);
 
 		if( isset($edit['parent_fid']) ) {
 			$field->set('parent_fid', $edit['parent_fid']);
@@ -275,6 +289,12 @@ class FieldEdit extends Handler
 			$field->set('parent_fid', '' );
 			$field->set('name', $edit['name']);
 			$field->set('code', $edit['code']);
+			$field->set('location_street', $edit['location_street']);
+			$field->set('location_city', $edit['location_city']);
+			$field->set('location_province', $edit['location_province']);
+			$field->set('latitude', $edit['latitude']);
+			$field->set('longitude', $edit['longitude']);
+			
 			$field->set('region', $edit['region']);
 			$field->set('ward_id', $edit['ward_id']);
 			$field->set('location_url', $edit['location_url']);
@@ -298,6 +318,11 @@ class FieldEdit extends Handler
 		
 		if( ! validate_number($edit['num']) ) {
 			$errors .= "<li>Number of field must be provided";
+		}
+	
+		$rating = field_rating_values();
+		if( ! array_key_exists($edit['rating'], $rating) ) {
+			$errors .= "<li>Rating must be provided";
 		}
 
 		if( $edit['parent_fid'] > 0 ) {
@@ -414,20 +439,33 @@ class FieldView extends Handler
 		$rows = array();
 		$rows[] = array("Field Name:", $this->field->name);
 		$rows[] = array("Field Code:", $this->field->code);
+	
+		$ratings = field_rating_values();
+		$rows[] = array("Field Rating:", $ratings[$this->field->rating]);
+		
 		$rows[] = array("Number:", $this->field->num);
 		$rows[] = array("Field Region:", $this->field->region);
 
 		$ward = ward_load( array('ward_id' => $this->field->ward_id) );
+		$rows[] = array("Street Address:", 
+			format_street_address(
+				$this->field->location_street,
+				$this->field->location_city,
+				$this->field->location_province,
+				''));
+			
+		$rows[] = array("Latitude:",  $this->field->latitude);
+		$rows[] = array("Longitude:",  $this->field->longitude);
 		
-		$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/$field->ward_id"));
+		$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/" . $this->field->ward_id));
 		$rows[] = array("Location Map:", 
-			$field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
+			$this->field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Layout Map:", 
-			$field->layout_url ? l("Click for map in new window", $this->field->layout_url, array('target' => '_new'))
+			$this->field->layout_url ? l("Click for map in new window", $this->field->layout_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Field Permit:", 
-			$field->permit_url ? l("Click for permit in new window", $this->field->permit_url, array('target' => '_new'))
+			$this->field->permit_url ? l("Click for permit in new window", $this->field->permit_url, array('target' => '_new'))
 				: "N/A");
 		$rows[] = array("Directions:", $this->field->site_directions);
 		if( $session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {

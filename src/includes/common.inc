@@ -350,7 +350,7 @@ function format_street_address( $street, $city, $province, $postalcode)
 	$foo =  "$street<br />\n$city, $province<br />\n$postalcode";
 	$prov_abbr = substr($province,0,2);
 	$street_uri = strtr($street, array(' ' => '+'));
-	$foo .= "<br />[&nbsp;<a href='http://www.mapquest.com/maps/map.adp?country=ca&zoom=7&city=$city&state=$prov_abbr&address=$street_uri'>map</a>&nbsp;]";
+	$foo .= "<br />[&nbsp;<a href='http://maps.google.com?q=$street_uri,+$city,+$province&hl=en'>maps.google.com</a>&nbsp;|&nbsp;<a href='http://www.mapquest.com/maps/map.adp?country=ca&zoom=7&city=$city&state=$prov_abbr&address=$street_uri'>MapQuest</a>&nbsp;]";
 	return $foo;
 }
 

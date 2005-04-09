@@ -25,12 +25,24 @@ class Field extends LeaguerunnerObject
 			$this->code = $parent->code;
 			$this->region = $parent->region;
 			$this->ward_id = $parent->ward_id;
+			
+			$this->location_street = $parent->location_street;
+			$this->location_city = $parent->location_city;
+			$this->location_province = $parent->location_province;
+			$this->latitude = $parent->latitude;
+			$this->longitude = $parent->longitude;
+			
 			$this->site_directions = $parent->site_directions;
 			$this->site_instructions = $parent->site_instructions;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
 			$this->permit_url = $parent->permit_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
+		}
+
+		if( ! $this->rating ) {
+			# If no rating, mark as unknown
+			$this->rating = '?';
 		}
 		
 		return true;
@@ -139,6 +151,17 @@ function field_query ( $array = array() )
 		CONCAT_WS(' ',f.name,f.num) as fullname
 		FROM field f
 	WHERE " . implode(' AND ',$query) .  $order);
+}
+
+function field_rating_values()
+{
+	return array(
+		'A' => 'A - Field is top-quality',
+		'B' => 'B - Field is in good condition',
+		'C' => 'C - Field is acceptable for use',
+		'D' => 'D - Field is in poor condition',
+		'?' => '? - Field is in unknown condition',
+	);
 }
 
 /**
