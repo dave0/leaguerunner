@@ -135,3 +135,12 @@ INSERT INTO multiplechoice_answers VALUES(
 	'not a team we would like to see again',
 	'-2',
 	2);
+
+-- Note to coordinator
+INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
+	'CommentsToCoordinator',
+	'team_spirit',
+	'Do you have any comments on this game you would like to bring to the coordinator''s attention?', 
+	'freetext',
+	'N',
+	'5');

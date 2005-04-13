@@ -31,6 +31,11 @@ class FormBuilder
 						$question->answers[$ans->akey] = $ans;
 					}
 					break;
+				case 'freetext':
+					// TODO encode in $q->restrictions
+					$question->lines = 5;
+					$question->columns = 60;
+					break;
 				default:
 					die("Unsupported question type in FormBuilder::load()");
 			}
@@ -80,7 +85,7 @@ class FormBuilder
 			} else {
 				$answer = null;
 			}
-			$output .= question_render_editable( &$q, $name, $answer );
+			$output .= question_render_editable( $q, $name, $answer );
 		}
 		reset($this->_questions);
 		return $output;
@@ -96,7 +101,7 @@ class FormBuilder
 		}
 		
 		while( list(,$q) = each($this->_questions) ) {
-			$output .= question_render_viewable( &$q, $this->get_answer( $q->qkey) );
+			$output .= question_render_viewable( $q, $this->get_answer( $q->qkey) );
 		}
 		reset($this->_questions);
 		return $output;
@@ -192,16 +197,18 @@ class FormBuilder
 			// Check that answer is valid
 			switch( $q->qtype ) {
 				case 'multiplechoice':	
-					$invalid = question_validate_multiplechoice( &$q, $answer);
-					if( $invalid ) {
-						$text .= $invalid;
-						$invalid_flag = true;
-					}
+					$invalid = question_validate_multiplechoice( $q, $answer);
+					break;
+				case 'freetext':
+					$invalid = question_validate_freetext( $q, $answer);
 					break;
 				default:
 					die("Unsupported question type in FormBuilder::answers_invalid()");
 			}
-			// TODO: Need validation!
+			if( $invalid ) {
+				$text .= $invalid . '<br />';
+				$invalid_flag = true;
+			}
 		}
 		reset($this->_answers);
 
@@ -266,11 +273,14 @@ function formbuilder_load( $name )
  * be unnecessary due to polymorphism, as each question type will know how to
  * render itself via its own ->render_editable() method.
  */
-function question_render_editable( $q, $editgroup, $value = '', $formtype = 'auto')
+function question_render_editable( &$q, $editgroup, $value = '', $formtype = 'auto')
 {
 	switch($q->qtype) {
 		case 'multiplechoice':
-			$output .= question_render_editable_multiplechoice( &$q, $editgroup, $value );
+			$output .= question_render_editable_multiplechoice( $q, $editgroup, $value );
+			break;
+		case 'freetext':
+			$output .= question_render_editable_freetext( $q, $editgroup, $value);
 			break;
 		default:
 			$output .= "Error: question <i>$q->question</i> is of unsupported type<br />";
@@ -284,11 +294,14 @@ function question_render_editable( $q, $editgroup, $value = '', $formtype = 'aut
  * be unnecessary due to polymorphism, as each question type will know how to
  * render itself via its own ->render_viewable() method.
  */
-function question_render_viewable( $q, $value = '' )
+function question_render_viewable( &$q, $value = '' )
 {
 	switch($q->qtype) {
 		case 'multiplechoice':
-			$output .= question_render_viewable_multiplechoice( &$q, $value );
+			$output .= question_render_viewable_multiplechoice( $q, $value );
+			break;
+		case 'freetext':
+			$output .= question_render_viewable_freetext( $q, $value);
 			break;
 		default:
 			$output .= "Error: question <i>$q->question</i> is of unsupported type<br />";
@@ -300,7 +313,7 @@ function question_render_viewable( $q, $value = '' )
 /**
  * Render a multiple choice question for form output.
  */
-function question_render_editable_multiplechoice( $q, $editgroup, $value = '', $formtype = 'auto' )
+function question_render_editable_multiplechoice( &$q, $editgroup, $value = '', $formtype = 'auto' )
 {
 	if( $formtype == 'auto' ) {
 		if( count($q->answers) > 4 ) {
@@ -330,12 +343,12 @@ function question_render_editable_multiplechoice( $q, $editgroup, $value = '', $
 /**
  * Render a multiple choice question for question/answer output
  */
-function question_render_viewable_multiplechoice( $q, $akey = '' )
+function question_render_viewable_multiplechoice( &$q, $akey = '' )
 {
 	return form_item($q->question, $q->answers[$akey]->answer);
 }
 
-function question_validate_multiplechoice( $q, $answer )
+function question_validate_multiplechoice( &$q, $answer )
 {
 	// For a multiple choice answer to be valid, it must exist in
 	// the list of valid answers.  That's it.
@@ -344,6 +357,27 @@ function question_validate_multiplechoice( $q, $answer )
 	} else {
 		return "You must select a valid value for <i>$q->question</i>";
 	}
+}
+
+/*
+ * Render textbox for entry
+ */
+function question_render_editable_freetext( &$q, $editgroup, $value = '')
+{
+	return form_textarea( $q->question, $editgroup."[$q->qkey]", $value, $q->columns, $q->lines);
+}
+
+function question_render_viewable_freetext( &$q, $value = '')
+{
+	return form_item( $q->question, $value );
+}
+
+function question_validate_freetext( &$q, $value = '' )
+{
+	if ( preg_match("/</", $value) ) {
+		return "Answer for <b>".$q->question."</b> cannot contain HTML";
+	}
+	return false;
 }
 
 ?>
