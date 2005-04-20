@@ -823,6 +823,7 @@ class TeamView extends Handler
 					league l, leagueteams t, teamroster r
 				WHERE
 					l.season = '%s' AND l.day = '%s' 
+					AND r.status != 'substitute'
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
