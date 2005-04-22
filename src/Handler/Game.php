@@ -96,15 +96,20 @@ function game_splash ()
 {
 	global $session;
 
-	$games = db_query("SELECT s.game_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
+	$games = db_query("SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
         AND g.game_date < CURDATE() ORDER BY g.game_date desc LIMIT 4", $session->user->user_id);
 	$rows = array();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
+		if( $game->home_score || $game->away_score ) { 
+			$score = "$game->home_score - $game->away_score"	;
+		} else if ( $row->status == 'captain' || $row->status == 'assistant') {
+			$score = l('enter score', "game/submitscore/$game->game_id/$row->team_id");
+		}
 		array_unshift($rows, array( 
-			"$game->game_date $game->game_start-$game->game_end",
+			l("$game->game_date $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 2),
-			"$game->home_score - $game->away_score"	
+			$score
 		));
 	}
 	
@@ -113,7 +118,7 @@ function game_splash ()
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
 		$rows[] = array( 
-			"$game->game_date $game->game_start-$game->game_end",
+			l("$game->game_date $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 3)
 		);
 	}
