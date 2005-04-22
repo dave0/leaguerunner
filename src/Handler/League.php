@@ -34,11 +34,10 @@ function league_dispatch()
 			$obj = new LeagueMemberStatus;
 			break;
 		case 'ladder':
-			$obj = new LeagueLadder;
+			$obj = new LeagueSeedLadder;
 			break;
-		case 'admin':
-			$obj = new LeagueAdmin;
-			break;
+		default:
+			return null;
 	}
 
 	$obj->league = league_load( array('league_id' => $id) );
@@ -80,7 +79,6 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 			return ($user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
-		case 'unsafe admin':
 			// admin only
 			break;
 	}
@@ -127,9 +125,6 @@ function league_add_to_menu( &$league, $parent = 'league' )
 	
 	if($league->schedule_type == 'ladder') {
 		if($session->has_permission('league','administer ladder', $league->league_id) ) {
-
-			menu_add_child($league->fullname, "$league->fullname/admin", 
-                               'league admin', array('link' => "league/admin/top/$league->league_id"));
 
 			menu_add_child($league->fullname, "$league->fullname/ladder", 
                                'seed ladder', array('link' => "league/ladder/$league->league_id"));
@@ -570,7 +565,7 @@ class LeagueStandings extends Handler
 		// Eventually this should just be a brand new object.
 		if($this->league->schedule_type == "ladder") {
 			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
-			foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			foreach(array("Rung", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		} else {
@@ -698,7 +693,7 @@ class LeagueView extends Handler
 
 		$header = array( "Team Name", "Players", "Rating", "Avg. Skill", "&nbsp;",);
 		if( $this->league->schedule_type == 'ladder') {
-			array_unshift($header, 'Rank');
+			array_unshift($header, 'Rung');
 		}
 		$rows = array();
 		$this->league->load_teams();
@@ -1045,193 +1040,7 @@ class LeagueMemberStatus extends Handler
 	}
 }
 
-/**
- * Contains admin functions for the league.
- * TODO this code needs some cleanup
- */
-class LeagueAdmin extends Handler
-{
-	var $league;
-
-	function has_permission()
-	{
-		global $session;
-		// Considered 'unsafe' as we haven't tested this much
-		return $session->has_permission('league','unsafe admin', $this->league->league_id);
-	}
-
-	function process ()
-	{
-		$this->title = "League Administration";
-             
-		$operation = arg(2); 
-
-		$this->setLocation(array(
-			$this->league->fullname => "league/admin",
-			$this->title => 0));
-                
-		switch($operation) {
-			case 'cleanround':
-				// TODO: remove this when this code is safe and tested
-				error_exit("This function is still being developed");
-				return($this->cleanround());
-				break;
-			case 'cancelround':
-				return($this->cancelround());
-				break;
-			case 'finalizeround':
-				// TODO: remove this when this code is safe and tested
-				error_exit("This function is still being developed");
-				return($this->finalizeround());
-				break;
-			case 'top':
-				return($this->viewrounds());
-				break;
-			default:
-				return($this->viewrounds());
-		}
-	}
-
-	function viewrounds() 
-	{
-
-		$output = para("This is the league adminstration page.  " . 
-			       "You can perform several highly destructive operations here. " .
-			       "If you mess up here, your only recourse may be to restore the database from a previous backup! " .
-			       "<b>You have been warned!</b>");
-
-		$output .= para("Use <b>clean</b> to reset games (ie: deletes the home/away teams)");
-		$output .= para("Use <b>cancel</b> to delete the entire round of games (ie: physically removes games from the system, adjusting all dependent game info)");
-		$output .= para("Use <b>finalize</b> to force a result for all games in the round (ie: automatically approve partial score entries, assign 0-0 ties to games with no results)");
-
-		$header = array(array('data'=>"Round",'align'=>"center"), 
-				array('data'=>"Date",'align'=>"center"), 
-				"&nbsp", 
-				array('data'=>"Operations",'colspan'=>3,'align'=>"center") );
-
-		$row = array();
-
-		$dbQuery = "SELECT DISTINCT round, game_date FROM schedule, gameslot WHERE " .
-			  "league_id = " . $this->league->league_id .
-			  " AND schedule.game_id = gameslot.game_id ORDER BY game_date ASC"; 
-
-		// TBD:  Need some error checking here.
-		$allRounds = db_query($dbQuery);
-
-		
-		while($round = db_fetch_object($allRounds)) {
-
-		  $row[] = array(
-			     $round->round, 
-			     $round->game_date, 
-			     "&nbsp", 
-			     l("clean",   "league/admin/cleanround/" . $this->league->league_id . "/confirm/" . $round->round ),
-			     l("cancel",  "league/admin/cancelround/" . $this->league->league_id . "/confirm/" . $round->round),
-			     l("finalize","league/admin/finalizeround/" . $this->league->league_id . "/confirm/" . $round->round) );
-		}
-
-		$output = $output . "<div class='listtable'>" . table( $header, $row ) . "</div>";
-
-		return $output;
-	}
-
-	function cleanround()
-	{
-	    $suboperation = arg(4);
-
-	    switch($suboperation) {
-			case 'confirm':
-				 return($this->cleanroundconfirm());
-				break;
-			case 'doit':
-				 return($this->cleanrounddoit());
-				break;
-			default:
-	    }
-	}
-
-	function cancelround()
-	{
-	    $suboperation = arg(4);
-
-	    switch($suboperation) {
-			case 'confirm':
-				 return($this->cancelroundconfirm());
-				break;
-			case 'doit':
-				 return($this->cancelrounddoit());
-				break;
-			default:
-	    }
-	}
-
-	function finalizeround()
-	{
-	    $suboperation = arg(4);
-
-	    switch($suboperation) {
-			case 'confirm':
-				 return($this->finalizeroundconfirm());
-				break;
-			case 'doit':
-				 return($this->finalizerounddoit());
-				break;
-			default:
-	    }
-	}
-
-	function cleanroundconfirm()
-	{
-		$output = para("This operation will remove all game data from the select round!!");
-		$output .= para("Are you sure you want to proceed!?!");
-
-		$output .= form_submit("Clean Round"); 
-		return form($output,"post", url("league/admin/cleanround/" . $this->league->league_id . "/doit/" . arg(5)));
-	}
-
-	function cleanrounddoit()
-	{
-		$this->league->cleanround(arg(5));
-
-		 return("Round <b>" . arg(5) . "</b> cleaned.");
-	}
-     
-	function cancelroundconfirm()
-	{
-		$output = para("This operation will remove ALL GAMES from the selected round!!");
-		$output .= para("Are you sure you want to proceed with cancelling round <b>" . arg(5) . "</b> ?!?!");
-
-		$output .= form_submit("Cancel Round"); 
-		return form($output,"post", url("league/admin/cancelround/" . $this->league->league_id . "/doit/" . arg(5)));
-	}
-
-	function cancelrounddoit()
-	{
-		if ( $this->league->cancelround(arg(5)) ) {
-			return("Round <b>" . arg(5) . "</b> cancelled.");
-		} else {
-			return("Problem cancelling round <b>" . arg(5) . "</b> !!!");
-		}
-	}
-
-	function finalizeroundconfirm()
-	{
-		$output = para("This operation will finalize the selected round.");
-		$output .= para("Are you sure you want to proceed?");
-
-		$output .= form_submit("Finalize Round"); 
-		return form($output,"post", url("league/admin/finalizeround/" .$this->league->league_id . "/doit/" . arg(5)));
-	}
-
-	function finalizerounddoit()
-	{
-		//$this->league->finalizeround(arg(5));
-
-		return("Round <b>" . arg(5) . "</b> finalized.");
-	}
-}
-
-class LeagueLadder extends Handler
+class LeagueSeedLadder extends Handler
 {
 	var $league;
 
@@ -1241,35 +1050,10 @@ class LeagueLadder extends Handler
 		return $session->has_permission('league','ladder seed', $this->league->league_id);
 	}
 
-	function process ()
+
+	/* TODO: this should become its own handler subclass */
+	function reseed_by_skill()
 	{
-		global $session;
-		$this->title = "League Ladder Adjustment";
-		
-		// seed by rank flag:
-		$byskill = 0;
-		if (arg(3) == "byskill") {
-			$teamID    = arg(4);
-			$direction = arg(5);
-			$byskill = 1;
-		} else {
-			$teamID    = arg(3);
-			$direction = arg(4);
-		}
-
-		if( $this->league->schedule_type != "ladder" ) {
-			error_exit("Ladder cannot be adjusted for a non-ladder league.");
-		}
-
-		// Re-seeding after scheduling is a bad idea, so disallow it
-		if( $this->league->has_schedule() ) {
-			error_exit("Ladder cannot be adjusted after games have been scheduled.");
-		}
-		
-		$this->league->load_teams();
-		
-		// if the user chose to seed by rank, make the seeding changes
-		if ($byskill) {
 			$skill_array = array();
 			foreach ($this->league->teams as $t) {
 				$skill_array[$t->team_id] = $t->calculate_avg_skill();
@@ -1284,74 +1068,51 @@ class LeagueLadder extends Handler
 			// now, reload the teams so that they display in the new order!
 			$this->league->_teams_loaded = false;
 			$this->league->load_teams();
+	}
+
+	function process ()
+	{
+		global $session;
+		$this->title = "League Ladder Adjustment";
+		
+		if( $this->league->schedule_type != "ladder" ) {
+			error_exit("Ladder cannot be adjusted for a non-ladder league.");
 		}
 
-		if( $direction ) {
-			$team = team_load( array('team_id' => $teamID) );
-			if( !$team ) {
-				error_exit("A team must be provided for that operation.");
-			}
-			if (! $this->league->contains_team ($team->team_id) ) {
-				error_exit("That team is not in this league!");
+		$this->league->load_teams();
+		if($_POST['edit']['step'] == 'perform') {
+			$ranks = $_POST['edit']['rank'];
+			foreach ($this->league->teams as $team) {
+				if( array_key_exists( $team->team_id, $ranks)) {
+					db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $ranks[$team->team_id], $this->league->league_id, $team->team_id);
+				}
 			}
 
-			switch($direction) {
-				case 'lower':
-					$new_rank = $team->rank + 1;
-					break;
-				case 'higher':
-					$new_rank = $team->rank - 1;
-					break;
-				default:
-					error_exit("That is not a valid ladder adjustment");
-			}
-			
-			// Race condition here.  If someone else is doing this, we
-			// may end up with mis-ranked teams.  It shouldn't be
-			// too big of a worry, though.
-			$other_team_id = db_result(db_query("SELECT team_id FROM leagueteams WHERE rank = %d AND league_id = %d", $new_rank, $this->league->league_id));
-			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $new_rank, $this->league->league_id, $team->team_id);
-			if(db_affected_rows() != 1) {
-				error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
-			}
-			
-			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $team->rank, $this->league->league_id, $other_team_id);
-			if(db_affected_rows() != 1) {
-				error_exit("Oh, no!  Looks like someone screwed up... couldn't change the rank due to an internal error.");
-			}
-			
-			// Redirect to prevent page-reload from breaking things.
-			local_redirect(url("league/ladder/" . $this->league->league_id));
+			// Force reload
+			$this->league->_teams_loaded = false;
+			$this->league->load_teams();
 		}
 
-		$output = para("This is the rank adjustment tool.  This should only be used to initially seed at the beginning of a season before games are scheduled.  Don't do it mid-season or bad things may happen");
+		$output = para("This is the ladder adjustment tool. Teams are seeded into rungs on the ladder (with any number of teams permitted in any rung).  Higher numbers should be used for better teams.  Teams can be moved between rungs at any time.");
 
-		$header = array( "Rank", "Team Name", "Rating", "Avg. Skill", "&nbsp;","&nbsp");
-		$last_rank = count($this->league->teams);
+		$header = array( "Rung", "Team Name", "Rating", "Avg. Skill");
 		$rows = array();
 		foreach($this->league->teams as $team) {
-			if($team->rank > 1) {
-				$up_link = l('^^^', "league/ladder/" . $this->league->league_id ."/$team->team_id/higher");
-			} else {
-				$up_link = "";
-			}
-			if( $team->rank < $last_rank) {
-				$down_link = l('vvv', "league/ladder/" . $this->league->league_id . "/$team->team_id/lower");
-			} else {
-				$down_link = "";
-			}
 			$rows[] = array(
-				$team->rank,
+				form_textfield('', 'edit[rank][' . $team->team_id . ']', $team->rank, 2,2),
 				check_form($team->name),
 				$team->rating,
 				$team->calculate_avg_skill(),
-				$up_link,
-				$down_link
 			);
 		}
 		
-		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
-		
+		$output .= form(
+			"<div class='listtable'>" 
+			. table($header, $rows) 
+			. "</div>" 
+		    . form_hidden("edit[step]", 'perform')
+			. form_submit("Submit") 
+			. form_reset("Reset"));
 		$this->setLocation(array(
 			$this->league->fullname => "league/ladder/" . $this->league->league_id,
 			$this->title => 0));

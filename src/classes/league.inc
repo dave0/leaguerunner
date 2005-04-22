@@ -100,7 +100,7 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		$this->teams = team_load_many( array('_extra' => 'l.league_id = ' . check_query($this->league_id), '_order' => 's.rank'));
+		$this->teams = team_load_many( array('_extra' => 'l.league_id = ' . check_query($this->league_id), '_order' => 's.rank DESC'));
 
 		// Cheat.  If we didn't find any teams, set $this->teams to an empty
 		// array again.
@@ -686,7 +686,7 @@ class League extends LeaguerunnerObject
 		
 		// Now, sort it all
 		if ($this->schedule_type == "ladder") {
-			uasort($season, array($this, 'standings_sort_byrank'));	
+			uasort($season, array($this, 'standings_sort_pyramid'));	
 
 			$sorted_order = &$season;
 		} else {
@@ -788,12 +788,18 @@ class League extends LeaguerunnerObject
 		}
 	}
 	
-	function standings_sort_byrank (&$a, &$b) 
+	/**
+	 * Sort standings for pyramid ladder.
+	 * Sort works as follows:
+	 *   1) Higher rank beats lower rank
+	 *   2) then, sort by win/loss if rank is equal
+	 */
+	function standings_sort_pyramid (&$a, &$b) 
 	{
 		if ($a->rank == $b->rank) {
-			return 0;
+			return $this->standings_sort_bywinloss($a, $b);
 		}
-		return ($a->rank < $b->rank) ? -1 : 1;
+		return ($a->rank > $b->rank) ? -1 : 1;
 	}
 
 	function standings_sort_bywinloss (&$a, &$b) 
