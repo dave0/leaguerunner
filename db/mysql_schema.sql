@@ -41,6 +41,8 @@ CREATE TABLE person (
 	skill_level  integer DEFAULT 0,  -- 1-5 scale
 	year_started integer DEFAULT 0,  -- years playing
 
+	shirtsize	varchar(50),
+
 	session_cookie varchar(50),
 	class   enum('volunteer','administrator', 'player', 'visitor') DEFAULT 'player' NOT NULL,
         status  enum('new','inactive','active','locked') DEFAULT 'new' NOT NULL,

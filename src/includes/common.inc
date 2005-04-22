@@ -693,6 +693,19 @@ function getProvinceNames()
 	return $ary;
 }
 
+/** 
+ * Helper fn to get shirt sizes for pulldown list
+ */
+function getShirtSizes()
+{
+    $sizes = array('Unknown','Womens XSmall', 'Womens Small', 'Womens Medium', 'Womens Large', 'Womens XLarge','Mens Small', 'Mens Medium', 'Mens Large', 'Mens XLarge');
+	$ary = array();
+	while(list(,$name) = each($sizes)) {
+		$ary[$name] = $name;
+	}
+	return $ary;
+}
+
 /**
  * Helper fn to return full descriptions for numeric skill levels
  */

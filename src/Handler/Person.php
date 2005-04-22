@@ -69,6 +69,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 
 	$all_view_fields = array( 'name', 'gender', 'skill', 'dog' );
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
+	$captain_view_fields = array( 'height', 'shirtsize' );
 	
 	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height');
 	$self_view_fields = array_merge($all_view_fields, $restricted_contact_fields, $self_view_fields);
@@ -142,7 +143,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 						foreach( array_keys($player->teams) as $team_id ) {
 							if( $user->is_captain_of( $team_id ) ) {
 								/* They are, so publish email and phone */
-								$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+								$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields, $captain_view_fields);
 								break;
 							}
 						}
@@ -319,6 +320,10 @@ class PersonView extends Handler
 		
 		if($session->has_permission('person','view',$person->user_id, 'gender')) {
 			$rows[] = array("Gender:", $person->gender);
+		}
+		
+		if($session->has_permission('person','view',$person->user_id, 'shirtsize')) {
+			$rows[] = array('Shirt Size:', $person->shirtsize);
 		}
 		
 		if($session->has_permission('person','view',$person->user_id, 'skill')) {
@@ -783,6 +788,8 @@ END_TEXT;
 
 		$group .= form_textfield('Height','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches.  This is used to help generate even teams for hat leagues.');
 		
+		$group .= form_select('Shirt Size','edit[shirtsize]', $formData['shirtsize'], getShirtSizes());
+		
 		$group .= form_radiogroup('Has Dog', 'edit[has_dog]', $formData['has_dog'], array(
 			'Y' => 'Yes, I have a dog I will be bringing to games',
 			'N' => 'No, I will not be bringing a dog to games'));
@@ -890,6 +897,7 @@ END_TEXT;
 		if($edit['height']) {
 			$group .= form_item("Height", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
 		}
+		$group .= form_item("Shirt Size", form_hidden('edit[shirtsize]',$edit['shirtsize']) . $edit['shirtsize']);
 	
 		$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 		
@@ -977,6 +985,7 @@ END_TEXT;
 		if($edit['height']) {
 			$person->set('height', $edit['height']);
 		}
+		$person->set('shirtsize', $edit['shirtsize']);
 		
 		$person->set('gender', $edit['gender']);
 		
