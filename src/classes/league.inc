@@ -685,8 +685,12 @@ class League extends LeaguerunnerObject
 		}
 		
 		// Now, sort it all
-		if ($this->schedule_type == "ladder") {
+		if ($this->schedule_type == "pyramid") {
 			uasort($season, array($this, 'standings_sort_pyramid'));	
+
+			$sorted_order = &$season;
+		} else if ($this->schedule_type == "ladder") {
+			uasort($season, array($this, 'standings_sort_ladder'));	
 
 			$sorted_order = &$season;
 		} else {
@@ -800,6 +804,14 @@ class League extends LeaguerunnerObject
 			return $this->standings_sort_bywinloss($a, $b);
 		}
 		return ($a->rank > $b->rank) ? -1 : 1;
+	}
+	
+	function standings_sort_ladder (&$a, &$b) 
+	{
+		if ($a->rank == $b->rank) {
+			return 0;
+		}
+		return ($a->rank < $b->rank) ? -1 : 1;
 	}
 
 	function standings_sort_bywinloss (&$a, &$b) 
