@@ -324,6 +324,8 @@ class LeagueEdit extends Handler
 		$rows = array();
 		$rows[] = array("League Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
 		
+		$rows[] = array("Year:", form_textfield('', 'edit[year]', $formData['year'], 4,4, "Year of play."));
+		
 		$rows[] = array("Season:", 
 			form_select("", "edit[season]", $formData['season'], getOptionsFromEnum('league','season'), "Season of play for this league. Choose 'none' for administrative groupings and comp teams."));
 			
@@ -366,6 +368,9 @@ class LeagueEdit extends Handler
 		$rows = array();
 		$rows[] = array("League Name:", 
 			form_hidden('edit[name]', $edit['name']) . $edit['name']);
+			
+		$rows[] = array("Year:", 
+			form_hidden('edit[year]', $edit['year']) . $edit['year']);
 		
 		$rows[] = array("Season:", 
 			form_hidden('edit[season]', $edit['season']) . $edit['season']);
@@ -400,6 +405,7 @@ class LeagueEdit extends Handler
 		
 		$this->league->set('name', $edit['name']);
 		$this->league->set('day', $edit['day']);
+		$this->league->set('year', $edit['year']);
 		$this->league->set('season', $edit['season']);
 		$this->league->set('tier', $edit['tier']);
 		$this->league->set('ratio', $edit['ratio']);
@@ -461,9 +467,28 @@ class LeagueList extends Handler
 	{
 		global $session;
 
-		$season = arg(2);
+		$season = arg(3);
 		if( ! $season ) {
 			$season = strtolower(variable_get('current_season', "Summer"));
+		}
+		
+		$year = arg(2);
+		if( $year == '' ) {
+			$year = variable_get('current_year', 2005);
+		} else if( $year == 0 ) {
+			$season = 'none';
+		}
+		
+		$yearLinks = array();
+		$result = db_query("SELECT distinct year from league");
+		while($y = db_fetch_array($result)) {
+			if($y['year'] == 0) {
+				$yearLinks[] = l('ongoing', "league/list/0/$season");
+			} else if($y['year'] == $year) {
+				$yearLinks[] = $y['year'];
+			} else {
+				$yearLinks[] = l($y['year'], "league/list/" . $y['year']."/$season");
+			}
 		}
 		
 		/* Fetch league names */
@@ -477,28 +502,34 @@ class LeagueList extends Handler
 				continue;
 			}
 			$seasonNames[] = $curSeason;
+			if($curSeason == 'none') {
+				continue;
+			}
 			if($curSeason == $season) {
 				$seasonLinks[] = $curSeason;
 			} else {
-				$seasonLinks[] = l($curSeason, "league/list/$curSeason");
+				$seasonLinks[] = l($curSeason, "league/list/$year/$curSeason");
 			}
 		}
-		
+
 		if( !in_array($season, $seasonNames) ) {
 			error_exit("That is not a valid season"); 
 		}
 		
 		$this->setLocation(array(
-			$this->title => "league/list/$season",
+			$this->title => "league/list/$year/$season",
 			$season => 0
 		));
 
-		$output = para(theme_links($seasonLinks));
+		$output = para(theme_links($yearLinks));
+		if( $year != 0 ) {
+			$output .= para(theme_links($seasonLinks));
+		}
 
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 		
-		$result = db_query("SELECT name,tier,league_id FROM league WHERE season = '%s' ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season);
+		$result = db_query("SELECT name,tier,year,league_id FROM league WHERE season = '%s' AND year = %d ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season, $year);
 
 		while($league = db_fetch_object($result)) {
 			if($league->tier) {
@@ -679,6 +710,9 @@ class LeagueView extends Handler
 				join("<br />", $coordinators));
 		}
 
+		if($this->league->year) {
+			$rows[] = array("Year:", $this->league->year);
+		}
 		$rows[] = array("Season:", $this->league->season);
 		if($this->league->day) {
 			$rows[] = array("Day(s):", $this->league->day);
