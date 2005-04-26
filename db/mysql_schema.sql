@@ -197,7 +197,7 @@ CREATE TABLE team_spirit_answers (
 	tid_created	int NOT NULL, -- ID of team providing this answer
 	tid		int NOT NULL, -- id of team receiving this answer
 	gid		int NOT NULL, -- ID of game this entry relates to
-	qkey		varchar(255), -- Question asked
+	qkey		varchar(255) NOT NULL, -- Question asked
 	akey		varchar(255), -- Answer provided
 	PRIMARY KEY (tid_created,gid,qkey)
 );

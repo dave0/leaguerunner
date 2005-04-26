@@ -1,5 +1,5 @@
 INSERT INTO person (username,password,firstname,lastname,class,status) VALUES ('admin',MD5('admin'), 'System', 'Administrator','administrator','active');
-INSERT INTO league (name,season,schedule_type) VALUES ('Inactive Teams', 'none', 'N');
+INSERT INTO league (name,season,schedule_type) VALUES ('Inactive Teams', 'none', 'none');
 INSERT INTO leaguemembers (league_id, player_id, status) VALUES (1,1,'coordinator');
 
 -- 
