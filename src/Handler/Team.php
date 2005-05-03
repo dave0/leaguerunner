@@ -621,7 +621,7 @@ class TeamRosterStatus extends Handler
 		$this->currentStatus = null;
 		
 		if( !$this->player ) {
-			if( !($session->is_admin() || $session->is_captain_of($team->team_id))) {
+			if( !($session->is_admin() || $session->is_captain_of($this->team->team_id))) {
 				error_exit("You cannot add a person to that team!");
 			}
 
