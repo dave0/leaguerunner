@@ -1,26 +1,11 @@
-body { 
-	color: #000;
-	background-color: #fff; 
-	margin: 0;
-	padding: 0;
-	font-family: Verdana, Helvetica, Arial, sans-serif;
-}
-	
-h1              { font-size: 18px;}
-pre             { font-family: monospace; font-size: 9pt; }
 .row_title      { color: black; font-weight: bold; }
 .warning        { background-color: red; border: 1px solid black; }
 
 .toprow         { color: white; background-color: black; border: 1px solid black;
                   padding-left: 7px; padding-right: 7px; }
 
-a               { text-decoration: none; }
-a:hover         { text-decoration: underline; }
-
 /* Defaults for tables */
 table           { margin: 0; padding: 0; border-collapse: collapse; }
-td		{ vertical-align: top }
-
 fieldset {
 	margin-bottom: 1em;
 	padding: .5em;
@@ -115,24 +100,6 @@ fieldset {
                    padding-left: 0.25em; padding-right: 1em; }
 
 .error { color: red }
-
-.main {
-  padding-left: .5em;
-}
-
-/* Sidebar */
-#sidebar-left {
-	font-size: 0.75em;
-	width: 175px;
-	/* padding in px not ex because IE messes up 100% width tables otherwise */
-	padding: 25px 10px 75px 10px;
-	vertical-align: top;
-	background: #f5f5f5;
-}
-
-#sidebar-left li, #sidebar-right li {
-	font-size: 1em;
-} 
 
 /* Menu styles */
 .menu {
