@@ -68,6 +68,7 @@ class Person extends LeaguerunnerObject
 				l.league_id, 
 				l.name,
 				l.tier,
+				l.year,
 				l.schedule_type,
 				m.status
 			 FROM 
@@ -79,10 +80,15 @@ class Person extends LeaguerunnerObject
 		while($league = db_fetch_object($result)) {
 			# TODO: evil hack.
 			$this->is_a_coordinator = true;
+			if($league->year == 0) { 
+				$year = ''; 
+			} else { 
+				$year = $league->year;
+			}
 			if($league->tier) {
-				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
+				$league->fullname = sprintf("$league->name Tier %02d $year", $league->tier);
 			} else {
-				$league->fullname = $league->name;
+				$league->fullname = "$league->name $year";
 			}
 			$this->leagues[ $league->league_id ] = $league;
 		}

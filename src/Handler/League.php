@@ -528,16 +528,10 @@ class LeagueList extends Handler
 
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
-		
-		$result = db_query("SELECT name,tier,year,league_id FROM league WHERE season = '%s' AND year = %d ORDER BY FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), ratio, tier", $season, $year);
 
-		while($league = db_fetch_object($result)) {
-			if($league->tier) {
-				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
-			} else {
-				$league->fullname = $league->name;
-			}
-		
+		$leagues = league_load_many( array( 'season' => $season, 'year' => $year, '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
+
+		foreach ( $leagues as $league ) {
 			$links = array();
 			if($league->schedule_type != 'none') {
 				$links[] = l('schedule',"schedule/view/$league->league_id");

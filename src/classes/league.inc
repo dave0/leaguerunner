@@ -22,34 +22,43 @@ class League extends LeaguerunnerObject
  	 */
 	function load ( $array = array() )
 	{
-		$query = array();
-		
-		foreach ($array as $key => $value) {
-			if($key == '_extra') {
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-			} else {
-				$query[] = "l.$key = '" . check_query($value) . "'";
-			}
-		}
-		
-		$result = db_query_range("SELECT 
-			l.*
-			FROM league l
-			WHERE " . implode(' AND ',$query),0,1);
+		$result = league_query( $array );
 
-		/* TODO: we may want to abort here instead */
 		if(1 != db_num_rows($result)) {
 			return false;
 		}
-		
-		$this->_in_database = true;
 
-		$league = db_fetch_array($result);
-		foreach ($league as $key => $value) {
+		return $this->load_from_query_result( db_fetch_array($result) );
+	}
+	
+	
+	function load_from_query_result ( $array = array() ) 
+	{
+
+		foreach ($array as $key => $value) {
 			$this->{$key} = $value;
 		}
+	
+		$this->_in_database = true;
 
+		/* set derived attributes */
+		$year = '';
+		if($league->year) { 
+			$year = $league->year;
+		}
+		if($this->tier) {
+			$this->fullname = sprintf("$this->name Tier %02d $year", $this->tier);
+		} else {
+			$this->fullname = "$this->name $year";
+		}
+
+		$this->load_coordinators();
+
+		return true;
+	}
+
+	function load_coordinators() 
+	{
 		$result = db_query("SELECT 
 			m.player_id
 			FROM leaguemembers m
@@ -63,15 +72,6 @@ class League extends LeaguerunnerObject
 			$c->coordinator_status = 'loaded';
 			$this->coordinators[$c->user_id] = $c;
 		}
-
-		/* set derived attributes */
-		if($this->tier) {
-			$this->fullname = sprintf("$this->name Tier %02d", $this->tier);
-		} else {
-			$this->fullname = $this->name;
-		}
-
-		return true;
 	}
 
 	/**
@@ -864,6 +864,31 @@ class League extends LeaguerunnerObject
 
 }
 
+function league_query( $array = array() )
+{
+	$order = '';
+	$query = array();
+		
+	foreach ($array as $key => $value) {
+		switch( $key ) {
+			case '_extra':
+				/* Just slap on any extra query fields desired */
+				$query[] = $value;
+				break;
+			case '_order':
+				$order = ' ORDER BY ' . $value;
+				break;
+			default:
+				$query[] = "l.$key = '" . check_query($value) . "'";
+		}
+	}
+		
+	return db_query("SELECT 
+		l.*
+		FROM league l
+		WHERE " . implode(' AND ',$query) . $order);
+}
+
 /**
  * Wrapper for convenience and backwards-compatibility.
  */
@@ -875,6 +900,25 @@ function league_load( $array = array() )
 	} else {
 		return null;
 	}
+}
+
+function league_load_many( $array = array() )
+{
+	$result = league_query( &$array );
+
+	if(db_num_rows($result) < 1 ) {
+		return false;
+	}
+
+	$leagues = array();
+	while($ary = db_fetch_array($result)) {
+		$l = new League;
+		if( $l->load_from_query_result( $ary ) ) {
+			$leagues[$l->league_id] = $l;
+		}
+	}
+
+	return $leagues;
 }
 
 ?>
