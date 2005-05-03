@@ -138,7 +138,6 @@ function game_add_to_menu( &$league, &$game )
 {
 	global $session;
 	menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
-	menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/graph", "graph opponents", array('link' => "graph/teamrank/$game->home_team/$game->away_team"));
 
 	if( $session->has_permission('league','edit game', $game->league_id) ) {
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
@@ -244,7 +243,7 @@ class GameCreate extends Handler
 				break;
 			case 'ladder':
 				$this->types = array(
-					'ladder' => 'One set of games for all teams in a pyramid-style ladder',
+					'ladder' => 'One set of games for all teams in a ladder',
 					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
 					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
 				);

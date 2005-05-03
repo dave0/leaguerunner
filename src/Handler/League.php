@@ -112,7 +112,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
-	if($league->schedule_type == 'pyramid' || $league->schedule_type == 'roundrobin') {
+	if($league->schedule_type == 'roundrobin') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($session->has_permission('league','add game', $league->league_id) ) {
@@ -121,18 +121,6 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		if($session->has_permission('league','approve scores', $league->league_id) ) {
 			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
-	}
-	
-	if($league->schedule_type == 'pyramid') {
-		if($session->has_permission('league','administer ladder', $league->league_id) ) {
-
-			menu_add_child($league->fullname, "$league->fullname/ladder", 
-                               'seed ladder', array('link' => "league/ladder/$league->league_id"));
-
-			menu_add_child($league->fullname . "/admin/ladder", "$league->fullname/admin/ladder/byskill", 
-                               'seed by average skill', array('link' => "league/ladder/$league->league_id/byskill"));
-		}
-		menu_add_child($league->fullname, "$league->fullname/graph/rank",'graph ranks', array('weight' => 4, 'link' => "graph/leaguerank/$league->league_id"));
 	}
 	
 	if($session->has_permission('league','edit', $league->league_id) ) {
@@ -205,8 +193,7 @@ function league_cron()
 		// Task #1: 
 		// For ladder leagues, find all games older than our expiry time, and
 		// finalize them
-		if($league->schedule_type == 'ladder'
-		   || $league->schedule_type == 'pyramid') {
+		if($league->schedule_type == 'ladder' ) {
 			$league->finalize_old_games();
 		}
 
@@ -432,10 +419,9 @@ class LeagueEdit extends Handler
 			case 'none':
 			case 'roundrobin':
 			case 'ladder':
-			case 'pyramid':
 				break;
 			default:
-				$errors .= "<li>Values for allow schedule are none, roundrobin, pyramid, and ladder";
+				$errors .= "<li>Values for allow schedule are none, roundrobin, and ladder";
 		}
 
 		if($edit['schedule_type'] != 'none') {
@@ -467,69 +453,38 @@ class LeagueList extends Handler
 	{
 		global $session;
 
-		$season = arg(3);
+		$season = arg(2);
 		if( ! $season ) {
 			$season = strtolower(variable_get('current_season', "Summer"));
-		}
-		
-		$year = arg(2);
-		if( $year == '' ) {
-			$year = variable_get('current_year', 2005);
-		} else if( $year == 0 ) {
-			$season = 'none';
-		}
-		
-		$yearLinks = array();
-		$result = db_query("SELECT distinct year from league");
-		while($y = db_fetch_array($result)) {
-			if($y['year'] == 0) {
-				$yearLinks[] = l('ongoing', "league/list/0/$season");
-			} else if($y['year'] == $year) {
-				$yearLinks[] = $y['year'];
-			} else {
-				$yearLinks[] = l($y['year'], "league/list/" . $y['year']."/$season");
-			}
 		}
 		
 		/* Fetch league names */
 		$seasons = getOptionsFromEnum('league', 'season');
 		
 		$seasonLinks = array();
-		$seasonNames = array();
 		while(list(,$curSeason) = each($seasons)) {
 			$curSeason = strtolower($curSeason);
 			if($curSeason == '---') {
 				continue;
 			}
-			$seasonNames[] = $curSeason;
-			if($curSeason == 'none') {
-				continue;
-			}
 			if($curSeason == $season) {
 				$seasonLinks[] = $curSeason;
 			} else {
-				$seasonLinks[] = l($curSeason, "league/list/$year/$curSeason");
+				$seasonLinks[] = l($curSeason, "league/list/$curSeason");
 			}
-		}
-
-		if( !in_array($season, $seasonNames) ) {
-			error_exit("That is not a valid season"); 
 		}
 		
 		$this->setLocation(array(
-			$this->title => "league/list/$year/$season",
+			$this->title => "league/list/$season",
 			$season => 0
 		));
 
-		$output = para(theme_links($yearLinks));
-		if( $year != 0 ) {
-			$output .= para(theme_links($seasonLinks));
-		}
+		$output = para(theme_links($seasonLinks));
 
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 
-		$leagues = league_load_many( array( 'season' => $season, 'year' => $year, '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
+		$leagues = league_load_many( array( 'season' => $season, '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
 
 		foreach ( $leagues as $league ) {
 			$links = array();
@@ -593,11 +548,6 @@ class LeagueStandings extends Handler
 		if($this->league->schedule_type == "ladder") {
 			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
 			foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
-				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
-			}
-		} else if($this->league->schedule_type == "pyramid") {
-			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
-			foreach(array("Rung", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		} else {
@@ -727,9 +677,7 @@ class LeagueView extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		$header = array( "Team Name", "Players", "Rating", "Avg. Skill", "&nbsp;",);
-		if( $this->league->schedule_type == 'pyramid') {
-			array_unshift($header, 'Rung');
-		}else if( $this->league->schedule_type == 'ladder') {
+		if( $this->league->schedule_type == 'ladder') {
 			array_unshift($header, 'Rank');
 		}
 		$rows = array();
@@ -747,8 +695,7 @@ class LeagueView extends Handler
 			}
 
 			$row = array();
-			if( $this->league->schedule_type == 'ladder'
-			    || $this->league->schedule_type == 'pyramid' ) {
+			if( $this->league->schedule_type == 'ladder') {
 				$row[] = $team->rank;
 			}
 			
