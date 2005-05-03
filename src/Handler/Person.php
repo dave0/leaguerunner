@@ -1406,7 +1406,7 @@ class PersonSearch extends Handler
 	function form ( $next ) 
 	{
 
-		$output = para("Enter last name of person and click 'submit'.  You may use '*' as a wildcard");
+		$output = para("Enter last name of person to search for and click 'submit'.  You may use '*' as a wildcard");
 
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= form_hidden('edit[next]', $next );
