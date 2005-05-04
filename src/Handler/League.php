@@ -726,7 +726,7 @@ class LeagueCaptainEmails extends Handler
 	function has_permission ()
 	{
 		global $session;
-		return $session->has_permission('league','view',$this->league_id, 'captain emails');
+		return $session->has_permission('league','view',$this->league->league_id, 'captain emails');
 	}
 
 	function process ()
