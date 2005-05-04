@@ -11,6 +11,8 @@ fieldset {
 	padding: .5em;
 }
 
+#main td { vertical-align: top; }
+
 
 /* CSS2 to bold-face the left-hand column */
 .pairtable td:first-child {
@@ -31,7 +33,6 @@ fieldset {
 	padding-left: 0.3em; 
 	padding-right: 0.3em;
 	border-bottom: 1px solid gray;
-	vertical-align: top;
 }
 
 .listtable .subtitle {
@@ -70,13 +71,13 @@ fieldset {
 .fieldlist table { border-collapse: collapse; width: 100%; }
 .fieldlist th    { background-color: black; color: white; font-weight: bold;
                    font-size: 9pt; }
-.fieldlist td    { vertical-align: top; font-size: 8pt; }
+.fieldlist td    { font-size: 8pt; }
 
 
 .splash table { border-collapse: collapse; width: 100% }
 .splash th { text-align: left; background-color: black; color: white;
               font-weight: bold; font-size: 9pt; }
-.splash td { vertical-align: top; font-size: 8pt; }
+.splash td { font-size: 8pt; }
 .splash .highlight { background-color: lightblue; }
 
 .calendar .row-week td a  { display: block; }
