@@ -219,39 +219,32 @@ class GameCreate extends Handler
 	{
 		$this->title = "Add Game";
 
-		$league_id = arg(2);
-
-
 		if(! $this->league ) {
 			error_exit("That league does not exist");
 		}
-
-		// TODO:
-		error_exit("Dave is still working on this.");
 		
+		if ( ! $this->league->load_teams() ) {
+			error_exit("Error loading teams for league $league->fullname");
+		}
+		
+		$num_teams = count($this->league->teams);
+
 		// Set up our menu
 		switch($this->league->schedule_type) {
 			case 'roundrobin':
 				$this->types = array(
-					'single' => 'single regular-season game',
-					'oneset' => 'set of games for all teams in a tier',
-					'fullround' => 'full-tier round-robin (does not work yet)',
-					'halfround' => 'half-tier round-robin (does not work yet)',
-					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
-					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
-				);
-				break;
-			case 'ladder':
-				$this->types = array(
-					'ladder' => 'One set of games for all teams in a ladder',
+					'single' => 'single regular-season game (2 teams, one field, one day)',
+					'oneset' => "set of games for all teams in a tier ($num_teams teams, " . ($num_teams / 2) . " games, one day)",
+					'fullround' => "full-tier round-robin ($num_teams teams, " . (($num_teams - 1) * ($num_teams / 2)) . " games over " .($num_teams - 1) . " weeks)",
+					'halfround' => "half-tier round-robin ($num_teams teams, " . ((($num_teams / 2 ) - 1) * ($num_teams / 2)) . " games over " .($num_teams/2 - 1) . " weeks)",
 					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
 					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
 				);
 				break;
 			default:
+				error_exit("Wassamattayou!");
 				break;
 		}
-
 
 		# TODO: new multi-step system:
 		#   1) select action to schedule (1 game, 1 set, etc)
@@ -262,38 +255,101 @@ class GameCreate extends Handler
 		#   4) if OK, perform desired action
 		# No need to select end date now, since it was mostly redundant.
 
-/*
-		$year  = arg(3);
-		$month = arg(4);
-		$day   = arg(5);
-		$end_year  = arg(6);
-		$end_month = arg(7);
-		$end_day   = arg(8);
-		if ( $day ) {
-			if ( ! validate_date_input($year, $month, $day) ) {
-				error_exit("That date is not valid");
-			}
-			$datestamp = mktime(0,0,0,$month,$day,$year);
-			if ($end_day) {
-				if ( ! validate_date_input($end_year, $end_month, $end_day) ) {
-					error_exit("That date is not valid");
-				}
-				$end_datestamp = mktime(0,0,0,$end_month,$end_day,$end_year);
-			} else {
-				$this->setLocation(array(
-					$this->league->name => "league/view/$league_id",
-					$this->title => 0
-				));
-				return $this->datePick($end_year, $end_month, $end_day, "/$year/$month/$day");
-			}
-		} else {
-			$this->setLocation(array( 
-				$this->league->name => "league/view/$league_id",
-				$this->title => 0
-			));
-			return $this->datePick($year, $month, $day);
-		}
+		$edit = &$_POST['edit'];
+		$this->setLocation(array( 
+			$this->league->name => "league/view/" . $this->league->league_id,
+			$this->title => 0
+		));
 
+		switch($edit['step']) {
+			case 'perform':
+		// TODO:
+		error_exit("Dave is still working on this.");
+		
+				return $this->perform($edit, $datestamp, $end_datestamp);
+				break;
+			case 'confirm':
+		// TODO:
+		error_exit("Dave is still working on this.");
+		
+				return $this->generateConfirm($edit, $datestamp, $end_datestamp);
+				break;
+
+			case 'selectdate':
+				return $this->selectDate( $edit['type'] );
+				break;
+			default:
+				return $this->selectType();
+				break;
+		}
+		error_exit("Error: This code should never be reached.");
+	}
+	
+	function selectType ()
+	{
+		$output = "<p>Please enter some information about the game(s) to create.</p>";
+		$output .= form_hidden('edit[step]', 'selectdate');
+		
+		$group .= form_radiogroup('', 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
+		$output .= form_group("Create a ... ", $group);
+		
+		$output .= form_submit('Next step');
+
+		return form($output);
+	}
+
+	function selectDate ( $type )
+	{
+		$num_teams = count($this->league->teams);
+
+		switch($type) {
+			case 'single':
+				$num_fields = 1;
+				$num_dates = 1;
+				break;
+			case 'oneset':
+				$num_dates = 1;
+				$num_fields = ($num_teams / 2);
+				break;
+			case 'fullround':
+				# Assumption: even number of teams
+				$num_dates = ($num_teams - 1);
+				$num_fields = ($num_teams / 2);
+				break;
+			case 'halfround':
+				# Assumption: even number of teams
+				$num_dates = (($num_teams / 2) - 1);
+				$num_fields = ($num_teams / 2);
+				break;
+			default:
+				error_exit("Please don't try to do that; it won't work, you fool");
+				break;
+		}
+	
+		$tot_fields = $num_fields * $num_dates;
+		$output = "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
+
+		# TODO: 
+		#   1 get list of days with available fields for this league
+		#   2 for each day, ensure that:
+		#     a) the minimum $num_fields is available
+		#     b) there are $num_dates - 1 days beyond this onewith $num fields
+		#     available
+		#   3 set up pulldown list for start dates meeting those criteria.
+
+		$possible_dates = array(
+			'20040101' => 'January 1, 2004',
+			'20050101' => 'January 1, 2005',
+		);
+
+
+		$output .= "Not finished yet...";
+		$output .= form_hidden('edit[step]','confirm');
+		$output .= form_hidden('edit[type]',$type);
+		$output .= form_select('Start date','edit[startdate]', undef, $possible_dates);
+		$output .= form_submit('Next step');
+/*
+ * 	From old, evil code:
 		// Make sure we have fields allocated to this league for this date
 		// before we proceed.
 		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $this->league->league_id, $datestamp);
@@ -303,68 +359,6 @@ class GameCreate extends Handler
 		
 
 */
-		$edit = &$_POST['edit'];
-
-		switch($edit['step']) {
-			case 'perform':
-				return $this->perform($edit, $datestamp, $end_datestamp);
-				break;
-			case 'confirm':
-				$this->setLocation(array( 
-					$this->league->name => "league/view/$league_id",
-					$this->title => 0
-				));
-				return $this->generateConfirm($edit, $datestamp, $end_datestamp);
-				break;
-			default:
-				$this->setLocation(array( 
-					$this->league->name => "league/view/$league_id",
-					$this->title => 0
-				));
-				return $this->generateForm($datestamp, $end_datestamp);
-				break;
-		}
-		error_exit("Error: This code should never be reached.");
-	}
-
-	
-	function datePick ( $year, $month, $day, $end = 0)
-	{
-		if ($end) {
-			$output = para("Select a date below to <b>end</b> games for this league.  Days on which this league usually plays are highlighted in green.");
-		} else {
-			$output = para("Select a date below to <b>start</b> adding games to this league.  Days on which this league usually plays are highlighted in green.");
-		}
-
-		$today = getdate();
-	
-		if(! validate_number($month)) {
-			$month = $today['mon'];
-		}
-
-		if(! validate_number($year)) {
-			$year = $today['year'];
-		}
-
-		if ($end) {
-			$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id . $end, "game/create/" . $this->league->league_id . $end, split(',',$this->league->day));
-		} else {
-			$output .= generateCalendar( $year, $month, $day, "game/create/" . $this->league->league_id, "game/create/" . $this->league->league_id, split(',',$this->league->day));
-		}
-
-		return $output;
-	}
-	
-	function generateForm ( $datestamp, $end_datestamp = "" )
-	{
-		$output = para("Please enter some information about the game(s) to create.");
-		$output .= para("<b>Note</b>: Creating full or half-tier round-robin games does not yet work.");
-		$output .= form_hidden('edit[step]', 'confirm');
-		
-		$group .= form_radiogroup("Create a", 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
-		$output .= form_group("Game Information", $group);
-		
-		$output .= form_submit('submit') . form_reset('reset');
 
 		return form($output);
 	}
@@ -378,12 +372,10 @@ class GameCreate extends Handler
 
 		// TODO HACK EVIL DMO
 		switch( $edit['type'] ) {
-			case 'ladder':
-			case 'fullladder':
 			case 'oneset':
-				break;
 			case 'fullround':
 			case 'halfround':
+				break;
 			case 'qplayoff':
 			case 'splayoff':
 			default:
