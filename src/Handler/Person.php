@@ -1383,12 +1383,7 @@ class PersonSearch extends Handler
 	function process ()
 	{
 		$edit = &$_POST['edit'];
-		$next = $_POST['next'];
 		
-		if(is_null($next)) {
-			$next = queryPickle("person/view");
-		}
-
 		# Should be configurable
 		$this->max_results = 25;
 	
@@ -1397,21 +1392,20 @@ class PersonSearch extends Handler
 				$rc = $this->perform( $edit );
 				break;
 			default:
-				$rc = $this->form( $next );
+				$rc = $this->form();
 		}	
 		$this->setLocation( array($this->title => 0 ));
 		return $rc;
 	}
 
-	function form ( $next ) 
+	function form ( $data = '' ) 
 	{
 
 		$output = para("Enter last name of person to search for and click 'submit'.  You may use '*' as a wildcard");
 
 		$output .= form_hidden('edit[step]', 'perform');
-		$output .= form_hidden('edit[next]', $next );
-		$output .= form_textfield('Last Name', 'edit[lastname]', '', 25,100);
-		$output .= form_submit("Submit") . form_reset("Reset");
+		$output .= "<div class='form-item'><label>Last Name: </label><input type='textfield' size='25' name = 'edit[lastname]' value='$data' />";
+		$output .= "<input type='submit' value='search' /></div>";
 		return form($output);
 	}
 	
@@ -1444,7 +1438,9 @@ class PersonSearch extends Handler
 			return "No players matching <b>" . $edit['lastname'] . "</b> found";
 		}
 
-		$output = "<table><tr><td>";
+		$output = $this->form( $edit['lastname' ]);
+
+		$output .= "<table><tr><td>";
 
 		if( $offset > 0 ) {
 			$output .= form( 
@@ -1472,13 +1468,12 @@ class PersonSearch extends Handler
 			if(++$count > $this->max_results) {
 				break;
 			}
-			$output .= "<tr><td>$person->lastname, $person->firstname</td><td>";
+			$output .= "<tr><td>$person->lastname, $person->firstname</td>";
 			while ( list($key, $value) = each($this->ops)) {
-				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
-				$output .= "&nbsp;";
+				$output .= '<td>' .l($key,sprintf($value, $person->user_id)) . "</td>";
 			}
 			reset($this->ops);
-			$output .= "</td></tr>";
+			$output .= "</tr>";
 		}
 		$output .= "</table>";
 	

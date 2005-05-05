@@ -172,13 +172,14 @@ class Handler
 	{
 		
 		$result = db_query($query, $dbParams);
-		$rows = array();
+		$output = "<table>\n";
 		while($thisRow = db_fetch_array($result)) {
-			$rows[] = array (
-				$thisRow['value'],
-				theme_links( $this->generateOpsLinks($ops, $thisRow['id'])));
+			$output .= "<tr><td>" . $thisRow['value'] . "</td><td>";
+			$output .= theme_links( $this->generateOpsLinks($ops, $thisRow['id']));
+			$output .= "</td></tr>\n";
 		}
-		return table(null, &$rows);
+		$output .= "</table>";
+		return $output;
 	}
 
 	/**
