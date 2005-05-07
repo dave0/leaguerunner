@@ -71,7 +71,9 @@ CREATE TABLE team (
 	team_id         integer NOT NULL AUTO_INCREMENT,
 	name            varchar(100) UNIQUE NOT NULL,
 	website         varchar(100),
-	shirt_colour    varchar(30),
+	shirt_colour    varchar(50),
+	home_field      integer,
+	region_preference varchar(50),
 	status          ENUM("open","closed"),
 	rating		int DEFAULT 1500,
 	PRIMARY KEY (team_id)

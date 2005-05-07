@@ -17,9 +17,6 @@ function team_dispatch()
 		case 'edit':
 			$obj = new TeamEdit;
 			break;
-		case 'history':
-			$obj = new TeamHistory;
-			break;
 		case 'view':
 			$obj = new TeamView;
 			break;
@@ -70,6 +67,9 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			// Everyone can list, view, and view schedule if they're a player
 			return ($user->is_player());
 		case 'edit':
+		    if( $data_field == 'home_field' ) {
+				return ($user->is_admin());
+			}
 			return ($user->is_captain_of( $id ) );
 		case 'email':
 			if( $user->is_captain_of( $id ) ) {
@@ -291,12 +291,21 @@ class TeamEdit extends Handler
 
 	function generateForm (&$formData)
 	{
+		global $session;
 		$output = form_hidden("edit[step]", 'confirm');
 		
 		$rows = array();
 		$rows[] = array("Team Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The full name of your team.  Text only, no HTML"));
 		$rows[] = array("Website:", form_textfield('', 'edit[website]', $formData['website'], 35,200, "Your team's website (optional)"));
 		$rows[] = array("Shirt Colour:", form_textfield('', 'edit[shirt_colour]', $formData['shirt_colour'], 35,200, "Shirt colour of your team.  If you don't have team shirts, pick 'light' or 'dark'"));
+
+		if( $session->has_permission('team','edit', $this->team->team_id, 'home_field')) {
+			$rows[] = array("Home Field", form_textfield('','edit[home_field]', $formData['home_field'], 3,3,"Home field, if you happen to have one"));
+
+		}
+
+		$rows[] = array("Region Preference", form_select('','edit[region_preference]', $formData['region_preference'], getOptionsFromEnum('field', 'region'), "Area of city where you would prefer to play"));
+
 		$rows[] = array("Team Status:", 
 			form_select("", "edit[status]", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
 
@@ -308,6 +317,7 @@ class TeamEdit extends Handler
 
 	function generateConfirm ($edit = array() )
 	{
+		global $session;
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -319,6 +329,13 @@ class TeamEdit extends Handler
 		$rows[] = array("Team Name:", form_hidden('edit[name]',$edit['name']) .  $edit['name']);
 		$rows[] = array("Website:", form_hidden('edit[website]',$edit['website']) .  $edit['website']);
 		$rows[] = array("Shirt Colour:", form_hidden('edit[shirt_colour]',$edit['shirt_colour']) .  $edit['shirt_colour']);
+
+		if( $session->has_permission('team','edit', $this->team->team_id, 'home_field')) {
+			$rows[] = array("Home Field:", form_hidden('edit[home_field]',$edit['home_field']) .  $edit['home_field']);
+		}
+
+		$rows[] = array("Region Preference:", form_hidden('edit[region_preference]',$edit['region_preference']) .  $edit['region_preference']);
+		
 		$rows[] = array("Team Status:", form_hidden('edit[status]',$edit['status']) .  $edit['status']);
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
@@ -328,6 +345,7 @@ class TeamEdit extends Handler
 
 	function perform ($edit = array())
 	{
+		global $session;
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -337,6 +355,10 @@ class TeamEdit extends Handler
 		$this->team->set('website', $edit['website']);
 		$this->team->set('shirt_colour', $edit['shirt_colour']);
 		$this->team->set('status', $edit['status']);
+		if( $session->has_permission('team','edit', $this->team->team_id, 'home_field')) {
+			$this->team->set('home_field', $edit['home_field']);
+		}
+		$this->team->set('region_preference', $edit['region_preference']);
 		
 		if( !$this->team->save() ) {
 			error_exit("Internal error: couldn't save changes");
@@ -768,6 +790,15 @@ class TeamView extends Handler
 			$rows[] = array("Ranked:", $this->team->rank);
 		}
 		
+		if($this->team->home_field) {
+			$field = field_load(array('fid' => $this->team->home_field));
+			$rows[] = array("Home Field:", l($field->fullname,"field/view/$field->fid"));
+		}
+		
+		if($this->team->region_preference) {
+			$rows[] = array("Region preference:", $this->team->region_preference);
+		}
+		
 		$rows[] = array("Team Status:", $this->team->status);
 
 		/* Spence Balancing Factor:
@@ -879,42 +910,6 @@ class TeamView extends Handler
 		return table(null, array(
 			array( $teamdata, $rosterdata ),
 		));
-	}
-}
-
-class TeamHistory extends Handler
-{
-	function has_permission ()
-	{
-		global $session;
-		return $session->has_permission('team','view', $this->team->team_id);
-	}
-
-	function process ()
-	{
-		global $session;
-
-		// Get games
-		$games = game_load_many( array('either_team' => $this->team->team_id) );
-		if($games) {
-			$output = '<pre>';
-			foreach($games as $game) {
-				if( ! $game->is_finalized() ) {
-					continue;
-				}
-				$rank = '';
-				if( $game->home_team == $this->team->team_id ) {
-					$rank = $game->home_dependant_rank;
-				} else {
-					$rank = $game->away_dependant_rank;
-				}
-				$output .= "$game->game_id $game->game_date:  $rank\n";
-			}
-			$output .= '<pre>';
-		} else {
-			$output = 'No Info';
-		}
-		return $output;
 	}
 }
 

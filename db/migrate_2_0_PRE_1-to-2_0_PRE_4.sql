@@ -15,3 +15,6 @@ INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
 	'freetext',
 	'N',
 	'5');
+
+alter table team add home_field integer after shirt_colour;
+alter table team add region_preference varchar(50);
