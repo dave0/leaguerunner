@@ -11,8 +11,14 @@ fieldset {
 	padding: .5em;
 }
 
-#main td { vertical-align: top; }
-
+#main table { 
+    width: auto; 
+}
+#main td, #main th { 
+	vertical-align: top; 
+	padding-left: 0.3em; 
+	padding-right: 0.3em;
+}
 
 /* CSS2 to bold-face the left-hand column */
 .pairtable td:first-child {
@@ -23,15 +29,11 @@ fieldset {
 	background-color:    black;
 	color:               white;
 	font-weight:         bold;
-	padding-left: 0.3em; 
-	padding-right: 0.3em;
 	border-bottom: 1px solid black;
 	text-align: left;
 }
 
 .listtable td {
-	padding-left: 0.3em; 
-	padding-right: 0.3em;
 	border-bottom: 1px solid gray;
 }
 
@@ -45,11 +47,6 @@ fieldset {
 .listtable .roster_conflict {
 	color: red;
 	font-weight: bold;
-}
-
-.schedule td {
-	padding-left: 0.3em; 
-	padding-right: 0.3em;
 }
 
 .schedule .gamedate, .schedule th {
@@ -74,7 +71,7 @@ fieldset {
 .fieldlist td    { font-size: 8pt; }
 
 
-.splash table { border-collapse: collapse; width: 100% }
+.splash table { border-collapse: collapse; width: 80% !important }
 .splash th { text-align: left; background-color: black; color: white;
               font-weight: bold; font-size: 9pt; }
 .splash td { font-size: 8pt; }
@@ -148,7 +145,6 @@ li.active a {
   color: #000;
   background-color: #FFC;
 }
-
 
 /* Form items */
 
