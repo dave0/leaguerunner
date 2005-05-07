@@ -446,18 +446,24 @@ class FieldView extends Handler
 		$rows[] = array("Number:", $this->field->num);
 		$rows[] = array("Field Region:", $this->field->region);
 
-		$ward = ward_load( array('ward_id' => $this->field->ward_id) );
-		$rows[] = array("Street Address:", 
-			format_street_address(
-				$this->field->location_street,
-				$this->field->location_city,
-				$this->field->location_province,
-				''));
-			
-		$rows[] = array("Latitude:",  $this->field->latitude);
-		$rows[] = array("Longitude:",  $this->field->longitude);
-		
-		$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/" . $this->field->ward_id));
+		if( $this->field->location_street ) {
+			$rows[] = array("Street Address:", 
+				format_street_address(
+					$this->field->location_street,
+					$this->field->location_city,
+					$this->field->location_province,
+					''));
+		}
+	
+		if( $this->field->latitude && $this->field->longitude) {
+			$rows[] = array("Latitude:",  $this->field->latitude);
+			$rows[] = array("Longitude:",  $this->field->longitude);
+		}
+	
+		if( $this->field->ward_id ) {
+			$ward = ward_load( array('ward_id' => $this->field->ward_id) );
+			$rows[] = array("City Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/" . $this->field->ward_id));
+		}
 		$rows[] = array("Location Map:", 
 			$this->field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
 				: "N/A");
