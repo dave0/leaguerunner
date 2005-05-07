@@ -33,9 +33,6 @@ function league_dispatch()
 		case 'member':
 			$obj = new LeagueMemberStatus;
 			break;
-		case 'ladder':
-			$obj = new LeagueSeedLadder;
-			break;
 		default:
 			return null;
 	}
@@ -72,10 +69,8 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 		case 'edit game':
 		case 'add game':
 		case 'approve scores':
-		case 'administer ladder':
 		case 'edit schedule':
 		case 'manage teams':
-		case 'ladder seed':
 			return ($user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
@@ -1025,83 +1020,4 @@ class LeagueMemberStatus extends Handler
 	}
 }
 
-class LeagueSeedLadder extends Handler
-{
-	var $league;
-
-	function has_permission()
-	{
-		global $session;
-		return $session->has_permission('league','ladder seed', $this->league->league_id);
-	}
-
-
-	/* TODO: this should become its own handler subclass */
-	function reseed_by_skill()
-	{
-			$skill_array = array();
-			foreach ($this->league->teams as $t) {
-				$skill_array[$t->team_id] = $t->calculate_avg_skill();
-			}
-			arsort($skill_array, SORT_NUMERIC);
-			$count = 1;
-			foreach ($skill_array as $key => $value) {
-				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $count, $this->league->league_id, $key);
-				$count++;
-			}
-
-			// now, reload the teams so that they display in the new order!
-			$this->league->_teams_loaded = false;
-			$this->league->load_teams();
-	}
-
-	function process ()
-	{
-		global $session;
-		$this->title = "League Ladder Adjustment";
-		
-		if( $this->league->schedule_type != "ladder" ) {
-			error_exit("Ladder cannot be adjusted for a non-ladder league.");
-		}
-
-		$this->league->load_teams();
-		if($_POST['edit']['step'] == 'perform') {
-			$ranks = $_POST['edit']['rank'];
-			foreach ($this->league->teams as $team) {
-				if( array_key_exists( $team->team_id, $ranks)) {
-					db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $ranks[$team->team_id], $this->league->league_id, $team->team_id);
-				}
-			}
-
-			// Force reload
-			$this->league->_teams_loaded = false;
-			$this->league->load_teams();
-		}
-
-		$output = para("This is the ladder adjustment tool. Teams are seeded into rungs on the ladder (with any number of teams permitted in any rung).  Higher numbers should be used for better teams.  Teams can be moved between rungs at any time.");
-
-		$header = array( "Rung", "Team Name", "Rating", "Avg. Skill");
-		$rows = array();
-		foreach($this->league->teams as $team) {
-			$rows[] = array(
-				form_textfield('', 'edit[rank][' . $team->team_id . ']', $team->rank, 2,2),
-				check_form($team->name),
-				$team->rating,
-				$team->calculate_avg_skill(),
-			);
-		}
-		
-		$output .= form(
-			"<div class='listtable'>" 
-			. table($header, $rows) 
-			. "</div>" 
-		    . form_hidden("edit[step]", 'perform')
-			. form_submit("Submit") 
-			. form_reset("Reset"));
-		$this->setLocation(array(
-			$this->league->fullname => "league/ladder/" . $this->league->league_id,
-			$this->title => 0));
-		return $output;
-	}
-}
 ?>
