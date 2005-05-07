@@ -39,7 +39,7 @@ function theme_header($title = "", $breadcrumbs = array())
 		print "You are logged in as <b>" . $session->attr_get("fullname") . "</b> | ";
 		print l('Log Out', 'logout');
 	} else {
-		print l('Log In', 'logout');
+		print l('Log In', 'login');
 	}
   ?>
    </td>
