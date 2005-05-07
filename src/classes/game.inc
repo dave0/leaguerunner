@@ -77,15 +77,6 @@ class Game extends LeaguerunnerObject
 		return $result;
 	}
 
-	// Given a game ID the function updates the home and away teams ranks in
-	// the standings.  The ranks are pulled from the current game (unlike
-	// updatedependantgames() Which uses ranks from tne "next" game.
-	function updateteamranks () 
-	{
-
-
-	}
-
 	// This function must only be called after a save has been performed on
 	// this game object.
 	// Also where this function is called from must already confirm that the

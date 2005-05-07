@@ -228,6 +228,15 @@ class GameCreate extends Handler
 		}
 		
 		$num_teams = count($this->league->teams);
+		
+		if($num_teams < 2) {
+			error_exit("Cannot schedule games in a league with less than two teams");
+		}
+
+		# Must currently have even # of teams for scheduling
+		if ($num_teams % 2) {
+			error_exit("Must currently have an even number of teams in your league.  If you need a bye, please create a team named Bye and add it to your league");
+		}
 
 		// Set up our menu
 		switch($this->league->schedule_type) {
@@ -263,16 +272,11 @@ class GameCreate extends Handler
 
 		switch($edit['step']) {
 			case 'perform':
-		// TODO:
-		error_exit("Dave is still working on this.");
-		
-				return $this->perform($edit, $datestamp, $end_datestamp);
+				return $this->perform($edit);
 				break;
 			case 'confirm':
-		// TODO:
-		error_exit("Dave is still working on this.");
 		
-				return $this->generateConfirm($edit, $datestamp, $end_datestamp);
+				return $this->confirm($edit);
 				break;
 
 			case 'selectdate':
@@ -312,12 +316,10 @@ class GameCreate extends Handler
 				$num_fields = ($num_teams / 2);
 				break;
 			case 'fullround':
-				# Assumption: even number of teams
 				$num_dates = ($num_teams - 1);
 				$num_fields = ($num_teams / 2);
 				break;
 			case 'halfround':
-				# Assumption: even number of teams
 				$num_dates = (($num_teams / 2) - 1);
 				$num_fields = ($num_teams / 2);
 				break;
@@ -329,78 +331,65 @@ class GameCreate extends Handler
 		$tot_fields = $num_fields * $num_dates;
 		$output = "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
 
-		# TODO: 
-		#   1 get list of days with available fields for this league
-		#   2 for each day, ensure that:
+		$result = db_query(
+			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d", $this->league->league_id);
+			
+		$possible_dates = array();
+		while($date = db_fetch_object($result)) {
+		# TODO: for each day, ensure that:
 		#     a) the minimum $num_fields is available
 		#     b) there are $num_dates - 1 days beyond this onewith $num fields
 		#     available
-		#   3 set up pulldown list for start dates meeting those criteria.
+			$possible_dates[$date->datestamp] = strftime("%A %B %d %Y", $date->datestamp);
+		}
+		if( count($possible_dates) == 0) {
+			error_exit("Sorry, there are no fields available for your league.  Check that fields have been allocated before attempting to proceed.");
+		}
 
-		$possible_dates = array(
-			'20040101' => 'January 1, 2004',
-			'20050101' => 'January 1, 2005',
-		);
-
-
-		$output .= "Not finished yet...";
 		$output .= form_hidden('edit[step]','confirm');
 		$output .= form_hidden('edit[type]',$type);
-		$output .= form_select('Start date','edit[startdate]', undef, $possible_dates);
+		$output .= form_select('Start date','edit[startdate]', null, $possible_dates);
 		$output .= form_submit('Next step');
-/*
- * 	From old, evil code:
-		// Make sure we have fields allocated to this league for this date
-		// before we proceed.
-		$result = db_query("SELECT COUNT(*) FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND a.league_id = %d AND UNIX_TIMESTAMP(s.game_date) = %d", $this->league->league_id, $datestamp);
-		if( db_result($result) == 0) {
-			error_exit("Sorry, there are no fields available for your league on " . date("Y",$datestamp) . "-" . date("m",$datestamp) . "-" . date("d",$datestamp) . ".  Check that fields have been allocated before attempting to proceed.");
-		}
-		
-
-*/
-
 		return form($output);
 	}
-	
-	function generateConfirm ( &$edit, $datestamp, $end_datestamp )
+
+	function confirm ( &$edit )
 	{
 
-		if (  ! array_key_exists( $edit['type'], $this->types) ) {
-			error_exit("That is not a valid selection for adding games");
-		}
-
-		// TODO HACK EVIL DMO
-		switch( $edit['type'] ) {
-			case 'oneset':
-			case 'fullround':
-			case 'halfround':
+		$type_specific_info;
+		switch($edit['type']) {
+			case 'single':
+		#  - single, ask for home/away teams and field
+		#		$type_specific_info = form_select('Home Team','edit[home_id]', 0, $this->league->teams);
+		#		$type_specific_info .= form_select('Away Team','edit[away_id]', 0, $this->league->teams);
 				break;
-			case 'qplayoff':
-			case 'splayoff':
+			case 'oneset':
+				break;
+			case 'fullround':
+				break;
+			case 'halfround':
+		#  - halfround, ask how to split in half (standings, skill, rating,
+				break;
 			default:
-				error_exit("That selection doesn't work yet!  Don't bug Dave, he's got a lot to do right now.");
-	
+				error_exit("Please don't try to do that; it won't work, you fool");
+				break;
 		}
-	
-		$output = para("Confirm that this information is correct for the game(s) you wish to create.");
-		$output .= form_hidden('edit[step]', 'perform');
 		
-		$group = form_item("Starting on", strftime("%A %B %d %Y", $datestamp));
-		if ($end_datestamp) {
-			$group .= form_item("Ending on", strftime("%A %B %d %Y", $end_datestamp));
-		}
-		$group .= form_item("Create a", $this->types[$edit['type']] . form_hidden('edit[type]', $edit['type']));
-
-		$group .= form_radiogroup("What to add", 'edit[type]', 'single', $types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
-		$output .= form_group("Game Information", $group);
+		$output = "<p>The following information will be used to create your games:</p>";
 		
-		$output .= form_submit('submit') . form_reset('reset');
-
+		$output .= form_item('What', $this->types[$edit['type']]);
+		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
+		$output .= $type_specific_info;
 		return form($output);
 	}
 
-	function perform ( &$edit, $timestamp, $end_timestamp = "") {
+	function perform ( &$edit )
+	{
+		# TODO generate appropriate games, roll back on error
+		error_exit("TODO");
+	}
+
+	function OldBrokenperform ( &$edit, $timestamp, $end_timestamp = "") {
 /*
  * Possible problems with autogeneration ( needs checking in code, possible
  * bailouts):
@@ -426,12 +415,6 @@ class GameCreate extends Handler
 				break;
 			case 'fullladder':
 				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
-			case 'fullround':
-			case 'halfround':
-			case 'qplayoff':
-				return $this->createPlayoffLadder( $edit, $timestamp, 3 );
-			case 'splayoff':
-				return $this->createPlayoffLadder( $edit, $timestamp, 2 );
 			default:
 				error_exit("That is not a valid option right now.");
 	
@@ -571,40 +554,6 @@ class GameCreate extends Handler
 		}
 
 		local_redirect(url("schedule/view/$league->league_id"));
-	}
-
-	/**
-	 * Creates a playoff ladder with the specified number of rounds.  
-	 * 3 rounds gives us quarters, semis, and finals, and requires a
-	 * multiple of 8 teams.
-	 * 2 rounds gives us quarters and semis, and requires a multiple 
-	 * of 4 teams.
-	 * The assumption here is that we're seeding playoffs directly from a
-	 * completed regular season, so we can just use the existing standings
-	 * calculation to determine ordering.
-	 */
-	function createPlayoffLadder( $edit, $timestamp, $rounds )
-	{
-		if( $rounds < 2 || $rounds > 3 ) {
-			error_exit("That is not a valid number of rounds");
-		}
-
-		# TODO load teams
-
-		# TODO ensure we have appropriate number of teams
-		# if( $num_teams % (2 ** $rounds) ) {
-		# 	error_exit("Sorry, you do not have enough teams for a full playoff ladder")
-		# }
-
-		# TODO sort teams for seeding
-
-		# TODO Determine team matchup ordering.  Given N teams, do we:
-		#   - match 1 v N, 2 v N-1, 3 v N-2, etc
-		#   - match 1 v 2, 3 v 4, etc
-		#   - match using either system above in groups of size (2 ** rounds)
-
-		error_exit("TODO");
-			
 	}
 
 	/*
