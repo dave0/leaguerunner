@@ -1,0 +1,25 @@
+Here's how to perform some commonly-needed tasks that aren't easily
+possible via the web interface.
+
+
+Purging a previous season
+~~~~~~~~~~~~~~~~~~~~~~~~~
+You will probably want to do this before setting up a subsequent year in the
+same season.  This removes all old games, gameslots, score entries, etc.
+
+Assume the last game of your season was before 2004-08-31.  You can then run
+these queries:
+
+    delete from score_entry USING score_entry, gameslot WHERE gameslot.game_id = score_entry.game_id AND gameslot.game_date < '2004-08-31';
+    delete from team_spirit_answers USING team_spirit_answers, gameslot WHERE gameslot.game_id = team_spirit_entry.gid AND gameslot.game_date < '2004-08-31';
+    delete from schedule USING schedule, gameslot WHERE gameslot.game_id = schedule.game_id AND gameslot.game_date < '2004-08-31';
+    delete from league_gameslot_availability USING league_gameslot_availability, gameslot WHERE gameslot.slot_id = league_gameslot_availability.slot_id AND gameslot.game_date < '2004-08-31';
+    delete from gameslot where game_date < '2004-08-31';
+
+Now, you can delete teams that may have had scheduled games, and move on from
+there.
+
+Resetting the rating
+~~~~~~~~~~~~~~~~~~~~
+Ratings can be reset each season based on tiering.  To do this:
+  UPDATE team, league, leagueteams SET team.rating = (1600 - (100 * league.tier)) WHERE league.league_id = leagueteams.league_id AND leagueteams.team_id = team.team_id AND league.season = 'Summer';
