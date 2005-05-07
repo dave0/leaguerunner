@@ -173,6 +173,7 @@ CREATE TABLE score_entry (
     score_against tinyint NOT NULL, -- score for opponent
     spirit tinyint NOT NULL,
     defaulted enum('no','us','them') DEFAULT 'no',
+    entry_time datetime,
     PRIMARY KEY (team_id,game_id)
 );
 

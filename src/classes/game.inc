@@ -565,7 +565,7 @@ class Game extends LeaguerunnerObject
 
 		// Save entry object in DB.  Use 'replace into' to handle the case
 		// where one might already exist.
-		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted) VALUES(%d,%d,%d,%d,%d,'%s')",
+		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted,entry_time) VALUES(%d,%d,%d,%d,%d,'%s',NOW())",
 			$this->game_id,
 			$entry->team_id,
 			$entry->entered_by,

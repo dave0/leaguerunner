@@ -1359,6 +1359,8 @@ class GameEdit extends Handler
 	}
 }
 
+# TODO: use classes/game.inc for loading, and pull this back into GameEdit
+# since it's only ever used there
 function game_score_entry_display( $game )
 {
 	$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
@@ -1398,6 +1400,7 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
+	$rows[] = array( "Entry time:", $home['entry_time'], $away['entry_time'],);
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 ?>
