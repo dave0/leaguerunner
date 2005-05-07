@@ -17,4 +17,4 @@ INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
 	'5');
 
 alter table team add home_field integer after shirt_colour;
-alter table team add region_preference varchar(50);
+alter table team add region_preference varchar(50) after home_field;
