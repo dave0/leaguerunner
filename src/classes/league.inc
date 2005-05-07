@@ -938,7 +938,7 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create a half round-robin for this league.
 	 */
-	function create_full_roundrobin( $datestamp, $how_split ) 
+	function create_half_roundrobin( $datestamp, $how_split ) 
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
