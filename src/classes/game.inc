@@ -858,15 +858,15 @@ class Game extends LeaguerunnerObject
 	function select_random_gameslot( $timestamp )
 	{
 		if( $this->slot_id ) {
-			error_exit("Cannot call select_random_gameslot() on a game with an existing gameslot value");
+			return array(false, "Cannot call select_random_gameslot() on a game with an existing gameslot value");
 		}
 
 		if( !$this->game_id ) {
-			error_exit("Game must have a game_id before calling select_random_gameslot()");
+			return array(false, "Game must have a game_id before calling select_random_gameslot()");
 		}
 
 		if( !$this->league_id ) {
-			error_exit("Game must have a league_id before calling select_random_gameslot()");
+			return array (false, "Game must have a league_id before calling select_random_gameslot()");
 		}
 
 
@@ -883,23 +883,82 @@ class Game extends LeaguerunnerObject
 		$lock = db_result($result);
 		if(!isset($lock) || $lock == 0) {
 			// Couldn't obtain lock after 10 seconds, so bail.
-			return false;	
+			return array(false, "Couldn't get lock");
 		}
 		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1", $timestamp, $this->league_id);
 		$slot_id = db_result($result);
 		if( ! $slot_id ) {
 			db_query("SELECT RELEASE_LOCK('$lockname')");
-			return false;
+			return array(false, "Couldn't get slot ID");
 		}
 
 		db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $this->game_id, $slot_id);
 		$gameslot_affected_rows = db_affected_rows();
 		db_query("SELECT RELEASE_LOCK('$lockname')");
 		if(1 != $gameslot_affected_rows) {
-			return false;
+			return array(false, "Couldn't assign gameslot");
 		}
 		$this->slot_id = $slot_id;
-		return true;
+		return array(true,'');;
+	}
+	
+	/**
+	 * Select an appropriate gameslot for this game.  "appropriate" takes
+	 * field quality and field preferences into account.
+	 * TODO: FIXME: currently, no preferences or field quality are checked!
+	 * Gameslot is to be selected from those available for the league in which
+	 * this game exists.  
+	 * Single argument is to be the timestamp representing the date of the
+	 * game.
+	 * Changes are made directly in the database, no need to call save()
+	 * Returns success or fail, depending on whether or not we could get a
+	 * gameslot.
+	 */
+	function select_weighted_gameslot( $timestamp )
+	{
+		if( $this->slot_id ) {
+			return array(false, "Cannot call select_weighted_gameslot() on a game with an existing gameslot value");
+		}
+
+		if( !$this->game_id ) {
+			return array(false, "Game must have a game_id before calling select_weighted_gameslot()");
+		}
+
+		if( !$this->league_id ) {
+			return array (false, "Game must have a league_id before calling select_weighted_gameslot()");
+		}
+
+		$satisfied = false;
+		/*
+		 * To keep this safe amongst possible multiple writers, we lock.  To
+		 * keep the locks a bit more granular, we lock on the timestamp, so
+		 * that we only protect against people trying to add games on the same
+		 * day.
+		 * TODO: Transactions might make this a bit nicer...
+		 */
+		$lockname = "schedule_lock_$timestamp";
+		
+		$result = db_query("SELECT GET_LOCK('$lockname',10)");	
+		$lock = db_result($result);
+		if(!isset($lock) || $lock == 0) {
+			// Couldn't obtain lock after 10 seconds, so bail.
+			return array(false, "Couldn't get lock");
+		}
+		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1", $timestamp, $this->league_id);
+		$slot_id = db_result($result);
+		if( ! $slot_id ) {
+			db_query("SELECT RELEASE_LOCK('$lockname')");
+			return array(false, "Couldn't get slot ID");
+		}
+
+		db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $this->game_id, $slot_id);
+		$gameslot_affected_rows = db_affected_rows();
+		db_query("SELECT RELEASE_LOCK('$lockname')");
+		if(1 != $gameslot_affected_rows) {
+			return array(false, "Couldn't assign gameslot");
+		}
+		$this->slot_id = $slot_id;
+		return array(true,'');;
 	}
 }
 

@@ -147,24 +147,7 @@ function game_add_to_menu( &$league, &$game )
 
 class GameCreate extends Handler
 {
-/*
- * This is intended to replace ScheduleAddDay.  It will (in a similar manner
- * to the gameslot creation)
- *   - present user with a calendar to select a day
- *   - ask user what they want to schedule on that day:
- *      - one game, manually scheduled
- *      - (n - 1)   game round-robin (full-tier)
- *      - (n/2 - 1) game round-robin (half-tier)
- *   - if one game, present with form for editing game info
- *   - if round-robin, auto-generate games with random fields and insert them
- *   (no confirmation -- coordinator can fix later if necessary)
- *
- * Need to make some changes to the schedule table, too:
- *   - add support for postponed/rescheduled games.  This should be done by
- *     adding a new field to the game table, called 'status'. Status would be
- *     'normal' under most circumstances, but could be changed to
- *     'rescheduled', 'cancelled', or 'forfeit'.   Another field named
- *     'rescheduled_slot' would store rescheduling info.
+ /*TODO:
  *     When setting a game to 'cancelled':
  *     	  - game is terminated without predjudice.  Any scores and spirit are
  *     	  removed from the schedule table and from the submitted scores table.
@@ -188,18 +171,6 @@ class GameCreate extends Handler
  *        - score and spirit entries set to zero (or other BoD determined
  *        number).
  *        - game counts as having been played, with no winner and poor spirit.
- *
- * Also need to look at adding fields for dependant games:
- *   - game would need a way of determining which games to populate 
- *     schedule from.  One way of doing it:
- *        home_from: game id of another game
- *        away_from: game id of another game
- *        home_wanted: (winner|loser)
- *        away_wanted: (winner|loser)
- *     fields would be added to schedule, and a cron script would need to
- *     update home_team/away_team based on this info.  Either that, or we
- *     update it each time we finalize a score.
- *
  *   - schedule's 'round' field needs to be varchr instead of integer, to
  *   allow for rounds named 'quarter-final', 'semi-final', and 'final', and
  *   pulldown menus updated appropriately. 
@@ -242,31 +213,30 @@ class GameCreate extends Handler
 		switch($this->league->schedule_type) {
 			case 'roundrobin':
 				$this->types = array(
-					'single' => 'single regular-season game (2 teams, one field, one day)',
-					'oneset' => "set of games for all teams in a tier ($num_teams teams, " . ($num_teams / 2) . " games, one day)",
+					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
+					'blankset' => "set of blank unscheduled games for all teams in a tier ($num_teams teams, " . ($num_teams / 2) . " games, one day)",
+					'oneset' => "set of randomly scheduled games for all teams in a tier ($num_teams teams, " . ($num_teams / 2) . " games, one day)",
 					'fullround' => "full-tier round-robin ($num_teams teams, " . (($num_teams - 1) * ($num_teams / 2)) . " games over " .($num_teams - 1) . " weeks)",
-					'halfround' => "half-tier round-robin ($num_teams teams, " . ((($num_teams / 2 ) - 1) * ($num_teams / 2)) . " games over " .($num_teams/2 - 1) . " weeks)",
-					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
-					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
+					'halfroundstandings' => "half-tier round-robin ($num_teams teams, " . ((($num_teams / 2 ) - 1) * ($num_teams / 2)) . " games over " .($num_teams/2 - 1) . " weeks).  2 pools (top, bottom) divided by team standings.",
+					'halfroundrating' => "half-tier round-robin ($num_teams teams, " . ((($num_teams / 2 ) - 1) * ($num_teams / 2)) . " games over " .($num_teams/2 - 1) . " weeks).  2 pools divided by rating and skill level",
+#TODO					'qplayoff' => 'playoff ladder with quarter, semi and final games, and a consolation round (does not work yet)',
+#TODO					'splayoff' => 'playoff ladder with semi and final games, and a consolation round (does not work yet)',
 				);
+				if( (($num_teams / 2) % 2) ) {
+					# Can't do a half-round without an even number of teams in
+					# each half.
+					unset($this->types['halfroundstandings']);
+					unset($this->types['halfroundrating']);
+				}
 				break;
 			default:
 				error_exit("Wassamattayou!");
 				break;
 		}
 
-		# TODO: new multi-step system:
-		#   1) select action to schedule (1 game, 1 set, etc)
-		#   2) select start date
-		#   3) examine available fields, and:
-		#       - fail if not enough are there
-		#       - select fields for use, and display confirmation page
-		#   4) if OK, perform desired action
-		# No need to select end date now, since it was mostly redundant.
-
 		$edit = &$_POST['edit'];
 		$this->setLocation(array( 
-			$this->league->name => "league/view/" . $this->league->league_id,
+			$this->league->fullname => "league/view/" . $this->league->league_id,
 			$this->title => 0
 		));
 
@@ -275,7 +245,6 @@ class GameCreate extends Handler
 				return $this->perform($edit);
 				break;
 			case 'confirm':
-		
 				return $this->confirm($edit);
 				break;
 
@@ -312,6 +281,7 @@ class GameCreate extends Handler
 				$num_dates = 1;
 				break;
 			case 'oneset':
+			case 'blankset':
 				$num_dates = 1;
 				$num_fields = ($num_teams / 2);
 				break;
@@ -319,7 +289,8 @@ class GameCreate extends Handler
 				$num_dates = ($num_teams - 1);
 				$num_fields = ($num_teams / 2);
 				break;
-			case 'halfround':
+			case 'halfroundstandings':
+			case 'halfroundrating':
 				$num_dates = (($num_teams / 2) - 1);
 				$num_fields = ($num_teams / 2);
 				break;
@@ -355,20 +326,13 @@ class GameCreate extends Handler
 
 	function confirm ( &$edit )
 	{
-
-		$type_specific_info;
 		switch($edit['type']) {
 			case 'single':
-		#  - single, ask for home/away teams and field
-		#		$type_specific_info = form_select('Home Team','edit[home_id]', 0, $this->league->teams);
-		#		$type_specific_info .= form_select('Away Team','edit[away_id]', 0, $this->league->teams);
-				break;
 			case 'oneset':
-				break;
+			case 'blankset':
 			case 'fullround':
-				break;
-			case 'halfround':
-		#  - halfround, ask how to split in half (standings, skill, rating,
+			case 'halfroundstandings':
+			case 'halfroundrating':
 				break;
 			default:
 				error_exit("Please don't try to do that; it won't work, you fool");
@@ -376,287 +340,51 @@ class GameCreate extends Handler
 		}
 		
 		$output = "<p>The following information will be used to create your games:</p>";
+		$output .= form_hidden('edit[step]','perform');
+		$output .= form_hidden('edit[type]',$edit['type']);
+		$output .= form_hidden('edit[startdate]',$edit['startdate']);
 		
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
-		$output .= $type_specific_info;
+		$output .= form_submit('Create Games');
 		return form($output);
 	}
-
+	
 	function perform ( &$edit )
 	{
 		# TODO generate appropriate games, roll back on error
-		error_exit("TODO");
-	}
-
-	function OldBrokenperform ( &$edit, $timestamp, $end_timestamp = "") {
-/*
- * Possible problems with autogeneration ( needs checking in code, possible
- * bailouts):
- *   - insufficient fields for game(s) wanted
- *   - how to handle gappy scheduling (ie: 3-week round-robin, played on two
- *   consecutive weeks, a week off, and then a third game)
- *   - how to handle selection of days/fields when auto-round-robin is
- *     selected for tiers that play multiple nights (think fall league).
- *     Current guess is that we:
- *       - start at the given day, schedule all games there.  Then find the
- *         next weekday we play on (from league table), and look ahead in the
- *         available fields to see if there are enough fields on the next
- *         matching day.  If so, schedule it then, otherwise look to the next
- *         weekday with matching fields and so on.
- *
- */
-		switch( $edit['type'] ) {
+		switch($edit['type']) {
+			case 'single':
+				# Create single game
+				break;
+			case 'blankset':
+				# Create game for all teams in tier
+				list( $rc, $message) = $this->league->create_empty_set( $edit['startdate'] ) ;
+				break;
 			case 'oneset':
-				return $this->createDayOfGames( $edit, $timestamp);
+				# Create game for all teams in tier
+				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'] ) ;
 				break;
-			case 'ladder':
-				return $this->createLadderGameSet( $edit, $timestamp );
+			case 'fullround':
+				# Create full roundrobin
+				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'] );
 				break;
-			case 'fullladder':
-				return $this->createLadderSeason( $edit, $timestamp, $end_timestamp );
+			case 'halfroundstandings':
+				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'standings' );
+				break;
+			case 'halfroundrating':
+				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'rating' );
+				break;
 			default:
-				error_exit("That is not a valid option right now.");
-	
-		}
-		error_exit("This line of code should never be reached");
-	}
-
-	/**
-	 * Create a single "round" for the ladder system
-	 */
-	function createLadderGameSet( $edit, $timestamp )
-	{
-		$league = &$this->league;  // shorthand
-
-		if ( ! $league->load_teams() ) {
-			error_exit("Error loading teams for league $league->fullname");
-		}
-
-		$num_teams = count($league->teams);
-
-		if ($num_teams % 4 != 0) {
-			error_exit("The league MUST have a multiple of 4 teams.");
-		}
-
-		usort($league->teams, array($this, 'sort_teams_by_ranking'));
-		$sorted_order = &$league->teams;
-
-		$num_games = $num_teams / 2;
-
-		// the array of games:
-		$array_of_games = array();
-
-		for($i = 0; $i < $num_games*2; $i=$i+2) {
-			$ii = $i+1;
-			$g = new Game;
-			$g->set('league_id', $league->league_id);
-			$g->set('home_team', $sorted_order[$i]->team_id);
-			$g->set('away_team', $sorted_order[$ii]->team_id);
-			if ( ! $g->save() ) {
-				$this->rollback_games($array_of_games, "Could not successfully create a new game");
-			}
-			array_push($array_of_games,$g);
-			if ( $g->select_random_gameslot($timestamp) ) {
-				$this->rollback_games($array_of_games, "Could not assign a randome gameslot!");
-			}
-		}
-	}
-	
-	/**
-	 * Create an entire season of hold/move pairs for this league.
-	 */
-	function createLadderSeason( $edit, $timestamp, $end_timestamp )
-	{
-		$league = &$this->league;  // shorthand
-
-		if ( ! $league->load_teams() ) {
-			error_exit("Error loading teams for league $league->fullname");
-		}
-
-		// get an ordered array of team id's (ordered by rank by default)
-		$team_ids = array();
-		foreach ($league->teams as $key => $value) {
-			array_push ($team_ids, $key);
-		}
-
-		$num_teams = count($league->teams);
-
-		if ($num_teams % 4 != 0) {
-			error_exit("The league MUST have a multiple of 4 teams.");
+				error_exit("Please don't try to do that; it won't work, you fool");
+				break;
 		}
 		
-		$num_games = $num_teams / 2;
-
-		// start with round 1, so HOLD game
-		$round = 1;
-
-		// all games array!
-		$all_games = array();
-
-		// DO THE FIRST GAME, SETTINGS TEAMS AND SUCH
-		for($i = 0; $i < $num_games*2; $i=$i+2) {
-			$ii = $i+1;
-			$g = new Game;
-			$g->set('league_id', $league->league_id);
-			$g->set('round', $round);
-			$g->set('home_team', $team_ids[$i]);
-			$g->set('away_team', $team_ids[$ii]);
-			if ( ! $g->save() ) {
-				error_exit("Could not successfully create a new game");
-			}
-			if( ! $g->select_random_gameslot($timestamp) ) {
-				$this->rollback_games($all_games, "Sorry, could not assign a gameslot for " . date("Y",$timestamp) . "-" . date("m",$timestamp) . "-" . date("d",$timestamp));
-			}
-
-			array_push ( $all_games, $g );
+		if( $rc ) { 
+			local_redirect(url("schedule/view/" . $this->league->league_id));
+		} else {
+			error_exit("Failure creating games: $message");
 		}
-
-
-		// figure out how many games there are between the start and end dates (inclusively)
-		$game_dates = $this->find_game_dates($league, $timestamp, $end_timestamp);
-
-		// ensure that there are enough game slots on each of these days!
-		foreach ($game_dates as $date) {
-			$date_string = date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date);
-			$foundGameSlot = db_query("SELECT COUNT(*) FROM league_gameslot_availability a LEFT JOIN gameslot g ON (a.slot_id = g.slot_id) WHERE game_date = '$date_string' AND league_id = $league->league_id");
-			if (db_result($foundGameSlot) < $num_games) {
-				$this->rollback_games($all_games, "Could not schedule games!  Not enough gameslots found for: " . date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date));
-			}
-		}
-		reset($game_dates);
-
-		// now, prepare the subsequent games
-		foreach ($game_dates as $date) {
-			// skip first set of games, which we've already created!
-			if ($date == $timestamp) {
-				continue;
-			}
-			$round++;
-			for($i = 0; $i < $num_games; $i++) {
-				$g = new Game;
-				$g->set('league_id', $league->league_id);
-				$g->set('round', $round);
-				if ( ! $g->save() ) {
-					$this->rollback_games($all_games, "Could not successfully create a new game");
-				}
-				if( ! $g->select_random_gameslot($date) ) {
-					$this->rollback_games($all_games, "Could not assign a gameslot for " . date("Y",$date) . "-" . date("m",$date) . "-" . date("d",$date));
-				}
-				
-				array_push ( $all_games, $g );
-			}
-		}
-
-		$result = $league->set_dependants($all_games, $num_teams);
-		if ($result) {
-			rollback_games($all_games, $result);
-		}
-
-		local_redirect(url("schedule/view/$league->league_id"));
-	}
-
-	/*
-	 *  This function takes in the array of games to delete, and an error
-	 *  message.  It will try to delete all the games, and will then exit with
-	 *  the error message passed in.  If there's a problem deleting games,
-	 *  it'll tell you too.
-	 */
-	function rollback_games ($games, $error) {
-		foreach ($games as $g) {
-			if (! $g->delete() ) {
-				error_exit("Error: Couldn't rollback games when trying to recover from error \"$error\"");
-			}
-		}
-		error_exit($error);
-	}
-
-	/*
-	 * This function takes in the league object, a start date and an end date.
-	 * The return value is an array of dates for which this league will have
-	 * games, between the start and end dates (inclusively)
-	 */
-	function find_game_dates ($league, $start, $end) {
-		$game_dates = array();
-		array_push($game_dates, $start);
-
-		$days = split(',', $league->day);
-
-		$date = $start;
-		while ($date < $end) {
-			$date = mktime(0,0,0,date("n", $date), date("j", $date)+1, date("Y", $date));
-			// loop through the days that this league plays
-			foreach ($days as $d) {
-				if ( date("l", $date) == $d ) {
-					array_push($game_dates, $date);
-				}
-			}
-		}
-		return $game_dates;
-	}
-
-	/** sorts an array of teams by their rank, from lowest rank (best) to highest rank (worst) **/
-	function sort_teams_by_ranking (&$a, &$b)
-	{
-		// A first as we want ascending
-		if ($a->rank == $b->rank) {
-			return 0;
-		}
-		return ($a->rank < $b->rank) ? -1 : 1;
-	}
-
-	function createDayOfGames( &$edit, $timestamp ) 
-	{
-		$league = &$this->league;  // shorthand
-		
-		if ( ! $league->load_teams() ) {
-			error_exit("Error loading teams for league $league->fullname");
-		}
-		
-		$num_teams = count($league->teams);
-
-		if($num_teams < 2) {
-			error_exit("Cannot schedule games in a league with less than two teams");
-		}
-		
-		/*
-		 * TODO: We only schedule floor($num_teams / 2) games.  This means
-		 * that the odd team out won't show up on the schedule.  Perhaps we
-		 * should schedule ceil($num_teams / 2) and have the coordinator
-		 * explicitly set a bye?
-		 */
-		$num_games = floor($num_teams / 2);
-		
-		/* Now, randomly create our games.  Don't add any teams, or set a
-		 * round, or anything.  Then, use that game ID to randomly allocate us
-		 * a gameslot.
-		 * TODO This would be soooo much nicer with transactions...
-		 */
-		$rollback_list = array();
-		for($i = 0; $i < $num_games; $i++) {
-			$g = new Game;
-			$g->set('league_id', $league->league_id);
-			if ( ! $g->save() ) {
-				error_exit("Could not successfully create a new game");
-			}
-			$rollback_list[] = $g;
-
-			if( ! $g->select_random_gameslot($timestamp) ) {
-				/* Argh, something failed, so roll back the whole pile of
-				 * games */
-				foreach( $rollback_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
-				error_exit("Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
-			}
-		}
-	
-		// TODO: schedule/edit should edit a week of the schedule, similar to
-		// how it's done now  (but without all the context?)
-		// local_redirect(url("schedule/edit/$league->league_id/$timestamp"));
-		local_redirect(url("schedule/view/$league->league_id"));
 	}
 }
 

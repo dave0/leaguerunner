@@ -207,12 +207,13 @@ class League extends LeaguerunnerObject
 		}
 	}
 
+	# TODO: Nuke this, if nothing calls it
 	function cleanupgames ()
 	{
 		return true;
 	}
 
-	//  This function clears all of the scores and rankings in a given round.
+	# TODO Nuke this, if nothing calls it
 	function cleanround( $roundNumber ) 
 	{
 		return false;
@@ -338,6 +339,7 @@ class League extends LeaguerunnerObject
 	}
 
 	/** DELETE GAMES FUNCTION **/
+	# TODO: clean this up so that it makes sense for non-ladder
 	function cancelround ( $round ) {
 
 		// make sure the teams are loaded
@@ -844,6 +846,227 @@ class League extends LeaguerunnerObject
 		return 0;
 	}
 
+
+	/*
+	 * Create an empty set of games for this league
+	 */
+	function create_empty_set( $datestamp ) 
+	{
+		if ( ! $this->load_teams() ) {
+			return(array(false, "Couldn't load team information"));
+		}
+		
+		$num_teams = count($this->teams);
+
+		if($num_teams < 2) {
+			# need at least two teams
+			return array(false, "Must have two teams");
+		}
+		
+		if($num_teams % 2) {
+			# Need even number
+			return array(false, "Must have even number of teams");
+		}
+		
+		
+		/* Now, randomly create our games.  Don't add any teams, or set a
+		 * round, or anything.  Then, use that game ID to randomly allocate us
+		 * a gameslot.
+		 * TODO This would be soooo much nicer with transactions...
+		 */
+		$num_games = ( $num_teams / 2 );
+		$rollback_list = array();
+		for($i = 0; $i < $num_games; $i++) {
+			$g = new Game;
+			$g->set('league_id', $this->league_id);
+			if ( ! $g->save() ) {
+				foreach( $rollback_list as $to_rollback ) {
+					if( ! $to_rollback->delete() ) {
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+					}
+				}
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+			}
+			$rollback_list[] = $g;
+
+			list($rc, $message) = $g->select_random_gameslot($datestamp);
+			if( ! $rc ) { 
+				/* Argh, something failed, so roll back the whole pile of
+				 * games */
+				foreach( $rollback_list as $to_rollback ) {
+					if( ! $to_rollback->delete() ) {
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+					}
+				}
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+			}
+		}
+
+		return array(true,'');
+	}
+	
+	/*
+	 * Create a scheduled set of games for this league
+	 */
+	function create_scheduled_set( $datestamp ) 
+	{
+		if ( ! $this->load_teams() ) {
+			return(array(false, "Couldn't load team information"));
+		}
+		
+		$num_teams = count($this->teams);
+
+		if($num_teams < 2) {
+			# need at least two teams
+			return array(false, "Must have two teams");
+		}
+		
+		if($num_teams % 2) {
+			# Need even number
+			return array(false, "Must have even number of teams");
+		}
+		
+		$rollback_list = array();
+
+		# randomize team IDs
+		$team_ids = array_keys( $this->teams );
+		shuffle($team_ids);
+
+		return $this->schedule_one_set( $team_ids, $datestamp );
+	}
+	
+	/*
+	 * Create a half round-robin for this league.
+	 */
+	function create_full_roundrobin( $datestamp, $how_split ) 
+	{
+		if ( ! $this->load_teams() ) {
+			return(array(false, "Couldn't load team information"));
+		}
+		
+		$n = count($this->teams);
+
+		if($n < 2) {
+			# need at least two teams
+			return array(false, "Must have two teams");
+		}
+		
+		if($n % 2) {
+			# Need even number
+			return array(false, "Must have even number of teams");
+		}
+	
+		$team_ids = array_keys( $this->teams );
+
+		# Split league teams into $top_half and $bottom_half according to
+		# $how_split
+
+		# Schedule both halves.
+		# list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half);
+		# if( !$rc ) { return array($rc, $message); }
+		# list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half);
+		# if( !$rc ) { return array($rc, $message); }
+		
+
+		return array(false,'Not done yet');
+	}
+	
+	/*
+	 * Create a full round-robin for this league.
+	 */
+	function create_full_roundrobin( $datestamp, $team_ids = null) 
+	{
+
+		if( is_null($team_ids) ) {
+			if ( ! $this->load_teams() ) {
+				return(array(false, "Couldn't load team information"));
+			}
+			$team_ids = array_keys( $this->teams );
+		}	
+		
+		$n = count($team_ids);
+
+		if($n < 2) {
+			# need at least two teams
+			return array(false, "Must have two teams");
+		}
+		
+		if($n % 2) {
+			# Need even number
+			return array(false, "Must have even number of teams");
+		}
+
+		# For n-1 iterations, generate games by pairing up teams
+		$iterations_remaining = $n - 1;
+		while($iterations_remaining--) {
+	
+			# Round-robin algorithm for n teams:
+			#   a) pair each team k up with its (n - k - 1) partner in the
+			#   list.  schedule_one_set() takes the array pairwise, so we do
+			#   it like this.
+			$set_teams = array();
+			for($k = 0; $k < ($n / 2); $k++) {
+				$set_teams[] = $team_ids[$k];
+				$set_teams[] = $team_ids[($n - $k - 1)];
+			}
+			#   b) schedule them	
+			list($rc, $message) = $this->schedule_one_set( $set_teams, $datestamp );
+			if( ! $rc ) {
+				return array( false, "Aieee... had to stop with $iterations_remaining sets left to schedule: $message");
+			}
+
+			# c) keep k=0 element in place, move k=1 element to end, and move
+			# k=2 through n elements left one position.
+			$team_ids = rotate_all_except_first( $team_ids );
+
+			# Now, move the datestamp forward to next available game date
+			# TODO: fix this for fall league.  Need to take $league->day into
+			# account. Right now we just advance it by a week.
+			$datestamp += (60 * 60 * 24 * 7);
+			
+		}
+
+		return array(true,'');
+	}
+	
+	
+	/**
+	 * Schedule one set of games, using weighted field assignment
+	 */
+	function schedule_one_set( $team_ids, $datestamp )
+	{
+		$rollback_list = array();
+		while ($team_ids) {
+			$g = new Game;
+			$g->set('league_id', $this->league_id);
+			$g->set('home_team', array_shift($team_ids));
+			$g->set('away_team', array_shift($team_ids));
+			if ( ! $g->save() ) {
+				foreach( $rollback_list as $to_rollback ) {
+					if( ! $to_rollback->delete() ) {
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+					}
+				}
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+			}
+			$rollback_list[] = $g;
+
+			list($rc, $message) = $g->select_weighted_gameslot($datestamp);
+			if( ! $rc ) { 
+				/* Argh, something failed, so roll back the whole pile of
+				 * games */
+				foreach( $rollback_list as $to_rollback ) {
+					if( ! $to_rollback->delete() ) {
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+					}
+				}
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+			}
+		}
+
+		return array(true,'');
+	}
+
 }
 
 function league_query( $array = array() )
@@ -901,6 +1124,19 @@ function league_load_many( $array = array() )
 	}
 
 	return $leagues;
+}
+
+/**
+ * Given an array, keep the first element in place, but rotate the
+ * remaining elements by one.
+ */
+function rotate_all_except_first ( $ary )
+{
+	$new_ary = array( array_shift($ary) );
+	$new_last = array_shift($ary);
+	$result = array_merge( $new_ary, $ary );
+	array_push($result, $new_last);
+	return $result;
 }
 
 ?>
