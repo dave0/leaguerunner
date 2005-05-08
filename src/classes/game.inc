@@ -229,23 +229,21 @@ class Game extends LeaguerunnerObject
 				return false;
 			}
 		} else if ( $home_entry && !$away_entry ) {
-#			print $this->game_id ." has only a home entry<br/>\n";
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
 			$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
 		} else if ( !$home_entry && $away_entry ) {
-#			print $this->game_id ." has only an away entry<br/>\n";
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 		} else if ( !$home_entry && !$away_entry ) {
-#			print $this->game_id ." has no entry<br/>\n";
-			$this->set('status', 'forfeit');
-			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
-			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
-			$this->set('approved_by', APPROVAL_AUTOMATIC_FORFEIT);
+# TODO: don't do automatic forfeit yet.  Make it per-tier configurable
+#			$this->set('status', 'forfeit');
+#			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
+#			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
+#			$this->set('approved_by', APPROVAL_AUTOMATIC_FORFEIT);
 		} else {
 			die("Unreachable code hit in Game::finalize()");
 		}
