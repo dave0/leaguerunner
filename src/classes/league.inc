@@ -956,19 +956,29 @@ class League extends LeaguerunnerObject
 			return array(false, "Must have even number of teams");
 		}
 	
-		$team_ids = array_keys( $this->teams );
-
 		# Split league teams into $top_half and $bottom_half according to
 		# $how_split
+		switch($how_split) {
+			case 'rating':
+				uasort($this->teams, 'teams_sort_rating');	
+				$team_ids = array_keys( $this->teams);
+				break;
+			case 'standings':
+			default:
+				list($team_ids, $junk, $morejunk) = $this->calculate_standings();
+		}
+
+		$n = count($team_ids);
+		$top_half = array_slice($team_ids, 0, ($n / 2));
+		$bottom_half = array_slice($team_ids, ($n / 2));
 
 		# Schedule both halves.
-		# list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half);
-		# if( !$rc ) { return array($rc, $message); }
-		# list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half);
-		# if( !$rc ) { return array($rc, $message); }
-		
+		list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half);
+		if( !$rc ) { return array($rc, $message); }
+		list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half);
+		if( !$rc ) { return array($rc, $message); }
 
-		return array(false,'Not done yet');
+		return array(true,'');
 	}
 	
 	/*
@@ -1137,6 +1147,26 @@ function rotate_all_except_first ( $ary )
 	$result = array_merge( $new_ary, $ary );
 	array_push($result, $new_last);
 	return $result;
+}
+
+/** 
+ * Sort teams by rating, and then by average skill as tiebreaker
+ */
+function teams_sort_rating(&$a, &$b)
+{
+	if( $a->rating > $b->rating ) {
+		return -1;
+	} else if( $a->rating < $b->rating ) {
+			return 1;
+	}
+
+	if( $a->avg_skill() > $b->avg_skill() ) {
+		return -1;
+	} else if( $a->avg_skill() < $b->avg_skill() ) {
+		return 1;
+	}
+	
+	return 0;
 }
 
 ?>

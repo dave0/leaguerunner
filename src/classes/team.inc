@@ -32,6 +32,9 @@ class Team extends LeaguerunnerObject
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
 
+		// Set default to -1 for caching
+		$this->avg_skill = -1;
+
 		return true;
 	}
 
@@ -231,9 +234,12 @@ class Team extends LeaguerunnerObject
 	/** 
 	 * Calculate the average skill for this team
 	 */
-	function calculate_avg_skill()
+	function avg_skill()
 	{
-		return db_result(db_query("SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = %d", $this->team_id));
+		if( $this->avg_skill == -1 ) {
+			$this->avg_skill = db_result(db_query("SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = %d", $this->team_id));
+		}
+		return $this->avg_skill;
 	}
 }
 

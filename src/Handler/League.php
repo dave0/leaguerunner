@@ -697,7 +697,7 @@ class LeagueView extends Handler
 			$row[] = l(check_form($team->name), "team/view/$team->team_id");
 			$row[] = $team->count_players();
 			$row[] = $team->rating;
-			$row[] = $team->calculate_avg_skill();
+			$row[] = $team->avg_skill();
 			$row[] = theme_links($team_links);
 			
 			$rows[] = $row;
