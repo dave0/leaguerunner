@@ -180,17 +180,16 @@ function league_splash ()
  */
 function league_cron()
 {
-	$result = db_query("SELECT distinct league_id from league");
+	$season = variable_get('current_season', 'fall');
+	$result = db_query("SELECT distinct league_id from league where season = '%s'", $season);
 	while( $foo = db_fetch_array($result)) {
 		$id = $foo['league_id'];
 		$league = league_load( array('league_id' => $id) );
 	
 		// Task #1: 
-		// For ladder leagues, find all games older than our expiry time, and
+		// find all games older than our expiry time, and
 		// finalize them
-		if($league->schedule_type == 'ladder' ) {
-			$league->finalize_old_games();
-		}
+		$league->finalize_old_games();
 
 		// Task #2:
 		// If schedule is round-robin, possibly update the current round
