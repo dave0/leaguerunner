@@ -45,9 +45,13 @@ class SeasonStandings extends Handler
 			if($league->schedule_type == 'none') {
 				continue;
 			}
+	
+			$league->load_teams();
+			if(count($league->teams) == 0) {
+				continue;
+			}
 
-			$name = $league->name;
-			$name = str_replace('2004','Division', $name);
+			$name = $league->fullname;
 			print "OCUA $name\n";
 			
 			print $this->generate_standings($league, 0);
@@ -71,6 +75,10 @@ class SeasonStandings extends Handler
 		
 		while(list(, $id) = each($order)) {
 			$team = &$season[$id];
+
+			if( ! $team->rank ) {
+				$team->rank = ++$rank;
+			}
 			
 			if ($team->games > 3) {
 				$sotg = sprintf("%.2f", ($team->spirit / $team->games));
