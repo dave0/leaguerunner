@@ -195,28 +195,16 @@ class League extends LeaguerunnerObject
 		$result = db_query("SELECT DISTINCT s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) AS start_timestamp FROM schedule s, gameslot g WHERE s.league_id = %d AND g.game_id = s.game_id AND UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) < UNIX_TIMESTAMP(NOW()) AND (ISNULL(s.home_score) OR ISNULL(s.away_score))", $this->league_id);
 		while( $foo = db_fetch_array($result) ) {
 			$id = $foo['game_id'];
-#			print "$id is possibly 'old' and in need of approval<br />";
 
-			// Expiry is 36 hours after game end, so we'll say 39 hours after start.  This is because for
-			// summer games we may just have 'dark' listed rather than an end time.
-			$expiry_factor = 39 * 3600; 
+			# Expiry is 5 days from game start.
+			# TODO: should be per-league configurable
+			$expiry_factor = 5 * 24 * 60 * 60; 
+			
 			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
 				$game = game_load( array('game_id' => $id) );
 				$game->finalize();
 			}
 		}
-	}
-
-	# TODO: Nuke this, if nothing calls it
-	function cleanupgames ()
-	{
-		return true;
-	}
-
-	# TODO Nuke this, if nothing calls it
-	function cleanround( $roundNumber ) 
-	{
-		return false;
 	}
 
 	# TODO: add_team and remove_team, same as add and remove coordinator.
