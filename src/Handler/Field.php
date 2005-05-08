@@ -532,7 +532,7 @@ class FieldBooking extends Handler
 			$this->field->fullname => 0
 		));
 
-		$result = slot_load( array('fid' => $this->field->fid, '_order' => 'g.game_date, g.game_start'));
+		$result = slot_query( array('fid' => $this->field->fid, '_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
