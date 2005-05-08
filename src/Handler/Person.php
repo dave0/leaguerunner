@@ -71,7 +71,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
 	$captain_view_fields = array( 'height', 'shirtsize' );
 	
-	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height');
+	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height','shirtsize');
 	$self_view_fields = array_merge($all_view_fields, $restricted_contact_fields, $self_view_fields);
 	
 	switch( $action ) {
