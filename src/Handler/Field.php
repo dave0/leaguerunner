@@ -43,8 +43,13 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 	switch( $action )
 	{
 		case 'create':
+			// Only admin can create
+			break;
 		case 'edit':
-			// Only admin can create or edit
+			// Admin and "volunteer" can edit
+			if($user->class == 'volunteer') {
+				return true;
+			}
 			break;
 		case 'view':
 			// Everyone can view, but valid users get extra info
@@ -153,6 +158,7 @@ class FieldEdit extends Handler
 	function process ()
 	{
 		$this->title = "Edit Field";
+		$this->setLocation(array($this->field->fullname  => "field/view/".$this->field->fid, $this->title => 0));
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {
@@ -168,7 +174,6 @@ class FieldEdit extends Handler
 				$rc = $this->generateForm( $edit );
 		}
 
-		$this->setLocation(array($edit['name']  => "field/view/".$this->field->fid, $this->title => 0));
 		return $rc;
 	}
 	
@@ -180,7 +185,6 @@ class FieldEdit extends Handler
 		
 		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
 
-		// if( ! $edit['is_parent'] ) {
 		$result = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
 		$parents = array();
 		$parents[0] = "---";
@@ -189,34 +193,37 @@ class FieldEdit extends Handler
 		}
 		
 		$output .= form_select("Parent Field", 'edit[parent_fid]', $data['parent_fid'], $parents, "Inherit location and name from other field");
-		
-		$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)");
 
-		$output .= form_textfield("Field Code", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site");
+		if( ! $data['parent_fid'] )  {
+		
+			$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)");
 
-		$output .= form_select("Region", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in");
-		
-		$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
-		
-		$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city (Ottawa, Gatineau)');
+			$output .= form_textfield("Field Code", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site");
+
+			$output .= form_select("Region", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in");
 			
-		$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
-		$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
-		$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
+			$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
+			
+			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city (Ottawa, Gatineau)');
+				
+			$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
+			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
+			$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
 
-		$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
-			getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
-			"Official city ward this field is located in");
+			$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
+				getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
+				"Official city ward this field is located in");
 
-		$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
+			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
-		$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
-		
-		$output .= form_textfield("Field Permit", 'edit[permit_url]', $data['permit_url'], 50, 255, "URL for field permit (if required)");
+			$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
+			
+			$output .= form_textfield("Field Permit", 'edit[permit_url]', $data['permit_url'], 50, 255, "URL for field permit (if required)");
 
-		$output .= form_textarea("Site Directions", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical.");
+			$output .= form_textarea("Site Directions", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical.");
 
-		$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)");
+			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)");
+		}
 		$output .= form_submit('Submit') .  form_reset('Reset');
 
 		return form($output);	
