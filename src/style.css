@@ -50,8 +50,9 @@ fieldset {
 }
 
 .schedule .gamedate, .schedule th {
-	background-color:    black;
-	color:               white;
+	background-color:    white;
+  	color: #369;
+	border-bottom: 2px solid #369;
 	font-weight:         bold;
 }
 
