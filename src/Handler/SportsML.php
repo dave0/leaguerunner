@@ -136,7 +136,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 			$game = new Game;
 			$game->load_from_query_result($ary);
 			$event_status = 'pre-event';
-			if( $currentTime > $game->game_date ) {
+			if( $currentTime > $game->timestamp ) {
 				$event_status = 'post-event';
 			}
 ?>
