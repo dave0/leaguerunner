@@ -32,6 +32,13 @@ class Team extends LeaguerunnerObject
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
 
+		// Clean up website
+		if( $this->website ) {
+			if(strncmp($this->website, "http://", 7) != 0) {
+				$this->website = "http://" .$this->website;
+			}
+		}
+
 		// Set default for calculated values to -1, so that load-on-demand
 		// will work
 		$this->avg_skill = -1;

@@ -310,6 +310,20 @@ class Person extends LeaguerunnerObject
 		
 		return false;
 	}
+	
+	function is_player_on ($team_id)
+	{
+		if( ! array_key_exists($team_id, $this->teams) ) {
+			return false;
+		}
+		$status = $this->teams[$team_id]->position;
+
+		if( $status == 'captain' || $status == 'assistant' || $status == 'player') {
+			return true;
+		}
+		
+		return false;
+	}
 
 	function is_coordinator_of($league_id)
 	{

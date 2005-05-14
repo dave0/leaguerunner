@@ -71,6 +71,11 @@ function team_permissions ( &$user, $action, $id, $data_field )
 				return ($user->is_admin());
 			}
 			return ($user->is_captain_of( $id ) );
+		case 'player shirts':
+			if( $user->is_player_on( $id ) ) {
+				return true;
+			}
+			break;
 		case 'email':
 			if( $user->is_captain_of( $id ) ) {
 				return true;
@@ -778,9 +783,6 @@ class TeamView extends Handler
 		/* Now build up team data */
 		$rows = array();
 		if($this->team->website) {
-			if(strncmp($this->team->website, "http://", 7) != 0) {
-				$this->team->website = "http://" .$this->team->website;
-			}
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
 		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
@@ -826,6 +828,7 @@ class TeamView extends Handler
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
 				p.gender,
+				p.shirtsize,
 				p.skill_level,
 				p.status AS player_status,
 				r.status
@@ -837,6 +840,9 @@ class TeamView extends Handler
 			ORDER BY r.status, p.gender, p.lastname", $this->team->team_id);
 		
 		$header = array( 'Name', 'Position', 'Gender','Rating' );
+		if( $session->has_permission('team','player shirts', $this->team->team_id) ) {
+			array_push($header, 'Shirt Size');
+		}
 		$rows = array();	
 		$totalSkill = 0;
 		$count = db_num_rows($result);
@@ -885,12 +891,16 @@ class TeamView extends Handler
 				$roster_info = $rosterPositions[$player->status];
 			}
 			
-			$rows[] = array(
+			$row = array(
 				$player_name,
 				$roster_info,
 				$player->gender,
 				$player->skill_level
 			);
+			if( $session->has_permission('team','player shirts', $this->team->team_id) ) {
+				array_push($row, $player->shirtsize);
+			}
+			$rows[] = $row;
 
 			$totalSkill += $player->skill_level;
 		}
