@@ -53,6 +53,43 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 
+	/**
+	 * Add two opponents to the game, attempting to balance the number of home
+	 * and away games
+	 */
+	function add_teams_balanced( $a, $b)
+	{
+		$a_ratio = $a->home_away_ratio();
+		$b_ratio = $b->home_away_ratio();
+
+		# team farthest away from "normal" gets adjusted
+		if( abs($a_ratio - 1) > abs($b_ratio - 1) ) {
+			if( $a_ratio > 1) {
+				# A is home-heavy, make it the away team.
+				$home = $b;
+				$away = $a;
+			} else {
+				# A is away-heavy, make it the home team.
+				$home = $a;
+				$away = $b;
+			}
+		} else {
+			if( $b_ratio > 1) {
+				# B is home-heavy, make it the away team.
+				$home = $a;
+				$away = $b;
+			} else {
+				# B is away-heavy, make it the home team.
+				$home = $b;
+				$away = $a;
+			}
+		}
+		$home->home_games++;
+		$this->set('home_team', $home->team_id);
+		$away->away_games++;
+		$this->set('away_team', $away->team_id);
+	}
+
 	function calculate_winner_loser() 
 	{
 

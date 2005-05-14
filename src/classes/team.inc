@@ -32,8 +32,12 @@ class Team extends LeaguerunnerObject
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
 
-		// Set default to -1 for caching
+		// Set default for calculated values to -1, so that load-on-demand
+		// will work
 		$this->avg_skill = -1;
+		$this->home_games = -1;
+		$this->away_games = -1;
+		
 
 		return true;
 	}
@@ -240,6 +244,26 @@ class Team extends LeaguerunnerObject
 			$this->avg_skill = db_result(db_query("SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = %d", $this->team_id));
 		}
 		return $this->avg_skill;
+	}
+
+
+	/**
+	 * Home/away ratio.
+	 * If > 1, team has more home games.  if < 1, team has more away games
+	 */
+	function home_away_ratio()
+	{
+		if( $this->home_games == -1 ) {
+		
+			$this->home_games = db_result(db_query("SELECT count(*) from schedule where home_team = %d", $this->team_id));
+			$this->away_games = db_result(db_query("SELECT count(*) from schedule where away_team = %d", $this->team_id));
+		}
+
+		# avoid divide-by-zero
+		if( $this->away_games == 0) {
+			return 2;
+		}
+		return ($this->home_games / $this->away_games);
 	}
 }
 

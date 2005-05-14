@@ -917,10 +917,10 @@ class League extends LeaguerunnerObject
 		$rollback_list = array();
 
 		# randomize team IDs
-		$team_ids = array_keys( $this->teams );
-		shuffle($team_ids);
+		$teams = array_values($this->teams);
+		shuffle($teams);
 
-		return $this->schedule_one_set( $team_ids, $datestamp );
+		return $this->schedule_one_set( $teams, $datestamp );
 	}
 	
 	/*
@@ -948,17 +948,21 @@ class League extends LeaguerunnerObject
 		# $how_split
 		switch($how_split) {
 			case 'rating':
-				uasort($this->teams, 'teams_sort_rating');	
-				$team_ids = array_keys( $this->teams);
+				$teams = array_values($this->teams);
+				uasort($teams, 'teams_sort_rating');	
 				break;
 			case 'standings':
 			default:
+				$teams = array();
 				list($team_ids, $junk, $morejunk) = $this->calculate_standings();
+				foreach($team_ids as $id) {
+					array_push($teams, $this->teams[$id]);
+				}
 		}
 
-		$n = count($team_ids);
-		$top_half = array_slice($team_ids, 0, ($n / 2));
-		$bottom_half = array_slice($team_ids, ($n / 2));
+		$n = count($teams);
+		$top_half = array_slice($teams, 0, ($n / 2));
+		$bottom_half = array_slice($teams, ($n / 2));
 
 		# Schedule both halves.
 		list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half);
@@ -972,17 +976,17 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create a full round-robin for this league.
 	 */
-	function create_full_roundrobin( $datestamp, $team_ids = null) 
+	function create_full_roundrobin( $datestamp, $teams = null) 
 	{
 
-		if( is_null($team_ids) ) {
+		if( is_null($teams) ) {
 			if ( ! $this->load_teams() ) {
 				return(array(false, "Couldn't load team information"));
 			}
-			$team_ids = array_keys( $this->teams );
+			$teams = array_values($this->teams);
 		}	
 		
-		$n = count($team_ids);
+		$n = count($teams);
 
 		if($n < 2) {
 			# need at least two teams
@@ -1004,8 +1008,8 @@ class League extends LeaguerunnerObject
 			#   it like this.
 			$set_teams = array();
 			for($k = 0; $k < ($n / 2); $k++) {
-				$set_teams[] = $team_ids[$k];
-				$set_teams[] = $team_ids[($n - $k - 1)];
+				$set_teams[] = $teams[$k];
+				$set_teams[] = $teams[($n - $k - 1)];
 			}
 			#   b) schedule them	
 			list($rc, $message) = $this->schedule_one_set( $set_teams, $datestamp );
@@ -1015,7 +1019,7 @@ class League extends LeaguerunnerObject
 
 			# c) keep k=0 element in place, move k=1 element to end, and move
 			# k=2 through n elements left one position.
-			$team_ids = rotate_all_except_first( $team_ids );
+			$teams = rotate_all_except_first( $teams );
 
 			# Now, move the datestamp forward to next available game date
 			# TODO: fix this for fall league.  Need to take $league->day into
@@ -1030,15 +1034,19 @@ class League extends LeaguerunnerObject
 	
 	/**
 	 * Schedule one set of games, using weighted field assignment
+	 * TODO: Need to modify this to balance home/away assignment as well.
+	 *
+	 * To do this:
+	 *   - modify to take array of team objects
+	 *   - have team object know its home/away ratio
 	 */
-	function schedule_one_set( $team_ids, $datestamp )
+	function schedule_one_set( $teams, $datestamp )
 	{
 		$rollback_list = array();
-		while ($team_ids) {
+		while ($teams) {
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
-			$g->set('home_team', array_shift($team_ids));
-			$g->set('away_team', array_shift($team_ids));
+			$g->add_teams_balanced( array_shift($teams), array_shift($teams));
 			if ( ! $g->save() ) {
 				foreach( $rollback_list as $to_rollback ) {
 					if( ! $to_rollback->delete() ) {
