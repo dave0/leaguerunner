@@ -83,10 +83,16 @@ img {
 border: 0;
 }
 
-.noscreen {
-display: none;
-
+#map {
+	width: 65%;
+	border: 1px solid gray;
 }
+
+#metapanel {
+	float: right;
+	vertical-align: top;
+}
+
 </style>
 
 
@@ -106,14 +112,14 @@ display: none;
 
   <div id="map"></div>
 
-    <div id="rhs" style="display:none;">
-	    <div id="metapanel"></div>
-		    <div id="panel"></div>
-			  </div>
+  <div id="rhs">
+	<div id="metapanel">Foobar</div>
+    <div id="panel"></div>
+  </div>
 
-			  </div>
+</div>
 
-			  </body>
+  </body>
 </html>
 <?php
 		exit;
