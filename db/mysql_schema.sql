@@ -234,7 +234,6 @@ CREATE TABLE field (
 	site_instructions text,
 	location_url varchar(255),
 	layout_url varchar(255),
-	permit_url varchar(255),
 
 	INDEX field_ward (ward_id)
 );

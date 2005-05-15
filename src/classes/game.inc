@@ -56,6 +56,8 @@ class Game extends LeaguerunnerObject
 	/**
 	 * Add two opponents to the game, attempting to balance the number of home
 	 * and away games
+	 * Note that we do NOT call save() within this function... the caller must
+	 * do that.
 	 */
 	function add_teams_balanced( $a, $b)
 	{

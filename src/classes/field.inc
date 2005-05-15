@@ -36,8 +36,22 @@ class Field extends LeaguerunnerObject
 			$this->site_instructions = $parent->site_instructions;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
-			$this->permit_url = $parent->permit_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
+		}
+
+		$season = strtolower(variable_get("current_season","Summer"));
+		$permit_dir = join("/", array(variable_get("league_file_base",'/opt/websites/www.ocua.ca/static-content/leagues'), $season, 'current','permits'));
+	
+		# Auto-detect the permit URLs
+		$this->permit_url = '';
+		if (is_dir($permit_dir)) {
+			if ($dh = opendir($permit_dir)) {
+				while (($file = readdir($dh)) !== false) {
+					if( fnmatch( $this->code . "*", $file) ) {
+						$this->permit_url .= l($file, variable_get("league_url_base",'http://www.ocua.ca/leagues') . "/$season/current/permits/$file\"") . '<br />';
+					}
+				}
+			}
 		}
 
 		if( ! $this->rating ) {

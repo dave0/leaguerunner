@@ -218,8 +218,6 @@ class FieldEdit extends Handler
 
 			$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
 			
-			$output .= form_textfield("Field Permit", 'edit[permit_url]', $data['permit_url'], 50, 255, "URL for field permit (if required)");
-
 			$output .= form_textarea("Site Directions", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical.");
 
 			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)");
@@ -265,7 +263,6 @@ class FieldEdit extends Handler
 			$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
 			$rows[] = array( "Location Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
-			$rows[] = array( "Field Permit:", form_hidden('edit[permit_url]', $edit['permit_url']) . check_form($edit['permit_url']));
 			$rows[] = array( "Directions:", form_hidden('edit[site_directions]', $edit['site_directions']) . check_form($edit['site_directions']));
 			$rows[] = array( "Special Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
 		}
@@ -306,7 +303,6 @@ class FieldEdit extends Handler
 			$field->set('ward_id', $edit['ward_id']);
 			$field->set('location_url', $edit['location_url']);
 			$field->set('layout_url', $edit['layout_url']);
-			$field->set('permit_url', $edit['permit_url']);
 			$field->set('site_directions', $edit['site_directions']);
 			$field->set('site_instructions', $edit['site_instructions']);
 		}
@@ -365,12 +361,6 @@ class FieldEdit extends Handler
 		if(validate_nonblank($edit['layout_url'])) {
 			if( ! validate_nonhtml($edit['layout_url']) ) {
 				$errors .= "<li>If you provide a site layout URL, it must be valid.";
-			}
-		}
-		
-		if(validate_nonblank($edit['permit_url'])) {
-			if( ! validate_nonhtml($edit['permit_url']) ) {
-				$errors .= "<li>If you provide a permit URL, it must be valid.";
 			}
 		}
 		
@@ -477,9 +467,10 @@ class FieldView extends Handler
 		$rows[] = array("Layout Map:", 
 			$this->field->layout_url ? l("Click for map in new window", $this->field->layout_url, array('target' => '_new'))
 				: "N/A");
-		$rows[] = array("Field Permit:", 
-			$this->field->permit_url ? l("Click for permit in new window", $this->field->permit_url, array('target' => '_new'))
-				: "N/A");
+
+		if( $this->field->permit_url ) {
+			$rows[] = array("Field Permit:", $this->field->permit_url);
+		}
 		$rows[] = array("Directions:", $this->field->site_directions);
 		if( $session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
 			$rows[] = array("Special Instructions:", $this->field->site_instructions);

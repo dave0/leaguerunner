@@ -44,6 +44,9 @@ function global_settings()
 	
 	$group .= form_textfield("Administrator e-mail address", 'edit[app_admin_email]', variable_get('app_admin_email', 'webmaster@localhost'), 60, 120, "The e-mail address of the system administrator.  Mail from Leaguerunner will come from this address.");
 	
+	$group .= form_textfield("Base location of static league files (filesystem)", 'edit[league_file_base]', variable_get('league_file_base', '/opt/websites/www.ocua.ca/static-content/leagues'), 60, 120, "The filesystem location where files for permits, exported standings, etc, shall live.");
+	$group .= form_textfield("Base location of static league files (URL)", 'edit[league_url_base]', variable_get('league_url_base', 'http://www.ocua.ca/leagues'), 60, 120, "The web-accessible URL where files for permits, exported standings, etc, shall live.");
+	
 	$output = form_group("Site configuration", $group);
 
 	$group = form_radios("Clean URLs", "edit[clean_url]", variable_get("clean_url", 1), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
