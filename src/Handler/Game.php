@@ -352,10 +352,18 @@ class GameCreate extends Handler
 	
 	function perform ( &$edit )
 	{
-		# TODO generate appropriate games, roll back on error
+		# generate appropriate games, roll back on error
 		switch($edit['type']) {
 			case 'single':
 				# Create single game
+				$g = new Game;
+				$g->set('league_id', $this->league->league_id);
+				if( ! $g->save() ) {
+					$rc = false;
+					$message = "Could not create single game";
+				} else {
+					list( $rc, $message) = $g->select_random_gameslot( $edit['startdate'] ) ;
+				}
 				break;
 			case 'blankset':
 				# Create game for all teams in tier
