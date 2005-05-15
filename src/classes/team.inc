@@ -272,6 +272,55 @@ class Team extends LeaguerunnerObject
 		}
 		return ($this->home_games / $this->away_games);
 	}
+
+
+	/**
+	 * Swap this team with another team, updating schedules
+	 */
+	function swap_team_with( $other )
+	{
+		if( ! $other ) {
+			return;
+		}
+
+		# Get league ID and rank from $this and $other
+		$this_rank = $this->rank;
+		$this_league_id = $this->league_id;
+		$other_rank = $other->rank;
+		$other_league_id = $other->league_id;
+	
+		# Move team to other league
+		$move_query = "UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d";
+		db_query($move_query, $other_league_id, $other_rank, $this->team_id, $this_league_id);
+		$this->league_id = $other_league_id;
+		$this->rank = $other_rank;
+		
+		db_query($move_query, $this_league_id, $this_rank, $other->team_id, $other_league_id);
+		$other->league_id = $this_league_id;
+		$other->rank = $this_rank;
+		
+		# Get future games for $this and $other
+		$this_games = game_load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
+		$other_games = game_load_many(array('either_team' => $other->team_id, 'game_date_future' => 1));
+
+		# Update future unplayed games in both leagues
+		foreach ($this_games as $game) {
+			if( $game->home_id == $this->team_id ) {
+				$game->set('home_team', $other->team_id);
+			} else {
+				$game->set('away_team', $other->team_id);
+			}
+			$game->save();
+		}
+		foreach ($other_games as $game) {
+			if( $game->home_id == $other->team_id ) {
+				$game->set('home_team', $this->team_id);
+			} else {
+				$game->set('away_team', $this->team_id);
+			}
+			$game->save();
+		}
+	}
 }
 
 function team_query( $array = array() )

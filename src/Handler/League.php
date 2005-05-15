@@ -775,6 +775,12 @@ class LeagueMoveTeam extends Handler
 		return $session->has_permission('league','manage teams',$this->league->league_id);
 	}
 
+	/**
+	 * TODO: need to implement this so that it allows a choice:
+	 *   1) Move team to another league
+	 *   2) Move team to another league, swapping with anexisting one in that
+	 *   league.
+	 */
 	function process ()
 	{
 		global $session;
@@ -788,6 +794,19 @@ class LeagueMoveTeam extends Handler
 		}
 
 		$edit = $_POST['edit'];
+
+		switch($edit['step']) {
+			case 'perform':
+				return $this->perform($edit);
+			case 'confirm':
+				return $this->confirm($edit);
+			case 'swaptarget':
+				return $this->choose_swaptarget($edit);
+			default:
+				return $this->choose_league();
+		}
+		
+		error_exit("Error: This code should never be reached.");
 
 		if( $edit['step'] == 'confirm' || $edit['step'] == 'perform' ) {
 			if($edit['target'] < 1) {
