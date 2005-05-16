@@ -608,7 +608,7 @@ class PersonApproveNewAccount extends PersonView
 				if($this->person->email != $existing->email) {
 					$to_addr = join(',',array($this->person->email,$existing->email));
 				} else { 
-					$to_addr = $person->email;
+					$to_addr = $this->person->email;
 				}
 				
 				if( ! $this->person->delete() ) {
