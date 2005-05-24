@@ -259,7 +259,7 @@ class UserSession
 	 */
 	function is_coordinator_of ($league_id)
 	{
-		return ($this->user && $this->user->is_coordinator_of($team_id));
+		return ($this->user && $this->user->is_coordinator_of($league_id));
 	}
 
 	/**
