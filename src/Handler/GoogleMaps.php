@@ -8,9 +8,6 @@ function gmaps_dispatch()
 		case 'allfields':
 			$obj = new GoogleMapsAllFields;
 			break;
-		case 'getfile':
-			$obj = new GoogleMapsPassthru;
-			break;
 		default:
 			$obj = new GoogleMapsHTMLPage;
 	}
@@ -23,44 +20,6 @@ function gmaps_permissions()
 	return true;
 }
 
-class GoogleMapsPassthru extends Handler
-{
-	function has_permission()
-	{
-		return true;
-	}
-
-	function process ()
-	{
-		$file = $_GET['q'];
-		$ary = split("\/",$file, 3);
-
-		if( substr($ary[2],0,7) != 'http://' ) {
-			exit;
-		}
-
-		$chunksize = 1024;
-		$handle = fopen($ary[2], 'rb');
-		$buffer = '';
-		if ($handle === false) {
-			exit;
-		}
-		
-		$buffer = fread($handle, $chunksize);
-		if (substr($buffer,0,19) == '<?xml version="1.0"') {
-			header("Content-type: text/xml");
-			print $buffer;
-			while (!feof($handle)) {
-				$buffer = fread($handle, $chunksize);
-				print $buffer;
-			}
-		}
-		
-		fclose($handle);
-		exit;
-	}
-}
-
 class GoogleMapsHTMLPage extends Handler
 {
 	function has_permission()
@@ -71,55 +30,109 @@ class GoogleMapsHTMLPage extends Handler
 	function process ()
 	{
 
-		$basepath = 'http://testing.ocua.ca/leaguerunner/misc';
 ?>
 <html>
-<!-- Based on original Google Maps page -->
+<!-- thank you to follower for http://stuff.rancidbacon.com/google-maps-embed-how-to/ -->
 <head>
+<title>OCUA Fields</title>
+
+<script src="http://google.com/maps?file=js&hl=en" type="text/javascript">
+</script>
+
+
+<script type="text/javascript">
+
+_mSiteName = 'OCUA Fields';
+
+_mUsePrintLink="";
+
+function initMap() {
+  //
+  // frb
+  //
+
+  myMapApp = new _MapsApplication(document.getElementById("container_frb"),
+				  document.getElementById("panel"),
+				  document.getElementById("metapanel"),
+				  document.getElementById("permalink"),
+				  document.getElementById("toggle"),
+				  document.getElementById("printheader"));
+				  
+  myMapApp.loadMap();
+
+  /* Note: All XML & XSL files must be on same domain.
+  */
+  _loadXmlFileFromURL("/leaguerunner/gmaps/allfields", myMapApp);
+  //_loadXmlFileFromURL("/leaguerunner/data/demo2.xml", myMapApp);
+
+}
+
+t.dump = function(a) {alert(a);} //debugging
+
+function _loadXmlFileFromURL(url, mapApp) {
+    //
+    // Loads the specified external XML file into the map view.
+    //
+    //  frb
+    //
+    // NOTE: URL must be on same domain as page.
+    
+    var  _getter = _XMLHttp.create();
+
+    _getter.open("GET", url);
+
+    _getter.onreadystatechange=function() {
+      if (_getter.readyState==4) {
+           mapApp.loadXML(_getter.responseText);
+      }
+    }
+
+    _getter.send(null); // Whoops, IE *needs* this to be last, Moz is lenient.
+}
+
+
+</script>
 
 <style type="text/css">
-
-img {
-border: 0;
+#panel table {
+  border:solid 1px grey;
+  width:50%;
+  margin-bottom: 5px;
 }
 
-#map {
-	width: 65%;
-	border: 1px solid gray;
+#panel table td:first-child  {
+  width: 24px;
 }
 
-#metapanel {
-	float: right;
-	vertical-align: top;
-}
-
+.label {
+  font-size:smaller;
+  font-family:sans-serif;
+};
 </style>
 
-
-<script type="text/javascript" src="http://maps.google.com/maps?file=js">
-</script>
-
-<script type="text/javascript" src="<?php print $basepath ?>/gmaps-original-5.js">
-</script>
-
-<script type="text/javascript" src="<?php print $basepath ?>/gmaps-standalone.js">
-</script>
-
 </head>
-<body onLoad="_initStandAlone()">
-<div id="toggle" style="font-family:sans-serif;text-align:right;font-size:smaller;border: thin solid lightblue;border-bottom-style: none;padding:2px;">&nbsp;</div>
-<div id="page">
 
-  <div id="map"></div>
+<body onload="initMap()">
 
-  <div id="rhs">
-	<div id="metapanel">Foobar</div>
-    <div id="panel"></div>
+<!---->
+
+<!-- Note: Map height always maximum? -->
+<div style="position:absolute;left:5px;top:10px;right:5px;border:solid thin grey;">
+  <div id="container_frb" style="float:right;width:60%;" ></div>
+  <div style="float:left;position:relative;left:10px;width:35%">
+    <div id="toggle" style="position:absolute;top:0px:left:10px;font-family:sans-serif;font-size:smaller;">&nbsp;</div>
+    <div style="position:absolute;top:30px;left:5px;">
+      <div id="panel" style="height:90%;width:100%;"> </div>
+      <div id="metapanel"></div>
+      <div id="permalink"></div>
+      <div id="printheader"></div>
+    </div>
   </div>
-
 </div>
 
-  </body>
+<!--
+
+</body>
 </html>
 <?php
 		exit;
@@ -143,9 +156,10 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 <page>
   <title>Ottawa-Carleton Ultimate Association -- Fields</title>
   <query>OCUA Fields</query>
+  <request></request>
   <center lat="45.247528" lng="-75.618293" />
   <span lat="0.3" lng="0.3"/>
-  <overlay panelStyle="http://maps.google.com/maps?file=lp&amp;hl=en">
+  <overlay panelStyle="/leaguerunner/data/fields-sidepanel.xsl">
 <?php
 	}
 
@@ -158,7 +172,7 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 	{
  #  <location infoStyle="http://maps.google.com/maps?file=lp&amp;hl=en">
 ?>
-   <location infoStyle="http://maps.google.com/mapfiles/geocodeinfo.xsl">
+   <location infoStyle="/leaguerunner/data/fields-geocodeinfo.xsl" id="<?php print $location->id ?>">
 	  <point lat="<?php print $location->latitude ?>" lng="<?php print $location->longitude ?>" />
 	  <icon image="<?php print $location->image ?>" class="local" />
 	  <info>
@@ -175,30 +189,31 @@ xml version="1.0" encoding="ISO-8859-1" ?>
     </location>
 <?php
 	}
-	
+
 	function process()
 	{
 		$this->render_header();
 		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
+
+		$rating_to_marker = array (
+			'A' => 'markerA.png',
+			'B' => 'markerB.png',
+			'C' => 'markerC.png',
+			'D' => 'markerD.png',
+			'' => 'marker.png',
+			'?' => 'marker.png',
+		);
 		while( $field = db_fetch_object( $result ) ) {
-			if($field->location_street == '') {
+			if($field->location_street == '' || !$field->latitude || !$field->longitude) {
 				continue;
 			}
+			$location->id = $field->fid;
 			$location->name = $field->name;
 			$location->street = $field->location_street;
 			$location->city = $field->location_city;
 			$location->province = $field->location_province;
 			$location->latitude = $field->latitude;
 			$location->longitude = $field->longitude;
-
-			$rating_to_marker = array (
-				'A' => 'markerA.png',
-				'B' => 'markerB.png',
-				'C' => 'markerC.png',
-				'D' => 'markerD.png',
-				'' => 'marker.png',
-				'?' => 'marker.png',
-			);
 			$location->image = "http://maps.google.com/mapfiles/" . $rating_to_marker[$field->rating];
 			$this->render_location( $location );
 		}
