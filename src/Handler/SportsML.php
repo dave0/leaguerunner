@@ -105,7 +105,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
         <team-stats standing-points="<?php print (2 * $team->win) + $team->tie ?>">
             <outcome-totals wins="<?php print $team->win ?>" losses="<?php print $team->loss ?>" ties="<?php print $team->tie ?>" points-scored-for="<?php print $team->points_for ?>" points-scored-against="<?php print $team->points_against ?>" />
             <team-stats-ultimate>
-                <stats-ultimate-spirit value="<?php if( $team->games > 0 ) { printf("%.2f", ($team->spirit / $team->games)); } ?>" />
+                <stats-ultimate-spirit value="<?php if( $team->games > 3 ) { printf("%.2f", ($team->spirit / $team->games)); } ?>" />
                 <stats-ultimate-miscellaneous defaults="<?php print $team->defaults_against ?>" plusminus="<?php print $team->points_for - $team->points_against ?>" />
             </team-stats-ultimate>
             <rank competition-scope="tier" value="<? print $team->rank ?>" />
