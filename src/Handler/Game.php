@@ -101,6 +101,7 @@ function game_splash ()
 	$rows = array();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
+		$score = '';
 		if( $game->home_score || $game->away_score ) { 
 			$score = "$game->home_score - $game->away_score"	;
 		} else if ( $row->status == 'captain' || $row->status == 'assistant') {
@@ -113,13 +114,19 @@ function game_splash ()
 		));
 	}
 	
-	 $games = db_query("SELECT s.game_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
+	 $games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
         AND g.game_date >= CURDATE() ORDER BY g.game_date asc LIMIT 4", $session->user->user_id);
+	$timeNow = time();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
+		$score = '';
+		if($game->timestamp < $timeNow && ( $row->status == 'captain' || $row->status == 'assistant')) {
+			$score = l('enter score', "game/submitscore/$game->game_id/$row->team_id");
+		}
 		$rows[] = array( 
 			l("$game->game_date $game->game_start-$game->game_end","game/view/$game->game_id"),
-			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 3)
+			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 2),
+			$score
 		);
 	}
 
