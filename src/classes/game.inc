@@ -537,6 +537,7 @@ class Game extends LeaguerunnerObject
 
 	function load_spirit_entries ( )
 	{
+
 		if( ! $this->_in_database ) {
 			die( "Cannot load entered scores for game not in database!");
 		}
@@ -544,6 +545,12 @@ class Game extends LeaguerunnerObject
 		while( $row = db_fetch_array( $result ) ) {
 			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
+
+		// Evil hack.  Previous release didn't properly fill in this 
+		// field, so here we append an empty string to it so that it
+		// exists if not populated.
+		$this->_spirit_entries[ $this->home_id ]['CommentsToCoordinator'] .= '';
+		$this->_spirit_entries[ $this->away_id ]['CommentsToCoordinator'] .= '';
 
 		return true;
 	}
@@ -706,7 +713,8 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'MostEnjoyed',
-					'GameOverall' => 'OverallAverage'
+					'GameOverall' => 'OverallAverage',
+					'CommentsToCoordinator' => '',
 				);
 				break;
 			case 'loser':
@@ -715,7 +723,8 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'FewEnjoyed',
-					'GameOverall' => 'OverallAverage'
+					'GameOverall' => 'OverallAverage',
+					'CommentsToCoordinator' => 'Automatic spirit assigned (no entry by opponent)',
 				);
 				break;
 			case 'winner':
@@ -725,7 +734,8 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'ExcellentRules',
 					'Sportsmanship' => 'ExcellentSportsmanship',
 					'Enjoyment' => 'AllEnjoyed',
-					'GameOverall' => 'OverallGood'
+					'GameOverall' => 'OverallGood',
+					'CommentsToCoordinator' => 'Automatic spirit assignment (no entry by opponent)',
 				);
 				break;
 			default:
