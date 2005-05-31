@@ -439,9 +439,6 @@ class TeamDelete extends Handler
 		$rows = array();
 		$rows[] = array("Team Name:", check_form($this->team->name));
 		if($this->team->website) {
-			if(strncmp($this->team->website, "http://", 7) != 0) {
-				$this->team->website = "http://" . $this->team->website;
-			}
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
 		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
@@ -1139,8 +1136,13 @@ class TeamSpirit extends Handler
 				continue;
 			}
 			while( list($qkey,$answer) = each($entry) ) {
+
 				if( !$num_games ) {
 					$header[] = $qkey;
+				}
+				if( $qkey == 'CommentsToCoordinator' ) {
+					$thisrow[] = $answer;
+					continue;
 				}
 				switch( $answer_values[$answer] ) {
 					case -2:
@@ -1172,6 +1174,8 @@ class TeamSpirit extends Handler
 			$thisrow = array(
 				"Total","-","-"
 			);
+		} else if ($num_games < 3) {
+			return "Spirit summary available after 3 games";
 		}
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
