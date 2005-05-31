@@ -85,7 +85,9 @@ class ScheduleViewDay extends Handler
 			schedule_heading(strftime('%a %b %d %Y',mktime(0,0,0,$month,$day,$year))),
 			schedule_subheading( ),
 		);
-		while($game = db_fetch_array($result)) {
+		while($g = db_fetch_array($result)) {
+			$game = new Game;
+			$game->load_from_query_result($g);
 			$rows[] = schedule_render_viewable($game);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
@@ -165,9 +167,11 @@ class ScheduleEdit extends Handler
 		$prevDayId = -1;
 		$rows = array();
 		/* For each game in the schedule for this league */
-		while($game = db_fetch_array($result)) {
+		while($g = db_fetch_array($result)) {
+			$game = new Game;
+			$game->load_from_query_result($g);
 
-			if( $game['day_id'] != $prevDayId ) {
+			if( $game->day_id != $prevDayId ) {
 				if( $timestamp == $prevDayId) {
 					/* ensure we add the submit buttons for schedule editing */
 					$rows[] = array(
@@ -176,23 +180,23 @@ class ScheduleEdit extends Handler
 				}
 				
 				$rows[] = schedule_heading( 
-					strftime('%a %b %d %Y', $game['timestamp']),
+					strftime('%a %b %d %Y', $game->timestamp),
 					false,
-					$game['day_id'], $this->league->league_id );
+					$game->day_id, $this->league->league_id );
 				
-				if($timestamp == $game['day_id']) {
+				if($timestamp == $game->day_id) {
 					$rows[] = schedule_edit_subheading();
 				} else {
 					$rows[] = schedule_subheading( );
 				}
 			}
 			
-			if($timestamp == $game['day_id']) {
+			if($timestamp == $game->day_id) {
 				$rows[] = schedule_render_editable($game, $this->league);
 			} else {
 				$rows[] = schedule_render_viewable($game);
 			}
-			$prevDayId = $game['day_id'];	
+			$prevDayId = $game->day_id;	
 		}
 		if( $timestamp == $prevDayId ) {
 			/* ensure we add the submit buttons for schedule editing */
@@ -381,18 +385,20 @@ class ScheduleView extends Handler
 		$prevDayId = -1;
 		$rows = array();
 		/* For each game in the schedule for this league */
-		while($game = db_fetch_array($result)) {
+		while($g = db_fetch_array($result)) {
+			$game = new Game;
+			$game->load_from_query_result($g);
 
-			if( $game['day_id'] != $prevDayId ) {
+			if( $game->day_id != $prevDayId ) {
 				$rows[] = schedule_heading( 
-					strftime('%a %b %d %Y', $game['timestamp']),
+					strftime('%a %b %d %Y', $game->timestamp),
 					$session->has_permission('league','edit schedule', $this->league->league_id),
-					$game['day_id'], $this->league->league_id );
+					$game->day_id, $this->league->league_id );
 				$rows[] = schedule_subheading( );
 			}
 			
 			$rows[] = schedule_render_viewable($game);
-			$prevDayId = $game['day_id'];	
+			$prevDayId = $game->day_id;	
 		}
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
 		return form($output);
@@ -439,43 +445,43 @@ function schedule_render_editable( &$game, &$league )
 {
 
 	// Ensure the given teams are listed in pulldown
-	$league->teams[$game['home_id']] = $game['home_name'];
-	$league->teams[$game['away_id']] = $game['away_name'];
+	$league->teams[$game->home_id] = $game->home_name;
+	$league->teams[$game->away_id] = $game->away_name;
 
-	$form_round = form_select('','edit[games][' . $game['game_id'] . '][round]', $game['round'], $league->rounds);
+	$form_round = form_select('',"edit[games][$game->game_id][round]", $game->round, $league->rounds);
 	$form_gameslot = 
 		array( 
-			'data' => form_select('','edit[games][' . $game['game_id'] . '][slot_id]', $game['slot_id'], $league->gameslots), 
+			'data' => form_select('',"edit[games][$game->game_id][slot_id]", $game->slot_id, $league->gameslots), 
 			'colspan' => 2
 		);
-	$form_home = form_select('','edit[games][' . $game['game_id'] . '][home_id]', $game['home_id'], $league->teams);
-	$form_away = form_select('','edit[games][' . $game['game_id'] . '][away_id]', $game['away_id'], $league->teams);
+	$form_home = form_select('',"edit[games][$game->game_id][home_id]", $game->home_id, $league->teams);
+	$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
 
 	// but, if this league is a ladder league, we don't want to make everything editable!
 	if ($league->schedule_type == "ladder") {
-		$form_round = $game['round'];
-		if ($game['home_name']) {
-			$form_home = $game['home_name'];
+		$form_round = $game->round;
+		if ($game->home_name) {
+			$form_home = $game->home_name;
 		} else {
-			$form_home = $game['home_dependant_type']." of ".$game['home_dependant_game'];
+			$form_home = "$game->home_dependant_type of $game->home_dependant_game";
 		}
-		if ($game['away_name']) {
-			$form_away = $game['away_name'];
+		if ($game->away_name) {
+			$form_away = $game->away_name;
 		} else {
-			$form_away = $game['away_dependant_type']." of ".$game['away_dependant_game'];
+			$form_away = "$game->away_dependant_type of $game->away_dependant_game";
 		}
 	}
 
 	return array(
-		form_hidden('edit[games][' . $game['game_id'] . '][game_id]', $game['game_id']) 
-		. $form_round . form_hidden('edit[games][' . $game['game_id'] . '][round_text]', $form_round),
+		form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) 
+		. $form_round . form_hidden('edit[games][$game->game_id][round_text]', $form_round),
 		$form_gameslot,
 		array(
-			'data' => $form_home . form_hidden('edit[games][' . $game['game_id'] . '][home_text]', $form_home),
+			'data' => $form_home . form_hidden("edit[games][$game->game_id][home_text]", $form_home),
 			'colspan' => 2
 		),
 		array(
-			'data' => $form_away . form_hidden('edit[games][' . $game['game_id'] . '][away_text]', $form_away),
+			'data' => $form_away . form_hidden("edit[games][$game->game_id][away_text]", $form_away),
 			'colspan' => 2
 		),
 	);
@@ -483,53 +489,46 @@ function schedule_render_editable( &$game, &$league )
 
 function schedule_render_viewable( &$game )
 {
-	if($game['home_name']) {
-		$short = sprintf("%.20s", $game['home_name']);
-		if(strlen($short) != strlen($game['home_name']) ) {
-			$short .= "...";
-		}
-		$homeTeam = l($short, "team/view/" . $game['home_id']);
+	global $session;
+	if($game->home_name) {
+		$homeTeam = l($game->short_home_name(), "team/view/" . $game->home_id);
 	} else {
-		if ($game['home_dependant_game'] && $game['home_dependant_type']) {
-			$homeTeam = $game['home_dependant_type'] . " of " . $game['home_dependant_game'];
+		if ($game->home_dependant_game && $game->home_dependant_type) {
+			$homeTeam = $game->home_dependant_type . " of " . $game->home_dependant_game;
 		} else {
 			$homeTeam = "Not yet scheduled.";
 		}
 	}
-	if($game['away_name']) {
-		$short = sprintf("%.20s", $game['away_name']);
-		if(strlen($short) != strlen($game['away_name']) ) {
-			$short .= "...";
-		}
-		$awayTeam = l($short, "team/view/" . $game['away_id']);
+	if($game->away_name) {
+		$awayTeam = l($game->short_away_name(), "team/view/" . $game->away_id);
 	} else {
-		if ($game['away_dependant_game'] && $game['away_dependant_type']) {
-			$awayTeam = $game['away_dependant_type'] . " of " . $game['away_dependant_game'];
+		if ($game->away_dependant_game && $game->away_dependant_type) {
+			$awayTeam = $game->away_dependant_type . " of " . $game->away_dependant_game;
 		} else {
 			$awayTeam = "Not yet scheduled.";
 		}
 	}
 	
 	$gameRow = array(
-		l($game['game_id'], 'game/view/' . $game['game_id']),
-		$game['game_start'] . "-" . $game['game_end'],
-		l( $game['field_code'], "field/view/" . $game['fid']),
+		l($game->game_id, 'game/view/' . $game->game_id),
+		"$game->game_start - $game->game_end",
+		l( $game->field_code, "field/view/$game->fid"),
 	);
 
-	if($game['status'] == 'home_default') {
+	if($game->status == 'home_default') {
 		$gameRow[] = array('data' => $homeTeam, 'style' => 'background-color: red');
-		$gameRow[] = array('data' => $game['home_score'] . '(dfl)', 'style' => 'background-color: red');
+		$gameRow[] = array('data' => $game->home_score . '(dfl)', 'style' => 'background-color: red');
 	} else { 
 		$gameRow[] = $homeTeam;
-		$gameRow[] = $game['home_score'];
+		$gameRow[] = $game->home_score;
 	}
-	
-	if ($game['status'] == 'away_default') {
+
+	if ($game->status == 'away_default') {
 		$gameRow[] = array('data' => $awayTeam, 'style' => 'background-color: red');
-		$gameRow[] = array('data' => $game['away_score'] . '(dfl)', 'style' => 'background-color: red');
+		$gameRow[] = array('data' => $game->away_score . '(dfl)', 'style' => 'background-color: red');
 	} else {
 		$gameRow[] = $awayTeam;
-		$gameRow[] = $game['away_score'];
+		$gameRow[] = $game->away_score;
 	}
 
 	return $gameRow;

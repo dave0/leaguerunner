@@ -54,6 +54,27 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
+	 * Return short name for display purposes
+	 */
+	function short_home_name()
+	{
+		$short = sprintf("%.20s", $this->home_name);
+		if(strlen($short) != strlen($this->home_name) ) {
+			$short .= "...";
+		}
+		return $short;
+	}
+	
+	function short_away_name()
+	{
+		$short = sprintf("%.20s", $this->away_name);
+		if(strlen($short) != strlen($this->away_name) ) {
+			$short .= "...";
+		}
+		return $short;
+	}
+
+	/**
 	 * Add two opponents to the game, attempting to balance the number of home
 	 * and away games
 	 * Note that we do NOT call save() within this function... the caller must
@@ -543,14 +564,17 @@ class Game extends LeaguerunnerObject
 		}
 		$result = db_query("SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = %d ORDER BY a.tid,q.sorder", $this->game_id);
 		while( $row = db_fetch_array( $result ) ) {
+			$got_something = 1;
 			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
 
 		// Evil hack.  Previous release didn't properly fill in this 
 		// field, so here we append an empty string to it so that it
 		// exists if not populated.
-		$this->_spirit_entries[ $this->home_id ]['CommentsToCoordinator'] .= '';
-		$this->_spirit_entries[ $this->away_id ]['CommentsToCoordinator'] .= '';
+		if( $got_something) { 
+			$this->_spirit_entries[ $this->home_id ]['CommentsToCoordinator'] .= '';
+			$this->_spirit_entries[ $this->away_id ]['CommentsToCoordinator'] .= '';
+		}
 
 		return true;
 	}
@@ -654,7 +678,7 @@ class Game extends LeaguerunnerObject
 	{
 		$entry = $this->get_spirit_entry($team_id);
 		if( !$entry ) {
-			return 0;
+			return null;
 		}
 
 		// Start with 10 spirit, subtract down
