@@ -474,7 +474,7 @@ function schedule_render_editable( &$game, &$league )
 
 	return array(
 		form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) 
-		. $form_round . form_hidden('edit[games][$game->game_id][round_text]', $form_round),
+		. $form_round . form_hidden("edit[games][$game->game_id][round_text]", $form_round),
 		$form_gameslot,
 		array(
 			'data' => $form_home . form_hidden("edit[games][$game->game_id][home_text]", $form_home),
@@ -530,7 +530,7 @@ function schedule_render_viewable( &$game )
 		$gameRow[] = $awayTeam;
 		$gameRow[] = $game->away_score;
 	}
-
+	
 	return $gameRow;
 }
 ?>
