@@ -506,17 +506,40 @@ class TeamMove extends Handler
 			if( !$targetleague ) {
 				error_exit("You must supply a valid league to move to");
 			}
+			
+			if( $targetleague->league_id == $this->team->league_id ) {
+				error_exit("You can't move a team to the league it's currently in!");
+			}
+		}
+		
+		if( $edit['swaptarget'] ) {
+			$target_team = team_load( array('team_id' => $edit['swaptarget'] ) );
+			if( !$target_team ) {
+				error_exit("You must supply a valid target team ID");
+			}
+			
+			if( $target_team->league_id == $this->team->league_id ) {
+				error_exit("You can't swap with a team that's already in the same league!");
+			}
+			
+			if( $target_team->league_id != $targetleague->league_id ) {
+				error_exit("You can't swap with a team that's not in the league you want to move to!");
+			}
+			
+			if( ! $session->has_permission('league','manage teams', $target_team->league_id ) ) {
+				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
+			}
 		}
 
 		switch($edit['step']) {
 			case 'perform':
 				$sourceleague = league_load( array('league_id' => $this->team->league_id));
-				$this->perform($targetleague, $edit);
+				$this->perform($targetleague, $target_team);
 				local_redirect(url("league/view/" . $sourceleague->league_id));
 			case 'confirm':
-				return $this->confirm( $targetleague, $edit);
+				return $this->confirm( $targetleague, $target_team);
 			case 'swaptarget':
-				return $this->choose_swaptarget($targetleague, $edit);
+				return $this->choose_swaptarget($targetleague);
 			default:
 				return $this->choose_league();
 		}
@@ -525,34 +548,15 @@ class TeamMove extends Handler
 
 	}
 	
-	function perform ($targetleague, $edit)
+	function perform ($targetleague, $target_team)
 	{
 		global $session;
 
 		$rc = null;
-		if( $edit['swaptarget'] ) {
-			$target_team = team_load( array('team_id' => $edit['swaptarget'] ) );
-			if( !$target_team ) {
-				error_exit("You must supply a valid target ID");
-			}
-
-			if( $target_team->league_id != $targetleague->league_id ) {
-				error_exit("You can't swap with a team that's not in the league you want to move to!");
-			}
-			
-			if( ! $session->has_permission('league','manage teams', $target_team->league_id ) ) {
-				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
-			}
-			
+		if( $target_team ) {
 			$rc = $this->team->swap_team_with( $target_team );
-			
 		} else {
-			$targetleague->load_teams();
-			$rank = 0;
-			if( $targetleague->schedule_type == 'ladder' ) {
-				$rank = count($targetleague->teams) + 1;
-			}
-			$rc = $this->team->move_team_to( $targetleague->league_id,  $rank);
+			$rc = $this->team->move_team_to( $targetleague->league_id );
 		}
 		
 		if( !$rc  ) {
@@ -561,18 +565,13 @@ class TeamMove extends Handler
 		return true;
 	}
 
-	function confirm ( $targetleague, $edit )
+	function confirm ( $targetleague, $target_team )
 	{
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= form_hidden('edit[target]', $targetleague->league_id);
 
-		if( $edit['swaptarget'] ) {
-			$target_id = $edit['swaptarget'];
-			$target_team = team_load( array('team_id' => $target_id ) );
-			if( !$target_team ) {
-				error_exit("You must supply a valid target ID");
-			}
-			$output .= form_hidden('edit[swaptarget]', $target_id);
+		if( $target_team ) {
+			$output .= form_hidden('edit[swaptarget]', $target_team->team_id);
 		}
 		
 		$sourceleague = league_load( array('league_id' => $this->team->league_id));

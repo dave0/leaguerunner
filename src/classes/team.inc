@@ -276,8 +276,8 @@ class Team extends LeaguerunnerObject
 	/**
 	 * Move team to another league.
 	 */
-	function move_team_to( $league_id, $rank = 0 ) {
-	
+	function move_team_to( $league_id, $rank = 0 ) 
+	{
 		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $league_id, $rank, $this->team_id, $this->league_id);
 		
 		if( 1 != db_affected_rows() ) {
@@ -297,7 +297,7 @@ class Team extends LeaguerunnerObject
 	function swap_team_with( $other )
 	{
 		if( ! $other ) {
-			return;
+			return false;
 		}
 
 		# Get league ID and rank from $this and $other
@@ -305,6 +305,11 @@ class Team extends LeaguerunnerObject
 		$this_league_id = $this->league_id;
 		$other_rank = $other->rank;
 		$other_league_id = $other->league_id;
+
+		// Moving to same league is silly
+		if( $this_league_id == $other_league_id ) {
+			return false;
+		}
 	
 		# Move team to other league
 		$this->move_team_to( $other_league_id, $other_rank);
