@@ -23,6 +23,9 @@ function team_dispatch()
 		case 'delete':
 			$obj = new TeamDelete;
 			break;
+		case 'move':
+			$obj = new TeamMove;
+			break;
 		case 'roster':
 			$obj = new TeamRosterStatus;
 			$player_id = arg(3);
@@ -168,7 +171,7 @@ function team_add_to_menu( &$team )
 	}
 	
 	if( $session->has_permission('team','move',$team->team_id)) {
-		menu_add_child($team->name, "$team->name/move",'move team', array('weight' => 1, 'link' => "league/moveteam/$team->league_id/$team->team_id"));
+		menu_add_child($team->name, "$team->name/move",'move team', array('weight' => 1, 'link' => "team/move/$team->team_id"));
 	}
 }
 
@@ -465,6 +468,170 @@ class TeamDelete extends Handler
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= form_submit('submit');
 	
+		return form($output);
+	}
+}
+
+class TeamMove extends Handler
+{
+	var $team;
+
+	function has_permission ()
+	{
+		global $session;
+		return $session->has_permission('team','move',$this->team->team_id);
+	}
+
+	function process ()
+	{
+		global $session;
+
+		# Nuke HTML just in case
+		$team_name = check_form($this->team->name);
+		$this->setLocation(array(
+			$team_name => "team/view/" . $this->team->team_id,
+			"Move Team" => 0));
+
+		$edit = $_POST['edit'];
+		if( $edit['step'] ) {
+			if($edit['target'] < 1) {
+				error_exit("That is not a valid league to move to");
+			}
+		
+			if( ! $session->has_permission('league','manage teams', $edit['target']) ) {
+				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
+			}
+			
+			$targetleague = league_load( array('league_id' => $edit['target']));
+			if( !$targetleague ) {
+				error_exit("You must supply a valid league to move to");
+			}
+		}
+
+		switch($edit['step']) {
+			case 'perform':
+				$sourceleague = league_load( array('league_id' => $this->team->league_id));
+				$this->perform($targetleague, $edit);
+				local_redirect(url("league/view/" . $sourceleague->league_id));
+			case 'confirm':
+				return $this->confirm( $targetleague, $edit);
+			case 'swaptarget':
+				return $this->choose_swaptarget($targetleague, $edit);
+			default:
+				return $this->choose_league();
+		}
+		
+		error_exit("Error: This code should never be reached.");
+
+	}
+	
+	function perform ($targetleague, $edit)
+	{
+		global $session;
+
+		$rc = null;
+		if( $edit['swaptarget'] ) {
+			$target_team = team_load( array('team_id' => $edit['swaptarget'] ) );
+			if( !$target_team ) {
+				error_exit("You must supply a valid target ID");
+			}
+
+			if( $target_team->league_id != $targetleague->league_id ) {
+				error_exit("You can't swap with a team that's not in the league you want to move to!");
+			}
+			
+			if( ! $session->has_permission('league','manage teams', $target_team->league_id ) ) {
+				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
+			}
+			
+			$rc = $this->team->swap_team_with( $target_team );
+			
+		} else {
+			$targetleague->load_teams();
+			$rank = 0;
+			if( $targetleague->schedule_type == 'ladder' ) {
+				$rank = count($targetleague->teams) + 1;
+			}
+			$rc = $this->team->move_team_to( $targetleague->league_id,  $rank);
+		}
+		
+		if( !$rc  ) {
+			error_exit("Couldn't move team between leagues");
+		}
+		return true;
+	}
+
+	function confirm ( $targetleague, $edit )
+	{
+		$output .= form_hidden('edit[step]', 'perform');
+		$output .= form_hidden('edit[target]', $targetleague->league_id);
+
+		if( $edit['swaptarget'] ) {
+			$target_id = $edit['swaptarget'];
+			$target_team = team_load( array('team_id' => $target_id ) );
+			if( !$target_team ) {
+				error_exit("You must supply a valid target ID");
+			}
+			$output .= form_hidden('edit[swaptarget]', $target_id);
+		}
+		
+		$sourceleague = league_load( array('league_id' => $this->team->league_id));
+		$output .= para( 
+			"You are attempting to move the team <b>" . $this->team->name . "</b> to <b>$targetleague->fullname</b>");
+		if( $target_team ) {
+			$output .= para("This team will be swapped with <b>$target_team->name</b>, which will be moved to <b>$sourceleague->fullname</b>.");
+			$output .= para("Both teams' schedules will be adjusted so that each team faces any opponents the other had been scheduled for");
+		}
+		$output .= para("If this is correct, please click 'Submit' below.");
+		$output .= form_submit("Submit");
+		return form($output);
+	}
+	
+	function choose_swaptarget ( $targetleague )
+	{
+		$output = form_hidden('edit[step]', 'confirm');
+		$output .= form_hidden('edit[target]', $targetleague->league_id);
+		$output .= para("You are attempting to move the team <b>" . $this->team->name . "</b> to <b>$targetleague->fullname</b>.");
+		$output .= para("If chosen, the two teams will be swapped between leagues.  Any future games already scheduled will also be swapped so that each team takes over the existing schedule of the other");
+		
+		$teams = $targetleague->teams_as_array();
+		$teams[0] = "No swap, just move";
+		ksort($teams);
+		reset($teams);
+		
+		$output .= form_select('', 'edit[swaptarget]', '', $teams);
+		$output .= form_submit("Submit");
+		$output .= form_reset("Reset");
+
+		return form($output);
+	}
+	
+	function choose_league ( )
+	{
+		global $session;
+
+		$leagues = array();
+		$leagues[0] = '-- select from list --';
+		if( $session->is_admin() ) { 
+			$result = db_query("SELECT league_id as theKey, IF(tier,CONCAT(name,' Tier ',IF(tier>9,tier,CONCAT('0',tier))), name) as theValue from league ORDER BY season,TheValue,tier");
+			while($row = db_fetch_array($result)) {
+				$leagues[$row['theKey']] = $row['theValue'];	
+			}
+		} else {
+			$leagues[1] = 'Inactive Teams';
+			foreach( $session->user->leagues as $league ) {
+				$leagues[$league->league_id] = $league->fullname;
+			}
+		}
+		
+		$output = form_hidden('edit[step]', 'swaptarget');
+		$output .= 
+			para("You are attempting to move the team <b>" . $this->team->name . "</b>. Select the league you wish to move it to");
+				
+		$output .= form_select('', 'edit[target]', '', $leagues);
+		$output .= form_submit("Submit");
+		$output .= form_reset("Reset");
+
 		return form($output);
 	}
 }
