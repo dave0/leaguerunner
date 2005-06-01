@@ -273,6 +273,23 @@ class Team extends LeaguerunnerObject
 		return ($this->home_games / $this->away_games);
 	}
 
+	/**
+	 * Move team to another league.
+	 */
+	function move_team_to( $league_id, $rank = 0 ) {
+	
+		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $league_id, $rank, $this->team_id, $this->league_id);
+		
+		if( 1 != db_affected_rows() ) {
+			error_exit("Couldn't move team between leagues");
+		}
+		
+		$this->league_id = $league_id;
+		$this->rank = $rank;
+		
+		return true;
+	}
+
 
 	/**
 	 * Swap this team with another team, updating schedules
@@ -290,14 +307,9 @@ class Team extends LeaguerunnerObject
 		$other_league_id = $other->league_id;
 	
 		# Move team to other league
-		$move_query = "UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d";
-		db_query($move_query, $other_league_id, $other_rank, $this->team_id, $this_league_id);
-		$this->league_id = $other_league_id;
-		$this->rank = $other_rank;
+		$this->move_team_to( $other_league_id, $other_rank);
 		
-		db_query($move_query, $this_league_id, $this_rank, $other->team_id, $other_league_id);
-		$other->league_id = $this_league_id;
-		$other->rank = $this_rank;
+		$other->move_team_to( $this_league_id, $this_rank);
 		
 		# Get future games for $this and $other
 		$this_games = game_load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
@@ -320,6 +332,8 @@ class Team extends LeaguerunnerObject
 			}
 			$game->save();
 		}
+
+		return true;
 	}
 }
 

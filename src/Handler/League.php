@@ -775,16 +775,12 @@ class LeagueMoveTeam extends Handler
 		return $session->has_permission('league','manage teams',$this->league->league_id);
 	}
 
-	/**
-	 * TODO: need to implement this so that it allows a choice:
-	 *   1) Move team to another league
-	 *   2) Move team to another league, swapping with anexisting one in that
-	 *   league.
-	 */
 	function process ()
 	{
 		global $session;
 		$this->title = "Move Team";
+
+		$this->setLocation(array( $this->league->fullname => "league/view/" . $this->league->league_id, $this->title => 0));
 
 		$teamId = arg(3);
 	
@@ -794,21 +790,7 @@ class LeagueMoveTeam extends Handler
 		}
 
 		$edit = $_POST['edit'];
-
-		switch($edit['step']) {
-			case 'perform':
-				return $this->perform($edit);
-			case 'confirm':
-				return $this->confirm($edit);
-			case 'swaptarget':
-				return $this->choose_swaptarget($edit);
-			default:
-				return $this->choose_league();
-		}
-		
-		error_exit("Error: This code should never be reached.");
-
-		if( $edit['step'] == 'confirm' || $edit['step'] == 'perform' ) {
+		if( $edit['step'] ) {
 			if($edit['target'] < 1) {
 				error_exit("That is not a valid league to move to");
 			}
@@ -821,48 +803,62 @@ class LeagueMoveTeam extends Handler
 			if( !$this->targetleague ) {
 				error_exit("You must supply a valid league to move to");
 			}
-			
-			switch($edit['step']) {
-				case 'confirm':
-					$rc = $this->generateConfirm();
-					break;
-				case 'perform':
-					$this->perform();
-					local_redirect(url("league/view/" . $this->league->league_id));
-					break;
-				default:
-			}
-		} else {
-				$rc = $this->generateForm();
+		}
+
+		switch($edit['step']) {
+			case 'perform':
+				$this->perform($edit);
+				local_redirect(url("league/view/" . $this->league->league_id));
+			case 'confirm':
+				return $this->confirm($edit);
+			case 'swaptarget':
+				return $this->choose_swaptarget($edit);
+			default:
+				return $this->choose_league();
 		}
 		
-		
-		$this->setLocation(array( $this->league->fullname => "league/view/" . $this->league->league_id, $this->title => 0));
+		error_exit("Error: This code should never be reached.");
 
-		return $rc;
 	}
 	
-	function perform ()
+	function perform ($edit)
 	{
-
-		$this->targetleague->load_teams();
-		$rank = 0;
-		if( $this->targetleague->schedule_type == 'ladder' ) {
-			$rank = count($this->targetleague->teams) + 1;
+		// Permissions already checked in process()
+		$rc = null;
+		if( $edit['swaptarget'] ) {
+			$target_team = team_load( array('team_id' => $edit['swaptarget'] ) );
+			if( !$target_team ) {
+				error_exit("You must supply a valid target ID");
+			}
+			$rc = $this->team->swap_team_with( $target_team );
+		} else {
+			$this->targetleague->load_teams();
+			$rank = 0;
+			if( $this->targetleague->schedule_type == 'ladder' ) {
+				$rank = count($this->targetleague->teams) + 1;
+			}
+			$rc = $this->team->move_team_to( $this->targetleague->league_id,  $rank);
 		}
-	
-		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $this->targetleague->league_id, $rank, $this->team->team_id, $this->league->league_id);
 		
-		if( 1 != db_affected_rows() ) {
+		if( !$rc  ) {
 			error_exit("Couldn't move team between leagues");
 		}
 		return true;
 	}
 
-	function generateConfirm ( )
+	function confirm ( $edit )
 	{
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= form_hidden('edit[target]', $this->targetleague->league_id);
+
+		if( $edit['swaptarget'] ) {
+			$target_id = $edit['swaptarget'];
+			$target_team = team_load( array('team_id' => $target_id ) );
+			if( !$target_team ) {
+				error_exit("You must supply a valid target ID");
+			}
+			$output .= form_hidden('edit[swaptarget]', $target_id);
+		}
 		
 		$output .= para( 
 			"You are attempting to move the team <b>" 
@@ -870,19 +866,50 @@ class LeagueMoveTeam extends Handler
 			. "</b> to <b>" 
 			. $this->targetleague->fullname
 			. "</b>");
+		if( $target_team ) {
+			$output .= para("This team will be swapped with <b>"
+				. $target_team->name
+				. "</b>, which will be moved to <b>"
+				. $this->league->fullname
+				. "</b>.");
+			$output .= para("Both teams' schedules will be adjusted so that each team faces any opponents the other had been scheduled for");
+		}
 		$output .= para("If this is correct, please click 'Submit' below.");
 		$output .= form_submit("Submit");
 		return form($output);
 	}
 	
-	function generateForm ( )
+	function choose_swaptarget ( )
+	{
+		$output = form_hidden('edit[step]', 'confirm');
+		$output .= form_hidden('edit[target]', $this->targetleague->league_id);
+		$output .= para("You are attempting to move the team <b>" 
+				. $this->team->name 
+				. "</b> to <b>" 
+				. $this->targetleague->fullname
+				. "</b>.");
+		$output .= para("If chosen, the two teams will be swapped between leagues.  Any future games already scheduled will also be swapped so that each team takes over the existing schedule of the other");
+		
+		$teams = $this->targetleague->teams_as_array();
+		$teams[0] = "No swap, just move";
+		ksort($teams);
+		reset($teams);
+		
+		$output .= form_select('', 'edit[swaptarget]', '', $teams);
+		$output .= form_submit("Submit");
+		$output .= form_reset("Reset");
+
+		return form($output);
+	}
+	
+	function choose_league ( )
 	{
 		global $session;
 
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
 		if( $session->is_admin() ) { 
-			$result = db_query("SELECT league_id as theKey, IF(tier,CONCAT(name,' Tier ',tier), name) as theValue from league ORDER BY season,name,tier");
+			$result = db_query("SELECT league_id as theKey, IF(tier,CONCAT(name,' Tier ',IF(tier>9,tier,CONCAT('0',tier))), name) as theValue from league ORDER BY season,TheValue,tier");
 			while($row = db_fetch_array($result)) {
 				$leagues[$row['theKey']] = $row['theValue'];	
 			}
@@ -893,7 +920,7 @@ class LeagueMoveTeam extends Handler
 			}
 		}
 		
-		$output = form_hidden('edit[step]', 'confirm');
+		$output = form_hidden('edit[step]', 'swaptarget');
 		$output .= 
 			para("You are attempting to move the team <b>" 
 				. $this->team->name 

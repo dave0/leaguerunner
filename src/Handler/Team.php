@@ -99,6 +99,11 @@ function team_permissions ( &$user, $action, $id, $data_field )
 				return true;
 			}
 			break;
+		case 'move':
+			if( $user->coordinates_league_containing( $id ) ) {
+				return true;
+			}
+			break;
 		case 'statistics':
 			// admin-only
 			break;
@@ -160,6 +165,10 @@ function team_add_to_menu( &$team )
 		
 	if( $session->has_permission('team','delete',$team->team_id)) {
 		menu_add_child($team->name, "$team->name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
+	}
+	
+	if( $session->has_permission('team','move',$team->team_id)) {
+		menu_add_child($team->name, "$team->name/move",'move team', array('weight' => 1, 'link' => "league/moveteam/$team->league_id/$team->team_id"));
 	}
 }
 
