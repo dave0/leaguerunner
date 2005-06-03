@@ -63,7 +63,6 @@ function initMap() {
   /* Note: All XML & XSL files must be on same domain.
   */
   _loadXmlFileFromURL("/leaguerunner/gmaps/allfields", myMapApp);
-  //_loadXmlFileFromURL("/leaguerunner/data/demo2.xml", myMapApp);
 
 }
 
@@ -114,13 +113,40 @@ function _loadXmlFileFromURL(url, mapApp) {
 
 <body onload="initMap()">
 
-<!---->
+<script language="javascript">
+function go(thisd) {
+	var obj = thisd;
+	var x = thisd.options[thisd.selectedIndex].value;
+	showLocationInfo(x);
+}
+</script>
+<form name="form1">
+<table style="border:0px solid black; white-space: nowrap;" cellspacing="0" cellpadding="1" width="200">
+<tr>
+  <td><strong>Select A Field Site:</strong></td>
+  <td>
+    <select name="fields" onChange="javascript:go(this)">
+<?php
+		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.code') );
 
-<!-- Note: Map height always maximum? -->
-<div style="position:absolute;left:5px;top:10px;right:5px;border:solid thin grey;">
-  <div id="container_frb" style="float:right;width:60%;" ></div>
-  <div style="float:left;position:relative;left:10px;width:35%">
-    <div id="toggle" style="position:absolute;top:0px:left:10px;font-family:sans-serif;font-size:smaller;">&nbsp;</div>
+		while( $field = db_fetch_object( $result ) ) {
+			if(!$field->latitude || !$field->longitude) {
+				print "<option value='X'>$field->code - $field->name</option>\n";
+				continue;
+			}
+			print "<option value='$field->fid'>$field->code - $field->name</option>\n";
+		}
+?>
+	</select>
+  </td>
+</tr>
+</table>
+</form>
+<div>
+  <div id="container_frb" style="width:80%;" ></div>
+  <div id="rhs" style="display: none">
+    <div id="toggle" style="font-family:sans-serif;text-align:right;font-size:smaller;border: thin solid lightblue;padding:2px;">&nbsp;</div>
+    <!--<div id="toggle" style="position:absolute;top:0px:left:10px;font-family:sans-serif;font-size:smaller;">&nbsp;</div>-->
     <div style="position:absolute;top:30px;left:5px;">
       <div id="panel" style="height:90%;width:100%;"> </div>
       <div id="metapanel"></div>
@@ -129,8 +155,6 @@ function _loadXmlFileFromURL(url, mapApp) {
     </div>
   </div>
 </div>
-
-<!--
 
 </body>
 </html>
@@ -193,8 +217,6 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 	function process()
 	{
 		$this->render_header();
-		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
-
 		$rating_to_marker = array (
 			'A' => 'markerA.png',
 			'B' => 'markerB.png',
@@ -203,8 +225,10 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 			'' => 'marker.png',
 			'?' => 'marker.png',
 		);
+		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
+
 		while( $field = db_fetch_object( $result ) ) {
-			if($field->location_street == '' || !$field->latitude || !$field->longitude) {
+			if(!$field->latitude || !$field->longitude) {
 				continue;
 			}
 			$location->id = $field->fid;
@@ -217,6 +241,15 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 			$location->image = "http://maps.google.com/mapfiles/" . $rating_to_marker[$field->rating];
 			$this->render_location( $location );
 		}
+	
+		$location = null;
+		$location->id = 'X';
+		$location->name = "Location unavailable for that field";
+		$location->latitude = 45.37037;
+		$location->longitude = -75.694309;
+		$location->image = "http://maps.google.com/mapfiles/markerA.png";
+		$this->render_location( $location );
+		
 		$this->render_footer();
 		exit(); // To prevent header/footer being displayed.
 	}

@@ -1,16 +1,18 @@
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-  <xsl:template match="/">
+  <xsl:template match="overlay">
+    <table>
+    <tr><td class='label' style='text-align: left; border-bottom: 1px solid blue'>Field Sites</td></tr>
     <xsl:apply-templates select="location"/>
+    </table>
   </xsl:template>
   
   <xsl:template match="location">
-  <table>
     <tr style="cursor:pointer" onclick="showLocationInfo(this.id)">
     <xsl:attribute name="id">
       <xsl:value-of select="@id"/>
     </xsl:attribute>
-    <td style="padding-bottom: 0.5em; padding-top: 1px; padding-left: 4px">
+    <td>
     <xsl:if test="info/title">
       <xsl:attribute name="class">label</xsl:attribute>
       <div>
@@ -30,7 +32,6 @@
     </xsl:if>
     </td>
     </tr>
-  </table>
   </xsl:template>
   
 </xsl:stylesheet>
