@@ -194,7 +194,6 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 
 	function render_location( $location )
 	{
- #  <location infoStyle="http://maps.google.com/maps?file=lp&amp;hl=en">
 ?>
    <location infoStyle="/leaguerunner/data/fields-geocodeinfo.xsl" id="<?php print $location->id ?>">
 	  <point lat="<?php print $location->latitude ?>" lng="<?php print $location->longitude ?>" />
@@ -217,14 +216,6 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 	function process()
 	{
 		$this->render_header();
-		$rating_to_marker = array (
-			'A' => 'markerA.png',
-			'B' => 'markerB.png',
-			'C' => 'markerC.png',
-			'D' => 'markerD.png',
-			'' => 'marker.png',
-			'?' => 'marker.png',
-		);
 		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
 
 		while( $field = db_fetch_object( $result ) ) {
@@ -238,7 +229,7 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 			$location->province = $field->location_province;
 			$location->latitude = $field->latitude;
 			$location->longitude = $field->longitude;
-			$location->image = "http://maps.google.com/mapfiles/" . $rating_to_marker[$field->rating];
+			$location->image = "/leaguerunner/image/pins/$field->code.png";
 			$this->render_location( $location );
 		}
 	
@@ -247,7 +238,7 @@ xml version="1.0" encoding="ISO-8859-1" ?>
 		$location->name = "Location unavailable for that field";
 		$location->latitude = 45.37037;
 		$location->longitude = -75.694309;
-		$location->image = "http://maps.google.com/mapfiles/markerA.png";
+		$location->image = "/leaguerunner/image/pins/XXX.png";
 		$this->render_location( $location );
 		
 		$this->render_footer();
