@@ -1310,6 +1310,14 @@ class TeamSpirit extends Handler
 			if( !$entry ) {
 				continue;
 			}
+			
+			if( !$num_games ) {
+				$header[] = "Score";
+			}
+			$numeric = $game->get_spirit_numeric( $this->team->team_id);
+			$thisrow[] = sprintf("%.2f",$numeric);
+			$score_total += $numeric;
+
 			while( list($qkey,$answer) = each($entry) ) {
 
 				if( !$num_games ) {
@@ -1343,15 +1351,22 @@ class TeamSpirit extends Handler
 
 			$rows[] = $thisrow;
 		}
+
+		if( !$num_games ) {
+			error_exit("No games played, cannot display spirit");
+		}
 	
 		$thisrow = array();
 		if( $session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
 			$thisrow = array(
-				"Total","-","-"
+				"Average","-","-"
 			);
 		} else if ($num_games < 3) {
 			return "Spirit summary available after 3 games";
 		}
+
+		$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / $num_games);
