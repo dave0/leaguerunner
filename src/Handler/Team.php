@@ -591,7 +591,7 @@ class TeamMove extends Handler
 		$output = form_hidden('edit[step]', 'confirm');
 		$output .= form_hidden('edit[target]', $targetleague->league_id);
 		$output .= para("You are attempting to move the team <b>" . $this->team->name . "</b> to <b>$targetleague->fullname</b>.");
-		$output .= para("If chosen, the two teams will be swapped between leagues.  Any future games already scheduled will also be swapped so that each team takes over the existing schedule of the other");
+		$output .= para("Using the list below, you may select a team to replace this one with. If chosen, the two teams will be swapped between leagues.  Any future games already scheduled will also be swapped so that each team takes over the existing schedule of the other");
 		
 		$teams = $targetleague->teams_as_array();
 		$teams[0] = "No swap, just move";
