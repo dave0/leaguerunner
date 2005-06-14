@@ -1180,7 +1180,7 @@ class TeamSchedule extends Handler
 				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
 					$game_score = "$entered->score_for - $entered->score_against";
-				} else if($session->has_permission('game','submit score', $game) 
+				} else if($session->has_permission('game','submit score', $game, $this->team) 
 				    && ($game->timestamp < time()) ) {
 						$score_type = l("submit score", "game/submitscore/$game->game_id/" . $this->team->team_id);
 				} else {
