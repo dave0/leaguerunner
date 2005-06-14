@@ -56,10 +56,14 @@ function game_permissions ( &$user, $action, &$game, $extra )
 	switch($action)
 	{
 		case 'submit score':
-			if($extra && $user->is_captain_of($extra->team_id)) {
-				// If we have a specific team in mind, this user must be a
-				// captain.
-				return true;
+			if($extra) {
+				if( $user->is_captain_of($extra->team_id)) {
+					// If we have a specific team in mind, this user must be a
+					// captain to submit
+					return true;
+				} else {
+					return false;
+				}
 			}
 			if( $user->is_captain_of( $game->home_team )
 			    || $user->is_captain_of($game->away_team )) {
@@ -102,10 +106,21 @@ function game_splash ()
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
 		$score = '';
-		if( $game->home_score || $game->away_score ) { 
+		if( $game->is_finalized() ) {
 			$score = "$game->home_score - $game->away_score"	;
-		} else if ( $row->status == 'captain' || $row->status == 'assistant') {
-			$score = l('enter score', "game/submitscore/$game->game_id/$row->team_id");
+		} else {
+			/* Not finalized yet, so we will either:
+			 *   - display entered score if present
+			 *   - display score entry link if game date has passed
+			 *   - display a blank otherwise
+			 */
+			$entered = $game->get_score_entry( $row->team_id );
+			if($entered) {
+				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
+			} else if($session->has_permission('game','submit score', $game, $row->team_id) 
+			    && ($game->timestamp < time()) ) {
+					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
+			}
 		}
 		array_unshift($rows, array( 
 			l("$game->game_date $game->game_start-$game->game_end","game/view/$game->game_id"),
@@ -120,8 +135,21 @@ function game_splash ()
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
 		$score = '';
-		if($game->timestamp < $timeNow && ( $row->status == 'captain' || $row->status == 'assistant')) {
-			$score = l('enter score', "game/submitscore/$game->game_id/$row->team_id");
+		if( $game->is_finalized() ) {
+			$score = "$game->home_score - $game->away_score"	;
+		} else {
+			/* Not finalized yet, so we will either:
+			 *   - display entered score if present
+			 *   - display score entry link if game date has passed
+			 *   - display a blank otherwise
+			 */
+			$entered = $game->get_score_entry( $row->team_id );
+			if($entered) {
+				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
+			} else if($session->has_permission('game','submit score', $game, $row->team_id) 
+			    && ($game->timestamp < time()) ) {
+					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
+			}
 		}
 		$rows[] = array( 
 			l("$game->game_date $game->game_start-$game->game_end","game/view/$game->game_id"),
@@ -148,7 +176,7 @@ function game_add_to_menu( &$league, &$game )
 
 	if( $session->has_permission('league','edit game', $game->league_id) ) {
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
-		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
+#		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
 	}
 }
 
