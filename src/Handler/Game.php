@@ -117,7 +117,7 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($session->has_permission('game','submit score', $game, $row->team_id) 
+			} else if($session->has_permission('game','submit score', $game) 
 			    && ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
@@ -146,7 +146,7 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($session->has_permission('game','submit score', $game, $row->team_id) 
+			} else if($session->has_permission('game','submit score', $game) 
 			    && ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
