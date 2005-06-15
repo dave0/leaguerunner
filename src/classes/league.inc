@@ -628,6 +628,7 @@ class League extends LeaguerunnerObject
 			$this->teams[$id]->vs = array();
 			$this->teams[$id]->streak = array();
 		}
+		reset($this->teams);
 
 		$season = $this->teams;
 		if( $current_round ) {
@@ -645,11 +646,12 @@ class League extends LeaguerunnerObject
 				h.name AS home_name, 
 				s.away_team AS away_id,
 				a.name AS away_name
-			FROM schedule s, leagueteams t
+			FROM schedule s, leagueteams t, gameslot g
 			LEFT JOIN team h ON (h.team_id = s.home_team) 
 			LEFT JOIN team a ON (a.team_id = s.away_team)
 			WHERE t.league_id = %d 
-				AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY s.game_id", $this->league_id);
+				AND g.game_id = s.game_id
+				AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY g.game_date", $this->league_id);
 		while( $ary = db_fetch_array( $result) ) {
 			$g = new Game;
 			$g->load_from_query_result($ary);
