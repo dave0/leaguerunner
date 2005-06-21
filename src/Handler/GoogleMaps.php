@@ -56,7 +56,7 @@ function initMap() {
 				  document.getElementById("metapanel"),
 				  document.getElementById("permalink"),
 				  document.getElementById("toggle"),
-				  document.getElementById("printheader"));
+				  document.getElementById("printheader"), createMapSpecs());
 				  
   myMapApp.loadMap();
 
@@ -66,7 +66,7 @@ function initMap() {
 
 }
 
-t.dump = function(a) {alert(a);} //debugging
+// t.dump = function(a) {alert(a);} //debugging
 
 function _loadXmlFileFromURL(url, mapApp) {
     //
@@ -150,7 +150,7 @@ function go(thisd) {
     <div style="position:absolute;top:30px;left:5px;">
       <div id="panel" style="height:90%;width:100%;"> </div>
       <div id="metapanel"></div>
-      <div id="permalink"></div>
+      <a id="permalink"></a>
       <div id="printheader"></div>
     </div>
   </div>
