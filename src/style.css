@@ -42,6 +42,14 @@ fieldset {
 	border-bottom: 1px solid black;
 }
 
+tr.light {
+	background-color: white;
+}
+
+tr.dark {
+	background-color: lightblue;
+}
+
 .listtable .highlight { background-color: lightgreen; }
 
 .listtable .roster_conflict {

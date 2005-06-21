@@ -30,6 +30,9 @@ function league_dispatch()
 		case 'member':
 			$obj = new LeagueMemberStatus;
 			break;
+		case 'spirit':
+			$obj = new LeagueSpirit;
+			break;
 		default:
 			return null;
 	}
@@ -121,6 +124,9 @@ function league_add_to_menu( &$league, $parent = 'league' )
 	}
 	if($session->has_permission('league','view', $league->league_id, 'captain emails') ) {
 		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
+	}
+	if($session->has_permission('league','view', $league->league_id, 'spirit') ) {
+		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
 	}
 	if($session->has_permission('league','create') ) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
@@ -888,6 +894,130 @@ class LeagueMemberStatus extends Handler
 		}
 		
 		local_redirect(url("league/view/" . $this->league->league_id));
+	}
+}
+
+class LeagueSpirit extends Handler
+{
+	function has_permission ()
+	{
+		global $session;
+		return $session->has_permission('league','view', $this->league->league_id, 'spirit');
+	}
+
+	function process ()
+	{
+		global $session;
+		$this->title = "League Spirit";
+		
+		$this->setLocation(array(
+			$this->league->fullname => "league/spirit/". $this->league->league_id,
+			$this->title => 0));
+
+		/*
+		 * Grab schedule info 
+		 */
+		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
+
+		if( !is_array($games) ) {
+			error_exit("There are no games scheduled for this leageu");
+		}
+
+		$header = array( "Game", "Entry By", "Given To");
+		$rows = array();
+
+		$answer_values = array();
+		$result = db_query("SELECT akey, value FROM multiplechoice_answers");
+		while( $ary = db_fetch_array($result) ) {
+			$answer_values[ $ary['akey'] ] = $ary['value'];
+		}
+
+		$question_sums = array();
+		$num_games = 0;
+
+		while(list(,$game) = each($games)) {
+		
+			$teams = array( $game->home_team => $game->home_name, $game->away_team => $game->away_name);
+			while( list($giver,$giver_name) = each ($teams)) {
+
+				$recipient = $game->get_opponent_id ($giver);
+				$recipient_name = $teams[$recipient];
+			
+				# Fetch spirit answers for games
+				$entry = $game->get_spirit_entry( $recipient );
+				if( !$entry ) {
+					continue;
+				}
+				$thisrow = array(
+					
+					l($game->game_id, "game/view/$game->game_id")
+					   . " " .  strftime('%a %b %d %Y', $game->timestamp),
+					l($giver_name, "team/view/$giver"),
+					l($recipient_name, "team/view/$recipient")
+				);
+			
+				if( !$num_games ) {
+					$header[] = "Score";
+				}
+				$numeric = $game->get_spirit_numeric( $recipient );
+				$thisrow[] = sprintf("%.2f",$numeric);
+				$score_total += $numeric;
+
+				while( list($qkey,$answer) = each($entry) ) {
+
+					if( !$num_games ) {
+						$header[] = $qkey;
+					}
+					if( $qkey == 'CommentsToCoordinator' ) {
+						$thisrow[] = $answer;
+						continue;
+					}
+					switch( $answer_values[$answer] ) {
+						case -2:
+							$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+							break;
+						case -1:
+							$thisrow[] = "-";
+							break;
+						case 0:
+							$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+							break;
+						default:
+							$thisrow[] = "?";
+					}
+					$question_sums[ $qkey ] += $answer_values[ $answer ];
+				}
+
+				$num_games++;
+
+				$rows[] = $thisrow;
+			}
+		}
+
+		if( !$num_games ) {
+			error_exit("No games played, cannot display spirit");
+		}
+	
+		$thisrow = array(
+			"Tier Avg","-","-"
+		);
+
+		$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+
+		reset($question_sums);
+		foreach( $question_sums as $qkey => $answer) {
+			$avg = ($answer / $num_games);
+			if( $avg < -1.5 ) {
+				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+			} else if ( $avg < -0.5 ) {
+				$thisrow[] = "-";
+			} else {
+				$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+			}
+		}
+		$rows[] = $thisrow;
+
+		return "<style>#main table td { font-size: 80% } </style>" . table($header,$rows, array('alternate-colours' => true) );
 	}
 }
 

@@ -564,15 +564,17 @@ class Game extends LeaguerunnerObject
 		}
 		$result = db_query("SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = %d ORDER BY a.tid,q.sorder", $this->game_id);
 		while( $row = db_fetch_array( $result ) ) {
-			$got_something = 1;
+			$got[$row['tid']] = 1;
 			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
 
 		// Evil hack.  Previous release didn't properly fill in this 
 		// field, so here we append an empty string to it so that it
 		// exists if not populated.
-		if( $got_something) { 
+		if( $got[$this->home_id]) { 
 			$this->_spirit_entries[ $this->home_id ]['CommentsToCoordinator'] .= '';
+		} 
+		if( $got[$this->away_id] ) {
 			$this->_spirit_entries[ $this->away_id ]['CommentsToCoordinator'] .= '';
 		}
 
