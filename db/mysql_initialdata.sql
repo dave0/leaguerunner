@@ -89,7 +89,7 @@ INSERT INTO multiplechoice_answers VALUES(
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
 	'Enjoyment',
 	'team_spirit',
-	'Did your team enjoy playing against your opponents?',
+	'Ignoring the score, did your team think the other team played in a spirited way?',
 	'multiplechoice',
 	3);
 INSERT INTO multiplechoice_answers VALUES(
@@ -114,7 +114,7 @@ INSERT INTO multiplechoice_answers VALUES(
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
 	'GameOverall',
 	'team_spirit',
-	'Overall, this was',
+	'From a spirit perspective, this was',
 	'multiplechoice',
 	4);
 INSERT INTO multiplechoice_answers VALUES(
