@@ -152,6 +152,35 @@ class Game extends LeaguerunnerObject
 			error_exit("That league does not exist");
 		}
 
+		if($league->schedule_type == "pyramid") {
+			// Figure out winner and loser.
+			$winlose = $this->calculate_winner_loser();
+			$winnerTeamId = $winlose['winner'];
+			$loserTeamId  = $winlose['loser'];
+
+			// Pyramid allows for ties.  If there is a tie then just return
+			if ($this->home_score == $this->away_score) {
+				return true;
+			}
+
+			// Update the ranks of these two teams only.  Winner goes up one, loser goes down one
+			$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
+				$league->league_id, $winnerTeamId);
+			$row = db_fetch_array( $pyramidResult );
+			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
+				$row['rank']-1, $league->league_id, $winnerTeamId);
+
+			$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
+				$league->league_id, $loserTeamId);
+			$row = db_fetch_array( $pyramidResult );
+			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
+				$row['rank']+1, $league->league_id, $loserTeamId);
+
+			// Return true which is ok.  We don't need to update the other
+			// teams for pyramid
+			return true;
+		}
+
 		// Just fail out with everthing being good if this isn't a ladder
 		// league.
 		if($league->schedule_type != "ladder") {

@@ -287,7 +287,7 @@ class ScheduleEdit extends Handler
 			reset($game_info);
 
 			$slot = slot_load( array('slot_id' => $game_info['slot_id']) );
-			if ($this->league->schedule_type == "ladder") {
+			if ($this->league->schedule_type == "ladder" || $this->league->schedule_type == "pyramid") {
 				$rows[] = array(
 					form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 					$game_info['round_text'],
@@ -325,7 +325,7 @@ class ScheduleEdit extends Handler
 				error_exit("Attempted to edit game info for a nonexistant game!");
 			}
 
-			if ($this->league->schedule_type != "ladder") {
+			if ($this->league->schedule_type != "ladder" && $this->league->schedule_type != "pyramid") {
 				$game->set('round', $game_info['round']);
 				$game->set('home_team', $game_info['home_id']);
 				$game->set('away_team', $game_info['away_id']);
@@ -458,7 +458,7 @@ function schedule_render_editable( &$game, &$league )
 	$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
 
 	// but, if this league is a ladder league, we don't want to make everything editable!
-	if ($league->schedule_type == "ladder") {
+	if ($league->schedule_type == "ladder" || $league->schedule_type == 'pyramid') {
 		$form_round = $game->round;
 		if ($game->home_name) {
 			$form_home = $game->home_name;

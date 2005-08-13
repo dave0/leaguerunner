@@ -556,7 +556,12 @@ class TeamMove extends Handler
 		if( $target_team ) {
 			$rc = $this->team->swap_team_with( $target_team );
 		} else {
-			$rc = $this->team->move_team_to( $targetleague->league_id );
+         $newrank = 0;
+         if ($targetleague->schedule_type == 'pyramid') {
+            // Default rank for pyramid league!
+            $newrank = 1000;
+         }
+			$rc = $this->team->move_team_to( $targetleague->league_id, $newrank );
 		}
 		
 		if( !$rc  ) {

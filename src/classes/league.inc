@@ -609,6 +609,7 @@ class League extends LeaguerunnerObject
 
 	
 		$this->load_teams();
+		$this->sanitize_ranks();
 
 		if( count($this->teams) < 1 ) {
 			error_exit("Cannot generate standings for a league with no teams");
@@ -628,7 +629,6 @@ class League extends LeaguerunnerObject
 			$this->teams[$id]->vs = array();
 			$this->teams[$id]->streak = array();
 		}
-		reset($this->teams);
 
 		$season = $this->teams;
 		if( $current_round ) {
@@ -646,12 +646,11 @@ class League extends LeaguerunnerObject
 				h.name AS home_name, 
 				s.away_team AS away_id,
 				a.name AS away_name
-			FROM schedule s, leagueteams t, gameslot g
+			FROM schedule s, leagueteams t
 			LEFT JOIN team h ON (h.team_id = s.home_team) 
 			LEFT JOIN team a ON (a.team_id = s.away_team)
 			WHERE t.league_id = %d 
-				AND g.game_id = s.game_id
-				AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY g.game_date", $this->league_id);
+				AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY s.game_id", $this->league_id);
 		while( $ary = db_fetch_array( $result) ) {
 			$g = new Game;
 			$g->load_from_query_result($ary);
@@ -677,7 +676,7 @@ class League extends LeaguerunnerObject
 		}
 		
 		// Now, sort it all
-		if ($this->schedule_type == "ladder") {
+      if ($this->schedule_type == "ladder" || $this->schedule_type == "pyramid") {
 			uasort($season, array($this, 'standings_sort_ladder'));	
 
 			$sorted_order = &$season;
@@ -780,13 +779,23 @@ class League extends LeaguerunnerObject
 		}
 	}
 	
-	function standings_sort_ladder (&$a, &$b) 
-	{
-		if ($a->rank == $b->rank) {
-			return 0;
-		}
-		return ($a->rank < $b->rank) ? -1 : 1;
-	}
+   function standings_sort_ladder (&$a, &$b) 
+   {
+      /* Check Rank */
+      if ($a->rank != $b->rank) {
+         return ($a->rank < $b->rank) ? -1 : 1;
+      }
+   
+      /* Check SOTG */
+      if($a->games > 0 && $b->games > 0) {
+         if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
+            return -1;
+         } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
+            return 1;
+         }
+      }
+      return 0;
+   }
 
 	function standings_sort_bywinloss (&$a, &$b) 
 	{
@@ -895,6 +904,41 @@ class League extends LeaguerunnerObject
 		return array(true,'');
 	}
 	
+
+	/*
+	 * Create a scheduled set of games for this league
+	 */
+	function create_scheduled_set_pyramid( $datestamp ) 
+	{
+		if ( ! $this->load_teams() ) {
+			return(array(false, "Couldn't load team information"));
+		}
+		
+		$num_teams = count($this->teams);
+
+		if($num_teams < 2) {
+			# need at least two teams
+			return array(false, "Must have two teams");
+		}
+		
+		if($num_teams % 2) {
+			# Need even number
+			return array(false, "Must have even number of teams");
+		}
+		
+		$rollback_list = array();
+
+		# sort team's so that pyramid scheme can work properly
+      $teams = array();
+      list($team_ids, $junk, $morejunk) = $this->calculate_standings();
+      foreach($team_ids as $id) {
+         array_push($teams, $this->teams[$id]);
+      }
+
+		return $this->schedule_one_set_pyramid( $teams, $datestamp );
+	}
+
+
 	/*
 	 * Create a scheduled set of games for this league
 	 */
@@ -1033,6 +1077,189 @@ class League extends LeaguerunnerObject
 		return array(true,'');
 	}
 	
+
+   /**
+    * This does the actual work of scheduling a one set pyramid set of games.
+    * However it has some problems where it may not properly schedule all
+    * the games.  If it runs into problems then we use the wrapper
+    * function that calls this one to retry it.
+    * If any problems are found then this function rolls back it's changes.
+    */
+    function schedule_one_set_pyramid_try( $teams,
+                                          $datestamp,
+                                          $games_before_repeat
+                                        )
+    {
+      $rollback_list = array();
+
+      $versus_team1 = array();
+      $versus_team2 = array();
+      $matched_teams = array();
+
+      // create a copy of the teams, split up into rungs of the ladder...
+      $rungs = array();
+      $last_rank = null;
+      $temp_array = array();
+      foreach ($teams as $team) {
+         if ($last_rank != null && $team->rank != $last_rank) {
+            // done with one rung of the ladder
+            $rungs[$last_rank] = $temp_array;
+            $temp_array = array();
+         }
+         $last_rank = $team->rank;
+         $temp_array[] = $team;
+      }
+      $rungs[$last_rank] = $temp_array;
+      $temp_array = array();
+      $last_rung = $last_rank;
+
+      // ASSUMPTION: the array of teams is already ordered.
+      // now, loop through the teams
+      while ($teams) {
+         // get the current team to work on:
+         $team = array_shift($teams);
+         // gotta load this team's games to see who they've played recently...
+         $past_games = game_load_many( array( 'either_team' => $team->team_id,
+                                              '_order' => 'g.game_date') );
+         if ($past_games == null)
+            $past_games = array();
+         // make the most recent game first in the array:
+         $past_games = array_reverse($past_games);
+
+         // now, loop through the past_games array to find the most recent teams
+         $recent_teams = array();
+         foreach ($past_games as $game) {
+            if ($game->home_team != $team->team_id) {
+               $recent_teams[] = $game->home_team;
+            } else {
+               $recent_teams[] = $game->away_team;
+            }
+            if (count($recent_teams) == $games_before_repeat) {
+               break; // We don't need or want more than the most recent ones
+            }
+         }
+
+         // now that we know who they've played recently, let's find the next opponent
+         $opponent = null;
+         $current_rung = $team->rank;
+         while ($opponent == null) {
+            if ($current_rung > $last_rung) {
+               // We've gone too far and can't find a match.  Roll back
+               // Everything and return false so that this can be retried
+               return array(false, "REPEAT");
+            }
+            $possible_opponents = null;
+            // if there's only one team left, no choice but to match them...
+            $possible_opponents = $rungs[$current_rung];
+            if ( $possible_opponents == null || count($possible_opponents) == 0 ) {
+               $current_rung++;
+               continue;
+            }
+            // randomize all teams inside that rung
+            shuffle($possible_opponents);
+            foreach ($possible_opponents as $opponent_team) {
+               // can't play yourself...
+               if ($opponent_team->team_id == $team->team_id) {
+                  continue;
+               }
+               // did you recently play this team?
+               else if ( in_array($opponent_team->team_id, $recent_teams) ) {
+                  continue;
+               }
+               // is this team already playing?
+               else if ( in_array($opponent_team->team_id, $matched_teams) ) {
+                  continue;
+               }
+               $opponent = $opponent_team;
+
+               // Now that we've got the opponent, they need to be removed
+               // from their rung so they don't get matchd up again.
+               $matched_teams[] = $opponent->team_id;
+               $matched_teams[] = $team->team_id;
+               break;
+            }
+            $current_rung++;
+         }
+
+         // take the opponent out of the $teams array
+         $tmp_teams = array();
+         foreach($teams as $key=>$thisteam) {
+            if ($thisteam->team_id != $opponent->team_id) {
+               $tmp_teams[$key] = $thisteam;
+            }
+         }
+         $teams = $tmp_teams;
+
+         // Create the matchup
+         $versus_team1[] = $team;
+         $versus_team2[] = $opponent;
+      }
+
+      // now, you have the matchups, we can create the games
+      for ($i = 0; $i < count($versus_team1); $i++) {
+         $team = $versus_team1[$i];
+         $opponent = $versus_team2[$i];
+
+         $g = new Game;
+         $g->set('league_id', $this->league_id);
+         $g->add_teams_balanced( $team, $opponent );
+         if ( ! $g->save() ) {
+            foreach( $rollback_list as $to_rollback ) {
+               if( ! $to_rollback->delete() ) {
+                  $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+               }
+            }
+            return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Balanced.$extra_errors");
+         }
+         $rollback_list[] = $g;
+
+         list($rc, $message) = $g->select_weighted_gameslot($datestamp);
+         if( ! $rc ) {
+            // something failed, so roll back the whole pile of games
+            foreach( $rollback_list as $to_rollback ) {
+               if( ! $to_rollback->delete() ) {
+                  $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+               }
+            }
+            return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Gameslot.$extra_errors");
+         }
+      }
+      return array(true,'');
+	}
+
+	/**
+	 * Schedule one set of games using the pyramid scheme!
+	 */
+	function schedule_one_set_pyramid( $teams, $datestamp )
+	{
+      $games_before_repeat = $this->games_before_repeat;
+      $min_games_before_repeat = 0;
+      $max_retries = $this->schedule_attempts;
+      $ret = null;
+
+      $i = $games_before_repeat; // make these global to the function
+
+      for ($i = $games_before_repeat; $i > $min_games_before_repeat; $i--) {
+         for ($j = 0; $j < $max_retries; $j++) {
+            /*
+            * if we get back "REPEAT" then we can try again because it didn't work
+            * in finding a set of matches for everyone given the paramters we gave it.
+            * After a while we lower our requirements and try again.  The randomizing
+            * inside this function will make it work sometimes and fail others, but
+            * eventually we'll get a good matchup.
+            */
+            $ret = $this->schedule_one_set_pyramid_try( $teams, $datestamp, $i);
+            if ($ret[0] == false && $ret[1] == "REPEAT") {
+               continue;
+            }
+            else {
+               return $ret;
+            }
+         }
+      }
+      $ret[1] = "Unable to find matches.  You can try again.";
+      return $ret;
+   }
 	
 	/**
 	 * Schedule one set of games, using weighted field assignment
@@ -1075,6 +1302,37 @@ class League extends LeaguerunnerObject
 		return array(true,'');
 	}
 
+   function sort_league_teams () {
+      $this->load_teams();
+      if ($this->schedule_type == 'ladder' || $this->schedule_type == 'pyramid') {
+         uasort($this->teams, array($this, 'standings_sort_ladder'));	
+      } else {
+         uasort($this->teams, array($this, 'standings_sort_bywinloss'));	
+      }
+   }
+
+   function sanitize_ranks() {
+      if ($this->schedule_type != 'pyramid') {
+         return;
+      }
+      $this->sort_league_teams();
+      $teams = $this->teams;
+      $first_rank = null;
+      $rank_sanitizer = 0;
+      $tmp_teams = array();
+      foreach ($teams as $key => $team) {
+         if ($first_rank == null) {
+            $first_rank = $team->rank;
+            $rank_sanitizer = $first_rank - 1;
+         }
+         $team->rank = $team->rank - $rank_sanitizer;
+         $tmp_teams[$key] = $team;
+      }
+      $this->teams = $tmp_teams;
+
+      return;
+   }
+   
 }
 
 function league_query( $array = array() )

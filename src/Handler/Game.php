@@ -264,6 +264,12 @@ class GameCreate extends Handler
 					unset($this->types['halfroundrating']);
 				}
 				break;
+         case 'pyramid':
+            $this->types = array(
+               'oneset_pyramid' => "set of pyramid scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
+            );
+            break;
+
 			default:
 				error_exit("Wassamattayou!");
 				break;
@@ -316,6 +322,7 @@ class GameCreate extends Handler
 				$num_dates = 1;
 				break;
 			case 'oneset':
+         case 'oneset_pyramid':
 			case 'blankset':
 				$num_dates = 1;
 				$num_fields = ($num_teams / 2);
@@ -364,6 +371,7 @@ class GameCreate extends Handler
 		switch($edit['type']) {
 			case 'single':
 			case 'oneset':
+         case 'oneset_pyramid':
 			case 'blankset':
 			case 'fullround':
 			case 'halfroundstandings':
@@ -408,6 +416,10 @@ class GameCreate extends Handler
 				# Create game for all teams in tier
 				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'] ) ;
 				break;
+         case 'oneset_pyramid':
+            # Create game for all teams in league
+            list( $rc, $message) = $this->league->create_scheduled_set_pyramid( $edit['startdate'] ) ;
+            break;
 			case 'fullround':
 				# Create full roundrobin
 				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'] );
