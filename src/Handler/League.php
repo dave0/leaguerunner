@@ -339,7 +339,7 @@ class LeagueEdit extends Handler
 			form_select("", "edit[games_before_repeat]", $formData['games_before_repeat'], getOptionsFromRange(0,5), "The number of games before two teams can be scheduled to play each other again (FOR PYRAMID LADDER SCHEDULING ONLY)."));
 
 		$rows[] = array(" Pyramid - Scheduling Attempts:",
-			form_select("", "edit[schedule_attempts]", $formData['schedule_attempts'], getOptionsFromRange(1,500), "The number of attempts to make at scheduling a set of pyramid games while enforcing the Games Before Repeat restriction. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
+			form_select("", "edit[schedule_attempts]", $formData['schedule_attempts'], getOptionsFromRange(100,500), "The number of attempts to make at scheduling a set of pyramid games while enforcing the Games Before Repeat restriction. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
 
          /*
 		$rows[] = array(" Pyramid - Relax Repeat Restriction:",
