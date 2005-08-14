@@ -109,7 +109,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
-	if($league->schedule_type == 'roundrobin') {
+   if($league->schedule_type != 'none') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
 		if($session->has_permission('league','add game', $league->league_id) ) {
