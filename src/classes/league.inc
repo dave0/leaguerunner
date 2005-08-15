@@ -1315,18 +1315,34 @@ class League extends LeaguerunnerObject
       if ($this->schedule_type != 'pyramid') {
          return;
       }
+
+      // Set doskips=true if you want things like:  1, 2, 2, 2, 5, 6, 6, 8...
+      // Set doskips=false if you want it like:     1, 2, 2, 2, 3, 4, 4, 5...
+      $doskips = false;
+
       $this->sort_league_teams();
       $teams = $this->teams;
-      $first_rank = null;
-      $rank_sanitizer = 0;
+      $unsanitized_rank = null;
+      $current_rank = 1;
       $tmp_teams = array();
+      $countskips = 0;
       foreach ($teams as $key => $team) {
-         if ($first_rank == null) {
-            $first_rank = $team->rank;
-            $rank_sanitizer = $first_rank - 1;
+         if ($unsanitized_rank == null) {
+            $unsanitized_rank = $team->rank;
          }
-         $team->rank = $team->rank - $rank_sanitizer;
+         if ($team->rank != $unsanitized_rank) {
+            $unsanitized_rank = $team->rank;
+            if ($doskips) {
+               $current_rank = $current_rank + $countskips;
+            } else {
+               $current_rank++;
+            }
+            $countskips = 0;
+         }
+         // make the rank a "normal" number:  1, 2, 3... 
+         $team->rank = $current_rank;
          $tmp_teams[$key] = $team;
+         $countskips++;
       }
       $this->teams = $tmp_teams;
 
