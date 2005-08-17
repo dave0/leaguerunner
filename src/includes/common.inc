@@ -10,6 +10,7 @@
  */
 function local_redirect($url) 
 {
+    global $headers_sent;
     $url = str_replace("&amp;", "&", $url);
 	if(preg_match("/^(http|ftp|mailto):/", $url) > 0) {
 		$url = $url;
@@ -17,14 +18,29 @@ function local_redirect($url)
 		$url = url($url);
 	}
 
-    header("Location: $url");
+    if ($headers_sent == 0) {
+        header("Location: $url");
 
-    /*
-     * The "Location" header sends a REDIRECT status code to the http
-     * daemon.  In some cases this can go wrong, so we make sure none of
-     * the code /below/ gets executed when we redirect.
-     */
-    exit();
+        /*
+        * The "Location" header sends a REDIRECT status code to the http
+        * daemon.  In some cases this can go wrong, so we make sure none of
+        * the code /below/ gets executed when we redirect.
+        */
+        exit();
+    }
+    else {
+        print "<html><body>";
+        print "<center>";
+        print "Your results are ready.  Please click the following link if you're not taken there ";
+        print "automatically.<br>";
+        print "<a href=\"$url\">$url</a>";
+        print "</center>";
+        print "<script language=\"javascript\">";
+        print "setTimeout('location.href=\"$url\"', 2000);";  // Redirect them in 2 seconds
+        print "</script>";
+        print "</body></html>";
+        exit();
+    }
 }
 
 function valid_input_data($data) {

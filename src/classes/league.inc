@@ -1173,7 +1173,7 @@ class League extends LeaguerunnerObject
                $opponent = $opponent_team;
 
                // Now that we've got the opponent, they need to be removed
-               // from their rung so they don't get matchd up again.
+               // from their rung so they don't get matched up again.
                $matched_teams[] = $opponent->team_id;
                $matched_teams[] = $team->team_id;
                break;
@@ -1193,6 +1193,7 @@ class League extends LeaguerunnerObject
          // Create the matchup
          $versus_team1[] = $team;
          $versus_team2[] = $opponent;
+         //print "Found Matchup: ". $team->team_id . "vs." . $opponent->team_id ."<br>";
       }
 
       // now, you have the matchups, we can create the games
@@ -1232,14 +1233,23 @@ class League extends LeaguerunnerObject
 	 */
 	function schedule_one_set_pyramid( $teams, $datestamp )
 	{
+      global $headers_sent;
+      $headers_sent= 1;
+      ob_start();
       $games_before_repeat = $this->games_before_repeat;
       $min_games_before_repeat = 0;
       $max_retries = $this->schedule_attempts;
       $ret = null;
 
+      print "<html><body><h1>Processing your request</h1>\n";
+      print "<h2>Scheduling games using the Pyramid Ladder scheduler</h2>\n";
+      print "<b>Please be patient as this may take a few minutes.  Don't close ";
+      print "your browser or go to a different page until it is finished</b>";
+
       $i = $games_before_repeat; // make these global to the function
 
       for ($i = $games_before_repeat; $i > $min_games_before_repeat; $i--) {
+         echo "<p>Games before repeat = $i.  Calculating...";
          for ($j = 0; $j < $max_retries; $j++) {
             /*
             * if we get back "REPEAT" then we can try again because it didn't work
@@ -1248,16 +1258,30 @@ class League extends LeaguerunnerObject
             * inside this function will make it work sometimes and fail others, but
             * eventually we'll get a good matchup.
             */
+            set_time_limit(30); // Give this one call 30 seconds to return
             $ret = $this->schedule_one_set_pyramid_try( $teams, $datestamp, $i);
             if ($ret[0] == false && $ret[1] == "REPEAT") {
+               echo ". ";
+               flush();
+               ob_flush();
                continue;
             }
             else {
+               echo " Done!";
+               print "<hr></body></html>";
+               flush();
+               ob_flush();
                return $ret;
             }
          }
+         echo "Failed";
+         flush();
+         ob_flush();
       }
       $ret[1] = "Unable to find matches.  You can try again.";
+      print "<hr></body></html>";
+      flush();
+      ob_flush();
       return $ret;
    }
 	

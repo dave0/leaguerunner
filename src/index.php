@@ -60,6 +60,10 @@ if(!valid_input_data($_REQUEST)) {
 require_once "Handler.php";
 require_once "UserSession.php";
 
+/* Headers have not been sent yet */
+global $headers_sent;
+$headers_sent = 0;
+
 /* Build menus */
 menu_build();
 
