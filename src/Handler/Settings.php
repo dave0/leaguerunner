@@ -50,6 +50,8 @@ function global_settings()
 	$output = form_group("Site configuration", $group);
 
 	$group = form_radios("Clean URLs", "edit[clean_url]", variable_get("clean_url", 1), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
+	
+	$group = form_radios("Lock sessions to initiating IP address", "edit[session_requires_ip]", variable_get("session_requires_ip", 1), array("Disabled", "Enabled"), "If enabled, session cookies are only accepted if they come from the same IP as the initial login.  This adds a bit of security against cookie theft, but causes problems for users behind a firewall that routes HTTP requests out through multiple IP addresses.  Recommended setting is to enable unless you notice problems.");
 	$output .= form_group("General configuration", $group);
 
 	

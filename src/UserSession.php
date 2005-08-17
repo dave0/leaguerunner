@@ -77,8 +77,12 @@ class UserSession
 		if( !isset($client_ip) ) {
 			return false;
 		}
-		
-		$user = person_load( array( 'session_cookie' => $cookie, 'client_ip' => $client_ip ) );
+
+		if( variable_get("session_requires_ip", 1) ) {
+			$user = person_load( array( 'session_cookie' => $cookie, 'client_ip' => $client_ip ) );
+		} else {
+			$user = person_load( array( 'session_cookie' => $cookie ) );
+		}
 
 		if( ! $user ) {
 			return false;
