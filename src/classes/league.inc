@@ -809,10 +809,10 @@ class League extends LeaguerunnerObject
 		}
 		
 		/* Then, check head-to-head wins */
-		if(isset($b->vs[$a['id']]) && isset($a->vs[$b['id']])) {
-			if( $b->vs[$a['id']] > $a->vs[$b['id']]) {
+		if(isset($b->vs[$a->team_id]) && isset($a->vs[$b->team_id])) {
+			if( $b->vs[$a->team_id] > $a->vs[$b->team_id]) {
 				return 1;
-			} else if( $b->vs[$a['id']] < $a->vs[$b['id']]) {
+			} else if( $b->vs[$a->team_id] < $a->vs[$b->team_id]) {
 				return -1;
 			}
 		}
