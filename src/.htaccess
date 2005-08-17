@@ -29,10 +29,9 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
   RewriteEngine on
 
-  # Modify the RewriteBase if you are using Leaguerunner in a subdirectory
-  # and the rewrite rules are not working properly.  Don't add a trailing
-  # slash.
-  #RewriteBase /leaguerunner
+  # Modify the RewriteBase appropriately if you are using Leaguerunner
+  # somewhere other than http://your.hostname.tld/leaguerunner
+  RewriteBase /leaguerunner
 
   # Rewrite URLs to the form 'index.php?q=x':
   RewriteCond %{REQUEST_FILENAME} !-f
