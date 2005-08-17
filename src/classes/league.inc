@@ -1087,7 +1087,8 @@ class League extends LeaguerunnerObject
     */
     function schedule_one_set_pyramid_try( $teams,
                                           $datestamp,
-                                          $games_before_repeat
+                                          $games_before_repeat,
+                                          $down
                                         )
     {
       $rollback_list = array();
@@ -1097,6 +1098,9 @@ class League extends LeaguerunnerObject
       $matched_teams = array();
 
       // create a copy of the teams, split up into rungs of the ladder...
+      if ($down == 0) {
+         $teams = array_reverse($teams);  // go up instead
+      }
       $rungs = array();
       $last_rank = null;
       $temp_array = array();
@@ -1143,16 +1147,22 @@ class League extends LeaguerunnerObject
          $opponent = null;
          $current_rung = $team->rank;
          while ($opponent == null) {
-            if ($current_rung > $last_rung) {
+            if (($down==1 && ($current_rung > $last_rung)) || ($down==0 && ($current_rung < $last_rung))) {
                // We've gone too far and can't find a match.  Roll back
                // Everything and return false so that this can be retried
+               //print "\nFailed team: " . $team->name . " rank: " . $team->rank;
                return array(false, "REPEAT");
             }
             $possible_opponents = null;
             // if there's only one team left, no choice but to match them...
             $possible_opponents = $rungs[$current_rung];
             if ( $possible_opponents == null || count($possible_opponents) == 0 ) {
-               $current_rung++;
+               if ($down == 1) {
+                  $current_rung++;
+               }
+               else {
+                  $current_rung--;
+               }
                continue;
             }
             // randomize all teams inside that rung
@@ -1176,9 +1186,15 @@ class League extends LeaguerunnerObject
                // from their rung so they don't get matched up again.
                $matched_teams[] = $opponent->team_id;
                $matched_teams[] = $team->team_id;
+               //print "\nMatching " . $team->name . " vs " . $opponent->name . "<br>";
                break;
             }
-            $current_rung++;
+            if ($down == 1) {
+               $current_rung++;
+            }
+            else {
+               $current_rung--;
+            }
          }
 
          // take the opponent out of the $teams array
@@ -1241,14 +1257,21 @@ class League extends LeaguerunnerObject
       $max_retries = $this->schedule_attempts;
       $ret = null;
 
-      print "<html><body><h1>Processing your request</h1>\n";
+      global $BASE_URL;
+      print "<html>";
+      print "<head>";
+      print "<base href=\"$BASE_URL\" />";
+      print "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://www.ocua.ca/themes/pushbutton_ocua/style.css\" />";
+      print "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />";
+      print "</head>";
+      print "<body><h1>Processing your request</h1>\n";
       print "<h2>Scheduling games using the Pyramid Ladder scheduler</h2>\n";
       print "<b>Please be patient as this may take a few minutes.  Don't close ";
       print "your browser or go to a different page until it is finished</b>";
 
       $i = $games_before_repeat; // make these global to the function
 
-      for ($i = $games_before_repeat; $i > $min_games_before_repeat; $i--) {
+      for ($i = $games_before_repeat; $i >= $min_games_before_repeat; $i--) {
          echo "<p>Games before repeat = $i.  Calculating...";
          for ($j = 0; $j < $max_retries; $j++) {
             /*
@@ -1259,7 +1282,7 @@ class League extends LeaguerunnerObject
             * eventually we'll get a good matchup.
             */
             set_time_limit(30); // Give this one call 30 seconds to return
-            $ret = $this->schedule_one_set_pyramid_try( $teams, $datestamp, $i);
+            $ret = $this->schedule_one_set_pyramid_try( $teams, $datestamp, $i, $j%2);
             if ($ret[0] == false && $ret[1] == "REPEAT") {
                echo ". ";
                flush();
