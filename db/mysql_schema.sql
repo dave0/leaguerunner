@@ -111,7 +111,7 @@ CREATE TABLE league (
 
    -- For Pyramid Ladder's:
    -- how many games before allowed to repeat opponents?
-	games_before_repeat		integer default 3,
+	games_before_repeat		integer default 4,
    -- how many attempts at generating the schedule with no repeats?
 	schedule_attempts		integer default 100,
    -- Do you want to relax the repeat restriction?
