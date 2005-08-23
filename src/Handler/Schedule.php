@@ -458,7 +458,7 @@ function schedule_render_editable( &$game, &$league )
 	$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
 
 	// but, if this league is a ladder league, we don't want to make everything editable!
-	if ($league->schedule_type == "ladder" || $league->schedule_type == 'pyramid') {
+	if ($league->schedule_type == "ladder") {
 		$form_round = $game->round;
 		if ($game->home_name) {
 			$form_home = $game->home_name;
