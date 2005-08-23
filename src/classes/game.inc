@@ -987,7 +987,8 @@ class Game extends LeaguerunnerObject
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
-		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1", $timestamp, $this->league_id);
+      $seed = rand();
+		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
 		$slot_id = db_result($result);
 		if( ! $slot_id ) {
 			db_query("SELECT RELEASE_LOCK('$lockname')");
@@ -1046,7 +1047,8 @@ class Game extends LeaguerunnerObject
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
-		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1", $timestamp, $this->league_id);
+      $seed = rand();
+		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
 		$slot_id = db_result($result);
 		if( ! $slot_id ) {
 			db_query("SELECT RELEASE_LOCK('$lockname')");

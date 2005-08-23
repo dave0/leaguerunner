@@ -1297,7 +1297,7 @@ class League extends LeaguerunnerObject
                return $ret;
             }
          }
-         echo "Failed";
+         echo "</p>"; // this is where it failes.  We'll put nothing here
          flush();
          ob_flush();
       }
