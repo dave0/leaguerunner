@@ -287,7 +287,7 @@ class ScheduleEdit extends Handler
 			reset($game_info);
 
 			$slot = slot_load( array('slot_id' => $game_info['slot_id']) );
-			if ($this->league->schedule_type == "ladder" || $this->league->schedule_type == "pyramid") {
+			if ($this->league->schedule_type == "ladder") {
 				$rows[] = array(
 					form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 					$game_info['round_text'],
@@ -325,7 +325,7 @@ class ScheduleEdit extends Handler
 				error_exit("Attempted to edit game info for a nonexistant game!");
 			}
 
-			if ($this->league->schedule_type != "ladder" && $this->league->schedule_type != "pyramid") {
+			if ($this->league->schedule_type != "ladder") {
 				$game->set('round', $game_info['round']);
 				$game->set('home_team', $game_info['home_id']);
 				$game->set('away_team', $game_info['away_id']);
