@@ -51,7 +51,7 @@ class Login extends Handler
 		}
 		
 		/* Now, if we can, we will create a new user session */
-		$rc = $session->create_from_login($edit['username'], $edit['password'], ""); //$_SERVER['REMOTE_ADDR']);
+		$rc = $session->create_from_login($edit['username'], $edit['password'], $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
 			return $this->login_form("Incorrect username or password");
 		}
