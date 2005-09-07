@@ -32,6 +32,7 @@ function league_dispatch()
 			break;
 		case 'spirit':
 			$obj = new LeagueSpirit;
+         break;
 		case 'rank':
 			$obj = new LeagueRank;
 			break;
