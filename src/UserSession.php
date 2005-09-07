@@ -20,7 +20,7 @@ function sess_read($key)
 {
 	global $session;
 	$session = new UserSession;
-	$session->create_from_cookie($key, $_SERVER['REMOTE_ADDR']);
+	$session->create_from_cookie($key, ""); //$_SERVER['REMOTE_ADDR']);
 	return $session->is_valid();
 }
 
