@@ -1365,7 +1365,7 @@ class League extends LeaguerunnerObject
 
       // Set doskips=true if you want things like:  1, 2, 2, 2, 5, 6, 6, 8...
       // Set doskips=false if you want it like:     1, 2, 2, 2, 3, 4, 4, 5...
-      $doskips = false;
+      $doskips = true;
 
       $this->sort_league_teams();
       $teams = $this->teams;
