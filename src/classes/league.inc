@@ -1359,43 +1359,40 @@ class League extends LeaguerunnerObject
    }
 
    function sanitize_ranks() {
+      // don't do anything if this is not a pyramid ladder
       if ($this->schedule_type != 'pyramid') {
          return;
       }
 
-      // Set doskips=true if you want things like:  1, 2, 2, 2, 5, 6, 6, 8...
-      // Set doskips=false if you want it like:     1, 2, 2, 2, 3, 4, 4, 5...
-      $doskips = true;
-
+      // sort the teams (by rank)
       $this->sort_league_teams();
+
+      // get the teams array
       $teams = $this->teams;
-      $unsanitized_rank = null;
-      $current_rank = 1;
+
+      // prepare the value to subtract
+      $tosubtract = null;
+
+      // prepare a temporary teams array to transfer teams into while manipulating
+      // their ranks while not changing anything in the back-end database!
       $tmp_teams = array();
-      $countskips = 0;
+
+      // loop through the teams
       foreach ($teams as $key => $team) {
-         if ($unsanitized_rank == null) {
-            $unsanitized_rank = $team->rank;
+         // do we have the value to subtract yet?
+         if ($tosubtract == null) {
+            $tosubtract = $team->rank - 1;
          }
-         if ($team->rank != $unsanitized_rank) {
-            $unsanitized_rank = $team->rank;
-            if ($doskips) {
-               $current_rank = $current_rank + $countskips;
-            } else {
-               $current_rank++;
-            }
-            $countskips = 0;
-         }
-         // make the rank a "normal" number:  1, 2, 3... 
-         $team->rank = $current_rank;
+         // make the rank a "normal" number:  1, 2, 3...  by subtracting the best rank minus 1
+         $team->rank = $team->rank - $tosubtract;
+         // store the team in the temporary array
          $tmp_teams[$key] = $team;
-         $countskips++;
       }
+      // overwrite the regular teams array with the temporary one
       $this->teams = $tmp_teams;
 
       return;
    }
-   
 }
 
 function league_query( $array = array() )
