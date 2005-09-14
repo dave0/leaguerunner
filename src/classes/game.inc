@@ -434,14 +434,14 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		// And, remove any old score_entry for this game if we've entered a
-		// final score
+		// Delete score entries and finalize the elo rating if we've just
+		// updated the score
 		if( array_key_exists('home_score', $this->_modified_fields) || array_key_exists('away_score', $this->_modified_fields)) {
 			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
+
+			$this->save_elo_rating();
 		}
 
-		// Save elo rating, if we're just adding a new score
-		$this->save_elo_rating();
 		
 		unset($this->_modified_fields);
 		return true;
@@ -872,7 +872,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function save_elo_rating ( )
 	{
-		if( $this->rating_points ) {
+		if( $this->rating_points >= 0 ) {
 			// If we already have a rating, don't recalculate it.
 			// TODO: in the future, it might be nice if we can 
 			// recalculate the rating if the score changes, but for
