@@ -31,13 +31,14 @@ function local_redirect($url)
     else {
         print "<html><body>";
         print "<center>";
-        print "Your results are ready.  Please click the following link if you're not taken there ";
-        print "automatically.<br>";
+        print "Your results are ready.  Please click the following link. <br> ";
         print "<a href=\"$url\">$url</a>";
         print "</center>";
-        print "<script language=\"javascript\">";
-        print "setTimeout('location.href=\"$url\"', 30000);";  // Redirect them in 30 seconds
-        print "</script>";
+        // Tony turned off automatic redirect so that coordinators get a chance to read the text
+        // and, this does NOT wait 30 seconds, rather it's closer to 3 seconds...
+        //print "<script language=\"javascript\">";
+        //print "setTimeout('location.href=\"$url\"', 30000);";  // Redirect them in 30 seconds
+        //print "</script>";
         print "</body></html>";
         exit();
     }

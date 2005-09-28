@@ -786,6 +786,11 @@ class League extends LeaguerunnerObject
          return ($a->rank < $b->rank) ? -1 : 1;
       }
    
+      /* Check Rating */
+      if ($a->rating != $b->rating) {
+         return ($a->rating > $b->rating) ? -1 : 1;
+      }
+   
       /* Check SOTG */
       if($a->games > 0 && $b->games > 0) {
          if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
