@@ -1431,4 +1431,3 @@ class GameDelete extends Handler
 }
 
 ?>
-
