@@ -1622,6 +1622,7 @@ class PersonForgotPassword extends Handler
 
 	function generateForm()
 	{
+		$admin_addr = variable_get('app_admin_email', '');	
 		$output = <<<END_TEXT
 <p>
 	If you'd like to reset your password, please enter ANY ONE OF:
@@ -1641,7 +1642,7 @@ class PersonForgotPassword extends Handler
 </p>
 <p>
   If you really can't remember any of these, you can mail <a
-  href="mailto:leaguerunner@ocua.ca">leaguerunner@ocua.ca</a> for support.  <b>DO NOT CREATE A NEW ACCOUNT!</b>
+  href="mailto:$admin_addr">$admin_addr</a> for support.  <b>DO NOT CREATE A NEW ACCOUNT!</b>
 </p>
 END_TEXT;
 
