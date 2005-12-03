@@ -170,11 +170,13 @@ class Game extends LeaguerunnerObject
 			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
 				$row['rank']-1, $league->league_id, $winnerTeamId);
 
-			$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
-				$league->league_id, $loserTeamId);
-			$row = db_fetch_array( $pyramidResult );
-			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-				$row['rank']+1, $league->league_id, $loserTeamId);
+         // CHANGE REQUEST:  only winner moves up a rank, so loser stays put
+         // Tony commenting this out for now... later, make this a selectable option for a league
+			//$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
+				//$league->league_id, $loserTeamId);
+			//$row = db_fetch_array( $pyramidResult );
+			//db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
+				//$row['rank']+1, $league->league_id, $loserTeamId);
 
 			// Return true which is ok.  We don't need to update the other
 			// teams for pyramid
