@@ -573,6 +573,11 @@ class LeagueStandings extends Handler
 		if(! isset($round) ) {
 			$round = $this->league->current_round;
 		}
+      // check to see if this league is on round 2 or higher...
+      // if so, set the $current_round so that the standings table is split up
+      if ($round > 1) {
+         $current_round = $round;
+      }
 		
 		$this->setLocation(array(
 			$this->league->fullname => "league/view/$id",
@@ -614,18 +619,18 @@ class LeagueStandings extends Handler
 
 		while(list(, $id) = each($order)) {
 
-			$row = array( l($season[$id]->name, "team/view/$id"));
+         $row = array( l($season[$id]->name, "team/view/$id"));
 
 			// Don't need the current round for a ladder schedule.
 			if ($this->league->schedule_type == "roundrobin") {
 				if($current_round) {
-					$row[] = $round[$id]->win;
-					$row[] = $round[$id]->loss;
-					$row[] = $round[$id]->tie;
-					$row[] = $round[$id]->defaults_against;
-					$row[] = $round[$id]->points_for;
-					$row[] = $round[$id]->points_against;
-					$row[] = $round[$id]->points_for - $round[$id]->points_against;
+               $row[] = array( 'data' => $round[$id]->win, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->loss, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->tie, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->defaults_against, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->points_for, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->points_against, 'class'=>'standings');
+               $row[] = array( 'data' => $round[$id]->points_for - $round[$id]->points_against, 'class'=>'standings');
 				}
 			}
 

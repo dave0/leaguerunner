@@ -175,3 +175,10 @@ li.active a {
 .form-reset .form-submit {
   margin: 0.5em 0;
 }
+
+/* Current Round / Season Standings */
+.standings {
+   background-color:#dddddd
+}
+
+
