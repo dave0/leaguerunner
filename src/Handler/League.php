@@ -590,10 +590,12 @@ class LeagueStandings extends Handler
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 		
       // if this is a pyramid league and  we're asking for "team" standings, only show
-      // the 5 teams above and 5 teams below this team
+      // the 5 teams above and 5 teams below this team ... don't bother if there are
+      // 24 teams or less (24 is probably the largest fall league size)... and, if $showall
+      // is set, don't remove items from $order.
       $more_before = 0;
       $more_after = 0;
-      if ( ($showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && $this->league->schedule_type == "pyramid") {
+      if ( (count($order) <= 24 || $showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && $this->league->schedule_type == "pyramid") {
          $index_of_this_team = 0;
          foreach ($order as $i => $value) {
             if ($value == $teamid) {
