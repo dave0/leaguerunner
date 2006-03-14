@@ -595,7 +595,7 @@ class LeagueStandings extends Handler
       // is set, don't remove items from $order.
       $more_before = 0;
       $more_after = 0;
-      if ( (count($order) <= 24 || $showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && $this->league->schedule_type == "pyramid") {
+      if ( ($showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && $this->league->schedule_type == "pyramid" && count($order) > 24) {
          $index_of_this_team = 0;
          foreach ($order as $i => $value) {
             if ($value == $teamid) {
