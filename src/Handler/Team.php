@@ -146,7 +146,7 @@ function team_add_to_menu( &$team )
 	global $session;
 	
 	menu_add_child('team', $team->name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
-	menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id"));
+   menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id/$team->team_id"));
 	menu_add_child($team->name, "$team->name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
 
 	if( $session->user && !array_key_exists( $team->team_id, $session->user->teams ) ) {
@@ -194,7 +194,7 @@ function team_splash ()
 				l($team->name, "team/view/$team->id") . " ($team->position)",
 				array('data' => theme_links(array(
 						l("schedules", "team/schedule/$team->id"),
-						l("standings", "league/standings/$team->league_id"))),
+                  l("standings", "league/standings/$team->league_id/$team->team_id"))),
 					  'align' => 'right')
 		);
 

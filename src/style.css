@@ -181,4 +181,10 @@ li.active a {
    background-color:#dddddd
 }
 
+/* to highlight teams in the standings list */
+.teamhighlight {
+   background-color:#FFC;
+	font-weight: bold;
+}
+
 

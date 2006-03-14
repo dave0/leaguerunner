@@ -563,6 +563,9 @@ class LeagueStandings extends Handler
 		global $session;
 		
 		$id = arg(2);
+      $teamid = arg(3);
+      $showall = arg(4);
+
 		$this->title = "Standings";
 
 		if($this->league->schedule_type == 'none') {
@@ -586,6 +589,35 @@ class LeagueStandings extends Handler
 		
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 		
+      // if this is a pyramid league and  we're asking for "team" standings, only show
+      // the 5 teams above and 5 teams below this team
+      $more_before = 0;
+      $more_after = 0;
+      if ( ($showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && $this->league->schedule_type == "pyramid") {
+         $index_of_this_team = 0;
+         foreach ($order as $i => $value) {
+            if ($value == $teamid) {
+               $index_of_this_team = $i;
+               break;
+            }
+         }
+         reset($order);
+         $count = count($order);
+         // use "unset($array[$index])" to remove unwanted elements of the order array
+         for ($i = 0; $i < $count; $i++) {
+            if ($i < $index_of_this_team - 5 || $i > $index_of_this_team + 5) {
+               unset($order[$i]);
+               if ($i < $index_of_this_team - 5) {
+                  $more_before = 1;
+               }
+               if ($i > $index_of_this_team + 5) {
+                  $more_after = 1;
+               }
+            }
+         }
+         reset($order);
+      }
+
 		/* Build up header */
 		$header = array( array('data' => 'Teams', 'rowspan' => 2) );
 		$subheader = array();
@@ -617,52 +649,71 @@ class LeagueStandings extends Handler
 		
 		$rows[] = $subheader;
 
-		while(list(, $id) = each($order)) {
+      if ($more_before) {
+         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 12, 'align' => 'center'));
+      }
 
-         $row = array( l($season[$id]->name, "team/view/$id"));
+		while(list(, $tid) = each($order)) {
+
+         $rowstyle = "none";
+         if ($teamid == $tid) {
+            $rowstyle = "teamhighlight";
+         }
+
+         $row = array( array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle"));
 
 			// Don't need the current round for a ladder schedule.
 			if ($this->league->schedule_type == "roundrobin") {
 				if($current_round) {
-               $row[] = array( 'data' => $round[$id]->win, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->loss, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->tie, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->defaults_against, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->points_for, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->points_against, 'class'=>'standings');
-               $row[] = array( 'data' => $round[$id]->points_for - $round[$id]->points_against, 'class'=>'standings');
+               $old_rowstyle = $rowstyle;
+               $rowstyle = "standings";
+               if ($tid == $teamid) {
+                  $rowstyle = "teamhighlight";
+               }
+               $row[] = array( 'data' => $round[$tid]->win, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->loss, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->tie, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->defaults_against, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->points_for, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->points_against, 'class'=>"$rowstyle");
+               $row[] = array( 'data' => $round[$tid]->points_for - $round[$tid]->points_against, 'class'=>"$rowstyle");
+               $rowstyle = $old_rowstyle;
 				}
 			}
 
 			if ($this->league->schedule_type != "roundrobin") {
-				$row[] = $season[$id]->rank; 
+            $row[] = array( 'data' => $season[$tid]->rank, 'class'=>"$rowstyle"); 
 			}
-			$row[] = $season[$id]->win;
-			$row[] = $season[$id]->loss;
-			$row[] = $season[$id]->tie;
-			$row[] = $season[$id]->defaults_against;
-			$row[] = $season[$id]->points_for;
-			$row[] = $season[$id]->points_against;
-			$row[] = $season[$id]->points_for - $season[$id]->points_against;
-			$row[] = $season[$id]->rating;
+         $row[] = array( 'data' => $season[$tid]->win, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->loss, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->tie, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->defaults_against, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->points_for, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->points_against, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->points_for - $season[$tid]->points_against, 'class'=>"$rowstyle");
+         $row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
 			
-			if( count($season[$id]->streak) > 1 ) {
-				$row[] = count($season[$id]->streak) . $season[$id]->streak[0];
+			if( count($season[$tid]->streak) > 1 ) {
+            $row[] = array( 'data' => count($season[$tid]->streak) . $season[$tid]->streak[0], 'class'=>"$rowstyle");
 			} else {
-				$row[] = '-';
+            $row[] = array( 'data' => '-', 'class'=>"$rowstyle");
 			}
 	
 			// initialize the sotg to dashes!
 			$sotg = "---";
-			if($season[$id]->games < 3 && !($session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
+			if($season[$tid]->games < 3 && !($session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
 				 $sotg = "---";
-			} else if ($season[$id]->games > 0) {
-				$sotg = sprintf("%.2f", ($season[$id]->spirit / $season[$id]->games));
+			} else if ($season[$tid]->games > 0) {
+				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games));
 			}
-			$row[] = $sotg;
+         $row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
 		
+      if ($more_after) {
+         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 12, 'align' => 'center'));
+      }
+
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";
 	}
 }

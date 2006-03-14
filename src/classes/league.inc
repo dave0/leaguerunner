@@ -800,7 +800,9 @@ class League extends LeaguerunnerObject
             return 1;
          }
       }
-      return 0;
+
+      /* Check team id as last resort */
+      return ($a->team_id < $b->team_id) ? -1 : 1;
    }
 
 	function standings_sort_bywinloss (&$a, &$b) 
