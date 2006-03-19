@@ -337,10 +337,12 @@ class LeagueEdit extends Handler
 			form_select("", "edit[schedule_type]", $formData['schedule_type'], getOptionsFromEnum('league','schedule_type'), "What type of scheduling to use.  This affects how games are scheduled and standings displayed."));
 
 		$rows[] = array(" Pyramid - Games Before Repeat:",
-			form_select("", "edit[games_before_repeat]", $formData['games_before_repeat'], getOptionsFromRange(0,5), "The number of games before two teams can be scheduled to play each other again (FOR PYRAMID LADDER SCHEDULING ONLY)."));
+			form_select("", "edit[games_before_repeat]", $formData['games_before_repeat'], getOptionsFromRange(0,9), "The number of games before two teams can be scheduled to play each other again (FOR PYRAMID LADDER SCHEDULING ONLY)."));
 
+         /*
 		$rows[] = array(" Pyramid - Scheduling Attempts:",
-			form_select("", "edit[schedule_attempts]", $formData['schedule_attempts'], getOptionsFromRange(100,500), "The number of attempts to make at scheduling a set of pyramid games while enforcing the Games Before Repeat restriction. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
+			form_select("", "edit[schedule_attempts]", $formData['schedule_attempts'], getOptionsFromRange(100,100), "The number of attempts to make at scheduling a set of pyramid games while enforcing the Games Before Repeat restriction. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
+         */
 
          /*
 		$rows[] = array(" Pyramid - Relax Repeat Restriction:",
@@ -396,8 +398,10 @@ class LeagueEdit extends Handler
 		   $rows[] = array("Pyramid - Games Before Repeat:",
 			   form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
 
+            /*
 		   $rows[] = array("Pyramid - Scheduling Attempts:",
 			   form_hidden('edit[schedule_attempts]', $edit['schedule_attempts']) . $edit['schedule_attempts']);
+            */
 
             /*
 		   $rows[] = array("Pyramid - Relax Repeat Restriction:",
@@ -429,7 +433,7 @@ class LeagueEdit extends Handler
 
       if ($edit['schedule_type'] == 'pyramid') {
 		   $this->league->set('games_before_repeat', $edit['games_before_repeat']);
-		   $this->league->set('schedule_attempts', $edit['schedule_attempts']);
+		   //$this->league->set('schedule_attempts', $edit['schedule_attempts']);
 		   //$this->league->set('relax_repeat', $edit['relax_repeat']);
       }
 
@@ -458,9 +462,11 @@ class LeagueEdit extends Handler
             if ($edit['games_before_repeat'] == null || $edit['games_before_repeat'] == 0) {
                $errors .= "<li>Invalid 'Games Before Repeat' specified!";
             }
+            /*
             if ($edit['schedule_attempts'] == null || $edit['schedule_attempts'] == 0) {
                $errors .= "<li>Invalid 'Schedule Attempts' specified!";
             }
+            */
             break;
 			default:
 				$errors .= "<li>Values for allow schedule are none, roundrobin, ladder, and pyramid";
