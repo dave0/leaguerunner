@@ -125,7 +125,7 @@ function game_splash ()
 			}
 		}
 		array_unshift($rows, array( 
-         l( strftime('%a %b %d %Y', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+         l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 2),
 			$score
 		));
@@ -154,7 +154,7 @@ function game_splash ()
 			}
 		}
 		$rows[] = array( 
-         l( strftime('%a %b %d %Y', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+         l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' => "$game->home_name vs. $game->away_name at $game->field_code", 'colspan' => 2),
 			$score
 		);

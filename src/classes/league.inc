@@ -1102,7 +1102,7 @@
          $matched_teams = array();
 
          // create a copy of the teams, split up into rungs of the ladder...
-         if ($down == 0) {
+         if ($down == 1) {
             $teams = array_reverse($teams);  // go up instead
          }
          $rungs = array();
@@ -1155,7 +1155,7 @@
             $current_rung = $team->rank;
             while ($opponent == null) {
                // if we move past the bottom or top of the pyramid...
-               if (($down==1 && ($current_rung > $last_rung)) || ($down==0 && ($current_rung < $last_rung))) {
+               if (($down==0 && ($current_rung > $last_rung)) || ($down==1 && ($current_rung < $last_rung))) {
                   $current_rung = $team->rank;
                   $single_gtr --;
                   array_pop($recent_teams);
@@ -1170,7 +1170,7 @@
                // if there's only one team left, no choice but to match them...
                $possible_opponents = $rungs[$current_rung];
                if ( $possible_opponents == null || count($possible_opponents) == 0 ) {
-                  if ($down == 1) {
+                  if ($down == 0) {
                      $current_rung++;
                   }
                   else {
@@ -1193,7 +1193,7 @@
                   $real_possible_opponents[] = $po;
                }
                if ( count($real_possible_opponents) == 0 ) {
-                  if ($down == 1) {
+                  if ($down == 0) {
                      $current_rung++;
                   }
                   else {
@@ -1285,14 +1285,14 @@
          global $BASE_URL;
          print "<html>";
          print "<head>";
-         print "<base href=\"$BASE_URL\" />";
+         print "<base href=\"$BASE_URL/\" />";
          print "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://www.ocua.ca/themes/pushbutton_ocua/style.css\" />";
-         print "<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\" />";
+         print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$BASE_URL/style.css\" />";
          print "</head>";
-         print "<body><h1>Processing your request</h1>\n";
+         print "<body><div id='main'><h1>Processing your request</h1>\n";
          print "<h2>Scheduling games using the Pyramid Ladder scheduler</h2>\n";
-         print "<b>Please be patient as this may take a few minutes.  Don't close ";
-         print "your browser or go to a different page until it is finished</b>";
+         print "<p><b>Please be patient as this may take a few minutes.  Don't close ";
+         print "your browser or go to a different page until it is finished</b></p>";
 
          echo "<p>Scheduling...";
 
@@ -1301,13 +1301,6 @@
          $gtr = array();
 
          for ($j = 0; $j < $max_retries; $j++) {
-            /*
-            * if we get back "REPEAT" then we can try again because it didn't work
-            * in finding a set of matches for everyone given the paramters we gave it.
-            * After a while we lower our requirements and try again.  The randomizing
-            * inside this function will make it work sometimes and fail others, but
-            * eventually we'll get a good matchup.
-            */
             set_time_limit(30); // Give this one call 30 seconds to return
             $ret = $this->schedule_one_set_pyramid_try( $teams, $datestamp, $games_before_repeat, $j%2);
 
@@ -1318,18 +1311,18 @@
                continue;
             }
 
-            // check to see if the shittyness factor is better, so save...
+            // Keep the best schedule by checking how many times we had to decrement
+            // the games_before_repeat restriction in order to be able to generate
+            // this schedule...
             if ( count($gtr) == 0  ||  array_sum($gtr) > array_sum($ret[3]) ) {
                $versus_team1 = $ret[1];
                $versus_team2 = $ret[2];
                $gtr = $ret[3];
+               reset($gtr);
             }
 
             // if we got the perfect result, we're done... else keep browser alive...
             if ( array_sum($gtr) == 0 ) {
-               echo "Complete!";
-               flush();
-               ob_flush();
                break;
             } else {
                echo ". ";
@@ -1338,6 +1331,14 @@
                continue;
             }
          }
+         
+         if ( array_sum($gtr) == 0 ) {
+            echo "Complete!</p>";
+         } else {
+            echo "Complete...</p>";
+         }
+         flush();
+         ob_flush();
 
          // now, try to actually create the games
          $ret = $this->schedule_one_set_pyramid_commit( $versus_team1, $versus_team2, $datestamp );
@@ -1345,27 +1346,31 @@
             return $ret;
          }
 
-         // print results...
          if ( ! array_sum($gtr) == 0 ) {
-            print "<table border=1 align=center>";
-            print "<tr><th>Team 1</th><th>Team 2</th><th>Played each other X games ago...</th></tr>";
+            print "<div class='schedule'>";
+            print "<table align=center>";
+            print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td><td class='column-heading'>Played each other<br>X games ago...</td></tr>";
             for ($i = 0; $i < count($gtr); $i++)  {
                $font = "black";
-               $played = $games_before_repeat - $gtr[$i] + 1;
+               $played = $gtr[$i];
                if ($played != 0) {
                   $font = "red";
+                  $played = $games_before_repeat - $gtr[$i] + 1;
+               } else {
+                  $played = "&nbsp;";
                }
                print "<tr>";
                print "<td><font color=$font>" . $versus_team1[$i]->name . "</font></td>";
                print "<td><font color=$font>" . $versus_team2[$i]->name . "</font></td>";
-               print "<td><font color=$font>" . $played . "</font></td>";
+               print "<td align=center><font color=$font>" . $played . "</font></td>";
                print "</tr>\n";
             }
             print "</table>\n";
+            print "</div>\n";
          }
 
 
-         print "</p><hr></body></html>";
+         print "</p><hr></div></body></html>";
          flush();
          ob_flush();
 
