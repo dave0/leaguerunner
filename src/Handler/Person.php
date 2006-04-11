@@ -702,7 +702,7 @@ END_TEXT;
 		);
 		$output .= para(
 			"If you have concerns about the data OCUA collects, please see our "
-			. "<b><font color=red><a href='http://www.ocua.ca/ocua/policy/privacy_policy.html' target='_new'>Privacy Policy</a></font></b>"
+			. "<b><font color=red><a href='http://www.ocua.ca/node/17' target='_new'>Privacy Policy</a></font></b>"
 		);
 
 		if($session->has_permission('person', 'edit', $id, 'name') ) {
