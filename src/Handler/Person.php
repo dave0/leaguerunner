@@ -67,7 +67,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	$create_fields = array( 'name', 'username', 'password');
 	$create_fields = array_merge($self_edit_fields, $create_fields);
 
-	$all_view_fields = array( 'name', 'gender', 'skill', 'dog' );
+	$all_view_fields = array( 'name', 'gender', 'skill', 'dog', 'willing_to_volunteer' );
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
 	$captain_view_fields = array( 'height', 'shirtsize' );
 	
@@ -348,6 +348,10 @@ class PersonView extends Handler
 			}
 		}
 		
+		if($session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
+			$rows[] = array("Can OCUA contact you with a survey about volunteering?",($person->willing_to_volunteer == 'Y') ? "yes" : "no");
+		}
+
 		if($session->has_permission('person','view',$person->user_id, 'last_login')) {
 			if($person->last_login) {
 				$rows[] = array("Last Login:", 
@@ -794,6 +798,10 @@ END_TEXT;
 			'Y' => 'Yes, I have a dog I will be bringing to games',
 			'N' => 'No, I will not be bringing a dog to games'));
 			
+		$group .= form_radiogroup('Can OCUA contact you with a survey about volunteering?', 'edit[willing_to_volunteer]', $formData['willing_to_volunteer'], array(
+			'Y' => 'Yes',
+			'N' => 'No'));
+			
 		$output .= form_group('Player and Skill Information', $group);
 		
 		$this->setLocation(array(
@@ -901,6 +909,8 @@ END_TEXT;
 	
 		$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 		
+      $group .= form_item("Can OCUA contact you with a survey about volunteering?", form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
+		
 		$output .= form_group('Player and Skill Information', $group);
 			
 		$output .= para(form_submit('submit') . form_reset('reset'));
@@ -993,6 +1003,8 @@ END_TEXT;
 		$person->set('year_started', $edit['year_started']);
 	
 		$person->set('has_dog', $edit['has_dog']);
+
+		$person->set('willing_to_volunteer', $edit['willing_to_volunteer']);
 	
 		if( ! $person->save() ) {
 			error_exit("Internal error: couldn't save changes");

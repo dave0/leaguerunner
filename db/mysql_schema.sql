@@ -54,6 +54,8 @@ CREATE TABLE person (
 
 	survey_completed  ENUM("Y","N") DEFAULT 'N',
 
+	willing_to_volunteer  ENUM("Y","N") DEFAULT 'N',
+
 	last_login datetime,
 	client_ip      varchar(50),
 	INDEX person_ward (ward_id)

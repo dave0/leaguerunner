@@ -874,7 +874,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function save_elo_rating ( )
 	{
-		if( $this->rating_points >= 0 ) {
+      if( !is_null($this->rating_points) && $this->rating_points >= 0 ) {
 			// If we already have a rating, don't recalculate it.
 			// TODO: in the future, it might be nice if we can 
 			// recalculate the rating if the score changes, but for
@@ -930,7 +930,6 @@ class Game extends LeaguerunnerObject
 
 		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
 
-		
 		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $elo_change, $this->game_id);
 		if( 1 != db_affected_rows()) {
 			return false;

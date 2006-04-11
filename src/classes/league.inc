@@ -787,6 +787,15 @@
             return ($a->rank < $b->rank) ? -1 : 1;
          }
 
+         /* Check head-to-head wins */
+         if(isset($b->vs[$a->team_id]) && isset($a->vs[$b->team_id])) {
+            if( $b->vs[$a->team_id] > $a->vs[$b->team_id]) {
+               return 1;
+            } else if( $b->vs[$a->team_id] < $a->vs[$b->team_id]) {
+               return -1;
+            }
+         }
+
          /* Check Rating */
          if ($a->rating != $b->rating) {
             return ($a->rating > $b->rating) ? -1 : 1;
@@ -799,6 +808,22 @@
             } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
                return 1;
             }
+         }
+
+         /* Check wins & ties */
+         $b_points = (( 2 * $b->win ) + $b->tie);
+         $a_points = (( 2 * $a->win ) + $a->tie);
+         if( $a_points > $b_points ) {
+            return -1;
+         } else if( $a_points < $b_points ) {
+            return 1;
+         }
+
+         /* Next, check +/- */
+         if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
+            return 1;
+         } else if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
+            return -1;
          }
 
          /* Check team id as last resort */
