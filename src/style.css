@@ -180,6 +180,12 @@ li.active a {
 .standings {
    background-color:#dddddd
 }
+.standings_light {
+   background-color:#bbbbbb
+}
+.standings_dark {
+   background-color:#dddddd
+}
 
 /* to highlight teams in the standings list */
 .teamhighlight {

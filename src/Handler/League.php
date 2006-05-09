@@ -36,6 +36,9 @@ function league_dispatch()
 		case 'rank':
 			$obj = new LeagueRank;
 			break;
+		case 'status':
+			$obj = new LeagueStatusReport;
+			break;
 		default:
 			return null;
 	}
@@ -137,6 +140,11 @@ function league_add_to_menu( &$league, $parent = 'league' )
 	if($session->has_permission('league','create') ) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
+	if($session->has_permission('league','edit', $league->league_id) ) {
+      if ( $league->schedule_type == "pyramid" ) {
+         menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
+      }
+   }
 }
 
 /**
@@ -1089,6 +1097,7 @@ class LeagueRank extends Handler
       return true;
 	}
 }
+
 class LeagueSpirit extends Handler
 {
 	function has_permission ()
@@ -1210,6 +1219,190 @@ class LeagueSpirit extends Handler
 		$rows[] = $thisrow;
 
 		return "<style>#main table td { font-size: 80% } </style>" . table($header,$rows, array('alternate-colours' => true) );
+	}
+}
+
+class LeagueStatusReport extends Handler
+{
+	function has_permission()
+	{
+		global $session;
+		return $session->has_permission('league','edit', $this->league->league_id);
+	}
+
+   function generateForm ( $data = '' ) 
+   {
+      $output = para("Use the links below to adjust a team's rank for 'better' or for 'worse'.  Alternatively, you can enter a new rank into the box beside each team then click 'Rank' below.  Multiple teams can (and likely should) have the same ranks");
+      $output .= para("For the ranking values, a <b/>LOWER</b/> numbered ranking is <b/>BETTER</b/>, and a <b/>HIGHER</b/> numbered ranking is <b/>WORSE</b/>. (ie: team ranked '1' is better than team ranked '2')");
+      $output .= para("<b/>WARNING: </b/> Adjusting rankings while the league is already under way is possible, but you'd better know what you are doing!!!");
+
+      $header = array( "Rank", "Team Name", "Players", "Rating", "Avg.<br/>Skill", "New Rank",);
+		$rows = array();
+
+		$this->league->load_teams();
+      $this->league->sort_league_teams();
+      $this->league->sanitize_ranks();
+		foreach($this->league->teams as $team) {
+
+			$row = array();
+			$row[] = $team->rank;
+			$row[] = check_form($team->name);
+			$row[] = $team->count_players();
+			$row[] = $team->rating;
+			$row[] = $team->avg_skill();
+         $row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> better </a> " . 
+            "<input type='text' size='3' name='edit[$team->team_id]' value='$team->rank' />" .
+            "<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++; return false'> worse</a></font>";
+
+			$rows[] = $row;
+      }
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
+		$output .= form_hidden("edit[step]", 'perform');
+      $output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ranks' /></div>";
+
+      return form($output);
+   }
+   
+	function process ()
+	{
+		$this->title = "League Status Report";
+
+		$rc = $this->generateStatusPage();
+
+      $this->setLocation(array( $this->league->name => "league/status/" . $this->league->league_id, $this->title => 0));
+
+		return $rc;
+
+   }
+
+   function generateStatusPage ( )
+   {
+      // make sure the teams are loaded
+      $this->league->load_teams();
+
+      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+
+      $fields = array();
+      $field_results = field_query( array( '_order' => 'f.code') );
+      while( $field = db_fetch_object( $field_results ) ) {
+         $fields[$field->code] = $field->region;
+      }
+
+      //print_r($fields);
+      //print "<br><br>";
+
+         //print_r($season);
+      $output = para("This is a general scheduling status report for pyramid ladder leagues.");
+
+      $header[] = array('data' => "Rank", 'rowspan' => 2);
+      $header[] = array('data' => "Team", 'rowspan' => 2);
+      $header[] = array('data' => "Games", 'rowspan' => 2);
+      $header[] = array('data' => "Home/Away", 'rowspan' => 2);
+      $header[] = array('data' => "Region", 'colspan' => 4);
+      $header[] = array('data' => "Opponents", 'rowspan' => 2);
+      $header[] = array('data' => "Repeat Opponents", 'rowspan' => 2);
+
+      $subheader[] = array('data' => "C", 'class' => "subtitle");
+      $subheader[] = array('data' => "E", 'class' => "subtitle");
+      $subheader[] = array('data' => "S", 'class' => "subtitle");
+      $subheader[] = array('data' => "W", 'class' => "subtitle");
+
+      $rows = array();
+      $rows[] = $subheader;
+
+      $rowstyle = "standings_light";
+
+		while(list(, $tid) = each($order)) {
+         if ($rowstyle == "standings_light") {
+            $rowstyle = "standings_dark";
+         } else {
+            $rowstyle = "standings_light";
+         }
+         $row = array( array('data'=>$season[$tid]->rank, 'class'=>"$rowstyle") );
+         $row[] = array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
+
+         // count number of games for this team:
+         //$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date,g.game_id') );
+         $numgames = 0;
+         $homegames = 0;
+         $awaygames = 0;
+         $regionCentral = 0;
+         $regionEast = 0;
+         $regionSouth = 0;
+         $regionWest = 0;
+         $opponents = array();
+
+         // get the schedule (HORRIBLY INNEFICIENT TO CALL THIS EACH TIME)
+         $games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+         while($game = db_fetch_array($games)) {
+            $game = game_load( array('game_id' => $game['game_id']) );
+            if ($game->home_team == $tid) {
+               $numgames++;
+               $homegames++;
+               $opponents[$game->away_team]++;
+            }
+            if ($game->away_team == $tid) {
+               $numgames++;
+               $awaygames++;
+               $opponents[$game->home_team]++;
+            }
+            if ($game->home_team == $tid || $game->away_team == $tid) {
+               list($code, $num) = split(" ", $game->field_code);
+               $region = $fields[$code];
+               if ($region == "Central") {
+                  $regionCentral++;
+               } else if ($region == "East") {
+                  $regionEast++;
+               } else if ($region == "South") {
+                  $regionSouth++;
+               } else if ($region == "West") {
+                  $regionWest++;
+               }
+            }
+         }
+         //reset($games);
+
+         $row[] = array('data'=>$numgames, 'class'=>"$rowstyle", 'align'=>"center");
+         $row[] = array('data'=>"$homegames / $awaygames", 'class'=>"$rowstyle", 'align'=>"center");
+
+         // regions:
+         if ($season[$tid]->region_preference != "---" && $season[$tid]->region_preference != "") {
+            $pref = $season[$tid]->region_preference;
+            if ($pref == "Central") {
+               $regionCentral = "<b><font color='red'>$regionCentral</font></b>";
+            } else if ($pref == "East") {
+               $regionEast = "<b><font color='red'>$regionEast</font></b>";
+            } else if ($pref == "South") {
+               $regionSouth = "<b><font color='red'>$regionSouth</font></b>";
+            } else if ($pref == "West") {
+               $regionWest = "<b><font color='red'>$regionWest</font></b>";
+            }
+         }
+         $row[] = array('data'=>"$regionCentral", 'class'=>"$rowstyle");
+         $row[] = array('data'=>"$regionEast", 'class'=>"$rowstyle");
+         $row[] = array('data'=>"$regionSouth", 'class'=>"$rowstyle");
+         $row[] = array('data'=>"$regionWest", 'class'=>"$rowstyle");
+
+         $row[] = array('data'=>count($opponents), 'class'=>"$rowstyle", 'align'=>"center");
+
+         // figure out the opponent repeats
+         $opponent_repeats="";
+		   while(list($oid, $repeats) = each($opponents)) {
+            if ($repeats > 2) {
+               $opponent_repeats .= $season[$oid]->name . " (<font color='red'><b>$repeats</b></font>) <br>";
+            } else if ($repeats > 1) {
+               $opponent_repeats .= $season[$oid]->name . " (<b>$repeats</b>) <br>";
+            }
+         }
+         $row[] = array('data'=>$opponent_repeats, 'class'=>"$rowstyle");
+
+         $rows[] = $row;
+      }
+
+      //$output .= table($header, $rows);
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
+
+      return form($output);
 	}
 }
 
