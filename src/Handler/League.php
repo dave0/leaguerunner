@@ -141,7 +141,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
 	if($session->has_permission('league','edit', $league->league_id) ) {
-      if ( $league->schedule_type == "pyramid" ) {
+      if ( $league->schedule_type == "pyramid" && $session->is_admin() ) {
          menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
       }
    }
@@ -1312,6 +1312,14 @@ class LeagueStatusReport extends Handler
 
       $rowstyle = "standings_light";
 
+      // get the schedule
+      $schedule = array();
+      $games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+      while($g = db_fetch_array($games)) {
+         $g = game_load( array('game_id' => $g['game_id']) );
+         $schedule[] = $g;
+      }
+
 		while(list(, $tid) = each($order)) {
          if ($rowstyle == "standings_light") {
             $rowstyle = "standings_dark";
@@ -1332,10 +1340,9 @@ class LeagueStatusReport extends Handler
          $regionWest = 0;
          $opponents = array();
 
-         // get the schedule (HORRIBLY INNEFICIENT TO CALL THIS EACH TIME)
-         $games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
-         while($game = db_fetch_array($games)) {
-            $game = game_load( array('game_id' => $game['game_id']) );
+         // parse the schedule
+         reset($schedule);
+         while(list(,$game) = each($schedule)) {
             if ($game->home_team == $tid) {
                $numgames++;
                $homegames++;
