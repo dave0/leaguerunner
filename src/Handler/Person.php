@@ -1159,9 +1159,7 @@ class PersonCreate extends PersonEdit
 				$edit = array();
 				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.  <br /><br /><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href='http://www.ocua.ca/leaguerunner/person/forgotpassword'>follow these instructions</a> to gain access to your account.");
 		}
-      // TONY REMOVED THIS LINE TO FIX MAJOR LR BUG WHEREBY IF YOU CAUSE AN ERROR ON THIS FORM,
-      // PRESSING THE BACK BUTTON IN INTERNET EXPLORER WILL NOT WORK...
-		//$this->setLocation(array( $this->title => 0));
+		$this->setLocation(array( $this->title => 0));
 		return $rc;
 	}
 
