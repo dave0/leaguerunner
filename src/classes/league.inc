@@ -1260,8 +1260,12 @@
       */
       function schedule_one_set_pyramid_commit ( $vt1, $vt2, $datestamp ) {
          $rollback_list = array();
+
          // now, you have the matchups, we can create the games
-         for ($i = 0; $i < count($vt1); $i++) {
+         // use random indexes so that field preferences are not given always to top or bottom teams...
+         $random_indexes = array_keys($vt1);
+         shuffle($random_indexes);
+         foreach( $random_indexes as $i ) {
             $team = $vt1[$i];
             $opponent = $vt2[$i];
 
@@ -1278,6 +1282,7 @@
             }
             $rollback_list[] = $g;
 
+            // weighted gameslot will take into account field preferences
             list($rc, $message) = $g->select_weighted_gameslot($datestamp);
             if( ! $rc ) {
                // something failed, so roll back the whole pile of games
