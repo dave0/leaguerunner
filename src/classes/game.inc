@@ -471,7 +471,6 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 	
-
 	function delete()
 	{
 		if( ! $this->_in_database ) {
@@ -490,6 +489,72 @@ class Game extends LeaguerunnerObject
 		db_query("DELETE FROM schedule WHERE game_id = %d", $this->game_id);
 		return (1 == db_affected_rows());
 	}
+
+
+	function removeresults()
+	{
+		if( ! $this->_in_database ) {
+			return false;
+		}
+
+		// TODO: is there anything that should prevent removal of results??
+
+
+      // Remove the spirit answers
+      db_query("DELETE FROM team_spirit_answers WHERE gid = %d", $this->game_id);
+      if (db_affected_rows() == 0) {
+         die("Uh-oh, problems removing results from the team_spirit_answers table... whew, you're still ok because this is the first thing I tried to do...");
+      }
+
+      // Update SCHEDULE table to remove these results
+		db_query("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, approved_by = NULL, status = 'normal' where game_id = %d", $this->game_id);
+      if (db_affected_rows() == 0) {
+         die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
+      }
+
+      // put the rating points back...  and fix the rank...
+      if ( $this->home_score > $this->away_score ) {
+         // home win
+
+         db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->away_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+         }
+
+         db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->home_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+         }
+
+         db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->home_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rank for team " + $this->home_team);
+         }
+
+      } else if ($this->away_score > $this->home_score) {
+         // away win
+
+         db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->home_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+         }
+
+         db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->away_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+         }
+
+         db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->away_team);
+         if (db_affected_rows() == 0) {
+            die("Uh-oh, problems fixing the rank for team " + $this->away_team);
+         }
+
+      }
+
+
+      return true;
+	}
+
 
 	/** 
 	 * Return string-formatted game info in 'standard' formats
