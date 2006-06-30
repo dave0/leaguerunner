@@ -1086,6 +1086,10 @@ class GameEdit extends Handler
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
+      // store the old info:
+      $oldgameresults['home_score'] = $this->game->home_score;
+      $oldgameresults['away_score'] = $this->game->away_score;
+      
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
@@ -1127,9 +1131,9 @@ class GameEdit extends Handler
       // TONY:  This effectively breaks the old pyramid schemes... 
       // TONY:  We should probably strip out the unused parts of LR anyways (like the old hold/move pyramid)
 		// Game has been saved to database.  Now we can update the dependant games.
-		//if (! $this->game->updatedependentgames()) {
-			//error_exit("Could not update dependant games.");
-		//}
+		if (! $this->game->updatedependentgames( $oldgameresults )) {
+			error_exit("Could not update dependant games.");
+		}
 
 		return true;
 	}
