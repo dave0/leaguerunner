@@ -1123,10 +1123,13 @@ class GameEdit extends Handler
 			error_exit("Could not successfully save game results");
 		}
 
+      // TONY:  COMMENTED THIS OUT - due to bug in "edit game" whereby rank moves again.
+      // TONY:  This effectively breaks the old pyramid schemes... 
+      // TONY:  We should probably strip out the unused parts of LR anyways (like the old hold/move pyramid)
 		// Game has been saved to database.  Now we can update the dependant games.
-		if (! $this->game->updatedependentgames()) {
-			error_exit("Could not update dependant games.");
-		}
+		//if (! $this->game->updatedependentgames()) {
+			//error_exit("Could not update dependant games.");
+		//}
 
 		return true;
 	}
