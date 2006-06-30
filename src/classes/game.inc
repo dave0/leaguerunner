@@ -145,7 +145,7 @@ class Game extends LeaguerunnerObject
 	// TODO: perhaps call from $game->save() instead of requiring an explicit
 	// call in the handler?
 
-	function updatedependentgames() 
+	function updatedependentgames( $oldgameresults = array() ) 
 	{
 		$league = league_load( array('league_id' => $this->league_id) );
 		if(! $league ) {
@@ -158,6 +158,32 @@ class Game extends LeaguerunnerObject
 			$winnerTeamId = $winlose['winner'];
 			$loserTeamId  = $winlose['loser'];
 
+         // see if there are old game results:
+         if ( count($oldgameresults) > 0) {
+            // if it used to be a home win but not anymore...
+            if ( $oldgameresults['home_score'] > $oldgameresults['away_score'] ) {
+               if ($this->home_score <= $this->away_score) {
+                  // need to put home team rank back...
+                  $pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->home_team);
+			         $row = db_fetch_array( $pyramidResult );
+                  db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank']+1, $league->league_id, $this->home_team);
+               } else {
+                  // nothing to do because this is still a home win.
+                  return true;
+               }
+            } else if ( $oldgameresults['home_score'] < $oldgameresults['away_score'] ) {
+               if ($this->home_score >= $this->away_score) {
+                  // if it used to be an away win but not anymore...
+                  $pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->away_team);
+			         $row = db_fetch_array( $pyramidResult );
+                  db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank']+1, $league->league_id, $this->away_team);
+               } else {
+                  // nothing to do because this is still an away win.
+                  return true;
+               }
+            }
+         }
+         
 			// Pyramid allows for ties.  If there is a tie then just return
 			if ($this->home_score == $this->away_score) {
 				return true;
@@ -169,14 +195,6 @@ class Game extends LeaguerunnerObject
 			$row = db_fetch_array( $pyramidResult );
 			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
 				$row['rank']-1, $league->league_id, $winnerTeamId);
-
-         // CHANGE REQUEST:  only winner moves up a rank, so loser stays put
-         // Tony commenting this out for now... later, make this a selectable option for a league
-			//$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
-				//$league->league_id, $loserTeamId);
-			//$row = db_fetch_array( $pyramidResult );
-			//db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-				//$row['rank']+1, $league->league_id, $loserTeamId);
 
 			// Return true which is ok.  We don't need to update the other
 			// teams for pyramid
@@ -323,11 +341,13 @@ class Game extends LeaguerunnerObject
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
 			$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
 		} else if ( !$home_entry && $away_entry ) {
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 		} else if ( !$home_entry && !$away_entry ) {
 # TODO: don't do automatic forfeit yet.  Make it per-tier configurable
