@@ -626,6 +626,7 @@
             $this->teams[$id]->defaults_for = 0;
             $this->teams[$id]->defaults_against = 0;
             $this->teams[$id]->games = 0;
+            $this->teams[$id]->games_with_sotg = 0;
             $this->teams[$id]->vs = array();
             $this->teams[$id]->streak = array();
          }
@@ -706,7 +707,11 @@
             $team->games++;
             $team->points_for += $game->home_score;
             $team->points_against += $game->away_score;
-            $team->spirit += $game->home_spirit;
+
+            if ( is_int($game->home_spirit) ) {
+               $team->spirit += $game->home_spirit;
+               $team->games_with_sotg++;
+            }
 
             /* Need to initialize if not set */
             if(!isset($team->vs[$game->away_team])) {
@@ -745,7 +750,11 @@
             $team->games++;
             $team->points_for += $game->away_score;
             $team->points_against += $game->home_score;
-            $team->spirit += $game->away_spirit;
+
+            if ( is_int($game->away_spirit) ) {
+               $team->spirit += $game->away_spirit;
+               $team->games_with_sotg++;
+            }
 
             /* Need to initialize if not set */
             if(!isset($team->vs[$game->home_team])) {
@@ -802,6 +811,13 @@
          }
 
          /* Check SOTG */
+         if($a->games_with_sotg > 0 && $b->games_with_sotg > 0) {
+            if( ($a->spirit / $a->games_with_sotg) > ($b->spirit / $b->games_with_sotg)) {
+               return -1;
+            } else if( ($a->spirit / $a->games_with_sotg) < ($b->spirit / $b->games_with_sotg)) {
+               return 1;
+            }
+         }
          if($a->games > 0 && $b->games > 0) {
             if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
                return -1;

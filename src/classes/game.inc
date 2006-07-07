@@ -338,16 +338,36 @@ class Game extends LeaguerunnerObject
 				return false;
 			}
 		} else if ( $home_entry && !$away_entry ) {
+			switch( $home_entry->defaulted ) {
+				case 'us':
+					$this->set('status', 'home_default');
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					break;
+				case 'them':
+					$this->set('status', 'away_default');
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+					break;
+				default:
+               // do nothing
+         }
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
-			$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
-			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
 		} else if ( !$home_entry && $away_entry ) {
+			switch( $away_entry->defaulted ) {
+				case 'us':
+					$this->set('status', 'away_default');
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+					break;
+				case 'them':
+					$this->set('status', 'home_default');
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					break;
+				default:
+               // do nothing
+         }
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
-			$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
-			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 		} else if ( !$home_entry && !$away_entry ) {
 # TODO: don't do automatic forfeit yet.  Make it per-tier configurable

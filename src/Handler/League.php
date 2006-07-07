@@ -603,6 +603,17 @@ class LeagueStandings extends Handler
 		
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 		
+      
+      // if it's a pyramid, let's add "seed" into the mix:
+      if ( $this->league->schedule_type == "pyramid" ) {
+         $seeded_order = array();
+         for ($i = 0; $i < count($order); $i++) {
+            $seeded_order[$i+1] = $order[$i];
+         }
+         //reset($order);
+         $order = $seeded_order;
+      }
+      
       // if this is a pyramid league and  we're asking for "team" standings, only show
       // the 5 teams above and 5 teams below this team ... don't bother if there are
       // 24 teams or less (24 is probably the largest fall league size)... and, if $showall
@@ -620,7 +631,7 @@ class LeagueStandings extends Handler
          reset($order);
          $count = count($order);
          // use "unset($array[$index])" to remove unwanted elements of the order array
-         for ($i = 0; $i < $count; $i++) {
+         for ($i = 1; $i < $count+1; $i++) {
             if ($i < $index_of_this_team - 5 || $i > $index_of_this_team + 5) {
                unset($order[$i]);
                if ($i < $index_of_this_team - 5) {
@@ -635,7 +646,9 @@ class LeagueStandings extends Handler
       }
 
 		/* Build up header */
-		$header = array( array('data' => 'Teams', 'rowspan' => 2) );
+		$header = array( array('data' => 'Seed', 'rowspan' => 2) );
+		$header[] = array( 'data' => 'Team', 'rowspan' => 2 );
+
 		$subheader = array();
 
 		// Ladder leagues display standings differently.
@@ -666,17 +679,18 @@ class LeagueStandings extends Handler
 		$rows[] = $subheader;
 
       if ($more_before) {
-         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 12, 'align' => 'center'));
+         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 13, 'align' => 'center'));
       }
 
-		while(list(, $tid) = each($order)) {
+		while(list($seed, $tid) = each($order)) {
 
          $rowstyle = "none";
          if ($teamid == $tid) {
             $rowstyle = "teamhighlight";
          }
 
-         $row = array( array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle"));
+         $row = array( array('data'=>"$seed", 'class'=>"$rowstyle"));
+         $row[] = array( 'data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
 
 			// Don't need the current round for a ladder schedule.
 			if ($this->league->schedule_type == "roundrobin") {
@@ -719,15 +733,15 @@ class LeagueStandings extends Handler
 			$sotg = "---";
 			if($season[$tid]->games < 3 && !($session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
 				 $sotg = "---";
-			} else if ($season[$tid]->games > 0) {
-				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games));
+			} else if ($season[$tid]->games_with_sotg > 0) {
+				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games_with_sotg));
 			}
          $row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
 		
       if ($more_after) {
-         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 12, 'align' => 'center'));
+         $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 13, 'align' => 'center'));
       }
 
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";
@@ -794,11 +808,14 @@ class LeagueView extends Handler
 		$header = array( "Team Name", "Players", "Rating", "Avg. Skill", "&nbsp;",);
 		if( $this->league->schedule_type == 'ladder' || $this->league->schedule_type == 'pyramid') {
 			array_unshift($header, 'Rank');
+			array_unshift($header, 'Seed');
 		}
 		$rows = array();
 		$this->league->load_teams();
       $this->league->sanitize_ranks();
+      $counter = 0;
 		foreach($this->league->teams as $team) {
+         $counter++;
 			$team_links = array();
 			if($team->status == 'open') {
 				$team_links[] = l('join', "team/roster/$team->team_id/" . $session->attr_get('user_id'));
@@ -812,6 +829,7 @@ class LeagueView extends Handler
 
 			$row = array();
 			if( $this->league->schedule_type == 'ladder' || $this->league->schedule_type == 'pyramid') {
+				$row[] = $counter;
 				$row[] = $team->rank;
 			}
 			

@@ -618,7 +618,30 @@ class GameSubmit extends Handler
 		$questions = formbuilder_load('team_spirit');
 		$output .= $questions->render_editable(false);
 
-		$output .= para(form_submit("submit") . form_reset("reset"));
+      //TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
+      // javascript to ask for comments if any of the "worst" answers are chosen...
+      $javascript = "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked || document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked || ";
+      $javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || ";
+      $javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][2].checked || ";
+      $javascript .= "document.forms[0].elements['team_spirit[GameOverall]'][2].checked) { ";
+      $javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+      // javascript to ask for comments if the SOTG score will be 6 or less:
+      $javascript .= "var sotg=10; if (document.forms[0].elements['team_spirit[Timeliness]'][1].checked){sotg=sotg-1;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[Timeliness]'][2].checked){sotg=sotg-2;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked){sotg=sotg-1;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked){sotg=sotg-2;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[Sportsmanship]'][1].checked){sotg=sotg-1;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked){sotg=sotg-2;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[Enjoyment]'][1].checked){sotg=sotg-1;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[Enjoyment]'][2].checked){sotg=sotg-2;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[GameOverall]'][1].checked){sotg=sotg-1;}; ";
+      $javascript .= "if (document.forms[0].elements['team_spirit[GameOverall]'][2].checked){sotg=sotg-2;}; ";
+      //$javascript .= "alert(sotg);";
+      $javascript .= "if (sotg <= 6) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+      
+		$output .= para(form_submit("submit", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
 		return form($output);
 	}

@@ -965,7 +965,9 @@ class TeamView extends Handler
 		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
 		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 
-		if($this->team->rank) {
+      // only show the rank selectively because in this view, we can only show the backend database rank, 
+      // which is near 1000, and not useful for people to see...
+      if($this->team->rank && $session->is_admin()) {
 			$rows[] = array("Ranked:", $this->team->rank);
 		}
 		
