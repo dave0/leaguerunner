@@ -348,7 +348,7 @@ class Game extends LeaguerunnerObject
 			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
 					break;
 				default:
-               // do nothing
+               $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
          }
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
@@ -364,7 +364,7 @@ class Game extends LeaguerunnerObject
 			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 					break;
 				default:
-               // do nothing
+               $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
          }
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
