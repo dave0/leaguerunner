@@ -141,7 +141,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
 	if($session->has_permission('league','edit', $league->league_id) ) {
-      if ( $league->schedule_type == "pyramid" && $session->is_admin() ) {
+      if ( $league->schedule_type == "pyramid" ) { //&& $session->is_admin() ) {
          menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
       }
    }
@@ -876,7 +876,7 @@ class LeagueCaptainEmails extends Handler
 			WHERE
 				l.league_id = %d
 				AND l.team_id = r.team_id
-				AND (r.status = 'captain' OR r.status = 'assistant')",$this->league->league_id);
+				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')",$this->league->league_id);
 		if( db_num_rows($result) <= 0 ) {
 			error_exit("That league contains no teams.");
 		}

@@ -52,7 +52,7 @@ class Person extends LeaguerunnerObject
 
 		$this->teams = array();
 		while($team = db_fetch_object($result)) {
-			if($team->position == 'captain' || $team->position == 'assistant') {
+         if($team->position == 'captain' || $team->position == 'assistant' || $team->position == 'coach') {
 				# TODO: evil hack.
 				$this->is_a_captain = true;
 			}
@@ -179,7 +179,7 @@ class Person extends LeaguerunnerObject
 	 * Delete a user account from the system.
 	 *
 	 * Here, we need to not only remove the user account, but
-	 * 	- ensure user is not a team captain or assistant
+	 * 	- ensure user is not a team captain or assistant or coach
 	 * 	- ensure user is not a league coordinator
 	 * 	- remove user from all team rosters
 	 */
@@ -304,7 +304,7 @@ class Person extends LeaguerunnerObject
 		}
 		$status = $this->teams[$team_id]->position;
 
-		if( $status == 'captain' || $status == 'assistant') {
+		if( $status == 'captain' || $status == 'assistant' || $status == 'coach') {
 			return true;
 		}
 		
@@ -318,7 +318,7 @@ class Person extends LeaguerunnerObject
 		}
 		$status = $this->teams[$team_id]->position;
 
-		if( $status == 'captain' || $status == 'assistant' || $status == 'player') {
+		if( $status == 'coach' || $status == 'captain' || $status == 'assistant' || $status == 'player') {
 			return true;
 		}
 		

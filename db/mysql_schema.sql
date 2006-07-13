@@ -84,7 +84,7 @@ CREATE TABLE team (
 CREATE TABLE teamroster (
 	team_id		integer NOT NULL,
 	player_id	integer NOT NULL,
-	status		ENUM("captain", "assistant", "player", "substitute", "captain_request", "player_request"),
+	status		ENUM("coach", "captain", "assistant", "player", "substitute", "captain_request", "player_request"),
 	date_joined	date,
 	PRIMARY KEY (team_id,player_id)
 );

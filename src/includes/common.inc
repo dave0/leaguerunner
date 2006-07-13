@@ -513,9 +513,9 @@ function form_hidden($name, $value)
 	return "<input type=\"hidden\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
-function form_submit($value, $name = "submit") 
+function form_submit($value, $name = "submit", $javascript = "") 
 {
-	return "<input type=\"submit\" class=\"form-submit\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
+	return "<input type=\"submit\" class=\"form-submit\" name=\"$name\" value=\"". check_form($value) ."\" $javascript/>\n";
 }
 
 function form_reset($value, $name = "reset") 
@@ -749,6 +749,7 @@ function getRosterPositions()
 		'substitute'        => "substitute player",
 		'captain_request'   => "request to join by captain",
 		'player_request'    => "request to join by player",
+		'coach'	            => "COACH",
 		'captain'	        => "captain",
 		'assistant'	        => "assistant captain",
 		'none'	        	=> "not on team",

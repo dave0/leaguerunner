@@ -761,20 +761,22 @@ class TeamRosterStatus extends Handler
 				error_exit("All teams must have at least one player with captain status.");
 			}
 
-			return array( 'none', 'assistant', 'player', 'substitute');
+			return array( 'none', 'coach', 'assistant', 'player', 'substitute');
+		case 'coach':
+			return array( 'none', 'captain', 'assistant', 'player', 'substitute');
 		case 'assistant':
-			return array( 'none', 'captain', 'player', 'substitute');
+			return array( 'none', 'coach', 'captain', 'player', 'substitute');
 		case 'player':
-			return array( 'none', 'captain', 'assistant', 'substitute');
+			return array( 'none', 'coach', 'captain', 'assistant', 'substitute');
 		case 'substitute':
-			return array( 'none', 'captain', 'assistant', 'player');
+			return array( 'none', 'coach', 'captain', 'assistant', 'player');
 		case 'captain_request':
 			/* Captains cannot move players from this state,
 			 * except to remove them.
 			 */
 			return array( 'none' );
 		case 'player_request':
-			return array( 'none', 'captain', 'assistant', 'player', 'substitute');
+			return array( 'none', 'coach', 'captain', 'assistant', 'player', 'substitute');
 		case 'none':
 			return array( 'captain_request' );
 		default:
@@ -792,7 +794,9 @@ class TeamRosterStatus extends Handler
 				error_exit("All teams must have at least one player with captain status.");
 			}
 
-			return array( 'none', 'assistant', 'player', 'substitute');
+			return array( 'none', 'coach', 'assistant', 'player', 'substitute');
+		case 'coach':
+			return array( 'none', 'captain', 'assistant', 'player', 'substitute');
 		case 'assistant':
 			return array( 'none', 'player', 'substitute');
 		case 'player':
@@ -900,6 +904,7 @@ class TeamRosterStatus extends Handler
 		/* Perms already checked, so just do it */
 		if($this->currentStatus != 'none') {
 			switch($edit['status']) {
+			case 'coach':
 			case 'captain':
 			case 'assistant':
 			case 'player':
@@ -919,6 +924,7 @@ class TeamRosterStatus extends Handler
 			}
 		} else {
 			switch($edit['status']) {
+			case 'coach':
 			case 'captain':
 			case 'assistant':
 			case 'player':
