@@ -812,6 +812,7 @@ class LeagueView extends Handler
 		}
 		$rows = array();
 		$this->league->load_teams();
+      $this->league->sort_league_teams();
       $this->league->sanitize_ranks();
       $counter = 0;
 		foreach($this->league->teams as $team) {
