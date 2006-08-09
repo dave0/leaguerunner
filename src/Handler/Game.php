@@ -1073,13 +1073,19 @@ class GameEdit extends Handler
 		$output .= form_hidden('edit[away_score]', $edit['away_score']);		
 		$output .= $home_spirit->render_hidden('home');
 		$output .= $away_spirit->render_hidden('away');
-		
+
 		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
 		$output .= form_group("Scoring", $score_group);
 		
-		$output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
-		$output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
+      // only show SOTG of the home team if they didn't default!
+      if ($edit['status'] != 'home_default') {
+		   $output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
+      }
+      // only show SOTG of the away team if they didn't default!
+      if ($edit['status'] != 'away_default') {
+		   $output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
+      }
 		
 		$output .= para(form_submit('submit'));
 
@@ -1121,11 +1127,11 @@ class GameEdit extends Handler
 
 		switch( $edit['status'] ) {
 			case 'home_default':
-				$home_spirit_values = $this->game->default_spirit('loser');
+            // only prepare away spirit values
 				$away_spirit_values = $this->game->default_spirit('winner');
 				break;
 			case 'away_default':
-				$away_spirit_values = $this->game->default_spirit('loser');
+            // only prepare home spirit values
 				$home_spirit_values = $this->game->default_spirit('winner');
 				break;
 			case 'forfeit':
@@ -1139,10 +1145,10 @@ class GameEdit extends Handler
 				break;
 		}
 
-		if( !$this->game->save_spirit_entry( $this->game->home_id, $home_spirit_values) ) {
+		if( $edit['status'] != 'home_default' && !$this->game->save_spirit_entry( $this->game->home_id, $home_spirit_values) ) {
 			error_exit("Error saving spirit entry for " . $this->game->home_name);
 		}
-		if( !$this->game->save_spirit_entry( $this->game->away_id, $away_spirit_values) ) {
+		if( $edit['status'] != 'away_default' && !$this->game->save_spirit_entry( $this->game->away_id, $away_spirit_values) ) {
 			error_exit("Error saving spirit entry for " . $this->game->away_name);
 		}
 
