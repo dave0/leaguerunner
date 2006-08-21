@@ -628,6 +628,7 @@
             $this->teams[$id]->games = 0;
             $this->teams[$id]->games_with_sotg = 0;
             $this->teams[$id]->vs = array();
+            $this->teams[$id]->vspm = array();
             $this->teams[$id]->streak = array();
          }
 
@@ -679,8 +680,8 @@
 
             // Now, sort it all
             if ($this->schedule_type == "ladder" || $this->schedule_type == "pyramid") {
-               uasort($season, array($this, 'standings_sort_ladder'));	
-
+               // Call a function that will handle complete sorting of ladder standings:
+               $season = $this->sortLadder($season);
                $sorted_order = &$season;
             } else {
                if($current_round) {
@@ -717,6 +718,9 @@
             if(!isset($team->vs[$game->away_team])) {
                $team->vs[$game->away_team] = 0;
             }
+            if(!isset($team->vspm[$game->away_team])) {
+               $team->vspm[$game->away_team] = 0;
+            }
 
             if($game->status == 'home_default') {
                $team->defaults_against++;
@@ -728,14 +732,17 @@
             if($game->home_score == $game->away_score) {
                $team->tie++;
                $team->vs[$game->away_team]++;
+               $team->vspm[$game->away_team] += 0;
                $status = 'T';
             } else if($game->home_score > $game->away_score) {
                $team->win++;
                $team->vs[$game->away_team] += 2;
+               $team->vspm[$game->away_team] += $game->home_score - $game->away_score;
                $status = 'W';
             } else {
                $team->loss++;
                $team->vs[$game->away_team] += 0;
+               $team->vspm[$game->away_team] += $game->home_score - $game->away_score;
                $status = 'L';
             }
             if(in_array($status, $team->streak)) {
@@ -760,6 +767,9 @@
             if(!isset($team->vs[$game->home_team])) {
                $team->vs[$game->home_team] = 0;
             }
+            if(!isset($team->vspm[$game->home_team])) {
+               $team->vspm[$game->home_team] = 0;
+            }
 
             if($game->status == 'away_default') {
                $team->defaults_against++;
@@ -771,14 +781,17 @@
             if($game->away_score == $game->home_score) {
                $team->tie++;
                $team->vs[$game->home_team]++;
+               $team->vspm[$game->home_team] += 0;
                $status = 'T';
             } else if($game->away_score > $game->home_score) {
                $team->win++;
                $team->vs[$game->home_team] += 2;
+               $team->vspm[$game->home_team] += $game->away_score - $game->home_score;
                $status = 'W';
             } else {
                $team->loss++;
                $team->vs[$game->home_team] += 0;
+               $team->vspm[$game->home_team] += $game->away_score - $game->home_score;
                $status = 'L';
             }
             if(in_array($status, $team->streak)) {
@@ -789,6 +802,11 @@
          }
       }
 
+      function standings_sort_ladder_byrankonly (&$a, &$b) 
+      {
+         return ($a->rank < $b->rank) ? -1 : 1;
+      }
+
       function standings_sort_ladder (&$a, &$b) 
       {
          /* Check Rank */
@@ -796,13 +814,14 @@
             return ($a->rank < $b->rank) ? -1 : 1;
          }
 
-         /* Check head-to-head wins */
-         if(isset($b->vs[$a->team_id]) && isset($a->vs[$b->team_id])) {
-            if( $b->vs[$a->team_id] > $a->vs[$b->team_id]) {
-               return 1;
-            } else if( $b->vs[$a->team_id] < $a->vs[$b->team_id]) {
-               return -1;
-            }
+         /* Check head-to-head by looking at rung_points */
+         if ($a->rung_points != $b->rung_points) {
+            return ($a->rung_points > $b->rung_points) ? -1 : 1;
+         }
+
+         /* Continue Check head-to-head by looking at rung_points_difference */
+         if ($a->rung_points_diff != $b->rung_points_diff) {
+            return ($a->rung_points_diff > $b->rung_points_diff) ? -1 : 1;
          }
 
          /* Check Rating */
@@ -1508,6 +1527,120 @@
 
          return;
       }
+
+      function sortLadder ( $season ) {
+         
+         // first sort by rank:
+         uasort($season, array($this, 'standings_sort_ladder_byrankonly'));
+         // now, copy the array and add rung_points and rung_points_diff for sorting...
+         $rungs = array();
+         foreach ($season as $key => $value) {
+            $value->rung_points = 0;
+            $value->rung_points_diff = 0;
+            $rungs[$key] = $value;
+         }
+         reset ($season);
+         reset ($rungs);
+         
+         // now do some parsing to fill in the rung_points and rung_points_diff:
+         $new_teams_array = array();
+         $one_rung = array();
+         $current_rung = -1;
+         foreach ($rungs as $key => $value) {
+            if ($current_rung == -1) {
+               $current_rung = $value->rank;
+            }
+            if ($value->rank == $current_rung) {
+               $one_rung[$key] = $value;
+            } else {
+               if ( sizeof($one_rung) > 1 ) {
+                  $one_rung = $this->getRungPoints($one_rung);
+               }
+               foreach ($one_rung as $subkey => $subvalue) {
+                  $new_teams_array[$subkey] = $subvalue;
+               }
+               $one_rung = array();
+               $one_rung[$key] = $value;
+               $current_rung = $value->rank;
+            }
+         }
+         // end of loop, but have to finish off the last one:
+         if ( sizeof($one_rung) > 1 ) {
+            $one_rung = $this->getRungPoints($one_rung);
+         }
+         foreach ($one_rung as $subkey => $subvalue) {
+            $new_teams_array[$subkey] = $subvalue;
+         }
+         
+         return $new_teams_array;
+      }
+
+      function getRungPoints( $one_rung ) {
+         $fixed_rungPoints = array();
+         foreach ( $one_rung as $key => $value ) {
+            foreach ( $one_rung as $subkey => $subvalue ) {
+               if ($key == $subkey) {
+                  continue;
+               }
+               if (isset($value->vs[$subkey])) {
+                  $value->rung_points += $value->vs[$subkey];
+               }
+            }
+            $fixed_rungPoints[$key] = $value;
+         }
+         uasort($fixed_rungPoints, array($this, 'standings_sort_ladder'));
+
+         // now look into the equal rung points to set the rung_points_diff
+         $new_fixed_rungs = array();
+         $one_rungPoints = array();
+         $current_rungPoints = -1;
+         foreach ($fixed_rungPoints as $key => $value) {
+            if ($current_rungPoints == -1) {
+               $current_rungPoints = $value->rung_points;
+            }
+            if ($value->rung_points == $current_rungPoints) {
+               $one_rungPoints[$key] = $value;
+            } else {
+               if ( sizeof($one_rungPoints) > 1 ) {
+                  $one_rungPoints = $this->getRungPointsDiff($one_rungPoints);
+               }
+               foreach ($one_rungPoints as $subkey => $subvalue) {
+                  $new_fixed_rungs[$subkey] = $subvalue;
+               }
+               $one_rungPoints = array();
+               $one_rungPoints[$key] = $value;
+               $current_rungPoints = $value->rung_points;
+            }
+         }
+         // end of loop, but finish off the last one:
+         if ( sizeof($one_rungPoints) > 1 ) {
+            $one_rungPoints = $this->getRungPointsDiff($one_rungPoints);
+         }
+         foreach ($one_rungPoints as $subkey => $subvalue) {
+            $new_fixed_rungs[$subkey] = $subvalue;
+         }
+
+         uasort($new_fixed_rungs, array($this, 'standings_sort_ladder'));
+         return $new_fixed_rungs;
+      }
+      
+      function getRungPointsDiff( $one_rungPoints ) {
+         $fixed_rungPointsDiff = array();
+         foreach ( $one_rungPoints as $key => $value ) {
+            foreach ( $one_rungPoints as $subkey => $subvalue ) {
+               if ($key == $subkey) {
+                  continue;
+               }
+               if (isset($value->vspm[$subkey])) {
+                  $value->rung_points_diff += $value->vspm[$subkey];
+               }
+            }
+            $fixed_rungPointsDiff[$key] = $value;
+         }
+         uasort($fixed_rungPointsDiff, array($this, 'standings_sort_ladder'));
+         return $fixed_rungPointsDiff;
+      }
+
    }
 
       function league_query( $array = array() )

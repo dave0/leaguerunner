@@ -812,10 +812,9 @@ class LeagueView extends Handler
 		}
 		$rows = array();
 		$this->league->load_teams();
-      $this->league->sort_league_teams();
-      $this->league->sanitize_ranks();
+      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
       $counter = 0;
-		foreach($this->league->teams as $team) {
+		foreach($season as $team) {
          $counter++;
 			$team_links = array();
 			if($team->status == 'open') {
@@ -1053,9 +1052,8 @@ class LeagueRank extends Handler
 		$rows = array();
 
 		$this->league->load_teams();
-      $this->league->sort_league_teams();
-      $this->league->sanitize_ranks();
-		foreach($this->league->teams as $team) {
+      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+		foreach($season as $team) {
 
 			$row = array();
 			$row[] = $team->rank;
@@ -1259,9 +1257,8 @@ class LeagueStatusReport extends Handler
 		$rows = array();
 
 		$this->league->load_teams();
-      $this->league->sort_league_teams();
-      $this->league->sanitize_ranks();
-		foreach($this->league->teams as $team) {
+      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+		foreach($season as $team) {
 
 			$row = array();
 			$row[] = $team->rank;
