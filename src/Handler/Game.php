@@ -276,6 +276,7 @@ class GameCreate extends Handler
 				break;
          case 'pyramid':
             $this->types = array(
+					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
                'oneset_pyramid' => "set of pyramid scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
             );
             break;
