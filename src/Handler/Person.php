@@ -1067,6 +1067,18 @@ END_TEXT;
 		if(validate_nonblank($edit['mobile_phone']) && !validate_telephone_input($edit['mobile_phone'])) {
 			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
+
+		# TODO: 5th parameter below should be from a form field!
+		$address_errors = validate_address( 
+			$edit['addr_street'],
+			$edit['addr_city'],
+			$edit['addr_prov'],
+			$edit['addr_postalcode'],
+			'CA');
+			
+		if( $address_errors ) {
+			$errors .= "\n<li>" . join("\n<li>", $address_errors);
+		}
 		
 		if( !validate_nonhtml($edit['addr_street']) ) {
 			$errors .= "\n<li>You must supply a street address.";

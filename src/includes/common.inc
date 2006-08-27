@@ -601,28 +601,182 @@ function validate_email_input ( $string )
 	}
 	return true;
 }
-	
-function validate_postalcode ( $string )
+
+/**
+ * Validates an address
+ *
+ * @param string $street Street address (incl street name, house number,etc)
+ * @param string $city   City name
+ * @param string $prov   Province/State/Territory abbreviation (2 letter)
+ * @param string $postalcode Postal or Zip code
+ * @param string $country Country abbreviation
+ */
+function validate_address ( $street, $city, $prov, $postalcode, $country )
+{
+    if( $country == 'CA' ) {
+        return validate_ca_address( $street, $city, $prov, $postalcode );
+    } else if( $country == 'US' ) {
+        return validate_us_address( $street, $city, $prov, $postalcode );
+    } else {
+        return array( "That is not a valid country" );
+    }
+}
+
+/**
+ * 
+ * Validates a Canadian address
+ * @param string $street Street address (incl street name, house number,etc)
+ * @param string $city   City name
+ * @param string $prov   Province/Territory abbreviation (2 letter)
+ * @param string $postalcode Postal code
+ */
+function validate_ca_address ( $street, $city, $prov, $postalcode )
+{
+    $errors = array();
+
+    # Street and city must only be non-HTML
+    if( ! validate_nonhtml( $street ) ) {
+        array_push( $errors, 'You must supply a valid street address');
+    }
+    
+    if( ! validate_nonhtml( $city ) ) {
+        array_push( $errors, 'You must supply a city');
+    }
+
+    if( ! validate_province_abbrev( $prov ) ) {
+        array_push( $errors, 'You must select a valid Canadian province or territory');
+    }
+
+    if( ! validate_canadian_postalcode( $postalcode, $prov ) ) {
+        array_push( $errors, 'You must enter a valid Canadian postalcode');
+    }
+
+    if( count( $errors ) ) {
+        return $errors;
+    }
+    return true;
+}
+
+/**
+ * 
+ * Validates a USA address
+ * @param string $street Street address (incl street name, house number,etc)
+ * @param string $city   City name
+ * @param string $state  State/Territory abbreviation (2 letter)
+ * @param string $zip    Zip code
+ */
+function validate_us_address ( $street, $city, $state, $zip)
+{
+    $errors = array();
+    
+    # Street and city must only be non-HTML
+    if( ! validate_nonhtml( $street ) ) {
+        array_push( $errors, 'You must supply a valid street address');
+    }
+    
+    if( ! validate_nonhtml( $city ) ) {
+        array_push( $errors, 'You must supply a city');
+    }
+
+    if( ! validate_state_abbrev( $state ) ) {
+        array_push( $errors, 'You must select a valid US state or territory');
+    }
+
+    if( ! validate_us_zipcode( $zip, $state ) ) {
+        array_push( $errors, 'You must enter a valid US Zip code');
+    }
+    
+    if( count( $errors ) ) {
+        return $errors;
+    }
+    return true;
+}
+
+/**
+ * Validate Canadian provinces
+ *
+ * @param string $prov Province abbreviation
+ */
+function validate_province_abbrev( $prov )
+{
+        switch (strtoupper($prov)) {
+            case 'AB':
+            case 'BC':
+            case 'MB':
+            case 'NB':
+            case 'NF':
+            case 'NT':
+            case 'NS':
+            case 'NU':
+            case 'ON':
+            case 'PE':
+            case 'QC':
+            case 'SK':
+            case 'YK':
+                return true;
+        }
+        return false;
+}
+
+/**
+ * Validate a Canadian postalcode
+ *
+ * Code borrowed from the BSD-licensed PEAR package 'Validate', which is too
+ * large and bloated to be used here.
+ */
+function validate_canadian_postalcode ( $postalcode, $prov )
 {
 	if( !validate_nonblank($string) ) {
 		return false;
 	}
-	
-	$string = strtoupper(trim($string));
 
-	/* Catch well-known "garbage" postalcodes.
-	 * If necessary, we can restrict postalcodes to only ottawa-area
-	 * postalcodes, but that would be a lot of work for potentially little
-	 * gain.
-	 */
-	if( preg_match("/^([A-Z])(\d)\\1\s*\\2\\1\\2$/", $string) ) {
-		return false;
-	}
-	
-	if ( ! preg_match("/^[A-Z]\d[A-Z]\s*\d[A-Z]\d$/", $string) ) {
-		return false;
-	}
-	return true;
+    $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    switch (strtoupper($prov)) {
+        case 'NF':          // Newfoundland
+            $sRegExp = 'A';
+            break;
+        case 'NS':          // Nova Scotia
+            $sRegExp = 'B';
+            break;
+        case 'PE':          // Prince Edward Island
+            $sRegExp = 'C';
+            break;
+        case 'NB':          // New Brunswick
+            $sRegExp = 'E';
+            break;
+        case 'QC':          // Quebec
+            $sRegExp = '[GHJ]';
+            break;
+        case 'ON':          // Ontario
+            $sRegExp = '[KLMNP]';
+            break;
+        case 'MB':          // Manitoba
+            $sRegExp = 'R';
+            break;
+        case 'SK':          // Saskatchewan
+            $sRegExp = 'S';
+            break;
+        case 'AB':          // Alberta
+            $sRegExp = 'T';
+            break;
+        case 'BC':          // British Columbia
+            $sRegExp = 'V';
+            break;
+        case 'NT':          // Northwest Territories
+        case 'NU':          // Nunavut
+            $sRegExp = 'X';
+            break;
+        case 'YK':          // Yukon Territory
+            $sRegExp = 'Y';
+            break;
+        default:
+            return false;
+    }
+
+    $sRegExp .= '[0-9][' . $letters . '][ \t-]*[0-9][ ' . $letters . '][0-9]';
+    $sRegExp = '/^' . $sRegExp . '$/';
+
+    return (bool) preg_match($sRegExp, strtoupper($postalCode));
 }
 
 function validate_nonblank( $string )
