@@ -1461,13 +1461,13 @@ function team_statistics ( )
 	$rows[] = array("Teams by season:", table(null, $sub_table));
 
 	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
-        FROM teamroster r , league l, leagueteams lt
-        LEFT JOIN team t ON (t.team_id = r.team_id) 
+        FROM teamroster r, league l, leagueteams lt, team t
         WHERE 
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id 
                 AND l.schedule_type != 'none' 
 				AND l.season = '%s'
+				AND t.team_id = r.team_id
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id 
         HAVING size < 12
