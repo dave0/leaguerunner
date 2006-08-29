@@ -734,7 +734,7 @@ END_TEXT;
 		$output .= form_group('Online Contact', $group);
 
 		$group = form_textfield('Street and Number','edit[addr_street]',$formData['addr_street'], 25, 100, 'Number, street name, and apartment number if necessary');
-		$group .= form_textfield('City','edit[addr_city]',$formData['addr_city'], 25, 100, 'Name of city.  If you are a resident of the amalgamated Ottawa, please enter "Ottawa" (instead of Kanata, Nepean, etc.)');
+		$group .= form_textfield('City','edit[addr_city]',$formData['addr_city'], 25, 100, 'Name of city');
 			
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
@@ -786,7 +786,7 @@ END_TEXT;
 
 		$thisYear = strftime('%Y', time());
 		$group .= form_select('Year Started', 'edit[year_started]', $formData['year_started'], 
-				getOptionsFromRange(1986, $thisYear, 'reverse'), 'The year you started playing Ultimate in Ottawa.');
+				getOptionsFromRange(1986, $thisYear, 'reverse'), 'The year you started playing Ultimate in this league.');
 
 		$group .= form_select_date('Birthdate', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), 'Please enter a correct birthdate; having accurate information is important for insurance purposes');
 

@@ -204,7 +204,7 @@ class FieldEdit extends Handler
 			
 			$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
 			
-			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city (Ottawa, Gatineau)');
+			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city');
 				
 			$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
 			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
