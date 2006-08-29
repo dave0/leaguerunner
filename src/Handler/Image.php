@@ -38,7 +38,7 @@ class ImageGeneratePin extends Handler
 
 		$font = 'ttf-bitstream-vera/Vera';
 		$size = 6;
-		$basepath = '/opt/websites/testing.ocua.ca/leaguerunner/src/image/pins';
+		$basepath = 'image/pins';
 
 		$im = ImageCreateFromPNG("$basepath/blank-marker.png");
 		imageSaveAlpha($im, true);

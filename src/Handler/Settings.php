@@ -47,6 +47,9 @@ function global_settings()
 	$group .= form_textfield("Base location of static league files (filesystem)", 'edit[league_file_base]', variable_get('league_file_base', '/opt/websites/www.ocua.ca/static-content/leagues'), 60, 120, "The filesystem location where files for permits, exported standings, etc, shall live.");
 	$group .= form_textfield("Base location of static league files (URL)", 'edit[league_url_base]', variable_get('league_url_base', 'http://www.ocua.ca/leagues'), 60, 120, "The web-accessible URL where files for permits, exported standings, etc, shall live.");
 	
+	$group .= form_textfield("Google Maps API Key", 'edit[gmaps_key]', variable_get('gmaps_key', ''), 60, 120, "An API key for the Google Maps API - see http://www.google.com/apis/maps/signup.html.  Required for rendering custom Google Maps");
+	
+	
 	$output = form_group("Site configuration", $group);
 
 	$group = form_radios("Clean URLs", "edit[clean_url]", variable_get("clean_url", 1), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
