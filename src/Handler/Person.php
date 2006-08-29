@@ -1076,22 +1076,8 @@ END_TEXT;
 			$edit['addr_postalcode'],
 			'CA');
 			
-		if( $address_errors ) {
+		if( count($address_errors) > 0) {
 			$errors .= "\n<li>" . join("\n<li>", $address_errors);
-		}
-		
-		if( !validate_nonhtml($edit['addr_street']) ) {
-			$errors .= "\n<li>You must supply a street address.";
-		}
-
-		if( !validate_nonhtml($edit['addr_city']) ) {
-			$errors .= "\n<li>You must supply a city.";
-		}
-		if( !validate_nonhtml($edit['addr_prov']) ) {
-			$errors .= "\n<li>You must supply a province.";
-		}
-		if( !validate_postalcode($edit['addr_postalcode']) ) {
-			$errors .= "\n<li>You must supply a valid Canadian postal code.";
 		}
 		
 		if( !preg_match("/^[mf]/i",$edit['gender'] ) ) {

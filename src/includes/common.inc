@@ -643,7 +643,7 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
         array_push( $errors, 'You must supply a city');
     }
 
-    if( ! validate_province_abbrev( $prov ) ) {
+    if( ! validate_province_full( $prov ) ) {
         array_push( $errors, 'You must select a valid Canadian province or territory');
     }
 
@@ -654,7 +654,7 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
     if( count( $errors ) ) {
         return $errors;
     }
-    return true;
+    return array();
 }
 
 /**
@@ -719,6 +719,33 @@ function validate_province_abbrev( $prov )
 }
 
 /**
+ * Validate Canadian provinces
+ *
+ * @param string $prov Full province name
+ */
+function validate_province_full( $prov )
+{
+        switch (strtolower($prov)) {
+            case 'alberta':
+            case 'british columbia':
+            case 'manitoba':
+            case 'new brunswick':
+            case 'newfoundland':
+            case 'newfoundland and labrador':
+            case 'northwest territories':
+            case 'nova scotia':
+            case 'nunavut':
+            case 'ontario':
+            case 'prince edward island':
+            case 'quebec':
+            case 'saskatchewan':
+            case 'yukon':
+                return true;
+        }
+        return false;
+}
+
+/**
  * Validate a Canadian postalcode
  *
  * Code borrowed from the BSD-licensed PEAR package 'Validate', which is too
@@ -726,47 +753,62 @@ function validate_province_abbrev( $prov )
  */
 function validate_canadian_postalcode ( $postalcode, $prov )
 {
-	if( !validate_nonblank($string) ) {
+
+	if( !validate_nonblank($postalcode) ) {
 		return false;
 	}
 
     $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     switch (strtoupper($prov)) {
         case 'NF':          // Newfoundland
+        case 'NEWFOUNDLAND':
+        case 'NEWFOUNDLAND AND LABRADOR':
             $sRegExp = 'A';
             break;
         case 'NS':          // Nova Scotia
+        case 'NOVA SCOTIA':
             $sRegExp = 'B';
             break;
         case 'PE':          // Prince Edward Island
+        case 'PRINCE EDWARD ISLAND':
             $sRegExp = 'C';
             break;
         case 'NB':          // New Brunswick
+        case 'NEW BRUNSWICK':
             $sRegExp = 'E';
             break;
         case 'QC':          // Quebec
+        CASE 'QUEBEC':
             $sRegExp = '[GHJ]';
             break;
         case 'ON':          // Ontario
+        case 'ONTARIO':
             $sRegExp = '[KLMNP]';
             break;
         case 'MB':          // Manitoba
+        case 'MANITOBA':
             $sRegExp = 'R';
             break;
         case 'SK':          // Saskatchewan
+        case 'SASKATCHEWAN':
             $sRegExp = 'S';
             break;
         case 'AB':          // Alberta
+        case 'ALBERTA':
             $sRegExp = 'T';
             break;
         case 'BC':          // British Columbia
+        case 'BRITISH COLUMBIA':
             $sRegExp = 'V';
             break;
         case 'NT':          // Northwest Territories
+        case 'NORTHWEST TERRITORIES':
         case 'NU':          // Nunavut
+        case 'NUNAVUT':
             $sRegExp = 'X';
             break;
         case 'YK':          // Yukon Territory
+        case 'YUKON':
             $sRegExp = 'Y';
             break;
         default:
@@ -776,7 +818,8 @@ function validate_canadian_postalcode ( $postalcode, $prov )
     $sRegExp .= '[0-9][' . $letters . '][ \t-]*[0-9][ ' . $letters . '][0-9]';
     $sRegExp = '/^' . $sRegExp . '$/';
 
-    return (bool) preg_match($sRegExp, strtoupper($postalCode));
+
+    return (bool) preg_match($sRegExp, strtoupper($postalcode));
 }
 
 function validate_nonblank( $string )
