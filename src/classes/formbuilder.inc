@@ -186,7 +186,7 @@ class FormBuilder
 			// Check that all 'required' questions have an answer
 			if( $q->required && !array_key_exists( $q->qkey, $this->_answers) ) {
 				$invalid_flag = true;
-				$text .= "A value is required for <i>" . $q->question . "</i></br>";
+				$text .= "A value is required for <i>" . $q->question . "</i><br>";
 			}
 		}
 		reset($this->_questions);
