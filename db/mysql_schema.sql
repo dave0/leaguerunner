@@ -1,6 +1,7 @@
 #
 # People in the system
 #
+DROP TABLE IF EXISTS person;
 CREATE TABLE person (
 
 	user_id	 integer  NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -62,6 +63,7 @@ CREATE TABLE person (
 );
 
 -- For use when assigning member IDs
+DROP TABLE IF EXISTS member_id_sequence;
 CREATE TABLE member_id_sequence (
 	year	year not null,
 	gender 	ENUM("Male","Female"),
@@ -69,6 +71,7 @@ CREATE TABLE member_id_sequence (
  	KEY (year,gender)
 );
 
+DROP TABLE IF EXISTS team;
 CREATE TABLE team (
 	team_id         integer NOT NULL AUTO_INCREMENT,
 	name            varchar(100) UNIQUE NOT NULL,
@@ -81,6 +84,7 @@ CREATE TABLE team (
 	PRIMARY KEY (team_id)
 );
 
+DROP TABLE IF EXISTS teamroster;
 CREATE TABLE teamroster (
 	team_id		integer NOT NULL,
 	player_id	integer NOT NULL,
@@ -89,6 +93,7 @@ CREATE TABLE teamroster (
 	PRIMARY KEY (team_id,player_id)
 );
 
+DROP TABLE IF EXISTS league;
 CREATE TABLE league (
 	league_id	integer NOT NULL AUTO_INCREMENT,
     name		varchar(100),
@@ -122,6 +127,7 @@ CREATE TABLE league (
 	PRIMARY KEY (league_id)
 );
 
+DROP TABLE IF EXISTS leagueteams;
 CREATE TABLE leagueteams (
 	league_id 	integer NOT NULL,
 	team_id		integer NOT NULL,
@@ -130,6 +136,7 @@ CREATE TABLE leagueteams (
 	INDEX leagueteams_league (league_id)
 );
 
+DROP TABLE IF EXISTS leaguemembers;
 CREATE TABLE leaguemembers (
 	league_id	integer NOT NULL,
 	player_id	integer NOT NULL,
@@ -140,6 +147,7 @@ CREATE TABLE leaguemembers (
 
 -- Tables for scheduling/scorekeeping
 
+DROP TABLE IF EXISTS schedule;
 CREATE TABLE schedule (
     game_id int NOT NULL PRIMARY KEY AUTO_INCREMENT,
     league_id int NOT NULL,
@@ -176,6 +184,7 @@ CREATE TABLE schedule (
 
 -- score_entry table is used to store scores entered by either team
 -- before they are approved
+DROP TABLE IF EXISTS score_entry;
 CREATE TABLE score_entry (
     team_id int NOT NULL,
     game_id int NOT NULL,
@@ -189,6 +198,7 @@ CREATE TABLE score_entry (
 );
 
 -- Spirit System
+DROP TABLE IF EXISTS question;
 CREATE TABLE question (
 	qkey	varchar(255) PRIMARY KEY, -- question key
 	genre	varchar(255),
@@ -199,6 +209,7 @@ CREATE TABLE question (
 	sorder	int default 0
 );
 
+DROP TABLE IF EXISTS multiplechoice_answers;
 CREATE TABLE multiplechoice_answers (
 	akey	varchar(255) PRIMARY KEY,
 	qkey	varchar(255),
@@ -207,6 +218,7 @@ CREATE TABLE multiplechoice_answers (
 	sorder	int default 0		-- sort order
 );
 
+DROP TABLE IF EXISTS team_spirit_answers;
 CREATE TABLE team_spirit_answers (
 	tid_created	int NOT NULL, -- ID of team providing this answer
 	tid		int NOT NULL, -- id of team receiving this answer
@@ -217,6 +229,7 @@ CREATE TABLE team_spirit_answers (
 );
 
 
+DROP TABLE IF EXISTS field;
 CREATE TABLE field (
 	fid	int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	num	tinyint,
@@ -250,7 +263,8 @@ CREATE TABLE field (
 );
 
 -- Game slots for scheduling
-create table gameslot (
+DROP TABLE IF EXISTS gameslot;
+CREATE TABLE gameslot (
 	slot_id		integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	fid		integer NOT NULL,
 	game_date	date,
@@ -260,13 +274,15 @@ create table gameslot (
 );
 
 -- gameslot availability
-create table league_gameslot_availability (
+DROP TABLE IF EXISTS league_gameslot_availability;
+CREATE TABLE league_gameslot_availability (
 	league_id 	integer NOT NULL,
 	slot_id		integer NOT NULL
 );
 
 
 -- city wards
+DROP TABLE IF EXISTS ward;
 CREATE TABLE ward (
 	ward_id integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	num tinyint,
@@ -277,6 +293,7 @@ CREATE TABLE ward (
 	INDEX ward_city (city)
 );
 
+DROP TABLE IF EXISTS variable;
 CREATE TABLE variable (
 	name	varchar(50) NOT NULL default '',
 	value	longtext    NOT NULL,
