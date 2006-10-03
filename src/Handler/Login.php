@@ -70,11 +70,8 @@ class Login extends Handler
 		switch($lr_session->attr_get('status')) {
 			case 'new':
 				return $this->login_form("Login Denied.  Account creation is awaiting approval.");
-				break;
 			case 'locked':
 				return $this->login_form("Login Denied.  Account has been locked by administrator.");
-				return true;
-				break;
 			case 'inactive':
 				/* Inactive.  Send this person to the revalidation page(s) */
 				local_redirect(url("person/activate"));
