@@ -109,7 +109,7 @@ function game_splash ()
 	global $lr_session;
 
 	$games = db_query("SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date < CURDATE() ORDER BY g.game_date desc LIMIT 4", $lr_session->user->user_id);
+        AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start LIMIT 4", $lr_session->user->user_id);
 	$rows = array();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
@@ -138,7 +138,7 @@ function game_splash ()
 	}
 	
 	 $games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date >= CURDATE() ORDER BY g.game_date asc LIMIT 4", $lr_session->user->user_id);
+        AND g.game_date >= CURDATE() ORDER BY g.game_date, g.game_start asc LIMIT 4", $lr_session->user->user_id);
 	$timeNow = time();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
@@ -356,7 +356,7 @@ class GameCreate extends Handler
 		$output = "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
 
 		$result = db_query(
-			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d ORDER BY s.game_date", $this->league->league_id);
+			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d ORDER BY s.game_date, s.game_start", $this->league->league_id);
 			
 		$possible_dates = array();
 		while($date = db_fetch_object($result)) {

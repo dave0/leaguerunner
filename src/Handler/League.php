@@ -1330,7 +1330,7 @@ class LeagueStatusReport extends Handler
 
       // get the schedule
       $schedule = array();
-      $games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+      $games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
       while($g = db_fetch_array($games)) {
          $g = game_load( array('game_id' => $g['game_id']) );
          $schedule[] = $g;

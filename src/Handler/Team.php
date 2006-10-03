@@ -1470,7 +1470,7 @@ function team_statistics ( )
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id 
         HAVING size < 12
-        ORDER BY size desc", $current_season);
+        ORDER BY size desc, t.name", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		if( $row['size'] < 12 ) {

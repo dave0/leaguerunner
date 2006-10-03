@@ -157,7 +157,7 @@ class ScheduleEdit extends Handler
 
 		$this->league->rounds = $this->league->rounds_as_array();
 
-		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id,g.game_start') );
+		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 		
 			
 		if( ! $result ) {
@@ -377,7 +377,7 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 		if( ! $result ) {
 			error_exit("That league does not have a schedule");
 		}
