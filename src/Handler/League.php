@@ -88,19 +88,19 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 
 function league_menu()
 {
-	global $session;
+	global $lr_session;
 
-	if( !$session->is_player() ) {
+	if( !$lr_session->is_player() ) {
 		return;
 	}
 	
 	menu_add_child('_root','league','Leagues');
 	menu_add_child('league','league/list','list leagues', array('link' => 'league/list') );
-	if( $session->is_valid() ) {
-		while(list(,$league) = each($session->user->leagues) ) {
+	if( $lr_session->is_valid() ) {
+		while(list(,$league) = each($lr_session->user->leagues) ) {
 			league_add_to_menu($league);
 		}
-		reset($session->user->leagues);
+		reset($lr_session->user->leagues);
 	}
 }
 
@@ -109,39 +109,39 @@ function league_menu()
  */
 function league_add_to_menu( &$league, $parent = 'league' ) 
 {
-	global $session;
+	global $lr_session;
 
 	menu_add_child($parent, $league->fullname, $league->fullname, array('weight' => -10, 'link' => "league/view/$league->league_id"));
 	
    if($league->schedule_type != 'none') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
-		if($session->has_permission('league','add game', $league->league_id) ) {
+		if($lr_session->has_permission('league','add game', $league->league_id) ) {
 			menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/edit", 'add games', array('link' => "game/create/$league->league_id"));
 		} 
-		if($session->has_permission('league','approve scores', $league->league_id) ) {
+		if($lr_session->has_permission('league','approve scores', $league->league_id) ) {
 			menu_add_child($league->fullname, "$league->fullname/approvescores",'approve scores', array('weight' => 1, 'link' => "league/approvescores/$league->league_id"));
 		}
 	}
 	
-	if($session->has_permission('league','edit', $league->league_id) ) {
+	if($lr_session->has_permission('league','edit', $league->league_id) ) {
 		menu_add_child($league->fullname, "$league->fullname/edit",'edit league', array('weight' => 1, 'link' => "league/edit/$league->league_id"));
       if ( $league->schedule_type == "pyramid" ) {
          menu_add_child($league->fullname, "$league->fullname/rank",'adjust ranks', array('weight' => 1, 'link' => "league/rank/$league->league_id"));
       }
 		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
 	}
-	if($session->has_permission('league','view', $league->league_id, 'captain emails') ) {
+	if($lr_session->has_permission('league','view', $league->league_id, 'captain emails') ) {
 		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
 	}
-	if($session->has_permission('league','view', $league->league_id, 'spirit') ) {
+	if($lr_session->has_permission('league','view', $league->league_id, 'spirit') ) {
 		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
 	}
-	if($session->has_permission('league','create') ) {
+	if($lr_session->has_permission('league','create') ) {
 		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
-	if($session->has_permission('league','edit', $league->league_id) ) {
-      if ( $league->schedule_type == "pyramid" ) { //&& $session->is_admin() ) {
+	if($lr_session->has_permission('league','edit', $league->league_id) ) {
+      if ( $league->schedule_type == "pyramid" ) { //&& $lr_session->is_admin() ) {
          menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
       }
    }
@@ -152,8 +152,8 @@ function league_add_to_menu( &$league, $parent = 'league' )
  */
 function league_splash ()
 {
-	global $session;
-	if( ! $session->user->is_a_coordinator ) {
+	global $lr_session;
+	if( ! $lr_session->user->is_a_coordinator ) {
 		return;
 	}
 
@@ -164,7 +164,7 @@ function league_splash ()
 			
 	// TODO: For each league, need to display # of missing scores,
 	// pending scores, etc.
-	while(list(,$league) = each($session->user->leagues)) {
+	while(list(,$league) = each($lr_session->user->leagues)) {
 		$links = array(
 			l("edit", "league/edit/$league->league_id")
 		);
@@ -185,7 +185,7 @@ function league_splash ()
 			)
 		);
 	}
-	reset($session->user->leagues);
+	reset($lr_session->user->leagues);
 			
 	return table( $header, $rows );
 }
@@ -227,8 +227,8 @@ class LeagueCreate extends LeagueEdit
 	
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','create');
+		global $lr_session;
+		return $lr_session->has_permission('league','create');
 	}
 	
 	function process ()
@@ -256,15 +256,15 @@ class LeagueCreate extends LeagueEdit
 
 	function perform ( &$edit )
 	{
-		global $session;
+		global $lr_session;
 		
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$this->league->set('name',$session->attr_get('user_id'));
-		$this->league->add_coordinator($session->user);
+		$this->league->set('name',$lr_session->attr_get('user_id'));
+		$this->league->add_coordinator($lr_session->user);
 		
 		return parent::perform($edit);
 	}
@@ -279,8 +279,8 @@ class LeagueEdit extends Handler
 
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','edit',$this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','edit',$this->league->league_id);
 	}
 
 	function process ()
@@ -501,13 +501,13 @@ class LeagueList extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('league','list');
+		global $lr_session;
+		return $lr_session->has_permission('league','list');
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 
 		$season = arg(2);
 		if( ! $season ) {
@@ -548,7 +548,7 @@ class LeagueList extends Handler
 				$links[] = l('schedule',"schedule/view/$league->league_id");
 				$links[] = l('standings',"league/standings/$league->league_id");
 			}
-			if( $session->has_permission('league','delete', $league->league_id) ) {
+			if( $lr_session->has_permission('league','delete', $league->league_id) ) {
 				$links[] = l('delete',"league/delete/$league->league_id");
 			}
 			$rows[] = array(
@@ -568,13 +568,13 @@ class LeagueStandings extends Handler
 
 	function has_permission ()
 	{	
-		global $session;
-		return $session->has_permission('league','view', $this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','view', $this->league->league_id);
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		
 		$id = arg(2);
       $teamid = arg(3);
@@ -731,7 +731,7 @@ class LeagueStandings extends Handler
 	
 			// initialize the sotg to dashes!
 			$sotg = "---";
-			if($season[$tid]->games < 3 && !($session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
+			if($season[$tid]->games < 3 && !($lr_session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
 				 $sotg = "---";
 			} else if ($season[$tid]->games_with_sotg > 0) {
 				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games_with_sotg));
@@ -757,19 +757,19 @@ class LeagueView extends Handler
 
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','view',$this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','view',$this->league->league_id);
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		
 		$this->title = "View League";
 
 		foreach( $this->league->coordinators as $c ) {
 			$coordinator = l($c->fullname, "person/view/$c->user_id");
-			if($session->has_permission('league','edit',$this->league->league_id)) {
+			if($lr_session->has_permission('league','edit',$this->league->league_id)) {
 				$coordinator .= "&nbsp;[&nbsp;" . l('remove coordinator', url("league/member/" . $this->league->league_id."/$c->user_id", 'edit[status]=remove')) . "&nbsp;]";
 			}
 			$coordinators[] = $coordinator;
@@ -818,12 +818,12 @@ class LeagueView extends Handler
          $counter++;
 			$team_links = array();
 			if($team->status == 'open') {
-				$team_links[] = l('join', "team/roster/$team->team_id/" . $session->attr_get('user_id'));
+				$team_links[] = l('join', "team/roster/$team->team_id/" . $lr_session->attr_get('user_id'));
 			}
-			if($session->has_permission('league','edit',$this->league->league_id)) {
+			if($lr_session->has_permission('league','edit',$this->league->league_id)) {
 				$team_links[] = l('move', "team/move/$team->team_id");
 			}
-			if($this->league->league_id == 1 && $session->has_permission('team','delete',$team->team_id)) {
+			if($this->league->league_id == 1 && $lr_session->has_permission('team','delete',$team->team_id)) {
 				$team_links[] = l('delete', "team/delete/$team->team_id");
 			}
 
@@ -859,8 +859,8 @@ class LeagueCaptainEmails extends Handler
 
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('league','view',$this->league->league_id, 'captain emails');
+		global $lr_session;
+		return $lr_session->has_permission('league','view',$this->league->league_id, 'captain emails');
 	}
 
 	function process ()
@@ -907,8 +907,8 @@ class LeagueApproveScores extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('league','approve scores',$this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','approve scores',$this->league->league_id);
 	}
 
 	function process ()
@@ -984,13 +984,13 @@ class LeagueMemberStatus extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','edit', $this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','edit', $this->league->league_id);
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = "League Member Status";
 
 		$player_id = arg(3);
@@ -1004,7 +1004,7 @@ class LeagueMemberStatus extends Handler
 			return $new_handler->process();
 		}
 
-		if( !$session->is_admin() && $player_id == $session->attr_get('user_id') ) {
+		if( !$lr_session->is_admin() && $player_id == $lr_session->attr_get('user_id') ) {
 			error_exit("You cannot add or remove yourself as league coordinator");
 		}
 
@@ -1038,8 +1038,8 @@ class LeagueRank extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','edit', $this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','edit', $this->league->league_id);
 	}
 
    function generateForm ( $data = '' ) 
@@ -1119,13 +1119,13 @@ class LeagueSpirit extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('league','view', $this->league->league_id, 'spirit');
+		global $lr_session;
+		return $lr_session->has_permission('league','view', $this->league->league_id, 'spirit');
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = "League Spirit";
 		
 		$this->setLocation(array(
@@ -1243,8 +1243,8 @@ class LeagueStatusReport extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','edit', $this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','edit', $this->league->league_id);
 	}
 
    function generateForm ( $data = '' ) 

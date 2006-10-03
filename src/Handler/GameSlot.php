@@ -54,8 +54,8 @@ class GameSlotCreate extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('slot','create');
+		global $lr_session;
+		return $lr_session->has_permission('slot','create');
 	}
 
 	function process()
@@ -259,8 +259,8 @@ class GameSlotDelete extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('slot','delete', $this->slot->slot_id);
+		global $lr_session;
+		return $lr_session->has_permission('slot','delete', $this->slot->slot_id);
 	}
 
 	function process()
@@ -329,8 +329,8 @@ class GameSlotAvailability extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('slot', 'availability', $this->slot->slot_id);
+		global $lr_session;
+		return $lr_session->has_permission('slot', 'availability', $this->slot->slot_id);
 	}
 
 	function process()
@@ -416,8 +416,8 @@ class GameSlotListDay extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('slot', 'day');
+		global $lr_session;
+		return $lr_session->has_permission('slot', 'day');
 	}
 
 	function process ()
@@ -456,7 +456,7 @@ class GameSlotListDay extends Handler
 	
 	function display_for_day ( $year, $month, $day )
 	{
-		global $session;
+		global $lr_session;
 		$result = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
 		
 		if( ! $result ) {
@@ -471,16 +471,16 @@ class GameSlotListDay extends Handler
 			$field = field_load( array('fid' => $slot->fid));
 			
 			$actions = array();
-			if( $session->has_permission('gameslot','edit', $slot->slot_id)) {
+			if( $lr_session->has_permission('gameslot','edit', $slot->slot_id)) {
 				$actions[] = l('change avail', "slot/availability/$slot->slot_id");
 			}
-			if( $session->has_permission('gameslot','delete', $slot->slot_id)) {
+			if( $lr_session->has_permission('gameslot','delete', $slot->slot_id)) {
 				$actions[] = l('delete', "slot/delete/$slot->slot_id");
 			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
 				$booking = l($game->league_name,"game/view/$game->game_id");
-				if( $session->has_permission('game','reschedule', $game->game_id)) {
+				if( $lr_session->has_permission('game','reschedule', $game->game_id)) {
 					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
 				}
 			}

@@ -65,7 +65,7 @@ class SeasonStandings extends Handler
 
 	function generate_standings ($league)
 	{
-		global $session;
+		global $lr_session;
 		$league->load_teams();
 		
 		list($order, $season, $round) = $league->calculate_standings(array( 'round' => 'all' ));

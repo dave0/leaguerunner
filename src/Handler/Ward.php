@@ -21,8 +21,8 @@ function ward_dispatch()
 
 function ward_menu()
 {
-	global $session;
-	if($session->is_admin()) {
+	global $lr_session;
+	if($lr_session->is_admin()) {
 		menu_add_child('_root','ward','City Wards', array('weight' => 5));
 		menu_add_child('ward','ward/list','list wards', array('link' => 'ward/list') );
 	}
@@ -46,8 +46,8 @@ class WardCreate extends WardEdit
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('ward','create');
+		global $lr_session;
+		return $lr_session->has_permission('ward','create');
 	}
 	
 	function process ()
@@ -100,8 +100,8 @@ class WardEdit extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('ward','edit', $this->ward->ward_id);
+		global $lr_session;
+		return $lr_session->has_permission('ward','edit', $this->ward->ward_id);
 	}
 
 	function process ()
@@ -239,8 +239,8 @@ class WardList extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('ward','list');
+		global $lr_session;
+		return $lr_session->has_permission('ward','list');
 	}
 
 	function process ()
@@ -291,13 +291,13 @@ class WardView extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('ward','view', $this->ward->ward_id);
+		global $lr_session;
+		return $lr_session->has_permission('ward','view', $this->ward->ward_id);
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = "View Ward";
 		$id = arg(2);
 
@@ -307,7 +307,7 @@ class WardView extends Handler
 		}
 
 		$links = array();
-		if($session->has_permission('ward','edit', $ward->ward_id)) {
+		if($lr_session->has_permission('ward','edit', $ward->ward_id)) {
 			$links[] = l('edit ward', "ward/edit/$id", array("title" => "Edit this ward"));
 		}
 		

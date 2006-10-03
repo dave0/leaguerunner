@@ -38,20 +38,20 @@ class Login extends Handler
 	 */
 	function process () 
 	{
-		global $session;
+		global $lr_session;
 
 		$edit = $_POST['edit'];
 
 		if( !($edit['username'] && $edit['password']) ) {
 			/* Check if session is already valid */
-			if($session->is_valid()) {
+			if($lr_session->is_valid()) {
 				return $this->handle_valid($edit['remember_me']);
 			}
 			return $this->login_form();
 		}
 		
 		/* Now, if we can, we will create a new user session */
-		$rc = $session->create_from_login($edit['username'], $edit['password'], $_SERVER['REMOTE_ADDR']);
+			$rc = $lr_session->create_from_login($edit['username'], $edit['password'], $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
 			return $this->login_form("Incorrect username or password");
 		}
@@ -65,9 +65,9 @@ class Login extends Handler
 
 	function handle_valid( $remember_me = 0 )
 	{
-		global $session;
+		global $lr_session;
 
-		switch($session->attr_get('status')) {
+		switch($lr_session->attr_get('status')) {
 			case 'new':
 				return $this->login_form("Login Denied.  Account creation is awaiting approval.");
 				break;
@@ -169,8 +169,8 @@ class Logout extends Handler
 
 	function process ()
 	{
-		global $session;
-		$session->expire();
+		global $lr_session;
+		$lr_session->expire();
 		local_redirect(url("login"));
 		return true;
 	}

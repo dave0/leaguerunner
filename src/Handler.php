@@ -64,7 +64,7 @@ class Handler
 	/**
 	 * Check for unsatisified prerequisites for this operation
 	 *
-	 * Right now, the main Handler class just needs to check that the acount
+	 * Right now, the main Handler class just needs to check that the account
 	 * is active and the waiver has been signed as appropriate.
 	 *
 	 * This should be overridden by subclass when performing these checks is
@@ -72,30 +72,30 @@ class Handler
 	 */
 	function checkPrereqs ( $next )
 	{
-		global $session;
+		global $lr_session;
 
-		if( ! $session->is_loaded() ) {
+		if( ! $lr_session->is_loaded() ) {
 			return false;
 		}
 		
 		// TODO: This belongs as a config option
 		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
 
-		if( $session->is_player() ) {
-			$time = $session->attr_get('waiver_timestamp');
+		if( $lr_session->is_player() ) {
+			$time = $lr_session->attr_get('waiver_timestamp');
 			if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
 				return url("person/signwaiver","next=$next");
 			}
 
-			$time = $session->attr_get('dog_waiver_timestamp');
-			if(($session->attr_get('has_dog') =='Y') 
+			$time = $lr_session->attr_get('dog_waiver_timestamp');
+			if(($lr_session->attr_get('has_dog') =='Y') 
 				&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
 				return url("person/signdogwaiver","next=$next");
 			}
 		}
 
 # DMO: Disable the survey.
-#		if( $session->attr_get('survey_completed') != 'Y' ) {
+#		if( $lr_session->attr_get('survey_completed') != 'Y' ) {
 #			return url("person/survey","next=$next");
 #		}
 
@@ -113,7 +113,7 @@ class Handler
 	 */
 	function has_permission() 
 	{
-		global $session;
+		global $lr_session;
 
 		error_exit("Old permissions code somehow triggered.  You should contact dmo@dmo.ca if you see this error message");
 	}

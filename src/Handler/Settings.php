@@ -15,8 +15,8 @@ function settings_dispatch()
 
 function settings_menu()
 {
-	global $session;
-	if($session->is_admin()) {
+	global $lr_session;
+	if($lr_session->is_admin()) {
 		menu_add_child('_root','settings','Settings');
 		menu_add_child('settings','settings/global','global settings', array('link' => 'settings/global'));
 	}
@@ -45,6 +45,7 @@ function global_settings()
 	$group .= form_textfield("Administrator e-mail address", 'edit[app_admin_email]', variable_get('app_admin_email', 'webmaster@localhost'), 60, 120, "The e-mail address of the system administrator.  Mail from Leaguerunner will come from this address.");
 	
 	$group .= form_textfield("Base location of static league files (filesystem)", 'edit[league_file_base]', variable_get('league_file_base', '/opt/websites/www.ocua.ca/static-content/leagues'), 60, 120, "The filesystem location where files for permits, exported standings, etc, shall live.");
+
 	$group .= form_textfield("Base location of static league files (URL)", 'edit[league_url_base]', variable_get('league_url_base', 'http://www.ocua.ca/leagues'), 60, 120, "The web-accessible URL where files for permits, exported standings, etc, shall live.");
 	
 	$group .= form_textfield("Google Maps API Key", 'edit[gmaps_key]', variable_get('gmaps_key', ''), 60, 120, "An API key for the Google Maps API - see http://www.google.com/apis/maps/signup.html.  Required for rendering custom Google Maps");
@@ -68,8 +69,8 @@ class SettingsHandler extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->is_admin();
+		global $lr_session;
+		return $lr_session->is_admin();
 	}
 
 	function process ()

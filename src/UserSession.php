@@ -18,10 +18,10 @@ function sess_close()
 
 function sess_read($key)
 {
-	global $session;
-	$session = new UserSession;
-	$session->create_from_cookie($key, $_SERVER['REMOTE_ADDR']);
-	return $session->is_valid();
+	global $lr_session;
+	$lr_session = new UserSession;
+	$lr_session->create_from_cookie($key, $_SERVER['REMOTE_ADDR']);
+	return $lr_session->is_valid();
 }
 
 function sess_write($key, $value)

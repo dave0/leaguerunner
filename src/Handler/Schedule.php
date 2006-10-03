@@ -104,8 +104,8 @@ class ScheduleEdit extends Handler
 
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('league','edit schedule',$this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','edit schedule',$this->league->league_id);
 	}
 	
 	function process ()
@@ -363,7 +363,7 @@ class ScheduleView extends Handler
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = "View Schedule";
 		
 		if( !$this->league ) {
@@ -392,7 +392,7 @@ class ScheduleView extends Handler
 			if( $game->day_id != $prevDayId ) {
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game->timestamp),
-					$session->has_permission('league','edit schedule', $this->league->league_id),
+					$lr_session->has_permission('league','edit schedule', $this->league->league_id),
 					$game->day_id, $this->league->league_id );
 				$rows[] = schedule_subheading( );
 			}
@@ -489,7 +489,7 @@ function schedule_render_editable( &$game, &$league )
 
 function schedule_render_viewable( &$game )
 {
-	global $session;
+	global $lr_session;
 	if($game->home_name) {
 		$homeTeam = l($game->short_home_name(), "team/view/" . $game->home_id);
 	} else {

@@ -90,13 +90,13 @@ class GraphTeamRank extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('team','view');
+		global $lr_session;
+		return $lr_session->has_permission('team','view');
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 
 		$graph = new Graph(600,400,'auto', LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
@@ -171,16 +171,16 @@ class GraphLeagueRank extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
+		global $lr_session;
 		if( !$this->league ) {
 			error_exit("That is not a valid league");
 		}
-		return $session->has_permission('team','view');
+		return $lr_session->has_permission('team','view');
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 
 		$graph = new Graph(600,400,'auto',LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
@@ -241,13 +241,13 @@ class GraphTeamSpirit extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('team','view');
+		global $lr_session;
+		return $lr_session->has_permission('team','view');
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		
 		$graph = new Graph(600,400,'auto', LR_GRAPH_TIMEOUT);
 		$graph->SetScale("intint");
@@ -271,7 +271,7 @@ class GraphTeamSpirit extends Handler
 			if( !$team ) {
 				error_exit("That is not a valid team ID");
 			}
-			if( ! $session->is_coordinator_of($team->league_id) ) {
+			if( ! $lr_session->is_coordinator_of($team->league_id) ) {
 				error_exit("You do not have permission to view that team's spirit");
 			}
 			$this->add_to_graph($graph, $team);
@@ -334,8 +334,8 @@ class GraphPlayerSkill extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('team','view');
+		global $lr_session;
+		return $lr_session->has_permission('team','view');
 	}
 
 	function process ()
@@ -366,8 +366,8 @@ class GraphRosterSize extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('statistics','roster size');
+		global $lr_session;
+		return $lr_session->has_permission('statistics','roster size');
 	}
 
 	function process ()

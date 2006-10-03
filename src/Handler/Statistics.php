@@ -14,8 +14,8 @@ function statistics_dispatch()
 
 function statistics_menu()
 {
-	global $session;
-	if($session->is_admin()) {
+	global $lr_session;
+	if($lr_session->is_admin()) {
 		menu_add_child('_root','statistics','Statistics');
 	}
 }
@@ -32,8 +32,8 @@ class StatisticsHandler extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->is_admin();
+		global $lr_session;
+		return $lr_session->is_admin();
 	}
 
 	function process ()

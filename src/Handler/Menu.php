@@ -14,14 +14,14 @@ class MainMenu extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return ( $session->is_valid() );
+		global $lr_session;
+		return ( $lr_session->is_valid() );
 	}
 
 	function process ()
 	{
-		global $session;
-		$this->setLocation(array( $session->attr_get('fullname') => 0 ));
+		global $lr_session;
+		$this->setLocation(array( $lr_session->attr_get('fullname') => 0 ));
 		return "<div class='splash'>" . join("",module_invoke_all('splash')) . "</div>";
 	}
 }

@@ -78,11 +78,11 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 
 function field_menu()
 {
-	global $session;
+	global $lr_session;
 	menu_add_child('_root','field','Fields');
 	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
 
-	if( $session->has_permission('field','create') ) {
+	if( $lr_session->has_permission('field','create') ) {
 		menu_add_child('field','field/create','create field', array('weight' => 5, 'link' => 'field/create') );
 	}
 }
@@ -92,19 +92,19 @@ function field_menu()
  */
 function field_add_to_menu( &$field ) 
 {
-	global $session;
+	global $lr_session;
 	
 	menu_add_child('field', $field->fullname, $field->fullname, array('weight' => -10, 'link' => "field/view/$field->fid"));
 	
-	if($session->has_permission('field','view bookings', $field->fid) ) {
+	if($lr_session->has_permission('field','view bookings', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
 	}
 	
-	if($session->has_permission('field','edit', $field->fid) ) {
+	if($lr_session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
 	} 
 	
-	if($session->has_permission('gameslot','create', $field->fid) ) {
+	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
 	}
 }	
@@ -115,8 +115,8 @@ class FieldCreate extends FieldEdit
 	
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('field','create');
+		global $lr_session;
+		return $lr_session->has_permission('field','create');
 	}
 	
 	function process ()
@@ -148,11 +148,11 @@ class FieldEdit extends Handler
 	
 	function has_permission()
 	{
-		global $session;
+		global $lr_session;
 		if (!$this->field) {
 			error_exit("That field does not exist");
 		}
-		return $session->has_permission('field','edit', $this->field->fid);
+		return $lr_session->has_permission('field','edit', $this->field->fid);
 	}
 	
 	function process ()
@@ -376,8 +376,8 @@ class FieldList extends Handler
 {
 	function has_permission()
 	{
-		global $session;
-		return $session->has_permission('field','list');
+		global $lr_session;
+		return $lr_session->has_permission('field','list');
 	}
 
 	function process ()
@@ -421,16 +421,16 @@ class FieldView extends Handler
 	
 	function has_permission()
 	{
-		global $session;
+		global $lr_session;
 		if (!$this->field) {
 			error_exit("That field does not exist");
 		}
-		return $session->has_permission('field','view', $this->field->fid);
+		return $lr_session->has_permission('field','view', $this->field->fid);
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title= "View Field";
 
 		$rows = array();
@@ -472,7 +472,7 @@ class FieldView extends Handler
 			$rows[] = array("Field Permit:", $this->field->permit_url);
 		}
 		$rows[] = array("Directions:", $this->field->site_directions);
-		if( $session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
+		if( $lr_session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
 			$rows[] = array("Special Instructions:", $this->field->site_instructions);
 		} else {
 			$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
@@ -514,16 +514,16 @@ class FieldBooking extends Handler
 
 	function has_permission()
 	{
-		global $session;
+		global $lr_session;
 		if (!$this->field) {
 			error_exit("That field does not exist");
 		}
-		return $session->has_permission('field','view', $this->field->fid);
+		return $lr_session->has_permission('field','view', $this->field->fid);
 	}
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 
 		$this->setLocation(array(
 			'Availability and Bookings' => "field/view/" . $this->field->fid,
@@ -537,16 +537,16 @@ class FieldBooking extends Handler
 		while($slot = db_fetch_object($result)) {
 			$booking = '';
 			$actions = array();
-			if( $session->has_permission('gameslot','edit', $slot->slot_id)) {
+			if( $lr_session->has_permission('gameslot','edit', $slot->slot_id)) {
 				$actions[] = l('change avail', "slot/availability/$slot->slot_id");
 			}
-			if( $session->has_permission('gameslot','delete', $slot->slot_id)) {
+			if( $lr_session->has_permission('gameslot','delete', $slot->slot_id)) {
 				$actions[] = l('delete', "slot/delete/$slot->slot_id");
 			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
 				$booking = l($game->league_name,"game/view/$game->game_id");
-				if( $session->has_permission('game','reschedule', $game->game_id)) {
+				if( $lr_session->has_permission('game','reschedule', $game->game_id)) {
 					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
 				}
 			}

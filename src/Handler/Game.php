@@ -106,10 +106,10 @@ function game_permissions ( &$user, $action, &$game, $extra )
  */
 function game_splash ()
 {
-	global $session;
+	global $lr_session;
 
 	$games = db_query("SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date < CURDATE() ORDER BY g.game_date desc LIMIT 4", $session->user->user_id);
+        AND g.game_date < CURDATE() ORDER BY g.game_date desc LIMIT 4", $lr_session->user->user_id);
 	$rows = array();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
@@ -125,7 +125,7 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($session->has_permission('game','submit score', $game) 
+			} else if($lr_session->has_permission('game','submit score', $game) 
 			    && ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
@@ -138,7 +138,7 @@ function game_splash ()
 	}
 	
 	 $games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date >= CURDATE() ORDER BY g.game_date asc LIMIT 4", $session->user->user_id);
+        AND g.game_date >= CURDATE() ORDER BY g.game_date asc LIMIT 4", $lr_session->user->user_id);
 	$timeNow = time();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
@@ -154,7 +154,7 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($session->has_permission('game','submit score', $game) 
+			} else if($lr_session->has_permission('game','submit score', $game) 
 			    && ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
@@ -179,10 +179,10 @@ function game_splash ()
  */
 function game_add_to_menu( &$league, &$game )
 {
-	global $session;
+	global $lr_session;
 	menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
 
-	if( $session->has_permission('league','edit game', $game->league_id) ) {
+	if( $lr_session->has_permission('league','edit game', $game->league_id) ) {
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
 #		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/reschedule", "reschedule game", array('link' => "game/reschedule/$game->game_id"));
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/delete", "delete game", array('link' => "game/delete/$game->game_id"));
@@ -227,8 +227,8 @@ class GameCreate extends Handler
 
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('league','add game', $this->league->league_id);
+		global $lr_session;
+		return $lr_session->has_permission('league','add game', $this->league->league_id);
 	}
 	
 	function process ()
@@ -461,9 +461,9 @@ class GameSubmit extends Handler
 
 	function has_permission ()
 	{
-		global $session;
+		global $lr_session;
 	
-		return $session->has_permission('game','submit score', $this->game, $this->team);
+		return $lr_session->has_permission('game','submit score', $this->game, $this->team);
 	}
 
 	function process ()
@@ -548,7 +548,7 @@ class GameSubmit extends Handler
 	
 	function perform ($edit, $opponent)
 	{
-		global $session;
+		global $lr_session;
 
 		$dataInvalid = $this->isScoreDataInvalid( $edit );
 		if($dataInvalid) {
@@ -571,7 +571,7 @@ class GameSubmit extends Handler
 
 		// Now, we know we haven't finalized the game, so we first
 		// save this team's score entry, as there isn't one already.
-		if( !$this->game->save_score_entry( $this->team->team_id, $session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'] ) ) {
+		if( !$this->game->save_score_entry( $this->team->team_id, $lr_session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'] ) ) {
 			error_exit("Error saving score entry for " . $this->team->team_id);
 		}
 		
@@ -814,23 +814,23 @@ class GameEdit extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('game','view', $this->game);
+		global $lr_session;
+		return $lr_session->has_permission('game','view', $this->game);
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		if(!$this->game) {
 			error_exit("That game does not exist");
 		}
 
 		if( arg(1) == 'edit' || arg(1) == 'approve' ) {
-			if( $session->is_admin() ) {
+			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
 	
-			if( $session->is_coordinator_of($this->game->league_id)) {
+			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
 		} else {
@@ -861,7 +861,7 @@ class GameEdit extends Handler
 	
 	function generateForm ( ) 
 	{
-		global $session;
+		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -969,7 +969,7 @@ class GameEdit extends Handler
 			
 			
 			$score_group .= form_item('',"Score not yet finalized");
-			if( $session->has_permission('game','view', $game, 'submission') ) {
+			if( $lr_session->has_permission('game','view', $game, 'submission') ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
 				
 			}
@@ -986,7 +986,7 @@ class GameEdit extends Handler
 		
 		$output .= form_group("Scoring", $score_group);
 	
-		if( $session->has_permission('game','view',$game,'spirit') ) {
+		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
@@ -1096,7 +1096,7 @@ class GameEdit extends Handler
 	
 	function perform ( $edit )
 	{
-		global $session;
+		global $lr_session;
 		
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
@@ -1124,7 +1124,7 @@ class GameEdit extends Handler
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
 		$this->game->set('status', $edit['status']);
-		$this->game->set('approved_by', $session->attr_get('user_id'));
+		$this->game->set('approved_by', $lr_session->attr_get('user_id'));
 
 		switch( $edit['status'] ) {
 			case 'home_default':
@@ -1246,23 +1246,23 @@ class GameDelete extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('game','view', $this->game);
+		global $lr_session;
+		return $lr_session->has_permission('game','view', $this->game);
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		if(!$this->game) {
 			error_exit("That game does not exist");
 		}
 
 		if( arg(1) == 'delete' ) {
-			if( $session->is_admin() ) {
+			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
 	
-			if( $session->is_coordinator_of($this->game->league_id)) {
+			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
 		} else {
@@ -1293,7 +1293,7 @@ class GameDelete extends Handler
 	
 	function generateForm ( ) 
 	{
-		global $session;
+		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1404,7 +1404,7 @@ class GameDelete extends Handler
 			
 			
 			$score_group .= form_item('',"Score not yet finalized");
-			if( $session->has_permission('game','view', $game, 'submission') ) {
+			if( $lr_session->has_permission('game','view', $game, 'submission') ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
 				
 			}
@@ -1412,7 +1412,7 @@ class GameDelete extends Handler
 
 		$output .= form_group("Scoring", $score_group);
 	
-		if( $session->has_permission('game','view',$game,'spirit') ) {
+		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
@@ -1459,7 +1459,7 @@ class GameDelete extends Handler
 	
 	function perform ( $edit )
 	{
-		global $session;
+		global $lr_session;
 		
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to delete this game");
@@ -1486,23 +1486,23 @@ class GameRemoveResults extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('game','view', $this->game);
+		global $lr_session;
+		return $lr_session->has_permission('game','view', $this->game);
 	}
 	
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		if(!$this->game) {
 			error_exit("That game does not exist");
 		}
 
 		if( arg(1) == 'removeresults' ) {
-			if( $session->is_admin() ) {
+			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
 	
-			if( $session->is_coordinator_of($this->game->league_id)) {
+			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
 		} else {
@@ -1533,7 +1533,7 @@ class GameRemoveResults extends Handler
 	
 	function generateForm ( ) 
 	{
-		global $session;
+		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1636,7 +1636,7 @@ class GameRemoveResults extends Handler
 
 		$output .= form_group("Scoring", $score_group);
 	
-		if( $session->has_permission('game','view',$game,'spirit') ) {
+		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
 		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
@@ -1683,7 +1683,7 @@ class GameRemoveResults extends Handler
 	
 	function perform ( $edit )
 	{
-		global $session;
+		global $lr_session;
 		
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to remove results for this game");

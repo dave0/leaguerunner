@@ -6,7 +6,7 @@
 
 function theme_header($title = "", $breadcrumbs = array())
 {
-	global $session, $BASE_URL;
+	global $lr_session, $BASE_URL;
 
 	$app_name = variable_get('app_name','Leaguerunner');
 	
@@ -35,8 +35,8 @@ function theme_header($title = "", $breadcrumbs = array())
 <tr>
    <td class="primary links" align="right" valign="bottom">
    <?php
-	if($session->is_valid()) {
-		print "You are logged in as <b>" . $session->attr_get("fullname") . "</b> | ";
+	if($lr_session->is_valid()) {
+		print "You are logged in as <b>" . $lr_session->attr_get("fullname") . "</b> | ";
 		print l('Log Out', 'logout');
 	} else {
 		print l('Log In', 'login');
@@ -58,7 +58,7 @@ function theme_header($title = "", $breadcrumbs = array())
 	print theme_navbar($breadcrumbs);
 	print "\n<!-- end header -->\n";
 	print "<table width='100%'><tr>";
-	if ($session->is_valid()) {
+	if ($lr_session->is_valid()) {
 		print "<td id='sidebar-left' width='160'><div class='menu'>" . menu_render('_root') . "</div></td>";
 	} else {
 		print "<td></td>";
@@ -69,7 +69,7 @@ function theme_header($title = "", $breadcrumbs = array())
 
 function theme_navbar($breadcrumbs = array()) 
 {
-	global $session;
+	global $lr_session;
 
 	print "\n<!-- start navbar -->\n";
     print "<div class='lr_topbar'><table border='0' cellpadding='0' cellspacing='0' width='99%' bgcolor='white'>\n";
@@ -77,9 +77,9 @@ function theme_navbar($breadcrumbs = array())
 
 	$trail = menu_get_trail();
 	$section = $trail[1]['title'];
-	if($session->is_valid()) {
+	if($lr_session->is_valid()) {
 		$crumbs = array(
-			"<b>" . $session->attr_get("fullname") . "</b>",
+			"<b>" . $lr_session->attr_get("fullname") . "</b>",
 			$section
 		);
 

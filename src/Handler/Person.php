@@ -188,30 +188,30 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
  */
 function person_menu() 
 {
-	global $session;
+	global $lr_session;
 
-	$id = $session->attr_get('user_id');
+	$id = $lr_session->attr_get('user_id');
 
 	menu_add_child('_root', 'myaccount','My Account', array('weight' => -10, 'link' => "person/view/$id"));
 	menu_add_child('myaccount', 'myaccount/edit','edit account', array('weight' => -10, 'link' => "person/edit/$id"));
 	menu_add_child('myaccount', 'myaccount/pass', 'change password', array( 'link' => "person/changepassword/$id"));
 	menu_add_child('myaccount', 'myaccount/signwaiver', 'view/sign player waiver', array( 'link' => "person/signwaiver", 'weight' => 3));
 	
-	if($session->attr_get('has_dog') == 'Y') {
+	if($lr_session->attr_get('has_dog') == 'Y') {
 		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
 	}
 
     # Don't show "Players" menu for non-players.
-	if( ! $session->is_player() ) {
+	if( ! $lr_session->is_player() ) {
 	    return;
 	}
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
-	if($session->has_permission('person','list') ) {
+	if($lr_session->has_permission('person','list') ) {
 		menu_add_child('person','person/search',"search players", array('link' => url('person/search')));
 	}
 	
-	if($session->is_admin()) {
+	if($lr_session->is_admin()) {
 		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
 		if($newUsers) {
 			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
@@ -234,13 +234,13 @@ class PersonView extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
+		global $lr_session;
 
 		if(!$this->person) {
 			error_exit("That user does not exist");
 		}
 
-		return $session->has_permission('person','view', $this->person->user_id);
+		return $lr_session->has_permission('person','view', $this->person->user_id);
 	}
 
 	function process ()
@@ -255,19 +255,19 @@ class PersonView extends Handler
 	
 	function generateView (&$person)
 	{
-		global $session;
+		global $lr_session;
 		
 		$rows[] = array("Name:", $person->fullname);
 	
-		if( ! ($session->is_player() || ($session->attr_get('user_id') == $person->user_id)) ) {
+		if( ! ($lr_session->is_player() || ($lr_session->attr_get('user_id') == $person->user_id)) ) {
 			return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		}
 
-		if($session->has_permission('person','view',$person->user_id, 'username') ) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'username') ) {
 			$rows[] = array("System Username:", $person->username);
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'member_id') ) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'member_id') ) {
 			if($person->member_id) {
 				$rows[] = array("OCUA Member ID:", $person->member_id);
 			} else {
@@ -278,7 +278,7 @@ class PersonView extends Handler
 		if($person->allow_publish_email == 'Y') {
 			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
 		} else {
-			if($session->has_permission('person','view',$person->user_id, 'email') ) {
+			if($lr_session->has_permission('person','view',$person->user_id, 'email') ) {
 				$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (private)");
 			}
 		}
@@ -289,13 +289,13 @@ class PersonView extends Handler
 			if($person->$publish == 'Y') {
 				$rows[] = array("Phone ($type):", $person->$item . " (published)");
 			} else {
-				if($session->has_permission('person','view',$person->user_id, $item)  && isset($person->$item) ) {
+				if($lr_session->has_permission('person','view',$person->user_id, $item)  && isset($person->$item) ) {
 					$rows[] = array("Phone ($type):", $person->$item . " (private)");
 				}
 			}
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'address')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'address')) {
 			$rows[] = array("Address:", 
 				format_street_address(
 					$person->addr_street,
@@ -310,37 +310,37 @@ class PersonView extends Handler
 			}
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'birthdate')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'birthdate')) {
 			$rows[] = array('Birthdate:', $person->birthdate);
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'height')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'height')) {
 			$rows[] = array('Height:', $person->height ? "$person->height inches" : "Please edit your account to enter your height");
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'gender')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'gender')) {
 			$rows[] = array("Gender:", $person->gender);
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'shirtsize')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'shirtsize')) {
 			$rows[] = array('Shirt Size:', $person->shirtsize);
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'skill')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'skill')) {
 			$skillAry = getOptionsForSkill();
 			$rows[] = array("Skill Level:", $skillAry[$person->skill_level]);
 			$rows[] = array("Year Started:", $person->year_started);
 		}
 
-		if($session->has_permission('person','view',$person->user_id, 'class')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'class')) {
 			$rows[] = array("Account Class:", $person->class);
 		}
 	
-		if($session->has_permission('person','view',$person->user_id, 'status')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'status')) {
 			$rows[] = array("Account Status:", $person->status);
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'dog')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'dog')) {
 			$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
 
 			if($person->has_dog == 'Y') {
@@ -348,11 +348,11 @@ class PersonView extends Handler
 			}
 		}
 		
-		if($session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
 			$rows[] = array("Can OCUA contact you with a survey about volunteering?",($person->willing_to_volunteer == 'Y') ? "yes" : "no");
 		}
 
-		if($session->has_permission('person','view',$person->user_id, 'last_login')) {
+		if($lr_session->has_permission('person','view',$person->user_id, 'last_login')) {
 			if($person->last_login) {
 				$rows[] = array("Last Login:", 
 					$person->last_login . ' from ' . $person->client_ip);
@@ -401,24 +401,24 @@ class PersonDelete extends PersonView
 	
 	function has_permission()
 	{
-		global $session;
+		global $lr_session;
 
 		if(!$this->person) {
 			error_exit("That user does not exist");
 		}
 
-		return $session->has_permission('person','delete', $id);
+		return $lr_session->has_permission('person','delete', $id);
 	}
 
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = 'Delete';
 		$edit = $_POST['edit'];
 		
 		/* Safety check: Don't allow us to delete ourselves */
-		if($session->attr_get('user_id') == $this->person->user_id) {
+		if($lr_session->attr_get('user_id') == $this->person->user_id) {
 			error_exit("You cannot delete your own account!");
 		}
 		
@@ -451,12 +451,12 @@ class PersonApproveNewAccount extends PersonView
 
 	function has_permission()
 	{
-		global $session;
+		global $lr_session;
 		if(!$this->person) {
 			error_exit("That user does not exist");
 		}
 
-		return $session->has_permission('person','approve', $id);
+		return $lr_session->has_permission('person','approve', $id);
 	}
 
 	function process ()
@@ -529,7 +529,7 @@ class PersonApproveNewAccount extends PersonView
 
 	function perform ( $edit )
 	{
-		global $session; 
+		global $lr_session; 
 
 		$disposition = $edit['disposition'];
 		
@@ -606,7 +606,7 @@ class PersonApproveNewAccount extends PersonView
 					'%existingusername' => $existing->username,
 					'%existingemail' => $existing->email,
 					'%passwordurl' => url("person/forgotpassword"),
-					'%adminname' => $session->user->fullname,
+					'%adminname' => $lr_session->user->fullname,
 					'%site' => variable_get('app_name','Leaguerunner')));
 
 				if($this->person->email != $existing->email) {
@@ -646,15 +646,16 @@ class PersonEdit extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
+		global $lr_session;
 		if(!$this->person) {
 			error_exit("That user does not exist");
 		}
-		return $session->has_permission('person','edit', $this->person->user_id);
+		return $lr_session->has_permission('person','edit', $this->person->user_id);
 	}
 
 	function process ()
 	{
+		global $lr_session;
 		$edit = $_POST['edit'];
 		$this->title = 'Edit';
 		
@@ -676,7 +677,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		global $session;
+		global $lr_session;
 		$output = <<<END_TEXT
 <script language="JavaScript" type="text/javascript">
 <!--
@@ -705,7 +706,7 @@ END_TEXT;
 			. "<b><font color=red><a href='http://www.ocua.ca/node/17' target='_new'>Privacy Policy</a></font></b>"
 		);
 
-		if($session->has_permission('person', 'edit', $id, 'name') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
 
 			$group .= form_textfield('Last Name', 'edit[lastname]', $formData['lastname'], 25,100);
@@ -713,13 +714,13 @@ END_TEXT;
 			$group .= form_item('Full Name', $formData['firstname'] . ' ' . $formData['lastname']);
 		}
 
-		if($session->has_permission('person', 'edit', $id, 'username') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_textfield('System Username', 'edit[username]', $formData['username'], 25,100, 'Desired login name.');
 		} else {
 			$group .= form_item('System Username', $formData['username'], 'Desired login name.');
 		}
 		
-		if($session->has_permission('person', 'edit', $id, 'password') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_password('Password', 'edit[password_once]', '', 25,100, 'Enter your desired password.');
 			$group .= form_password('Re-enter Password', 'edit[password_twice]', '', 25,100, 'Enter your desired password a second time to confirm it.');
 		}
@@ -761,7 +762,7 @@ END_TEXT;
 			$formData['class'] = 'visitor';
 		}
 			
-		if($session->has_permission('person', 'edit', $id, 'class') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'class') ) {
 			$player_classes['administrator'] = "Leaguerunner administrator";
 			$player_classes['volunteer'] = "OCUA volunteer";
 		}
@@ -772,7 +773,7 @@ END_TEXT;
 		}
 		
 		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
-		if($session->has_permission('person', 'edit', $id, 'status') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_select('Account Status','edit[status]', $formData['status'], getOptionsFromEnum('person','status'));
 		}
 		
@@ -815,7 +816,7 @@ END_TEXT;
 
 	function generateConfirm ( $id, $edit = array() )
 	{
-		global $session;
+		global $lr_session;
 		$dataInvalid = $this->isDataInvalid( $id, $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -825,19 +826,19 @@ END_TEXT;
 		$output .= form_hidden('edit[step]', 'perform');
 
 		$group = '';	
-		if($session->has_permission('person', 'edit', $id, 'name') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_item('First Name',
 				form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
 			$group .= form_item('Last Name',
 				form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
 		}
 		
-		if($session->has_permission('person', 'edit', $id, 'username') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_item('System Username',
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
 		
-		if($session->has_permission('person', 'edit', $id, 'password') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_item('Password',
 				form_hidden('edit[password_once]', $edit['password_once'])
 				. form_hidden('edit[password_twice]', $edit['password_twice'])
@@ -885,7 +886,7 @@ END_TEXT;
 		
 		$group = form_item("Account Class", form_hidden('edit[class]',$edit['class']) . $edit['class']);
 		
-		if($session->has_permission('person', 'edit', $id, 'status') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_item("Account Status", form_hidden('edit[status]',$edit['status']) . $edit['status']);
 		}
 		
@@ -924,14 +925,14 @@ END_TEXT;
 
 	function perform ( &$person, $edit = array() )
 	{
-		global $session;
+		global $lr_session;
 	
 		$dataInvalid = $this->isDataInvalid( $person->id, $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		if($edit['username'] && $session->has_permission('person', 'edit', $id, 'username') ) {
+		if($edit['username'] && $lr_session->has_permission('person', 'edit', $id, 'username') ) {
 			$person->set('username', $edit['username']);
 		}
 		
@@ -949,11 +950,11 @@ END_TEXT;
 			$status_changed = true;
 		}
 
-		if($edit['class'] && $session->has_permission('person', 'edit', $id, 'class') ) {
+		if($edit['class'] && $lr_session->has_permission('person', 'edit', $id, 'class') ) {
 			$person->set('class', $edit['class']);
 		}
 		
-		if($edit['status'] && $session->has_permission('person', 'edit', $id, 'status') ) {
+		if($edit['status'] && $lr_session->has_permission('person', 'edit', $id, 'status') ) {
 			$person->set('status',$edit['status']);
 		}
 	
@@ -971,7 +972,7 @@ END_TEXT;
 			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
 		}
 		
-		if($session->has_permission('person', 'edit', $id, 'name') ) {
+		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
 			$person->set('firstname', $edit['firstname']);
 			$person->set('lastname', $edit['lastname']);
 		}
@@ -1029,22 +1030,22 @@ END_TEXT;
 
 	function isDataInvalid ( $id, $edit = array() )
 	{
-		global $session;
+		global $lr_session;
 		$errors = "";
 	
-		if($session->has_permission('person','edit',$id, 'name')) {
+		if($lr_session->has_permission('person','edit',$id, 'name')) {
 			if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
 			}
 		}
 
-		if($session->has_permission('person','edit',$id, 'username')) {
+		if($lr_session->has_permission('person','edit',$id, 'username')) {
 			if( ! validate_name_input($edit['username']) ) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
 			$user = person_load( array('username' => $edit['username']) );
 			# TODO: BUG: need to check that $user->user_id != current id
-			if( $user && !$session->is_admin()) {
+			if( $user && !$lr_session->is_admin()) {
 				error_exit("A user with that username already exists; please go back and try again");
 			}
 		}
@@ -1089,7 +1090,7 @@ END_TEXT;
 		}
 
 		if( validate_nonblank($edit['height']) ) {
-			if( !$session->is_admin() && ( ($edit['height'] < 36) || ($edit['height'] > 84) )) {
+			if( !$lr_session->is_admin() && ( ($edit['height'] < 36) || ($edit['height'] > 84) )) {
 				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
 			}
 		}
@@ -1129,8 +1130,8 @@ class PersonCreate extends PersonEdit
 
 	function has_permission ()
 	{
-		global $session;
-		return $session->has_permission('person','create');
+		global $lr_session;
+		return $lr_session->has_permission('person','create');
 	}
 
 	function checkPrereqs( $next )
@@ -1163,7 +1164,7 @@ class PersonCreate extends PersonEdit
 
 	function perform ( $person, $edit = array())
 	{
-		global $session;
+		global $lr_session;
 
 		if( ! validate_name_input($edit['username']) ) {
 			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
@@ -1222,12 +1223,12 @@ class PersonActivate extends PersonEdit
 	 */
 	function has_permission ()
 	{
-		global $session;
-		if($session->is_valid()) {
+		global $lr_session;
+		if($lr_session->is_valid()) {
 			return false;
 		}
 		
-		if ($session->attr_get('status') != 'inactive') {
+		if ($lr_session->attr_get('status') != 'inactive') {
 			error_exit("You do not have a valid session");
 		} 
 		
@@ -1236,12 +1237,12 @@ class PersonActivate extends PersonEdit
 
 	function process ()
 	{
-		global $session;
+		global $lr_session;
 
 		$edit = $_POST['edit'];
 		$this->title = "Activate Account";
 		
-		$this->person = $session->user;
+		$this->person = $lr_session->user;
 		if( ! $this->person ) {
 			error_exit("That account does not exist");
 		}
@@ -1289,8 +1290,8 @@ class PersonSignWaiver extends Handler
 
 	function has_permission()
 	{
-		global $session;
-		return ($session->is_valid());
+		global $lr_session;
+		return ($lr_session->is_valid());
 	}
 
 	function process ()
@@ -1323,7 +1324,7 @@ class PersonSignWaiver extends Handler
 	 */
 	function perform( $edit = array() )
 	{
-		global $session;
+		global $lr_session;
 		
 		if('yes' != $edit['signed']) {
 			error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
@@ -1332,7 +1333,7 @@ class PersonSignWaiver extends Handler
 		/* otherwise, it's yes.  Perform the appropriate query to markt he
 		 * waiver as signed.
 		 */
-		db_query($this->querystring, $session->attr_get('user_id'));
+		db_query($this->querystring, $lr_session->attr_get('user_id'));
 
 		return (1 == db_affected_rows());
 	}
@@ -1370,7 +1371,7 @@ class PersonSearch extends Handler
 {
 	function initialize ()
 	{
-		global $session;
+		global $lr_session;
 		$this->ops = array(
 			'view' => 'person/view/%d'
 		);
@@ -1378,7 +1379,7 @@ class PersonSearch extends Handler
 		$this->title = "Player Search";
 		
 		$this->extra_where = '';
-		if( $session->has_permission('person','delete') ) {
+		if( $lr_session->has_permission('person','delete') ) {
 			$this->ops['delete'] = 'person/delete/%d';
 		}
 		return true;
@@ -1386,8 +1387,8 @@ class PersonSearch extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
-	 	return $session->has_permission('person','search');
+		global $lr_session;
+	 	return $lr_session->has_permission('person','search');
 	}
 	
 	function process ()
@@ -1421,7 +1422,7 @@ class PersonSearch extends Handler
 	
 	function perform ( &$edit )
 	{
-		global $session;
+		global $lr_session;
 
 		if( $edit['lastname'] == '' ) {
 			error_exit("You must provide a last name");
@@ -1495,8 +1496,8 @@ class PersonListNewAccounts extends Handler
 {
 	function has_permission ()
 	{
-		global $session;
-	 	return $session->has_permission('person','listnew');
+		global $lr_session;
+	 	return $lr_session->has_permission('person','listnew');
 	}
 
 	function process ()
@@ -1542,16 +1543,16 @@ class PersonChangePassword extends Handler
 	
 	function has_permission ()
 	{
-		global $session;
+		global $lr_session;
 		if( ! $this->person ) {
-			$this->person =& $session->user;
+			$this->person =& $lr_session->user;
 		}
-		return $session->has_permission('person','password_change', $this->person->user_id);
+		return $lr_session->has_permission('person','password_change', $this->person->user_id);
 	}
 	
 	function process()
 	{
-		global $session;
+		global $lr_session;
 		$edit = $_POST['edit'];
 		
 		switch($edit['step']) {
@@ -1613,10 +1614,10 @@ class PersonForgotPassword extends Handler
 
 	function process()
 	{
-		global $session;
+		global $lr_session;
 		$this->title = "Request New Password";
 		$edit = $_POST['edit'];
-		if ($session->is_admin()) {
+		if ($lr_session->is_admin()) {
 			$edit = $_GET['edit'];
 		}
 		switch($edit['step']) {
@@ -1738,24 +1739,24 @@ END_TEXT;
 
 function person_add_to_menu( &$person ) 
 {
-	global $session;
-	if( ! ($session->attr_get('user_id') == $person->user_id) ) {
+	global $lr_session;
+	if( ! ($lr_session->attr_get('user_id') == $person->user_id) ) {
 		// These links already exist in the 'My Account' section if we're
 		// looking at ourself
 		menu_add_child('person', $person->fullname, $person->fullname, array('weight' => -10, 'link' => "person/view/$person->user_id"));
-		if($session->has_permission('person', 'edit', $person->user_id) ) {
+		if($lr_session->has_permission('person', 'edit', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$person->user_id"));
 		}
 	
-		if($session->has_permission('person', 'password_change', $person->user_id) ) {
-			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
-		}
-		
-		if($session->has_permission('person', 'delete', $person->user_id) ) {
+		if($lr_session->has_permission('person', 'delete', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$person->user_id"));
 		}
 		
-		if($session->has_permission('person', 'password_reset') ) {
+		if($lr_session->has_permission('person', 'password_change', $person->user_id) ) {
+			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
+		}
+
+		if($lr_session->has_permission('person', 'password_reset') ) {
 			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
 		}
 	}
