@@ -75,7 +75,7 @@ class GameSlotCreate extends Handler
 			if ( ! validate_date_input($year, $month, $day) ) {
 				error_exit("That date is not valid");
 			}
-			$datestamp = mktime(0,0,0,$month,$day,$year);
+			$datestamp = mktime(6,0,0,$month,$day,$year);
 		} else {
 			return $this->datePick($field, $year, $month, $day);
 		}
@@ -442,7 +442,7 @@ class GameSlotListDay extends Handler
 			if( !validate_date_input($year, $month, $day) ) {
 				return "That date is not valid";
 			}
-			$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
+			$formattedDay = strftime("%A %B %d %Y", mktime (6,0,0,$month,$day,$year));
 			$this->setLocation(array(
 				"$this->title &raquo; $formattedDay" => 0));
 			return $this->display_for_day( $year, $month, $day );

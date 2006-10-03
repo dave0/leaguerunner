@@ -58,7 +58,7 @@ class ScheduleViewDay extends Handler
 			if( !validate_date_input($year, $month, $day) ) {
 				return "That date is not valid";
 			}
-			$formattedDay = strftime("%A %B %d %Y", mktime (0,0,0,$month,$day,$year));
+			$formattedDay = strftime("%A %B %d %Y", mktime (6,0,0,$month,$day,$year));
 			$this->setLocation(array(
 				"$this->title &raquo; $formattedDay" => 0));
 			return $this->displayGamesForDay( $year, $month, $day );
@@ -82,7 +82,7 @@ class ScheduleViewDay extends Handler
 		}
 
 		$rows = array( 
-			schedule_heading(strftime('%a %b %d %Y',mktime(0,0,0,$month,$day,$year))),
+			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
 			schedule_subheading( ),
 		);
 		while($g = db_fetch_array($result)) {

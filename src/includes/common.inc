@@ -1049,7 +1049,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
     // the array_search later will return index 0 for first day, and that  == false!
     array_unshift($highlightWeekdays, 99);
 
-	$startOfMonth = mktime(0, 0, 0, $month, 1, $year);
+	$startOfMonth = mktime(6, 0, 0, $month, 1, $year);
 	$firstDayOfWeek = date("w", $startOfMonth);
 	$numberOfDays = date("t", $startOfMonth);
 	
@@ -1083,7 +1083,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	/* Generate days of the week headers 
 	 * The year 1995 was chosen because January 1995 starts on a Monday
 	 */
-	$firstcolumn = mktime(0, 0, 0, 1, 1, 1995);
+	$firstcolumn = mktime(6, 0, 0, 1, 1, 1995);
 	$output .= " <tr class=\"header-week\">";
 	
 	foreach($allDays as $dayName) {
