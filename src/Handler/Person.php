@@ -58,6 +58,7 @@ function person_dispatch()
 	}
 	return $obj;
 }
+
 /**
  * The permissions check for all Person actions.
  */
@@ -67,7 +68,11 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	$create_fields = array( 'name', 'username', 'password');
 	$create_fields = array_merge($self_edit_fields, $create_fields);
 
+	if (variable_get('dog_questions', 1)) {
 	$all_view_fields = array( 'name', 'gender', 'skill', 'dog', 'willing_to_volunteer' );
+	} else {
+		$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
+	}
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
 	$captain_view_fields = array( 'height', 'shirtsize' );
 	
@@ -197,7 +202,7 @@ function person_menu()
 	menu_add_child('myaccount', 'myaccount/pass', 'change password', array( 'link' => "person/changepassword/$id"));
 	menu_add_child('myaccount', 'myaccount/signwaiver', 'view/sign player waiver', array( 'link' => "person/signwaiver", 'weight' => 3));
 	
-	if($lr_session->attr_get('has_dog') == 'Y') {
+	if (variable_get('dog_questions', 1) && $lr_session->attr_get('has_dog') == 'Y') {
 		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
 	}
 
@@ -269,9 +274,9 @@ class PersonView extends Handler
 		
 		if($lr_session->has_permission('person','view',$person->user_id, 'member_id') ) {
 			if($person->member_id) {
-				$rows[] = array("OCUA Member ID:", $person->member_id);
+				$rows[] = array(variable_get('app_org_short_name', 'OCUA') . ' Member ID:', $person->member_id);
 			} else {
-				$rows[] = array("OCUA Member ID:", "Not an OCUA member");
+				$rows[] = array(variable_get('app_org_short_name', 'OCUA') . ' Member ID:', 'Not a member of ' . variable_get('app_org_short_name', 'OCUA'));
 			}
 		}
 		
@@ -340,24 +345,26 @@ class PersonView extends Handler
 			$rows[] = array("Account Status:", $person->status);
 		}
 		
-		if($lr_session->has_permission('person','view',$person->user_id, 'dog')) {
-			$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
-
-			if($person->has_dog == 'Y') {
-				$rows[] = array("Dog Waiver Signed:",($person->dog_waiver_signed) ? $person->dog_waiver_signed : "Not signed");
+		if(variable_get('dog_questions', 1)) {
+			if($lr_session->has_permission('person','view',$person->user_id, 'dog')) {
+				$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
+	
+				if($person->has_dog == 'Y') {
+					$rows[] = array("Dog Waiver Signed:",($person->dog_waiver_signed) ? $person->dog_waiver_signed : "Not signed");
+				}
 			}
 		}
 		
 		if($lr_session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
-			$rows[] = array("Can OCUA contact you with a survey about volunteering?",($person->willing_to_volunteer == 'Y') ? "yes" : "no");
+			$rows[] = array('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?',($person->willing_to_volunteer == 'Y') ? 'yes' : 'no');
 		}
 
 		if($lr_session->has_permission('person','view',$person->user_id, 'last_login')) {
 			if($person->last_login) {
-				$rows[] = array("Last Login:", 
+				$rows[] = array('Last Login:', 
 					$person->last_login . ' from ' . $person->client_ip);
 			} else {
-				$rows[] = array("Last Login:", "Never logged in");
+					$rows[] = array('Last Login:', 'Never logged in');
 			}
 		}
 		
@@ -366,7 +373,7 @@ class PersonView extends Handler
 		while(list(,$team) = each($person->teams)) {
 			$teams[] = array(
 				$rosterPositions[$team->position],
-				"on",
+				'on',
 				l($team->name, "team/view/$team->id"),
 				"(" . l($team->league_name, "league/view/$team->league_id") . ")"
 			);
@@ -476,7 +483,7 @@ class PersonApproveNewAccount extends PersonView
 	
 		$dispositions = array(
 			'---'	          => '- Select One -',
-			'approve_player'  => 'Approved as OCUA Player',
+			'approve_player'  => 'Approved as ' . variable_get('app_org_short_name', 'OCUA') . ' Player',
 			'approve_visitor' => 'Approved as visitor account',
 			'delete' 		  => 'Deleted silently',
 		);
@@ -556,7 +563,7 @@ class PersonApproveNewAccount extends PersonView
 					'%username' => $this->person->username,
 					'%memberid' => $this->person->member_id,
 					'%url' => url(""),
-					'%adminname' => variable_get('app_admin_name', "Leaguerunner Admin"),
+					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 					
 				$rc = mail($this->person->email, 
@@ -701,10 +708,13 @@ END_TEXT;
 			. "Captains will always have access to view the phone numbers and email addresses of their confirmed players.  "
 			. "All Team Captains will also have their email address viewable by other players"
 		);
-		$output .= para(
-			"If you have concerns about the data OCUA collects, please see our "
-			. "<b><font color=red><a href='http://www.ocua.ca/node/17' target='_new'>Privacy Policy</a></font></b>"
-		);
+		$privacy = variable_get('privacy_policy', 'http://www.ocua.ca/node/17');
+		if($privacy) {
+			$output .= para(
+					'If you have concerns about the data ' . variable_get('app_org_short_name', 'OCUA') . ' collects, please see our '
+					. "<b><a href=\"$privacy\" target=\"_new\">Privacy Policy</a>.</b>"
+			);
+		}
 
 		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
@@ -729,7 +739,7 @@ END_TEXT;
 		
 		$output .= form_group('Identity', $group);
 
-		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by OCUA to correspond with you on league matters');
+		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by ' . variable_get('app_org_short_name', 'OCUA') . ' to correspond with you on league matters.');
 		$group .= form_checkbox('Allow other players to view my email address','edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y'));
 			
 		$output .= form_group('Online Contact', $group);
@@ -741,7 +751,7 @@ END_TEXT;
 		 * time... */
 		$group .= form_select('Province', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), 'Select a province from the list');
 
-		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above.  OCUA uses this information to help locate new fields near its members.');
+		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above. ' . variable_get('app_org_short_name', 'OCUA') . ' uses this information to help locate new fields near its members.');
 
 		$output .= form_group('Street Address', $group);
 
@@ -755,21 +765,21 @@ END_TEXT;
 		$output .= form_group('Telephone Numbers', $group);
 			
 		$player_classes = array(
-			'player' => "OCUA Player",
-			'visitor' => "Non-player account");
+			'player' => variable_get('app_org_short_name', 'OCUA') . ' Player',
+			'visitor' => 'Non-player account');
 
 		if(! $formData['class'] ) {
 			$formData['class'] = 'visitor';
 		}
 			
 		if($lr_session->has_permission('person', 'edit', $id, 'class') ) {
-			$player_classes['administrator'] = "Leaguerunner administrator";
-			$player_classes['volunteer'] = "OCUA volunteer";
+			$player_classes['administrator'] = 'Leaguerunner administrator';
+			$player_classes['volunteer'] = variable_get('app_org_short_name', 'OCUA') . ' volunteer';
 		}
 
 		# Volunteers can unset themselves as volunteer if they wish.
 		if( $formData['class'] == 'volunteer' ) {
-			$player_classes['volunteer'] = "OCUA volunteer";
+			$player_classes['volunteer'] = variable_get('app_org_short_name', 'OCUA') . ' volunteer';
 		}
 		
 		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
@@ -781,8 +791,8 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-#				"Please use the questionnare to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
-				"Please use the questionnare to <a href=\"/leaguerunner/data/rating.html\" target='_new'>calculate your rating</a>"
+#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
+				"Please use the questionnaire to <a href=\"/leaguerunner/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
@@ -795,14 +805,16 @@ END_TEXT;
 		
 		$group .= form_select('Shirt Size','edit[shirtsize]', $formData['shirtsize'], getShirtSizes());
 		
-		$group .= form_radiogroup('Has Dog', 'edit[has_dog]', $formData['has_dog'], array(
-			'Y' => 'Yes, I have a dog I will be bringing to games',
-			'N' => 'No, I will not be bringing a dog to games'));
-			
-		$group .= form_radiogroup('Can OCUA contact you with a survey about volunteering?', 'edit[willing_to_volunteer]', $formData['willing_to_volunteer'], array(
+		if (variable_get('dog_questions', 1)) {
+			$group .= form_radiogroup('Has Dog', 'edit[has_dog]', $formData['has_dog'], array(
+				'Y' => 'Yes, I have a dog I will be bringing to games',
+				'N' => 'No, I will not be bringing a dog to games'));
+		}
+
+		$group .= form_radiogroup('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?', 'edit[willing_to_volunteer]', $formData['willing_to_volunteer'], array(
 			'Y' => 'Yes',
 			'N' => 'No'));
-			
+
 		$output .= form_group('Player and Skill Information', $group);
 		
 		$this->setLocation(array(
@@ -908,9 +920,11 @@ END_TEXT;
 		}
 		$group .= form_item("Shirt Size", form_hidden('edit[shirtsize]',$edit['shirtsize']) . $edit['shirtsize']);
 	
-		$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
+		if (variable_get('dog_questions', 1)) {
+			$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
+		}
 		
-      $group .= form_item("Can OCUA contact you with a survey about volunteering?", form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
+		$group .= form_item('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?', form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
 		
 		$output .= form_group('Player and Skill Information', $group);
 			
@@ -937,8 +951,8 @@ END_TEXT;
 		}
 		
 		/* EVIL HACK
-		 * If this person is currently a 'visitor', it does not have an
-		 * OCUA member number, so if we move it to another class, it needs
+		 * If this person is currently a 'visitor', it does not have a
+		 * member number, so if we move it to another class, it needs
 		 * to be given one.  We do this by forcing its status to 'new' and
 		 * requiring it be reapproved.  Ugly hack, but since
 		 * we're likely to scrutinize non-player accounts less than player
@@ -1003,7 +1017,9 @@ END_TEXT;
 		$person->set('skill_level', $edit['skill_level']);
 		$person->set('year_started', $edit['year_started']);
 	
-		$person->set('has_dog', $edit['has_dog']);
+		if (variable_get('dog_questions', 1)) {
+			$person->set('has_dog', $edit['has_dog']);
+		}
 
 		$person->set('willing_to_volunteer', $edit['willing_to_volunteer']);
 	
@@ -1018,9 +1034,9 @@ END_TEXT;
 			   print theme_header("Edit Account", $this->breadcrumbs);
 		       print "<h1>Edit Account</h1>";
 			   print para(
-				"You have requested to change your account status to 'OCUA Player'.  As such, your account is now being held for one of the administrators to approve.  "
-				. "Once your account is approved, you will receive an email informing you of your new OCUA member number.  "
-				. "You will then be able to log in once again with your username and password.");
+				"You have requested to change your account status to '" . variable_get('app_org_short_name', 'OCUA') . " Player'.  As such, your account is now being held for one of the administrators to approve.  "
+				. 'Once your account is approved, you will receive an email informing you of your new ' . variable_get('app_org_short_name', 'OCUA') . ' member number. '
+				. 'You will then be able to log in once again with your username and password.');
 		       print theme_footer();
 			   exit;
 			}
@@ -1156,7 +1172,7 @@ class PersonCreate extends PersonEdit
 				
 			default:
 				$edit = array();
-				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.  <br /><br /><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href='http://www.ocua.ca/leaguerunner/person/forgotpassword'>follow these instructions</a> to gain access to your account.");
+				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . url('person/forgotpassword') . "\">follow these instructions</a> to gain access to your account.");
 		}
 		$this->setLocation(array( $this->title => 0));
 		return $rc;
@@ -1634,6 +1650,7 @@ class PersonForgotPassword extends Handler
 	function generateForm()
 	{
 		$admin_addr = variable_get('app_admin_email', '');	
+		$org = variable_get('app_org_short_name', 'OCUA');
 		$output = <<<END_TEXT
 <p>
 	If you'd like to reset your password, please enter ANY ONE OF:
@@ -1643,7 +1660,7 @@ class PersonForgotPassword extends Handler
 		<li>Your member number
 	</ul>
 	in the form below.  You only need to provide multiple pieces of
-	information if you are sharing an email account with another OCUA player.
+	information if you are sharing an email account with another $org player.
 </p>
 <p>
 	If the information you provide matches an account, an email will be sent
@@ -1782,7 +1799,7 @@ function _person_mail_text($messagetype, $variables = array() )
 			case 'dup_delete_subject':
 				return strtr("%site Account Update", $variables);
 			case 'dup_delete_body':
-				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\nOCUA Webteam", $variables);
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'OCUA') . " Webteam", $variables);
 		}
 	}
 }
@@ -1791,19 +1808,19 @@ function person_settings ( )
 {
 	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
 	 
-	$group .= form_textarea("Body of account approval e-mail (player)", "edit[person_mail_approved_body_player]", _person_mail_text("approved_body_player"), 70, 10, "Customize the body of your approval e-mail, to be sent to an OCUA player after account is approved." ." ". "Available variables are:" ." %fullname, %memberid, %adminname, %username, %site, %url.");
+	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to ' . variable_get('app_org_short_name', 'OCUA')  . ' players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
 	
-	$group .= form_textarea("Body of account approval e-mail (visitor)", "edit[person_mail_approved_body_visitor]", _person_mail_text("approved_body_visitor"), 70, 10, "Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved." ." ". "Available variables are:" ." %fullname, %adminname, %username, %site, %url.");
+	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
 	
-	$group .= form_textfield("Subject of password reset e-mail", "edit[person_mail_password_reset_subject]", _person_mail_text("password_reset_subject"), 70, 180, "Customize the subject of your password reset e-mail, which is sent when a user requests a password reset." ." ". "Available variables are:" ." %site.");
+	$group .= form_textfield('Subject of password reset e-mail', 'edit[person_mail_password_reset_subject]', _person_mail_text('password_reset_subject'), 70, 180, 'Customize the subject of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %site.');
 	 
-	$group .= form_textarea("Body of password reset e-mail", "edit[person_mail_password_reset_body]", _person_mail_text("password_reset_body"), 70, 10, "Customize the body of your password reset e-mail, which is sent when a user requests a password reset." ." ". "Available variables are:" ." %fullname, %adminname, %username, %password, %site, %url.");
+	$group .= form_textarea('Body of password reset e-mail', 'edit[person_mail_password_reset_body]', _person_mail_text('password_reset_body'), 70, 10, 'Customize the body of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %fullname, %adminname, %username, %password, %site, %url.');
 	
-	$group .= form_textfield("Subject of duplicate account deletion e-mail", "edit[person_mail_dup_delete_subject]", _person_mail_text("dup_delete_subject"), 70, 180, "Customize the subject of your account deletion mail, sent to a user who has created a duplicate account." ." ". "Available variables are:" ." %site.");
+	$group .= form_textfield('Subject of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_subject]', _person_mail_text('dup_delete_subject'), 70, 180, 'Customize the subject of your account deletion mail, sent to a user who has created a duplicate account. Available variables are: %site.');
 	 
-	$group .= form_textarea("Body of duplicate account deletion e-mail", "edit[person_mail_dup_delete_body]", _person_mail_text("dup_delete_body"), 70, 10, "Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account." ." ". "Available variables are:" ." %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.");
+	$group .= form_textarea('Body of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_body]', _person_mail_text('dup_delete_body'), 70, 10, 'Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
 
-	$output = form_group("User email settings", $group);
+	$output = form_group('User email settings', $group);
 	
 	return settings_form($output);
 }
@@ -1864,8 +1881,10 @@ function person_statistics ( )
 	}
 	$rows[] = array("Players by starting year:", table(null, $sub_table));
 	
-	$result = db_query("SELECT COUNT(*) FROM person where has_dog = 'Y'");
-	$rows[] = array("Players with dogs :", db_result($result));
+	if (variable_get('dog_questions', 1)) {
+		$result = db_query("SELECT COUNT(*) FROM person where has_dog = 'Y'");
+		$rows[] = array("Players with dogs :", db_result($result));
+	}
 	
 	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	return form_group("Player Statistics", $output);

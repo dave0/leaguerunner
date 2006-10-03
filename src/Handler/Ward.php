@@ -22,7 +22,7 @@ function ward_dispatch()
 function ward_menu()
 {
 	global $lr_session;
-	if($lr_session->is_admin()) {
+	if($lr_session->is_admin() && variable_get('wards', 1)) {
 		menu_add_child('_root','ward','City Wards', array('weight' => 5));
 		menu_add_child('ward','ward/list','list wards', array('link' => 'ward/list') );
 	}

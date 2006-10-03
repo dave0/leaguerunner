@@ -210,9 +210,11 @@ class FieldEdit extends Handler
 			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
 			$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
 
-			$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
-				getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
-				"Official city ward this field is located in");
+			if( variable_get('wards', '1') ) {
+				$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
+					getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
+					"Official city ward this field is located in");
+			}
 
 			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
@@ -245,7 +247,11 @@ class FieldEdit extends Handler
 			$rows[] = array("Field Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
 			$rows[] = array("Parent Field:", form_hidden('edit[parent_fid]', $edit['parent_fid']) . $parent->fullname);
 		} else {
-			$ward = ward_load( array('ward_id' => $edit['ward_id']) );
+			if( variable_get('wards', '1') ) {
+				$ward = ward_load( array('ward_id' => $edit['ward_id']) );
+			} else {
+				$ward = 0;
+			}
 			
 			$rows = array();
 			$rows[] = array( "Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
@@ -260,7 +266,9 @@ class FieldEdit extends Handler
 			$rows[] = array( "Latitude:", form_hidden('edit[latitude]', $edit['latitude']) . check_form($edit['latitude']));
 			$rows[] = array( "Longitude:", form_hidden('edit[longitude]', $edit['longitude']) . check_form($edit['longitude']));
 			
-			$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
+			if( variable_get('wards', '1') ) {
+				$rows[] = array( "City Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
+			}
 			$rows[] = array( "Location Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
 			$rows[] = array( "Directions:", form_hidden('edit[site_directions]', $edit['site_directions']) . check_form($edit['site_directions']));
@@ -281,7 +289,6 @@ class FieldEdit extends Handler
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		
 		$field->set('num', $edit['num']);
 		$field->set('rating', $edit['rating']);
 
@@ -306,7 +313,6 @@ class FieldEdit extends Handler
 			$field->set('site_directions', $edit['site_directions']);
 			$field->set('site_instructions', $edit['site_instructions']);
 		}
-
 
 		if( !$field->save() ) {
 			error_exit("Internal error: couldn't save changes");
@@ -344,8 +350,10 @@ class FieldEdit extends Handler
 			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
 		}
 		
-		if( ! validate_number($edit['ward_id']) ) {
-			$errors .= "<li>Ward must be selected";
+		if(variable_get('wards', '1')) {
+			if( ! validate_number($edit['ward_id']) ) {
+				$errors .= "<li>Ward must be selected";
+			}
 		}
 
 		if( ! validate_nonhtml($edit['region']) ) {

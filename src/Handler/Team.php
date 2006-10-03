@@ -842,7 +842,7 @@ class TeamRosterStatus extends Handler
 		}
 
 		if(!$this->player->is_player()) {
-			error_exit("Only OCUA-registered players can be added to a team");
+			error_exit('Only ' . variable_get('app_org_short_name', 'OCUA') . '-registered players can be added to a team');
 		}
 		
 		$this->loadPermittedStates($this->team->team_id, $this->player->user_id);

@@ -34,7 +34,7 @@ class SeasonStandings extends Handler
 
 		$year = variable_get('current_year', '2004');
 
-		print "OCUA $season League $year Standings\n";
+		print variable_get('app_org_short_name', 'OCUA') . " $season League $year Standings\n";
 		print "Current as of: " . strftime("%c") . "\n\n";
 		
 		$result = db_query("SELECT distinct league_id from league where season = '%s'", $season);
@@ -52,7 +52,7 @@ class SeasonStandings extends Handler
 			}
 
 			$name = $league->fullname;
-			print "OCUA $name\n";
+			print variable_get('app_org_short_name', 'OCUA') . " $name\n";
 			
 			print $this->generate_standings($league, 0);
 
