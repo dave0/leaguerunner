@@ -542,6 +542,7 @@ class LeagueList extends Handler
 
 		$leagues = league_load_many( array( 'season' => $season, '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
 
+		if ( $leagues ) {
 		foreach ( $leagues as $league ) {
 			$links = array();
 			if($league->schedule_type != 'none') {
@@ -557,6 +558,7 @@ class LeagueList extends Handler
 		}
 
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
+		}
 		
 		return $output;
 	}
