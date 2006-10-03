@@ -100,7 +100,7 @@ function theme_navbar($breadcrumbs = array())
 
 function theme_error( $message ) 
 {
-	return "<div class=\"error\">$message</div>";
+	return "<span class=\"error\">$message</span>";
 }
 
 function theme_links($links, $delimiter = " | ")

@@ -171,7 +171,7 @@ function game_splash ()
 		return;
 	}
 	
-	return table(array(  array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows);
+	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows, array('alternate-colours' => true) ) . "</div>";
 }
 
 /**

@@ -833,7 +833,7 @@ class LeagueView extends Handler
 				$row[] = $team->rank;
 			}
 			
-			$row[] = l(check_form($team->name), "team/view/$team->team_id");
+			$row[] = l($team->name, "team/view/$team->team_id");
 			$row[] = $team->count_players();
 			$row[] = $team->rating;
 			$row[] = $team->avg_skill();
@@ -1138,7 +1138,7 @@ class LeagueSpirit extends Handler
 		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
 
 		if( !is_array($games) ) {
-			error_exit("There are no games scheduled for this leageu");
+			error_exit("There are no games scheduled for this league");
 		}
 
 		$header = array( "Game", "Entry By", "Given To");

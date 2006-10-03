@@ -408,13 +408,13 @@ class ScheduleView extends Handler
 function schedule_heading( $date, $canEdit = false, $dayId = 0, $leagueId = 0 )
 {
 	$header = array(
-		array('data' => $date, 'colspan' => ($canEdit ? 6 : 7), 'class' => 'gamedate')
+		array('data' => $date, 'colspan' => ($canEdit ? 5 : 7), 'class' => 'gamedate')
 	);
 
 	if( $canEdit ) {
 		$header[] = array(
 			'data' => l("edit week", "schedule/edit/$leagueId/$dayId"),
-			'class' => 'gamedate'
+			'class' => 'gamedate', 'colspan' => 2, 'style' => 'text-align:right;'
 		);
 	}
 	return $header;
