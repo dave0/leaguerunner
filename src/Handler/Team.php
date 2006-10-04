@@ -449,11 +449,11 @@ class TeamDelete extends Handler
 	function generateConfirm ()
 	{
 		$rows = array();
-		$rows[] = array("Team Name:", check_form($this->team->name));
+		$rows[] = array("Team Name:", check_form($this->team->name, ENT_NOQUOTES));
 		if($this->team->website) {
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
-		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
+		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour, ENT_NOQUOTES));
 		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 		
 		$rows[] = array("Team Status:", $this->team->status);
@@ -487,7 +487,7 @@ class TeamMove extends Handler
 		global $lr_session;
 
 		# Nuke HTML just in case
-		$team_name = check_form($this->team->name);
+		$team_name = check_form($this->team->name, ENT_NOQUOTES);
 		$this->setLocation(array(
 			$team_name => "team/view/" . $this->team->team_id,
 			"Move Team" => 0));
@@ -958,7 +958,7 @@ class TeamView extends Handler
 		global $lr_session;
 
 		// Team names might have HTML in them, so we need to nuke it.
-		$team_name = check_form($this->team->name);
+		$team_name = check_form($this->team->name, ENT_NOQUOTES);
 		$this->setLocation(array(
 			$team_name => "team/view/" . $this->team->team_id,
 			"View Team" => 0));
@@ -968,7 +968,7 @@ class TeamView extends Handler
 		if($this->team->website) {
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
 		}
-		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour));
+		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour, ENT_NOQUOTES));
 		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 
       // only show the rank selectively because in this view, we can only show the backend database rank, 
