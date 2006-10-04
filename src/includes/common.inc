@@ -960,11 +960,14 @@ function getRosterPositions()
 function getOptionsFromRange( $start, $finish, $reverse = 0 )
 {
 	$result = array();
-	$result["---"] = "---";
+	if(!$reverse) {
+		$result["---"] = "---";
+	}
 	for($i = $start; $i <= $finish; $i++) {
 		$result[$i] = $i;
 	}
 	if($reverse) {
+		$result["---"] = "---";
 		$result = array_reverse($result,true);
 	}
 
