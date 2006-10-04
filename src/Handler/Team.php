@@ -1087,10 +1087,13 @@ class TeamView extends Handler
 			$rows[] = $row;
 
 			$totalSkill += $player->skill_level;
+			if ($player->skill_level) {
+				$skillCount ++;
+			}
 		}
 
-		if($count > 0) {
-			$avgSkill = sprintf("%.2f", ($totalSkill / $count));
+		if($skillCount > 0) {
+			$avgSkill = sprintf("%.2f", ($totalSkill / $skillCount));
 		} else {
 			$avgSkill = 'N/A';
 		}
