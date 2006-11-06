@@ -213,7 +213,7 @@ function person_menu()
 	
 	menu_add_child('_root','person',"Players", array('weight' => -9));
 	if($lr_session->has_permission('person','list') ) {
-		menu_add_child('person','person/search',"search players", array('link' => url('person/search')));
+		menu_add_child('person','person/search',"search players", array('link' => 'person/search'));
 	}
 	
 	if($lr_session->is_admin()) {
