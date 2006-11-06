@@ -205,6 +205,11 @@ function h1($text, $attributes = array())
 	return simple_tag("h1", $text, $attributes);
 }
 
+function h2($text, $attributes = array())
+{
+	return simple_tag("h2", $text, $attributes);
+}
+
 function para($text, $attributes = array())
 {
 	return simple_tag("p", $text, $attributes);
@@ -218,6 +223,16 @@ function pre($text, $attributes = array())
 function div($text, $attributes = array())
 {
 	return simple_tag("div", $text, $attributes);
+}
+
+function li($text, $attributes = array())
+{
+	return simple_tag("li", $text, $attributes);
+}
+
+function ul($text, $attributes = array())
+{
+	return simple_tag("ul", $text, $attributes);
 }
 
 function table_cell($cell, $header = 0) {
@@ -409,7 +424,12 @@ function form($form, $method = "post", $action = 0, $options = 0)
 function form_item($title, $value, $description = 0) 
 {
 	if ($title) {
-		$title = "<label>$title:</label><br />";
+		$colon = ':';
+		$last = substr($title, strlen($title) - 1);
+		if ($last == ':' || $last == '?' || $last == '.' || $last == '!') {
+			$colon = '';
+		}
+		$title = "<label>$title$colon</label><br />";
 	} else {
 		# Ensure that if $title == 0, we blank it instead.
 		$title = "";
