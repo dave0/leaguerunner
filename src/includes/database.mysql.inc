@@ -125,7 +125,8 @@ function db_next_id($name) {
 }
 
 function db_affected_rows() {
-  return mysql_affected_rows();
+  global $db_resource;
+  return mysql_affected_rows($db_resource);
 }
 
 /**
