@@ -21,7 +21,7 @@ function theme_header($title = "", $breadcrumbs = array())
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title><?php print $title ?></title>
-	<base href="<?php print $BASE_URL ?>/" />
+	<base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL ?>/" />
 	<link rel="stylesheet" type="text/css" href="http://www.ocua.ca/themes/pushbutton_ocua/style.css" />
 	<link rel="stylesheet" type="text/css" href="style.css" />
     <link rel="shortcut icon" href="/favicon.ico" />
