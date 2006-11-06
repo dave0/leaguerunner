@@ -36,16 +36,19 @@ class FormBuilder
 					$question->lines = 5;
 					$question->columns = 60;
 					break;
+				case 'textfield':
+					// TODO encode in $q->restrictions
+					$question->columns = 60;
+					break;
 				default:
 					die("Unsupported question type in FormBuilder::load()");
 			}
 
-
 			// Fixups for boolean values
 			if( $question->required == 'Y' ) {
-				$question->required == true;
+				$question->required = true;
 			} else {
-				$question->required == false;
+				$question->required = false;
 			}
 			
 			$this->_questions[$question->qkey] = $question;
@@ -186,7 +189,7 @@ class FormBuilder
 			// Check that all 'required' questions have an answer
 			if( $q->required && !array_key_exists( $q->qkey, $this->_answers) ) {
 				$invalid_flag = true;
-				$text .= "A value is required for <i>" . $q->question . "</i><br>";
+				$text .= "A value is required for <i>" . $q->question . "</i><br />";
 			}
 		}
 		reset($this->_questions);
@@ -201,6 +204,9 @@ class FormBuilder
 					break;
 				case 'freetext':
 					$invalid = question_validate_freetext( $q, $answer);
+					break;
+				case 'textfield':
+					$invalid = question_validate_textfield( $q, $answer);
 					break;
 				default:
 					die("Unsupported question type in FormBuilder::answers_invalid()");
@@ -282,6 +288,9 @@ function question_render_editable( &$q, $editgroup, $value = '', $formtype = 'au
 		case 'freetext':
 			$output .= question_render_editable_freetext( $q, $editgroup, $value);
 			break;
+		case 'textfield':
+			$output .= question_render_editable_textfield( $q, $editgroup, $value);
+			break;
 		default:
 			$output .= "Error: question <i>$q->question</i> is of unsupported type<br />";
 	}
@@ -302,6 +311,9 @@ function question_render_viewable( &$q, $value = '' )
 			break;
 		case 'freetext':
 			$output .= question_render_viewable_freetext( $q, $value);
+			break;
+		case 'textfield':
+			$output .= question_render_viewable_textfield( $q, $value);
 			break;
 		default:
 			$output .= "Error: question <i>$q->question</i> is of unsupported type<br />";
@@ -375,7 +387,31 @@ function question_render_viewable_freetext( &$q, $value = '')
 function question_validate_freetext( &$q, $value = '' )
 {
 	if ( preg_match("/</", $value) ) {
+		return "Answer for <b>".$q->question."</b> cannot contain HTML<br />";
+	}
+	return false;
+}
+
+/*
+ * Render text field for entry
+ */
+function question_render_editable_textfield( &$q, $editgroup, $value = '')
+{
+	return form_textfield( $q->question, $editgroup."[$q->qkey]", $value, $q->columns, $q->columns);
+}
+
+function question_render_viewable_textfield( &$q, $value = '')
+{
+	return form_item( $q->question, $value );
+}
+
+function question_validate_textfield( &$q, $value = '' )
+{
+	if ( preg_match("/</", $value) ) {
 		return "Answer for <b>".$q->question."</b> cannot contain HTML";
+	}
+	else if ( $q->required && strlen( $value ) == 0 ) {
+		return "A value is required for <i>" . $q->question . "</i><br />";
 	}
 	return false;
 }
