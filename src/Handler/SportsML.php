@@ -49,6 +49,8 @@ class SportsMLExporter extends Handler
 
 	function render_header( $type = 'html' )
 	{
+		global $BASE_URL;
+		
 		header("Content-type: text/xml");
 		print '<?';
 ?>
@@ -56,9 +58,9 @@ xml version="1.0" encoding="ISO-8859-1"?>
 <?php 
 		print '<?xml-stylesheet type="text/xsl" href="';
 		if( $type == 'text') {
-			print '/leaguerunner/data/ocuasportsml2text.xsl';
+			print "$BASE_URL/data/ocuasportsml2text.xsl";
 		} else {
-			print '/leaguerunner/data/ocuasportsml2html.xsl';
+			print "$BASE_URL/data/ocuasportsml2html.xsl";
 		}
 		print "\" ?>\n";
 ?>
