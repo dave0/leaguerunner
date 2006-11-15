@@ -274,9 +274,9 @@ class PersonView extends Handler
 		
 		if($lr_session->has_permission('person','view',$person->user_id, 'member_id') ) {
 			if($person->member_id) {
-				$rows[] = array(variable_get('app_org_short_name', 'OCUA') . ' Member ID:', $person->member_id);
+				$rows[] = array(variable_get('app_org_short_name', 'League') . ' Member ID:', $person->member_id);
 			} else {
-				$rows[] = array(variable_get('app_org_short_name', 'OCUA') . ' Member ID:', 'Not a member of ' . variable_get('app_org_short_name', 'OCUA'));
+				$rows[] = array(variable_get('app_org_short_name', 'League') . ' Member ID:', 'Not a member of ' . variable_get('app_org_short_name', 'the league'));
 			}
 		}
 		
@@ -356,7 +356,7 @@ class PersonView extends Handler
 		}
 		
 		if($lr_session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
-			$rows[] = array('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?',($person->willing_to_volunteer == 'Y') ? 'yes' : 'no');
+			$rows[] = array('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?',($person->willing_to_volunteer == 'Y') ? 'yes' : 'no');
 		}
 
 		if($lr_session->has_permission('person','view',$person->user_id, 'last_login')) {
@@ -483,7 +483,7 @@ class PersonApproveNewAccount extends PersonView
 	
 		$dispositions = array(
 			'---'	          => '- Select One -',
-			'approve_player'  => 'Approved as ' . variable_get('app_org_short_name', 'OCUA') . ' Player',
+			'approve_player'  => 'Approved as Player',
 			'approve_visitor' => 'Approved as visitor account',
 			'delete' 		  => 'Deleted silently',
 		);
@@ -711,7 +711,7 @@ END_TEXT;
 		$privacy = variable_get('privacy_policy', 'http://www.ocua.ca/node/17');
 		if($privacy) {
 			$output .= para(
-					'If you have concerns about the data ' . variable_get('app_org_short_name', 'OCUA') . ' collects, please see our '
+					'If you have concerns about the data ' . variable_get('app_org_short_name', 'the league') . ' collects, please see our '
 					. "<b><a href=\"$privacy\" target=\"_new\">Privacy Policy</a>.</b>"
 			);
 		}
@@ -739,7 +739,7 @@ END_TEXT;
 		
 		$output .= form_group('Identity', $group);
 
-		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by ' . variable_get('app_org_short_name', 'OCUA') . ' to correspond with you on league matters.');
+		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by ' . variable_get('app_org_short_name', 'the league') . ' to correspond with you on league matters.');
 		$group .= form_checkbox('Allow other players to view my email address','edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y'));
 			
 		$output .= form_group('Online Contact', $group);
@@ -751,7 +751,7 @@ END_TEXT;
 		 * time... */
 		$group .= form_select('Province', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), 'Select a province from the list');
 
-		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above. ' . variable_get('app_org_short_name', 'OCUA') . ' uses this information to help locate new fields near its members.');
+		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above. ' . variable_get('app_org_short_name', 'the league') . ' uses this information to help locate new fields near its members.');
 
 		$output .= form_group('Street Address', $group);
 
@@ -765,7 +765,7 @@ END_TEXT;
 		$output .= form_group('Telephone Numbers', $group);
 			
 		$player_classes = array(
-			'player' => variable_get('app_org_short_name', 'OCUA') . ' Player',
+			'player' => 'Player',
 			'visitor' => 'Non-player account');
 
 		if(! $formData['class'] ) {
@@ -774,12 +774,12 @@ END_TEXT;
 			
 		if($lr_session->has_permission('person', 'edit', $id, 'class') ) {
 			$player_classes['administrator'] = 'Leaguerunner administrator';
-			$player_classes['volunteer'] = variable_get('app_org_short_name', 'OCUA') . ' volunteer';
+			$player_classes['volunteer'] = 'Volunteer';
 		}
 
 		# Volunteers can unset themselves as volunteer if they wish.
 		if( $formData['class'] == 'volunteer' ) {
-			$player_classes['volunteer'] = variable_get('app_org_short_name', 'OCUA') . ' volunteer';
+			$player_classes['volunteer'] = 'Volunteer';
 		}
 		
 		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
@@ -811,7 +811,7 @@ END_TEXT;
 				'N' => 'No, I will not be bringing a dog to games'));
 		}
 
-		$group .= form_radiogroup('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?', 'edit[willing_to_volunteer]', $formData['willing_to_volunteer'], array(
+		$group .= form_radiogroup('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?', 'edit[willing_to_volunteer]', $formData['willing_to_volunteer'], array(
 			'Y' => 'Yes',
 			'N' => 'No'));
 
@@ -924,7 +924,7 @@ END_TEXT;
 			$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 		}
 		
-		$group .= form_item('Can ' . variable_get('app_org_short_name', 'OCUA') . ' contact you with a survey about volunteering?', form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
+		$group .= form_item('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?', form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
 		
 		$output .= form_group('Player and Skill Information', $group);
 			
@@ -1034,8 +1034,8 @@ END_TEXT;
 			   print theme_header("Edit Account", $this->breadcrumbs);
 		       print "<h1>Edit Account</h1>";
 			   print para(
-				"You have requested to change your account status to '" . variable_get('app_org_short_name', 'OCUA') . " Player'.  As such, your account is now being held for one of the administrators to approve.  "
-				. 'Once your account is approved, you will receive an email informing you of your new ' . variable_get('app_org_short_name', 'OCUA') . ' member number. '
+				"You have requested to change your account status to 'Player'.  As such, your account is now being held for one of the administrators to approve.  "
+				. 'Once your account is approved, you will receive an email informing you of your new ' . variable_get('app_org_short_name', 'League') . ' member number. '
 				. 'You will then be able to log in once again with your username and password.');
 		       print theme_footer();
 			   exit;
@@ -1650,7 +1650,7 @@ class PersonForgotPassword extends Handler
 	function generateForm()
 	{
 		$admin_addr = variable_get('app_admin_email', '');	
-		$org = variable_get('app_org_short_name', 'OCUA');
+		$org = variable_get('app_org_short_name', 'league');
 		$output = <<<END_TEXT
 <p>
 	If you'd like to reset your password, please enter ANY ONE OF:
@@ -1799,7 +1799,7 @@ function _person_mail_text($messagetype, $variables = array() )
 			case 'dup_delete_subject':
 				return strtr("%site Account Update", $variables);
 			case 'dup_delete_body':
-				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'OCUA') . " Webteam", $variables);
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
 		}
 	}
 }
@@ -1808,7 +1808,7 @@ function person_settings ( )
 {
 	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
 	 
-	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to ' . variable_get('app_org_short_name', 'OCUA')  . ' players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
+	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
 	
 	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
 	

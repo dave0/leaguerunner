@@ -42,7 +42,7 @@ function global_settings()
 
 	$group .= form_textfield("Organization name", 'edit[app_org_name]', variable_get('app_org_name', 'Ottawa Carleton Ultimate Association'), 60, 120, "Your organization's full name.");
 
-	$group .= form_textfield("Organization short name", 'edit[app_org_short_name]', variable_get('app_org_short_name', 'OCUA'), 60, 120, "Your organization's abbreviated name or acronym.");
+	$group .= form_textfield("Organization short name", 'edit[app_org_short_name]', variable_get('app_org_short_name', ''), 60, 120, "Your organization's abbreviated name or acronym.");
 
 	$group .= form_textfield("Administrator name", 'edit[app_admin_name]', variable_get('app_admin_name', 'Leaguerunner Administrator'), 60, 120, "The name (or descriptive role) of the system administrator. Mail from Leaguerunner will come from this name.");
 	
