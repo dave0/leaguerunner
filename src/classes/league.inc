@@ -648,10 +648,10 @@
             h.name AS home_name, 
             s.away_team AS away_id,
             a.name AS away_name
-            FROM schedule s, leagueteams t
-            LEFT JOIN team h ON (h.team_id = s.home_team) 
-            LEFT JOIN team a ON (a.team_id = s.away_team)
-            LEFT JOIN gameslot g ON (g.game_id = s.game_id)
+            FROM leagueteams t, schedule s
+				LEFT JOIN team h ON (h.team_id = s.home_team) 
+				LEFT JOIN team a ON (a.team_id = s.away_team)
+				LEFT JOIN gameslot g ON (g.game_id = s.game_id)
             WHERE t.league_id = %d 
             AND NOT ISNULL(s.home_score) AND NOT ISNULL(s.away_score) AND (s.home_team = t.team_id OR s.away_team = t.team_id) ORDER BY g.game_date, g.game_start", $this->league_id);
             while( $ary = db_fetch_array( $result) ) {
