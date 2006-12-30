@@ -102,6 +102,9 @@ function league_menu()
 		}
 		reset($lr_session->user->leagues);
 	}
+	if($lr_session->has_permission('league','create') ) {
+		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
+	}
 }
 
 /**
@@ -131,14 +134,13 @@ function league_add_to_menu( &$league, $parent = 'league' )
       }
 		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
 	}
+
 	if($lr_session->has_permission('league','view', $league->league_id, 'captain emails') ) {
 		menu_add_child($league->fullname, "$league->fullname/captemail",'captain emails', array('weight' => 3, 'link' => "league/captemail/$league->league_id"));
 	}
+
 	if($lr_session->has_permission('league','view', $league->league_id, 'spirit') ) {
 		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
-	}
-	if($lr_session->has_permission('league','create') ) {
-		menu_add_child('league', 'league/create', "create league", array('link' => "league/create", 'weight' => 1));
 	}
 	if($lr_session->has_permission('league','edit', $league->league_id) ) {
       if ( $league->schedule_type == "pyramid" ) { //&& $lr_session->is_admin() ) {
@@ -716,6 +718,7 @@ class LeagueStandings extends Handler
 			if ($this->league->schedule_type != "roundrobin") {
             $row[] = array( 'data' => $season[$tid]->rank, 'class'=>"$rowstyle"); 
 			}
+
          $row[] = array( 'data' => $season[$tid]->win, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->loss, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->tie, 'class'=>"$rowstyle");
@@ -1290,7 +1293,6 @@ class LeagueStatusReport extends Handler
       $this->setLocation(array( $this->league->name => "league/status/" . $this->league->league_id, $this->title => 0));
 
 		return $rc;
-
    }
 
    function generateStatusPage ( )
