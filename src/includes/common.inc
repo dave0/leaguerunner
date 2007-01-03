@@ -408,6 +408,56 @@ function check_query($text) {
     return addslashes($text);
 }
 
+// TODO: Handle this and the user search result pagination in the same way
+function page_links ($prefix, $page, $total)
+{
+	$items = variable_get('items_per_page', 50);
+	if( $items == 0 ) {
+		$items = 1000000;
+	}
+
+	$links = array();
+
+	// First and previous links
+	if ($page != 1) {
+		$links[-2] = l('<<', $prefix . '1');
+		$links[-1] = l('<', $prefix . ($page - 1));
+	}
+
+	// Last and next links
+	$last = ceil ($total / $items);
+	if ($page < $last) {
+		$links[10000] = l('>', $prefix . ($page + 1));
+		$links[10001] = l('>>', $prefix . $last);
+	}
+
+	// Nearby page links
+	$first_count = max (1, $page - 5);
+	$last_count = min ($page + 5, $last);
+	for ($i = $first_count; $i <= $last_count; ++$i) {
+		$links[$i] = l($i, $prefix . $i);
+	}
+
+	// Bigger step page links
+	$first_count = max (10, $page - 50);
+	$last_count = min ($page + 50, $last);
+	for ($i = $first_count; $i <= $last_count; $i += 10) {
+		$links[$i] = l($i, $prefix . $i);
+	}
+
+	// Even bigger step page links
+	for ($i = 50; $i <= $last; $i += 50) {
+		$links[$i] = l($i, $prefix . $i);
+	}
+
+	// Current page shouldn't be a link, just displayed
+	$links[$page] = $page;
+
+	// Sort them and create output
+	ksort($links);
+	return para('Page: ' . join (' ', $links));
+}
+
 /*
  * Form-generation functions
  */
@@ -997,16 +1047,26 @@ function getOptionsFromRange( $start, $finish, $reverse = 0 )
 /**
  * Helper fn for generating time ranges
  */
+function getMinutesFromTime( $time )
+{
+	$hour = floor( $time / 100 );
+	$min = $time - $hour * 100;
+	return $hour * 60 + $min;
+}
+
 function getOptionsFromTimeRange( $start, $finish, $increment )
 {
 	$result = array();
 	$result["---"] = "---";
-	for($hour = ($start / 100); $hour <= ($finish / 100); $hour++) {
-		for($minute = 0; $minute < 60; $minute += $increment) {
+	for( $min = getMinutesFromTime( $start );
+		 $min <= getMinutesFromTime( $finish );
+		 $min += $increment )
+	{
+		$hour = floor( $min / 60 );
+		$minute = $min - $hour * 60;
 			$time = sprintf("%02d:%02d", $hour, $minute);
 			$result[$time] = $time;
 		}
-	}
 	return $result;
 }
 
@@ -1152,6 +1212,48 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$output .= "</table></div>\n\n";
 
 	return $output;
+}
+
+// Not needed for PHP 5.1 and higher, which includes this function
+function fputcsv($filePointer, $dataArray, $delimiter = ',', $enclosure = '"')
+{
+	// Write a line to a file
+	// $filePointer = the file resource to write to
+	// $dataArray = the data to write out
+	// $delimeter = the field separator
+ 
+	// Build the string
+	$string = "";
+ 
+	// No leading delimiter
+	$writeDelimiter = FALSE;
+	foreach($dataArray as $dataElement)
+	{
+		// Replaces a double quote with two double quotes
+		$dataElement=str_replace("\"", "\"\"", $dataElement);
+	
+		// Adds a delimiter before each field (except the first)
+		if($writeDelimiter)
+			$string .= $delimiter;
+	
+		// Encloses each field with $enclosure and adds it to the string
+		$string .= $enclosure . $dataElement . $enclosure;
+	
+		// Delimiters are used every time except the first.
+		$writeDelimiter = TRUE;
+	}
+ 
+	// Append new line
+	$string .= "\n";
+ 
+	// Write the string to the file
+	fwrite($filePointer,$string);
+}
+
+function my_error_log($str)
+{
+	error_log(strftime ("%m/%d %H:%M:%S: ") . $_SERVER['REMOTE_ADDR'] .
+		": $str\n", 3, "/home/tuc003/www/error.log");
 }
 
 /* vim: set sw=4 ts=4 et: */

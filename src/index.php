@@ -51,7 +51,20 @@ require_once("classes/league.inc");
 require_once("classes/team.inc");
 require_once("classes/game.inc");
 require_once("classes/slot.inc");
+require_once("classes/event.inc");
+require_once("classes/registration.inc");
 require_once("classes/formbuilder.inc");
+
+// Maybe include registration payment module
+if( variable_get('registration', 0) &&
+	variable_get('online_payments', 1) )
+{
+	$file = variable_get('payment_implementation', NULL);
+	if ($file)
+	{
+		require_once("includes/$file.inc");
+	}
+}
 
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
@@ -109,7 +122,7 @@ if($handler->initialize()) {
 		print theme_footer();
 		
 	} else {
-		error_exit("You do not have permission to perform that operation");
+		error_exit('You do not have permission to perform that operation');
 	}
 } else {
 	error_exit("Failed to initialize handler for $op");

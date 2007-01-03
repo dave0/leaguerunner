@@ -395,6 +395,10 @@ class PersonView extends Handler
 			$rows[] = array("Leagues:", table( null, $leagues) );
 		}
 		
+		if($lr_session->has_permission('registration','history',$person->user_id)) {
+			$rows[] = array("Registration:", l('View history', "registration/history/$person->user_id"));
+		}
+
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	}
 }
@@ -1411,8 +1415,7 @@ class PersonSearch extends Handler
 	{
 		$edit = &$_POST['edit'];
 		
-		# Should be configurable
-		$this->max_results = 25;
+		$this->max_results = variable_get('items_per_page', 25);
 	
 		switch($edit['step']) {
 			case 'perform':
