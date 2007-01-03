@@ -533,8 +533,7 @@ class LeagueList extends Handler
 		}
 		
 		$this->setLocation(array(
-			$this->title => "league/list/$season",
-			$season => 0
+			$season => "league/list/$season"
 		));
 
 		$output = para(theme_links($seasonLinks));
@@ -850,7 +849,7 @@ class LeagueView extends Handler
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		
 		$this->setLocation(array(
-			$this->league->fullname => "league/view/$id",
+			$this->league->fullname => 'league/view/' . $this->league->league_id,
 			$this->title => 0));
 		return $output;
 	}
