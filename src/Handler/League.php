@@ -814,39 +814,43 @@ class LeagueView extends Handler
 			array_unshift($header, 'Rank');
 			array_unshift($header, 'Seed');
 		}
-		$rows = array();
-		$this->league->load_teams();
-      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
-      $counter = 0;
-		foreach($season as $team) {
-         $counter++;
-			$team_links = array();
-			if($team->status == 'open') {
-				$team_links[] = l('join', "team/roster/$team->team_id/" . $lr_session->attr_get('user_id'));
-			}
-			if($lr_session->has_permission('league','edit',$this->league->league_id)) {
-				$team_links[] = l('move', "team/move/$team->team_id");
-			}
-			if($this->league->league_id == 1 && $lr_session->has_permission('team','delete',$team->team_id)) {
-				$team_links[] = l('delete', "team/delete/$team->team_id");
-			}
 
-			$row = array();
-			if( $this->league->schedule_type == 'ladder' || $this->league->schedule_type == 'pyramid') {
-				$row[] = $counter;
-				$row[] = $team->rank;
+		$this->league->load_teams();
+
+		if( $this->league->teams > 0 ) {
+			$rows = array();
+			list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+			$counter = 0;
+			foreach($season as $team) {
+				$counter++;
+				$team_links = array();
+				if($team->status == 'open') {
+					$team_links[] = l('join', "team/roster/$team->team_id/" . $lr_session->attr_get('user_id'));
+				}
+				if($lr_session->has_permission('league','edit',$this->league->league_id)) {
+					$team_links[] = l('move', "team/move/$team->team_id");
+				}
+				if($this->league->league_id == 1 && $lr_session->has_permission('team','delete',$team->team_id)) {
+					$team_links[] = l('delete', "team/delete/$team->team_id");
+				}
+
+				$row = array();
+				if( $this->league->schedule_type == 'ladder' || $this->league->schedule_type == 'pyramid') {
+					$row[] = $counter;
+					$row[] = $team->rank;
+				}
+				
+				$row[] = l($team->name, "team/view/$team->team_id");
+				$row[] = $team->count_players();
+				$row[] = $team->rating;
+				$row[] = $team->avg_skill();
+				$row[] = theme_links($team_links);
+				
+				$rows[] = $row;
 			}
 			
-			$row[] = l($team->name, "team/view/$team->team_id");
-			$row[] = $team->count_players();
-			$row[] = $team->rating;
-			$row[] = $team->avg_skill();
-			$row[] = theme_links($team_links);
-			
-			$rows[] = $row;
+			$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		}
-		
-		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		
 		$this->setLocation(array(
 			$this->league->fullname => 'league/view/' . $this->league->league_id,
