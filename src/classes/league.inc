@@ -681,7 +681,7 @@
             // Now, sort it all
             if ($this->schedule_type == "ladder" || $this->schedule_type == "pyramid") {
                // Call a function that will handle complete sorting of ladder standings:
-               $season = $this->sortLadder($season);
+               $season = $this->sortLadderRating($season);
                $sorted_order = &$season;
             } else {
                if($current_round) {
@@ -807,6 +807,62 @@
          return ($a->rank < $b->rank) ? -1 : 1;
       }
 
+      /**
+       * Sort a ladder league by:
+       * 1- RATING
+       * 2- SOTG
+       * 3- WINS/TIES
+       * 4- +/-
+       * 5- GOALS FOR
+       * 6- RANDOM (team id)
+       **/
+      function standins_sort_rating_ladder (&$a, &$b) {
+         /* Check Rating */
+         if ($a->rating != $b->rating) {
+            return ($a->rating > $b->rating) ? -1 : 1;
+         }
+
+         /* Check SOTG */
+         if($a->games_with_sotg > 0 && $b->games_with_sotg > 0) {
+            if( ($a->spirit / $a->games_with_sotg) > ($b->spirit / $b->games_with_sotg)) {
+               return -1;
+            } else if( ($a->spirit / $a->games_with_sotg) < ($b->spirit / $b->games_with_sotg)) {
+               return 1;
+            }
+         }
+         if($a->games > 0 && $b->games > 0) {
+            if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
+               return -1;
+            } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
+               return 1;
+            }
+         }
+
+         /* Check wins & ties */
+         $b_points = (( 2 * $b->win ) + $b->tie);
+         $a_points = (( 2 * $a->win ) + $a->tie);
+         if( $a_points > $b_points ) {
+            return -1;
+         } else if( $a_points < $b_points ) {
+            return 1;
+         }
+
+         /* Next, check +/- */
+         if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
+            return 1;
+         } else if( ($b->points_for - $b->points_against) > ($a->points_for - $a->points_against) ) {
+            return -1;
+         }
+
+         /* Check goals for */
+         if ($a->points_for != $b->points_for) {
+            return ($a->points_for > $b->points_for) ? -1 : 1;
+         }
+
+         /* Check team id as last resort */
+         return ($a->team_id < $b->team_id) ? -1 : 1;
+      }
+      
       function standings_sort_ladder (&$a, &$b) 
       {
          /* Check Rank */
@@ -1486,7 +1542,7 @@
       function sort_league_teams () {
          $this->load_teams();
          if ($this->schedule_type == 'ladder' || $this->schedule_type == 'pyramid') {
-            uasort($this->teams, array($this, 'standings_sort_ladder'));	
+            uasort($this->teams, array($this, 'standins_sort_rating_ladder'));	
          } else {
             uasort($this->teams, array($this, 'standings_sort_bywinloss'));	
          }
@@ -1528,6 +1584,11 @@
          return;
       }
 
+      function sortLadderRating ( $season ) {
+         uasort($season, array($this, 'standins_sort_rating_ladder'));
+         return $season;
+      }
+      
       function sortLadder ( $season ) {
          
          // first sort by rank:

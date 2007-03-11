@@ -651,14 +651,15 @@ class LeagueStandings extends Handler
 		/* Build up header */
 		$header = array( array('data' => 'Seed', 'rowspan' => 2) );
 		$header[] = array( 'data' => 'Team', 'rowspan' => 2 );
+		$header[] = array('data' => "Rating", 'rowspan' => 2);
 
 		$subheader = array();
 
 		// Ladder leagues display standings differently.
 		// Eventually this should just be a brand new object.
 		if($this->league->schedule_type == "ladder" || $this->league->schedule_type == "pyramid") {
-			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
-			foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
+			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		} else {
@@ -675,7 +676,6 @@ class LeagueStandings extends Handler
 			}
 		}
 		
-		$header[] = array('data' => "Rating", 'rowspan' => 2);
 		$header[] = array('data' => "Streak", 'rowspan' => 2);
 		$header[] = array('data' => "Avg.<br>SOTG", 'rowspan' => 2);
 		
@@ -714,10 +714,7 @@ class LeagueStandings extends Handler
 				}
 			}
 
-			if ($this->league->schedule_type != "roundrobin") {
-            $row[] = array( 'data' => $season[$tid]->rank, 'class'=>"$rowstyle"); 
-			}
-
+         $row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->win, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->loss, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->tie, 'class'=>"$rowstyle");
@@ -725,7 +722,6 @@ class LeagueStandings extends Handler
          $row[] = array( 'data' => $season[$tid]->points_for, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->points_against, 'class'=>"$rowstyle");
          $row[] = array( 'data' => $season[$tid]->points_for - $season[$tid]->points_against, 'class'=>"$rowstyle");
-         $row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
 			
 			if( count($season[$tid]->streak) > 1 ) {
             $row[] = array( 'data' => count($season[$tid]->streak) . $season[$tid]->streak[0], 'class'=>"$rowstyle");
@@ -735,11 +731,11 @@ class LeagueStandings extends Handler
 	
 			// initialize the sotg to dashes!
 			$sotg = "---";
-			if($season[$tid]->games < 3 && !($lr_session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
-				 $sotg = "---";
-			} else if ($season[$tid]->games_with_sotg > 0) {
+			//if($season[$tid]->games < 3 && !($lr_session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
+				 //$sotg = "---";
+			//} else if ($season[$tid]->games_with_sotg > 0) {
 				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games_with_sotg));
-			}
+			//}
          $row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
