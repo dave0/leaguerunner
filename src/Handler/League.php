@@ -614,15 +614,13 @@ class LeagueStandings extends Handler
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 		
       
-      // if it's a pyramid, let's add "seed" into the mix:
-      if ( $this->league->schedule_type == "pyramid" || $this->league->schedule_type == "ratings_ladder" ) {
-         $seeded_order = array();
-         for ($i = 0; $i < count($order); $i++) {
-            $seeded_order[$i+1] = $order[$i];
-         }
-         //reset($order);
-         $order = $seeded_order;
-      }
+      // let's add "seed" into the mix:
+	   $seeded_order = array();
+	   for ($i = 0; $i < count($order); $i++) {
+	      $seeded_order[$i+1] = $order[$i];
+	   }
+	   //reset($order);
+	   $order = $seeded_order;
       
       // if this is a pyramid league and  we're asking for "team" standings, only show
       // the 5 teams above and 5 teams below this team ... don't bother if there are
