@@ -946,14 +946,22 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
+	 * Calculate the expected win ratio.  Answer
+	 * is always 0 <= x <= 1
+	 */
+	function calculate_expected_win ($rating1, $rating2) {
+		$difference = $rating1 - $rating2;
+		$power = pow(10, (0 - $difference) / 400);
+		return ( 1 / ($power + 1) );
+	}
+	
+	/**
 	 * Calculate the expected win ratio of the home team.  Answer
 	 * is always 0 <= x <= 1
 	 */
 	function home_expected_win()
 	{
-		$difference = $this->home_rating - $this->away_rating;
-		$power = pow(10, (0 - $difference) / 400);
-		return ( 1 / ($power + 1) );
+		return $this->calculate_expected_win ($this->home_rating, $this->away_rating);
 	}
 	
 	/**
@@ -996,44 +1004,22 @@ class Game extends LeaguerunnerObject
 			return true;
 		}
 	
-		$weight_constant = 40;  // All games weighted equally
-		$score_weight    = 1;   // Games start with a weight of 1
-
-		$game_value      = 1;   // Game value is always 1 or 0.5 as we're calculating the elo change for the winning team
-
-		// Find winning/losing scores.  In the case of a tie, 
-		// the home team is considered the winner for purposes of
-		// rating calculation.  This has nothing to do with the
-		// tiebreakers used for standings purposes as in tie cases,
-		// the $elo_change will work out the same regardless of which team is
-		// considered the 'winner'
+		$elo_change = 0;
+		
 		if( $this->home_score == $this->away_score) {
-			# For a tie, we assume the home team wins, but give the game a
-			# value of 0.5
+			# For a tie, we assume the home team wins
 			$winner = $this->home_id;
 			$loser = $this->away_id;
-			$expected_win = $this->home_expected_win();
-			$game_value = 0.5; 
+			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->home_expected_win());
 		} else if( $this->home_score > $this->away_score) {
 			$winner = $this->home_id;
 			$loser = $this->away_id;
-			$expected_win = $this->home_expected_win();
+			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->home_expected_win());
 	    } else {
 			$winner = $this->away_id;
 			$loser = $this->home_id;
-			$expected_win = $this->away_expected_win();
+			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->away_expected_win());
 		}
-
-		// Calculate score differential bonus.  
-		// If the difference is greater than 1/3 the winning score, the bonus
-		// added is the ratio of score difference over winning score.
-		$score_diff = abs($this->home_score - $this->away_score);
-		$score_max  = max($this->home_score, $this->away_score);
-		if( $score_max && ( ($score_diff / $score_max) > (1/3) )) {
-			$score_weight += $score_diff / $score_max;
-		}
-
-		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
 
 		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $elo_change, $this->game_id);
 		if( 1 != db_affected_rows()) {
@@ -1053,6 +1039,40 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 
+	/**
+	 * Calculate the ELO change for the result provided. 
+	 */
+	function calculate_elo_change ( $home_score, $away_score, $expected_win ) {
+		$weight_constant = 40;  // All games weighted equally
+		$score_weight    = 1;   // Games start with a weight of 1
+
+		$game_value      = 1;   // Game value is always 1 or 0.5 as we're calculating the elo change for the winning team
+
+		// Find winning/losing scores.  In the case of a tie, 
+		// the home team is considered the winner for purposes of
+		// rating calculation.  This has nothing to do with the
+		// tiebreakers used for standings purposes as in tie cases,
+		// the $elo_change will work out the same regardless of which team is
+		// considered the 'winner'
+		if( $home_score == $away_score) {
+			# For a tie, we assume the home team wins, but give the game a
+			# value of 0.5
+			$game_value = 0.5; 
+		}
+
+		// Calculate score differential bonus.  
+		// If the difference is greater than 1/3 the winning score, the bonus
+		// added is the ratio of score difference over winning score.
+		$score_diff = abs($home_score - $away_score);
+		$score_max  = max($home_score, $away_score);
+		if( $score_max && ( ($score_diff / $score_max) > (1/3) )) {
+			$score_weight += $score_diff / $score_max;
+		}
+
+		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
+		return ceil($elo_change);
+	}
+	
 	/**
 	 * Select a random gameslot for this game.
 	 * Gameslot is to be selected from those available for the league in which
@@ -1184,6 +1204,52 @@ class Game extends LeaguerunnerObject
 		}
 		$this->slot_id = $slot_id;
 		return array(true,'');;
+	}
+	
+	function get_ratings_table ( $home_rating, $away_rating, $whatif ) {
+		/* Build up header & rows*/
+		$header = array( array('data' => '&nbsp') );
+		$rows = array( );
+
+		$home = $this->home_name;
+		$away = $this->away_name;
+		
+		// assume that games can have scores up to 17...
+		for ($h = 0; $h <= 17; $h++) {
+			$header[] =  array('data' => $h);
+			$current_row = array('data' => "<b>$h</b>");
+			for ($a = 0; $a <= 17; $a++) {
+				$elo_change = 0;
+				if ($h > $a) {
+					// home win
+					$elo_change = $this->calculate_elo_change($h, $a, 
+						$this->calculate_expected_win($home_rating, $away_rating));
+					$current_row[] = array('data' => $elo_change, 'title'=>"'$home' wins $h to $a, takes $elo_change rating points from '$away'", 'class'=>"highlight");
+				} else if ($h == $a) {
+					// treat as a home win
+					$elo_change = $this->calculate_elo_change($h, $a, 
+						$this->calculate_expected_win($home_rating, $away_rating));
+					$current_row[] = array('data' => $elo_change, 'title'=>"Tie $h to $a, '$home' takes $elo_change rating points from '$away'", 'class'=>"highlight");
+				} else {
+					$elo_change = $this->calculate_elo_change($a, $h, 
+						$this->calculate_expected_win($away_rating, $home_rating));
+					$current_row[] = array('data' => $elo_change, 'title'=>"'$away' wins $a to $h, takes $elo_change rating points from '$home'");
+				}
+			}
+			$rows[] = $current_row ;
+		}
+		$output2 = "";
+		if ($whatif) {
+			// what if teams had different ratings?
+			$output2 = para("&nbsp;");
+			$output2 .= para("What if the teams had different ratings?  Check it here:");
+			$output2 .= para("<form name='whatif'>$home <input type='text' size=5 name='home_rating' value='$home_rating'><br>" .
+					"$away <input type='text' size=5 name='away_rating' value='$away_rating'><br>" .
+					"<input type=button value='What If?' onclick='window.location=\"/leaguerunner/game/ratings/" . $this->game_id .
+					"/\"+document.whatif.home_rating.value+\"/\"+document.whatif.away_rating.value'");
+			
+		}
+		return "<div class='listtable'>" . table($header, $rows, array('border'=>1)) . "</div>" . $output2;
 	}
 }
 

@@ -43,6 +43,11 @@ function game_dispatch()
 			$obj = new GameReschedule;
 			break;
  */
+		case 'ratings':
+			$obj = new GameRatings;
+			$obj->game = game_load( array('game_id' => $id) );
+			$obj->league = league_load( array('league_id' => $obj->game->league_id) );
+			break;
 		default:
 			$obj = null;
 	}
@@ -290,6 +295,12 @@ class GameCreate extends Handler
                'oneset_pyramid' => "set of pyramid scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
             );
             break;
+         case 'ratings_ladder':
+            $this->types = array(
+					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
+               'oneset_ratings_ladder' => "set of ratings-scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
+            );
+            break;
 
 			default:
 				error_exit("Wassamattayou!");
@@ -344,6 +355,7 @@ class GameCreate extends Handler
 				break;
 			case 'oneset':
          case 'oneset_pyramid':
+         case 'oneset_ratings_ladder':
 			case 'blankset':
 				$num_dates = 1;
 				$num_fields = ($num_teams / 2);
@@ -393,6 +405,7 @@ class GameCreate extends Handler
 			case 'single':
 			case 'oneset':
          case 'oneset_pyramid':
+         case 'oneset_ratings_ladder':
 			case 'blankset':
 			case 'fullround':
 			case 'halfroundstandings':
@@ -441,6 +454,10 @@ class GameCreate extends Handler
             # Create game for all teams in league
             list( $rc, $message) = $this->league->create_scheduled_set_pyramid( $edit['startdate'] ) ;
             break;
+         case 'oneset_ratings_ladder':
+            # Create game for all teams in league
+            list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] ) ;
+            break;
 			case 'fullround':
 				# Create full roundrobin
 				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'] );
@@ -452,7 +469,7 @@ class GameCreate extends Handler
 				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'rating' );
 				break;
 			default:
-				error_exit("Please don't try to do that; it won't work, you fool");
+				error_exit("Please don't try to do that; it won't work, you fool... " + $edit['type']);
 				break;
 		}
 		
@@ -974,7 +991,9 @@ class GameEdit extends Handler
 
 			$stats_group .= form_item("Chance to win", table(null, array(
 				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
-				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))))));
+				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))),
+				array("View the <a href='/leaguerunner/game/ratings/" . $game->game_id . "'>Ratings Table</a> for this game." ))
+				));
 			$output .= form_group("Statistics", $stats_group);
 			
 			
@@ -1706,6 +1725,107 @@ class GameRemoveResults extends Handler
 		return true;
 	}
 	
+}
+
+class GameRatings extends Handler
+{
+	var $game;
+	
+	function has_permission ()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('game','view', $this->game);
+	}
+	
+	function process ()
+	{
+		global $lr_session;
+		if(!$this->game) {
+			error_exit("That game does not exist");
+		}
+
+		$this->can_edit = false;
+
+		$this->title = "Game Ratings Table";
+		
+		$this->setLocation(array(
+			"$this->title &raquo; Game " . $this->game->game_id => 0));
+
+		$rc = $this->generateForm( );
+		
+		return $rc;
+	}
+	
+	function generateForm ( ) 
+	{
+		global $lr_session;
+		
+		$home_rating = arg(3);
+		$away_rating = arg(4);
+		$whatifratings = true;
+		
+		# Alias, to avoid typing.  Bleh.
+		$game = &$this->game;
+		$league = &$this->league;
+
+		$game->load_score_entries();
+		
+		$teams = $league->load_teams();
+		$teams = $league->teams;
+		
+		$home_team = null;
+		$away_team = null;
+		foreach ($teams as $team) {
+			if ($team->team_id == $game->home_id) {
+				$home_team = $team;
+			} else if ($team->team_id == $game->away_id) {
+				$away_team = $team;
+			}
+		}
+
+		if ($home_rating == null || $away_rating == null) {		
+			$home_rating = $home_team->rating;
+			$away_rating = $away_team->rating;
+			$whatifratings = false;
+		}
+		
+      $output = para("This page shows how many rating points will be transfered from the losing team to the winning team.");
+
+      $output .= para("The number of rating points transfered depends on several factors:" .
+      		"<br>- the total score" .
+      		"<br>- the difference in score" .
+      		"<br>- and the current rating of both teams");
+
+      $output .= para("How to read the table below:" .
+      		"<br>- The 'home' score is listed along the left." .
+      		"<br>- The 'away' score is listed along the top." .
+      		"<br>- Where the home score row intersects the away score column, the number of rating points that would be transfered is shown." .
+      		"<br>- The 'home' section of the table is highlighted green.");
+
+		$output .= para("A tie will not always mean 0 rating points will be transfered... " .
+				"Based on the difference in rating scores, unless they are very close, one team is expected to win. " .
+				"If that team doesn't win, they can expect to lose rating points. " .
+				"The opposite is also true: if a team is expected to lose, but they tie, they will gain smoe rating points.");
+				
+		$output .= para("Ties are shown from the home team's perspective.  So, a negative value indicates " .
+				"that in the event of a tie, the home team will lose rating points (and the away team will gain them).");
+
+		$home = $game->home_name;
+		$away = $game->away_name;
+		
+		if ($whatifratings) {
+      	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$home_rating</b> ".
+      			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$away_rating</b>");
+		} else {
+      	$output .= para("HOME: <b>$home</b>, current rating of <b>$home_rating</b> ".
+      			"<br>AWAY: <b>$away</b>, current rating of <b>$away_rating</b>");
+		}
+
+		$ratings_table = $game->get_ratings_table( $home_rating, $away_rating, true );
+
+		return $output . $ratings_table ;
+	}
+
 }
 
 ?>

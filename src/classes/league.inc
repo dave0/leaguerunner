@@ -679,9 +679,13 @@
             }
 
             // Now, sort it all
-            if ($this->schedule_type == "ladder" || $this->schedule_type == "pyramid") {
+            if ($this->schedule_type == "ratings_ladder") {
                // Call a function that will handle complete sorting of ladder standings:
                $season = $this->sortLadderRating($season);
+               $sorted_order = &$season;
+            } else if ($this->schedule_type == "ladder" || $this->schedule_type == "pyramid") {
+               // Call a function that will handle complete sorting of ladder standings:
+               $season = $this->sortLadder($season);
                $sorted_order = &$season;
             } else {
                if($current_round) {
@@ -816,7 +820,7 @@
        * 5- GOALS FOR
        * 6- RANDOM (team id)
        **/
-      function standins_sort_rating_ladder (&$a, &$b) {
+      function standings_sort_rating_ladder (&$a, &$b) {
          /* Check Rating */
          if ($a->rating != $b->rating) {
             return ($a->rating > $b->rating) ? -1 : 1;
@@ -862,7 +866,7 @@
          /* Check team id as last resort */
          return ($a->team_id < $b->team_id) ? -1 : 1;
       }
-      
+
       function standings_sort_ladder (&$a, &$b) 
       {
          /* Check Rank */
@@ -1062,6 +1066,38 @@
          return $this->schedule_one_set_pyramid( $teams, $datestamp );
       }
 
+      /*
+      * Create a scheduled set of games for this league
+      */
+      function create_scheduled_set_ratings_ladder( $datestamp ) 
+      {
+         if ( ! $this->load_teams() ) {
+            return(array(false, "Couldn't load team information"));
+         }
+
+         $num_teams = count($this->teams);
+
+         if($num_teams < 2) {
+            # need at least two teams
+            return array(false, "Must have two teams");
+         }
+
+         if($num_teams % 2) {
+            # Need even number
+            return array(false, "Must have even number of teams");
+         }
+
+         $rollback_list = array();
+
+         # sort team's so that pyramid scheme can work properly
+         $teams = array();
+         list($team_ids, $junk, $morejunk) = $this->calculate_standings();
+         foreach($team_ids as $id) {
+            array_push($teams, $this->teams[$id]);
+         }
+
+         return $this->schedule_one_set_ratings_ladder( $teams, $datestamp );
+      }
 
       /*
       * Create a scheduled set of games for this league
@@ -1345,6 +1381,121 @@
          return array(true, $versus_team1, $versus_team2, $gtr);
       }
 
+      /**
+      * This does the actual work of scheduling a one set rattings_ladder set of games.
+      * However it has some problems where it may not properly schedule all
+      * the games.  If it runs into problems then we use the wrapper
+      * function that calls this one to retry it.
+      * If any problems are found then this function rolls back it's changes.
+      */
+      function schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $down)
+      {
+
+			$ratings_spread = 50;
+			
+         $gtr = array();
+         $versus_team1 = array();
+         $versus_team2 = array();
+         $matched_teams = array();
+
+         // create a copy of the teams, split up into rungs of the ladder...
+         if ($down == 1) {
+            $teams = array_reverse($teams);  // go up instead
+         }
+         
+	     	$current_team = array_shift($teams);
+         
+         while($current_team != null) {
+         	
+            // gotta load this team's games to see who they've played recently...
+            $past_games = game_load_many( array( 'either_team' => $current_team->team_id, '_order' => 'g.game_date') );
+            if ($past_games == null)
+            	$past_games = array();
+            // make the most recent game first in the array:
+            $past_games = array_reverse($past_games);
+
+            // now, loop through the past_games array to find the most recent teams
+            $recent_teams = array();
+            foreach ($past_games as $game) {
+               if ($game->home_team != $current_team->team_id) {
+                  $recent_teams[] = $game->home_team;
+               } else {
+                  $recent_teams[] = $game->away_team;
+               }
+               if (count($recent_teams) == $games_before_repeat) {
+                  break; // We don't need or want more than the most recent ones
+               }
+            }
+
+            // this is the local variable for this loop....
+	         $single_gtr = $games_before_repeat;
+	         
+				// now find them an opponent:
+				$opponent = null;
+				$possible_opponents = array();
+
+				$multiplier = 1;
+				while (sizeof($possible_opponents) == 0) {
+	         	foreach ($teams as $team) {
+						if ( in_array($team->team_id, $recent_teams) ) {
+	   	         	continue;
+		         	}
+		         	// if the team's rating is within 50 points, consider this team as a possible opponent
+		         	if ( abs($team->rating - $current_team->rating) < $ratings_spread*$multiplier) {
+		         		array_push($possible_opponents, $team);
+		         	}
+	         	}
+	         	reset($teams);
+	         	// if at this point there are no possible opponents, then you have to relax one of the restrictions:
+	         	// either relax the games before repeat, or relax the within XXX rating points...
+	         	if ( sizeof($possible_opponents) == 0 ) {
+	         		// first thing to try is increase the multiplier:
+	         		if ($multiplier == 1) {
+	         			$multiplier = 2;
+	         		} else {
+	         			// next thing to try is decrease games before repeat:
+	         			$single_gtr--;
+	         			// and put the multiplier back
+	         			$multiplier = 1;
+	         			
+	         			// but, if games before repeat goes negative, you're screwed!
+	         			if ($single_gtr < 0) {
+	         				return false;
+	         			}
+	         		}
+	         	}
+				}
+         	
+         	// now, randomly choose one of the possible opponents
+			   shuffle($possible_opponents);
+			   $opponent = $possible_opponents[0];
+			
+			   // Now that we've got the opponent, they need to be removed
+			   // from their rung so they don't get matched up again.
+			   $matched_teams[] = $opponent->team_id;
+			   $matched_teams[] = $current_team->team_id;
+			   
+            // take the opponent out of the $teams array
+            $tmp_teams = array();
+            foreach($teams as $key=>$thisteam) {
+               if ($thisteam->team_id != $opponent->team_id) {
+                  $tmp_teams[$key] = $thisteam;
+               }
+            }
+            $teams = $tmp_teams;
+
+            // Create the matchup
+            $versus_team1[] = $current_team;
+            $versus_team2[] = $opponent;
+            $gtr[] = $games_before_repeat - $single_gtr;
+            
+            // next team
+          	$current_team = array_shift($teams);
+         }
+
+         return array(true, $versus_team1, $versus_team2, $gtr);
+      }
+
 
       /*
       * versus team 1 and 2 arrays
@@ -1388,6 +1539,47 @@
          return array(true, "");
       }
 
+      /*
+      * versus team 1 and 2 arrays
+      */
+      function schedule_one_set_ratings_ladder_commit ( $vt1, $vt2, $datestamp ) {
+         $rollback_list = array();
+
+         // now, you have the matchups, we can create the games
+         // use random indexes so that field preferences are not given always to top or bottom teams...
+         $random_indexes = array_keys($vt1);
+         shuffle($random_indexes);
+         foreach( $random_indexes as $i ) {
+            $team = $vt1[$i];
+            $opponent = $vt2[$i];
+
+            $g = new Game;
+            $g->set('league_id', $this->league_id);
+            $g->add_teams_balanced( $team, $opponent );
+            if ( ! $g->save() ) {
+               foreach( $rollback_list as $to_rollback ) {
+                  if( ! $to_rollback->delete() ) {
+                     $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+                  }
+               }
+               return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Balanced.$extra_errors");
+            }
+            $rollback_list[] = $g;
+
+            // weighted gameslot will take into account field preferences
+            list($rc, $message) = $g->select_weighted_gameslot($datestamp);
+            if( ! $rc ) {
+               // something failed, so roll back the whole pile of games
+               foreach( $rollback_list as $to_rollback ) {
+                  if( ! $to_rollback->delete() ) {
+                     $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+                  }
+               }
+               return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Gameslot.$extra_errors");
+            }
+         }
+         return array(true, "");
+      }
 
 
       /**
@@ -1498,6 +1690,115 @@
          return $ret;
       }
 
+
+      /**
+      * Schedule one set of games using the ratings_ladder scheme!
+      */
+      function schedule_one_set_ratings_ladder( $teams, $datestamp )
+      {
+         global $headers_sent;
+         $headers_sent= 1;
+         ob_start();
+         $games_before_repeat = $this->games_before_repeat;
+         $min_games_before_repeat = 0;
+         $max_retries = $this->schedule_attempts;
+         $ret = null;
+
+         global $BASE_URL;
+         print "<html>";
+         print "<head>";
+         print "<base href=\"$BASE_URL/\" />";
+         print "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://www.ocua.ca/themes/pushbutton_ocua/style.css\" />";
+         print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$BASE_URL/style.css\" />";
+         print "</head>";
+         print "<body><div id='main'><h1>Processing your request</h1>\n";
+         print "<h2>Scheduling games using the Ratings Ladder scheduler</h2>\n";
+         print "<p><b>Please be patient as this may take a few minutes.  Don't close ";
+         print "your browser or go to a different page until it is finished</b></p>";
+
+         echo "<p>Scheduling...";
+
+         $versus_team1 = array();
+         $versus_team2 = array();
+         $gtr = array();
+
+         for ($j = 0; $j < $max_retries; $j++) {
+            set_time_limit(30); // Give this one call 30 seconds to return
+            $ret = $this->schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $j%2);
+
+            if ($ret[0] == false) {
+               echo ". ";
+               flush();
+               ob_flush();
+               continue;
+            }
+
+            // Keep the best schedule by checking how many times we had to decrement
+            // the games_before_repeat restriction in order to be able to generate
+            // this schedule...
+            if ( count($gtr) == 0  ||  array_sum($gtr) > array_sum($ret[3]) ) {
+               $versus_team1 = $ret[1];
+               $versus_team2 = $ret[2];
+               $gtr = $ret[3];
+               reset($gtr);
+            }
+
+            // if we got the perfect result, we're done... else keep browser alive...
+            if ( array_sum($gtr) == 0 ) {
+               break;
+            } else {
+               echo ". ";
+               flush();
+               ob_flush();
+               continue;
+            }
+         }
+         
+         if ( array_sum($gtr) == 0 ) {
+            echo "Complete!</p>";
+         } else {
+            echo "Complete...</p>";
+         }
+         flush();
+         ob_flush();
+
+         // now, try to actually create the games
+         $ret = $this->schedule_one_set_ratings_ladder_commit( $versus_team1, $versus_team2, $datestamp );
+         if ($ret[0] == false) {
+            return $ret;
+         }
+
+//         if ( ! array_sum($gtr) == 0 ) {
+            print "<div class='schedule'>";
+            print "<table align=center>";
+            print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td><td class='column-heading'>Played each other<br>X games ago...</td></tr>";
+            for ($i = 0; $i < count($gtr); $i++)  {
+               $font = "black";
+               $played = $gtr[$i];
+               if ($played != 0) {
+                  $font = "red";
+                  $played = $games_before_repeat - $gtr[$i] + 1;
+               } else {
+                  $played = "&nbsp;";
+               }
+               print "<tr>";
+               print "<td><font color=$font>" . $versus_team1[$i]->name . "</font></td>";
+               print "<td><font color=$font>" . $versus_team2[$i]->name . "</font></td>";
+               print "<td align=center><font color=$font>" . $played . "</font></td>";
+               print "</tr>\n";
+            }
+            print "</table>\n";
+            print "</div>\n";
+//         }
+
+
+         print "</p><hr></div></body></html>";
+         flush();
+         ob_flush();
+
+         return $ret;
+      }
+
       /**
       * Schedule one set of games, using weighted field assignment
       * TODO: Need to modify this to balance home/away assignment as well.
@@ -1541,8 +1842,10 @@
 
       function sort_league_teams () {
          $this->load_teams();
-         if ($this->schedule_type == 'ladder' || $this->schedule_type == 'pyramid') {
-            uasort($this->teams, array($this, 'standins_sort_rating_ladder'));	
+         if ($this->schedule_type == 'ratings_ladder') {
+            uasort($this->teams, array($this, 'standings_sort_rating_ladder'));	
+         } else if ($this->schedule_type == 'ladder' || $this->schedule_type == 'pyramid') {
+            uasort($this->teams, array($this, 'standings_sort_ladder'));	
          } else {
             uasort($this->teams, array($this, 'standings_sort_bywinloss'));	
          }
@@ -1585,7 +1888,7 @@
       }
 
       function sortLadderRating ( $season ) {
-         uasort($season, array($this, 'standins_sort_rating_ladder'));
+         uasort($season, array($this, 'standings_sort_rating_ladder'));
          return $season;
       }
       

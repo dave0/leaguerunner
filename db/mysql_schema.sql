@@ -113,8 +113,9 @@ CREATE TABLE league (
 	-- roundrobin is standard
 	-- ladder is the 'new' laddering system
 	-- pyramid is the pyramid laddering system
+	-- ratings_ladder is the ratings ladder system (improved pyramid)
 	-- none replaces 'allow_schedule == N'
-	schedule_type	ENUM('none','roundrobin','ladder','pyramid') default 'roundrobin',
+	schedule_type	ENUM('none','roundrobin','ladder','pyramid','ratings_ladder') default 'roundrobin',
 
    -- For Pyramid Ladder's:
    -- how many games before allowed to repeat opponents?

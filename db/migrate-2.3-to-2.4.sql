@@ -78,3 +78,5 @@ CREATE TABLE refund_answers (
 	akey varchar(255) default NULL,
 	PRIMARY KEY  (user_id,registration_id,qkey)
 );
+
+alter table league modify schedule_type ENUM('none','roundrobin','ladder','pyramid','ratings_ladder') default 'roundrobin';
