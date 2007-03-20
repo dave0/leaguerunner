@@ -80,3 +80,4 @@ CREATE TABLE refund_answers (
 );
 
 alter table league modify schedule_type ENUM('none','roundrobin','ladder','pyramid','ratings_ladder') default 'roundrobin';
+alter table person add contact_for_feedback ENUM('Y','N') DEFAULT 'Y' after willing_to_volunteer;

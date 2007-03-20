@@ -359,6 +359,13 @@ class PersonView extends Handler
 			$rows[] = array('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?',($person->willing_to_volunteer == 'Y') ? 'yes' : 'no');
 		}
 
+		if($lr_session->has_permission('person','view',$person->user_id, 'contact_for_feedback')) {
+			$rows[] = array('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+					' would like to contact members with information on our programs and to solicit feedback. ' .
+					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ',
+					($person->contact_for_feedback == 'Y') ? 'yes' : 'no');
+		}
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'last_login')) {
 			if($person->last_login) {
 				$rows[] = array('Last Login:', 
@@ -819,6 +826,13 @@ END_TEXT;
 			'Y' => 'Yes',
 			'N' => 'No'));
 
+		$group .= form_radiogroup('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+					' would like to contact members with information on our programs and to solicit feedback. ' .
+					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ', 
+					'edit[contact_for_feedback]', $formData['contact_for_feedback'], 
+					array('Y' => 'Yes',
+							'N' => 'No'));
+
 		$output .= form_group('Player and Skill Information', $group);
 		
 		$this->setLocation(array(
@@ -929,7 +943,12 @@ END_TEXT;
 		}
 		
 		$group .= form_item('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?', form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
-		
+
+		$group .= form_item('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+					' would like to contact members with information on our programs and to solicit feedback. ' .
+					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ', 
+					form_hidden('edit[contact_for_feedback]',$edit['contact_for_feedback']) . $edit['contact_for_feedback']);
+							
 		$output .= form_group('Player and Skill Information', $group);
 			
 		$output .= para(form_submit('submit') . form_reset('reset'));
@@ -1026,6 +1045,7 @@ END_TEXT;
 		}
 
 		$person->set('willing_to_volunteer', $edit['willing_to_volunteer']);
+		$person->set('contact_for_feedback', $edit['contact_for_feedback']);
 	
 		if( ! $person->save() ) {
 			error_exit("Internal error: couldn't save changes");

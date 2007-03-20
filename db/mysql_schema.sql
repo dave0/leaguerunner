@@ -57,6 +57,8 @@ CREATE TABLE person (
 
 	willing_to_volunteer  ENUM("Y","N") DEFAULT 'N',
 
+	contact_for_feedback  ENUM("Y","N") DEFAULT 'Y',
+
 	last_login datetime,
 	client_ip      varchar(50),
 	INDEX person_ward (ward_id)
