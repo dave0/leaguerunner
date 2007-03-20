@@ -116,7 +116,7 @@ function theme_footer()
 <!-- start footer -->
 <p />
 <hr noshade />
-<i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner, version 2.3</a></i>
+<i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner</a>, version 2.3</i>
 </body>
 </html>
 <!-- end footer -->
