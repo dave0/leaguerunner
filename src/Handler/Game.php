@@ -1803,23 +1803,20 @@ class GameRatings extends Handler
 			$whatifratings = false;
 		}
 		
-      $output = para("This page shows how many rating points will be transfered from the losing team to the winning team.");
-
-      $output .= para("The number of rating points transfered depends on several factors:" .
+      $output = para("The number of rating points transferred depends on several factors:" .
       		"<br>- the total score" .
       		"<br>- the difference in score" .
       		"<br>- and the current rating of both teams");
 
       $output .= para("How to read the table below:" .
-      		"<br>- The 'home' score is listed along the left." .
-      		"<br>- The 'away' score is listed along the top." .
-      		"<br>- Where the home score row intersects the away score column, the number of rating points that would be transfered is shown." .
-      		"<br>- The 'home' section of the table is highlighted green.");
+      		"<br>- Find the 'home' team's score along the left." .
+      		"<br>- Find the 'away' team's score along the top." .
+      		"<br>- The points shown in the table where these two scores intersect are the number of rating points that will be transfered from the winning team to the losing team.");
 
-		$output .= para("A tie will not always mean 0 rating points will be transfered... " .
-				"Based on the difference in rating scores, unless they are very close, one team is expected to win. " .
-				"If that team doesn't win, they can expect to lose rating points. " .
-				"The opposite is also true: if a team is expected to lose, but they tie, they will gain smoe rating points.");
+		$output .= para("A tie does not necessarily mean 0 rating points will be transfered... " .
+				"Unless the two team's rating scores are very close, one team is expected to win. " .
+				"If that team doesn't win, they will lose rating points. " .
+				"The opposite is also true: if a team is expected to lose, but they tie, they will gain some rating points.");
 				
 		$output .= para("Ties are shown from the home team's perspective.  So, a negative value indicates " .
 				"that in the event of a tie, the home team will lose rating points (and the away team will gain them).");
