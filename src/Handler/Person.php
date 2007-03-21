@@ -252,7 +252,7 @@ class PersonView extends Handler
 	{	
 		$this->title = 'View';
 		$this->setLocation(array(
-			$this->person->fullname => "person/view/$id",
+			$this->person->fullname => 'person/view/' . $this->person->user_id,
 			$this->title => 0));
 
 		return $this->generateView($this->person);
@@ -402,8 +402,10 @@ class PersonView extends Handler
 			$rows[] = array("Leagues:", table( null, $leagues) );
 		}
 		
+		if( variable_get('registration', 0) ) {
 		if($lr_session->has_permission('registration','history',$person->user_id)) {
 			$rows[] = array("Registration:", l('View history', "registration/history/$person->user_id"));
+		}
 		}
 
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
@@ -425,7 +427,7 @@ class PersonDelete extends PersonView
 			error_exit("That user does not exist");
 		}
 
-		return $lr_session->has_permission('person','delete', $id);
+		return $lr_session->has_permission('person','delete', $this->person->user_id);
 	}
 
 
@@ -474,7 +476,7 @@ class PersonApproveNewAccount extends PersonView
 			error_exit("That user does not exist");
 		}
 
-		return $lr_session->has_permission('person','approve', $id);
+		return $lr_session->has_permission('person','approve', $this->person->user_id);
 	}
 
 	function process ()
@@ -964,12 +966,12 @@ END_TEXT;
 	{
 		global $lr_session;
 	
-		$dataInvalid = $this->isDataInvalid( $person->id, $edit );
+		$dataInvalid = $this->isDataInvalid( $person->user_id, $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		
-		if($edit['username'] && $lr_session->has_permission('person', 'edit', $id, 'username') ) {
+		if($edit['username'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'username') ) {
 			$person->set('username', $edit['username']);
 		}
 		
@@ -987,11 +989,11 @@ END_TEXT;
 			$status_changed = true;
 		}
 
-		if($edit['class'] && $lr_session->has_permission('person', 'edit', $id, 'class') ) {
+		if($edit['class'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'class') ) {
 			$person->set('class', $edit['class']);
 		}
 		
-		if($edit['status'] && $lr_session->has_permission('person', 'edit', $id, 'status') ) {
+		if($edit['status'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'status') ) {
 			$person->set('status',$edit['status']);
 		}
 	
@@ -1009,7 +1011,7 @@ END_TEXT;
 			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
 		}
 		
-		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
+		if($lr_session->has_permission('person', 'edit', $this->person->user_id, 'name') ) {
 			$person->set('firstname', $edit['firstname']);
 			$person->set('lastname', $edit['lastname']);
 		}
@@ -1305,7 +1307,7 @@ class PersonActivate extends PersonEdit
 				break;
 			default:
 				$edit = object2array($this->person);
-				$rc = $this->generateForm( $id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
+				$rc = $this->generateForm( $this->person->user_id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
 		return $rc;
