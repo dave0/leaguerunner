@@ -959,7 +959,21 @@ class GameEdit extends Handler
 				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_status");
 			}
 			
-			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
+			if ($game->home_score == $game->away_score && $game->rating_points == 0){
+				$score_group .= form_item("Rating Points", "No points were transferred between teams");
+			}			
+			else {
+				if ($game->home_score > $game->away_score) {
+					$winner = l($game->home_name,"team/view/$game->home_id");
+					$looser = l($game->away_name,"team/view/$game->away_id");
+				}
+				elseif ($game->home_score < $game->away_score) {
+					$winner = l($game->away_name,"team/view/$game->away_id");
+					$looser = l($game->home_name,"team/view/$game->home_id");
+					
+				}
+				$score_group .= form_item("Rating Points", $game->rating_points , $winner." gain " .$game->rating_points. " points and " .$looser. " lose " .$game->rating_points. " points");
+			}
 		
 			switch($game->approved_by) {
 				case APPROVAL_AUTOMATIC:
