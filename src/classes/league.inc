@@ -1436,10 +1436,11 @@
 
 				$multiplier = 1;
 				while (sizeof($possible_opponents) == 0) {
-	         	foreach ($teams as $team) {
+					foreach ($teams as $team) {
+						// if the team is in the list of recent teams, it cannot be a possible opponent
 						if ( in_array($team->team_id, $recent_teams) ) {
-	   	         	continue;
-		         	}
+							continue;
+						}
 		         	// if the team's rating is within 50 points, consider this team as a possible opponent
 		         	if ( abs($team->rating - $current_team->rating) < $ratings_spread*$multiplier) {
 		         		array_push($possible_opponents, $team);
@@ -1452,12 +1453,17 @@
 	         		// first thing to try is increase the multiplier:
 	         		if ($multiplier == 1) {
 	         			$multiplier = 2;
+	         		} else if ($multiplier == 2) {
+	         			$multiplier = 3;
 	         		} else {
 	         			// next thing to try is decrease games before repeat:
 	         			$single_gtr--;
 	         			// and put the multiplier back
 	         			$multiplier = 1;
-	         			
+
+						// and now, drop the last element of the $recent_teams array, since it's size should match the games before repeat
+						array_pop($recent_teams);
+							         			
 	         			// but, if games before repeat goes negative, you're screwed!
 	         			if ($single_gtr < 0) {
 	         				return false;
