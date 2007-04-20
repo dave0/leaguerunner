@@ -423,7 +423,7 @@ class GameCreate extends Handler
 		
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
-		$output .= form_submit('Create Games');
+		$output .= form_submit('Create Games', 'submit', 'onclick="this.disabled=1; this.form.submit();"');
 		return form($output);
 	}
 	
