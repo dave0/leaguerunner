@@ -149,7 +149,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
 	}
 	if($lr_session->has_permission('league','edit', $league->league_id) ) {
-      if ( $league->schedule_type == "pyramid" ) { //&& $lr_session->is_admin() ) {
+      if ( $league->schedule_type == "pyramid" || $league->schedule_type == "ratings_ladder" ) {
          menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
       }
    }
@@ -1418,11 +1418,7 @@ class LeagueStatusReport extends Handler
          $fields[$field->code] = $field->region;
       }
 
-      //print_r($fields);
-      //print "<br><br>";
-
-         //print_r($season);
-      $output = para("This is a general scheduling status report for pyramid ladder leagues.");
+      $output = para("This is a general scheduling status report for pyramid and rating ladder leagues.");
 
       $header[] = array('data' => "Rank", 'rowspan' => 2);
       $header[] = array('data' => "Team", 'rowspan' => 2);
