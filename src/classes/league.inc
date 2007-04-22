@@ -1391,7 +1391,7 @@
       function schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $down)
       {
 
-			$ratings_spread = 50;
+		$ratings_spread = 50;
 			
          $gtr = array();
          $versus_team1 = array();
@@ -1403,7 +1403,7 @@
             $teams = array_reverse($teams);  // go up instead
          }
          
-	     	$current_team = array_shift($teams);
+	     $current_team = array_shift($teams);
          
          while($current_team != null) {
          	
@@ -1430,30 +1430,41 @@
             // this is the local variable for this loop....
 	         $single_gtr = $games_before_repeat;
 	         
-				// now find them an opponent:
-				$opponent = null;
-				$possible_opponents = array();
+			// now find them an opponent:
+			$opponent = null;
+			$possible_opponents = array();
 
-				$multiplier = 1;
-				while (sizeof($possible_opponents) == 0) {
-					foreach ($teams as $team) {
-						// if the team is in the list of recent teams, it cannot be a possible opponent
-						if ( in_array($team->team_id, $recent_teams) ) {
-							continue;
+			$recent_teams_backup = $recent_teams;
+			$multiplier = 1;
+			$use_ratings_closeness = true;
+			while (sizeof($possible_opponents) == 0) {
+				foreach ($teams as $team) {
+					// if the team is in the list of recent teams, it cannot be a possible opponent
+					if ( in_array($team->team_id, $recent_teams) ) {
+						continue;
+					}
+					if ($use_ratings_closeness) {
+						// if the team's rating is within 50 points * the multiplier, consider this team as a possible opponent
+						if ( abs($team->rating - $current_team->rating) < $ratings_spread*$multiplier) {
+							array_push($possible_opponents, $team);
 						}
-		         	// if the team's rating is within 50 points, consider this team as a possible opponent
-		         	if ( abs($team->rating - $current_team->rating) < $ratings_spread*$multiplier) {
-		         		array_push($possible_opponents, $team);
-		         	}
-	         	}
+					} else {
+						// only put 3 possible opponents when in this mode...
+						if ( count($possible_opponents) < 3 ) {
+							array_push($possible_opponents, $team);
+						} else {
+							break;
+						}
+					}
+				}
 	         	reset($teams);
 	         	// if at this point there are no possible opponents, then you have to relax one of the restrictions:
 	         	// either relax the games before repeat, or relax the within XXX rating points...
 	         	if ( sizeof($possible_opponents) == 0 ) {
 	         		// first thing to try is increase the multiplier:
-	         		if ($multiplier == 1) {
+	         		if ($use_ratings_closeness && $multiplier == 1) {
 	         			$multiplier = 2;
-	         		} else if ($multiplier == 2) {
+	         		} else if ($use_ratings_closeness && $multiplier == 2) {
 	         			$multiplier = 3;
 	         		} else {
 	         			// next thing to try is decrease games before repeat:
@@ -1466,11 +1477,20 @@
 							         			
 	         			// but, if games before repeat goes negative, you're screwed!
 	         			if ($single_gtr < 0) {
-	         				return false;
+	         				// turn off the closeness of ratings restriction and start again, since it's likely that that is
+	         				// the restriction that is causing us not to find a match
+	         				if ($use_ratings_closeness) {
+	         					$use_ratings_closeness = false;
+	         					$recent_teams = $recent_teams_backup;
+	         					$single_gtr = $games_before_repeat;
+	         				} else {
+	         					print "<br><b>FAILURE: scheduler cannot find valid opponents for " . $current_team->team_id . "</b></br>";
+	         					return false;
+	         				}
 	         			}
 	         		}
-	         	}
-				}
+	         	} // end if sizeof possible opponents
+			}
          	
          	// now, randomly choose one of the possible opponents
 			   shuffle($possible_opponents);
