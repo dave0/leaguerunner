@@ -1362,38 +1362,6 @@ class LeagueStatusReport extends Handler
 		return $lr_session->has_permission('league','edit', $this->league->league_id);
 	}
 
-   function generateForm ( $data = '' ) 
-   {
-      $output = para("Use the links below to adjust a team's rank for 'better' or for 'worse'.  Alternatively, you can enter a new rank into the box beside each team then click 'Rank' below.  Multiple teams can (and likely should) have the same ranks");
-      $output .= para("For the ranking values, a <b/>LOWER</b/> numbered ranking is <b/>BETTER</b/>, and a <b/>HIGHER</b/> numbered ranking is <b/>WORSE</b/>. (ie: team ranked '1' is better than team ranked '2')");
-      $output .= para("<b/>WARNING: </b/> Adjusting rankings while the league is already under way is possible, but you'd better know what you are doing!!!");
-
-      $header = array( "Rank", "Team Name", "Players", "Rating", "Avg.<br/>Skill", "New Rank",);
-		$rows = array();
-
-		$this->league->load_teams();
-      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
-		foreach($season as $team) {
-
-			$row = array();
-			$row[] = $team->rank;
-			$row[] = check_form($team->name);
-			$row[] = $team->count_players();
-			$row[] = $team->rating;
-			$row[] = $team->avg_skill();
-         $row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> better </a> " . 
-            "<input type='text' size='3' name='edit[$team->team_id]' value='$team->rank' />" .
-            "<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++; return false'> worse</a></font>";
-
-			$rows[] = $row;
-      }
-		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
-		$output .= form_hidden("edit[step]", 'perform');
-      $output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ranks' /></div>";
-
-      return form($output);
-   }
-   
 	function process ()
 	{
 		$this->title = "League Status Report";
@@ -1420,7 +1388,7 @@ class LeagueStatusReport extends Handler
 
       $output = para("This is a general scheduling status report for pyramid and rating ladder leagues.");
 
-      $header[] = array('data' => "Rank", 'rowspan' => 2);
+      $header[] = array('data' => "Rating", 'rowspan' => 2);
       $header[] = array('data' => "Team", 'rowspan' => 2);
       $header[] = array('data' => "Games", 'rowspan' => 2);
       $header[] = array('data' => "Home/Away", 'rowspan' => 2);
@@ -1452,7 +1420,7 @@ class LeagueStatusReport extends Handler
          } else {
             $rowstyle = "standings_light";
          }
-         $row = array( array('data'=>$season[$tid]->rank, 'class'=>"$rowstyle") );
+         $row = array( array('data'=>$season[$tid]->rating, 'class'=>"$rowstyle") );
          $row[] = array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
 
          // count number of games for this team:
@@ -1502,13 +1470,13 @@ class LeagueStatusReport extends Handler
          if ($season[$tid]->region_preference != "---" && $season[$tid]->region_preference != "") {
             $pref = $season[$tid]->region_preference;
             if ($pref == "Central") {
-               $regionCentral = "<b><font color='red'>$regionCentral</font></b>";
+               $regionCentral = "<b><font color='blue'>$regionCentral</font></b>";
             } else if ($pref == "East") {
-               $regionEast = "<b><font color='red'>$regionEast</font></b>";
+               $regionEast = "<b><font color='blue'>$regionEast</font></b>";
             } else if ($pref == "South") {
-               $regionSouth = "<b><font color='red'>$regionSouth</font></b>";
+               $regionSouth = "<b><font color='blue'>$regionSouth</font></b>";
             } else if ($pref == "West") {
-               $regionWest = "<b><font color='red'>$regionWest</font></b>";
+               $regionWest = "<b><font color='blue'>$regionWest</font></b>";
             }
          }
          $row[] = array('data'=>"$regionCentral", 'class'=>"$rowstyle");
