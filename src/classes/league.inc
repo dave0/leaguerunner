@@ -1549,7 +1549,8 @@
       * versus team 1 and 2 arrays
       */
       function schedule_one_set_ratings_ladder_commit ( $vt1, $vt2, $datestamp ) {
-         $rollback_list = array();
+         $games_list = array();
+         $teams_list = array();
 
          // now, you have the matchups, we can create the games
          // use random indexes so that field preferences are not given always to top or bottom teams...
@@ -1559,31 +1560,34 @@
             $team = $vt1[$i];
             $opponent = $vt2[$i];
 
+			$teams_list[] = $team;
+			$teams_list[] = $opponent;
+			
             $g = new Game;
             $g->set('league_id', $this->league_id);
             $g->add_teams_balanced( $team, $opponent );
             if ( ! $g->save() ) {
-               foreach( $rollback_list as $to_rollback ) {
+               foreach( $games_list as $to_rollback ) {
                   if( ! $to_rollback->delete() ) {
                      $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
                   }
                }
                return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Balanced.$extra_errors");
             }
-            $rollback_list[] = $g;
+            $games_list[] = $g;
 
-            // weighted gameslot will take into account field preferences
-            list($rc, $message) = $g->select_weighted_gameslot($datestamp);
-            if( ! $rc ) {
-               // something failed, so roll back the whole pile of games
-               foreach( $rollback_list as $to_rollback ) {
-                  if( ! $to_rollback->delete() ) {
-                     $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-                  }
-               }
-               return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Gameslot.$extra_errors");
-            }
          }
+         
+		list($success, $rc, $message) = assign_fields_by_preferences($games_list, $teams_list, $datestamp);
+		
+		if (!$success) {
+           foreach( $games_list as $to_rollback ) {
+              if( ! $to_rollback->delete() ) {
+                 $extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+              }
+           }
+           return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Gameslot.$extra_errors");
+		}
          return array(true, "");
       }
 

@@ -1133,7 +1133,7 @@ class Game extends LeaguerunnerObject
 	
 	/**
 	 * Select an appropriate gameslot for this game.  "appropriate" takes
-	 * field quality and field preferences into account.
+	 * field quality, home field designation, and field preferences into account.
 	 * TODO: FIXME: currently, no field quality are checked!
 	 * Gameslot is to be selected from those available for the league in which
 	 * this game exists.  
@@ -1175,10 +1175,21 @@ class Game extends LeaguerunnerObject
 		}
       $seed = rand();
 
-      // try to adhere to the home team's field preference
-      $result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
-		$slot_id = db_result($result);
+		// try to adhere to the home team's HOME FIELD DESIGNATION
+		$t = new Team();
+		$t->load( array('team_id' => $this->home_team) );
+		if ($t->home_field) {
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.home_field = f.fid ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
+			$slot_id = db_result($result);
+			print "FOUND RESULT: " . $slot_id . "<br>";
+		}
 
+      // if no home field, try to adhere to the home team's field preference
+		if( ! $slot_id ) {
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
+			$slot_id = db_result($result);
+		}
+		
       // if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
          $result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
@@ -1359,6 +1370,145 @@ function game_load_many( $array = array() )
 	}
 
 	return $games;
+}
+
+/**
+ * This function takes into account HOME FIELD DESIGNATION, 
+ * then HOME REGION PREFERENCE,
+ * then AWAY REGION PREFERENCE,
+ * then THE REST.
+ * 
+ * It uses the select_weighted_gameslot function, which first looks at home field
+ * designation, then at field region preferences.  But, in order to ensure that 
+ * teams with home field designations get their choice, we need to schedule those
+ * games first.  Next, schedule the games in which the home team has a field 
+ * region preference.  Then, do the games where the away team has a field region
+ * preference.  Finally, do the rest of the games.
+ * 
+ * The assumption is that the GAMES array that is passed in is already in random order.
+ * 
+ * This function returns an array where the first element is true/false for SUCCESS/FAILURE, 
+ * and the in case of failure the remaining elements of the array are information about error.
+ * 
+ */
+function assign_fields_by_preferences( $games, $teams, $datestamp ) {
+	$temp_games = array();
+	$team = null;
+	$game = null;
+
+	// FIRST PASS: all home teams with HOME FIELD DESIGNATION need to get their games scheduled first...
+	// loop through the games, find the home team and see if they have a home field set... if yes, schedule it...
+	while(count($games) > 0) {
+		// get the game to look at
+		$game = array_pop($games);
+		// prepare a boolean to say whether or not the game was scheduled
+		$scheduled = false;
+		// loop through the teams
+		foreach ($teams as $team) {
+			// if the team is the home team for this game
+			if ($team->team_id == $game->home_team) {
+				// does this team have a home field?
+				if ($team->home_field != '') {
+					// this game needs to be scheduled before others!
+					// let the 'select_weighted_gameslot' function do the work
+					list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+					$scheduled = true;
+					// look for errors:
+					if( ! $rc ) {
+						return array(false, $rc, $message);
+					}
+				}
+				// found the home team, so break out of the loop
+				break;
+			} // end if
+		} // end foreach
+		
+		// if we haven't already scheduled the game, save it for later...
+		if (!$scheduled) {
+			$temp_games[] = $game;
+		}
+	} // end while
+
+	// re-fill the games array
+	$games = $temp_games;
+	// clear the temp_games array
+	$temp_games = array();
+	
+	// SECOND PASS: all games that remain in which the HOME team has a field REGION PREFERENCE should 
+	// now be scheduled...
+	while(count($games) > 0) {
+		// get the game to look at
+		$game = array_pop($games);
+		// prepare a boolean to say whether or not the game was scheduled
+		$scheduled = false;
+		// loop through the teams
+		foreach ($teams as $team) {
+			// if the team is the home team for this game
+			if ($team->team_id == $game->home_team) {
+				// does this team have a field region preference?
+				if ($team->region_preference != '---') {
+					// this game needs to be scheduled next
+					// let the 'select_weighted_gameslot' function do the work
+					list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+					$scheduled = true;
+					// look for errors:
+					if( ! $rc ) {
+						return array(false, $rc, $message);
+					}
+				}
+				// found the home team, so break out of the loop
+				break;
+			} // end if
+		} // end foreach
+		
+		// if we haven't already scheduled the game, save it for later...
+		if (!$scheduled) {
+			$temp_games[] = $game;
+		}
+	} // end while
+
+	// THIRD PASS: all games that remain in which the AWAY team has a field REGION PREFERENCE should 
+	// now be scheduled...
+	while(count($games) > 0) {
+		// get the game to look at
+		$game = array_pop($games);
+		// prepare a boolean to say whether or not the game was scheduled
+		$scheduled = false;
+		// loop through the teams
+		foreach ($teams as $team) {
+			// if the team is the away team for this game
+			if ($team->team_id == $game->away_team) {
+				// does this team have a field region preference?
+				if ($team->region_preference != '') {
+					// this game needs to be scheduled next
+					// let the 'select_weighted_gameslot' function do the work
+					list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+					$scheduled = true;
+					// look for errors:
+					if( ! $rc ) {
+						return array(false, $rc, $message);
+					}
+				}
+				// found the home team, so break out of the loop
+				break;
+			} // end if
+		} // end foreach
+		
+		// if we haven't already scheduled the game, save it for later...
+		if (!$scheduled) {
+			$temp_games[] = $game;
+		}
+	} // end while
+
+	// FINAL PASS: just schedule THE REST of the games
+	foreach ($temp_games as $g) {
+		list($rc, $message) = $g->select_weighted_gameslot($datestamp);
+		if( ! $rc ) {
+			return array(false, $rc, $message);
+		}
+	}
+	
+	return array(true, "");
 }
 
 ?>
