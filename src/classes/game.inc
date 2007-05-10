@@ -320,17 +320,23 @@ class Game extends LeaguerunnerObject
 						$this->set('status', 'home_default');
 						$this->save_spirit_entry( $this->away_id, $this->default_spirit('winner'));
 						$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
+						$this->set('home_spirit', 4);
+						$this->set('away_spirit', 10);
 						break;
 					case 'them':
 						$this->set('status', 'away_default');
 						$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
 						$this->save_spirit_entry( $this->home_id, $this->default_spirit('winner'));
+						$this->set('home_spirit', 10);
+						$this->set('away_spirit', 4);
 						break;
 					case 'no':
 					default:
 						// No default.  Just finalize score.
 						$this->set('home_score', $home_entry->score_for);
 						$this->set('away_score', $home_entry->score_against);
+						$this->set('home_spirit', $away_entry->spirit);
+						$this->set('away_spirit', $home_entry->spirit);
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
 			} else {
@@ -342,14 +348,20 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					$this->set('status', 'home_default');
 			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					$this->set('home_spirit', 4); // home is penalized in SOTG because they defaulted
+					$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
 					break;
 				case 'them':
 					$this->set('status', 'away_default');
 			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+					$this->set('home_spirit', 10);
+					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
 				default:
                $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
-         }
+				$this->set('home_spirit', 10);
+				$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
+         	}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
@@ -358,13 +370,19 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					$this->set('status', 'away_default');
 			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
+					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
 				case 'them':
 					$this->set('status', 'home_default');
 			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					$this->set('home_spirit', 4); // home is penalized in SOTG because they didn't report the score
+					$this->set('away_spirit', 10);
 					break;
 				default:
                $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
+					$this->set('away_spirit', 10);
          }
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
@@ -743,12 +761,13 @@ class Game extends LeaguerunnerObject
 	 * Save a score entry for a given team
 	 * This writes directly to the database
 	 */
-	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted )
+	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted, $spirit )
 	{
 		$entry->team_id = $team_id;
 		$entry->entry_id = $this->entry_id;
 		$entry->entered_by = $user_id;
 		$entry->defaulted = $defaulted;
+		$entry->spirit = $spirit;
 
 		switch ($defaulted) {
 			case 'us':
@@ -771,12 +790,13 @@ class Game extends LeaguerunnerObject
 
 		// Save entry object in DB.  Use 'replace into' to handle the case
 		// where one might already exist.
-		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted,entry_time) VALUES(%d,%d,%d,%d,%d,'%s',NOW())",
+		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,spirit,defaulted,entry_time) VALUES(%d,%d,%d,%d,%d,%d,'%s',NOW())",
 			$this->game_id,
 			$entry->team_id,
 			$entry->entered_by,
 			$entry->score_for,
 			$entry->score_against,
+			$entry->spirit,
 			$entry->defaulted);
 			
 	    if( 1 != db_affected_rows() ) {
@@ -866,10 +886,14 @@ class Game extends LeaguerunnerObject
 	 * Return values to be used for winner/loser of a default
 	 * game.
 	 */
-	function default_spirit ( $type )
+	function default_spirit ( $type , $numeric = false)
 	{
 		switch( $type ) {
 			case 'penalized_winner':
+				// 7
+				if ($numeric) {
+					return 7;
+				}
 				return array(
 					'Timeliness' => 'OnTime',
 					'RulesKnowledge' => 'AcceptableRules',
@@ -880,6 +904,10 @@ class Game extends LeaguerunnerObject
 				);
 				break;
 			case 'loser':
+				// 4
+				if ($numeric) {
+					return 4;
+				}
 				return array(
 					'Timeliness' => 'MoreThanFive',
 					'RulesKnowledge' => 'AcceptableRules',
@@ -891,6 +919,10 @@ class Game extends LeaguerunnerObject
 				break;
 			case 'winner':
 			case 'perfect':
+				// 10
+				if ($numeric) {
+					return 10;
+				}
 				return array(
 					'Timeliness' => 'OnTime',
 					'RulesKnowledge' => 'ExcellentRules',
@@ -1181,7 +1213,6 @@ class Game extends LeaguerunnerObject
 		if ($t->home_field) {
 			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.home_field = f.fid ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
 			$slot_id = db_result($result);
-			print "FOUND RESULT: " . $slot_id . "<br>";
 		}
 
       // if no home field, try to adhere to the home team's field preference
@@ -1509,6 +1540,37 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 	}
 	
 	return array(true, "");
+}
+
+/**
+ * Generates the javascript, input textarea, and button for the SOTG suggestion
+ * box.
+ */
+function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
+	$use = "";
+	if ($name != null && $name != "") {
+		$use = "_" . $name;
+	}
+	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
+	$sotgjs .= "var sotg=10;\n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[GameOverall]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[GameOverall]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "return sotg;\n";
+	$sotgjs .= "}\n";
+	$sotgjs .= "</script>\n";
+	
+    return para( $sotgjs . "<div class=\"form-item\"><label>$label</label>" . 
+    	"<br> <input type=\"text\" maxlength=\"2\" class=\"form-text\" name=\"edit[sotg$use]\" size=\"2\" value=\"$default\" /> ".
+		" <input type='button' name='suggest' value='Suggest' " .
+		" onclick=\"document.forms[0].elements['edit[sotg$use]'].value=sotg$use();\"></div>");
 }
 
 ?>

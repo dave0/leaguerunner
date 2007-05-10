@@ -355,16 +355,9 @@ class LeagueEdit extends Handler
 		$rows[] = array(" Pyramid/Ratings - Games Before Repeat:",
 			form_select("", "edit[games_before_repeat]", $formData['games_before_repeat'], getOptionsFromRange(0,9), "The number of games before two teams can be scheduled to play each other again (FOR PYRAMID/RATINGS LADDER SCHEDULING ONLY)."));
 
-         /*
-		$rows[] = array(" Pyramid - Scheduling Attempts:",
-			form_select("", "edit[schedule_attempts]", $formData['schedule_attempts'], getOptionsFromRange(100,100), "The number of attempts to make at scheduling a set of pyramid games while enforcing the Games Before Repeat restriction. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
-         */
-
-         /*
-		$rows[] = array(" Pyramid - Relax Repeat Restriction:",
-			form_select("", "edit[relax_repeat]", $formData['relax_repeat'], getOptionsFromEnum('league','relax_repeat'), "If true, the Games Before Repeat restriction will be relaxed when the number of scheduling attempts is reached. (FOR PYRAMID LADDER SCHEDULING ONLY)."));
-         */
-
+		$rows[] = array("Players see SOTG?:", 
+			form_select("", "edit[see_sotg]", $formData['see_sotg'], getOptionsFromEnum('league','see_sotg'), "Allows players to see SOTG answers assigned by their opponents to their teams."));
+			
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
@@ -413,17 +406,10 @@ class LeagueEdit extends Handler
       if ($edit['schedule_type'] == 'pyramid' || $edit['schedule_type'] == 'ratings_ladder') {
 		   $rows[] = array("Pyramid/Ratings - Games Before Repeat:",
 			   form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
-
-            /*
-		   $rows[] = array("Pyramid - Scheduling Attempts:",
-			   form_hidden('edit[schedule_attempts]', $edit['schedule_attempts']) . $edit['schedule_attempts']);
-            */
-
-            /*
-		   $rows[] = array("Pyramid - Relax Repeat Restriction:",
-			   form_hidden('edit[relax_repeat]', $edit['relax_repeat']) . $edit['relax_repeat']);
-            */
       }
+
+		$rows[] = array("Players see SOTG?:", 
+			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
@@ -449,10 +435,10 @@ class LeagueEdit extends Handler
 
       if ($edit['schedule_type'] == 'pyramid') {
 		   $this->league->set('games_before_repeat', $edit['games_before_repeat']);
-		   //$this->league->set('schedule_attempts', $edit['schedule_attempts']);
-		   //$this->league->set('relax_repeat', $edit['relax_repeat']);
       }
 
+		$this->league->set('see_sotg', $edit['see_sotg']);
+		
 		if( !$this->league->save() ) {
 			error_exit("Internal error: couldn't save changes");
 		}
@@ -479,11 +465,6 @@ class LeagueEdit extends Handler
             if ($edit['games_before_repeat'] == null || $edit['games_before_repeat'] == 0) {
                $errors .= "<li>Invalid 'Games Before Repeat' specified!";
             }
-            /*
-            if ($edit['schedule_attempts'] == null || $edit['schedule_attempts'] == 0) {
-               $errors .= "<li>Invalid 'Schedule Attempts' specified!";
-            }
-            */
             break;
 			default:
 				$errors .= "<li>Values for allow schedule are none, roundrobin, ladder, and pyramid";
@@ -758,11 +739,7 @@ class LeagueStandings extends Handler
 	
 			// initialize the sotg to dashes!
 			$sotg = "---";
-//			if($season[$tid]->games < 3 && !($lr_session->has_permission('league','view',$this->league->league_id, 'spirit'))) {
-//				 $sotg = "---";
-//			} else if ($season[$tid]->games_with_sotg > 0) {
-				$sotg = sprintf("%.2f", ($season[$tid]->spirit / $season[$tid]->games_with_sotg));
-//			}
+			$sotg = sprintf("%.2f", calculateAverageSOTG($season[$tid]->spirit, true));
          $row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
@@ -1267,12 +1244,22 @@ class LeagueSpirit extends Handler
 
 		$question_sums = array();
 		$num_games = 0;
+		$sotg_scores = array();
 
 		while(list(,$game) = each($games)) {
 		
 			$teams = array( $game->home_team => $game->home_name, $game->away_team => $game->away_name);
+			$counter = 0;
 			while( list($giver,$giver_name) = each ($teams)) {
 
+				$spirit = 10;
+				// home first
+				if ($counter == 0) {
+					$spirit = $game->home_spirit;
+				} else {
+					$spirit = $game->away_spirit;
+				}
+				
 				$recipient = $game->get_opponent_id ($giver);
 				$recipient_name = $teams[$recipient];
 			
@@ -1292,10 +1279,19 @@ class LeagueSpirit extends Handler
 				if( !$num_games ) {
 					$header[] = "Score";
 				}
-				$numeric = $game->get_spirit_numeric( $recipient );
-				$thisrow[] = sprintf("%.2f",$numeric);
-				$score_total += $numeric;
 
+				// get_spirit_numeric looks at the SOTG answers to determine the score
+				$numeric = $game->get_spirit_numeric( $recipient );
+				// but, now we want to use the home/away assigned spirit...
+				// so, see if there is a value in $spirit, otherwise, use $numeric:
+				if ($spirit == null || $spirit == "") {
+					$spirit = $numeric;
+				}
+				
+				$thisrow[] = sprintf("%.2f",$spirit);
+				$score_total += $spirit;
+				$sotg_scores[] = $spirit;
+				
 				while( list($qkey,$answer) = each($entry) ) {
 
 					if( !$num_games ) {
@@ -1324,6 +1320,7 @@ class LeagueSpirit extends Handler
 				$num_games++;
 
 				$rows[] = $thisrow;
+				$counter++;
 			}
 		}
 
@@ -1335,7 +1332,9 @@ class LeagueSpirit extends Handler
 			"Tier Avg","-","-"
 		);
 
-		$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+		//$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+		// for the league, use the average SOTG scores without dropping the highest and lowest
+		$thisrow[] = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
 
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {

@@ -423,7 +423,9 @@ class GameCreate extends Handler
 		
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
-		$output .= form_submit('Create Games', 'submit', 'onclick="this.disabled=1; this.form.submit();"');
+		// the javascript below doesn't work in IE...
+		//$output .= form_submit('Create Games', 'submit', 'onclick="this.disabled=1; this.form.submit();"');
+		$output .= form_submit('Create Games', 'submit');
 		return form($output);
 	}
 	
@@ -500,7 +502,7 @@ class GameSubmit extends Handler
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");
 		}
-		
+
 		if( $this->game->timestamp > time() ) {
 			error_exit("That game has not yet occurred!");
 		}
@@ -543,6 +545,25 @@ class GameSubmit extends Handler
 		return $rc;
 	}
 
+	function isSOTGDataInvalid ( $edit ) {
+		switch($edit['sotg']) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case '10':
+				return false;
+			default:
+				return "<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.";
+		}
+	}
+	
 	function isScoreDataInvalid( $edit )
 	{
 		$errors = "";
@@ -586,6 +607,7 @@ class GameSubmit extends Handler
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $_POST['team_spirit'] );
 			$dataInvalid = $questions->answers_invalid();
+			$dataInvalid .= $this->isSOTGDataInvalid( $edit );
 			if( $dataInvalid ) {
 				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
@@ -598,7 +620,7 @@ class GameSubmit extends Handler
 
 		// Now, we know we haven't finalized the game, so we first
 		// save this team's score entry, as there isn't one already.
-		if( !$this->game->save_score_entry( $this->team->team_id, $lr_session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'] ) ) {
+		if( !$this->game->save_score_entry( $this->team->team_id, $lr_session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'], $edit['sotg'] ) ) {
 			error_exit("Error saving score entry for " . $this->team->team_id);
 		}
 		
@@ -654,20 +676,12 @@ class GameSubmit extends Handler
       $javascript .= "document.forms[0].elements['team_spirit[GameOverall]'][2].checked) { ";
       $javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
       $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
-      // javascript to ask for comments if the SOTG score will be 6 or less:
-      $javascript .= "var sotg=10; if (document.forms[0].elements['team_spirit[Timeliness]'][1].checked){sotg=sotg-1;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[Timeliness]'][2].checked){sotg=sotg-2;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked){sotg=sotg-1;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked){sotg=sotg-2;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[Sportsmanship]'][1].checked){sotg=sotg-1;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked){sotg=sotg-2;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[Enjoyment]'][1].checked){sotg=sotg-1;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[Enjoyment]'][2].checked){sotg=sotg-2;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[GameOverall]'][1].checked){sotg=sotg-1;}; ";
-      $javascript .= "if (document.forms[0].elements['team_spirit[GameOverall]'][2].checked){sotg=sotg-2;}; ";
-      //$javascript .= "alert(sotg);";
-      $javascript .= "if (sotg <= 6) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+      // javascript to ask for comments if the SOTG score will be 5 or less:
+      $javascript .= "if (document.forms[0].elements['edit[sotg]'].value == '') { document.forms[0].elements['edit[sotg]'].value = sotg(); } ";
+      $javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
       $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+      
+      $output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
       
 		$output .= para(form_submit("submit", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
@@ -686,6 +700,7 @@ class GameSubmit extends Handler
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $_POST['team_spirit'] );
 			$dataInvalid = $questions->answers_invalid();
+			$dataInvalid .= $this->isSOTGDataInvalid( $edit );
 			if( $dataInvalid ) {
 				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
@@ -695,14 +710,18 @@ class GameSubmit extends Handler
 		}
 		
 		$output = $this->interim_game_result($edit, $opponent);
+		
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$output .= para("The following answers will be used to assign your opponents' spirit:");
+			$output .= "<p>A <b>Spirit Of The Game</b> score of <b>" . $edit['sotg'] . "</b> will be assigned.</p>";
+			$output .= para("The following answers will be tracked by your coordinator:");
 			$output .= $questions->render_viewable();
 			$output .= $questions->render_hidden();
 		} else {
-			$output .= para("A spirit score will be automatically generated for your opponents.");
+			$output .= para("A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.");
 		}
+		$output .= form_hidden('edit[sotg]', $edit['sotg']);
 		$output .= form_hidden('edit[step]', 'save');
+		
 	
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score."
 		);
@@ -843,6 +862,42 @@ class GameEdit extends Handler
 	{
 		global $lr_session;
 		return $lr_session->has_permission('game','view', $this->game);
+	}
+	
+	function isSOTGDataInvalid ( $edit ) {
+		switch($edit['sotg_home']) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case '10':
+				break;
+			default:
+				return "<br>An invalid value was specified for HOME SOTG.  Please use a whole number between 1 and 10.";
+		}
+		switch($edit['sotg_away']) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case '10':
+				break;
+			default:
+				return "<br>An invalid value was specified for AWAY SOTG.  Please use a whole number between 1 and 10.";
+		}
+		return false;
 	}
 	
 	function process ()
@@ -1025,6 +1080,14 @@ class GameEdit extends Handler
 			$score_group .= form_textfield( "Home ($game->home_name) score", 'edit[home_score]',$game->home_score,2,2);
 			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
 		
+			// horribly innefficient to run this query again from here, when it was just
+			// run from the "game_score_entry_display" call a few lines above here...
+			$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
+			$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
+			$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
+		
+		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $away['spirit']);
+		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $home['spirit']);
 		}
 		
 		$output .= form_group("Scoring", $score_group);
@@ -1115,11 +1178,20 @@ class GameEdit extends Handler
 		$output .= form_hidden('edit[status]', $edit['status']);
 		$output .= form_hidden('edit[home_score]', $edit['home_score']);		
 		$output .= form_hidden('edit[away_score]', $edit['away_score']);		
+		$output .= form_hidden('edit[sotg_home]', $edit['sotg_home']);		
+		$output .= form_hidden('edit[sotg_away]', $edit['sotg_away']);		
 		$output .= $home_spirit->render_hidden('home');
 		$output .= $away_spirit->render_hidden('away');
 
 		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
+		
+		if ($edit['status'] != 'home_default' && $edit['status'] != 'away_default') {
+			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->home_name:</label><br>" . $edit['sotg_home'];
+			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->away_name:</label><br>" . $edit['sotg_away'];
+		} else {
+			$score_group .= "Due to the game default, the SOTG scores for this game will be automatically assigned.";
+		}
 		$output .= form_group("Scoring", $score_group);
 		
       // only show SOTG of the home team if they didn't default!
@@ -1166,17 +1238,24 @@ class GameEdit extends Handler
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
+		$this->game->set('home_spirit', $edit['sotg_away']); // away spirit entry assigned to home team
+		$this->game->set('away_spirit', $edit['sotg_home']); // home spirit entry assigned to away team
 		$this->game->set('status', $edit['status']);
 		$this->game->set('approved_by', $lr_session->attr_get('user_id'));
 
 		switch( $edit['status'] ) {
+			// for defaults, have to prepare both home and away spirit scores!
 			case 'home_default':
-            // only prepare away spirit values
+				$home_spirit_values = $this->game->default_spirit('loser'); // penalize home for default
 				$away_spirit_values = $this->game->default_spirit('winner');
+				$this->game->set('home_spirit', $this->game->default_spirit('loser', true));
+				$this->game->set('away_spirit', $this->game->default_spirit('winner', true));
 				break;
 			case 'away_default':
-            // only prepare home spirit values
 				$home_spirit_values = $this->game->default_spirit('winner');
+				$away_spirit_values = $this->game->default_spirit('loser'); // penalize away for default
+				$this->game->set('home_spirit', $this->game->default_spirit('winner', true));
+				$this->game->set('away_spirit', $this->game->default_spirit('loser', true));
 				break;
 			case 'forfeit':
 				$away_spirit_values = $this->game->default_spirit('loser');
@@ -1200,9 +1279,6 @@ class GameEdit extends Handler
 			error_exit("Could not successfully save game results");
 		}
 
-      // TONY:  COMMENTED THIS OUT - due to bug in "edit game" whereby rank moves again.
-      // TONY:  This effectively breaks the old pyramid schemes... 
-      // TONY:  We should probably strip out the unused parts of LR anyways (like the old hold/move pyramid)
 		// Game has been saved to database.  Now we can update the dependant games.
 		if (! $this->game->updatedependentgames( $oldgameresults )) {
 			error_exit("Could not update dependant games.");
@@ -1222,6 +1298,9 @@ class GameEdit extends Handler
 			if( !validate_number($edit['away_score']) ) {
 				$errors .= "<br>You must enter a valid number for the away score";
 			}
+			
+			$errors .= $this->isSOTGDataInvalid( $edit );
+			
 		}
 		
 		if(strlen($errors) > 0) {
@@ -1274,6 +1353,7 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
 	$rows[] = array( "Entry time:", $home['entry_time'], $away['entry_time'],);
+	$rows[] = array( "SOTG Assigned:", $away['spirit'], $home['spirit'],);	
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 

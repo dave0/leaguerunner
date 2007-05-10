@@ -110,6 +110,9 @@ function team_permissions ( &$user, $action, $id, $data_field )
 		case 'statistics':
 			// admin-only
 			break;
+		case 'spirit':
+			return $user->is_player_on( $id );
+			break;
 	}
 	return false;
 }
@@ -1278,13 +1281,12 @@ class TeamSpirit extends Handler
 		}
 
 		$header = array();
-		if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-			$header = array(
-				"ID",
-				"Date",
-				"Opponent"
-			);
-		}
+		$header = array(
+			"ID",
+			"Date",
+			"Opponent"
+		);
+
 		$rows = array();
 
 		# TODO load all point values for answers into array
@@ -1294,23 +1296,31 @@ class TeamSpirit extends Handler
 			$answer_values[ $ary['akey'] ] = $ary['value'];
 		}
 
+		// load the league
+		$league = league_load( array('league_id' => $this->team->league_id) );
+		
 		$question_sums = array();
 		$num_games = 0;
-
+		$sotg_scores = array();
+		
 		while(list(,$game) = each($games)) {
 		
 			if( ! $game->is_finalized() ) {
 				continue;
 			}
-			
+
+			$spirit = 10;
+						
 			if($game->home_id == $this->team->team_id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
 				$home_away = '(home)';
+				$spirit = $game->home_spirit;
 			} else {
 				$opponent_id = $game->home_id;
 				$opponent_name = $game->home_name;
 				$home_away = '(away)';
+				$spirit = $game->away_spirit;
 			}
 			
 			$thisrow = array(
@@ -1329,17 +1339,38 @@ class TeamSpirit extends Handler
 			if( !$num_games ) {
 				$header[] = "Score";
 			}
+
+			// get_spirit_numeric looks at the SOTG answers to determine the score
 			$numeric = $game->get_spirit_numeric( $this->team->team_id);
-			$thisrow[] = sprintf("%.2f",$numeric);
-			$score_total += $numeric;
+			// but, now we want to use the home/away assigned spirit...
+			// so, see if there is a value in $spirit, otherwise, use $numeric:
+			if ($spirit == null || $spirit == "") {
+				$spirit = $numeric;
+			}
+			$thisrow[] = sprintf("%.2f",$spirit);
+			$score_total += $spirit;
+			$sotg_scores[] = $spirit;
 
 			while( list($qkey,$answer) = each($entry) ) {
 
 				if( !$num_games ) {
-					$header[] = $qkey;
+					if( $qkey == 'CommentsToCoordinator') {
+						if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+							$header[] = $qkey;
+						} else {
+							$header[] = '&nbsp;';
+						}
+					} else {
+						$header[] = $qkey;
+					}
 				}
 				if( $qkey == 'CommentsToCoordinator' ) {
-					$thisrow[] = $answer;
+					// can only see comments if you're a coordinator
+					if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+						$thisrow[] = $answer;
+					} else {
+						$thisrow[] = '&nbsp;';
+					}
 					continue;
 				}
 				switch( $answer_values[$answer] ) {
@@ -1359,8 +1390,14 @@ class TeamSpirit extends Handler
 			}
 
 			$num_games++;
-		
-			if( !$lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+			
+			// if the person doesn't have permission to see this team's spirit, don't print this row.
+			if( !$lr_session->has_permission('team', 'view', $this->team->team_id, 'spirit') ) {
+				continue;
+			}
+			
+			// if the league is not allowing spirit to be viewed, skip this row (unless this is a coordinator)
+			if ( !$lr_session->is_coordinator_of( $this->team->league_id ) && $league->see_sotg == "false" ) {
 				continue;
 			}
 
@@ -1372,15 +1409,12 @@ class TeamSpirit extends Handler
 		}
 	
 		$thisrow = array();
-		if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-			$thisrow = array(
-				"Average","-","-"
-			);
-		} else if ($num_games < 3) {
-			return "Spirit summary available after 3 games";
-		}
+		$thisrow = array(
+			"Average","-","-"
+		);
 
-		$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+		//$thisrow[] = sprintf("%.2f",$score_total / $num_games );
+		$thisrow[] = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
 
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {

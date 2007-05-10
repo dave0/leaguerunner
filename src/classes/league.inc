@@ -187,8 +187,8 @@
       }
 
       /**
-      * Finalize any games considered 'old'.  For now, 'old' is 24 hours after
-      * the end of the previous game. 
+      * Finalize any games considered 'old'.  For now, 'old' is 72 hours after
+      * the start time of the game. 
       */
       function finalize_old_games()
       {
@@ -619,14 +619,13 @@
          while(list($id,) = each($this->teams)) {
             $this->teams[$id]->points_for = 0;
             $this->teams[$id]->points_against = 0;
-            $this->teams[$id]->spirit = 0;
+            $this->teams[$id]->spirit = array();
             $this->teams[$id]->win = 0;
             $this->teams[$id]->loss = 0;
             $this->teams[$id]->tie = 0;
             $this->teams[$id]->defaults_for = 0;
             $this->teams[$id]->defaults_against = 0;
             $this->teams[$id]->games = 0;
-            $this->teams[$id]->games_with_sotg = 0;
             $this->teams[$id]->vs = array();
             $this->teams[$id]->vspm = array();
             $this->teams[$id]->streak = array();
@@ -703,9 +702,13 @@
 
       function standings_record_game(&$season, &$game)
       {
-
-         $game->home_spirit = $game->get_spirit_numeric( $game->home_team );
-         $game->away_spirit = $game->get_spirit_numeric( $game->away_team );
+		
+		if ($game->home_spirit == null || $game->home_spirit == "") {
+        	$game->home_spirit = $game->get_spirit_numeric( $game->home_team );
+		}
+		if ($game->away_spirit == null || $game->away_spirit == "") {
+        	$game->away_spirit = $game->get_spirit_numeric( $game->away_team );
+		}
          if(isset($season[$game->home_team])) {
             $team = &$season[$game->home_team];
 
@@ -713,9 +716,8 @@
             $team->points_for += $game->home_score;
             $team->points_against += $game->away_score;
 
-            if ( is_int($game->home_spirit) ) {
-               $team->spirit += $game->home_spirit;
-               $team->games_with_sotg++;
+            if ( is_numeric($game->home_spirit) ) {
+               $team->spirit[] = $game->home_spirit;
             }
 
             /* Need to initialize if not set */
@@ -762,9 +764,8 @@
             $team->points_for += $game->away_score;
             $team->points_against += $game->home_score;
 
-            if ( is_int($game->away_spirit) ) {
-               $team->spirit += $game->away_spirit;
-               $team->games_with_sotg++;
+            if ( is_numeric($game->away_spirit) ) {
+               $team->spirit[] = $game->away_spirit;
             }
 
             /* Need to initialize if not set */
@@ -827,19 +828,10 @@
          }
 
          /* Check SOTG */
-         if($a->games_with_sotg > 0 && $b->games_with_sotg > 0) {
-            if( ($a->spirit / $a->games_with_sotg) > ($b->spirit / $b->games_with_sotg)) {
-               return -1;
-            } else if( ($a->spirit / $a->games_with_sotg) < ($b->spirit / $b->games_with_sotg)) {
-               return 1;
-            }
-         }
-         if($a->games > 0 && $b->games > 0) {
-            if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
-               return -1;
-            } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
-               return 1;
-            }
+         if ( calculateAverageSOTG($a->spirit, true) > calculateAverageSOTG($b->spirit, true) ) {
+         	return -1;
+         } elseif ( calculateAverageSOTG($a->spirit, true) < calculateAverageSOTG($b->spirit, true) ) {
+         	return 1;
          }
 
          /* Check wins & ties */
@@ -890,19 +882,10 @@
          }
 
          /* Check SOTG */
-         if($a->games_with_sotg > 0 && $b->games_with_sotg > 0) {
-            if( ($a->spirit / $a->games_with_sotg) > ($b->spirit / $b->games_with_sotg)) {
-               return -1;
-            } else if( ($a->spirit / $a->games_with_sotg) < ($b->spirit / $b->games_with_sotg)) {
-               return 1;
-            }
-         }
-         if($a->games > 0 && $b->games > 0) {
-            if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
-               return -1;
-            } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
-               return 1;
-            }
+         if ( calculateAverageSOTG($a->spirit, true) > calculateAverageSOTG($b->spirit, true) ) {
+         	return -1;
+         } elseif ( calculateAverageSOTG($a->spirit, true) < calculateAverageSOTG($b->spirit, true) ) {
+         	return 1;
          }
 
          /* Check wins & ties */

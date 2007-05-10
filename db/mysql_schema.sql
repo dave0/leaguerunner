@@ -124,8 +124,8 @@ CREATE TABLE league (
 	games_before_repeat		integer default 4,
    -- how many attempts at generating the schedule with no repeats?
 	schedule_attempts		integer default 100,
-   -- Do you want to relax the repeat restriction?
-	--relax_repeat          ENUM('true','false') default 'true',
+   -- Allow players to see SOTG answers assigned to their team?
+	see_sotg          ENUM('true','false') default 'true',
 
 	PRIMARY KEY (league_id)
 );

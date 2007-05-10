@@ -1256,5 +1256,32 @@ function my_error_log($str)
 		": $str\n", 3, "/home/tuc003/www/error.log");
 }
 
+/**
+ * Drop the highest and lowest SOTG score if specified, and return the average SOTG.
+ * Not sure if this is the right place for this function...
+ */
+function calculateAverageSOTG ( $scores , $drop = false ) {
+	// $scores is an array of SOTG scores
+	$size = sizeof($scores);
+	$high = 0;
+	$low = 0;
+	$total = 0;
+	foreach ($scores as $value) {
+		if ($value > $high) {
+			$high = $value;
+		} elseif ($value < $low) {
+			$low = $value;
+		}
+		$total += $value;
+	}
+	// can only drop highest and lowest if the size is 3 or more
+	if ($size >= 3 && $drop) {
+		$total = $total - $high - $low;
+		$size = $size - 2;
+	}
+	
+	return $total / $size;
+}
+
 /* vim: set sw=4 ts=4 et: */
 ?>
