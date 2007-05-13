@@ -1198,7 +1198,7 @@ class TeamSchedule extends Handler
 				if($entered) {
 					$score_type = '(unofficial, waiting for opponent)';
 					$game_score = "$entered->score_for - $entered->score_against";
-				} else if($lr_session->has_permission('game','submit score', $game, $this->team) 
+				} else if($lr_session->has_permission('game','submit score', $game, $this->team)  
 				    && ($game->timestamp < time()) ) {
 						$score_type = l("submit score", "game/submitscore/$game->game_id/" . $this->team->team_id);
 				} else {
@@ -1341,7 +1341,7 @@ class TeamSpirit extends Handler
 			}
 
 			// get_spirit_numeric looks at the SOTG answers to determine the score
-			$numeric = $game->get_spirit_numeric( $this->team->team_id);
+			$numeric = $game->get_spirit_numeric( $this->team->team_id );
 			// but, now we want to use the home/away assigned spirit...
 			// so, see if there is a value in $spirit, otherwise, use $numeric:
 			if ($spirit == null || $spirit == "") {
@@ -1374,6 +1374,7 @@ class TeamSpirit extends Handler
 					continue;
 				}
 				switch( $answer_values[$answer] ) {
+					case -3:
 					case -2:
 						$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
 						break;

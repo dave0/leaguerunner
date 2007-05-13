@@ -909,8 +909,7 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'MostEnjoyed',
-					'GameOverall' => 'OverallAverage',
-					'CommentsToCoordinator' => '',
+					'CommentsToCoordinator' => 'Automatic spirit assigned: 7',
 				);
 				break;
 			case 'loser':
@@ -919,12 +918,11 @@ class Game extends LeaguerunnerObject
 					return 4;
 				}
 				return array(
-					'Timeliness' => 'MoreThanFive',
-					'RulesKnowledge' => 'AcceptableRules',
-					'Sportsmanship' => 'AcceptableSportsmanship',
-					'Enjoyment' => 'FewEnjoyed',
-					'GameOverall' => 'OverallAverage',
-					'CommentsToCoordinator' => 'Automatic spirit assigned (no entry by opponent)',
+					'Timeliness' => 'FiveOrLess',
+					'RulesKnowledge' => 'PoorRules',
+					'Sportsmanship' => 'PoorSportsmanship',
+					'Enjoyment' => 'SomeEnjoyed',
+					'CommentsToCoordinator' => 'Automatic spirit assigned: 4 (no entry by opponent)',
 				);
 				break;
 			case 'winner':
@@ -938,8 +936,7 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'ExcellentRules',
 					'Sportsmanship' => 'ExcellentSportsmanship',
 					'Enjoyment' => 'AllEnjoyed',
-					'GameOverall' => 'OverallGood',
-					'CommentsToCoordinator' => 'Automatic spirit assignment (no entry by opponent)',
+					'CommentsToCoordinator' => 'Automatic spirit assigned: 10 (no entry by opponent)',
 				);
 				break;
 			default:
@@ -1565,14 +1562,16 @@ function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
 	$sotgjs .= "var sotg=10;\n";
 	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
 	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
 	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
 	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
 	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[GameOverall]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[GameOverall]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
 	$sotgjs .= "return sotg;\n";
 	$sotgjs .= "}\n";
 	$sotgjs .= "</script>\n";

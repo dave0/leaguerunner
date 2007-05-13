@@ -663,7 +663,7 @@ class GameSubmit extends Handler
 		$output = $this->interim_game_result($edit, $opponent);
 		$output .= form_hidden('edit[step]', 'confirm');
 			
-		$output .= para("Now, you must rate your opponent's spirit using the following questions.  These are used both to generate an average spirit rating for each team, and to indicate to the league what areas might be problematic.");
+		$output .= para("Now, you must rate your opponent's using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
 
 		$questions = formbuilder_load('team_spirit');
 		$output .= $questions->render_editable(false);
@@ -671,15 +671,14 @@ class GameSubmit extends Handler
       //TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
       // javascript to ask for comments if any of the "worst" answers are chosen...
       $javascript = "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked || document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked || ";
-      $javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || ";
-      $javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][2].checked || ";
-      $javascript .= "document.forms[0].elements['team_spirit[GameOverall]'][2].checked) { ";
+      $javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || document.forms[0].elements['team_spirit[Sportsmanship]'][3].checked || ";
+      $javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][3].checked) { ";
       $javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
       $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
       // javascript to ask for comments if the SOTG score will be 5 or less:
       $javascript .= "if (document.forms[0].elements['edit[sotg]'].value == '') { document.forms[0].elements['edit[sotg]'].value = sotg(); } ";
       $javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
       
       $output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
       

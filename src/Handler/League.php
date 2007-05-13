@@ -1283,12 +1283,19 @@ class LeagueSpirit extends Handler
 				// get_spirit_numeric looks at the SOTG answers to determine the score
 				$numeric = $game->get_spirit_numeric( $recipient );
 				// but, now we want to use the home/away assigned spirit...
-				// so, see if there is a value in $spirit, otherwise, use $numeric:
+				// only coordinators can see league spirit, so if they're different show both,
+				// otherwise, only show what you have...
 				if ($spirit == null || $spirit == "") {
 					$spirit = $numeric;
+					$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
+				} else {
+					if ( $spirit != $numeric ) {
+						$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>, " . sprintf("%.2f",$numeric);
+					} else {
+						$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
+					}
 				}
 				
-				$thisrow[] = sprintf("%.2f",$spirit);
 				$score_total += $spirit;
 				$sotg_scores[] = $spirit;
 				
@@ -1302,6 +1309,7 @@ class LeagueSpirit extends Handler
 						continue;
 					}
 					switch( $answer_values[$answer] ) {
+						case -3:
 						case -2:
 							$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
 							break;

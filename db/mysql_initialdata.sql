@@ -14,7 +14,7 @@ INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
 INSERT INTO multiplechoice_answers VALUES(
 	'OnTime', 
 	'Timeliness',
-	'at the official start time',
+	'early, or at the official start time',
 	'0',
 	0);
 INSERT INTO multiplechoice_answers VALUES(
@@ -24,11 +24,17 @@ INSERT INTO multiplechoice_answers VALUES(
 	'-1',
 	1);
 INSERT INTO multiplechoice_answers VALUES(
-	'MoreThanFive', 
+	'LessThanTen', 
 	'Timeliness',
-	'more than five minutes late',
+	'less than ten minutes late',
 	'-2',
 	2);
+INSERT INTO multiplechoice_answers VALUES(
+	'MoreThanTen', 
+	'Timeliness',
+	'more than ten minutes late',
+	'-3',
+	3);
 	
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
 	'RulesKnowledge',
@@ -45,20 +51,20 @@ INSERT INTO multiplechoice_answers VALUES(
 INSERT INTO multiplechoice_answers VALUES(
 	'AcceptableRules', 
 	'RulesKnowledge',
-	'acceptable, or they were willing to learn',
-	'0',
+	'acceptable',
+	'-1',
 	1);
 INSERT INTO multiplechoice_answers VALUES(
 	'PoorRules', 
 	'RulesKnowledge',
-	'poor, or they weren\'t interested in learning',
-	'-1',
+	'poor',
+	'-2',
 	2);
 INSERT INTO multiplechoice_answers VALUES(
 	'NonexistantRules', 
 	'RulesKnowledge',
 	'nonexistant',
-	'-2',
+	'-3',
 	3);
 	
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
@@ -85,11 +91,18 @@ INSERT INTO multiplechoice_answers VALUES(
 	'poor',
 	'-2',
 	2);
+
+INSERT INTO multiplechoice_answers VALUES(
+	'NonexistantSportsmanship', 
+	'Sportsmanship',
+	'nonexistant',
+	'-3',
+	3);
 	
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
 	'Enjoyment',
 	'team_spirit',
-	'Ignoring the score, did your team think the other team played in a spirited way?',
+	'Ignoring the score and based on the opponents\' spirit of the game, did your team enjoy this game?',
 	'multiplechoice',
 	3);
 INSERT INTO multiplechoice_answers VALUES(
@@ -105,36 +118,18 @@ INSERT INTO multiplechoice_answers VALUES(
 	'-1',
 	1);
 INSERT INTO multiplechoice_answers VALUES(
-	'FewEnjoyed', 
+	'SomeEnjoyed', 
 	'Enjoyment',
-	'few or none of my players did',
-	'-2',
-	2);
-	
-INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
-	'GameOverall',
-	'team_spirit',
-	'From a spirit perspective, this was',
-	'multiplechoice',
-	4);
-INSERT INTO multiplechoice_answers VALUES(
-	'OverallGood', 
-	'GameOverall',
-	'a team we would be happy to play again',
-	'0',
-	0);
-INSERT INTO multiplechoice_answers VALUES(
-	'OverallAverage', 
-	'GameOverall',
-	'just another average team',
+	'some of my players did',
 	'-1',
-	1);
-INSERT INTO multiplechoice_answers VALUES(
-	'OverallPoor', 
-	'GameOverall',
-	'not a team we would like to see again',
-	'-2',
 	2);
+INSERT INTO multiplechoice_answers VALUES(
+	'NoneEnjoyed', 
+	'Enjoyment',
+	'none of my players did',
+	'-1',
+	3);
+	
 
 -- Note to coordinator
 INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
@@ -143,4 +138,4 @@ INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
 	'Do you have any comments on this game you would like to bring to the coordinator''s attention?', 
 	'freetext',
 	'N',
-	'5');
+	'4');

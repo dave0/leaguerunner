@@ -1263,13 +1263,17 @@ function my_error_log($str)
 function calculateAverageSOTG ( $scores , $drop = false ) {
 	// $scores is an array of SOTG scores
 	$size = sizeof($scores);
+	if ($size == 0) {
+		return 0;
+	}
 	$high = 0;
-	$low = 0;
+	$low = 10;
 	$total = 0;
 	foreach ($scores as $value) {
 		if ($value > $high) {
 			$high = $value;
-		} elseif ($value < $low) {
+		}
+		if ($value < $low) {
 			$low = $value;
 		}
 		$total += $value;
