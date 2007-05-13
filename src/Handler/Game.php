@@ -1275,6 +1275,16 @@ class GameEdit extends Handler
 			error_exit("Error saving spirit entry for " . $this->game->away_name);
 		}
 
+		// load the teams in order to be able to save their current rating
+		$home_team = new Team();
+		$home_team->load( array('team_id' => $this->game->home_id) );
+		$away_team = new Team();
+		$away_team->load( array('team_id' => $this->game->away_id) );
+
+		// save the current snapshot of each team's rating:
+		$this->game->set('rating_home', $home_team->rating);
+		$this->game->set('rating_away', $away_team->rating);
+
 		if ( ! $this->game->save() ) {
 			error_exit("Could not successfully save game results");
 		}

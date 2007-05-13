@@ -397,6 +397,16 @@ class Game extends LeaguerunnerObject
 			die("Unreachable code hit in Game::finalize()");
 		}
 
+		// load the teams in order to be able to save their current rating
+		$home_team = new Team();
+		$home_team->load( array('team_id' => $this->home_id) );
+		$away_team = new Team();
+		$away_team->load( array('team_id' => $this->away_id) );
+
+		// save the current snapshot of each team's rating:
+		$this->set('rating_home', $home_team->rating);
+		$this->set('rating_away', $away_team->rating);
+		
 		if ( ! $this->save() ) {
 			error_exit("Could not successfully save game results");
 		}
@@ -1439,7 +1449,7 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 			// if the team is the home team for this game
 			if ($team->team_id == $game->home_team) {
 				// does this team have a home field?
-				if ($team->home_field != '') {
+				if ($team->home_field != null && $team->home_field != '') {
 					// this game needs to be scheduled before others!
 					// let the 'select_weighted_gameslot' function do the work
 					list($rc, $message) = $game->select_weighted_gameslot($datestamp);
@@ -1477,7 +1487,7 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 			// if the team is the home team for this game
 			if ($team->team_id == $game->home_team) {
 				// does this team have a field region preference?
-				if ($team->region_preference != '---') {
+				if ($team->region_preference != null && $team->region_preference != '---') {
 					// this game needs to be scheduled next
 					// let the 'select_weighted_gameslot' function do the work
 					list($rc, $message) = $game->select_weighted_gameslot($datestamp);
@@ -1510,7 +1520,7 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 			// if the team is the away team for this game
 			if ($team->team_id == $game->away_team) {
 				// does this team have a field region preference?
-				if ($team->region_preference != '') {
+				if ($team->region_preference != null && $team->region_preference != '') {
 					// this game needs to be scheduled next
 					// let the 'select_weighted_gameslot' function do the work
 					list($rc, $message) = $game->select_weighted_gameslot($datestamp);

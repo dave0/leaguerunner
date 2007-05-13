@@ -164,6 +164,7 @@ CREATE TABLE schedule (
     home_dependant_game	integer,
     home_dependant_type enum('winner','loser'),
     home_dependant_rank	integer,
+
     away_team   integer,
     away_dependant_game	integer,
     away_dependant_type enum('winner','loser'),
@@ -173,7 +174,9 @@ CREATE TABLE schedule (
     away_score  tinyint,
     home_spirit tinyint,
     away_spirit tinyint,
-    
+
+    rating_home integer,
+    rating_away integer,    
     rating_points int, -- rating points exchanged for this game
     approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
 
