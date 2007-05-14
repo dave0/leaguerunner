@@ -1244,6 +1244,7 @@ class LeagueSpirit extends Handler
 
 		$question_sums = array();
 		$num_games = 0;
+		$no_spirit_questions = 0;
 		$sotg_scores = array();
 
 		while(list(,$game) = each($games)) {
@@ -1253,11 +1254,11 @@ class LeagueSpirit extends Handler
 			while( list($giver,$giver_name) = each ($teams)) {
 
 				$spirit = 10;
-				// home first
+				// giver starts out as home team, so the value they gave is in the away spirit... then, vice-versa
 				if ($counter == 0) {
-					$spirit = $game->home_spirit;
-				} else {
 					$spirit = $game->away_spirit;
+				} else {
+					$spirit = $game->home_spirit;
 				}
 				
 				$recipient = $game->get_opponent_id ($giver);
@@ -1289,8 +1290,12 @@ class LeagueSpirit extends Handler
 					$spirit = $numeric;
 					$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
 				} else {
+					$print_numeric = "";
+					if ($numeric != -1) {
+						$print_numeric = ", " . sprintf("%.2f",$numeric);
+					}
 					if ( $spirit != $numeric ) {
-						$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>, " . sprintf("%.2f",$numeric);
+						$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>$print_numeric";
 					} else {
 						$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
 					}
@@ -1308,21 +1313,26 @@ class LeagueSpirit extends Handler
 						$thisrow[] = $answer;
 						continue;
 					}
-					switch( $answer_values[$answer] ) {
-						case -3:
-						case -2:
-							$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
-							break;
-						case -1:
-							$thisrow[] = "-";
-							break;
-						case 0:
-							$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
-							break;
-						default:
-							$thisrow[] = "?";
+					if ($answer == null || $answer == "") {
+						$thisrow[] = "?";
+						$no_spirit_questions++;
+					} else {
+						switch( $answer_values[$answer] ) {
+							case -3:
+							case -2:
+								$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+								break;
+							case -1:
+								$thisrow[] = "-";
+								break;
+							case 0:
+								$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+								break;
+							default:
+								$thisrow[] = "?";
+						}
+						$question_sums[ $qkey ] += $answer_values[ $answer ];
 					}
-					$question_sums[ $qkey ] += $answer_values[ $answer ];
 				}
 
 				$num_games++;
@@ -1346,7 +1356,7 @@ class LeagueSpirit extends Handler
 
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
-			$avg = ($answer / $num_games);
+			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
 				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {

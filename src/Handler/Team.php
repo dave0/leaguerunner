@@ -1301,6 +1301,7 @@ class TeamSpirit extends Handler
 		
 		$question_sums = array();
 		$num_games = 0;
+		$no_spirit_questions = 0;
 		$sotg_scores = array();
 		
 		while(list(,$game) = each($games)) {
@@ -1373,21 +1374,26 @@ class TeamSpirit extends Handler
 					}
 					continue;
 				}
-				switch( $answer_values[$answer] ) {
-					case -3:
-					case -2:
-						$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
-						break;
-					case -1:
-						$thisrow[] = "-";
-						break;
-					case 0:
-						$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
-						break;
-					default:
-						$thisrow[] = "?";
+				if ($answer == null || $answer == "") {
+					$thisrow[] = "?";
+					$no_spirit_questions++;
+				} else {
+					switch( $answer_values[$answer] ) {
+						case -3:
+						case -2:
+							$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+							break;
+						case -1:
+							$thisrow[] = "-";
+							break;
+						case 0:
+							$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+							break;
+						default:
+							$thisrow[] = "?";
+					}
+					$question_sums[ $qkey ] += $answer_values[ $answer ];
 				}
-				$question_sums[ $qkey ] += $answer_values[ $answer ];
 			}
 
 			$num_games++;
@@ -1419,7 +1425,7 @@ class TeamSpirit extends Handler
 
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
-			$avg = ($answer / $num_games);
+			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
 				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {

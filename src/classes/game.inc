@@ -309,6 +309,13 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
+		// some strings that I will use later:
+		$def = "default";
+		$defsnr = "default, score not reported";
+		$opdef = "opponent default";
+		$opdefsnr = "opponent default, score not reported";
+		$snr = "score not reported";
+		
 		$home_entry = $this->get_score_entry( $this->home_id );
 		$away_entry = $this->get_score_entry( $this->away_id );
 		if( $home_entry && $away_entry ) {
@@ -317,16 +324,18 @@ class Game extends LeaguerunnerObject
 #				print "&nbsp;&nbsp;And both entries agree<br/>\n";
 				switch( $home_entry->defaulted ) {
 					case 'us':
+						// HOME default
 						$this->set('status', 'home_default');
-						$this->save_spirit_entry( $this->away_id, $this->default_spirit('winner'));
-						$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
+						$this->save_spirit_entry( $this->away_id, $this->default_spirit('winner',false,$opdef));
+						$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$def));
 						$this->set('home_spirit', 4);
 						$this->set('away_spirit', 10);
 						break;
 					case 'them':
+						// AWAY default
 						$this->set('status', 'away_default');
-						$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
-						$this->save_spirit_entry( $this->home_id, $this->default_spirit('winner'));
+						$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$def));
+						$this->save_spirit_entry( $this->home_id, $this->default_spirit('winner',false,$opdef));
 						$this->set('home_spirit', 10);
 						$this->set('away_spirit', 4);
 						break;
@@ -346,21 +355,27 @@ class Game extends LeaguerunnerObject
 		} else if ( $home_entry && !$away_entry ) {
 			switch( $home_entry->defaulted ) {
 				case 'us':
+					// HOME default with no entry by AWAY
 					$this->set('status', 'home_default');
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$def));
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('penalized',false,$opdefsnr));
 					$this->set('home_spirit', 4); // home is penalized in SOTG because they defaulted
 					$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
 					break;
 				case 'them':
+					// AWAY default with no entry by AWAY
 					$this->set('status', 'away_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect',false,$opdef));
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$defsnr));
 					$this->set('home_spirit', 10);
 					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
 				default:
-               $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
-				$this->set('home_spirit', 10);
-				$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
+					// no default, no entry by AWAY
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('penalized',false,$snr));
+					$this->set('home_spirit', 10);
+					$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
          	}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
@@ -368,19 +383,25 @@ class Game extends LeaguerunnerObject
 		} else if ( !$home_entry && $away_entry ) {
 			switch( $away_entry->defaulted ) {
 				case 'us':
+					// AWAY default with no entry by HOME
 					$this->set('status', 'away_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('penalized',false,$opdefsnr));
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$def));
 					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
 				case 'them':
+					// HOME default with no entry by HOME
 					$this->set('status', 'home_default');
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$defsnr));
+			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect',false,$opdef));
 					$this->set('home_spirit', 4); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 10);
 					break;
 				default:
-               $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
+					// no default, no entry by HOME
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('penalized',false,$snr));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 10);
          }
@@ -852,6 +873,10 @@ class Game extends LeaguerunnerObject
 		// Start with 10 spirit, subtract down
 		$spirit = 10;
 		while( list($qkey, $answer) = each($entry) ) {
+			// if any of the answers are blank, they'll all be blank, so just return -1 to indicate it
+			if ($answer == null || $answer == "") {
+				return -1;
+			}
 			$result = db_query("SELECT value from multiplechoice_answers WHERE qkey = '%s' AND akey = '%s'", $qkey, $answer);
 
 			$spirit += db_result($result);
@@ -896,20 +921,30 @@ class Game extends LeaguerunnerObject
 	 * Return values to be used for winner/loser of a default
 	 * game.
 	 */
-	function default_spirit ( $type , $numeric = false)
+	function default_spirit ( $type , $numeric = false, $default = "")
 	{
+		$comments = "Automatic spirit assigned: ";
 		switch( $type ) {
-			case 'penalized_winner':
+			case 'penalized':
 				// 7
 				if ($numeric) {
 					return 7;
+				}
+				if ($default != "") {
+					return array(
+						'Timeliness' => null,
+						'RulesKnowledge' => null,
+						'Sportsmanship' => null,
+						'Enjoyment' => null,
+						'CommentsToCoordinator' => $comments . "7 ($default)",
+					);
 				}
 				return array(
 					'Timeliness' => 'OnTime',
 					'RulesKnowledge' => 'AcceptableRules',
 					'Sportsmanship' => 'AcceptableSportsmanship',
 					'Enjoyment' => 'MostEnjoyed',
-					'CommentsToCoordinator' => 'Automatic spirit assigned: 7',
+					'CommentsToCoordinator' => $comments . "7",
 				);
 				break;
 			case 'loser':
@@ -917,12 +952,21 @@ class Game extends LeaguerunnerObject
 				if ($numeric) {
 					return 4;
 				}
+				if ($default != "") {
+					return array(
+						'Timeliness' => null,
+						'RulesKnowledge' => null,
+						'Sportsmanship' => null,
+						'Enjoyment' => null,
+						'CommentsToCoordinator' => $comments . "4 ($default)",
+					);
+				}
 				return array(
 					'Timeliness' => 'FiveOrLess',
 					'RulesKnowledge' => 'PoorRules',
 					'Sportsmanship' => 'PoorSportsmanship',
 					'Enjoyment' => 'SomeEnjoyed',
-					'CommentsToCoordinator' => 'Automatic spirit assigned: 4 (no entry by opponent)',
+					'CommentsToCoordinator' => $comments . "4",
 				);
 				break;
 			case 'winner':
@@ -931,12 +975,21 @@ class Game extends LeaguerunnerObject
 				if ($numeric) {
 					return 10;
 				}
+				if ($default != "") {
+					return array(
+						'Timeliness' => null,
+						'RulesKnowledge' => null,
+						'Sportsmanship' => null,
+						'Enjoyment' => null,
+						'CommentsToCoordinator' => $comments . "10 ($default)",
+					);
+				}
 				return array(
 					'Timeliness' => 'OnTime',
 					'RulesKnowledge' => 'ExcellentRules',
 					'Sportsmanship' => 'ExcellentSportsmanship',
 					'Enjoyment' => 'AllEnjoyed',
-					'CommentsToCoordinator' => 'Automatic spirit assigned: 10 (no entry by opponent)',
+					'CommentsToCoordinator' => $comments . "10",
 				);
 				break;
 			default:

@@ -1085,8 +1085,8 @@ class GameEdit extends Handler
 			$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
 			$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
 		
-		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $away['spirit']);
-		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $home['spirit']);
+		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $game->home_spirit);
+		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $game->away_spirit);
 		}
 		
 		$output .= form_group("Scoring", $score_group);
