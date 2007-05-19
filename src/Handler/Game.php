@@ -1237,8 +1237,8 @@ class GameEdit extends Handler
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
-		$this->game->set('home_spirit', $edit['sotg_away']); // away spirit entry assigned to home team
-		$this->game->set('away_spirit', $edit['sotg_home']); // home spirit entry assigned to away team
+		$this->game->set('home_spirit', $edit['sotg_home']);
+		$this->game->set('away_spirit', $edit['sotg_away']);
 		$this->game->set('status', $edit['status']);
 		$this->game->set('approved_by', $lr_session->attr_get('user_id'));
 
@@ -1280,9 +1280,13 @@ class GameEdit extends Handler
 		$away_team = new Team();
 		$away_team->load( array('team_id' => $this->game->away_id) );
 
-		// save the current snapshot of each team's rating:
-		$this->game->set('rating_home', $home_team->rating);
-		$this->game->set('rating_away', $away_team->rating);
+		// only save the current team ratings if we didn't already save them
+		if ($this->game->rating_home == null || $this->game->rating_home == "" &&
+		    $this->game->rating_away == null || $this->game->rating_away == "") {
+			// save the current snapshot of each team's rating:
+			$this->game->set('rating_home', $home_team->rating);
+			$this->game->set('rating_away', $away_team->rating);
+		}
 
 		if ( ! $this->game->save() ) {
 			error_exit("Could not successfully save game results");
