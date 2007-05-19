@@ -1287,6 +1287,9 @@ class LeagueSpirit extends Handler
 				// only coordinators can see league spirit, so if they're different show both,
 				// otherwise, only show what you have...
 				if ($spirit == null || $spirit == "") {
+					if ($numeric == -1) {
+						continue;
+					}
 					$spirit = $numeric;
 					$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
 				} else {
