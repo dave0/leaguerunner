@@ -1226,9 +1226,6 @@ class PersonCreate extends PersonEdit
 		$person->set('lastname', $edit['lastname']);
 		$person->set('password', $crypt_pass);
 
-		// Unset the username so parent::perform() doesn't try to validate it.
-		unset($edit['username']);
-		
 		$rc = parent::perform( $person, $edit );
 
 		if( $rc === false ) {
