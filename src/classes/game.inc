@@ -373,9 +373,8 @@ class Game extends LeaguerunnerObject
 				default:
 					// no default, no entry by AWAY
 					$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
-					$this->save_spirit_entry( $this->away_id, $this->default_spirit('penalized',false,$snr));
 					$this->set('home_spirit', 10);
-					$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
+					$this->set('away_spirit', $home_entry->spirit);
          	}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
@@ -400,10 +399,9 @@ class Game extends LeaguerunnerObject
 					break;
 				default:
 					// no default, no entry by HOME
-					$this->save_spirit_entry( $this->home_id, $this->default_spirit('penalized',false,$snr));
 					$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
-					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 10);
+					$this->set('home_spirit', $away_entry->spirit);
          }
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
@@ -596,7 +594,7 @@ class Game extends LeaguerunnerObject
       }
 
       // Update SCHEDULE table to remove these results
-		db_query("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, approved_by = NULL, status = 'normal' where game_id = %d", $this->game_id);
+		db_query("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = %d", $this->game_id);
       if (db_affected_rows() == 0) {
          die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
       }
