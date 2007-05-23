@@ -974,11 +974,13 @@ class TeamView extends Handler
 		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour, ENT_NOQUOTES));
 		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 
+// TONY: we don't care anymore about the rank, but instead of deleting this right away,
+// keep it around in case we go back to using the old pyramid ladder system...
       // only show the rank selectively because in this view, we can only show the backend database rank, 
       // which is near 1000, and not useful for people to see...
-      if($this->team->rank && $lr_session->is_admin()) {
-			$rows[] = array("Ranked:", $this->team->rank);
-		}
+//      if($this->team->rank && $lr_session->is_admin()) {
+//			$rows[] = array("Ranked:", $this->team->rank);
+//		}
 		
 		if($this->team->home_field) {
 			$field = field_load(array('fid' => $this->team->home_field));
