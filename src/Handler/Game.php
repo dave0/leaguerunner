@@ -139,9 +139,9 @@ function game_splash ()
          l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
-				" vs. " .
+				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
-				" at " .
+				" (away) at " .
 				l($game->field_code, "field/view/$game->fid"), 'colspan' => 2),
 			$score
 		));
@@ -173,9 +173,9 @@ function game_splash ()
          l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
-				" vs. " .
+				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
-				" at " .
+				" (away) at " .
 				l($game->field_code, "field/view/$game->fid"), 'colspan' => 2),
 			$score
 		);
