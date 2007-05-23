@@ -1009,8 +1009,8 @@ class GameEdit extends Handler
 						$away_status = " (forfeit)";
 						break;
 				}
-				$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_status");
-				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_status");
+				$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
+				$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
 				$score_group .= form_item("SOTG score for $game->home_name" , $game->home_spirit);
 				$score_group .= form_item("SOTG score for $game->away_name" , $game->away_spirit);
 			}
@@ -1078,8 +1078,8 @@ class GameEdit extends Handler
 		// permission to edit.
 		if( $this->can_edit ) {
 			$score_group .= form_select('Game Status','edit[status]', $game->status, getOptionsFromEnum('schedule','status'), "To mark a game as defaulted, select the appropriate option here.  Appropriate scores will automatically be entered.");
-			$score_group .= form_textfield( "Home ($game->home_name) score", 'edit[home_score]',$game->home_score,2,2);
-			$score_group .= form_textfield( "Away ($game->away_name) score",'edit[away_score]',$game->away_score,2,2);
+			$score_group .= form_textfield( "Home ($game->home_name [rated: $game->rating_home]) score", 'edit[home_score]',$game->home_score,2,2);
+			$score_group .= form_textfield( "Away ($game->away_name [rated: $game->rating_away]) score",'edit[away_score]',$game->away_score,2,2);
 		
 			// horribly innefficient to run this query again from here, when it was just
 			// run from the "game_score_entry_display" call a few lines above here...
@@ -1206,8 +1206,8 @@ class GameEdit extends Handler
 		$output .= $home_spirit->render_hidden('home');
 		$output .= $away_spirit->render_hidden('away');
 
-		$score_group .= form_item("Home ($game->home_name) Score",$edit['home_score']);
-		$score_group .= form_item("Away ($game->away_name) Score", $edit['away_score']);
+		$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score",$edit['home_score']);
+		$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", $edit['away_score']);
 		
 		if ($edit['status'] != 'home_default' && $edit['status'] != 'away_default') {
 			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->home_name:</label><br>" . $edit['sotg_home'];
@@ -1523,8 +1523,8 @@ class GameDelete extends Handler
 						$away_status = " (forfeit)";
 						break;
 				}
-				$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_status");
-				$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_status");
+				$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
+				$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
 			}
 			
 			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
@@ -1768,8 +1768,8 @@ class GameRemoveResults extends Handler
 				$away_status = " (forfeit)";
 				break;
 		}
-		$score_group .= form_item("Home ($game->home_name) Score", "$game->home_score $home_status");
-		$score_group .= form_item("Away ($game->away_name) Score", "$game->away_score $away_status");
+		$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
+		$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
 	
 		$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
 	
