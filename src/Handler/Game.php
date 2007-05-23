@@ -1928,7 +1928,7 @@ class GameRatings extends Handler
       $output .= para("How to read the table below:" .
       		"<br>- Find the 'home' team's score along the left." .
       		"<br>- Find the 'away' team's score along the top." .
-      		"<br>- The points shown in the table where these two scores intersect are the number of rating points that will be transfered from the winning team to the losing team.");
+      		"<br>- The points shown in the table where these two scores intersect are the number of rating points that will be transfered from the losing team to the winning team.");
 
 		$output .= para("A tie does not necessarily mean 0 rating points will be transfered... " .
 				"Unless the two team's rating scores are very close, one team is expected to win. " .
