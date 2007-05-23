@@ -1084,9 +1084,17 @@ class GameEdit extends Handler
 			$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
 			$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
 			$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
-		
-		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $game->home_spirit);
-		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $game->away_spirit);
+			
+			// if the game has not yet been finalized, spirit for home team was reported by away team (and vice-versa)
+			$hs = $away['spirit'];
+			$as = $home['spirit'];
+			if ($game->is_finalized()) {
+				// if the game was finalized, the home/away assigned spirit is already saved in place
+				$hs = $game->home_spirit;
+				$as = $game->away_spirit;
+			}
+		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
+		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
 		}
 		
 		$output .= form_group("Scoring", $score_group);
@@ -1095,6 +1103,13 @@ class GameEdit extends Handler
 		
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
+			// hack: if Timeliness is empty then it's because of an auto-finalize,
+			// so make the $ary null otherwise a later check for invalid answers will
+			// cause nothing to be displayed...
+			// TONY: when can I remove this hack?? if ever?? otherwise make it less of a hack
+			if ($ary["Timeliness"] == null || $ary["Timeliness"] == "") {
+				$ary = null;
+			}
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
@@ -1106,6 +1121,13 @@ class GameEdit extends Handler
 		
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
+			// hack: if Timeliness is empty then it's because of an auto-finalize,
+			// so make the $ary null otherwise a later check for invalid answers will
+			// cause nothing to be displayed...
+			// TONY: when can I remove this hack?? if ever?? otherwise make it less of a hack
+			if ($ary["Timeliness"] == null || $ary["Timeliness"] == "") {
+				$ary = null;
+			}
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
@@ -1114,7 +1136,7 @@ class GameEdit extends Handler
 			} else {
 				$away_spirit_group = $formbuilder->render_viewable( $ary );
 			}
-			
+
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
