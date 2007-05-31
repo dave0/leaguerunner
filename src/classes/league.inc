@@ -929,12 +929,10 @@
          }
 
          /* Check SOTG */
-         if($a->games > 0 && $b->games > 0) {
-            if( ($a->spirit / $a->games) > ($b->spirit / $b->games)) {
-               return -1;
-            } else if( ($a->spirit / $a->games) < ($b->spirit / $b->games)) {
-               return 1;
-            }
+         if ( calculateAverageSOTG($a->spirit, true) > calculateAverageSOTG($b->spirit, true) ) {
+         	return -1;
+         } elseif ( calculateAverageSOTG($a->spirit, true) < calculateAverageSOTG($b->spirit, true) ) {
+         	return 1;
          }
 
          /* Next, check +/- */
