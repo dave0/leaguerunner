@@ -1266,30 +1266,31 @@ class Game extends LeaguerunnerObject
       $seed = rand();
 
 		// try to adhere to the home team's HOME FIELD DESIGNATION
+		// TODO: I could save a DB hit every time if I would just pass in the team object...
 		$t = new Team();
 		$t->load( array('team_id' => $this->home_team) );
-		if ($t->home_field) {
+		if ($t->home_field != null && $t->home_field != '') {
 			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.home_field = f.fid ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
 			$slot_id = db_result($result);
 		}
 
       // if no home field, try to adhere to the home team's field preference
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND (t.region_preference = f.region OR t.region_preference = (SELECT ff.region from field ff where ff.fid = f.parent_fid)) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
 			$slot_id = db_result($result);
 		}
 		
       // if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
-         $result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
-		   $slot_id = db_result($result);
-      }
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND (t.region_preference = f.region OR t.region_preference = (SELECT ff.region from field ff where ff.fid = f.parent_fid)) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
+			$slot_id = db_result($result);
+		}
 
       // if still nothing can be found, last try is just random:
 		if( ! $slot_id ) {
 		   $result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
 		   $slot_id = db_result($result);
-      }
+		}
 
 		if( ! $slot_id ) {
 			db_query("SELECT RELEASE_LOCK('$lockname')");
@@ -1556,6 +1557,11 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 		}
 	} // end while
 
+	// re-fill the games array
+	$games = $temp_games;
+	// clear the temp_games array
+	$temp_games = array();
+	
 	// THIRD PASS: all games that remain in which the AWAY team has a field REGION PREFERENCE should 
 	// now be scheduled...
 	while(count($games) > 0) {
