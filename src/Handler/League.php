@@ -683,11 +683,21 @@ class LeagueStandings extends Handler
          $rows[] = array(array( 'data' => l("... ... ...", "league/standings/$id/$teamid/1"), 'colspan' => 13, 'align' => 'center'));
       }
 
+		// boolean for coloration of standings table
+		$colored = false;
+		
 		while(list($seed, $tid) = each($order)) {
 
          $rowstyle = "none";
          if ($teamid == $tid) {
             $rowstyle = "teamhighlight";
+         } else {
+			if ($colored) {
+				$rowstyle = "tierhighlight";
+			}
+			if ($seed % 8 == 0) {
+				$colored = !$colored;
+			}
          }
 
          $row = array( array('data'=>"$seed", 'class'=>"$rowstyle"));
