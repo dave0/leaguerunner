@@ -1276,13 +1276,13 @@ class Game extends LeaguerunnerObject
 
       // if no home field, try to adhere to the home team's field preference
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND (t.region_preference = f.region OR t.region_preference = (SELECT ff.region from field ff where ff.fid = f.parent_fid)) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
 			$slot_id = db_result($result);
 		}
 		
       // if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND (t.region_preference = f.region OR t.region_preference = (SELECT ff.region from field ff where ff.fid = f.parent_fid)) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
 			$slot_id = db_result($result);
 		}
 
