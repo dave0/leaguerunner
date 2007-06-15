@@ -327,7 +327,7 @@ function url($url = NULL, $query = NULL) {
   static $script;
 
   $base_url = 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL;
-  $cleanURL = variable_get('clean_url', 1);
+  $cleanURL = variable_get('clean_url', 0);
 
   if (empty($script)) {
     /*

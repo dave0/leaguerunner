@@ -10,7 +10,6 @@ Prerequisites:
   1) Webserver with PHP 4.3.10 or newer.
      You should be running the most up-to-date version of PHP 4.  Leaguerunner
      does not yet work with PHP 5.
-
   2) MySQL database, and the relevant PHP support for MySQL
 
   3) PHP PEAR libraries
@@ -20,6 +19,11 @@ Prerequisites:
   5) (optional) the ability to run Perl scripts from the commandline for
      maintenance tasks.
 
+  6) (optional) mod_rewrite is required if you want clean URLs
+     (if you want http://your-server/leaguerunner/home instead of
+      http://your-server/leaguerunner/index.php?q=/home)
+
+	 
 Once the prerequisites are installed and configured normally (nothing really
 special is needed for Leaguerunner), you can install the software.
 
@@ -56,3 +60,15 @@ To install Leaguerunner:
 
 Once this is complete, you should be able to point your web browser at the base
 URL and log in using the user 'admin' with a password of 'admin'.
+
+If you can log in, but get an error finding /home:
+  1) check that mod_rewrite is enabled and that the .htaccess file can override
+     the config files. The keywords to search for in httpd.conf (apache) are
+     "mod_rewrite" and "AllowOverride".
+
+  2) if you do not have mod_rewrite, ensure that you have not enabled clean URLs
+     for your configuration (the default is to have them turned off in new
+     installations).  Since this configuration setting is made using the web
+     UI, you will need to directly modify the database to turn it off and gain
+     access to the web interface. To do this, execute the SQL:
+        UPDATE variable SET value = '0' WHERE name = 'clean_url';
