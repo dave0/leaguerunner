@@ -36,7 +36,7 @@ function module_invoke_all($hook, $a1 = NULL, $a2 = NULL, $a3 = NULL, $a4 = NULL
   foreach (module_list() as $name) {
     $result = module_invoke($name, $hook, $a1, $a2, $a3, $a4);
     if (isset($result)) {
-      $return = array_merge($return, $result);
+      $return = array_merge((array) $return, (array) $result);
     }
   }
 
