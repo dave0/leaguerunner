@@ -189,11 +189,14 @@ li.active a {
 
 /* to highlight teams in the standings list */
 .teamhighlight {
-   background-color:#FFC;
 	font-weight: bold;
 }
 
 .tierhighlight {
    background-color:lightgreen;
+}
+.tierhighlightteam {
+   background-color:lightgreen;
+	font-weight: bold;
 }
 

@@ -127,6 +127,11 @@ CREATE TABLE league (
    -- Allow players to see SOTG answers assigned to their team?
 	see_sotg          ENUM('true','false') default 'true',
 
+	-- Placeholder for an email distribution list address for all coordinators of this league
+	coord_list		varchar(100),
+	-- Placeholder for an email distribution list address for all captains of this league
+	capt_list		varchar(100),
+	
 	PRIMARY KEY (league_id)
 );
 

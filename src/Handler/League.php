@@ -357,7 +357,11 @@ class LeagueEdit extends Handler
 
 		$rows[] = array("Players see SOTG?:", 
 			form_select("", "edit[see_sotg]", $formData['see_sotg'], getOptionsFromEnum('league','see_sotg'), "Allows players to see SOTG answers assigned by their opponents to their teams."));
-			
+		
+		$rows[] = array("League Coordinator Email List:", form_textfield('', 'edit[coord_list]', $formData['coord_list'], 35,200, "An email alias for all coordinators of this league (can be a comma separated list of individual email addresses)"));
+
+		$rows[] = array("League Captain Email List:", form_textfield('', 'edit[capt_list]', $formData['capt_list'], 35,200, "An email alias for all captains of this league"));
+		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
 		
@@ -411,6 +415,12 @@ class LeagueEdit extends Handler
 		$rows[] = array("Players see SOTG?:", 
 			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
 
+		$rows[] = array("League Coordinator Email List:", 
+			form_hidden('edit[coord_list]', $edit['coord_list']) . $edit['coord_list']);
+
+		$rows[] = array("League Captain Email List:", 
+			form_hidden('edit[capt_list]', $edit['capt_list']) . $edit['capt_list']);
+
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 
@@ -438,6 +448,8 @@ class LeagueEdit extends Handler
       }
 
 		$this->league->set('see_sotg', $edit['see_sotg']);
+		$this->league->set('coord_list', $edit['coord_list']);
+		$this->league->set('capt_list', $edit['capt_list']);
 		
 		if( !$this->league->save() ) {
 			error_exit("Internal error: couldn't save changes");
@@ -685,23 +697,34 @@ class LeagueStandings extends Handler
 
 		// boolean for coloration of standings table
 		$colored = false;
+		$firsttimethrough = true;
 		
 		while(list($seed, $tid) = each($order)) {
 
-         $rowstyle = "none";
-         if ($teamid == $tid) {
-            $rowstyle = "teamhighlight";
-         } else {
+			if ($firsttimethrough) {
+				$firsttimethrough = false;
+				for ($i = 1; $i < $seed; $i++) {
+					if ($i %8 == 0) {
+						$colored = !$colored;
+					}
+				}
+			}
+			$rowstyle = "none";
 			if ($colored) {
 				$rowstyle = "tierhighlight";
 			}
 			if ($seed % 8 == 0) {
 				$colored = !$colored;
 			}
-         }
-
-         $row = array( array('data'=>"$seed", 'class'=>"$rowstyle"));
-         $row[] = array( 'data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
+			if ($teamid == $tid) {
+				if ($rowstyle == "none") {
+					$rowstyle = "teamhighlight";
+				} else {
+					$rowstyle = "tierhighlightteam";
+				}
+			}
+	         $row = array( array('data'=>"$seed", 'class'=>"$rowstyle"));
+	         $row[] = array( 'data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
 
 			// Don't need the current round for a ladder schedule.
 			if ($this->league->schedule_type == "roundrobin") {
@@ -794,6 +817,13 @@ class LeagueView extends Handler
 		if( count($coordinators) ) {
 			$rows[] = array("Coordinators:", 
 				join("<br />", $coordinators));
+		}
+		
+		if ($this->league->coord_list != null && $this->league->coord_list != "") {
+			$rows[] = array("Coordinator Email List:", l($this->league->coord_list, "mailto:" . $this->league->coord_list));
+		}
+		if ($this->league->capt_list != null && $this->league->capt_list != "") {
+			$rows[] = array("Captain Email List:", l($this->league->capt_list, "mailto:" . $this->league->capt_list));
 		}
 
 		if($this->league->year) {
@@ -1237,7 +1267,7 @@ class LeagueSpirit extends Handler
 		/*
 		 * Grab schedule info 
 		 */
-		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
+		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date DESC,g.game_id') );
 
 		if( !is_array($games) ) {
 			error_exit("There are no games scheduled for this league");

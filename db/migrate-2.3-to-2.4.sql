@@ -82,6 +82,8 @@ CREATE TABLE refund_answers (
 alter table league modify schedule_type ENUM('none','roundrobin','ladder','pyramid','ratings_ladder') default 'roundrobin';
 alter table person add contact_for_feedback ENUM('Y','N') DEFAULT 'Y' after willing_to_volunteer;
 alter table league add see_sotg ENUM('true','false') DEFAULT 'true' after schedule_attempts;
+alter table league add coord_list varchar(100) after see_sotg;
+alter table league add capt_list varchar(100) after coord_list;
 
 alter table schedule add rating_home integer after away_spirit;
 alter table schedule add rating_away integer after rating_home;
