@@ -195,9 +195,9 @@ class League extends LeaguerunnerObject
 		while( $foo = db_fetch_array($result) ) {
 			$id = $foo['game_id'];
 
-			# Expiry is 3 days from game start.
+			# Expiry is 2 days from game start.
 			# TODO: should be per-league configurable
-			$expiry_factor = 3 * 24 * 60 * 60; 
+			$expiry_factor = 2 * 24 * 60 * 60; 
 
 			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
 				$game = game_load( array('game_id' => $id) );
