@@ -1367,141 +1367,204 @@ class League extends LeaguerunnerObject
 	 * the games.  If it runs into problems then we use the wrapper
 	 * function that calls this one to retry it.
 	 * If any problems are found then this function rolls back it's changes.
+	 * 
+	 * The algorithm is as follows...
+	 * - start at either top or bottom of ordered ladder
+	 * - grab a "group" of teams, starting with a group size of 1 (and increasing to a per-league-defined MAX)
+	 * - take the first team in the group, and find a random opponent within the group that meats the GBR criteria
+	 * - remove those 2 teams from the ordered ladder and repeat
+	 * 
 	 */
 	function schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $down)
 	{
-		$ratings_spread = 50;
-				
+		$ratings_closeness = array();
+		$seed_closeness = array();
 		$gtr = array();
 		$versus_team1 = array();
 		$versus_team2 = array();
-		$matched_teams = array();
 
-		// create a copy of the teams, split up into rungs of the ladder...
+		//TODO: make this maximum a per-league variable, and enforce it in the caller function?
+		// maximum standings difference of matched teams:
+		$MAX_STANDINGS_DIFF = 8;
+		// NOTE: that's not REALLY the max standings diff... 
+		// it's more like the max grouping of teams to use as possible opponents, and they
+		// may be well over 8 seeds apart...
+		
+		// current standings diff (starts at 1, counts up to MAX_STANDINGS_DIFF)
+		$CURRENT_STANDINGS_DIFF = 1;
+		
+		$NUM_TIMES_TO_TRY_CURRENT = 50;
+		
+		// copy the games before repeat variable
+		$gbr = $games_before_repeat;
+		// copy the teams array
+		$workingteams = $teams;
+		
 		if ($down == 1) {
-			$teams = array_reverse($teams);  // go up instead
+			$workingteams = array_reverse($workingteams);  // go up instead
 		}
 		
-		$current_team = array_shift($teams);
-		
-		while($current_team != null) {
-				
-			// gotta load this team's games to see who they've played recently...
-			$past_games = game_load_many( array( 'either_team' => $current_team->team_id, '_order' => 'g.game_date') );
-			if ($past_games == null)
-				$past_games = array();
+		// main loop - go through all of the teams
+		while(sizeof($workingteams) > 0) {
 
-			// make the most recent game first in the array:
-			$past_games = array_reverse($past_games);
+			// start with the first team (remove from array)
+			$current_team = array_shift($workingteams);
 
-			// now, loop through the past_games array to find the most recent teams
-			$recent_teams = array();
-			foreach ($past_games as $game) {
-				if ($game->home_team != $current_team->team_id) {
-					$recent_teams[] = $game->home_team;
-				} else {
-					$recent_teams[] = $game->away_team;
-				}
-				if (count($recent_teams) == $games_before_repeat) {
-					break; // We don't need or want more than the most recent ones
-				}
-			}
-
-			// this is the local variable for this loop....
-			$single_gtr = $games_before_repeat;
-				
-			// now find them an opponent:
-			$opponent = null;
+			// get the group of teams that are possible opponents
 			$possible_opponents = array();
+			for ($i = 0; $i < $CURRENT_STANDINGS_DIFF; $i++) {
+				if ( sizeof($workingteams) > 0) {
+					array_unshift($possible_opponents, array_shift($workingteams));
+				} else {
+					break;
+				}
+			}
+			
+			$past_games = $this->getRecentGames($current_team->team_id, $gbr);
 
-			$recent_teams_backup = $recent_teams;
-			$multiplier = 1;
-			$use_ratings_closeness = true;
-			while (sizeof($possible_opponents) == 0) {
-				foreach ($teams as $team) {
-					// if the team is in the list of recent teams, it cannot be a possible opponent
-					if ( in_array($team->team_id, $recent_teams) ) {
-						continue;
+			$new_possible_opponents = array();
+			// now, loop through the possible opponents and save only the ones who have not been in recent games
+			foreach ($possible_opponents as $po) {
+				$recent = false;
+				foreach ($past_games as $game) {
+					$teamid = $game->home_team;
+					if ($game->away_team != $current_team->team_id) {
+						$teamid = $game->away_team;
 					}
-					if ($use_ratings_closeness) {
-						// if the team's rating is within 50 points * the multiplier, consider this team as a possible opponent
-						if ( abs($team->rating - $current_team->rating) < $ratings_spread*$multiplier) {
-							array_push($possible_opponents, $team);
-						}
-					} else {
-						// only put 3 possible opponents when in this mode...
-						if ( count($possible_opponents) < 3 ) {
-							array_push($possible_opponents, $team);
-						} else {
-							break;
-						}
+					if ($po->team_id == $teamid) {
+						$recent = true;
+						break;
 					}
 				}
-				reset($teams);
-				// if at this point there are no possible opponents, then you have to relax one of the restrictions:
-				// either relax the games before repeat, or relax the within XXX rating points...
-				if ( sizeof($possible_opponents) == 0 ) {
-					// first thing to try is increase the multiplier:
-					if ($use_ratings_closeness && $multiplier == 1) {
-						$multiplier = 2;
-					} else if ($use_ratings_closeness && $multiplier == 2) {
-						$multiplier = 3;
-					} else {
-						// next thing to try is decrease games before repeat:
-						$single_gtr--;
-						// and put the multiplier back
-						$multiplier = 1;
-
-						// and now, drop the last element of the $recent_teams array, since it's size should match the games before repeat
-						array_pop($recent_teams);
-												
-						// but, if games before repeat goes negative, you're screwed!
-						if ($single_gtr < 0) {
-							// turn off the closeness of ratings restriction and start again, since it's likely that that is
-							// the restriction that is causing us not to find a match
-							if ($use_ratings_closeness) {
-								$use_ratings_closeness = false;
-								$recent_teams = $recent_teams_backup;
-								$single_gtr = $games_before_repeat;
-							} else {
-								print "<br><b>FAILURE: scheduler cannot find valid opponents for " . $current_team->team_id . "</b></br>";
-								return false;
-							}
-						}
-					}
-				} // end if sizeof possible opponents
+				if (!$recent) {
+					// if this possible opponent wasn't a recent opponent, then add it into the new possible opponents list
+					array_push($new_possible_opponents, $po);
+				}
 			}
+
+			// if at this point there are no possible opponents, then you have to relax one of the restrictions:
+			if ( sizeof($new_possible_opponents) == 0 ) {
+				if ($NUM_TIMES_TO_TRY_CURRENT > 0) {
+					$NUM_TIMES_TO_TRY_CURRENT--;
+				} else if ($CURRENT_STANDINGS_DIFF < $MAX_STANDINGS_DIFF) {
+					$NUM_TIMES_TO_TRY_CURRENT = 10;
+					// try increasing the current standings diff...
+					$CURRENT_STANDINGS_DIFF++;
+				} else {
+					$NUM_TIMES_TO_TRY_CURRENT = 10;
+					// try to decrease games before repeat:
+					$gbr--;
+					$CURRENT_STANDINGS_DIFF = 1;
+				}
+										
+				// but, if games before repeat goes negative, you're screwed!
+				if ($gbr < 0) {
+					print "<br><b>FAILURE: scheduler cannot find valid opponents for " . $current_team->team_id . "</b></br>";
+					return false;
+				}
 				
-			// now, randomly choose one of the possible opponents
-			shuffle($possible_opponents);
-			$opponent = $possible_opponents[0];
-					
-			// Now that we've got the opponent, they need to be removed
-			// from their rung so they don't get matched up again.
-			$matched_teams[] = $opponent->team_id;
-			$matched_teams[] = $current_team->team_id;
-					
-			// take the opponent out of the $teams array
-			$tmp_teams = array();
-			foreach($teams as $key=>$thisteam) {
-			if ($thisteam->team_id != $opponent->team_id) {
-				$tmp_teams[$key] = $thisteam;
+				// now, before starting over, put back some stuff...
+				
+				// put back the teams:
+				$workingteams = $teams;
+				
+				// reset these arrays
+				$ratings_closeness = array();
+				$seed_closeness = array();
+				$gtr = array();
+				$versus_team1 = array();
+				$versus_team2 = array();
+				
+				// start over:
+				continue;
+				
+			} // end if sizeof possible opponents
+			
+			// now find them an opponent by randomly choosing one of the remaining possible opponents
+			srand(make_seed());
+			shuffle($new_possible_opponents);
+			$opponent = $new_possible_opponents[0];
+			
+			// now, put the original possible opponents back into the teams array, except for the real opponent
+			foreach ($possible_opponents as $po) {
+				if ($po->team_id != $opponent->team_id) {
+					array_unshift($workingteams, $po);
+				}
 			}
-			}
-			$teams = $tmp_teams;
-
+			
 			// Create the matchup
 			$versus_team1[] = $current_team;
 			$versus_team2[] = $opponent;
-			$gtr[] = $games_before_repeat - $single_gtr;
+			$gtr[] = $games_before_repeat - $gbr;
 			
-			// next team
-			$current_team = array_shift($teams);
-		}
+			$counter = 0;
+			$seed1 = 0;
+			$seed2 = 0;
+			$rating1 = $current_team->rating;
+			$rating2 = $opponent->rating;
+			foreach ($teams as $t) {
+				$counter++;
+				if ($t->team_id == $current_team->team_id) {
+					$seed1 = $counter;
+				}
+				if ($t->team_id == $opponent->team_id) {
+					$seed2 = $counter;
+				}
+				if ($seed1 != 0 && $seed2 != 0) {
+					break;
+				}
+			}
+			$seed_closeness[] = abs($seed2-$seed1);
+			$ratings_closeness[] = pow($rating1-$rating2, 2);
+			
+		} // main loop
 
-		return array(true, $versus_team1, $versus_team2, $gtr);
+		return array(true, $versus_team1, $versus_team2, $gtr, $seed_closeness, $ratings_closeness);
 	}
 
+	function getRecentGames( $teamid, $gbr ) {
+		static $recent_games_cache = array();
+		$past_games = array();
+		$load_from_db = true;
+		$now = time();
+
+		if ($recent_games_cache[$teamid] != null) {
+			$past_games = $recent_games_cache[$teamid];
+			$time = $past_games[0]; // first item in the array is the timestamp of when it was added to the cache
+			// if this data is more than 1 minute old, get rid of it...
+			if ($now - $time > 60) {
+				$past_games = array();
+				$load_from_db = true;
+			} else {
+				$load_from_db = false;
+			}
+		}
+		if ($load_from_db) {
+			// gotta load this team's games to see who they've played recently...
+			$past_games = game_load_many( array( 'either_team' => $teamid, '_order' => 'g.game_date') );
+			if ($past_games == null)
+				$past_games = array();
+			// make the most recent game first in the array:
+			$past_games = array_reverse($past_games);
+			// put the time as the first element:
+			array_unshift($past_games, $now);
+			// save in the cache
+			$recent_games_cache[$teamid] = $past_games;
+		}
+
+		// reduce the past_games down to be only equal to the current games_before_repeat (gbr)
+		$return = array();
+		// start from 1 since element 0 is the timestamp
+		for ($i = 1; $i <= $gbr; $i++) {
+			if ( $i < sizeof($past_games) ) {
+				array_push($return, $past_games[$i]);
+			} else {
+				break;
+			}
+		}
+		
+		return $return;
+	}
 
 	/*
 	* versus team 1 and 2 arrays
@@ -1729,12 +1792,20 @@ class League extends LeaguerunnerObject
 
 		$versus_team1 = array();
 		$versus_team2 = array();
-		$gtr = array();
+		$gbr_diff = array();
+		$seed_closeness = array();
+		$ratings_closeness = array();
 
 		for ($j = 0; $j < $max_retries; $j++) {
-			set_time_limit(30); // Give this one call 30 seconds to return
+			
+			if (array_sum($seed_closeness) == sizeof($teams)/2) {
+				// that's enough - don't bother getting any more, you have a perfect schedule (ie: 1 vs 2, 3 vs 4, etc).
+				break;
+			}
+			
+			set_time_limit(45); // Give this one call 45 seconds to return
 			$ret = $this->schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $j%2);
-
+			
 			if ($ret[0] == false) {
 				echo ". ";
 				flush();
@@ -1745,25 +1816,36 @@ class League extends LeaguerunnerObject
 			// Keep the best schedule by checking how many times we had to decrement
 			// the games_before_repeat restriction in order to be able to generate
 			// this schedule...
-			if ( count($gtr) == 0  ||  array_sum($gtr) > array_sum($ret[3]) ) {
+			
+			// The best possible schedule will first have the smallest games before repeat sum,
+			// then will have the smallest seed_closeness, and then will have the smallest ratings_closeness
+			
+			if (	( count($gbr_diff) == 0  ||  array_sum($gbr_diff) > array_sum($ret[3]) ) ||
+					( array_sum($gbr_diff) == array_sum($ret[3]) && array_sum($seed_closeness) > array_sum($ret[4]) ) ||
+					( array_sum($gbr_diff) == array_sum($ret[3]) && array_sum($seed_closeness) == array_sum($ret[4]) && array_sum($ratings_closeness) > array_sum($ret[5]) ) ) {
 				$versus_team1 = $ret[1];
 				$versus_team2 = $ret[2];
-				$gtr = $ret[3];
-				reset($gtr);
+				$gbr_diff = $ret[3];
+				$seed_closeness = $ret[4];
+				$ratings_closeness = $ret[5];
+				echo "! ";
 			}
 
-			// if we got the perfect result, we're done... else keep browser alive...
-			if ( array_sum($gtr) == 0 ) {
-				break;
-			} else {
-				echo ". ";
-				flush();
-				ob_flush();
-				continue;
-			}
+			// keep browser alive...
+			echo ". ";
+			flush();
+			ob_flush();
+			continue;
 		}
 		
-		if ( array_sum($gtr) == 0 ) {
+		//TONY
+		print "<br>";
+		foreach($seed_closeness as $sc) {
+			print "$sc ";
+		}
+		print "<br>";
+		
+		if ( array_sum($gbr_diff) == 0 ) {
 			echo "Complete!</p>";
 		} else {
 			echo "Complete...</p>";
@@ -1777,22 +1859,24 @@ class League extends LeaguerunnerObject
 			return $ret;
 		}
 
-	//         if ( ! array_sum($gtr) == 0 ) {
+	//         if ( ! array_sum($gbr_diff) == 0 ) {
 		print "<div class='schedule'>";
 		print "<table align=center>";
-		print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td><td class='column-heading'>Played each other<br>X games ago...</td></tr>";
-		for ($i = 0; $i < count($gtr); $i++)  {
+		print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td>";
+		print "<td class='column-heading'>Seed Diff<br>(". array_sum($seed_closeness) .")</td><td class='column-heading'>Played each other<br>X games ago...</td></tr>";
+		for ($i = 0; $i < count($gbr_diff); $i++)  {
 			$font = "black";
-			$played = $gtr[$i];
+			$played = $gbr_diff[$i];
 			if ($played != 0) {
 				$font = "red";
-				$played = $games_before_repeat - $gtr[$i] + 1;
+				$played = $games_before_repeat - $gbr_diff[$i] + 1;
 			} else {
 				$played = "&nbsp;";
 			}
 			print "<tr>";
 			print "<td><font color=$font>" . $versus_team1[$i]->name . "</font></td>";
 			print "<td><font color=$font>" . $versus_team2[$i]->name . "</font></td>";
+			print "<td><font color=$font>" . $seed_closeness[$i] . "</font></td>";
 			print "<td align=center><font color=$font>" . $played . "</font></td>";
 			print "</tr>\n";
 		}
@@ -2103,4 +2187,10 @@ function teams_sort_rating(&$a, &$b)
 	return 0;
 }
 
+// seed with microseconds
+function make_seed()
+{
+  list($usec, $sec) = explode(' ', microtime());
+  return (float) $sec + ((float) $usec * 100000);
+}
 ?>
