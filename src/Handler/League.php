@@ -443,7 +443,7 @@ class LeagueEdit extends Handler
 		$this->league->set('current_round', $edit['current_round']);
 		$this->league->set('schedule_type', $edit['schedule_type']);
 
-      if ($edit['schedule_type'] == 'pyramid') {
+      if ($edit['schedule_type'] == 'pyramid' || $edit['schedule_type'] == 'ratings_ladder') {
 		   $this->league->set('games_before_repeat', $edit['games_before_repeat']);
       }
 
