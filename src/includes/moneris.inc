@@ -38,6 +38,9 @@ function generatePayForm ($event, $order_num)
 
 SCRIPT;
 
+	// Generate a unique order id
+	$unique_order_num = $order_num . sprintf('-%010d', time());
+
 	// Build the online payment form
 	if ($test_payments) {
 		$online = form_hidden('ps_store_id', variable_get('test_store', ''));
@@ -55,7 +58,7 @@ SCRIPT;
 	$online .= form_hidden('subtotal1', $event->cost);
 	$online .= form_hidden('cust_id', $lr_session->user->user_id);
 	$online .= form_hidden('email', $lr_session->user->email);
-	$online .= form_hidden('order_id', $order_num);
+	$online .= form_hidden('order_id', $unique_order_num);
 	$online .= form_hidden('lang', 'en-ca');
 	if ($event->gst > 0) {
 		$online .= form_hidden('gst', $event->gst);
@@ -72,7 +75,7 @@ SCRIPT;
 	$online .= form_hidden('bill_country', 'Canada');
 	$online .= form_hidden('bill_phone', $lr_session->user->home_phone);
 
-	$online .= para('If you want to pay online with Visa, MasterCard, American Express or INTERAC&reg; Online, ' . form_submit('click here', 'submit', 'onClick="open_payment_window();"') . ' to proceed to the secure online payment form (which will open in a new window).');
+	$online .= para('If you want to pay online with Visa, MasterCard or INTERAC&reg; Online, ' . form_submit('click here', 'submit', 'onClick="open_payment_window();"') . ' to proceed to the secure online payment form (which will open in a new window).');
 
 	if ($test_payments) {
 		$output .= form($online, 'post', 'https://esqa.moneris.com/HPPDP/index.php', 'target="payment_window" name="payment_form"');

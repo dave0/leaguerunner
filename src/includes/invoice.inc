@@ -35,7 +35,7 @@
 				print $trans_name;
 		}
 	?></b></td></tr>
-	<tr><td>Order ID:</td><td><?php print $order_id; ?></td></tr>
+	<tr><td>Order ID:</td><td><?php print $long_order_id; ?></td></tr>
 	<tr>
 		<td>Date / Time:</td><td><?php print "$date_stamp  $time_stamp"; ?></td>
 		<td>Approval Code:</td><td><?php print $bank_approval_code; ?></td>

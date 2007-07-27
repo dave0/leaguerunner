@@ -8,9 +8,6 @@ function registration_dispatch()
 	$op = arg(1);
 	$id = arg(2);
 	switch($op) {
-		case 'clean':
-			$obj = new RegistrationClean;
-			break;
 		case 'view':
 			$obj = new RegistrationView;
 			$obj->registration = registration_load( array('order_id' => $id ) );
@@ -18,6 +15,8 @@ function registration_dispatch()
 		case 'edit':
 			$obj = new RegistrationEdit;
 			$obj->registration = registration_load( array('order_id' => $id) );
+			$obj->event = event_load( array('registration_id' => $obj->registration->registration_id) );
+			$obj->registration_form_load($obj->registration->registration_id, true);
 			break;
 		case 'refund':
 			$obj = new RegistrationRefund;
@@ -30,6 +29,7 @@ function registration_dispatch()
 		case 'register':
 			$obj = new RegistrationRegister;
 			$obj->event = event_load( array('registration_id' => $id) );
+			$obj->registration_form_load($id, true);
 			break;
 		case 'unregister':
 			$obj = new RegistrationUnregister;
@@ -61,7 +61,7 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 		case 'register':
 		case 'unregister':
 			// Only players with completed profiles can register
-			return $lr_session->is_complete();
+			return ($lr_session->user->status == 'active' && $lr_session->is_complete());
 		case 'history':
 			// Players with completed profiles can view their own history
 			if ($id) {
@@ -70,7 +70,6 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 			else {
 				return ($lr_session->is_complete());
 			}
-		case 'clean':
 		case 'statistics':
 			// admin only
 			break;
@@ -89,7 +88,6 @@ function registration_menu()
 		}
 
 		if( $lr_session->is_admin() ) {
-			//menu_add_child('event','registration/clean','clean test registrations', array('link' => 'registration/clean') );
 			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
 			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
 		}
@@ -118,41 +116,32 @@ function registration_add_to_menu( &$registration )
 		}
 		else {
 			if ($lr_session->has_permission('registration','unregister', $registration->order_id) ) {
-				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id/$registration->registration_id"));
+				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id"));
 			}
 		}
 	}
 }
 
-class RegistrationClean extends Handler
-{
-	function has_permission()
+/**
+ * Base class for registration form functionality
+ */
+class RegistrationForm extends Handler
 	{
-		global $lr_session;
-		return $lr_session->has_permission('registration','clean');
-	}
-
-	function process ()
+	function registration_form_load ($id, $add_extra)
 	{
-		global $lr_session;
-		db_query('DELETE
-					FROM
-						registrations
-					WHERE
-						registration_id > 24
-					AND
-						user_id = %d',
-				$lr_session->user->user_id);
-		$x = db_affected_rows();
+		$this->formkey = 'registration_' . $id;
+		$this->formbuilder = new FormBuilder;
+		$this->formbuilder->load($this->formkey);
 
-		db_query('DELETE
-					FROM
-						registration_answers
-					WHERE
-						user_id = %d',
-				$lr_session->user->user_id);
+		if( $add_extra && isset($this->event) ) {
+			AddAutoQuestions( $this->formbuilder, $this->event->type );
+		}
 
-		return para("$x of your testing registrations have been removed.");
+		// Other code relies on the formbuilder variable not being set if there
+		// are no questions.
+		if( ! count( $this->formbuilder->_questions ) ) {
+			unset( $this->formbuilder );
+		}
 	}
 }
 
@@ -206,11 +195,8 @@ class RegistrationView extends Handler
 							FROM
 								registration_answers
 							WHERE
-								user_id = %d
-							AND
-								registration_id = %d',
-							$this->registration->user_id,
-							$this->registration->registration_id);
+								order_id = %d',
+							$this->registration->order_id);
 
 		$prefrows = array();
 		if(0 != db_num_rows($result)) {
@@ -218,8 +204,8 @@ class RegistrationView extends Handler
 			while($row = db_fetch_array($result)) {
 				$prefrows[] = $row;
 			}
+			$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
 		}
-		$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
 
 		// Get payment audit information, if available
 		$result = db_query('SELECT
@@ -245,7 +231,7 @@ class RegistrationView extends Handler
 	}
 }
 
-class RegistrationEdit extends Handler
+class RegistrationEdit extends RegistrationForm
 {
 	var $registration;
 
@@ -267,34 +253,24 @@ class RegistrationEdit extends Handler
 		));
 		$edit = $_POST['edit'];
 
-		$formkey = 'registration_' . $this->registration->registration_id;
-
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm( $formkey, $edit );
+				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'submit':
-				$this->perform( $formkey, $edit );
+				$this->perform( $edit );
 				local_redirect(url("registration/view/" . $this->registration->order_id));
 				break;
 			default:
-				$edit = object2array($this->registration);
-				$rc = $this->generateForm( $formkey, $edit );
+				$rc = $this->generateForm();
 		}
 
 		return $rc;
 	}
 
-	function generateForm( $formkey, $data = array() )
+	function generateForm()
 	{
 		$this->title = 'Edit registration';
-
-		$formbuilder = formbuilder_load($formkey);
-		// TODO: handle registrations with no associated questions
-		if (! $formbuilder )
-		{
-			return para( 'Error: No event survey found!' );
-		}
 
 		$output = form_hidden('edit[step]', 'confirm');
 
@@ -322,17 +298,16 @@ class RegistrationEdit extends Handler
 		$form .= form_textarea('Notes', 'edit[notes]', $this->registration->notes, 45, 5);
 		$output .= form_group('Registration details', $form);
 
+		if ( $this->formbuilder )
+		{
 		// Get registration answers/preferences
 		$result = db_query('SELECT
 								qkey, akey
 							FROM
 								registration_answers
 							WHERE
-								user_id = %d
-							AND
-								registration_id = %d',
-							$this->registration->user_id,
-							$this->registration->registration_id);
+									order_id = %d',
+								$this->registration->order_id);
 
 		if(0 != db_num_rows($result)) {
 			$prefrows = array();
@@ -340,11 +315,12 @@ class RegistrationEdit extends Handler
 			while($row = db_fetch_array($result)) {
 				$prefrows[$row['qkey']] = $row['akey'];
 			}
-			$formbuilder->bulk_set_answers ($prefrows);
-			$output .= form_group('Registration answers', $formbuilder->render_editable (true));
+				$this->formbuilder->bulk_set_answers ($prefrows);
+				$output .= form_group('Registration answers', $this->formbuilder->render_editable (true));
 		}
 		else {
-			$output .= form_group('Registration answers', $formbuilder->render_editable (false));
+				$output .= form_group('Registration answers', $this->formbuilder->render_editable (false));
+			}
 		}
 
 		$output .= form_submit('Submit') .  form_reset('Reset');
@@ -352,16 +328,17 @@ class RegistrationEdit extends Handler
 		return form($output);
 	}
 
-	function generateConfirm ( $formkey, $edit )
+	function generateConfirm ( $edit )
 	{
 		$this->title = 'Confirm updates';
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
-		$formbuilder = formbuilder_load($formkey);
-		// TODO: handle registrations with no associated questions
-		$formbuilder->bulk_set_answers( $_POST[$formkey] );
-		$dataInvalid .= $formbuilder->answers_invalid();
+		if( $this->formbuilder )
+		{
+			$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+			$dataInvalid .= $this->formbuilder->answers_invalid();
+		}
 
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
@@ -374,9 +351,12 @@ class RegistrationEdit extends Handler
 		$rows[] = array( 'Notes', form_hidden('edit[notes]', $edit['notes']) . check_form($edit['notes']) );
 		$output .= form_group('Registration details', "<div class='pairtable'>" . table(null, $rows) . '</div>');
 
-		$form = $formbuilder->render_viewable();
-		$form .= $formbuilder->render_hidden();
-		$output .= form_group('Registration answers', $form);
+		if( $this->formbuilder )
+		{
+			$form = $this->formbuilder->render_viewable();
+			$form .= $this->formbuilder->render_hidden();
+			$output .= form_group('Registration answers', $form);
+		}
 
 		$output .= para('Please confirm that this data is correct and then proceed to arrange payment.');
 		$output .= para(form_submit('submit'));
@@ -384,14 +364,15 @@ class RegistrationEdit extends Handler
 		return form($output);
 	}
 
-	function perform ( $formkey, &$edit )
+	function perform ( &$edit )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 
-		$formbuilder = formbuilder_load($formkey);
-		// TODO: handle registrations with no associated questions
-		$formbuilder->bulk_set_answers( $_POST[$formkey] );
-		$dataInvalid .= $formbuilder->answers_invalid();
+		if( $this->formbuilder )
+		{
+			$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+			$dataInvalid .= $this->formbuilder->answers_invalid();
+		}
 
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
@@ -404,8 +385,11 @@ class RegistrationEdit extends Handler
 			error_exit("Internal error: couldn't save changes to the registration details");
 		}
 
-		if( !$this->registration->save_answers( $_POST[$formkey] ) ) {
-			error_exit('Error saving registration question answers.');
+		if( $this->formbuilder )
+		{
+			if( !$this->registration->save_answers( $this->formbuilder, $_POST[$this->formkey] ) ) {
+				error_exit('Error saving registration question answers.');
+			}
 		}
 
 		return true;
@@ -489,7 +473,7 @@ class RegistrationRefund extends Handler
 /**
  * Registration handler
  */
-class RegistrationRegister extends Handler
+class RegistrationRegister extends RegistrationForm
 {
 	function has_permission()
 	{
@@ -508,19 +492,26 @@ class RegistrationRegister extends Handler
 		}
 
 		$edit = $_POST['edit'];
-		$formkey = 'registration_' . $this->event->registration_id;
 
 		switch($edit['step']) {
 			case 'confirm':
-				$rc = $this->generateConfirm($formkey);
+				$rc = $this->generateConfirm();
 				break;
 
 			case 'submit':
-				$rc = $this->generatePay($formkey);
+				$this->removePreregistration();
+				$rc = $this->save();
+				$rc .= $this->generatePay();
 				break;
 
 			default:
-				$rc = $this->generateForm($formkey);
+				if( $this->formbuilder ) {
+					$rc = $this->generateForm();
+				}
+				else {
+					$rc = $this->save();
+					$rc .= $this->generatePay();
+				}
 		}
 
 		$this->setLocation(array(
@@ -530,13 +521,12 @@ class RegistrationRegister extends Handler
 		return $rc;
 	}
 
-	function generateForm ($formkey)
+	function generateForm ()
 	{
 		$this->title = 'Preferences';
 
-		$formbuilder = formbuilder_load($formkey);
-		// TODO: handle registrations with no associated questions
-		if (! $formbuilder )
+		// This shouldn't happen...
+		if (! $this->formbuilder )
 		{
 			return para( 'Error: No event survey found!' );
 		}
@@ -550,27 +540,40 @@ class RegistrationRegister extends Handler
 
 		$output .= form_hidden('edit[step]', 'confirm');
 
-		$output .= $formbuilder->render_editable (false);
+		$output .= $this->formbuilder->render_editable (false);
 		$output .= para(form_submit('submit', 'submit') . form_reset('reset'));
 
 		return form($output);
 	}
 
-	function generateConfirm($formkey)
+	function generateConfirm()
 	{
+		global $lr_session;
+
+		$output = '';
 		$this->title = 'Confirm preferences';
 
-		$formbuilder = formbuilder_load($formkey);
-		// TODO: handle registrations with no associated questions
-		$formbuilder->bulk_set_answers( $_POST[$formkey] );
-		$dataInvalid = $formbuilder->answers_invalid();
+		// This shouldn't happen...
+		if (! $this->formbuilder )
+		{
+			return para( 'Error: No event survey found!' );
+		}
+
+		$process_func = "confirm_{$this->event->type}";
+		$dataInvalid = '';
+		if( method_exists( $this, $process_func ) ) {
+			$dataInvalid .= $this->$process_func();
+		}
+
+		$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+		$dataInvalid .= $this->formbuilder->answers_invalid();
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$form = form_hidden('edit[step]', 'submit');
-		$form .= $formbuilder->render_viewable();
-		$form .= $formbuilder->render_hidden();
+		$form .= $this->formbuilder->render_viewable();
+		$form .= $this->formbuilder->render_hidden();
 		$output = form_group('Preferences', $form);
 
 		$output .= para('Please confirm that this data is correct and then proceed to arrange payment.');
@@ -579,28 +582,115 @@ class RegistrationRegister extends Handler
 		return form($output);
 	}
 
-	function generatePay($formkey)
+	function save()
 	{
 		global $lr_session;
-		$this->title = 'Arrange for payment';
 
-		$reg = new Registration;
-		$reg->set('user_id', $lr_session->user->user_id);
-		$reg->set('registration_id', $this->event->registration_id);
+		$output = para();
 
-		if (! $reg->save() ) {
+		$process_func = "save_{$this->event->type}";
+		if( method_exists( $this, $process_func ) ) {
+			$output .= $this->$process_func();
+		}
+
+		$this->registration = new Registration;
+		$this->registration->set('user_id', $lr_session->user->user_id);
+		$this->registration->set('registration_id', $this->event->registration_id);
+
+		if (! $this->registration->save() ) {
 			error_exit('Could not create registration record.');
 		}
 
-		if( !$reg->save_answers( $_POST[$formkey] ) ) {
-			error_exit('Error saving registration question answers.');
+		if( ! $this->formbuilder ) {
+			return $output . para(theme_error('Your registration for this event has been confirmed.'));
 		}
 
-		$output = para('Your preferences for this registration have been saved.');
+		if( !$this->registration->save_answers( $this->formbuilder, $_POST[$this->formkey] ) ) {
+			error_exit('Error saving registration question answers.');
+		}
+		$output .= para(theme_error('Your preferences for this registration have been saved.'));
+
+		return $output;
+	}
+
+	/**
+	 * The following functions are for doing any type-specific handling.
+	 * Types that have no specific handling do not need to be implemented.
+	 */
+	function confirm_team_league()
+	{
+		$auto_data = array();
+		foreach( $_POST[$this->formkey] as $q => $a ) {
+			if( substr( $q, 0, 8 ) == '__auto__' ) {
+				$auto_data[substr( $q, 8 )] = $a;
+			}
+		}
+		$auto_data['status'] = 'closed';
+
+		$team = new TeamCreate;
+		return $team->isDataInvalid( $auto_data );
+	}
+
+	function confirm_team_event()
+	{
+		return $this->confirm_team_league();
+	}
+
+	function save_team_league()
+	{
+		$auto_data = array();
+		foreach( $_POST[$this->formkey] as $q => $a ) {
+			if( substr( $q, 0, 8 ) == '__auto__' ) {
+				$auto_data[substr( $q, 8 )] = $a;
+			}
+		}
+		$auto_data['status'] = 'closed';
+
+		$team = new TeamCreate;
+		$team->team = new Team;
+		if( $team->perform( $auto_data ) ) {
+			return para( theme_error( 'A team record has been created with you as captain.' ) );
+		}
+		else {
+			return para( theme_error( 'Failed to create the team record. Contact ' . variable_get('app_admin_email', 'webmaster@localhost') . ' to ensure that this situation is resolved.' ) );
+		}
+	}
+
+	function save_team_event()
+	{
+		return $this->save_team_league();
+	}
+
+	/**
+	 * Generate the page about payment information.
+	 */
+	function generatePay()
+	{
+		global $lr_session;
+
+		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
+
+		if( $this->event->cost == 0 ) {
+			db_query ('UPDATE
+							registrations
+						SET
+							paid = 1
+						WHERE
+							order_id = %d',
+						$this->registration->order_id);
+			if ( 1 != db_affected_rows() ) {
+				$errors .= para( theme_error( "Your registration was received, but there was an error updating the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc." ) );
+			}
+
+			$this->title = 'Registration complete';
+
+			return para('Since there is no payment associated with this event, your registration is now complete.');
+		}
+
+		$this->title = 'Arrange for payment';
 
 		if( variable_get( 'online_payments', 1 ) )
 		{
-			$order_num = sprintf(variable_get('order_id_format', '%d'), $reg->order_id);
 			$output .= generatePayForm($this->event, $order_num);
 
 			$output .= OfflinePaymentText($order_num);
@@ -620,6 +710,19 @@ class RegistrationRegister extends Handler
 	{
 		// TODO check again for prereq/antireq to keep people from feeding a manual URL
 		return true;
+	}
+
+	function removePreregistration()
+	{
+		global $lr_session;
+		$result = db_query ('DELETE FROM
+								preregistrations
+							WHERE
+								user_id = %d
+							AND
+								registration_id = %d',
+							$lr_session->user->user_id,
+							$this->event->registration_id);
 	}
 }
 
@@ -647,11 +750,8 @@ class RegistrationUnregister extends Handler
 							FROM
 								registration_answers
 							WHERE
-								user_id = %d
-							AND
-								registration_id = %d',
-						$lr_session->user->user_id,
-						arg(3));
+								order_id = %d',
+						$this->order_id);
 
 				db_query('DELETE
 							FROM
@@ -724,10 +824,13 @@ function close_and_redirect(url)
 <body>
 HTML_HEADER;
 
+		$order_num_len = strlen(sprintf(variable_get('order_id_format', '%d'), 0));
+
 		// Check for cancellation
 		$cancel = $_GET['cancelTXN'];
 		if ($cancel) {
-			$order_id = $_GET['order_id'];
+			$long_order_id = $_GET['order_id'];
+			$order_id = substr( $long_order_id, 0, $order_num_len );
 			print para(theme_error('You cancelled the transaction.'));
 
 			print OfflinePaymentText($order_id);
@@ -737,7 +840,8 @@ HTML_HEADER;
 
 		else {
 			// Retrieve the parameters sent from the server
-			$order_id = $_GET['response_order_id'];
+			$long_order_id = $_GET['response_order_id'];
+			$order_id = substr( $long_order_id, 0, $order_num_len );
 			$date_stamp = $_GET['date_stamp'];
 			$time_stamp = $_GET['time_stamp'];
 			$bank_transaction_id = $_GET['bank_transaction_id'];
@@ -766,10 +870,12 @@ HTML_HEADER;
 				$issuer_confirmation = '';
 			}
 
+			// TODO: Make the extraction of the short order ID configurable
+			$short_order_id = substr($order_id, 1);
+
 			// We can't necessarily rely on the session variable, in the
 			// case that the user is signed into tuc.org but the redirect
 			// went to www.tuc.org
-			$short_order_id = substr($order_id, 1);
 			$info = db_fetch_object(
 						db_query( 'SELECT
 										p.firstname,
@@ -911,6 +1017,27 @@ class RegistrationHistory extends Handler
 							($row['paid'] ? 'Yes' : 'No') );
 		}
 
+		/* Add in any preregistrations */
+		$result = db_query('SELECT
+								e.registration_id,
+								e.name
+							FROM
+								preregistrations r
+							LEFT JOIN
+								registration_events e
+							ON
+								r.registration_id = e.registration_id
+							WHERE
+								r.user_id = %d
+							ORDER BY
+								r.registration_id',
+							$this->user);
+		while($row = db_fetch_array($result)) {
+			$name = l($row['name'], 'event/view/' . $row['registration_id']);
+			$order = 'Prereg';
+			$rows[] = array( $name, $order, '', 'No' );
+		}
+
 		$header = array('Event', 'Order ID', 'Date', 'Paid?');
 		$output = table($header, $rows);
 
@@ -935,6 +1062,39 @@ function RefundPolicyText()
 	$output .= variable_get('refund_policy_text', '');
 
 	return $output;
+}
+
+function AddAutoQuestions( &$formbuilder, $type )
+{
+	switch ($type) {
+		// Individual registrations have no extra questions at this time
+		case 'individual_event':
+		case 'individual_league':
+			break;
+
+		// League team registrations have these additional questions
+		case 'team_league':
+			$areas = array(
+				'East' => 'East (any field East of Keele St.)',
+				'West' => 'West (any field West of Hwy 404/DVP)',
+				'North' => 'North (any field North of Eglinton)',
+				'South' => 'South (any field South of Hwy 401)',
+				'North East' => 'North East (any field North of Eglinton and East of Keele)',
+				'North West' => 'North West (any field North of Eglinton and East of DVP)',
+				'South East' => 'South East (any field South of Hwy 401 and East of Keele)',
+				'South West' => 'South West (any field South of Hwy 401 and West of DVP)'
+			);
+			$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, $areas);
+			//$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, getOptionsFromEnum('field', 'region'));
+			//$formbuilder->add_question('__auto__status', 'Team Status', 'Is your team open (others can join) or closed (only captain can add players)', 'multiplechoice', true, -48, getOptionsFromEnum('team', 'status'));
+			// Note: intentionally fall through to the next case
+
+		// All team registrations have these additional questions
+		case 'team_event':
+			$formbuilder->add_question('__auto__name', 'Team Name', 'The full name of your team. Text only, no HTML', 'textfield', false, -99);
+			$formbuilder->add_question('__auto__shirt_colour', 'Shirt Colour', "Shirt colour of your team. If you don't have team shirts, pick 'light' or 'dark'", 'textfield', false, -98);
+			break;
+	}
 }
 
 function registration_settings ( )
@@ -990,7 +1150,9 @@ function registration_statistics($args)
 							ON
 								r.registration_id = e.registration_id
 							GROUP BY
-								r.registration_id');
+								r.registration_id
+							ORDER BY
+								e.open DESC, r.registration_id');
 		$rows = array();
 		while($row = db_fetch_array($result)) {
 			$rows[] = array( l($row['name'], "statistics/registration/summary/${row['registration_id']}"),
@@ -1005,21 +1167,17 @@ function registration_statistics($args)
 		if ($level == 'summary')
 		{
 			$id = arg(3);
-			$event_name = db_result( db_query( 'SELECT
-													name
-												FROM
-													registration_events
-												WHERE
-													registration_id = %d',
-												$id ) );
-			if (! $event_name )
+			$event = event_load( array('registration_id' => $id) );
+			if (! $event )
 			{
 				return para( "Unknown event ID $id" );
 			}
 			$output = h2('Event: ' .
-							l($event_name, "event/view/$id"));
+							l($event->name, "event/view/$id"));
 			$rows = array();
 
+			if( ! $event->anonymous )
+			{
 			$result = db_query('SELECT
 									p.gender,
 									COUNT(order_id)
@@ -1042,22 +1200,29 @@ function registration_statistics($args)
 				$sub_table[] = $row;
 			}
 			$rows[] = array("By gender:", table(null, $sub_table));
+			}
 
 			$formkey = 'registration_' . $id;
-			// TODO: handle registrations with no associated questions
 			$formbuilder = formbuilder_load($formkey);
+			if( $formbuilder )
+			{
 			foreach ($formbuilder->_questions as $question)
 			{
 				$qkey = $question->qkey;
 
-				// We don't want to see team name or teammate answers here
-				if (substr(strtolower($qkey), 0, 4) != 'team')
+					// We don't want to see text answers here, they won't group
+					// well
+					if ($question->qtype == 'multiplechoice' )
 				{
 					$result = db_query("SELECT
 											akey,
-											COUNT(user_id)
+												COUNT(registration_answers.order_id)
 										FROM
 											registration_answers
+											LEFT JOIN
+												registrations
+											ON
+												registration_answers.order_id = registrations.order_id
 										WHERE
 											registration_id = %d
 										AND
@@ -1076,10 +1241,22 @@ function registration_statistics($args)
 					$rows[] = array("$qkey:", table(null, $sub_table));
 				}
 			}
+			}
 
+			if( ! count( $rows ) )
+			{
+				$output .= para( 'No statistics to report, as this event is anonymous and has no survey.' );
+			}
+			else
+			{
 			$output .= "<div class='pairtable'>" . table(NULL, $rows) . "</div>";
 
+				if( $event->anonymous ) {
+					$output .= para( l('Download detailed registration list as CSV', "statistics/registration/csv/$id") );
+				} else {
 			$output .= para( l('See detailed registration list', "statistics/registration/users/$id/1") . ' or ' . l('download detailed registration list as CSV', "statistics/registration/csv/$id") );
+				}
+			}
 
 			return form_group('Summary of registrations', $output);
 		}
@@ -1093,19 +1270,17 @@ function registration_statistics($args)
 				$page = 1;
 			}
 
-			$event_name = db_result( db_query( 'SELECT
-													name
-												FROM
-													registration_events
-												WHERE
-													registration_id = %d',
-												$id ) );
-			if (! $event_name )
+			$event = event_load( array('registration_id' => $id) );
+			if (! $event )
 			{
 				return para( "Unknown event ID $id" );
 			}
+			if ( $event->anonymous )
+			{
+				return para( "Cannot view detailed registration list for anonymous event $id" );
+			}
 			$output = h2('Event: ' .
-							l($event_name, "event/view/$id"));
+							l($event->name, "event/view/$id"));
 
 			$items = variable_get('items_per_page', 25);
 			if( $items == 0 ) {
@@ -1177,65 +1352,79 @@ function registration_statistics($args)
 		{
 			$id = arg(3);
 
-			$event_name = db_result( db_query( 'SELECT
-													name
-												FROM
-													registration_events
-												WHERE
-													registration_id = %d',
-												$id ) );
-			if (! $event_name )
+			$event = event_load( array('registration_id' => $id) );
+			if (! $event )
 			{
 				return para( "Unknown event ID $id" );
 			}
 			$formkey = 'registration_' . $id;
-			$formbuilder = formbuilder_load($formkey);
-			// TODO: handle registrations with no associated questions
+			$formbuilder = new FormBuilder;
+			$formbuilder->load($formkey);
+			AddAutoQuestions( $formbuilder, $event->type );
 
-			// Start the output, let the browser know what type it is
-			header('Content-type: application/octet-stream');
-			header("Content-Disposition: attachment; filename=\"$event_name.csv\"");
-			print "\n";
-			$out = fopen('php://stdout', 'w');
-
+			if( ! $event->anonymous ) {
 			$data = array( 'User ID',
+								'Member ID',
 							'First Name',
 							'Last Name',
-							'Email address',
+								'Email Address',
+								'Address',
+								'City',
+								'Province',
+								'Postal Code',
+								'Home Phone',
+								'Work Phone',
+								'Mobile Phone',
 							'Gender',
+								'Birthdate',
 							'Height',
 							'Skill Level',
 							'Shirt Size',
 							'Order ID',
 							'Date',
 							'Paid' );
+			} else {
+				$data = array();
+			}
+
+			if( $formbuilder )
+			{
 			foreach ($formbuilder->_questions as $question)
 			{
 				$data[] = $question->qkey;
 			}
-			$data[] = 'Notes';
+			}
 
-			// Output the header row
+			if( ! $event->anonymous ) {
+			$data[] = 'Notes';
+			}
+
+			if( empty( $data ) ) {
+				return para( 'No details available for download.' );
+			}
+
+			// Start the output, let the browser know what type it is
+			header('Content-type: text/x-csv');
+			header("Content-Disposition: attachment; filename=\"$event->name.csv\"");
+			$out = fopen('php://output', 'w');
 			fputcsv($out, $data);
 
 			$result = db_query('SELECT
 									order_id,
 									DATE_ADD(time, INTERVAL %d MINUTE) as time,
 									paid,
-									p.user_id,
-									p.firstname,
-									p.lastname,
-									p.email,
-									p.gender,
-									p.height,
-									p.skill_level,
-									p.shirtsize
+									p.*,
+									n.pn_email
 								FROM
 									registrations r
 								LEFT JOIN
 									person p
 								ON
 									r.user_id = p.user_id
+								LEFT JOIN
+									nuke_users n
+								ON
+									r.user_id = n.pn_uid
 								WHERE
 									r.registration_id = %d
 								ORDER BY
@@ -1246,19 +1435,34 @@ function registration_statistics($args)
 			while($row = db_fetch_array($result)) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
+				if( ! $event->anonymous ) {
 				$data = array( $row['user_id'],
+									$row['member_id'],
 								$row['firstname'],
 								$row['lastname'],
-								$row['email'],
+									$row['pn_email'],
+									$row['addr_street'],
+									$row['addr_city'],
+									$row['addr_prov'],
+									$row['addr_postalcode'],
+									$row['home_phone'],
+									$row['work_phone'],
+									$row['mobile_phone'],
 								$row['gender'],
+									$row['birthdate'],
 								$row['height'],
 								$row['skill_level'],
 								$row['shirtsize'],
 								$order_id,
 								$row['time'],
 								($row['paid'] ? 'Yes' : 'No') );
+				} else {
+					$data = array();
+				}
 
 				// Add all of the answers
+				if( $formbuilder )
+				{
 				foreach ($formbuilder->_questions as $question)
 				{
 					$data[] = db_result (db_query("SELECT
@@ -1266,17 +1470,17 @@ function registration_statistics($args)
 										FROM
 											registration_answers
 										WHERE
-											user_id = '%s'
-										AND
-											registration_id = %d
+												order_id = %d
 										AND
 											qkey = '%s'",
-										$row['user_id'],
-										$id,
+											$row['order_id'],
 										$question->qkey));
 				}
+				}
 
+				if( ! $event->anonymous ) {
 				$data[] = $row['notes'];
+				}
 
 				// Output the data row
 				fputcsv($out, $data);

@@ -100,20 +100,14 @@ class Registration extends LeaguerunnerObject
 					FROM
 						registration_answers
 					WHERE
-						user_id = %d
-					AND
-						registration_id = %d',
-					$this->user_id,
-					$this->registration_id );
+						order_id = %d',
+					$this->order_id );
 
 		db_query( 'DELETE FROM
 						registration_answers
 					WHERE
-						user_id = %d
-					AND
-						registration_id = %d',
-					$this->user_id,
-					$this->registration_id );
+						order_id = %d',
+					$this->order_id );
 
 		return para('Registration successfully moved to the refund table.');
 	}
@@ -146,7 +140,7 @@ class Registration extends LeaguerunnerObject
 	/**
 	 * Save the answers to the registration questions
 	 */
-	function save_answers ($answers)
+	function save_answers ($formbuilder, $answers)
 	{
 		if( !is_array($answers) ) {
 			die("Answser argument to save_answers() must be an array");
@@ -155,17 +149,24 @@ class Registration extends LeaguerunnerObject
 		// Store in object
 		$this->_answer_entries = $answers;
 
+		// form builder might be null if there are no questions
+		if( isset( $formbuilder ) ) {
 		// save in DB
 		while( list($qkey, $answer) = each($answers) ) {
-			db_query("REPLACE INTO registration_answers (user_id,registration_id,qkey,akey) VALUES (%d,%d,'%s','%s')",
-				$this->user_id,
-				$this->registration_id,
+				$question = $formbuilder->_questions[$qkey];
+				// We need to skip "answers" for labels and descriptions
+				if($question->qtype != 'label' && $question->qtype != 'description')
+				{
+					db_query("REPLACE INTO registration_answers (order_id,qkey,akey) VALUES (%d,'%s','%s')",
+						$this->order_id,
 				$qkey,
 				$answer
 			);
 	    	if( db_affected_rows() < 1) {
 	      		return false;
 	    	}
+				}
+			}
 		}
 
 		return true;
