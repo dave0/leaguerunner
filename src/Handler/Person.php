@@ -638,7 +638,7 @@ class PersonApproveNewAccount extends PersonView
 				if( ! $this->person->delete() ) {
 					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
-				$addresses = array($to_addr, variable_get('app_admin_email', 'webmaster@ocua.ca') );	
+				$addresses = array($to_addr, variable_get('app_admin_email', 'webmaster@localhost') );
 				$rc = mail(join(', ',$addresses),
 					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
 					$message, 

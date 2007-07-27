@@ -110,7 +110,7 @@ class Team extends LeaguerunnerObject
 
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
-				error_exit("Couldn't create user account");
+				error_exit("Couldn't create team record");
 			}
 		}
 	

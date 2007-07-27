@@ -107,14 +107,14 @@ function game_permissions ( &$user, $action, &$game, $extra )
 }
 
 /**
- * Generate view of teams for initial login splash page.
+ * Generate view of games for initial login splash page.
  */
 function game_splash ()
 {
 	global $lr_session;
 
 	$games = db_query("SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start LIMIT 4", $lr_session->user->user_id);
+        AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4", $lr_session->user->user_id);
 	$rows = array();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
@@ -663,7 +663,7 @@ class GameSubmit extends Handler
 		$output = $this->interim_game_result($edit, $opponent);
 		$output .= form_hidden('edit[step]', 'confirm');
 			
-		$output .= para("Now, you must rate your opponent's using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
+		$output .= para("Now, you must rate your opponents using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
 
 		$questions = formbuilder_load('team_spirit');
 		$output .= $questions->render_editable(false);
@@ -1019,7 +1019,7 @@ class GameEdit extends Handler
 				$score_group .= form_item("Rating Points", "No points were transferred between teams");
 			}			
 			else {
-				if ($game->home_score > $game->away_score || $game->home_score == $game->away_score) {
+				if ($game->home_score >= $game->away_score) {
 					$winner = l($game->home_name,"team/view/$game->home_id");
 					$loser = l($game->away_name,"team/view/$game->away_id");
 				}
@@ -1743,16 +1743,10 @@ class GameRemoveResults extends Handler
 		 *  	- coordinator can see everything, edit final scores/spirit
 		 */
 
-
 		if( ! $game->approved_by) {
 			// if the game is not finalized, results cannot be removed yet...
 			error_exit("The game is not finalized, and so results cannot be removed at this time.");
       }
-
-
-
-
-
 
 		// If we're not editing, display score.  If we are, 
 		// it will show up below.
