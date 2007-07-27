@@ -189,7 +189,7 @@ function team_splash ()
 		
 	$rosterPositions = getRosterPositions();
 	$rows = array();
-	while(list(,$team) = each($lr_session->user->teams)) {
+	foreach($lr_session->user->teams as $team) {
 		$position = $rosterPositions[$team->position];
 		
 		$rows[] = 
@@ -312,6 +312,7 @@ class TeamEdit extends Handler
 	function generateForm (&$formData)
 	{
 		global $lr_session;
+
 		$output = form_hidden("edit[step]", 'confirm');
 		
 		$rows = array();
@@ -688,7 +689,7 @@ class TeamRosterStatus extends Handler
 	}
 
 	/**
-	 * Loads the permitedStates variable, and checks that the session user is
+	 * Loads the permittedStates variable, and checks that the session user is
 	 * allowed to change the state of the specified player on this team.
 	 */
 	function loadPermittedStates ($teamId, $playerId)
@@ -844,15 +845,14 @@ class TeamRosterStatus extends Handler
 			return $new_handler->process();
 		}
 
-		if(!$this->player->is_player()) {
-			error_exit('Only registered players can be added to a team');
-		}
-		
 		$this->loadPermittedStates($this->team->team_id, $this->player->user_id);
 		$edit = &$_POST['edit'];
 		
 		if($this->player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
 			error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
+		}
+		if(!$this->player->is_member() && !$lr_session->is_admin()) {
+			error_exit('Only registered players can be added to a team');
 		}
 
 		if( $edit['step'] == 'perform' ) {
@@ -868,15 +868,21 @@ class TeamRosterStatus extends Handler
 		return $rc;
 	}
 
+	function formPrompt()
+	{
+		$output = para("You are attempting to change player status for <b>" . $this->player->fullname . "</b> on team <b>" . $this->team->name . "</b>.");
+		$output .= para("Current status: <b>" . $this->positions[$this->currentStatus] . "</b>");
+
+		return $output;
+	}
+
 	function generateForm () 
 	{
 		$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
 	
 		$output .= form_hidden('edit[step]', 'perform');
 		
-		$output .= para("You are attempting to change player status for <b>" . $this->player->fullname . "</b> on team <b>" . $this->team->name . "</b>.");
-		
-		$output .= para("Current status: <b>" . $this->positions[$this->currentStatus] . "</b>");
+		$output .= $this->formPrompt();
 
 		$options = "";
 		foreach($this->permittedStates as $state) {
@@ -1034,7 +1040,8 @@ class TeamView extends Handler
 		}
 		$rows = array();	
 		$totalSkill = 0;
-		$count = db_num_rows($result);
+		$skillCount = 0;
+
 		$rosterPositions = getRosterPositions();
 		while($player = db_fetch_object($result)) {
 	
