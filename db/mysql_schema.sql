@@ -28,8 +28,8 @@ CREATE TABLE person (
 
 	addr_street     varchar(50),
 	addr_city       varchar(50),
-	addr_prov       ENUM('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon'),
-	addr_postalcode char(7),
+	addr_prov       ENUM('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon','Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'),
+	addr_postalcode varchar(7),
 
 	ward_id 	integer,
 
@@ -46,7 +46,7 @@ CREATE TABLE person (
 
 	session_cookie varchar(50),
 	class   enum('volunteer','administrator', 'player', 'visitor') DEFAULT 'player' NOT NULL,
-        status  enum('new','inactive','active','locked') DEFAULT 'new' NOT NULL,
+	status  enum('new','inactive','active','locked') DEFAULT 'new' NOT NULL,
 
 	waiver_signed datetime,
 
@@ -162,7 +162,7 @@ CREATE TABLE schedule (
     
 -- This indicates what round this game is in.
     round varchar(10) NOT NULL DEFAULT '1',
-   
+
     -- Teams for home/away can be specified either directly, or
     -- by providing a game and result identifier
     home_team   integer,
@@ -174,20 +174,20 @@ CREATE TABLE schedule (
     away_dependant_game	integer,
     away_dependant_type enum('winner','loser'),
     away_dependant_rank	integer,
-    
+
     home_score  tinyint,
     away_score  tinyint,
     home_spirit tinyint,
     away_spirit tinyint,
 
     rating_home integer,
-    rating_away integer,    
-    rating_points int, -- rating points exchanged for this game
-    approved_by int, -- user_id of person who approved the score, or -1 if autoapproved.
+    rating_away integer,
+    rating_points integer, -- rating points exchanged for this game
+    approved_by integer, -- user_id of person who approved the score, or -1 if autoapproved.
 
     -- Game status.  Indicates rescheduling, defaults, etc.
     status ENUM('normal','locked','home_default','away_default','rescheduled','cancelled','forfeit') default 'normal' NOT NULL,
-    
+
     INDEX game_league (league_id),
     INDEX game_home_team (home_team),
     INDEX game_away_team (away_team)
@@ -197,9 +197,9 @@ CREATE TABLE schedule (
 -- before they are approved
 DROP TABLE IF EXISTS score_entry;
 CREATE TABLE score_entry (
-    team_id int NOT NULL,
-    game_id int NOT NULL,
-    entered_by int NOT NULL, -- id of user who entered score
+    team_id integer NOT NULL,
+    game_id integer NOT NULL,
+    entered_by integer NOT NULL, -- id of user who entered score
     score_for tinyint NOT NULL, -- score for submitter's team
     score_against tinyint NOT NULL, -- score for opponent
     spirit tinyint NOT NULL,
@@ -211,46 +211,48 @@ CREATE TABLE score_entry (
 -- Spirit System
 DROP TABLE IF EXISTS question;
 CREATE TABLE question (
-	qkey	varchar(255) PRIMARY KEY, -- question key
+	qkey	varchar(255), -- question key
 	genre	varchar(255),
-	question varchar(255),
+	question blob,
 	qtype   varchar(255),
 	restrictions   varchar(255),  -- used for start/end dates, upper/lower limits, etc.
 	required	ENUM('Y','N') DEFAULT 'Y',
-	sorder	int default 0
+	sorder	integer default 0
+	PRIMARY KEY  (qkey,genre)
 );
 
 DROP TABLE IF EXISTS multiplechoice_answers;
 CREATE TABLE multiplechoice_answers (
-	akey	varchar(255) PRIMARY KEY,
+	akey	varchar(255),
 	qkey	varchar(255),
 	answer	varchar(255),
 	value	varchar(255),
-	sorder	int default 0		-- sort order
+	sorder	integer default 0		-- sort order
+	PRIMARY KEY  (akey,qkey)
 );
 
 DROP TABLE IF EXISTS team_spirit_answers;
 CREATE TABLE team_spirit_answers (
-	tid_created	int NOT NULL, -- ID of team providing this answer
-	tid		int NOT NULL, -- id of team receiving this answer
-	gid		int NOT NULL, -- ID of game this entry relates to
+	tid_created	integer NOT NULL, -- ID of team providing this answer
+	tid		integer NOT NULL, -- id of team receiving this answer
+	gid		integer NOT NULL, -- ID of game this entry relates to
 	qkey		varchar(255) NOT NULL, -- Question asked
-	akey		varchar(255), -- Answer provided
+	akey blob, -- Answer provided
 	PRIMARY KEY (tid_created,gid,qkey)
 );
 
 
 DROP TABLE IF EXISTS field;
 CREATE TABLE field (
-	fid	int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	fid	integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	num	tinyint,
 	status  enum('open','closed'),
 
 	rating  varchar(16),
-	
+
 	notes	text,
-	parent_fid	int,
-	
+	parent_fid	integer,
+
 	-- If there's a parent field ID provided, the values below are
 	-- inherited from parent rather than used from the table
 	name	varchar(255),
@@ -262,10 +264,14 @@ CREATE TABLE field (
 	location_province   varchar(50),
 	latitude   double,
 	longitude  double,
-	
+
 	region	enum('Central','East','South','West'),
 	ward_id integer,
-	site_directions	text,
+	driving_directions text,
+	parking_details text,
+	transit_directions text,
+	biking_directions text,
+	washrooms text,
 	site_instructions text,
 	location_url varchar(255),
 	layout_url varchar(255),
@@ -318,6 +324,7 @@ CREATE TABLE registration_events (
 	registration_id int(10) unsigned NOT NULL auto_increment,
 	name varchar(100) default NULL,
 	description blob,
+	type enum('individual_event','team_event','individual_league','team_league') NOT NULL default 'individual_event',
 	cost decimal(7,2) default NULL,
 	gst decimal(7,2) default NULL,
 	pst decimal(7,2) default NULL,
@@ -325,6 +332,8 @@ CREATE TABLE registration_events (
 	`close` datetime default NULL,
 	cap_male int(10) NOT NULL default '0',
 	cap_female int(10) NOT NULL default '0',
+	multiple tinyint(1) default '0',
+	anonymous tinyint(1) default '0',
 	PRIMARY KEY  (registration_id),
 	UNIQUE KEY name (name)
 );
@@ -344,7 +353,7 @@ CREATE TABLE registrations (
 	order_id int(10) unsigned NOT NULL auto_increment,
 	user_id int(11) NOT NULL default '0',
 	registration_id int(10) unsigned NOT NULL default '0',
-	`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
+	`time` timestamp NOT NULL,
 	paid tinyint(1) NOT NULL default '0',
 	notes blob,
 	PRIMARY KEY  (order_id),
@@ -354,11 +363,10 @@ CREATE TABLE registrations (
 -- answers to registration questions
 DROP TABLE IF EXISTS registration_answers;
 CREATE TABLE registration_answers (
-	user_id int(11) NOT NULL default '0',
-	registration_id int(11) NOT NULL default '0',
+	order_id int(10) unsigned NOT NULL default '0',
 	qkey varchar(255) NOT NULL default '',
 	akey varchar(255) default NULL,
-	PRIMARY KEY  (user_id,registration_id,qkey)
+	PRIMARY KEY  (order_id,qkey)
 );
 
 -- online registration payment details
@@ -384,13 +392,20 @@ CREATE TABLE registration_audit (
 	PRIMARY KEY  (order_id)
 );
 
+DROP TABLE IF EXISTS preregistrations;
+CREATE TABLE preregistrations (
+	user_id int(11) NOT NULL default '0',
+	registration_id int(10) unsigned NOT NULL default '0',
+	KEY user_id (user_id,registration_id)
+);
+
 -- refunded registrations
 DROP TABLE IF EXISTS refunds;
 CREATE TABLE refunds (
 	order_id int(10) unsigned NOT NULL default '0',
 	user_id int(11) NOT NULL default '0',
 	registration_id int(10) unsigned NOT NULL default '0',
-	`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
+	`time` timestamp NOT NULL,
 	paid tinyint(1) NOT NULL default '0',
 	notes blob,
 	PRIMARY KEY  (order_id),
@@ -400,9 +415,8 @@ CREATE TABLE refunds (
 -- answers to registration questions, for refunded registrations
 DROP TABLE IF EXISTS refund_answers;
 CREATE TABLE refund_answers (
-	user_id int(11) NOT NULL default '0',
-	registration_id int(11) NOT NULL default '0',
+	order_id int(10) unsigned NOT NULL default '0',
 	qkey varchar(255) NOT NULL default '',
 	akey varchar(255) default NULL,
-	PRIMARY KEY  (user_id,registration_id,qkey)
+	PRIMARY KEY  (order_id,qkey)
 );
