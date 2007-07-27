@@ -297,6 +297,18 @@ class Person extends LeaguerunnerObject
 		);
 	}
 	
+	function is_member()
+	{
+		if ( ! $this->is_player() ) {
+			return false;
+		}
+
+		// TUC has code here to check for current membership registration,
+		// but it's a hack, so it's not included at the moment.
+
+		return true;
+	}
+
 	function is_captain_of ($team_id)
 	{
 		if( ! array_key_exists($team_id, $this->teams) ) {

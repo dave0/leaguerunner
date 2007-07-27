@@ -218,6 +218,19 @@ class UserSession
 	}
 
 	/** 
+	 * See if this session user has a completed record
+	 */
+	function is_complete()
+	{
+		// TUC has code that checks a database flag that OCUA
+		// doesn't have.  The flag is useful for leagues that
+		// import an existing database that doesn't have all
+		// of the player data that Leaguerunner tracks.  For
+		// OCUA's purposes, all players have complete records.
+		return true;
+	}
+
+	/** 
 	 * See if this session user is a player 
 	 */
 	function is_player()
