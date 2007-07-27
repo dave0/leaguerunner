@@ -315,6 +315,8 @@ function l($text, $query = NULL, $attributes = array())
 {
 	if(0 < preg_match("/^(http|ftp|mailto):/", $query)) {
 		$attributes['href'] = $query;
+	} else if(substr($query,0,1) == '/') {
+		$attributes['href'] = $query;
 	} else {
 		$attributes['href'] = url($query);
 	}
@@ -1080,7 +1082,7 @@ function getOptionsFromEnum( $table, $col_name )
 	$row = db_fetch_array($result);
 		
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
-	$str = str_replace(")","",$str);
+	$str = preg_replace("/\)$/","",$str);
 	$str = str_replace("'","",$str);
 	$ary = preg_split("/,/",$str);
 
@@ -1215,7 +1217,8 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 }
 
 // Not needed for PHP 5.1 and higher, which includes this function
-if (!function_exists('fputcsv') ) {
+if ( !function_exists( 'fputcsv' ) )
+{
     function fputcsv($filePointer, $dataArray, $delimiter = ',', $enclosure = '"')
     {
     	// Write a line to a file
@@ -1250,12 +1253,6 @@ if (!function_exists('fputcsv') ) {
     	// Write the string to the file
     	fwrite($filePointer,$string);
     }
-}
-
-function my_error_log($str)
-{
-	error_log(strftime ("%m/%d %H:%M:%S: ") . $_SERVER['REMOTE_ADDR'] .
-		": $str\n", 3, "/home/tuc003/www/error.log");
 }
 
 /**
