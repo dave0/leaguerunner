@@ -20,7 +20,8 @@ function field_dispatch()
 			$obj->field = field_load( array('fid' => $id) );
 			break;
 		case 'list':
-			return new FieldList;
+			$obj = new FieldList;
+			$obj->closed = ( isset( $id ) && $id == 'closed' );
 			break;
 		case 'bookings':
 			$obj = new FieldBooking;
@@ -64,8 +65,11 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 				return true;
 			}
 		case 'list':
-			// Everyone can list
+			// Everyone can list open fields, only admins can list closed; $fid here is the "closed" bool
+			if (!$fid) {
 			return true;
+			}
+			break;
 		case 'view bookings':
 			// Only valid users can view bookings
 			if($user && ($user->status == 'active')) {
@@ -81,6 +85,10 @@ function field_menu()
 	global $lr_session;
 	menu_add_child('_root','field','Fields');
 	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
+
+	if( $lr_session->has_permission('field','edit') ) {
+		menu_add_child('field','field/list/closed','list closed fields', array('weight' => 3, 'link' => 'field/list/closed') );
+	}
 
 	if( $lr_session->has_permission('field','create') ) {
 		menu_add_child('field','field/create','create field', array('weight' => 5, 'link' => 'field/create') );
@@ -181,7 +189,9 @@ class FieldEdit extends Handler
 	{
 		$output = form_hidden("edit[step]", "confirm");
 
-		$output .= form_textfield("Field Number", 'edit[num]', $data['num'], 3, 3, "Number of this field at the given site");
+		$output .= form_textfield("Field Identification", 'edit[num]', $data['num'], 15, 15, "Location of this field at the given site; cannot be 0");
+
+		$output .= form_select("Field Status", 'edit[status]', $data['status'], array('open' => 'open', 'closed' => 'closed'));
 		
 		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
 
@@ -220,9 +230,17 @@ class FieldEdit extends Handler
 
 			$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
 			
-			$output .= form_textarea("Site Directions", 'edit[site_directions]', $data['site_directions'], 60, 5, "Directions to field.  Please ensure that bus and bike directions are also provided if practical.");
+			$output .= form_textarea("Driving Directions", 'edit[driving_directions]', $data['driving_directions'], 60, 5, "");
 
-			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site (parking, other restrictions)");
+			$output .= form_textarea("Parking Details", 'edit[parking_details]', $data['parking_details'], 60, 5, "");
+
+			$output .= form_textarea("Transit Directions", 'edit[transit_directions]', $data['transit_directions'], 60, 5, "");
+
+			$output .= form_textarea("Biking Directions", 'edit[biking_directions]', $data['biking_directions'], 60, 5, "");
+
+			$output .= form_textarea("Public Washrooms", 'edit[washrooms]', $data['washrooms'], 60, 5, "");
+
+			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site that don't fit any other category.");
 		}
 		$output .= form_submit('Submit') .  form_reset('Reset');
 
@@ -243,6 +261,7 @@ class FieldEdit extends Handler
 			$parent = field_load( array('fid' => $edit['parent_fid']));
 			$rows = array();
 			$rows[] = array( "Name:", $parent->name );
+			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
 			$rows[] = array("Parent&nbsp;Field:", form_hidden('edit[parent_fid]', $edit['parent_fid']) . $parent->fullname);
@@ -255,6 +274,7 @@ class FieldEdit extends Handler
 			
 			$rows = array();
 			$rows[] = array( "Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
+			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
 			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
@@ -271,7 +291,11 @@ class FieldEdit extends Handler
 			}
 			$rows[] = array( "Location&nbsp;Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout&nbsp;Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
-			$rows[] = array( "Directions:", form_hidden('edit[site_directions]', $edit['site_directions']) . check_form($edit['site_directions']));
+			$rows[] = array( "Driving Directions:", form_hidden('edit[driving_directions]', $edit['driving_directions']) . check_form($edit['driving_directions']));
+			$rows[] = array( "Parking Details:", form_hidden('edit[parking_details]', $edit['parking_details']) . check_form($edit['parking_details']));
+			$rows[] = array( "Transit Directions:", form_hidden('edit[transit_directions]', $edit['transit_directions']) . check_form($edit['transit_directions']));
+			$rows[] = array( "Biking Directions:", form_hidden('edit[biking_directions]', $edit['biking_directions']) . check_form($edit['biking_directions']));
+			$rows[] = array( "Public Washrooms:", form_hidden('edit[washrooms]', $edit['washrooms']) . check_form($edit['washrooms']));
 			$rows[] = array( "Special Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
 		}
 		
@@ -290,6 +314,7 @@ class FieldEdit extends Handler
 		}
 
 		$field->set('num', $edit['num']);
+		$field->set('status', $edit['status']);
 		$field->set('rating', $edit['rating']);
 
 		if( isset($edit['parent_fid']) ) {
@@ -310,7 +335,11 @@ class FieldEdit extends Handler
 			$field->set('ward_id', $edit['ward_id']);
 			$field->set('location_url', $edit['location_url']);
 			$field->set('layout_url', $edit['layout_url']);
-			$field->set('site_directions', $edit['site_directions']);
+			$field->set('driving_directions', $edit['driving_directions']);
+			$field->set('transit_directions', $edit['transit_directions']);
+			$field->set('biking_directions', $edit['biking_directions']);
+			$field->set('parking_details', $edit['parking_details']);
+			$field->set('washrooms', $edit['washrooms']);
 			$field->set('site_instructions', $edit['site_instructions']);
 		}
 
@@ -385,22 +414,32 @@ class FieldList extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('field','list');
+		return $lr_session->has_permission('field','list',$this->closed);
 	}
 
 	function process ()
 	{
-	
+		$output = '';
+		if( $this->closed ) {
+			$this->setLocation(array('List Closed Fields' => 'field/list'));
+		} else {
 		$this->setLocation(array('List Fields' => 'field/list'));
 
 		ob_start();
 		$retval = @readfile("data/field_caution.html");
 		if (false !== $retval) {
-			$output = ob_get_contents();
+				$output .= ob_get_contents();
 		}           
 		ob_end_clean();
+		}
 
-		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.region,f.name') );
+		if( $this->closed ) {
+			$status = "AND status = 'closed'";
+		} else {
+			// GS: TODO Status may be NULL, means the same as open
+			$status = "AND status = 'open'";
+		}
+		$result = field_query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
 
 		$fieldsByRegion = array();
 		while($field = db_fetch_object($result)) {
@@ -408,13 +447,14 @@ class FieldList extends Handler
 				$fieldsByRegion[$field->region] = "";
 			}
 			$fieldsByRegion[$field->region] 
-				.= l($field->name, "field/view/$field->fid") . "<br />";
+				.= li( l($field->name, "field/view/$field->fid") );
 		}
 
 		$fieldColumns = array();
 		$header = array();
+
 		while(list($region,$fields) = each($fieldsByRegion)) {
-			$fieldColumns[] = $fields;	
+			$fieldColumns[] = ul( $fields );
 			$header[] = ucfirst($region);
 		}
 		$output .= "<div class='fieldlist'>" . table($header, array( $fieldColumns) ) . "</div>";
@@ -444,6 +484,7 @@ class FieldView extends Handler
 		$rows = array();
 		$rows[] = array("Field&nbsp;Name:", $this->field->name);
 		$rows[] = array("Field&nbsp;Code:", $this->field->code);
+		$rows[] = array("Field&nbsp;Status:", $this->field->status);
 	
 		$ratings = field_rating_values();
 		$rows[] = array("Field&nbsp;Rating:", $ratings[$this->field->rating]);
@@ -479,11 +520,25 @@ class FieldView extends Handler
 		if( $this->field->permit_url ) {
 			$rows[] = array("Field&nbsp;Permit:", $this->field->permit_url);
 		}
-		$rows[] = array("Directions:", $this->field->site_directions);
-		if( $lr_session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
-			$rows[] = array("Special Instructions:", $this->field->site_instructions);
-		} else {
-			$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
+		$rows[] = array('Driving Directions:', $this->field->driving_directions);
+		if( $this->field->parking_details ) {
+			$rows[] = array('Parking Details:', "<div class='parking'>{$this->field->parking_details}</div>");
+		}
+		if( $this->field->transit_directions ) {
+			$rows[] = array('Transit Directions:', "<div class='transit'>{$this->field->transit_directions}</div>");
+		}
+		if( $this->field->biking_directions ) {
+			$rows[] = array('Biking Directions:', "<div class='biking'>{$this->field->biking_directions}</div>");
+		}
+		if( $this->field->washrooms ) {
+			$rows[] = array('Public Washrooms:', "<div class='washrooms'>{$this->field->washrooms}</div>");
+		}
+		if( $this->field->site_instructions ) {
+			if( $lr_session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
+				$rows[] = array("Special Instructions:", $this->field->site_instructions);
+			} else {
+				$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
+			}
 		}
 		
 		// list other fields at this site
@@ -509,7 +564,7 @@ class FieldView extends Handler
 			$this->title => 0
 		));
 	
-		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		return "<div class='pairtable'>" . table(null, $rows, array('alternate-colours' => true)) . "</div>";
 	}
 }
 
@@ -525,6 +580,9 @@ class FieldBooking extends Handler
 		global $lr_session;
 		if (!$this->field) {
 			error_exit("That field does not exist");
+		}
+		if ($this->field->status != 'open') {
+			error_exit("That field is closed");
 		}
 		return $lr_session->has_permission('field','view', $this->field->fid);
 	}

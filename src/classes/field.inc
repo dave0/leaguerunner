@@ -32,7 +32,11 @@ class Field extends LeaguerunnerObject
 			$this->latitude = $parent->latitude;
 			$this->longitude = $parent->longitude;
 			
-			$this->site_directions = $parent->site_directions;
+			$this->driving_directions = $parent->driving_directions;
+			$this->transit_directions = $parent->transit_directions;
+			$this->biking_directions = $parent->biking_directions;
+			$this->parking_details = $parent->parking_details;
+			$this->washrooms = $parent->washrooms;
 			$this->site_instructions = $parent->site_instructions;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;

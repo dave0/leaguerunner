@@ -70,6 +70,9 @@ class GameSlotCreate extends Handler
 		if(!$field) {
 			error_exit("That field does not exist");
 		}
+		if($field->status != 'open') {
+			error_exit("That field is closed");
+		}
 		
 		if ( $day ) {
 			if ( ! validate_date_input($year, $month, $day) ) {
