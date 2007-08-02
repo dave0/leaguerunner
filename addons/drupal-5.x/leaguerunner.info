@@ -1,0 +1,3 @@
+; $Id$
+name = "Leaguerunner"
+description = "Allows authentication against Leaguerunner from Drupal."
