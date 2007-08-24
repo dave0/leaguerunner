@@ -1,2 +1,11 @@
 This is a Drupal module intended to authenticate users against a Leaguerunner
 database accessible by the drupal database user on the same MySQL server.
+
+CONVERTING FROM 4.x
+~~~~~~~~~~~~~~~~~~~
+When converting from a 4.x drupal, it will be necessary to modify the
+'authname' column of 'authmap', and the 'init' column of 'users', so that the
+entries are suffixed with '@leaguerunner' instead of '@ocua'.
+
+The query to do this is:
+	TODO: write query for migration

@@ -118,9 +118,13 @@ function leaguerunner_form_alter($form_id, &$form)
 
 	// Change the Drupal Login Blocks New User and Forgot Password links to
 	// Leaguerunner paths as set in the LeagueRunner Configuration Page
-	if ($form_id == 'user_login_block') {
+	if ($form_id == 'user_login_block' || $form_id == 'user_login') {
+
 		unset($form['links']);
 		$items = array();
+
+		// Force our validator to come first
+		$form['#validate'] = array('leaguerunner_login_validate' => array());
 
 		// allow anyone to register regardless of setting in user administration
 		// since we set Drupal to disallow users to register but accept
@@ -177,13 +181,34 @@ function leaguerunner_form_alter($form_id, &$form)
 
 }
 
+// Override login form validation to force-change the username before _auth
+// gets called.  This lets us continue to use the authmap stuff from previous
+// releases.
+function leaguerunner_login_validate($form_id, $form_values )
+{
+	/* 
+	 * First, we try to find the user locally.  If this doesn't work, we
+	 * set $server to 'leaguerunner' which will force the login to occur
+	 * via Leaguerunner.
+	 */
+	if( ! strrchr( $form_values['name'], '@') ) {
+     		$user = user_load(array("name" => $form_values['name']));
+		if( !$user->uid ) {
+	  		$form_values['name'] = $form_values['name'] . '@leaguerunner';
+		}
+	}
+
+	return user_login_validate( $form_id, $form_values );
+}
+
+/// TODO this is all busted... need to make it use authmap
 /**
  * Validate the user in the Leaguerunner db.
  */
-function leaguerunner_auth($username, $password, $Server)
+function leaguerunner_auth($username, $password, $server)
 {
 
-	if($Server != '') {
+	if( $server != 'leaguerunner' ) {
 		return 0;
 	}
 
@@ -206,32 +231,15 @@ function leaguerunner_auth($username, $password, $Server)
 
 				// Set the welcome message to let users know
 				// they have logged in.
+				// TODO: does not belong in _auth hook
 				drupal_set_message(t('<strong>Welcome, %name</strong>. You have logged in successfully.', array('%name' => $fullname)));
 
 				// See if they have signed a waiver yet.
+				// TODO: fix WODS-ism
 				if (!$lrUser->waiver_signed) {
 					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in WODS events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
 				}
 
-				// Check if the user exists in Drupal.  If
-				// not, create that user.  If we let
-				// user.module handle this, it throws an error
-				// creating the user.
-				if (!user_load(array('name' => $username))) {
-
-					// Create a new Drupal user with their
-					// Leaguerunner username and a
-					// randomly generated password.
-					//
-					// Random password ensures that local
-					// login to Drupal does not occur
-					// since random Drupal password and
-					// actual Leaguerunner password should
-					// hopefully never match
-					$userinfo = array('name' => $username, 'pass' => user_password(), 'init' => $username, 'status' => 1);
-					$newUser = user_save('', $userinfo);
-					watchdog('Leaguerunner', t('New LeagueRunner user: %user created by Leaguerunner Module.', array('%user' => $username)), WATCHDOG_NOTICE, l(t('edit'), 'user/'. $newUser->uid .'/edit'));
-				}
 				// Valid user as they are either active or inactive.
 				// Leaguerunner My Games Block will check and
 				// inform inactive users that they must
@@ -259,53 +267,65 @@ function leaguerunner_auth($username, $password, $Server)
 	return 0;
 }
 
+
+
 /**
-* Process user information as required
+ * Process user information as required
+ * see http://api.drupal.org/api/function/hook_user/5
  */
 function leaguerunner_user($op, &$edit, &$account, $category = null)
 {
 
 	if ($op == 'login') {
 
+		// Strip name and server from ID:
+		$name = '';
+		if ($server = strrchr($account->init, '@')) {
+			$name = substr($account->init, 0, strlen($account->init) - strlen($server));
+		}
+
+		if( ! $name ) {
+			return;
+		}
+
 		// Load a Leaguerunner user
-		$lrUser = _leaguerunner_user_load( array('username' => $account->name));
+		// TODO: necessary to load it here?  Or have we already done
+		// so once?  Or, can we cache this one for later use?
+		$lrUser = _leaguerunner_user_load( array('username' => $name));
 
 		// If we successfully found a Leaguerunner user, process updates
 		if ($lrUser) {
 
 			// Set the session in Leaguerunner
 			_leaguerunner_set_session( $lrUser, session_id() );
+			
+			$fullname = $lrUser->firstname . ' ' . $lrUser->lastname;
 
-			// Update the email address and full name if this is not the primary Drupal account
-			if ($account->uid != '1') {
-
-				// Set the email address and full name to
-				// coincide with Leaguerunner
-				//
-				// NOTE that profile_fullname is a custom
-				// textfield created using the profile module.
-				// It is used by the authorship module to
-				// display the persons full name rather than
-				// their user name
-				$lrEmail =  $lrUser->email;
-				$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
-				$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
+			// Update the email address and full name if the data's changed
+			if( ($fullname != $account->name) || ($lrUser->email != $account->mail) ) {
+				$lrVariables = array(
+					'mail' => $lrUser->email,
+					'name' => $fullname,
+				);
 				user_save($account, $lrVariables);
+			}
 
-				// Clear any existing Drupal sessions except
-				// anonymous sessions because Leaguerunner
-				// configuration can only handle one login
-				// session.
-				// For example, Log out a home computer
-				// session when someone logs in on a work
-				// computer.  Otherwise, home computer Drupal
-				// session out of sync with current work
-				// computer Leaguerunner session
-				if (($account->uid > 0)) {
-					db_query("DELETE FROM {sessions} WHERE uid = %d AND sid <> '%s'", $account->uid, $account->sid);
-				}
+			// Clear any existing Drupal sessions except
+			// anonymous sessions because Leaguerunner
+			// configuration can only handle one login
+			// session.
+			// For example, Log out a home computer
+			// session when someone logs in on a work
+			// computer.  Otherwise, home computer Drupal
+			// session out of sync with current work
+			// computer Leaguerunner session
+			// TODO: Or, fix Leaguerunner to allow more
+			// than one concurrent session....
+			if (($account->uid > 0)) {
+				db_query("DELETE FROM {sessions} WHERE uid = %d AND sid <> '%s'", $account->uid, $account->sid);
 			}
 		}
+		return;
 	}
 
 	// Log the user out of Leaguerunner when logging out of Drupal
@@ -364,6 +384,8 @@ function _leaguerunner_user_load ($array = array() )
  */
 function _leaguerunner_next_games ( )
 {
+
+	// TODO: use current user's leaguerunner userid, not their session
 	$player = _leaguerunner_user_load( array('session_cookie' => session_id()));
 	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
 	$lr_numtoshow = variable_get("leaguerunner_numtoshow", "3");
@@ -421,10 +443,10 @@ function leaguerunner_block($op = 'list', $delta = 0)
 				// have been updated in Leaguerunner and do
 				// relevant updates in Drupal user table
 				if (($user->mail != $lrUser->email) || ($user->profile_fullname != ($lrUser->firstname . ' ' . $lrUser->lastname))) {
-					$lrEmail =  $lrUser->email;
-					$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
-					$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
-					user_save($user, $lrVariables);
+#					$lrEmail =  $lrUser->email;
+#					$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
+#					$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
+#					user_save($user, $lrVariables);
 				}
 
 				// Get the coming games for this user
