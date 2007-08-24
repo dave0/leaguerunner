@@ -197,6 +197,8 @@ function leaguerunner_auth($username, $password, $Server)
 	// See if we successfully authenticated a Leaguerunner user in the LR DB.
 	if($lrUser) {
 
+		$fullname = $lrUser->firstname . ' ' . $lrUser->lastname;
+
 		switch ($lrUser->status) {
 
 			Case 'active':
@@ -204,7 +206,7 @@ function leaguerunner_auth($username, $password, $Server)
 
 				// Set the welcome message to let users know
 				// they have logged in.
-				drupal_set_message(t('<strong>Welcome: '. $lrUser->firstname . ' ' . $lrUser->lastname . '</strong>. You have logged in successfully.'));
+				drupal_set_message(t('<strong>Welcome, %name</strong>. You have logged in successfully.', array('%name' => $fullname)));
 
 				// See if they have signed a waiver yet.
 				if (!$lrUser->waiver_signed) {
