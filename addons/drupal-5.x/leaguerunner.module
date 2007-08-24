@@ -446,23 +446,4 @@ function leaguerunner_block($op = 'list', $delta = 0) {
     }
   }
 }
-
-/**
-* NOT EXACTLY SURE WHAT THIS IS FOR
- */
-function leaguerunner_info($field = 0) {
-  $info["name"] = "leaguerunner";
-  if ($field) {
-    return $info[$field];
-  }
-  else {
-    return $info;
-  }
-}
-
-/**
-* NOT EXACTLY SURE WHAT THIS IS FOR
- */
-function leaguerunner_remote_fields() {
-	return array ( 'mail', 'name', 'pass1', 'pass2');
-}
+?>
