@@ -4,7 +4,7 @@
 * @param section which section of the site we're displaying help
 * @return help text for section
 */
-function leaguerunner_help($section='') 
+function leaguerunner_help($section='')
 {
 	$output = '';
 
@@ -23,7 +23,7 @@ function leaguerunner_help($section='')
 /**
  * Set the page url that will call the leaguerunner administration page
  */
-function leaguerunner_menu() 
+function leaguerunner_menu()
 {
 
 	$items = array();
@@ -45,7 +45,7 @@ function leaguerunner_menu()
 /**
  * Set the leaguerunner permissions list that is used by user_access(string)
  */
-function leaguerunner_perm() 
+function leaguerunner_perm()
 {
 	return array('access leaguerunner', 'administer leaguerunner');
 }
@@ -91,7 +91,7 @@ function leaguerunner_admin() {
 			'#maxlength' => 150,
 			'#description' => t("Path to Leaguerunner password reset page. Drupal default is 'user/password'.")
 		),
-		
+
 		'leaguerunner_activateaccount' => array(
 			'#type' => 'textfield',
 			'#title' => t('Node to redirect account activations.'),
@@ -106,344 +106,391 @@ function leaguerunner_admin() {
 }
 
 /**
-* Calling hook_form_alter() to change links in the Drupal Login Block and to
-* redirect the Drupal New User and Drupal Password Reminder forms to
-* Leaguerunner pages as set in the configuration
-*/
-function leaguerunner_form_alter($form_id, &$form) {
+ * Calling hook_form_alter() to change links in the Drupal Login Block and to
+ * redirect the Drupal New User and Drupal Password Reminder forms to
+ * Leaguerunner pages as set in the configuration
+ */
+function leaguerunner_form_alter($form_id, &$form)
+{
 
-  $newusers = variable_get('leaguerunner_newusers', 'user/register');
-  $forgotpw = variable_get('leaguerunner_forgotpw', 'user/password');
+	$newusers = variable_get('leaguerunner_newusers', 'user/register');
+	$forgotpw = variable_get('leaguerunner_forgotpw', 'user/password');
 
-  // Change the Drupal Login Blocks New User and Forgot Password links to
-  // Leaguerunner paths as set in the LeagueRunner Configuration Page
-  if ($form_id == 'user_login_block'){
-    unset($form['links']);
-    $items = array();
-       
-    // allow anyone to register regardless of setting in user administration
-    // since we set Drupal to disallow users to register but accept
-    // registrations through Leaguerunner
-    //if (variable_get('user_register', 1)) {
-      $items[] = l(t('Create new account'), $newusers, array('title' => t('Create Leaguerunner Account.')));
-    //}
-    $items[] = l(t('Reset your password'), $forgotpw, array('title' => t('Request Leaguerunner password via e-mail.')));
-    $form['links'] = array('#value' => theme('item_list', $items)); 
-  }
+	// Change the Drupal Login Blocks New User and Forgot Password links to
+	// Leaguerunner paths as set in the LeagueRunner Configuration Page
+	if ($form_id == 'user_login_block') {
+		unset($form['links']);
+		$items = array();
 
-  // Redirect the Drupal Forgot Password Form to the path set in the
-  // Leaguerunner Configuration Page
-  if ($form_id == 'user_pass'){
-    //drupal_goto($forgotpw);
-    header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $forgotpw);
-	break;
-  }
-  
-  // Redirect the Drupal User Register Form to the path set in the Leaguerunner Configuration Page
-  if ($form_id == 'user_register'){
-    //drupal_goto($newusers);
-    header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $newusers);
-	break;
-  }
+		// allow anyone to register regardless of setting in user administration
+		// since we set Drupal to disallow users to register but accept
+		// registrations through Leaguerunner
+		//if (variable_get('user_register', 1)) {
+		$items[] = l(t('Create new account'), $newusers, array('title' => t('Create Leaguerunner Account.')));
+		//}
+		$items[] = l(t('Reset your password'), $forgotpw, array('title' => t('Request Leaguerunner password via e-mail.')));
+		$form['links'] = array('#value' => theme('item_list', $items));
+	}
 
-  // Set the Contact Page email to default to the senders full name rather than their Drupal user name
-  if ($form_id == 'contact_mail_page') {
+	// Redirect the Drupal Forgot Password Form to the path set in the
+	// Leaguerunner Configuration Page
+	if ($form_id == 'user_pass') {
+		//drupal_goto($forgotpw);
+		header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $forgotpw);
+		break;
+	}
 
-    global $user;
-	
-	$form['name'] = array('#type' => 'textfield',
-      '#title' => t('Your name'),
-      '#maxlength' => 255,
-      '#default_value' => $user->uid ? ($user->profile_fullname ? $user->profile_fullname : $user->name) : '',
-      '#required' => TRUE,
-    );
-  
-  }
+	// Redirect the Drupal User Register Form to the path set in the Leaguerunner Configuration Page
+	if ($form_id == 'user_register') {
+		//drupal_goto($newusers);
+		header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $newusers);
+		break;
+	}
 
-  // Set the User Contact Page email to default to the senders full name rather than their Drupal user name
-  if ($form_id == 'contact_mail_user') {
-  
-    global $user;
-	global $recipient;
-	
-	$form['from'] = array('#type' => 'item',
-      '#title' => t('From'),
-      '#value' => check_plain($user->profile_fullname ? $user->profile_fullname : $user->name) .' &lt;'. check_plain($user->mail) .'&gt;',
-    );
- 
-  }
+	// Set the Contact Page email to default to the senders full name rather than their Drupal user name
+	if ($form_id == 'contact_mail_page') {
+
+		global $user;
+
+		$form['name'] = array(
+			'#type' => 'textfield',
+			'#title' => t('Your name'),
+			'#maxlength' => 255,
+			'#default_value' => $user->uid ? ($user->profile_fullname ? $user->profile_fullname : $user->name) : '',
+			'#required' => TRUE,
+		);
+
+	}
+
+	// Set the User Contact Page email to default to the senders full name rather than their Drupal user name
+	if ($form_id == 'contact_mail_user') {
+
+		global $user;
+		global $recipient;
+
+		$form['from'] = array('#type' => 'item',
+			'#title' => t('From'),
+			'#value' => check_plain($user->profile_fullname ? $user->profile_fullname : $user->name) .' &lt;'. check_plain($user->mail) .'&gt;',
+		);
+
+	}
 
 }
 
 /**
  * Validate the user in the Leaguerunner db.
  */
-function leaguerunner_auth($username, $password, $Server) {
+function leaguerunner_auth($username, $password, $Server)
+{
 
-  if($Server != '') {
-    return 0;
-  }
-  
-  // Attempt to load a Leaguerunner user based on the credentials supplied
-  $tmpUsername = db_escape_string($username);
-  $tmpPassword = md5($password);
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  $result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE u.username = '$tmpUsername' AND u.password = '$tmpPassword'", 0, 1);
-  $lrUser = db_fetch_object($result);
+	if($Server != '') {
+		return 0;
+	}
 
-  // See if we successfully authenticated a Leaguerunner user in the LR DB.
-  if($lrUser) {
-  
-    switch ($lrUser->status) {
+	// Attempt to load a Leaguerunner user based on the credentials supplied
+	$tmpUsername = db_escape_string($username);
+	$tmpPassword = md5($password);
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+	$result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE u.username = '$tmpUsername' AND u.password = '$tmpPassword'", 0, 1);
+	$lrUser = db_fetch_object($result);
 
-      Case 'active':
-      Case 'inactive':	
-	    
-		// Set the welcome message to let users know they have logged in.
-	    drupal_set_message(t('<strong>Welcome: '. $lrUser->firstname . ' ' . $lrUser->lastname . '</strong>. You have logged in successfully.'));
+	// See if we successfully authenticated a Leaguerunner user in the LR DB.
+	if($lrUser) {
 
-		// See if they have signed a waiver yet.
-		if (!$lrUser->waiver_signed) {
-			drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in WODS events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
+		switch ($lrUser->status) {
+
+			Case 'active':
+			Case 'inactive':
+
+				// Set the welcome message to let users know
+				// they have logged in.
+				drupal_set_message(t('<strong>Welcome: '. $lrUser->firstname . ' ' . $lrUser->lastname . '</strong>. You have logged in successfully.'));
+
+				// See if they have signed a waiver yet.
+				if (!$lrUser->waiver_signed) {
+					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in WODS events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
+				}
+
+				// Check if the user exists in Drupal.  If
+				// not, create that user.  If we let
+				// user.module handle this, it throws an error
+				// creating the user.
+				if (!user_load(array('name' => $username))) {
+
+					// Create a new Drupal user with their
+					// Leaguerunner username and a
+					// randomly generated password.
+					//
+					// Random password ensures that local
+					// login to Drupal does not occur
+					// since random Drupal password and
+					// actual Leaguerunner password should
+					// hopefully never match
+					$userinfo = array('name' => $username, 'pass' => user_password(), 'init' => $username, 'status' => 1);
+					$newUser = user_save('', $userinfo);
+					watchdog('Leaguerunner', t('New LeagueRunner user: %user created by Leaguerunner Module.', array('%user' => $username)), WATCHDOG_NOTICE, l(t('edit'), 'user/'. $newUser->uid .'/edit'));
+				}
+				// Valid user as they are either active or inactive.
+				// Leaguerunner My Games Block will check and
+				// inform inactive users that they must
+				// activate their account but we will let them
+				// browse the Drupal site.
+				return 1;
+				break;
+
+			Case 'new':
+				drupal_set_message(t('<strong>Your account is still awaiting Administrator Authorization. Please try again later.</strong>'),'error');
+				watchdog('Leaguerunner', t('Attempted login by: %user. User marked NEW in LeagueRunner.', array('%user' => $username)), WATCHDOG_WARNING);
+				return 0;
+				break;
+
+			Case 'locked':
+				drupal_set_message(t('<strong>Your account has been locked by the Administrator.</strong>'),'error');
+				watchdog('Leaguerunner', t('Attempted login by: %user. User marked LOCKED in LeagueRunner.', array('%user' => $username)), WATCHDOG_WARNING);
+				return 0;
+				break;
+
+			Default:
+				return 0;
 		}
-
-	    // Check if the user exists in Drupal.  If not, create that user.  If we let user.module handle this, it throws an error creating the user.
-	    if (!user_load(array('name' => $username))) {
-	    
-		  // Create a new Drupal user with their Leaguerunner username and a randomly generated password.
-	      // Random password ensures that local login to Drupal does not occur since random Drupal password and actual Leaguerunner password should hopefully never match
-		  $userinfo = array('name' => $username, 'pass' => user_password(), 'init' => $username, 'status' => 1);
-	      $newUser = user_save('', $userinfo);
-	      watchdog('Leaguerunner', t('New LeagueRunner user: %user created by Leaguerunner Module.', array('%user' => $username)), WATCHDOG_NOTICE, l(t('edit'), 'user/'. $newUser->uid .'/edit'));
-		  }
-	    // Valid user as they are either active or inactive.
-		// Leaguerunner My Games Block will check and inform inactive users that they must activate their account but we will let them browse the Drupal site.
-		return 1;
-		break;
-	
-	  Case 'new':
-	    drupal_set_message(t('<strong>Your account is still awaiting Administrator Authorization. Please try again later.</strong>'),'error');
-		watchdog('Leaguerunner', t('Attempted login by: %user. User marked NEW in LeagueRunner.', array('%user' => $username)), WATCHDOG_WARNING);
-	    return 0;
-		break;
-	
-	  Case 'locked':
-        drupal_set_message(t('<strong>Your account has been locked by the Administrator.</strong>'),'error');
-		watchdog('Leaguerunner', t('Attempted login by: %user. User marked LOCKED in LeagueRunner.', array('%user' => $username)), WATCHDOG_WARNING);
-        return 0;
-		break;
-	  
-	  Default:
-	    return 0;
-    }
-  }
-  return 0;
+	}
+	return 0;
 }
 
 /**
 * Process user information as required
  */
-function leaguerunner_user($op, &$edit, &$account, $category = null) {
-  
-  if ($op == 'login'){
-    
-	// Load a Leaguerunner user
-	$lrUser = _leaguerunner_user_load( array('username' => $account->name));
-	
-	// If we successfully found a Leaguerunner user, process updates
-	if ($lrUser) {
-	  
-	  // Set the session in Leaguerunner
-	  _leaguerunner_set_session( $lrUser, session_id() );
-	  
-      // Update the email address and full name if this is not the primary Drupal account
-	  if ($account->uid != '1'){
-	    
-	    // Set the email address and full name to coincide with Leaguerunner
-		// NOTE that profile_fullname is a custom textfield created using the profile module. It is used by the authorship module to display the persons full name rather than their user name
-		$lrEmail =  $lrUser->email;
-	    $lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
-	    $lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
-		user_save($account, $lrVariables);
+function leaguerunner_user($op, &$edit, &$account, $category = null)
+{
 
-		// Clear any existing Drupal sessions except anonymous sessions because Leaguerunner configuration can only handle one login session.
-		// For example, Log out a home computer session when someone logs in on a work computer.  Otherwise, home computer Drupal session out of sync with current work computer Leaguerunner session
-		if (($account->uid > 0)){
-          db_query("DELETE FROM {sessions} WHERE uid = %d AND sid <> '%s'", $account->uid, $account->sid);
-        }
-      }
-    }
-  }
+	if ($op == 'login') {
 
-  // Log the user out of Leaguerunner when logging out of Drupal
-  if ($op == 'logout'){
-	leaguerunner_destroy ($account->name);
-  }
+		// Load a Leaguerunner user
+		$lrUser = _leaguerunner_user_load( array('username' => $account->name));
+
+		// If we successfully found a Leaguerunner user, process updates
+		if ($lrUser) {
+
+			// Set the session in Leaguerunner
+			_leaguerunner_set_session( $lrUser, session_id() );
+
+			// Update the email address and full name if this is not the primary Drupal account
+			if ($account->uid != '1') {
+
+				// Set the email address and full name to
+				// coincide with Leaguerunner
+				//
+				// NOTE that profile_fullname is a custom
+				// textfield created using the profile module.
+				// It is used by the authorship module to
+				// display the persons full name rather than
+				// their user name
+				$lrEmail =  $lrUser->email;
+				$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
+				$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
+				user_save($account, $lrVariables);
+
+				// Clear any existing Drupal sessions except
+				// anonymous sessions because Leaguerunner
+				// configuration can only handle one login
+				// session.
+				// For example, Log out a home computer
+				// session when someone logs in on a work
+				// computer.  Otherwise, home computer Drupal
+				// session out of sync with current work
+				// computer Leaguerunner session
+				if (($account->uid > 0)) {
+					db_query("DELETE FROM {sessions} WHERE uid = %d AND sid <> '%s'", $account->uid, $account->sid);
+				}
+			}
+		}
+	}
+
+	// Log the user out of Leaguerunner when logging out of Drupal
+	if ($op == 'logout') {
+		leaguerunner_destroy ($account->name);
+	}
 }
 
 /**
- * Destroy a Leaguerunner session. Gets called by the logout operator in leaguerunner_user()
-  */
-function leaguerunner_destroy( $killsess ) {
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  db_query("UPDATE $lr_dbname.person SET session_cookie = NULL WHERE username = '%s'", $killsess);
-}
-
-/**
-* Set a Leaguerunner session.  Gets called by the login operator in leaguerunner_user()
+ * Destroy a Leaguerunner session. Gets called by the logout operator in
+ * leaguerunner_user()
  */
-function _leaguerunner_set_session ( $lrUser, $sess ) {
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  /* Also set session cookie for Leaguerunner */  
-  db_query("UPDATE $lr_dbname.person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sess, $_SERVER['REMOTE_ADDR'], $lrUser->user_id);
+function leaguerunner_destroy( $killsess )
+{
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+	db_query("UPDATE $lr_dbname.person SET session_cookie = NULL WHERE username = '%s'", $killsess);
 }
 
 /**
-* Loads the user record from Leaguerunner for further processing
+ * Set a Leaguerunner session.  Gets called by the login operator in
+ * leaguerunner_user()
  */
-function _leaguerunner_user_load ($array = array() ) {
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  $query = "";
-  foreach ($array as $key => $value) {
-    if ($key == "password") {
-      $query .= "u.$key = '". md5($value) ."' AND ";
-    }
-    else {
-      $query .= "u.$key = '". db_escape_string($value) ."' AND ";
-    }
-  }
-  $result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE $query (status = 'active' OR status = 'inactive')", 0, 1);
-  $user = db_fetch_object($result);
-  return $user;
+function _leaguerunner_set_session ( $lrUser, $sess )
+{
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+
+	/* Also set session cookie for Leaguerunner */
+	db_query("UPDATE $lr_dbname.person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sess, $_SERVER['REMOTE_ADDR'], $lrUser->user_id);
 }
 
 /**
-* Queries the Leaguerunner Database to determine the next games for display in the authenticated users My Games block
+ * Loads the user record from Leaguerunner for further processing
  */
-function _leaguerunner_next_games (  ) {
-  $player = _leaguerunner_user_load( array('session_cookie' => session_id()));
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  $lr_numtoshow = variable_get("leaguerunner_numtoshow", "3");
-  
-  //$result = db_query("select s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) AS date, IF(s.home_team = t.team_id,home.name,away.name) AS myteam, IF(s.home_team = t.team_id,away.name,home.name) AS opponent FROM $lr_dbname.schedule s INNER JOIN $lr_dbname.gameslot g INNER JOIN $lr_dbname.teamroster t INNER JOIN $lr_dbname.team home ON (home.team_id = s.home_team) INNER JOIN $lr_dbname.team away ON (away.team_id = s.away_team) WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_date >= NOW()  ORDER BY g.game_date asc LIMIT $lr_numtoshow", $player->user_id, $player->user_id);
-  $result = db_query("SELECT UNIX_TIMESTAMP( CONCAT( g.game_date, ' ', g.game_start ) ) AS date, s.game_id, homeTeam.name AS homeTitle, awayTeam.name AS awayTitle, homeRoster.player_id, awayRoster.player_id, field.fid, field.parent_fid, field.num FROM ((((($lr_dbname.schedule AS s INNER JOIN $lr_dbname.gameslot AS g ON s.game_id = g.game_id) INNER JOIN $lr_dbname.team AS homeTeam ON s.home_team = homeTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS homeRoster ON homeTeam.team_id = homeRoster.team_id ) INNER JOIN $lr_dbname.team AS awayTeam ON s.away_team = awayTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS awayRoster ON awayTeam.team_id = awayRoster.team_id ) INNER JOIN $lr_dbname.field ON g.fid = field.fid WHERE g.game_date >= CURDATE( ) AND (homeRoster.player_id = %d OR awayRoster.player_id = %d) GROUP BY s.game_id ORDER BY g.game_date LIMIT $lr_numtoshow;", $player->user_id, $player->user_id);
+function _leaguerunner_user_load ($array = array() )
+{
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+	$query = "";
 
-  $games = array();
-  while($item = db_fetch_object($result)) {
-    $games[] = $item;
-  }
-  return $games;
+	foreach ($array as $key => $value) {
+		if ($key == "password") {
+			$query .= "u.$key = '". md5($value) ."' AND ";
+		} else {
+			$query .= "u.$key = '". db_escape_string($value) ."' AND ";
+		}
+	}
+
+	$result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE $query (status = 'active' OR status = 'inactive')", 0, 1);
+	$user = db_fetch_object($result);
+
+	return $user;
 }
 
 /**
-* Queries the Leaguerunner Database to determine the number of games on a given day
+ * Queries the Leaguerunner Database to determine the next games for display
+ * in the authenticated users My Games block
+ */
+function _leaguerunner_next_games ( )
+{
+	$player = _leaguerunner_user_load( array('session_cookie' => session_id()));
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+	$lr_numtoshow = variable_get("leaguerunner_numtoshow", "3");
+
+	// For old mysql
+	//$result = db_query("select s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) AS date, IF(s.home_team = t.team_id,home.name,away.name) AS myteam, IF(s.home_team = t.team_id,away.name,home.name) AS opponent FROM $lr_dbname.schedule s INNER JOIN $lr_dbname.gameslot g INNER JOIN $lr_dbname.teamroster t INNER JOIN $lr_dbname.team home ON (home.team_id = s.home_team) INNER JOIN $lr_dbname.team away ON (away.team_id = s.away_team) WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_date >= NOW()  ORDER BY g.game_date asc LIMIT $lr_numtoshow", $player->user_id, $player->user_id);
+
+	// For new ( > 5.0.1 ) mysql
+	$result = db_query("SELECT UNIX_TIMESTAMP( CONCAT( g.game_date, ' ', g.game_start ) ) AS date, s.game_id, homeTeam.name AS homeTitle, awayTeam.name AS awayTitle, homeRoster.player_id, awayRoster.player_id, field.fid, field.parent_fid, field.num FROM ((((($lr_dbname.schedule AS s INNER JOIN $lr_dbname.gameslot AS g ON s.game_id = g.game_id) INNER JOIN $lr_dbname.team AS homeTeam ON s.home_team = homeTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS homeRoster ON homeTeam.team_id = homeRoster.team_id ) INNER JOIN $lr_dbname.team AS awayTeam ON s.away_team = awayTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS awayRoster ON awayTeam.team_id = awayRoster.team_id ) INNER JOIN $lr_dbname.field ON g.fid = field.fid WHERE g.game_date >= CURDATE( ) AND (homeRoster.player_id = %d OR awayRoster.player_id = %d) GROUP BY s.game_id ORDER BY g.game_date LIMIT $lr_numtoshow;", $player->user_id, $player->user_id);
+
+	$games = array();
+	while($item = db_fetch_object($result)) {
+		$games[] = $item;
+	}
+	return $games;
+}
+
+/**
+ * Queries the Leaguerunner Database to determine the number of games on a
+ * given day
  */
 function leaguerunner_count_games_for_date ( $year, $month, $day )
 {
-  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-  $result = db_query("select COUNT(*) from $lr_dbname.gameslot WHERE game_date = '%d-%d-%d' AND NOT ISNULL(game_id)", $year, $month, $day);
-  $numGames = db_result($result);
-  return $numGames;
+	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+	$result = db_query("select COUNT(*) from $lr_dbname.gameslot WHERE game_date = '%d-%d-%d' AND NOT ISNULL(game_id)", $year, $month, $day);
+	$numGames = db_result($result);
+	return $numGames;
 }
 
 /**
- * Creates a 'My Games' block for upcoming games. Uses the Leaguerunner configuration setting to get the number of games to display
+ * Creates a 'My Games' block for upcoming games. Uses the Leaguerunner
+ * configuration setting to get the number of games to display
  */
-function leaguerunner_block($op = 'list', $delta = 0) {
-  global $user;
+function leaguerunner_block($op = 'list', $delta = 0)
+{
+	global $user;
 
-  $edit = $_POST["edit"];
+	$edit = $_POST["edit"];
 
-  if ($op == "list") {
-     $blocks[0]["info"] = t("Leaguerunner game data for logged-in user");
-     return $blocks;
-  }
-  
-  elseif ($op == "view") {
-    
-	// If we are dealing with an Authenticated User then we want to show the Leaguerunner block
-	if ($user->uid) {
-      
-	  // Make sure they have access to the Leaguerunner module
-	  if (user_access('access leaguerunner')) {
-        
-		// Get the current Leaguerunner user
-		$lrUser = _leaguerunner_user_load( array( 'session_cookie' => session_id()));
-		
-		// Check to see if the users email or name have been updated in Leaguerunner and do relevant updates in Drupal user table
-		if (($user->mail != $lrUser->email) || ($user->profile_fullname != ($lrUser->firstname . ' ' . $lrUser->lastname))) {
-          $lrEmail =  $lrUser->email;
-	      $lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
-	      $lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
-		  user_save($user, $lrVariables);
-		}
-        
-		// Get the coming games for this user
-		$games = _leaguerunner_next_games();
-        
-		// Start block contents output
-		$output = "<div class=\"next-games\" style=\"font-size: 8pt;\">\n";
+	if ($op == "list") {
+		$blocks[0]["info"] = t("Leaguerunner game data for logged-in user");
+		return $blocks;
+	} elseif ($op == "view") {
 
-          // If user is inactive, throw a message to encourage them to activate their account
-		  if ($lrUser->status == 'inactive'){
-			
-			// Set a Drupal Message and format the Leaguerunner Games block to show that user had not activated their LeagueRunner account
-			$lr_activate = variable_get("leaguerunner_activateaccount", "leaguerunner/person/activate");
-			$inactiveError1 = '<strong>Your Leaguerunner account has not been activated.</strong>';
-			$inactiveError2 = 'You cannot fully utilize the Leaguerunner system until you activate your account.<br><a href="/' . $lr_activate . '">Click here to activate</a>.';
-			$output .= '<p style="text-align: center;">' . $inactiveError1 . '</p><p>' . $inactiveError2. '</p>';
-			drupal_set_message(t($inactiveError1), 'error');
-		    drupal_set_message(t($inactiveError2), 'error');
-		  
-		  // If user has games then show a list of coming games.
-		  } else if (count($games)) {
-            
-			// Cycle through the games
-			foreach ($games as $game) {
-              $minutesleft = ( $game->date - time()) / 60;
-              
-			  // Format the minutes left text
-			  if ( $minutesleft < 90 ) {
-                $timeleft = round($minutesleft) . " " . t('minutes');
-			  }
-              else if ( $minutesleft < (2*24*60) ) {
-                $timeleft = round($minutesleft/60) . " " . t('hours');
-			  }
-              else {
-                $timeleft = round($minutesleft/(24*60)) . " " . t('days');
-			  }
-			  
-			  // Figure out the field code for the game
-			  $lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-			  $result = '';
-			  $gameField = '';
-			  if ($game->parent_fid) {
-			    $result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->parent_fid", 0, 1);
-			  } else {
-			    $result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->fid", 0, 1);
-			  }
-			  $gameField = db_fetch_object($result);
-              
-			  $tmpDate = '';
-              $tmpDate = date("F dS: g:i a", $game->date) . "<br>(" . $timeleft . ")";
-              $items[] = "<b>$tmpDate</b><br><a href=\"/leaguerunner/game/view/$game->game_id\"><nobr>$game->homeTitle</nobr> vs. <nobr>$game->awayTitle</nobr></a> <nobr>at <a href=\"/leaguerunner/field/view/$game->fid\">$gameField->code $game->num</a></nobr>";
+		// If we are dealing with an Authenticated User then we want to show the Leaguerunner block
+		if ($user->uid) {
+
+			// Make sure they have access to the Leaguerunner module
+			if (user_access('access leaguerunner')) {
+
+				// Get the current Leaguerunner user
+				$lrUser = _leaguerunner_user_load( array( 'session_cookie' => session_id()));
+
+				// Check to see if the users email or name
+				// have been updated in Leaguerunner and do
+				// relevant updates in Drupal user table
+				if (($user->mail != $lrUser->email) || ($user->profile_fullname != ($lrUser->firstname . ' ' . $lrUser->lastname))) {
+					$lrEmail =  $lrUser->email;
+					$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
+					$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
+					user_save($user, $lrVariables);
+				}
+
+				// Get the coming games for this user
+				$games = _leaguerunner_next_games();
+
+				// Start block contents output
+				$output = "<div class=\"next-games\" style=\"font-size: 8pt;\">\n";
+
+				// If user is inactive, set a Drupal Message
+				// and format the Leaguerunner Games block to
+				// show that user had not activated their
+				// LeagueRunner account
+				if ($lrUser->status == 'inactive') {
+
+					$lr_activate = variable_get("leaguerunner_activateaccount", "leaguerunner/person/activate");
+					$inactiveError1 = '<strong>Your Leaguerunner account has not been activated.</strong>';
+					$inactiveError2 = 'You cannot fully utilize the Leaguerunner system until you activate your account.<br><a href="/' . $lr_activate . '">Click here to activate</a>.';
+					$output .= '<p style="text-align: center;">' . $inactiveError1 . '</p><p>' . $inactiveError2. '</p>';
+					drupal_set_message(t($inactiveError1), 'error');
+					drupal_set_message(t($inactiveError2), 'error');
+
+					// If user has games then show a list of coming games.
+				} else if (count($games)) {
+
+					// Cycle through the games
+					foreach ($games as $game) {
+						$minutesleft = ( $game->date - time()) / 60;
+
+						// Format the minutes left text
+						if ( $minutesleft < 90 ) {
+							$timeleft = round($minutesleft) . " " . t('minutes');
+						} else if ( $minutesleft < (2*24*60) ) {
+							$timeleft = round($minutesleft/60) . " " . t('hours');
+						} else {
+							$timeleft = round($minutesleft/(24*60)) . " " . t('days');
+						}
+
+						// Figure out the field code for the game
+						$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
+						$result = '';
+						$gameField = '';
+						if ($game->parent_fid) {
+							$result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->parent_fid", 0, 1);
+						} else {
+							$result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->fid", 0, 1);
+						}
+						$gameField = db_fetch_object($result);
+
+						$tmpDate = '';
+						$tmpDate = date("F dS: g:i a", $game->date) . "<br>(" . $timeleft . ")";
+						$items[] = "<b>$tmpDate</b><br><a href=\"/leaguerunner/game/view/$game->game_id\"><nobr>$game->homeTitle</nobr> vs. <nobr>$game->awayTitle</nobr></a> <nobr>at <a href=\"/leaguerunner/field/view/$game->fid\">$gameField->code $game->num</a></nobr>";
+					}
+
+					// Send the output to the theme to format as a list
+					$output .= theme("item_list", $items);
+
+					// If user has no games and is active simply indicate that they have no games
+				} else {
+					$output .= "No games scheduled";
+				}
+
+				// Finish the output and return the block
+				$output .= "</div>\n";
+				$block["subject"] = "Leaguerunner games";
+				$block["content"] = $output;
+				return $block;
 			}
-              
-			// Send the output to the theme to format as a list
-			$output .= theme("item_list", $items);
-            
-		  // If user has no games and is active simply indicate that they have no games
-		  } else {
-            $output .= "No games scheduled";
-          }
-          
-		  // Finish the output and return the block
-		  $output .= "</div>\n";
-          $block["subject"] = "Leaguerunner games";
-          $block["content"] = $output;
-          return $block;
-      }
-    }
-  }
+		}
+	}
 }
 ?>
