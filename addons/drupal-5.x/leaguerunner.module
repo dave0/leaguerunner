@@ -299,7 +299,7 @@ function leaguerunner_user($op, &$edit, &$account, $category = null)
 			// Set the session in Leaguerunner
 			_leaguerunner_set_session( $lrUser, session_id() );
 			
-			$fullname = $lrUser->firstname . ' ' . $lrUser->lastname;
+			$fullname = $lrUser->firstname . ' ' . $lrUser->lastname . ' (' . $name . ')';
 
 			// Update the email address and full name if the data's changed
 			if( ($fullname != $account->name) || ($lrUser->email != $account->mail) ) {
