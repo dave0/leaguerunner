@@ -56,7 +56,7 @@ function leaguerunner_perm()
 function leaguerunner_admin() {
 
 	$form = array(
-		'leaguerunner_db_name' => array(
+		'leaguerunner_dbname' => array(
 			'#type' => 'textfield',
 			'#title' => t('Leaguerunner database name'),
 			'#default_value' => variable_get('leaguerunner_dbname', 'leaguerunner'),
