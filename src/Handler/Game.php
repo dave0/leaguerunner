@@ -264,11 +264,100 @@ class GameCreate extends Handler
 			error_exit("Cannot schedule games in a league with less than two teams");
 		}
 
-		# Must currently have even # of teams for scheduling
-		if ($num_teams % 2) {
-			error_exit("Must currently have an even number of teams in your league.  If you need a bye, please create a team named Bye and add it to your league");
+		# Must currently have even # of teams for scheduling unless the excludeTeams flag is set
+		if ($num_teams % 2 && $this->league->excludeTeams == "false") {
+			error_exit("Must currently have an even number of teams in your league. " . 
+			"If you need a bye, please create a team named Bye and add it to your league. " .
+			"Otherwise, edit your league and set the 'excludeTeams' flag.");
 		}
 
+		$edit = &$_POST['edit'];
+		$this->setLocation(array( 
+			$this->league->fullname => "league/view/" . $this->league->league_id,
+			$this->title => 0
+		));
+
+		switch($edit['step']) {
+			case 'perform':
+				return $this->perform($edit);
+				break;
+			case 'confirm':
+				return $this->confirm($edit);
+				break;
+			case 'selectdate':
+				return $this->selectDate( $edit );
+				break;
+			case 'selecttype':
+				return $this->selectType( $edit );
+				break;
+			case 'excludeTeams':
+				return $this->excludeTeams( $edit );
+				break;
+			default:
+				if ($this->league->excludeTeams == "true") {
+					return $this->excludeTeams($edit);
+				} else {
+					return $this->selectType( $edit );
+				}
+				break;
+		}
+		error_exit("Error: This code should never be reached.");
+	}
+	
+	function excludeTeams ( $edit ) {
+		$this->league->load_teams();
+		
+		$output = "<P><br>The 'excludeTeams' option is set for this league.  This gives you the chance to <b>EXCLUDE</b> some teams from scheduling. ";
+		$output .= "You may want to do this because you have an un-even number of teams in your league, or if your league consists of some teams who don't play every game...</P>";
+		$output .= "<P>Please select the teams you wish to <b>EXCLUDE</b> from scheduling.</P>";
+		$output .= "<P>You must ensure that you leave an even number of teams.</P>";
+		$output .= form_hidden('edit[step]', 'selecttype');
+		
+		foreach($this->league->teams as $team) {
+			$output .= form_checkbox( $team->name, "edit[excludeTeamID][]", $team->team_id );
+		}
+		
+		$output .= form_submit('Next step');
+		
+		return form($output);
+		
+	}
+	
+	function selectType ( $edit )
+	{
+		$num_teams = count($this->league->teams);
+		
+		if (isset($edit['excludeTeamID'])) {
+			$output = "<p><br>You will be excluding the following teams from the schedule: <br><b>";
+			$counter = 0;
+			$excludes = "";
+			foreach ($edit['excludeTeamID'] as $teamid) {
+				$excludes .= $this->league->teams[$teamid]->name . "<br>";
+				$output .= form_hidden("edit[excludeTeamID][$counter]",$teamid);
+				$counter++;
+				$num_teams--;
+			}
+			$output .= $excludes . "</b></p>";
+			
+			if ($num_teams % 2) {
+				error_exit("You marked " . count($edit['excludeTeamID']) . " teams to exclude, that leaves $num_teams.  Cannot schedule games for an un-even number of teams!");
+			}
+		}
+		
+		$this->loadTypes ($num_teams);
+
+		$output .= "<p>Please enter some information about the game(s) to create.</p>";
+		$output .= form_hidden('edit[step]', 'selectdate');
+		
+		$group .= form_radiogroup('', 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
+		$output .= form_group("Create a ... ", $group);
+		
+		$output .= form_submit('Next step');
+
+		return form($output);
+	}
+	
+	function loadTypes ( $num_teams ) {
 		// Set up our menu
 		switch($this->league->schedule_type) {
 			case 'roundrobin':
@@ -306,47 +395,26 @@ class GameCreate extends Handler
 				error_exit("Wassamattayou!");
 				break;
 		}
-
-		$edit = &$_POST['edit'];
-		$this->setLocation(array( 
-			$this->league->fullname => "league/view/" . $this->league->league_id,
-			$this->title => 0
-		));
-
-		switch($edit['step']) {
-			case 'perform':
-				return $this->perform($edit);
-				break;
-			case 'confirm':
-				return $this->confirm($edit);
-				break;
-
-			case 'selectdate':
-				return $this->selectDate( $edit['type'] );
-				break;
-			default:
-				return $this->selectType();
-				break;
-		}
-		error_exit("Error: This code should never be reached.");
-	}
-	
-	function selectType ()
-	{
-		$output = "<p>Please enter some information about the game(s) to create.</p>";
-		$output .= form_hidden('edit[step]', 'selectdate');
-		
-		$group .= form_radiogroup('', 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
-		$output .= form_group("Create a ... ", $group);
-		
-		$output .= form_submit('Next step');
-
-		return form($output);
 	}
 
-	function selectDate ( $type )
+	function selectDate ( $edit )
 	{
 		$num_teams = count($this->league->teams);
+
+		if (isset($edit['excludeTeamID'])) {
+			$output = "<p><br>You will be excluding the following teams from the schedule: <br><b>";
+			$counter = 0;
+			$excludes = "";
+			foreach ($edit['excludeTeamID'] as $teamid) {
+				$excludes .= $this->league->teams[$teamid]->name . "<br>";
+				$output .= form_hidden("edit[excludeTeamID][$counter]",$teamid);
+				$counter++;
+				$num_teams--;
+			}
+			$output .= $excludes . "</b></p>";
+		}
+
+		$type = $edit['type'];
 
 		switch($type) {
 			case 'single':
@@ -375,7 +443,7 @@ class GameCreate extends Handler
 		}
 	
 		$tot_fields = $num_fields * $num_dates;
-		$output = "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
+		$output .= "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
 
 		$result = db_query(
 			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d ORDER BY s.game_date, s.game_start", $this->league->league_id);
@@ -400,12 +468,12 @@ class GameCreate extends Handler
 	}
 
 	function confirm ( &$edit )
-	{
+	{		
 		switch($edit['type']) {
 			case 'single':
 			case 'oneset':
-         case 'oneset_pyramid':
-         case 'oneset_ratings_ladder':
+			case 'oneset_pyramid':
+			case 'oneset_ratings_ladder':
 			case 'blankset':
 			case 'fullround':
 			case 'halfroundstandings':
@@ -421,10 +489,20 @@ class GameCreate extends Handler
 		$output .= form_hidden('edit[type]',$edit['type']);
 		$output .= form_hidden('edit[startdate]',$edit['startdate']);
 		
+		$num_teams = count($this->league->teams) - count($edit['excludeTeamID']);
+		$this->loadTypes ($num_teams);
+		
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
-		// the javascript below doesn't work in IE...
-		//$output .= form_submit('Create Games', 'submit', 'onclick="this.disabled=1; this.form.submit();"');
+		
+		$counter = 0;
+		$excludes = "";
+		foreach ($edit['excludeTeamID'] as $teamid) {
+			$excludes .= $this->league->teams[$teamid]->name . "<br>";
+			$output .= form_hidden("edit[excludeTeamID][$counter]",$teamid);
+			$counter++;
+		}
+		$output .= form_item('Teams to exclude:', "<b>$excludes</b>");
 		$output .= form_submit('Create Games', 'submit');
 		return form($output);
 	}
@@ -458,7 +536,7 @@ class GameCreate extends Handler
             break;
          case 'oneset_ratings_ladder':
             # Create game for all teams in league
-            list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] ) ;
+            list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] , $edit['excludeTeamID']) ;
             break;
 			case 'fullround':
 				# Create full roundrobin

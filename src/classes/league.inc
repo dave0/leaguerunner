@@ -1054,14 +1054,14 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create a scheduled set of games for this league
 	 */
-	function create_scheduled_set_ratings_ladder( $datestamp ) 
+	function create_scheduled_set_ratings_ladder( $datestamp, $excludeTeamsIDs = array() ) 
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
 		}
 
-		$num_teams = count($this->teams);
-
+		$num_teams = count($this->teams) - count($excludeTeamsIDs);
+		
 		if($num_teams < 2) {
 			return array(false, "Must have two teams");
 		}
@@ -1076,7 +1076,9 @@ class League extends LeaguerunnerObject
 		$teams = array();
 		list($team_ids, $junk, $morejunk) = $this->calculate_standings();
 		foreach($team_ids as $id) {
-			array_push($teams, $this->teams[$id]);
+			if ( ! in_array($id, $excludeTeamsIDs) ) {
+				array_push($teams, $this->teams[$id]);
+			}
 		}
 
 		return $this->schedule_one_set_ratings_ladder( $teams, $datestamp );
@@ -1421,6 +1423,8 @@ class League extends LeaguerunnerObject
 			}
 			
 			$past_games = $this->getRecentGames($current_team->team_id, $gbr);
+
+// TONY HERE
 
 			$new_possible_opponents = array();
 			// now, loop through the possible opponents and save only the ones who have not been in recent games

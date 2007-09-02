@@ -111,3 +111,5 @@ INSERT INTO multiplechoice_answers VALUES('MostEnjoyed', 'Enjoyment','most of my
 INSERT INTO multiplechoice_answers VALUES('SomeEnjoyed', 'Enjoyment','some of my players did','-1',2);
 INSERT INTO multiplechoice_answers VALUES('NoneEnjoyed', 'Enjoyment','none of my players did','-1',3);
 INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES ('CommentsToCoordinator','team_spirit','Do you have any comments on this game you would like to bring to the coordinator''s attention?', 'freetext','N','4');
+
+alter table league add excludeTeams ENUM('true','false') DEFAULT 'false' after see_sotg;

@@ -361,6 +361,9 @@ class LeagueEdit extends Handler
 		$rows[] = array("League Coordinator Email List:", form_textfield('', 'edit[coord_list]', $formData['coord_list'], 35,200, "An email alias for all coordinators of this league (can be a comma separated list of individual email addresses)"));
 
 		$rows[] = array("League Captain Email List:", form_textfield('', 'edit[capt_list]', $formData['capt_list'], 35,200, "An email alias for all captains of this league"));
+
+		$rows[] = array("Allow exclusion of teams during scheduling?:", 
+			form_select("", "edit[excludeTeams]", $formData['excludeTeams'], getOptionsFromEnum('league','excludeTeams'), "Allows coordinators to exclude teams from schedule generation."));
 		
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit") . form_reset("reset"));
@@ -421,6 +424,9 @@ class LeagueEdit extends Handler
 		$rows[] = array("League Captain Email List:", 
 			form_hidden('edit[capt_list]', $edit['capt_list']) . $edit['capt_list']);
 
+		$rows[] = array("Allow exclusion of teams during scheduling?:", 
+			form_hidden('edit[excludeTeams]', $edit['excludeTeams']) . $edit['excludeTeams']);
+
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 
@@ -450,6 +456,7 @@ class LeagueEdit extends Handler
 		$this->league->set('see_sotg', $edit['see_sotg']);
 		$this->league->set('coord_list', $edit['coord_list']);
 		$this->league->set('capt_list', $edit['capt_list']);
+		$this->league->set('excludeTeams', $edit['excludeTeams']);
 		
 		if( !$this->league->save() ) {
 			error_exit("Internal error: couldn't save changes");
