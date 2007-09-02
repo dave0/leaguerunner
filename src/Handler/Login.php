@@ -84,11 +84,17 @@ class Login extends Handler
 				 * such that the session won't expire.
 				 */
 
-				$path = dirname($_SERVER['PHP_SELF']);
+				$path = ini_get('session.cookie_path');
+				if( ! $path ) {
+					$path = '/';
+				}
+				
+				$domain = ini_get('session.cookie_domain');
+
 				if ($remember_me) {
-					setcookie(session_name(), session_id(), time() + 3600 * 24 * 365, $path);
+					setcookie(session_name(), session_id(), time() + 3600 * 24 * 365, $path, $domain);
 				} else {  
-					setcookie(session_name(), session_id(), FALSE, $path);
+					setcookie(session_name(), session_id(), FALSE, $path, $domain);
 				}
 
 				local_redirect(url("home"));

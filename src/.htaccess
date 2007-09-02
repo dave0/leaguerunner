@@ -19,6 +19,8 @@ DirectoryIndex index.php
 	php_value session.cache_expire    200000
 	php_value session.gc_maxlifetime  200000
 	php_value session.cookie_lifetime 2000000
+	php_value session.cookie_path     "/"
+	php_value session.cookie_domain     "ocua.ca"
 	php_value session.auto_start      0
 	php_value session.save_handler    user
 	php_value session.cache_limiter   none
