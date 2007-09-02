@@ -760,7 +760,7 @@ class GameSubmit extends Handler
       
       $output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
       
-		$output .= para(form_submit("submit", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
+		$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
 		return form($output);
 	}
@@ -803,7 +803,7 @@ class GameSubmit extends Handler
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score."
 		);
 
-		$output .= para(form_submit('submit'));
+		$output .= para(form_submit('Submit'));
 
 		return form($output);
 	}
@@ -852,7 +852,7 @@ class GameSubmit extends Handler
 		);
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
-		$output .= para(form_submit("submit") . form_reset("reset"));
+		$output .= para(form_submit("Next Step") . form_reset("reset"));
 		
 		$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
