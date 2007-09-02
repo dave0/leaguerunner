@@ -1,25 +1,23 @@
 <?php
 
-session_set_save_handler("sess_open","sess_close","sess_read","sess_write","sess_destroy","sess_gc");
-session_start();
-
 /** 
  * Session functions.  
  */
 function sess_open($save_path, $session_name) 
 {
-	return 1;
+	return TRUE;
 }
 
 function sess_close() 
 {
-	return 1;
+	return TRUE;
 }
 
 function sess_read($key)
 {
 	global $lr_session;
 	$lr_session = new UserSession;
+
 	$lr_session->create_from_cookie($key, $_SERVER['REMOTE_ADDR']);
 	return $lr_session->is_valid();
 }
@@ -36,7 +34,24 @@ function sess_destroy($key)
 
 function sess_gc($lifetime)
 {
-	return 1;
+	return TRUE;
+}
+
+function lr_configure_sessions ()
+{
+	global $BASE_URL,$SESSION_NAME;
+	
+	if ($SESSION_NAME) {
+		$session_name = $SESSION_NAME;
+	}
+	else {
+		// Otherwise use $base_url as session name, without the protocol
+		// to use the same session identifiers across http and https.
+		list( , $session_name) = explode('://', $BASE_URL, 2);
+	}
+	session_name('SESS'. md5($session_name));
+	session_set_save_handler("sess_open","sess_close","sess_read","sess_write","sess_destroy","sess_gc");
+	session_start();
 }
 
 /**

@@ -72,6 +72,8 @@ if(!valid_input_data($_REQUEST)) {
 
 require_once "Handler.php";
 require_once "UserSession.php";
+# configure session name
+lr_configure_sessions();
 
 /* Headers have not been sent yet */
 global $headers_sent;
