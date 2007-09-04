@@ -20,27 +20,27 @@ ALTER TABLE field ADD washrooms TEXT AFTER biking_directions;
 ALTER TABLE registration_answers RENAME temp;
 
 CREATE TABLE registration_answers (
-	order_id int UNSIGNED NOT NULL,
-	qkey varchar(255) NOT NULL,
-	akey varchar(255),
-	PRIMARY KEY (order_id, qkey)
+ order_id int UNSIGNED NOT NULL,
+ qkey varchar(255) NOT NULL,
+ akey varchar(255),
+ PRIMARY KEY (order_id, qkey)
 );
 
 INSERT INTO registration_answers (
-	SELECT
-		order_id,
-		qkey,
-		akey
-	FROM
-		temp
-	LEFT JOIN
-		registrations
-	ON
-		temp.user_id = registrations.user_id
-	AND
-		temp.registration_id = registrations.registration_id
-	ORDER BY
-		order_id
+ SELECT
+  order_id,
+  qkey,
+  akey
+ FROM
+  temp
+ LEFT JOIN
+  registrations
+ ON
+  temp.user_id = registrations.user_id
+ AND
+  temp.registration_id = registrations.registration_id
+ ORDER BY
+  order_id
 );
 
 DROP TABLE temp;
@@ -48,32 +48,32 @@ DROP TABLE temp;
 ALTER TABLE refund_answers RENAME temp;
 
 CREATE TABLE refund_answers (
-	order_id int UNSIGNED NOT NULL,
-	qkey varchar(255) NOT NULL,
-	akey varchar(255),
-	PRIMARY KEY (order_id, qkey)
+ order_id int UNSIGNED NOT NULL,
+ qkey varchar(255) NOT NULL,
+ akey varchar(255),
+ PRIMARY KEY (order_id, qkey)
 );
 
 INSERT INTO refund_answers (
-	SELECT
-		order_id,
-		qkey,
-		akey
-	FROM
-		temp
-	LEFT JOIN
-		refunds
-	ON
-		temp.user_id = refunds.user_id
-	AND
-		temp.registration_id = refunds.registration_id
-	ORDER BY
-		order_id
+ SELECT
+  order_id,
+  qkey,
+  akey
+ FROM
+  temp
+ LEFT JOIN
+  refunds
+ ON
+  temp.user_id = refunds.user_id
+ AND
+  temp.registration_id = refunds.registration_id
+ ORDER BY
+  order_id
 );
 
 DROP TABLE temp;
 
 ALTER TABLE registration_events
-	ADD COLUMN multiple BOOL DEFAULT FALSE AFTER cap_female;
+ ADD COLUMN multiple BOOL DEFAULT FALSE AFTER cap_female;
 ALTER TABLE registration_events
-	ADD COLUMN anonymous BOOL DEFAULT FALSE AFTER multiple;
+ ADD COLUMN anonymous BOOL DEFAULT FALSE AFTER multiple;
