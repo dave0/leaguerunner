@@ -1060,7 +1060,10 @@ class League extends LeaguerunnerObject
 			return(array(false, "Couldn't load team information"));
 		}
 
-		$num_teams = count($this->teams) - count($excludeTeamsIDs);
+		$num_teams = count($this->teams);
+		if (isset($excludeTeamsIDs)) { 
+			$num_teams = $num_teams - count($excludeTeamsIDs);
+		}
 		
 		if($num_teams < 2) {
 			return array(false, "Must have two teams");
@@ -1076,7 +1079,11 @@ class League extends LeaguerunnerObject
 		$teams = array();
 		list($team_ids, $junk, $morejunk) = $this->calculate_standings();
 		foreach($team_ids as $id) {
-			if ( ! in_array($id, $excludeTeamsIDs) ) {
+			if (isset($excludeTeamsIDs)) {
+				if ( ! in_array($id, $excludeTeamsIDs) ) {
+					array_push($teams, $this->teams[$id]);
+				}
+			} else {
 				array_push($teams, $this->teams[$id]);
 			}
 		}
@@ -1780,6 +1787,8 @@ class League extends LeaguerunnerObject
 		$max_retries = $this->schedule_attempts;
 		$ret = null;
 
+		$start_time = time();
+		
 		global $BASE_URL;
 		print "<html>";
 		print "<head>";
@@ -1863,6 +1872,10 @@ class League extends LeaguerunnerObject
 			return $ret;
 		}
 
+		$stop_time = time();
+		$total_time = $stop_time - $start_time;
+		print "<p>Time elapsed: $total_time</p>";
+		
 	//         if ( ! array_sum($gbr_diff) == 0 ) {
 		print "<div class='schedule'>";
 		print "<table align=center>";

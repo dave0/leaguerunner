@@ -495,14 +495,16 @@ class GameCreate extends Handler
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
 		
-		$counter = 0;
-		$excludes = "";
-		foreach ($edit['excludeTeamID'] as $teamid) {
-			$excludes .= $this->league->teams[$teamid]->name . "<br>";
-			$output .= form_hidden("edit[excludeTeamID][$counter]",$teamid);
-			$counter++;
+		if (isset($edit['excludeTeamID'])) {
+			$counter = 0;
+			$excludes = "";
+			foreach ($edit['excludeTeamID'] as $teamid) {
+				$excludes .= $this->league->teams[$teamid]->name . "<br>";
+				$output .= form_hidden("edit[excludeTeamID][$counter]",$teamid);
+				$counter++;
+			}
+			$output .= form_item('Teams to exclude:', "<b>$excludes</b>");
 		}
-		$output .= form_item('Teams to exclude:', "<b>$excludes</b>");
 		$output .= form_submit('Create Games', 'submit');
 		return form($output);
 	}
