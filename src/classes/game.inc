@@ -1524,7 +1524,69 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 	// clear the temp_games array
 	$temp_games = array();
 	
-	// SECOND PASS: all games that remain in which the HOME team has a field REGION PREFERENCE should 
+	// SECOND PASS: all games that remain in which the HOME team has a field REGION PREFERENCE and 
+	// the AWAY team has the same preference should now be scheduled...
+	while(count($games) > 0) {
+		// get the game to look at
+		$game = array_pop($games);
+		// prepare a boolean to say whether or not the game was scheduled
+		$scheduled = false;
+		// home/away team id and preferences:
+		$home_team_id = $game->home_team;
+		$away_team_id = $game->away_team;
+		$home_team_preference = "";
+		$away_team_preference = "";
+		$found_home = false;
+		$found_away = false;
+		// loop through the teams
+		foreach ($teams as $team) {
+			// if the team is the home team for this game
+			if ($team->team_id == $home_team_id) {
+				// does this team have a field region preference?
+				if ($team->region_preference != null && $team->region_preference != '---') {
+					$home_team_preference = $team->region_preference;
+				}
+				$found_home = true;
+			}
+			// if the team is the away team for this game
+			if ($team->team_id == $away_team_id) {
+				// does this team have a field region preference?
+				if ($team->region_preference != null && $team->region_preference != '---') {
+					$away_team_preference = $team->region_preference;
+				}
+				$found_away = true;
+			}
+			
+			if ($found_home && $found_away) {
+				// found the both teams, so break out of the loop
+				break;
+			}
+
+		} // end foreach
+		
+		if ($found_home && $found_away && $home_team_preference != "" && $away_team_preference != "" && $home_team_preference == $away_team_preference) {
+			// this game needs to be scheduled
+			// let the 'select_weighted_gameslot' function do the work
+			list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+			$scheduled = true;
+			// look for errors:
+			if( ! $rc ) {
+				return array(false, $rc, $message);
+			}
+		}
+		
+		// if we haven't already scheduled the game, save it for later...
+		if (!$scheduled) {
+			$temp_games[] = $game;
+		}
+	} // end while
+
+	// re-fill the games array
+	$games = $temp_games;
+	// clear the temp_games array
+	$temp_games = array();
+	
+	// THIRD PASS: all games that remain in which the HOME team has a field REGION PREFERENCE should 
 	// now be scheduled...
 	while(count($games) > 0) {
 		// get the game to look at
@@ -1561,8 +1623,8 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 	$games = $temp_games;
 	// clear the temp_games array
 	$temp_games = array();
-	
-	// THIRD PASS: all games that remain in which the AWAY team has a field REGION PREFERENCE should 
+
+	// FOURTH PASS: all games that remain in which the AWAY team has a field REGION PREFERENCE should 
 	// now be scheduled...
 	while(count($games) > 0) {
 		// get the game to look at
