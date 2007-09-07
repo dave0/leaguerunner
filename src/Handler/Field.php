@@ -436,8 +436,7 @@ class FieldList extends Handler
 		if( $this->closed ) {
 			$status = "AND status = 'closed'";
 		} else {
-			// GS: TODO Status may be NULL, means the same as open
-			$status = "AND status = 'open'";
+			$status = "AND (status = 'open' OR ISNULL(status))";
 		}
 		$result = field_query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
 
