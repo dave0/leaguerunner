@@ -54,6 +54,7 @@ require_once("classes/slot.inc");
 require_once("classes/event.inc");
 require_once("classes/registration.inc");
 require_once("classes/formbuilder.inc");
+require_once("classes/session.inc");
 
 // Maybe include registration payment module
 if( variable_get('registration', 0) &&
@@ -71,11 +72,11 @@ if(!valid_input_data($_REQUEST)) {
 }
 
 require_once "Handler.php";
-require_once "UserSession.php";
-# configure session name
+
+// configure sessions
 lr_configure_sessions();
 
-/* Headers have not been sent yet */
+// Headers have not been sent yet
 global $headers_sent;
 $headers_sent = 0;
 
