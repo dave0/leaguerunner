@@ -126,7 +126,7 @@ function registration_add_to_menu( &$registration )
  * Base class for registration form functionality
  */
 class RegistrationForm extends Handler
-	{
+{
 	function registration_form_load ($id, $add_extra)
 	{
 		$this->formkey = 'registration_' . $id;
@@ -300,25 +300,25 @@ class RegistrationEdit extends RegistrationForm
 
 		if ( $this->formbuilder )
 		{
-		// Get registration answers/preferences
-		$result = db_query('SELECT
-								qkey, akey
-							FROM
-								registration_answers
-							WHERE
+			// Get registration answers/preferences
+			$result = db_query('SELECT
+									qkey, akey
+								FROM
+									registration_answers
+								WHERE
 									order_id = %d',
 								$this->registration->order_id);
 
-		if(0 != db_num_rows($result)) {
-			$prefrows = array();
+			if(0 != db_num_rows($result)) {
+				$prefrows = array();
 
-			while($row = db_fetch_array($result)) {
-				$prefrows[$row['qkey']] = $row['akey'];
-			}
+				while($row = db_fetch_array($result)) {
+					$prefrows[$row['qkey']] = $row['akey'];
+				}
 				$this->formbuilder->bulk_set_answers ($prefrows);
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (true));
-		}
-		else {
+			}
+			else {
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (false));
 			}
 		}
@@ -1178,69 +1178,69 @@ function registration_statistics($args)
 
 			if( ! $event->anonymous )
 			{
-			$result = db_query('SELECT
-									p.gender,
-									COUNT(order_id)
-								FROM
-									registrations r
-								LEFT JOIN
-									person p
-								ON
-									r.user_id = p.user_id
-								WHERE
-									r.registration_id = %d
-								GROUP BY
-									p.gender
-								ORDER BY
-									gender',
-								$id);
+				$result = db_query('SELECT
+										p.gender,
+										COUNT(order_id)
+									FROM
+										registrations r
+									LEFT JOIN
+										person p
+									ON
+										r.user_id = p.user_id
+									WHERE
+										r.registration_id = %d
+									GROUP BY
+										p.gender
+									ORDER BY
+										gender',
+									$id);
 
-			$sub_table = array();
-			while($row = db_fetch_array($result)) {
-				$sub_table[] = $row;
-			}
-			$rows[] = array("By gender:", table(null, $sub_table));
+				$sub_table = array();
+				while($row = db_fetch_array($result)) {
+					$sub_table[] = $row;
+				}
+				$rows[] = array("By gender:", table(null, $sub_table));
 			}
 
 			$formkey = 'registration_' . $id;
 			$formbuilder = formbuilder_load($formkey);
 			if( $formbuilder )
 			{
-			foreach ($formbuilder->_questions as $question)
-			{
-				$qkey = $question->qkey;
+				foreach ($formbuilder->_questions as $question)
+				{
+					$qkey = $question->qkey;
 
 					// We don't want to see text answers here, they won't group
 					// well
 					if ($question->qtype == 'multiplechoice' )
-				{
-					$result = db_query("SELECT
-											akey,
+					{
+						$result = db_query("SELECT
+												akey,
 												COUNT(registration_answers.order_id)
-										FROM
-											registration_answers
+											FROM
+												registration_answers
 											LEFT JOIN
 												registrations
 											ON
 												registration_answers.order_id = registrations.order_id
-										WHERE
-											registration_id = %d
-										AND
-											qkey = '%s'
-										GROUP BY
-											akey
-										ORDER BY
-											akey",
-										$id,
-										$qkey);
+											WHERE
+												registration_id = %d
+											AND
+												qkey = '%s'
+											GROUP BY
+												akey
+											ORDER BY
+												akey",
+											$id,
+											$qkey);
 
-					$sub_table = array();
-					while($row = db_fetch_array($result)) {
-						$sub_table[] = $row;
+						$sub_table = array();
+						while($row = db_fetch_array($result)) {
+							$sub_table[] = $row;
+						}
+						$rows[] = array("$qkey:", table(null, $sub_table));
 					}
-					$rows[] = array("$qkey:", table(null, $sub_table));
 				}
-			}
 			}
 
 			if( ! count( $rows ) )
@@ -1249,12 +1249,12 @@ function registration_statistics($args)
 			}
 			else
 			{
-			$output .= "<div class='pairtable'>" . table(NULL, $rows) . "</div>";
+				$output .= "<div class='pairtable'>" . table(NULL, $rows) . "</div>";
 
 				if( $event->anonymous ) {
 					$output .= para( l('Download detailed registration list as CSV', "statistics/registration/csv/$id") );
 				} else {
-			$output .= para( l('See detailed registration list', "statistics/registration/users/$id/1") . ' or ' . l('download detailed registration list as CSV', "statistics/registration/csv/$id") );
+					$output .= para( l('See detailed registration list', "statistics/registration/users/$id/1") . ' or ' . l('download detailed registration list as CSV', "statistics/registration/csv/$id") );
 				}
 			}
 
@@ -1363,10 +1363,10 @@ function registration_statistics($args)
 			AddAutoQuestions( $formbuilder, $event->type );
 
 			if( ! $event->anonymous ) {
-			$data = array( 'User ID',
+				$data = array( 'User ID',
 								'Member ID',
-							'First Name',
-							'Last Name',
+								'First Name',
+								'Last Name',
 								'Email Address',
 								'Address',
 								'City',
@@ -1375,28 +1375,28 @@ function registration_statistics($args)
 								'Home Phone',
 								'Work Phone',
 								'Mobile Phone',
-							'Gender',
+								'Gender',
 								'Birthdate',
-							'Height',
-							'Skill Level',
-							'Shirt Size',
-							'Order ID',
-							'Date',
-							'Paid' );
+								'Height',
+								'Skill Level',
+								'Shirt Size',
+								'Order ID',
+								'Date',
+								'Paid' );
 			} else {
 				$data = array();
 			}
 
 			if( $formbuilder )
 			{
-			foreach ($formbuilder->_questions as $question)
-			{
-				$data[] = $question->qkey;
-			}
+				foreach ($formbuilder->_questions as $question)
+				{
+					$data[] = $question->qkey;
+				}
 			}
 
 			if( ! $event->anonymous ) {
-			$data[] = 'Notes';
+				$data[] = 'Notes';
 			}
 
 			if( empty( $data ) ) {
@@ -1436,10 +1436,10 @@ function registration_statistics($args)
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
 				if( ! $event->anonymous ) {
-				$data = array( $row['user_id'],
+					$data = array( $row['user_id'],
 									$row['member_id'],
-								$row['firstname'],
-								$row['lastname'],
+									$row['firstname'],
+									$row['lastname'],
 									$row['pn_email'],
 									$row['addr_street'],
 									$row['addr_city'],
@@ -1448,14 +1448,14 @@ function registration_statistics($args)
 									$row['home_phone'],
 									$row['work_phone'],
 									$row['mobile_phone'],
-								$row['gender'],
+									$row['gender'],
 									$row['birthdate'],
-								$row['height'],
-								$row['skill_level'],
-								$row['shirtsize'],
-								$order_id,
-								$row['time'],
-								($row['paid'] ? 'Yes' : 'No') );
+									$row['height'],
+									$row['skill_level'],
+									$row['shirtsize'],
+									$order_id,
+									$row['time'],
+									($row['paid'] ? 'Yes' : 'No') );
 				} else {
 					$data = array();
 				}
@@ -1463,23 +1463,23 @@ function registration_statistics($args)
 				// Add all of the answers
 				if( $formbuilder )
 				{
-				foreach ($formbuilder->_questions as $question)
-				{
-					$data[] = db_result (db_query("SELECT
-											akey
-										FROM
-											registration_answers
-										WHERE
+					foreach ($formbuilder->_questions as $question)
+					{
+						$data[] = db_result (db_query("SELECT
+												akey
+											FROM
+												registration_answers
+											WHERE
 												order_id = %d
-										AND
-											qkey = '%s'",
+											AND
+												qkey = '%s'",
 											$row['order_id'],
-										$question->qkey));
-				}
+											$question->qkey));
+					}
 				}
 
 				if( ! $event->anonymous ) {
-				$data[] = $row['notes'];
+					$data[] = $row['notes'];
 				}
 
 				// Output the data row

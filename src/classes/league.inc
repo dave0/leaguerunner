@@ -15,7 +15,7 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
-	 * Load a single league object from the database using the 
+	 * Load a single league object from the database using the
 	 * supplied query data.  If more than one  matches, we will return only
 	 * the first one.  If fewer than one matches, this object remains empty.
 	 * @param	array 	$array key-value pairs that identify the league to be loaded.
@@ -25,7 +25,7 @@ class League extends LeaguerunnerObject
 		$result = league_query( $array );
 
 		if(1 != db_num_rows($result)) {
-		return false;
+			return false;
 		}
 
 		return $this->load_from_query_result( db_fetch_array($result) );
@@ -59,7 +59,10 @@ class League extends LeaguerunnerObject
 
 	function load_coordinators() 
 	{
-		$result = db_query("SELECT m.player_id FROM leaguemembers m WHERE m.league_id = %d", $this->league_id);
+		$result = db_query("SELECT
+			m.player_id
+			FROM leaguemembers m
+			WHERE m.league_id = %d", $this->league_id);
 
 		while( $array = db_fetch_array($result) ) {
 			$c = person_load( array('user_id' => $array['player_id']) );
@@ -1652,7 +1655,7 @@ class League extends LeaguerunnerObject
 		}
 		
 		list($success, $rc, $message) = assign_fields_by_preferences($games_list, $teams_list, $datestamp);
-		
+
 		if (!$success) {
 			foreach( $games_list as $to_rollback ) {
 				if( ! $to_rollback->delete() ) {
@@ -1876,7 +1879,6 @@ class League extends LeaguerunnerObject
 		$total_time = $stop_time - $start_time;
 		print "<p>Time elapsed: $total_time</p>";
 		
-	//         if ( ! array_sum($gbr_diff) == 0 ) {
 		print "<div class='schedule'>";
 		print "<table align=center>";
 		print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td>";
@@ -1899,7 +1901,6 @@ class League extends LeaguerunnerObject
 		}
 		print "</table>\n";
 		print "</div>\n";
-	//         }
 
 
 		print "</p><hr></div></body></html>";
@@ -2002,52 +2003,52 @@ class League extends LeaguerunnerObject
 		return $season;
 	}
       
-      function sortLadder ( $season ) {
-         
-         // first sort by rank:
-         uasort($season, array($this, 'standings_sort_ladder_byrankonly'));
-         // now, copy the array and add rung_points and rung_points_diff for sorting...
-         $rungs = array();
-         foreach ($season as $key => $value) {
-            $value->rung_points = 0;
-            $value->rung_points_diff = 0;
-            $rungs[$key] = $value;
-         }
-         reset ($season);
-         reset ($rungs);
-         
-         // now do some parsing to fill in the rung_points and rung_points_diff:
-         $new_teams_array = array();
-         $one_rung = array();
-         $current_rung = -1;
-         foreach ($rungs as $key => $value) {
-            if ($current_rung == -1) {
-               $current_rung = $value->rank;
-            }
-            if ($value->rank == $current_rung) {
-               $one_rung[$key] = $value;
-            } else {
-               if ( sizeof($one_rung) > 1 ) {
-                  $one_rung = $this->getRungPoints($one_rung);
-               }
-               foreach ($one_rung as $subkey => $subvalue) {
-                  $new_teams_array[$subkey] = $subvalue;
-               }
-               $one_rung = array();
-               $one_rung[$key] = $value;
-               $current_rung = $value->rank;
-            }
-         }
-         // end of loop, but have to finish off the last one:
-         if ( sizeof($one_rung) > 1 ) {
-            $one_rung = $this->getRungPoints($one_rung);
-         }
-         foreach ($one_rung as $subkey => $subvalue) {
-            $new_teams_array[$subkey] = $subvalue;
-         }
-         
-         return $new_teams_array;
-      }
+	function sortLadder ( $season ) {
+
+		// first sort by rank:
+		uasort($season, array($this, 'standings_sort_ladder_byrankonly'));
+		// now, copy the array and add rung_points and rung_points_diff for sorting...
+		$rungs = array();
+		foreach ($season as $key => $value) {
+			$value->rung_points = 0;
+			$value->rung_points_diff = 0;
+			$rungs[$key] = $value;
+		}
+		reset ($season);
+		reset ($rungs);
+
+		// now do some parsing to fill in the rung_points and rung_points_diff:
+		$new_teams_array = array();
+		$one_rung = array();
+		$current_rung = -1;
+		foreach ($rungs as $key => $value) {
+			if ($current_rung == -1) {
+				$current_rung = $value->rank;
+			}
+			if ($value->rank == $current_rung) {
+				$one_rung[$key] = $value;
+			} else {
+				if ( sizeof($one_rung) > 1 ) {
+					$one_rung = $this->getRungPoints($one_rung);
+				}
+				foreach ($one_rung as $subkey => $subvalue) {
+					$new_teams_array[$subkey] = $subvalue;
+				}
+				$one_rung = array();
+				$one_rung[$key] = $value;
+				$current_rung = $value->rank;
+			}
+		}
+		// end of loop, but have to finish off the last one:
+		if ( sizeof($one_rung) > 1 ) {
+			$one_rung = $this->getRungPoints($one_rung);
+		}
+		foreach ($one_rung as $subkey => $subvalue) {
+			$new_teams_array[$subkey] = $subvalue;
+		}
+
+		return $new_teams_array;
+	}
 
 	function getRungPoints( $one_rung ) {
 		$fixed_rungPoints = array();

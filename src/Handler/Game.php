@@ -3,7 +3,7 @@
  * Handle operations specific to games
  */
 
-function game_dispatch() 
+function game_dispatch()
 {
 	$op = arg(1);
 	$id = arg(2);
@@ -60,7 +60,7 @@ function game_dispatch()
 	if( $obj->game ) {
 		game_add_to_menu( $obj->league, $obj->game );
 	}
-	
+
 	return $obj;
 }
 
@@ -79,7 +79,7 @@ function game_permissions ( &$user, $action, &$game, $extra )
 				}
 			}
 			if( $user->is_captain_of( $game->home_team )
-			    || $user->is_captain_of($game->away_team )) {
+				|| $user->is_captain_of($game->away_team )) {
 				// Otherwise, check that user is captain of one of the teams
 				return true;
 			}
@@ -91,17 +91,17 @@ function game_permissions ( &$user, $action, &$game, $extra )
 			return ($user->is_coordinator_of($game->league_id));
 			break; // unreached
 		case 'view':
-			if( $extra == 'spirit' ) { 
+			if( $extra == 'spirit' ) {
 				return ($user->is_coordinator_of($game->league_id));
 			}
-			if( $extra == 'submission' ) { 
+			if( $extra == 'submission' ) {
 				return ($user->is_coordinator_of($game->league_id));
 			}
 			return ($user->status == 'active');
 			break; // unreached
 		case 'reschedule':
 			//TODO
-		
+
 	}
 	return false;
 }
@@ -130,12 +130,12 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($lr_session->has_permission('game','submit score', $game) 
-			    && ($game->timestamp < time()) ) {
+			} else if($lr_session->has_permission('game','submit score', $game)
+				&& ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
 		}
-		array_unshift($rows, array( 
+		array_unshift($rows, array(
          l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
@@ -146,8 +146,8 @@ function game_splash ()
 			$score
 		));
 	}
-	
-	 $games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
+
+	$games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
         AND g.game_date >= CURDATE() ORDER BY g.game_date, g.game_start asc LIMIT 4", $lr_session->user->user_id);
 	$timeNow = time();
 	while($row = db_fetch_object($games) ) {
@@ -164,13 +164,13 @@ function game_splash ()
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
 				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
-			} else if($lr_session->has_permission('game','submit score', $game) 
-			    && ($game->timestamp < time()) ) {
+			} else if($lr_session->has_permission('game','submit score', $game)
+				&& ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
 		}
-		$rows[] = array( 
-         l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+		$rows[] = array(
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
 				" (home) vs. " .
@@ -185,7 +185,7 @@ function game_splash ()
 	if( count($rows) < 1)  {
 		return;
 	}
-	
+
 	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows, array('alternate-colours' => true) ) . "</div>";
 }
 
@@ -233,7 +233,7 @@ class GameCreate extends Handler
  *        - game counts as having been played, with no winner and poor spirit.
  *   - schedule's 'round' field needs to be varchr instead of integer, to
  *   allow for rounds named 'quarter-final', 'semi-final', and 'final', and
- *   pulldown menus updated appropriately. 
+ *   pulldown menus updated appropriately.
  *   (DONE in db, needs code);
  */
 
@@ -245,7 +245,7 @@ class GameCreate extends Handler
 		global $lr_session;
 		return $lr_session->has_permission('league','add game', $this->league->league_id);
 	}
-	
+
 	function process ()
 	{
 		$this->title = "Add Game";
@@ -253,13 +253,13 @@ class GameCreate extends Handler
 		if(! $this->league ) {
 			error_exit("That league does not exist");
 		}
-		
+
 		if ( ! $this->league->load_teams() ) {
 			error_exit("Error loading teams for league $league->fullname");
 		}
-		
+
 		$num_teams = count($this->league->teams);
-		
+
 		if($num_teams < 2) {
 			error_exit("Cannot schedule games in a league with less than two teams");
 		}
@@ -348,15 +348,15 @@ class GameCreate extends Handler
 
 		$output .= "<p>Please enter some information about the game(s) to create.</p>";
 		$output .= form_hidden('edit[step]', 'selectdate');
-		
+
 		$group .= form_radiogroup('', 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
 		$output .= form_group("Create a ... ", $group);
-		
+
 		$output .= form_submit('Next step');
 
 		return form($output);
 	}
-	
+
 	function loadTypes ( $num_teams ) {
 		// Set up our menu
 		switch($this->league->schedule_type) {
@@ -441,13 +441,13 @@ class GameCreate extends Handler
 				error_exit("Please don't try to do that; it won't work, you fool");
 				break;
 		}
-	
+
 		$tot_fields = $num_fields * $num_dates;
 		$output .= "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
 
 		$result = db_query(
 			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d ORDER BY s.game_date, s.game_start", $this->league->league_id);
-			
+
 		$possible_dates = array();
 		while($date = db_fetch_object($result)) {
 		# TODO: for each day, ensure that:
@@ -468,7 +468,7 @@ class GameCreate extends Handler
 	}
 
 	function confirm ( &$edit )
-	{		
+	{
 		switch($edit['type']) {
 			case 'single':
 			case 'oneset':
@@ -483,12 +483,12 @@ class GameCreate extends Handler
 				error_exit("Please don't try to do that; it won't work, you fool");
 				break;
 		}
-		
+
 		$output = "<p>The following information will be used to create your games:</p>";
 		$output .= form_hidden('edit[step]','perform');
 		$output .= form_hidden('edit[type]',$edit['type']);
 		$output .= form_hidden('edit[startdate]',$edit['startdate']);
-		
+
 		$num_teams = count($this->league->teams) - count($edit['excludeTeamID']);
 		$this->loadTypes ($num_teams);
 		
@@ -508,7 +508,7 @@ class GameCreate extends Handler
 		$output .= form_submit('Create Games', 'submit');
 		return form($output);
 	}
-	
+
 	function perform ( &$edit )
 	{
 		# generate appropriate games, roll back on error
@@ -554,8 +554,8 @@ class GameCreate extends Handler
 				error_exit("Please don't try to do that; it won't work, you fool... " + $edit['type']);
 				break;
 		}
-		
-		if( $rc ) { 
+
+		if( $rc ) {
 			local_redirect(url("schedule/view/" . $this->league->league_id));
 		} else {
 			error_exit("Failure creating games: $message");
@@ -571,14 +571,14 @@ class GameSubmit extends Handler
 	function has_permission ()
 	{
 		global $lr_session;
-	
+
 		return $lr_session->has_permission('game','submit score', $this->game, $this->team);
 	}
 
 	function process ()
 	{
 		$this->title = "Submit Game Results";
-		
+
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");
 		}
@@ -613,14 +613,14 @@ class GameSubmit extends Handler
 				break;
 			case 'confirm':
 				$rc = $this->generateConfirm($edit, $opponent);
-				break;	
+				break;
 			case 'save':
 				$rc = $this->perform($edit, $opponent);
-				break;	
+				break;
 			default:
 				$rc = $this->generateForm( $opponent );
 		}
-		
+
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
@@ -647,7 +647,7 @@ class GameSubmit extends Handler
 	function isScoreDataInvalid( $edit )
 	{
 		$errors = "";
-		
+
 		if( $edit['defaulted'] ) {
 			switch($defaulted) {
 				case 'us':
@@ -658,7 +658,7 @@ class GameSubmit extends Handler
 					return "An invalid value was specified for default.";
 			}
 		}
-		
+
 		if( !validate_number($edit['score_for']) ) {
 			$errors .= "<br>You must enter a valid number for your score";
 		}
@@ -673,7 +673,7 @@ class GameSubmit extends Handler
 			return false;
 		}
 	}
-	
+
 	function perform ($edit, $opponent)
 	{
 		global $lr_session;
@@ -691,7 +691,7 @@ class GameSubmit extends Handler
 			if( $dataInvalid ) {
 				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
-			
+
 			// Save the spirit entry if non-default
 			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
 				error_exit("Error saving spirit entry for " . $this->team->team_id);
@@ -703,7 +703,7 @@ class GameSubmit extends Handler
 		if( !$this->game->save_score_entry( $this->team->team_id, $lr_session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'], $edit['sotg'] ) ) {
 			error_exit("Error saving score entry for " . $this->team->team_id);
 		}
-		
+
 		// now, check if the opponent has an entry
 		if( ! $this->game->get_score_entry( $opponent->team_id ) ) {
 			// No, so we just mention that it's been saved and move on
@@ -720,10 +720,10 @@ class GameSubmit extends Handler
 			// score, just say so, and continue.
 			$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
 		}
-		
+
 		return para($resultMessage);
 	}
-	
+
 	function generateSpiritForm ($edit, $opponent )
 	{
 		$dataInvalid = $this->isScoreDataInvalid( $edit );
@@ -742,26 +742,26 @@ class GameSubmit extends Handler
 
 		$output = $this->interim_game_result($edit, $opponent);
 		$output .= form_hidden('edit[step]', 'confirm');
-			
+
 		$output .= para("Now, you must rate your opponents using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
 
 		$questions = formbuilder_load('team_spirit');
 		$output .= $questions->render_editable(false);
 
-      //TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
-      // javascript to ask for comments if any of the "worst" answers are chosen...
-      $javascript = "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked || document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked || ";
-      $javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || document.forms[0].elements['team_spirit[Sportsmanship]'][3].checked || ";
-      $javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][3].checked) { ";
-      $javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
-      // javascript to ask for comments if the SOTG score will be 5 or less:
-      $javascript .= "if (document.forms[0].elements['edit[sotg]'].value == '') { document.forms[0].elements['edit[sotg]'].value = sotg(); } ";
-      $javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-      $javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
-      
-      $output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
-      
+		//TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
+		// javascript to ask for comments if any of the "worst" answers are chosen...
+		$javascript = "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked || document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked || ";
+		$javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || document.forms[0].elements['team_spirit[Sportsmanship]'][3].checked || ";
+		$javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][3].checked) { ";
+		$javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+		// javascript to ask for comments if the SOTG score will be 5 or less:
+		$javascript .= "if (document.forms[0].elements['edit[sotg]'].value == '') { document.forms[0].elements['edit[sotg]'].value = sotg(); } ";
+		$javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
+
+		$output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
+
 		$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
 		return form($output);
@@ -783,11 +783,11 @@ class GameSubmit extends Handler
 			if( $dataInvalid ) {
 				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 			}
-			
+
 			// Force a non-default to display correctly
 			$edit['defaulted'] = 'no';
 		}
-		
+
 		$output = $this->interim_game_result($edit, $opponent);
 		
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
@@ -800,7 +800,7 @@ class GameSubmit extends Handler
 		}
 		$output .= form_hidden('edit[sotg]', $edit['sotg']);
 		$output .= form_hidden('edit[step]', 'save');
-		
+
 	
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score."
 		);
@@ -814,7 +814,7 @@ class GameSubmit extends Handler
 	{
 
 		$output = para( "For the game of " . $this->game->sprintf('short') . " you have entered:");
-		$output = para( "Submit the score for the " 
+		$output = para( "Submit the score for the "
 			. $this->game->sprintf('short')
 			. " between " . $this->team->name . " and $opponent->name.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  If the score you enter does not agree with this score, posting of the score will be delayed until your coordinator can confirm the correct score.");
@@ -825,27 +825,27 @@ class GameSubmit extends Handler
 
 		if($opponent_entry) {
 			if($opponent_entry->defaulted == 'us') {
-				$opponent_entry->score_for .= " (defaulted)"; 
+				$opponent_entry->score_for .= " (defaulted)";
 			} else if ($opponent_entry->defaulted == 'them') {
-				$opponent_entry->score_against .= " (defaulted)"; 
+				$opponent_entry->score_against .= " (defaulted)";
 			}
-			
+
 		} else {
 			$opponent_entry->score_for = "not yet entered";
 			$opponent_entry->score_against = "not yet entered";
 		}
-		
+
 		$rows = array();
 		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry");
-	
-	
+
+
 		$rows[] = array(
 			$this->team->name,
 			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
 			form_textfield("","edit[score_for]","",2,2),
 			$opponent_entry->score_against
 		);
-		
+
 		$rows[] = array(
 			$opponent->name,
 			"<input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'>",
@@ -855,7 +855,7 @@ class GameSubmit extends Handler
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
-		
+
 		$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
   function defaultCheckboxChanged() {
@@ -906,10 +906,10 @@ ENDSCRIPT;
 
 		$output .= form_hidden('edit[defaulted]', $edit['defaulted']);
 
-		$output .= '<div class="pairtable">' 
-			. table(null, $rows) 
+		$output .= '<div class="pairtable">'
+			. table(null, $rows)
 			. "</div>";
-			
+
 		// now, check if the opponent has an entry
 		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
 
@@ -936,13 +936,13 @@ ENDSCRIPT;
 class GameEdit extends Handler
 {
 	var $game;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
 		return $lr_session->has_permission('game','view', $this->game);
 	}
-	
+
 	function isSOTGDataInvalid ( $edit ) {
 		switch($edit['sotg_home']) {
 			case '0':
@@ -990,7 +990,7 @@ class GameEdit extends Handler
 			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
-	
+
 			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
@@ -999,7 +999,7 @@ class GameEdit extends Handler
 		}
 
 		$this->title = "Game";
-		
+
 		$this->setLocation(array(
 			"$this->title &raquo; Game " . $this->game->game_id => 0));
 
@@ -1019,8 +1019,8 @@ class GameEdit extends Handler
 
 		return $rc;
 	}
-	
-	function generateForm ( ) 
+
+	function generateForm ( )
 	{
 		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
@@ -1028,9 +1028,9 @@ class GameEdit extends Handler
 		$league = &$this->league;
 
 		$game->load_score_entries();
-		
+
 		$output = form_hidden('edit[step]', 'confirm');
-		
+
 		$output .= form_item("Game ID", $game->game_id);
 
 		$teams = $league->teams_as_array();
@@ -1055,7 +1055,7 @@ class GameEdit extends Handler
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 
 		$output .= form_item("Game Status", $game->status);
-	
+
 		$output .= form_item("Round", $game->round);
 
 		$spirit_group = '';
@@ -1075,7 +1075,7 @@ class GameEdit extends Handler
 			// Game has been finalized
 
 			if( ! $this->can_edit ) {
-				// If we're not editing, display score.  If we are, 
+				// If we're not editing, display score.  If we are,
 				// it will show up below.
 				switch($game->status) {
 					case 'home_default':
@@ -1094,7 +1094,7 @@ class GameEdit extends Handler
 				$score_group .= form_item("SOTG score for $game->home_name" , $game->home_spirit);
 				$score_group .= form_item("SOTG score for $game->away_name" , $game->away_spirit);
 			}
-			
+
 			if ($game->home_score == $game->away_score && $game->rating_points == 0){
 				$score_group .= form_item("Rating Points", "No points were transferred between teams");
 			}			
@@ -1110,7 +1110,7 @@ class GameEdit extends Handler
 				}
 				$score_group .= form_item("Rating Points", $game->rating_points , $winner." gain " .$game->rating_points. " points and " .$loser. " lose " .$game->rating_points. " points");
 			}
-		
+
 			switch($game->approved_by) {
 				case APPROVAL_AUTOMATIC:
 					$approver = 'automatic approval';
@@ -1128,10 +1128,10 @@ class GameEdit extends Handler
 					$approver = person_load( array('user_id' => $game->approved_by));
 					$approver = l($approver->fullname, "person/view/$approver->user_id");
 			}
-			$score_group .= form_item("Score Approved By", $approver);		
-		
+			$score_group .= form_item("Score Approved By", $approver);
+
 		} else {
-			/* 
+			/*
 			 * Otherwise, scores are still pending.
 			 */
 			$stats_group = '';
@@ -1145,12 +1145,12 @@ class GameEdit extends Handler
 				array("View the <a href='/leaguerunner/game/ratings/" . $game->game_id . "'>Ratings Table</a> for this game." ))
 				));
 			$output .= form_group("Statistics", $stats_group);
-			
-			
+
+
 			$score_group .= form_item('',"Score not yet finalized");
 			if( $lr_session->has_permission('game','view', $game, 'submission') ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
-				
+
 			}
 		}
 
@@ -1166,7 +1166,7 @@ class GameEdit extends Handler
 			$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
 			$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
 			$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
-			
+
 			// if the game has not yet been finalized, spirit for home team was reported by away team (and vice-versa)
 			$hs = $away['spirit'];
 			$as = $home['spirit'];
@@ -1178,11 +1178,11 @@ class GameEdit extends Handler
 		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
 		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
 		}
-		
+
 		$output .= form_group("Scoring", $score_group);
-	
+
 		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
-		
+
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
 			// hack: if Timeliness is empty then it's because of an auto-finalize,
@@ -1200,7 +1200,7 @@ class GameEdit extends Handler
 			} else {
 				$home_spirit_group = $formbuilder->render_viewable( $ary );
 			}
-		
+
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
 			// hack: if Timeliness is empty then it's because of an auto-finalize,
@@ -1228,7 +1228,7 @@ class GameEdit extends Handler
 		}
 		return $script . form($output);
 	}
-	
+
 	function generateConfirm ( $game, $edit )
 	{
 
@@ -1236,9 +1236,9 @@ class GameEdit extends Handler
 			error_exit("You do not have permission to edit this game");
 		}
 
-	
+
 		$dataInvalid = $this->isDataInvalid( $edit );
-		
+
 		$home_spirit = formbuilder_load('team_spirit');
 		$away_spirit = formbuilder_load('team_spirit');
 
@@ -1269,18 +1269,18 @@ class GameEdit extends Handler
 				$dataInvalid .= $away_spirit->answers_invalid();
 				break;
 		}
-		
+
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
+
 		$output = para( "You have made the changes below for the $game->game_date $game->game_start game between $game->home_name and $game->away_name.  ");
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score.");
 
 		$output .= form_hidden('edit[step]', 'perform');
 		$output .= form_hidden('edit[status]', $edit['status']);
-		$output .= form_hidden('edit[home_score]', $edit['home_score']);		
-		$output .= form_hidden('edit[away_score]', $edit['away_score']);		
+		$output .= form_hidden('edit[home_score]', $edit['home_score']);
+		$output .= form_hidden('edit[away_score]', $edit['away_score']);
 		$output .= form_hidden('edit[sotg_home]', $edit['sotg_home']);		
 		$output .= form_hidden('edit[sotg_away]', $edit['sotg_away']);		
 		$output .= $home_spirit->render_hidden('home');
@@ -1296,26 +1296,26 @@ class GameEdit extends Handler
 			$score_group .= "Due to the game default, the SOTG scores for this game will be automatically assigned.";
 		}
 		$output .= form_group("Scoring", $score_group);
-		
-      // only show SOTG of the home team if they didn't default!
-      if ($edit['status'] != 'home_default') {
-		   $output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
-      }
-      // only show SOTG of the away team if they didn't default!
-      if ($edit['status'] != 'away_default') {
-		   $output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
-      }
-		
+
+		// only show SOTG of the home team if they didn't default!
+		if ($edit['status'] != 'home_default') {
+			$output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
+		}
+		// only show SOTG of the away team if they didn't default!
+		if ($edit['status'] != 'away_default') {
+			$output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
+		}
+
 		$output .= para(form_submit('submit'));
 
 		return form($output);
 	}
-	
-	
+
+
 	function perform ( $edit )
 	{
 		global $lr_session;
-		
+
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
@@ -1323,9 +1323,9 @@ class GameEdit extends Handler
 		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
 		$away_spirit = formbuilder_load('team_spirit');
 		$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
-	
+
 		$dataInvalid = $this->isDataInvalid( $edit );
-		
+
 		if($edit['status'] == 'normal') {
 			$dataInvalid .= $home_spirit->answers_invalid();
 			$dataInvalid .= $away_spirit->answers_invalid();
@@ -1334,10 +1334,10 @@ class GameEdit extends Handler
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-      // store the old info:
-      $oldgameresults['home_score'] = $this->game->home_score;
-      $oldgameresults['away_score'] = $this->game->away_score;
-      
+		// store the old info:
+		$oldgameresults['home_score'] = $this->game->home_score;
+		$oldgameresults['away_score'] = $this->game->away_score;
+
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
@@ -1403,7 +1403,7 @@ class GameEdit extends Handler
 
 		return true;
 	}
-	
+
 	function isDataInvalid( $edit )
 	{
 		$errors = "";
@@ -1419,7 +1419,7 @@ class GameEdit extends Handler
 			$errors .= $this->isSOTGDataInvalid( $edit );
 			
 		}
-		
+
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -1438,34 +1438,34 @@ function game_score_entry_display( $game )
 		$home = array(
 			'score_for' => 'not entered',
 			'score_against' => 'not entered',
-			'defaulted' => 'no' 
+			'defaulted' => 'no'
 		);
 	} else {
 		$entry_person = person_load( array('user_id' => $home['entered_by']));
 		$home['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 	}
-	
+
 	$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
 	if(!$away) {
 		$away = array(
 			'score_for' => 'not entered',
 			'score_against' => 'not entered',
-			'defaulted' => 'no' 
+			'defaulted' => 'no'
 		);
 	} else {
 		$entry_person = person_load( array('user_id' => $away['entered_by']));
 		$away['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 	}
-		
+
 	$header = array(
 		"&nbsp;",
 		"$game->home_name (home)",
 		"$game->away_name (away)"
 	);
-	
+
 	$rows = array();
-	
-	$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);	
+
+	$rows[] = array( "Home Score:", $home['score_for'], $away['score_against'],);
 	$rows[] = array( "Away Score:", $home['score_against'], $away['score_for'],);
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
@@ -1479,17 +1479,17 @@ function game_score_entry_display( $game )
 # TONY added this GameDelete, which is pretty much a copy of GameEdit.
 # It can use some work to be nicer, but I don't have time.
 # For now, you can't delete a game that is already finalized.
-# 
+#
 class GameDelete extends Handler
 {
 	var $game;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
 		return $lr_session->has_permission('game','view', $this->game);
 	}
-	
+
 	function process ()
 	{
 		global $lr_session;
@@ -1501,7 +1501,7 @@ class GameDelete extends Handler
 			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
-	
+
 			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
@@ -1510,7 +1510,7 @@ class GameDelete extends Handler
 		}
 
 		$this->title = "Game Delete";
-		
+
 		$this->setLocation(array(
 			"$this->title &raquo; Delete Game " . $this->game->game_id => 0));
 
@@ -1530,8 +1530,8 @@ class GameDelete extends Handler
 
 		return $rc;
 	}
-	
-	function generateForm ( ) 
+
+	function generateForm ( )
 	{
 		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
@@ -1539,9 +1539,9 @@ class GameDelete extends Handler
 		$league = &$this->league;
 
 		$game->load_score_entries();
-		
+
 		$output = form_hidden('edit[step]', 'confirm');
-		
+
 		$output .= form_item("Game ID", $game->game_id);
 
 		$teams = $league->teams_as_array();
@@ -1566,7 +1566,7 @@ class GameDelete extends Handler
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 
 		$output .= form_item("Game Status", $game->status);
-	
+
 		$output .= form_item("Round", $game->round);
 
 		$spirit_group = '';
@@ -1589,7 +1589,7 @@ class GameDelete extends Handler
 			error_exit("Finalized games cannot be deleted at this time.");
 
 			if( ! $this->can_edit ) {
-				// If we're not editing, display score.  If we are, 
+				// If we're not editing, display score.  If we are,
 				// it will show up below.
 				switch($game->status) {
 					case 'home_default':
@@ -1606,9 +1606,9 @@ class GameDelete extends Handler
 				$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
 				$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
 			}
-			
+
 			$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
-		
+
 			switch($game->approved_by) {
 				case APPROVAL_AUTOMATIC:
 					$approver = 'automatic approval';
@@ -1626,10 +1626,10 @@ class GameDelete extends Handler
 					$approver = person_load( array('user_id' => $game->approved_by));
 					$approver = l($approver->fullname, "person/view/$approver->user_id");
 			}
-			$score_group .= form_item("Score Approved By", $approver);		
-		
+			$score_group .= form_item("Score Approved By", $approver);
+
 		} else {
-			/* 
+			/*
 			 * Otherwise, scores are still pending.
 			 */
 			$stats_group = '';
@@ -1641,33 +1641,33 @@ class GameDelete extends Handler
 				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
 				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))))));
 			$output .= form_group("Statistics", $stats_group);
-			
-			
+
+
 			$score_group .= form_item('',"Score not yet finalized");
 			if( $lr_session->has_permission('game','view', $game, 'submission') ) {
 				$score_group .= form_item("Score as entered", game_score_entry_display( $game ));
-				
+
 			}
 		}
 
 		$output .= form_group("Scoring", $score_group);
-	
+
 		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
-		
+
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
 			$home_spirit_group = $formbuilder->render_viewable( $ary );
-		
+
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
 			$away_spirit_group = $formbuilder->render_viewable( $ary );
-			
+
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
@@ -1678,29 +1678,29 @@ class GameDelete extends Handler
 		}
 		return $script . form($output);
 	}
-	
+
 	function generateConfirm ( $game, $edit )
 	{
 
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to delete this game");
 		}
-	
+
 		$output = para( "You have requested to <b>delete</b> the game: <b>$game->game_date $game->game_start between $game->home_name and $game->away_name</b>.  ");
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page.");
 
 		$output .= form_hidden('edit[step]', 'perform');
-		
+
 		$output .= para(form_submit('submit'));
 
 		return form($output);
 	}
-	
-	
+
+
 	function perform ( $edit )
 	{
 		global $lr_session;
-		
+
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to delete this game");
 		}
@@ -1711,7 +1711,7 @@ class GameDelete extends Handler
 
 		return true;
 	}
-	
+
 }
 
 ######################################################################
@@ -1719,17 +1719,17 @@ class GameDelete extends Handler
 # This will UNDO any change to rank, ratings, wins/losses/ties, goals for
 #  goals against, SOTG, etc.....
 # After this, the game can be re-entered since the game itself is not deleted.
-# 
+#
 class GameRemoveResults extends Handler
 {
 	var $game;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
 		return $lr_session->has_permission('game','view', $this->game);
 	}
-	
+
 	function process ()
 	{
 		global $lr_session;
@@ -1741,7 +1741,7 @@ class GameRemoveResults extends Handler
 			if( $lr_session->is_admin() ) {
 				$this->can_edit = true;
 			}
-	
+
 			if( $lr_session->is_coordinator_of($this->game->league_id)) {
 				$this->can_edit = true;
 			}
@@ -1750,7 +1750,7 @@ class GameRemoveResults extends Handler
 		}
 
 		$this->title = "Game Remove Results";
-		
+
 		$this->setLocation(array(
 			"$this->title &raquo; Remove Results for Game " . $this->game->game_id => 0));
 
@@ -1770,8 +1770,8 @@ class GameRemoveResults extends Handler
 
 		return $rc;
 	}
-	
-	function generateForm ( ) 
+
+	function generateForm ( )
 	{
 		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
@@ -1779,9 +1779,9 @@ class GameRemoveResults extends Handler
 		$league = &$this->league;
 
 		$game->load_score_entries();
-		
+
 		$output = form_hidden('edit[step]', 'confirm');
-		
+
 		$output .= form_item("Game ID", $game->game_id);
 
 		$teams = $league->teams_as_array();
@@ -1806,7 +1806,7 @@ class GameRemoveResults extends Handler
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 
 		$output .= form_item("Game Status", $game->status);
-	
+
 		$output .= form_item("Round", $game->round);
 
 		$spirit_group = '';
@@ -1826,9 +1826,9 @@ class GameRemoveResults extends Handler
 		if( ! $game->approved_by) {
 			// if the game is not finalized, results cannot be removed yet...
 			error_exit("The game is not finalized, and so results cannot be removed at this time.");
-      }
+		}
 
-		// If we're not editing, display score.  If we are, 
+		// If we're not editing, display score.  If we are,
 		// it will show up below.
 		switch($game->status) {
 			case 'home_default':
@@ -1844,9 +1844,9 @@ class GameRemoveResults extends Handler
 		}
 		$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
 		$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
-	
+
 		$score_group .= form_item("Rating Points", $game->rating_points,"Rating points transferred to winning team from losing team");
-	
+
 		switch($game->approved_by) {
 			case APPROVAL_AUTOMATIC:
 				$approver = 'automatic approval';
@@ -1864,28 +1864,26 @@ class GameRemoveResults extends Handler
 				$approver = person_load( array('user_id' => $game->approved_by));
 				$approver = l($approver->fullname, "person/view/$approver->user_id");
 		}
-		$score_group .= form_item("Score Approved By", $approver);		
-
-
+		$score_group .= form_item("Score Approved By", $approver);
 
 		$output .= form_group("Scoring", $score_group);
-	
+
 		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
-		
+
 			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
 			$home_spirit_group = $formbuilder->render_viewable( $ary );
-		
+
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
 			$away_spirit_group = $formbuilder->render_viewable( $ary );
-			
+
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
 		}
@@ -1896,29 +1894,29 @@ class GameRemoveResults extends Handler
 		}
 		return $script . form($output);
 	}
-	
+
 	function generateConfirm ( $game, $edit )
 	{
 
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to remove results for this game");
 		}
-	
+
 		$output = para( "You have requested to <b>remove results</b> for the game: <b>$game->game_date $game->game_start between $game->home_name and $game->away_name</b>.  ");
 		$output .= para( "If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page.");
 
 		$output .= form_hidden('edit[step]', 'perform');
-		
+
 		$output .= para(form_submit('submit'));
 
 		return form($output);
 	}
-	
-	
+
+
 	function perform ( $edit )
 	{
 		global $lr_session;
-		
+
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to remove results for this game");
 		}
@@ -1929,7 +1927,7 @@ class GameRemoveResults extends Handler
 
 		return true;
 	}
-	
+
 }
 
 class GameRatings extends Handler

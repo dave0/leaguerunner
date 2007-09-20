@@ -69,7 +69,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	$create_fields = array_merge($self_edit_fields, $create_fields);
 
 	if (variable_get('dog_questions', 1)) {
-	$all_view_fields = array( 'name', 'gender', 'skill', 'dog', 'willing_to_volunteer' );
+		$all_view_fields = array( 'name', 'gender', 'skill', 'dog', 'willing_to_volunteer' );
 	} else {
 		$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
 	}
@@ -78,7 +78,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	
 	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height','shirtsize');
 	$self_view_fields = array_merge($all_view_fields, $restricted_contact_fields, $self_view_fields);
-	
+
 	switch( $action ) {
 		case 'create':
 			return true;
@@ -131,7 +131,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 					if( $player->status == 'new' || $player->status == 'locked' ) {
 						return false;
 					}
-					
+
 					$sess_user_teams = implode(",",array_keys($user->teams));
 					$viewable_fields = $all_view_fields;
 
@@ -153,7 +153,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 							}
 						}
 					}
-				
+
 					/* Coordinator info is viewable */
 					if($player->is_a_coordinator) {
 						$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
@@ -201,7 +201,7 @@ function person_menu()
 	menu_add_child('myaccount', 'myaccount/edit','edit account', array('weight' => -10, 'link' => "person/edit/$id"));
 	menu_add_child('myaccount', 'myaccount/pass', 'change password', array( 'link' => "person/changepassword/$id"));
 	menu_add_child('myaccount', 'myaccount/signwaiver', 'view/sign player waiver', array( 'link' => "person/signwaiver", 'weight' => 3));
-	
+
 	if (variable_get('dog_questions', 1) && $lr_session->attr_get('has_dog') == 'Y') {
 		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
 	}
@@ -210,12 +210,12 @@ function person_menu()
 	if( ! $lr_session->is_player() ) {
 	    return;
 	}
-	
+
 	menu_add_child('_root','person',"Players", array('weight' => -9));
 	if($lr_session->has_permission('person','list') ) {
 		menu_add_child('person','person/search',"search players", array('link' => 'person/search'));
 	}
-	
+
 	if($lr_session->is_admin()) {
 		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
 		if($newUsers) {
@@ -236,7 +236,7 @@ function person_menu()
 class PersonView extends Handler
 {
 	var $person;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -249,7 +249,7 @@ class PersonView extends Handler
 	}
 
 	function process ()
-	{	
+	{
 		$this->title = 'View';
 		$this->setLocation(array(
 			$this->person->fullname => 'person/view/' . $this->person->user_id,
@@ -257,13 +257,13 @@ class PersonView extends Handler
 
 		return $this->generateView($this->person);
 	}
-	
+
 	function generateView (&$person)
 	{
 		global $lr_session;
-		
+
 		$rows[] = array("Name:", $person->fullname);
-	
+
 		if( ! ($lr_session->is_player() || ($lr_session->attr_get('user_id') == $person->user_id)) ) {
 			return "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		}
@@ -271,7 +271,7 @@ class PersonView extends Handler
 		if($lr_session->has_permission('person','view',$person->user_id, 'username') ) {
 			$rows[] = array("System Username:", $person->username);
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'member_id') ) {
 			if($person->member_id) {
 				$rows[] = array(variable_get('app_org_short_name', 'League') . ' Member ID:', $person->member_id);
@@ -279,7 +279,7 @@ class PersonView extends Handler
 				$rows[] = array(variable_get('app_org_short_name', 'League') . ' Member ID:', 'Not a member of ' . variable_get('app_org_short_name', 'the league'));
 			}
 		}
-		
+
 		if($person->allow_publish_email == 'Y') {
 			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
 		} else {
@@ -287,7 +287,7 @@ class PersonView extends Handler
 				$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (private)");
 			}
 		}
-		
+
 		foreach(array('home','work','mobile') as $type) {
 			$item = "${type}_phone";
 			$publish = "publish_$item";
@@ -299,7 +299,7 @@ class PersonView extends Handler
 				}
 			}
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'address')) {
 			$rows[] = array("Address:", 
 				format_street_address(
@@ -314,23 +314,23 @@ class PersonView extends Handler
 					l("$person->ward_name ($person->ward_city Ward $person->ward_number)","ward/view/$person->ward_id"));
 			}
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'birthdate')) {
 			$rows[] = array('Birthdate:', $person->birthdate);
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'height')) {
 			$rows[] = array('Height:', $person->height ? "$person->height inches" : "Please edit your account to enter your height");
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'gender')) {
 			$rows[] = array("Gender:", $person->gender);
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'shirtsize')) {
 			$rows[] = array('Shirt Size:', $person->shirtsize);
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'skill')) {
 			$skillAry = getOptionsForSkill();
 			$rows[] = array("Skill Level:", $skillAry[$person->skill_level]);
@@ -340,27 +340,27 @@ class PersonView extends Handler
 		if($lr_session->has_permission('person','view',$person->user_id, 'class')) {
 			$rows[] = array("Account Class:", $person->class);
 		}
-	
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'status')) {
 			$rows[] = array("Account Status:", $person->status);
 		}
-		
+
 		if(variable_get('dog_questions', 1)) {
 			if($lr_session->has_permission('person','view',$person->user_id, 'dog')) {
 				$rows[] = array("Has Dog:",($person->has_dog == 'Y') ? "yes" : "no");
-	
+
 				if($person->has_dog == 'Y') {
 					$rows[] = array("Dog Waiver Signed:",($person->dog_waiver_signed) ? $person->dog_waiver_signed : "Not signed");
 				}
 			}
 		}
-		
+
 		if($lr_session->has_permission('person','view',$person->user_id, 'willing_to_volunteer')) {
 			$rows[] = array('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?',($person->willing_to_volunteer == 'Y') ? 'yes' : 'no');
 		}
 
 		if($lr_session->has_permission('person','view',$person->user_id, 'contact_for_feedback')) {
-			$rows[] = array('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+			$rows[] = array('From time to time, ' . variable_get('app_org_short_name', 'the league') .
 					' would like to contact members with information on our programs and to solicit feedback. ' .
 					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ',
 					($person->contact_for_feedback == 'Y') ? 'yes' : 'no');
@@ -371,10 +371,10 @@ class PersonView extends Handler
 				$rows[] = array('Last Login:', 
 					$person->last_login . ' from ' . $person->client_ip);
 			} else {
-					$rows[] = array('Last Login:', 'Never logged in');
+				$rows[] = array('Last Login:', 'Never logged in');
 			}
 		}
-		
+
 		$rosterPositions = getRosterPositions();
 		$teams = array();
 		while(list(,$team) = each($person->teams)) {
@@ -386,7 +386,7 @@ class PersonView extends Handler
 			);
 		}
 		reset($person->teams);
-		
+
 		$rows[] = array("Teams:", table( null, $teams) );
 
 		if( $person->is_a_coordinator ) {
@@ -398,14 +398,14 @@ class PersonView extends Handler
 				);
 			}
 			reset($person->leagues);
-			
+
 			$rows[] = array("Leagues:", table( null, $leagues) );
 		}
-		
+
 		if( variable_get('registration', 0) ) {
-		if($lr_session->has_permission('registration','history',$person->user_id)) {
-			$rows[] = array("Registration:", l('View history', "registration/history/$person->user_id"));
-		}
+			if($lr_session->has_permission('registration','history',$person->user_id)) {
+				$rows[] = array("Registration:", l('View history', "registration/history/$person->user_id"));
+			}
 		}
 
 		return "<div class='pairtable'>" . table(null, $rows) . "</div>";
@@ -418,7 +418,7 @@ class PersonView extends Handler
 class PersonDelete extends PersonView
 {
 	var $person;
-	
+
 	function has_permission()
 	{
 		global $lr_session;
@@ -436,12 +436,12 @@ class PersonDelete extends PersonView
 		global $lr_session;
 		$this->title = 'Delete';
 		$edit = $_POST['edit'];
-		
+
 		/* Safety check: Don't allow us to delete ourselves */
 		if($lr_session->attr_get('user_id') == $this->person->user_id) {
 			error_exit("You cannot delete your own account!");
 		}
-		
+
 		if($edit['step'] == 'perform') {
 			$this->person->delete();
 			local_redirect(url("person/search"));
@@ -451,7 +451,7 @@ class PersonDelete extends PersonView
 		$this->setLocation(array(
 			$this->person->fullname => "person/view/" . $this->person->user_id,
 			$this->title => 0));
-		
+
 		return 
 			para("Confirm that you wish to delete this user from the system.")
 			. $this->generateView($this->person)
@@ -493,14 +493,14 @@ class PersonApproveNewAccount extends PersonView
 		if($this->person->status != 'new') {
 			error_exit("That account has already been approved");
 		}
-	
+
 		$dispositions = array(
 			'---'	          => '- Select One -',
 			'approve_player'  => 'Approved as Player',
 			'approve_visitor' => 'Approved as visitor account',
 			'delete' 		  => 'Deleted silently',
 		);
-	
+
 		/* Check to see if there are any duplicate users */
 		$result = db_query("SELECT
 			p.user_id,
@@ -518,8 +518,7 @@ class PersonApproveNewAccount extends PersonView
 					OR p.addr_street = q.addr_street
 					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
 				)", $this->person->user_id);
-				
-		
+
 		if(db_num_rows($result) > 0) {
 			$duplicates = "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
 			while($user = db_fetch_object($result)) {
@@ -530,17 +529,17 @@ class PersonApproveNewAccount extends PersonView
 			}
 			$duplicates .= "</ul></div>";
 		}
-		
+
 		$approval_form = 
 			form_hidden('edit[step]', 'perform')
 			. form_select('This user should be', 'edit[disposition]', '---', $dispositions)
 			. form_submit("Submit");
-		
+
 
 		$this->setLocation(array(
 			$this->person->fullname => "person/view/" . $this->person->user_id,
 			$this->title => 0));
-		
+
 		return 
 			para($duplicates)
 			. form( para($approval_form) )
@@ -552,11 +551,11 @@ class PersonApproveNewAccount extends PersonView
 		global $lr_session; 
 
 		$disposition = $edit['disposition'];
-		
+
 		if($disposition == '---') {
 			error_exit("You must select a disposition for this account");
 		}
-		
+
 		list($disposition,$dup_id) = split(':',$disposition);
 
 		switch($disposition) {
@@ -570,7 +569,7 @@ class PersonApproveNewAccount extends PersonView
 				if( ! $this->person->save() ) {
 					error_exit("Couldn't save new member activation");
 				}
-				
+
 				$message = _person_mail_text('approved_body_player', array( 
 					'%fullname' => $this->person->fullname,
 					'%username' => $this->person->username,
@@ -578,7 +577,7 @@ class PersonApproveNewAccount extends PersonView
 					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
-					
+
 				$rc = mail($this->person->email, 
 					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
 					$message, 
@@ -587,15 +586,15 @@ class PersonApproveNewAccount extends PersonView
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
-				return true;	
-				
+				return true;
+
 			case 'approve_visitor':
 				$this->person->set('class','visitor');
 				$this->person->set('status','inactive');
 				if( ! $this->person->save() ) {
 					error_exit("Couldn't save new member activation");
 				}
-				
+
 				$message = _person_mail_text('approved_body_visitor', array( 
 					'%fullname' => $this->person->fullname,
 					'%username' => $this->person->username,
@@ -610,14 +609,14 @@ class PersonApproveNewAccount extends PersonView
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
-				return true;	
-				
+				return true;
+
 			case 'delete':
 				if( ! $this->person->delete() ) {
 					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
 				return true;
-				
+
 			case 'delete_duplicate':
 				$existing = person_load( array('user_id' => $dup_id) );
 				$message = _person_mail_text('dup_delete_body', array( 
@@ -634,7 +633,7 @@ class PersonApproveNewAccount extends PersonView
 				} else { 
 					$to_addr = $this->person->email;
 				}
-				
+
 				if( ! $this->person->delete() ) {
 					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
@@ -647,11 +646,11 @@ class PersonApproveNewAccount extends PersonView
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
-				return true;	
-				
+				return true;
+
 			default:
 				error_exit("You must select a disposition for this account");
-				
+
 		}
 	}
 }
@@ -663,7 +662,7 @@ class PersonApproveNewAccount extends PersonView
 class PersonEdit extends Handler
 {
 	var $person;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -678,7 +677,7 @@ class PersonEdit extends Handler
 		global $lr_session;
 		$edit = $_POST['edit'];
 		$this->title = 'Edit';
-		
+
 		switch($edit['step']) {
 			case 'confirm':
 				$rc = $this->generateConfirm( $this->person->user_id, $edit );
@@ -691,7 +690,7 @@ class PersonEdit extends Handler
 				$edit = object2array($this->person);
 				$rc = $this->generateForm($this->person->user_id, $edit, "Edit any of the following fields and click 'Submit' when done.");
 		}
-		
+
 		return $rc;
 	}
 
@@ -747,19 +746,19 @@ END_TEXT;
 			$group .= form_password('Password', 'edit[password_once]', '', 25,100, 'Enter your desired password.');
 			$group .= form_password('Re-enter Password', 'edit[password_twice]', '', 25,100, 'Enter your desired password a second time to confirm it.');
 		}
-		
+
 		$group .= form_select('Gender', 'edit[gender]', $formData['gender'], getOptionsFromEnum( 'person', 'gender'), 'Select your gender');
-		
+
 		$output .= form_group('Identity', $group);
 
 		$group = form_textfield('Email Address', 'edit[email]', $formData['email'], 25, 100, 'Enter your preferred email address.  This will be used by ' . variable_get('app_org_short_name', 'the league') . ' to correspond with you on league matters.');
 		$group .= form_checkbox('Allow other players to view my email address','edit[allow_publish_email]','Y',($formData['allow_publish_email'] == 'Y'));
-			
+
 		$output .= form_group('Online Contact', $group);
 
 		$group = form_textfield('Street and Number','edit[addr_street]',$formData['addr_street'], 25, 100, 'Number, street name, and apartment number if necessary');
 		$group .= form_textfield('City','edit[addr_city]',$formData['addr_city'], 25, 100, 'Name of city');
-			
+
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
 		$group .= form_select('Province', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), 'Select a province from the list');
@@ -768,7 +767,7 @@ END_TEXT;
 
 		$output .= form_group('Street Address', $group);
 
-		
+
 		$group = form_textfield('Home', 'edit[home_phone]', $formData['home_phone'], 25, 100, 'Enter your home telephone number');
 		$group .= form_checkbox('Allow other players to view home number','edit[publish_home_phone]','Y',($formData['publish_home_phone'] == 'Y'));
 		$group .= form_textfield('Work', 'edit[work_phone]', $formData['work_phone'], 25, 100, 'Enter your work telephone number (optional)');
@@ -776,7 +775,7 @@ END_TEXT;
 		$group .= form_textfield('Mobile', 'edit[mobile_phone]', $formData['mobile_phone'], 25, 100, 'Enter your cell or pager number (optional)');
 		$group .= form_checkbox('Allow other players to view mobile number','edit[publish_mobile_phone]','Y',($formData['publish_mobile_phone'] == 'Y'));
 		$output .= form_group('Telephone Numbers', $group);
-			
+
 		$player_classes = array(
 			'player' => 'Player',
 			'visitor' => 'Non-player account');
@@ -784,7 +783,7 @@ END_TEXT;
 		if(! $formData['class'] ) {
 			$formData['class'] = 'visitor';
 		}
-			
+
 		if($lr_session->has_permission('person', 'edit', $id, 'class') ) {
 			$player_classes['administrator'] = 'Leaguerunner administrator';
 			$player_classes['volunteer'] = 'Volunteer';
@@ -794,12 +793,12 @@ END_TEXT;
 		if( $formData['class'] == 'volunteer' ) {
 			$player_classes['volunteer'] = 'Volunteer';
 		}
-		
+
 		$group = form_radiogroup('Account Type', 'edit[class]', $formData['class'], $player_classes );
 		if($lr_session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_select('Account Status','edit[status]', $formData['status'], getOptionsFromEnum('person','status'));
 		}
-		
+
 		$output .= form_group('Account Information', $group);
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
@@ -815,9 +814,9 @@ END_TEXT;
 		$group .= form_select_date('Birthdate', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), 'Please enter a correct birthdate; having accurate information is important for insurance purposes');
 
 		$group .= form_textfield('Height','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches (5 feet is 60 inches; 6 feet is 72 inches).  This is used to help generate even teams for hat leagues.');
-		
+
 		$group .= form_select('Shirt Size','edit[shirtsize]', $formData['shirtsize'], getShirtSizes());
-		
+
 		if (variable_get('dog_questions', 1)) {
 			$group .= form_radiogroup('Has Dog', 'edit[has_dog]', $formData['has_dog'], array(
 				'Y' => 'Yes, I have a dog I will be bringing to games',
@@ -828,21 +827,21 @@ END_TEXT;
 			'Y' => 'Yes',
 			'N' => 'No'));
 
-		$group .= form_radiogroup('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+		$group .= form_radiogroup('From time to time, ' . variable_get('app_org_short_name', 'the league') .
 					' would like to contact members with information on our programs and to solicit feedback. ' .
-					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ', 
-					'edit[contact_for_feedback]', $formData['contact_for_feedback'], 
+					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ',
+					'edit[contact_for_feedback]', $formData['contact_for_feedback'],
 					array('Y' => 'Yes',
 							'N' => 'No'));
 
 		$output .= form_group('Player and Skill Information', $group);
-		
+
 		$this->setLocation(array(
 			$formData['fullname'] => "person/view/$id",
 			$this->title => 0));
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
-		
+
 		return form($output);
 	}
 
@@ -857,19 +856,19 @@ END_TEXT;
 		$output = para("Confirm that the data below is correct and click 'Submit' to make your changes.");
 		$output .= form_hidden('edit[step]', 'perform');
 
-		$group = '';	
+		$group = '';
 		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
 			$group .= form_item('First Name',
 				form_hidden('edit[firstname]',$edit['firstname']) . $edit['firstname']);
 			$group .= form_item('Last Name',
 				form_hidden('edit[lastname]',$edit['lastname']) . $edit['lastname']);
 		}
-		
+
 		if($lr_session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_item('System Username',
 				form_hidden('edit[username]',$edit['username']) . $edit['username']);
 		}
-		
+
 		if($lr_session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_item('Password',
 				form_hidden('edit[password_once]', $edit['password_once'])
@@ -877,15 +876,15 @@ END_TEXT;
 				. '<i>(entered)</i>');
 		}
 		$group .=  form_item('Gender', form_hidden('edit[gender]',$edit['gender']) . $edit['gender']);
-		
+
 		$output .= form_group('Identity', $group);
-		
+
 		$group = form_item('Email Address',
 			form_hidden('edit[email]',$edit['email']) . $edit['email']);
-			
+
 		$group .= form_item('Show email to other players',
 			form_hidden('edit[allow_publish_email]',$edit['allow_publish_email']) . $edit['allow_publish_email']);
-			
+
 		$output .= form_group('Online Contact', $group);
 
 		$group = form_item('',
@@ -894,7 +893,7 @@ END_TEXT;
 			. form_hidden('edit[addr_prov]',$edit['addr_prov'])
 			. form_hidden('edit[addr_postalcode]',$edit['addr_postalcode'])
 			. $edit['addr_street'] . "<br>" . $edit['addr_city'] . ", " . $edit['addr_prov'] . "<br>" . $edit['addr_postalcode']);
-			
+
 		$output .= form_group('Street Address', $group);
 
 		$group = '';
@@ -903,7 +902,7 @@ END_TEXT;
 				$group .= form_item(ucfirst($location),
 					form_hidden("edit[${location}_phone]", $edit["${location}_phone"])
 					. $edit["${location}_phone"]);
-					
+
 				if($edit["publish_${location}_phone"] == 'Y') {
 					$publish_info = "yes";
 					$publish_info .= form_hidden("edit[publish_${location}_phone]", 'Y');
@@ -915,18 +914,18 @@ END_TEXT;
 		}
 		$output .= form_group('Telephone Numbers', $group);
 
-		
+
 		$group = form_item("Account Class", form_hidden('edit[class]',$edit['class']) . $edit['class']);
-		
+
 		if($lr_session->has_permission('person', 'edit', $id, 'status') ) {
 			$group .= form_item("Account Status", form_hidden('edit[status]',$edit['status']) . $edit['status']);
 		}
-		
+
 		$output .= form_group('Account Information', $group);
-		
+
 		$levels = getOptionsForSkill();
 		$group = form_item("Skill Level", form_hidden('edit[skill_level]',$edit['skill_level']) . $levels[$edit['skill_level']]);
-		
+
 		$group .= form_item("Year Started", form_hidden('edit[year_started]',$edit['year_started']) . $edit['year_started']);
 
 		$group .= form_item("Birthdate", 
@@ -934,25 +933,25 @@ END_TEXT;
 			. form_hidden('edit[birth][month]',$edit['birth']['month']) 
 			. form_hidden('edit[birth][day]',$edit['birth']['day']) 
 			. $edit['birth']['year'] . " / " . $edit['birth']['month'] . " / " . $edit['birth']['day']);
-		
+
 		if($edit['height']) {
 			$group .= form_item("Height", form_hidden('edit[height]',$edit['height']) . $edit['height'] . " inches");
 		}
 		$group .= form_item("Shirt Size", form_hidden('edit[shirtsize]',$edit['shirtsize']) . $edit['shirtsize']);
-	
+
 		if (variable_get('dog_questions', 1)) {
 			$group .= form_item("Has dog", form_hidden('edit[has_dog]',$edit['has_dog']) . $edit['has_dog']);
 		}
-		
+
 		$group .= form_item('Can ' . variable_get('app_org_short_name', 'the league') . ' contact you with a survey about volunteering?', form_hidden('edit[willing_to_volunteer]',$edit['willing_to_volunteer']) . $edit['willing_to_volunteer']);
 
-		$group .= form_item('From time to time, ' . variable_get('app_org_short_name', 'the league') . 
+		$group .= form_item('From time to time, ' . variable_get('app_org_short_name', 'the league') .
 					' would like to contact members with information on our programs and to solicit feedback. ' .
-					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ', 
+					'Can ' . variable_get('app_org_short_name', 'the league') . ' contact you in this regard? ',
 					form_hidden('edit[contact_for_feedback]',$edit['contact_for_feedback']) . $edit['contact_for_feedback']);
-							
+
 		$output .= form_group('Player and Skill Information', $group);
-			
+
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		$this->setLocation(array(
@@ -965,16 +964,16 @@ END_TEXT;
 	function perform ( &$person, $edit = array() )
 	{
 		global $lr_session;
-	
+
 		$dataInvalid = $this->isDataInvalid( $person->user_id, $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
+
 		if($edit['username'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'username') ) {
 			$person->set('username', $edit['username']);
 		}
-		
+
 		/* EVIL HACK
 		 * If this person is currently a 'visitor', it does not have a
 		 * member number, so if we move it to another class, it needs
@@ -992,14 +991,14 @@ END_TEXT;
 		if($edit['class'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'class') ) {
 			$person->set('class', $edit['class']);
 		}
-		
+
 		if($edit['status'] && $lr_session->has_permission('person', 'edit', $this->person->user_id, 'status') ) {
 			$person->set('status',$edit['status']);
 		}
-	
+
 		$person->set('email', $edit['email']);
 		$person->set('allow_publish_email', $edit['allow_publish_email']);
-		
+
 		foreach(array('home_phone','work_phone','mobile_phone') as $type) {
 			$num = $edit[$type];
 			if(strlen($num)) {
@@ -1010,45 +1009,45 @@ END_TEXT;
 
 			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
 		}
-		
+
 		if($lr_session->has_permission('person', 'edit', $this->person->user_id, 'name') ) {
 			$person->set('firstname', $edit['firstname']);
 			$person->set('lastname', $edit['lastname']);
 		}
-		
+
 		$person->set('addr_street', $edit['addr_street']);
 		$person->set('addr_city', $edit['addr_city']);
 		$person->set('addr_prov', $edit['addr_prov']);
-		
+
 		$postcode = $edit['addr_postalcode'];
 		if(strlen($postcode) == 6) {
 			$foo = substr($postcode,0,3) . " " . substr($postcode,3);
 			$postcode = $foo;
 		}
 		$person->set('addr_postalcode', $edit['addr_postalcode']);
-	
+
 		$person->set('birthdate', join("-",array(
 			$edit['birth']['year'],
 			$edit['birth']['month'],
 			$edit['birth']['day'])));
-		
+
 		if($edit['height']) {
 			$person->set('height', $edit['height']);
 		}
 		$person->set('shirtsize', $edit['shirtsize']);
-		
+
 		$person->set('gender', $edit['gender']);
-		
+
 		$person->set('skill_level', $edit['skill_level']);
 		$person->set('year_started', $edit['year_started']);
-	
+
 		if (variable_get('dog_questions', 1)) {
 			$person->set('has_dog', $edit['has_dog']);
 		}
 
 		$person->set('willing_to_volunteer', $edit['willing_to_volunteer']);
 		$person->set('contact_for_feedback', $edit['contact_for_feedback']);
-	
+
 		if( ! $person->save() ) {
 			error_exit("Internal error: couldn't save changes");
 		} else {
@@ -1074,7 +1073,7 @@ END_TEXT;
 	{
 		global $lr_session;
 		$errors = "";
-	
+
 		if($lr_session->has_permission('person','edit',$id, 'name')) {
 			if( ! validate_name_input($edit['firstname']) || ! validate_name_input($edit['lastname'])) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in first and last names";
@@ -1118,15 +1117,15 @@ END_TEXT;
 			$edit['addr_prov'],
 			$edit['addr_postalcode'],
 			'CA');
-			
+
 		if( count($address_errors) > 0) {
 			$errors .= "\n<li>" . join("\n<li>", $address_errors);
 		}
-		
+
 		if( !preg_match("/^[mf]/i",$edit['gender'] ) ) {
 			$errors .= "\n<li>You must select either male or female for gender.";
 		}
-		
+
 		if( !validate_date_input($edit['birth']['year'], $edit['birth']['month'], $edit['birth']['day']) ) {
 			$errors .= "\n<li>You must provide a valid birthdate";
 		}
@@ -1136,11 +1135,11 @@ END_TEXT;
 				$errors .= "\n<li>Please enter a reasonable and valid value for your height.";
 			}
 		}
-		
+
 		if( $edit['skill_level'] < 1 || $edit['skill_level'] > 10 ) {
 			$errors .= "\n<li>You must select a skill level between 1 and 10. You entered " .  $edit['skill_level'];
 		}
-		
+
 		$current = localtime(time(),1);
 		$this_year = $current['tm_year'] + 1900;
 		if( $edit['year_started'] > $this_year ) {
@@ -1154,7 +1153,7 @@ END_TEXT;
 		if( $yearDiff < 8) {
 			$errors .= "\n<li>You can't have started playing when you were $yearDiff years old!  Please correct your birthdate, or your starting year";
 		}
-	
+
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -1180,11 +1179,11 @@ class PersonCreate extends PersonEdit
 	{
 		return false;
 	}
-	
+
 	function process ()
 	{
 		$edit = $_POST['edit'];
-		
+
 		$this->title = 'Create Account';
 
 		$id = 'new';
@@ -1195,7 +1194,7 @@ class PersonCreate extends PersonEdit
 			case 'perform':
 				$this->person = new Person;
 				return $this->perform( $this->person, $edit );
-				
+
 			default:
 				$edit = array();
 				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . url('person/forgotpassword') . "\">follow these instructions</a> to gain access to your account.");
@@ -1215,7 +1214,7 @@ class PersonCreate extends PersonEdit
 		if( $existing_user ) {
 			error_exit("A user with that username already exists; please go back and try again");
 		}
-		
+
 		if($edit['password_once'] != $edit['password_twice']) {
 			error_exit("First and second entries of password do not match");
 		}
@@ -1249,7 +1248,7 @@ class PersonCreate extends PersonEdit
 class PersonActivate extends PersonEdit
 {
 	var $person;
-	
+
 	function checkPrereqs ( $ignored )
 	{
 		return false;
@@ -1266,11 +1265,11 @@ class PersonActivate extends PersonEdit
 		if($lr_session->is_valid()) {
 			return false;
 		}
-		
+
 		if ($lr_session->attr_get('status') != 'inactive') {
 			error_exit("You do not have a valid session");
 		} 
-		
+
 		return true;
 	}
 
@@ -1280,12 +1279,12 @@ class PersonActivate extends PersonEdit
 
 		$edit = $_POST['edit'];
 		$this->title = "Activate Account";
-		
+
 		$this->person = $lr_session->user;
 		if( ! $this->person ) {
 			error_exit("That account does not exist");
 		}
-		
+
 		switch($edit['step']) {
 			case 'confirm': 
 				$rc = $this->generateConfirm( $this->person->user_id, $edit );
@@ -1317,7 +1316,7 @@ class PersonSignWaiver extends Handler
 	{
 		return false;
 	}
-	
+
 	function initialize ()
 	{
 		$this->title = "Consent Form for League Play";
@@ -1337,21 +1336,21 @@ class PersonSignWaiver extends Handler
 	{
 		$edit = $_POST['edit'];
 		$next = $_POST['next'];
-		
+
 		if(is_null($next)) {
 			$next = queryPickle("menu");
 		}
-		
+
 		switch($edit['step']) {
 			case 'perform':
 				$this->perform( $edit );
 				local_redirect( queryUnpickle($next));
 			default:
 				$rc = $this->generateForm( $next );
-		}	
+		}
 
 		$this->setLocation( array($this->title => 0 ));
-		
+
 		return $rc;
 	}
 
@@ -1364,7 +1363,7 @@ class PersonSignWaiver extends Handler
 	function perform( $edit = array() )
 	{
 		global $lr_session;
-		
+
 		if('yes' != $edit['signed']) {
 			error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
 		}
@@ -1390,7 +1389,7 @@ class PersonSignWaiver extends Handler
 		ob_end_clean();
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
-		
+
 		return form($output);
 	}
 }
@@ -1416,33 +1415,33 @@ class PersonSearch extends Handler
 		);
 
 		$this->title = "Player Search";
-		
+
 		$this->extra_where = '';
 		if( $lr_session->has_permission('person','delete') ) {
 			$this->ops['delete'] = 'person/delete/%d';
 		}
 		return true;
 	}
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
 	 	return $lr_session->has_permission('person','search');
 	}
-	
+
 	function process ()
 	{
 		$edit = &$_POST['edit'];
-		
+
 		$this->max_results = variable_get('items_per_page', 25);
-	
+
 		switch($edit['step']) {
 			case 'perform':
 				$rc = $this->perform( $edit );
 				break;
 			default:
 				$rc = $this->form();
-		}	
+		}
 		$this->setLocation( array($this->title => 0 ));
 		return $rc;
 	}
@@ -1457,7 +1456,7 @@ class PersonSearch extends Handler
 		$output .= "<input type='submit' value='search' /></div>";
 		return form($output);
 	}
-	
+
 	function perform ( &$edit )
 	{
 		global $lr_session;
@@ -1472,7 +1471,7 @@ class PersonSearch extends Handler
 		} else {
 			$limit = "$offset," . ($offset + $this->max_results + 1);
 		}
-		
+
 		$search = array(
 			'lastname_wildcard' => $edit['lastname'],
 			'_order' => 'p.lastname, p.firstname',
@@ -1525,7 +1524,7 @@ class PersonSearch extends Handler
 			$output .= "</tr>";
 		}
 		$output .= "</table>";
-	
+
 		return $output;
 	}
 }
@@ -1567,7 +1566,7 @@ class PersonListNewAccounts extends Handler
 
 
 		$this->setLocation(array( $this->title => 'person/listnew' ));
-	
+
 		return $output;
 	}
 }
@@ -1578,7 +1577,7 @@ class PersonListNewAccounts extends Handler
 class PersonChangePassword extends Handler
 {
 	var $person;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -1587,12 +1586,12 @@ class PersonChangePassword extends Handler
 		}
 		return $lr_session->has_permission('person','password_change', $this->person->user_id);
 	}
-	
+
 	function process()
 	{
 		global $lr_session;
 		$edit = $_POST['edit'];
-		
+
 		switch($edit['step']) {
 			case 'perform':
 				if($edit['password_one'] != $edit['password_two']) {
@@ -1607,10 +1606,10 @@ class PersonChangePassword extends Handler
 			default:
 				$rc = $this->generateForm();
 		}
-		
+
 		return $rc;
 	}
-	
+
 	function generateForm( )
 	{
 		$this->setLocation(array(
@@ -1629,9 +1628,9 @@ class PersonChangePassword extends Handler
 			)
 		);
 		$output .= "</div>";
-		
+
 		$output .= form_submit("Submit") . form_reset("Reset");
-		
+
 		return form($output);
 	}
 }
@@ -1660,7 +1659,7 @@ class PersonForgotPassword extends Handler
 		}
 		switch($edit['step']) {
 			case 'perform':
-				$rc = $this->perform( $edit );	
+				$rc = $this->perform( $edit );
 				break;
 			default:
 				$rc = $this->generateForm();
@@ -1671,7 +1670,7 @@ class PersonForgotPassword extends Handler
 
 	function generateForm()
 	{
-		$admin_addr = variable_get('app_admin_email', '');	
+		$admin_addr = variable_get('app_admin_email', '');
 		$org = variable_get('app_org_short_name', 'league');
 		$output = <<<END_TEXT
 <p>
@@ -1721,7 +1720,7 @@ END_TEXT;
 		if(validate_nonblank($edit['member_id'])) {
 			$fields['member_id'] = $edit['member_id'];
 		}
-		
+
 		if( count($fields) < 1 ) {
 			error_exit("You must supply at least one of username, member ID, or email address");
 		}
@@ -1786,11 +1785,11 @@ function person_add_to_menu( &$person )
 		if($lr_session->has_permission('person', 'edit', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$person->user_id"));
 		}
-	
+
 		if($lr_session->has_permission('person', 'delete', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$person->user_id"));
 		}
-		
+
 		if($lr_session->has_permission('person', 'password_change', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
 		}
@@ -1799,7 +1798,7 @@ function person_add_to_menu( &$person )
 			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
 		}
 	}
-}	
+}
 
 function _person_mail_text($messagetype, $variables = array() ) 
 {
@@ -1829,21 +1828,21 @@ function _person_mail_text($messagetype, $variables = array() )
 function person_settings ( )
 {
 	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
-	 
+ 
 	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
-	
+
 	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
-	
+
 	$group .= form_textfield('Subject of password reset e-mail', 'edit[person_mail_password_reset_subject]', _person_mail_text('password_reset_subject'), 70, 180, 'Customize the subject of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %site.');
-	 
+ 
 	$group .= form_textarea('Body of password reset e-mail', 'edit[person_mail_password_reset_body]', _person_mail_text('password_reset_body'), 70, 10, 'Customize the body of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %fullname, %adminname, %username, %password, %site, %url.');
-	
+
 	$group .= form_textfield('Subject of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_subject]', _person_mail_text('dup_delete_subject'), 70, 180, 'Customize the subject of your account deletion mail, sent to a user who has created a duplicate account. Available variables are: %site.');
-	 
+ 
 	$group .= form_textarea('Body of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_body]', _person_mail_text('dup_delete_body'), 70, 10, 'Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
 
 	$output = form_group('User email settings', $group);
-	
+
 	return settings_form($output);
 }
 
@@ -1874,7 +1873,7 @@ function person_statistics ( )
 		$sub_table[] = $row;
 	}
 	$rows[] = array("Players by gender:", table(null, $sub_table));
-	
+
 	$result = db_query("SELECT FLOOR((YEAR(NOW()) - YEAR(birthdate)) / 5) * 5 as age_bucket, COUNT(*) AS count FROM person GROUP BY age_bucket");
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
@@ -1888,26 +1887,26 @@ function person_statistics ( )
 		$sub_table[] = $row;
 	}
 	$rows[] = array("Players by city:", table(null, $sub_table));
-	
+
 	$result = db_query("SELECT skill_level, COUNT(*) FROM person GROUP BY skill_level");
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = $row;
 	}
 	$rows[] = array("Players by skill level:", table(null, $sub_table));
-	
+
 	$result = db_query("SELECT year_started, COUNT(*) FROM person GROUP BY year_started");
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = $row;
 	}
 	$rows[] = array("Players by starting year:", table(null, $sub_table));
-	
+
 	if (variable_get('dog_questions', 1)) {
 		$result = db_query("SELECT COUNT(*) FROM person where has_dog = 'Y'");
 		$rows[] = array("Players with dogs :", db_result($result));
 	}
-	
+
 	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	return form_group("Player Statistics", $output);
 }

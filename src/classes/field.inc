@@ -10,7 +10,7 @@ class Field extends LeaguerunnerObject
 		}
 
 		$this->_in_database = true;
-		
+
 		$item = db_fetch_array($result);
 
 		foreach ($item as $key => $value) {
@@ -31,7 +31,7 @@ class Field extends LeaguerunnerObject
 			$this->location_province = $parent->location_province;
 			$this->latitude = $parent->latitude;
 			$this->longitude = $parent->longitude;
-			
+
 			$this->driving_directions = $parent->driving_directions;
 			$this->transit_directions = $parent->transit_directions;
 			$this->biking_directions = $parent->biking_directions;
@@ -45,7 +45,7 @@ class Field extends LeaguerunnerObject
 
 		$season = strtolower(variable_get("current_season","Summer"));
 		$permit_dir = join("/", array(variable_get("league_file_base",'/opt/websites/www.ocua.ca/static-content/leagues'), $season, 'current','permits'));
-	
+
 		# Auto-detect the permit URLs
 		$this->permit_url = '';
 		if (is_dir($permit_dir)) {
@@ -78,7 +78,7 @@ class Field extends LeaguerunnerObject
 				error_exit("Couldn't create field");
 			}
 		}
-	
+
 		$fields      = array();
 		$fields_data = array();
 
@@ -91,11 +91,11 @@ class Field extends LeaguerunnerObject
 				$fields_data[] = $this->{$key};
 			}
 		}
-		
+
 		if(count($fields_data) != count($fields)) {
 			error_exit("Internal error: Incorrect number of fields set");
 		}
-		
+
 		$sql = "UPDATE field SET ";
 		$sql .= join(", ", $fields);	
 		$sql .= " WHERE fid = %d";
@@ -111,7 +111,7 @@ class Field extends LeaguerunnerObject
 		unset($this->_modified_fields);
 		return true;
 	}
-	
+
 	function create ()
 	{
 		if( $this->_in_database ) {

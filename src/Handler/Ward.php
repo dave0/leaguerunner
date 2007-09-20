@@ -49,7 +49,7 @@ class WardCreate extends WardEdit
 		global $lr_session;
 		return $lr_session->has_permission('ward','create');
 	}
-	
+
 	function process ()
 	{
 		$this->title = "Create Ward";
@@ -71,24 +71,24 @@ class WardCreate extends WardEdit
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
-	
+
 	function perform ( $id, $edit )
 	{
 		/* TODO: should use a sequence table here instead of LAST_INSERT_ID()
 		 */
-	
+
 		db_query("INSERT into ward (name,num) VALUES ('%s',%d)", $edit['name'], $edit['num']);
 
 		if(1 != db_affected_rows() ) {
 			return false;
 		}
-		
+
 		$result = "SELECT LAST_INSERT_ID() from ward";
 		if( !db_num_rows($result) ) {
 			return false;
 		}
 		$id = db_result($result);
-		
+
 		return parent::perform($id, $edit);
 	}
 
@@ -97,7 +97,7 @@ class WardCreate extends WardEdit
 class WardEdit extends Handler
 {
 	var $ward;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -135,7 +135,7 @@ class WardEdit extends Handler
 	function generateForm( $data = array() )
 	{
 		$output .= form_hidden("edit[step]", "confirm");
-		
+
 		$rows = array();
 		$rows[] = array( "Ward Name:", form_textfield("", 'edit[name]', $data['name'], 35, 35, "Name of ward"));
 		$rows[] = array( "Ward Number:", form_textfield("", 'edit[num]', $data['num'], 3, 3, "City's number for this ward"));
@@ -147,7 +147,7 @@ class WardEdit extends Handler
 		$rows[] = array( form_submit('Submit'), form_reset('Reset'));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		return form($output);	
+		return form($output);
 	}
 
 	function generateConfirm ($id, $edit)
@@ -157,31 +157,31 @@ class WardEdit extends Handler
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 		$output .= form_hidden("edit[step]", "perform");
-		
+
 		$rows = array();
 		$rows[] = array(
 			"Ward Name:",
 			form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
-			
+
 		$rows[] = array(
 			"Ward Number:",
 			form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
-			
+
 		$rows[] = array(
 			"Ward Region:",
 			form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
-			
+
 		$rows[] = array(
 			"City Ward:",
 			form_hidden('edit[city]', $edit['city']) . check_form($edit['city']));
-			
+
 		$rows[] = array(
 			"Ward URL:",
 			form_hidden('edit[url]', $edit['url']) . check_form($edit['url']));
-			
+
 		$rows[] = array( form_submit('Submit'), "");
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		
+
 		return form($output);
 	}
 
@@ -191,7 +191,7 @@ class WardEdit extends Handler
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
+
 		$rc = db_query("UPDATE ward SET 
 			name = '%s', 
 			num = %d, 
@@ -216,17 +216,17 @@ class WardEdit extends Handler
 		if( !validate_nonhtml($edit['city'] ) ) {
 			$errors .= "<li>City cannot be left blank";
 		}
-		
+
 		if( ! validate_nonhtml($edit['region']) ) {
 			$errors .= "<li>Region cannot be left blank and cannot contain HTML";
 		}
-		
+
 		if(validate_nonblank($edit['url'])) {
 			if( ! validate_nonhtml($edit['url']) ) {
 				$errors .= "<li>If you provide a URL, it must be valid.";
 			}
 		}
-		
+
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -249,14 +249,14 @@ class WardList extends Handler
 		$cities = array('Ottawa','Gatineau');
 		$columns = array();
 		foreach($cities as $city) {
-			
+
 			$header = array( array('data' => $city, 'colspan' => 6));
 			$rows = array();
-			
+
 			$result = db_query("SELECT w.*, COUNT(*) as players FROM ward w LEFT JOIN person p ON (p.ward_id = w.ward_id) WHERE w.city = '%s' GROUP BY w.ward_id", $city);
-			
+
 			while($ward = db_fetch_object($result) ) {
-			
+
 				$fieldQuery = db_query("SELECT COUNT(*) FROM field f LEFT JOIN field pf ON f.parent_fid = pf.fid WHERE f.status = 'open' AND (f.ward_id = %d OR pf.ward_id = %d)", $ward->ward_id, $ward->ward_id);
 				$fields = db_result($fieldQuery);
 				$rows[] = array(
@@ -278,7 +278,7 @@ class WardList extends Handler
 				array('data' => $players . (($players == 1) ? " player" : " players"), 'align' => 'right'),
 				"&nbsp;"
 			);
-			
+
 			$columns[] = "<div class='listtable'>" . table( $header, $rows ) . "</div>";
 		}
 		return table(null, array( $columns ) );
@@ -288,7 +288,7 @@ class WardList extends Handler
 class WardView extends Handler
 {
 	var $ward;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -310,7 +310,7 @@ class WardView extends Handler
 		if($lr_session->has_permission('ward','edit', $ward->ward_id)) {
 			$links[] = l('edit ward', "ward/edit/$id", array("title" => "Edit this ward"));
 		}
-		
+
 		/* and list field sites in this ward */
 		$fieldSites = db_query("SELECT f.* FROM field f WHERE ISNULL(f.parent_fid) AND f.ward_id = %d", $id);
 
@@ -320,11 +320,11 @@ class WardView extends Handler
 			$field_listing .= l("view", "field/view/$field->fid", array('title' => "View fields"));
 		}
 		$field_listing .= "</ul>";
-		
+
 		$this->setLocation(array( $ward->name => "ward/view/$id", $this->title => 0));
-		
+
 		$output = theme_links($links);
-		
+
 		$rows[] = array("Ward Name:", $ward->name);
 		$rows[] = array("Ward Number:", $ward->num);
 		$rows[] = array("Ward City:", $ward->city);
@@ -332,7 +332,7 @@ class WardView extends Handler
 			$ward->url ? l( $ward->url, $ward->url, array('target' => '_new')) . " (opens in new window)"
 				: "No Link");
 		$rows[] = array("Field Sites:", $field_listing);
-		
+
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		return $output;
 	}
@@ -357,7 +357,7 @@ function ward_load ( $array = array() )
 			$query[] = "w.$key = '" . check_query($value) . "'";
 		}
 	}
-	
+
 	$result = db_query_range("SELECT 
 		w.* 
 		FROM ward w

@@ -69,7 +69,7 @@ class UserSession
 {
 	var $user;
 	var $session_key;
-	
+
 	/**
 	 * Constructor
 	 */
@@ -112,7 +112,7 @@ class UserSession
 
 		return true;
 	}
-	
+
 	/**
 	 * Create the user session from the given username and password
 	 *
@@ -123,7 +123,7 @@ class UserSession
 		if( !isset($username) ) {
 			return false;
 		}
-		
+
 		if( !isset($password) ) {
 			return false;
 		}
@@ -133,15 +133,15 @@ class UserSession
 		if( ! $user ) {
 			return false;
 		}
-	
+
 
 		/* Ok, the user is good.  Now we need to save the user
 		 * and generate a session key.
 		 */
 		$this->user = $user;
-		
+
 		$this->session_key = $this->set_session_key($client_ip);
-		
+
 		return true;
 	}
 
@@ -155,7 +155,7 @@ class UserSession
 		if(is_null($user_id)) {
 			return false;
 		}
-	
+
 	    db_query("UPDATE person SET session_cookie = NULL WHERE user_id = %d", $user_id);
 
 		return true;
@@ -180,13 +180,13 @@ class UserSession
 		if(!isset($this->user)) {
 			return null;
 		}
-		
+
 		if(!isset($this->user->$attr)) {
 			return null;
 		}
 
 		return $this->user->$attr;
-		
+
 	}
 
 	/**
@@ -201,7 +201,7 @@ class UserSession
 			echo "Error: ", db_error();
 			return false;
 		}
-		
+
 		return $sesskey;
 	}
 
@@ -269,7 +269,7 @@ class UserSession
 	{
 		return ($this->user && $this->user->is_admin());
 	}
-	
+
 	/** 
 	 * See if this session user is captain of given team
 	 *
@@ -281,7 +281,7 @@ class UserSession
 	{
 		return ($this->user && $this->user->is_captain_of($team_id));
 	}
-	
+
 	/** 
 	 * See if this session user is coordinator of a given league
 	 *

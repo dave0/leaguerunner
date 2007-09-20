@@ -16,7 +16,7 @@ class FormBuilder
 
 	var $_answer_validity;
 
-	/** 
+	/**
 	 * Load appropriate form data (questions and answers)
 	 */
 	function load ( $name )
@@ -70,7 +70,7 @@ class FormBuilder
 			} else {
 				$question->required = false;
 			}
-			
+
 			$this->_questions[$question->qkey] = $question;
 		}
 
@@ -199,12 +199,12 @@ class FormBuilder
 				return false;
 			}
 		}
-		
+
 		$name = $this->_name;
 		if( ! is_null($suffix) ) {
 			$name .= "_$suffix";
 		}
-		
+
 		while( list(,$q) = each($this->_questions) ) {
 			if( $want_results ) {
 				$answer = $this->get_answer( $q->qkey );
@@ -217,7 +217,7 @@ class FormBuilder
 		return $output;
 	}
 
-	/** 
+	/**
 	 * Render form as viewable-only.
 	 */
 	function render_viewable ()
@@ -225,7 +225,7 @@ class FormBuilder
 		if( $this->answers_invalid() ) {
 			return false;
 		}
-		
+
 		while( list(,$q) = each($this->_questions) ) {
 			$output .= question_render_viewable( $q, $this->get_answer( $q->qkey) );
 		}
@@ -233,7 +233,7 @@ class FormBuilder
 		return $output;
 	}
 
-	/** 
+	/**
 	 * Render form as hidden form elements.
 	 */
 	function render_hidden ( $suffix = null )
@@ -246,7 +246,7 @@ class FormBuilder
 		if( ! is_null($suffix) ) {
 			$name .= "_$suffix";
 		}
-		
+
 		while( list(,$q) = each($this->_questions) ) {
 			$output .= form_hidden($name."[$q->qkey]", $this->get_answer($q->qkey));
 		}
@@ -299,10 +299,10 @@ class FormBuilder
 		if( !array_key_exists( $qkey, $this->_questions ) ) {
 			die("Answer provided for invalid question $qkey");
 		}
-		
+
 		// Set the answer
 		$this->_answers[$qkey] = $answer;
-		
+
 		// Mark validity as 'unknown' and return
 		$this->_answer_validity = 'unknown';
 	}
@@ -337,12 +337,12 @@ class FormBuilder
 	function answers_invalid()
 	{
 		$invalid_flag = false;
-	
+
 		// If already checked, just return
 		if( $this->_answer_validity == 'valid' ) {
 			return false;
 		}
-	
+
 		// Loop through all questions
 		while( list(,$q) = each($this->_questions) ) {
 			// Check that all 'required' questions have an answer
@@ -357,36 +357,36 @@ class FormBuilder
 		while( list($qkey,$answer) = each($this->_answers) ) {
 			$q = $this->_questions[$qkey];
 			if( $q->required ) {
-			// Check that answer is valid
-			switch( $q->qtype ) {
-				case 'multiplechoice':	
-					$invalid = question_validate_multiplechoice( $q, $answer);
-					break;
+				// Check that answer is valid
+				switch( $q->qtype ) {
+					case 'multiplechoice':
+						$invalid = question_validate_multiplechoice( $q, $answer);
+						break;
 					case 'checkbox':
 					case 'label':
 					case 'description':
 						break;
-				case 'freetext':
-					$invalid = question_validate_freetext( $q, $answer);
-					break;
-				case 'textfield':
-					$invalid = question_validate_textfield( $q, $answer);
-					break;
-				default:
+					case 'freetext':
+						$invalid = question_validate_freetext( $q, $answer);
+						break;
+					case 'textfield':
+						$invalid = question_validate_textfield( $q, $answer);
+						break;
+					default:
 						die("Unsupported question type '$q->qtype' in FormBuilder::answers_invalid()");
+				}
+				if( $invalid ) {
+					$text .= $invalid . '<br />';
+					$invalid_flag = true;
+				}
 			}
-			if( $invalid ) {
-				$text .= $invalid . '<br />';
-				$invalid_flag = true;
-			}
-		}
 		}
 		reset($this->_answers);
 
 		if( !$invalid_flag ) {
 			$this->_answer_validity = 'valid';
 		}
-		
+
 		return $text;
 	}
 
@@ -414,7 +414,7 @@ class FormBuilder
 		} else {
 			$answer = null;
 		}
-		
+
 		return $answer;
 	}
 
@@ -572,7 +572,7 @@ function formbuilder_maintain( $name )
  * TODO: The things below should be full-fledged "question" objects, but I'm too
  * lazy to do all that extra work right now, plus it's probably a big
  * performance hit.
- * 
+ *
  */
 
 /**

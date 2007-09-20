@@ -67,7 +67,7 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 		case 'list':
 			// Everyone can list open fields, only admins can list closed; $fid here is the "closed" bool
 			if (!$fid) {
-			return true;
+				return true;
 			}
 			break;
 		case 'view bookings':
@@ -76,7 +76,7 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 				return true;
 			}
 	}
-	
+
 	return false;
 }
 
@@ -101,32 +101,32 @@ function field_menu()
 function field_add_to_menu( &$field ) 
 {
 	global $lr_session;
-	
+
 	menu_add_child('field', $field->fullname, $field->fullname, array('weight' => -10, 'link' => "field/view/$field->fid"));
-	
+
 	if($lr_session->has_permission('field','view bookings', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
 	}
-	
+
 	if($lr_session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
 	} 
-	
+
 	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
 	}
-}	
+}
 
 class FieldCreate extends FieldEdit
 {
 	var $field;
-	
+
 	function has_permission()
 	{
 		global $lr_session;
 		return $lr_session->has_permission('field','create');
 	}
-	
+
 	function process ()
 	{
 		$edit = $_POST['edit'];
@@ -153,7 +153,7 @@ class FieldCreate extends FieldEdit
 class FieldEdit extends Handler
 {
 	var $field;
-	
+
 	function has_permission()
 	{
 		global $lr_session;
@@ -162,7 +162,7 @@ class FieldEdit extends Handler
 		}
 		return $lr_session->has_permission('field','edit', $this->field->fid);
 	}
-	
+
 	function process ()
 	{
 		$this->title = "Edit Field";
@@ -184,7 +184,7 @@ class FieldEdit extends Handler
 
 		return $rc;
 	}
-	
+
 	function generateForm( $data = array() )
 	{
 		$output = form_hidden("edit[step]", "confirm");
@@ -192,7 +192,7 @@ class FieldEdit extends Handler
 		$output .= form_textfield("Field Identification", 'edit[num]', $data['num'], 15, 15, "Location of this field at the given site; cannot be 0");
 
 		$output .= form_select("Field Status", 'edit[status]', $data['status'], array('open' => 'open', 'closed' => 'closed'));
-		
+
 		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
 
 		$result = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
@@ -201,21 +201,21 @@ class FieldEdit extends Handler
 		while($p = db_fetch_object($result)) {
 			$parents[$p->fid] = $p->fullname;
 		}
-		
+
 		$output .= form_select("Parent Field", 'edit[parent_fid]', $data['parent_fid'], $parents, "Inherit location and name from other field");
 
 		if( ! $data['parent_fid'] )  {
-		
+
 			$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)");
 
 			$output .= form_textfield("Field Code", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site");
 
 			$output .= form_select("Region", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in");
-			
+
 			$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
-			
+
 			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city');
-				
+
 			$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
 			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
 			$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
@@ -229,7 +229,7 @@ class FieldEdit extends Handler
 			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
 			$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
-			
+
 			$output .= form_textarea("Driving Directions", 'edit[driving_directions]', $data['driving_directions'], 60, 5, "");
 
 			$output .= form_textarea("Parking Details", 'edit[parking_details]', $data['parking_details'], 60, 5, "");
@@ -244,7 +244,7 @@ class FieldEdit extends Handler
 		}
 		$output .= form_submit('Submit') .  form_reset('Reset');
 
-		return form($output);	
+		return form($output);
 	}
 
 	function generateConfirm ( $edit )
@@ -271,7 +271,7 @@ class FieldEdit extends Handler
 			} else {
 				$ward = 0;
 			}
-			
+
 			$rows = array();
 			$rows[] = array( "Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
 			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));
@@ -279,13 +279,13 @@ class FieldEdit extends Handler
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
 			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 			$rows[] = array( "Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
-			
+
 			$rows[] = array( "Street:", form_hidden('edit[location_street]', $edit['location_street']) . check_form($edit['location_street']));
 			$rows[] = array( "City:", form_hidden('edit[location_city]', $edit['location_city']) . check_form($edit['location_city']));
 			$rows[] = array( "Province:", form_hidden('edit[location_province]', $edit['location_province']) . check_form($edit['location_province']));
 			$rows[] = array( "Latitude:", form_hidden('edit[latitude]', $edit['latitude']) . check_form($edit['latitude']));
 			$rows[] = array( "Longitude:", form_hidden('edit[longitude]', $edit['longitude']) . check_form($edit['longitude']));
-			
+
 			if( variable_get('wards', '1') ) {
 				$rows[] = array( "City&nbsp;Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
 			}
@@ -298,11 +298,11 @@ class FieldEdit extends Handler
 			$rows[] = array( "Public Washrooms:", form_hidden('edit[washrooms]', $edit['washrooms']) . check_form($edit['washrooms']));
 			$rows[] = array( "Special Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
 		}
-		
+
 		$rows[] = array( form_submit('Submit'), "");
-		
+
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		
+
 		return form($output);
 	}
 
@@ -320,7 +320,7 @@ class FieldEdit extends Handler
 		if( isset($edit['parent_fid']) ) {
 			$field->set('parent_fid', $edit['parent_fid']);
 		}
-		
+
 		if( $edit['parent_fid'] == 0 ) {
 			$field->set('parent_fid', '' );
 			$field->set('name', $edit['name']);
@@ -330,7 +330,7 @@ class FieldEdit extends Handler
 			$field->set('location_province', $edit['location_province']);
 			$field->set('latitude', $edit['latitude']);
 			$field->set('longitude', $edit['longitude']);
-			
+
 			$field->set('region', $edit['region']);
 			$field->set('ward_id', $edit['ward_id']);
 			$field->set('location_url', $edit['location_url']);
@@ -357,7 +357,7 @@ class FieldEdit extends Handler
 		if( ! validate_number($edit['num']) ) {
 			$errors .= "<li>Number of field must be provided";
 		}
-	
+
 		$rating = field_rating_values();
 		if( ! array_key_exists($edit['rating'], $rating) ) {
 			$errors .= "<li>Rating must be provided";
@@ -378,7 +378,7 @@ class FieldEdit extends Handler
 		if( !validate_nonhtml($edit['code'] ) ) {
 			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
 		}
-		
+
 		if(variable_get('wards', '1')) {
 			if( ! validate_number($edit['ward_id']) ) {
 				$errors .= "<li>Ward must be selected";
@@ -388,19 +388,19 @@ class FieldEdit extends Handler
 		if( ! validate_nonhtml($edit['region']) ) {
 			$errors .= "<li>Region cannot be left blank and cannot contain HTML";
 		}
-		
+
 		if(validate_nonblank($edit['location_url'])) {
 			if( ! validate_nonhtml($edit['location_url']) ) {
 				$errors .= "<li>If you provide a location URL, it must be valid.";
 			}
 		}
-		
+
 		if(validate_nonblank($edit['layout_url'])) {
 			if( ! validate_nonhtml($edit['layout_url']) ) {
 				$errors .= "<li>If you provide a site layout URL, it must be valid.";
 			}
 		}
-		
+
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -423,14 +423,14 @@ class FieldList extends Handler
 		if( $this->closed ) {
 			$this->setLocation(array('List Closed Fields' => 'field/list'));
 		} else {
-		$this->setLocation(array('List Fields' => 'field/list'));
+			$this->setLocation(array('List Fields' => 'field/list'));
 
-		ob_start();
-		$retval = @readfile("data/field_caution.html");
-		if (false !== $retval) {
+			ob_start();
+			$retval = @readfile("data/field_caution.html");
+			if (false !== $retval) {
 				$output .= ob_get_contents();
-		}           
-		ob_end_clean();
+			}           
+			ob_end_clean();
 		}
 
 		if( $this->closed ) {
@@ -465,7 +465,7 @@ class FieldList extends Handler
 class FieldView extends Handler
 {
 	var $field;
-	
+
 	function has_permission()
 	{
 		global $lr_session;
@@ -474,7 +474,7 @@ class FieldView extends Handler
 		}
 		return $lr_session->has_permission('field','view', $this->field->fid);
 	}
-	
+
 	function process ()
 	{
 		global $lr_session;
@@ -484,7 +484,7 @@ class FieldView extends Handler
 		$rows[] = array("Field&nbsp;Name:", $this->field->name);
 		$rows[] = array("Field&nbsp;Code:", $this->field->code);
 		$rows[] = array("Field&nbsp;Status:", $this->field->status);
-	
+
 		$ratings = field_rating_values();
 		$rows[] = array("Field&nbsp;Rating:", $ratings[$this->field->rating]);
 		
@@ -499,12 +499,12 @@ class FieldView extends Handler
 					$this->field->location_province,
 					''));
 		}
-	
+
 		if( $this->field->latitude && $this->field->longitude) {
 			$rows[] = array("Latitude:",  $this->field->latitude);
 			$rows[] = array("Longitude:",  $this->field->longitude);
 		}
-	
+
 		if( $this->field->ward_id ) {
 			$ward = ward_load( array('ward_id' => $this->field->ward_id) );
 			$rows[] = array("City&nbsp;Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/" . $this->field->ward_id));
@@ -539,7 +539,7 @@ class FieldView extends Handler
 				$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
 			}
 		}
-		
+
 		// list other fields at this site
 		if( $this->field->parent_fid ) {
 			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $this->field->parent_fid, $this->field->parent_fid);
@@ -555,14 +555,14 @@ class FieldView extends Handler
 				l("view field", "field/view/$related->fid", array('title' => "View field details"))
 			);
 		}
-		
+
 		$rows[] = array("Fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
-		
+
 		$this->setLocation(array(
 			$this->field->fullname => "field/view/" .$this->field->fid,
 			$this->title => 0
 		));
-	
+
 		return "<div class='pairtable'>" . table(null, $rows, array('alternate-colours' => true)) . "</div>";
 	}
 }

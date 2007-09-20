@@ -12,7 +12,7 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.  
- *	
+ *
  * You should have received a copy of the GNU General Public License along
  * with this library; if not, write to the Free Software Foundation, Inc., 59
  * Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -112,7 +112,7 @@ if($possibleRedirect) {
 if($handler->initialize()) {
 	/* Ensure we have permission */
 	if($handler->has_permission()) {
-	
+
 		/* Process the action */
 		$result = $handler->process();
 		if($result === false) {
@@ -123,7 +123,7 @@ if($handler->initialize()) {
 		print "<h1>$handler->title</h1>";
 		print $result;
 		print theme_footer();
-		
+
 	} else {
 		error_exit('You do not have permission to perform that operation');
 	}
@@ -134,7 +134,7 @@ if($handler->initialize()) {
 function error_exit($error = NULL)
 {
 	$title = "Error";
-	
+
 	$error = $error ? $error : "An unknown error has occurred.";
 
 	print theme_header($title);

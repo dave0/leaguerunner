@@ -117,7 +117,7 @@ class Person extends LeaguerunnerObject
 				error_exit("Couldn't create user account");
 			}
 		}
-	
+
 		$fields      = array();
 		$fields_data = array();
 
@@ -130,13 +130,13 @@ class Person extends LeaguerunnerObject
 				$fields_data[] = $this->{$key};
 			}
 		}
-		
+
 		if(count($fields_data) != count($fields)) {
 			error_exit("Internal error: Incorrect number of fields set");
 		}
-		
+
 		$sql = "UPDATE person SET ";
-		$sql .= join(", ", $fields);	
+		$sql .= join(", ", $fields);
 		$sql .= " WHERE user_id = %d";
 
 		$fields_data[] = $this->user_id;
@@ -146,7 +146,7 @@ class Person extends LeaguerunnerObject
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
-		
+
 		unset($this->_modified_fields);
 		return true;
 	}
@@ -160,7 +160,7 @@ class Person extends LeaguerunnerObject
 		if( ! $this->username ) {
 			return false;
 		}
-		
+
 		if( ! $this->password ) {
 			return false;
 		}
@@ -171,7 +171,7 @@ class Person extends LeaguerunnerObject
 		}
 
 		$this->user_id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
-		
+
 		return true;
 	}
 
@@ -196,15 +196,15 @@ class Person extends LeaguerunnerObject
 		if ( $this->is_a_coordinator ) {
 			error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
-		
+
 		/* remove user from team rosters.  Don't check for affected
 		 * rows, as there may not be any
 		 */
 		db_query("DELETE from teamroster WHERE player_id = %d",$this->user_id);
-		
+
 		/* remove user account */
 		db_query("DELETE from person WHERE user_id = %d", $this->user_id);
-		
+
 		return (1 == db_affected_rows());
 	}
 
@@ -218,7 +218,7 @@ class Person extends LeaguerunnerObject
 		if(0 == strcasecmp($value,'NOW()')) {
 			return "%s";
 		}
-	
+
 		switch($key) {
 			case 'user_id':
 			case 'member_id':
@@ -253,7 +253,7 @@ class Person extends LeaguerunnerObject
 				. "_lock";
 			$result = db_query("SELECT GET_LOCK('$lockname',10)");
 			$lock = db_result($result);
-					
+
 			if(!isset($lock) || $lock == 0) {
 				return false;
 			}
@@ -261,7 +261,7 @@ class Person extends LeaguerunnerObject
 				$this->year_started, $this->gender);
 
 			db_query("SELECT RELEASE_LOCK('$lockname')");
-					
+
 			$member_id = 1;
 		} else {
 			// Something bad happened
@@ -287,7 +287,7 @@ class Person extends LeaguerunnerObject
 	{
 		return ($this->class == 'administrator');
 	}
-	
+
 	function is_player()
 	{
 		return (
@@ -296,7 +296,7 @@ class Person extends LeaguerunnerObject
 			|| $this->class == 'administrator'
 		);
 	}
-	
+
 	function is_member()
 	{
 		if ( ! $this->is_player() ) {
@@ -319,10 +319,10 @@ class Person extends LeaguerunnerObject
 		if( $status == 'captain' || $status == 'assistant' || $status == 'coach') {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	function is_player_on ($team_id)
 	{
 		if( ! array_key_exists($team_id, $this->teams) ) {
@@ -333,25 +333,25 @@ class Person extends LeaguerunnerObject
 		if( $status == 'coach' || $status == 'captain' || $status == 'assistant' || $status == 'player') {
 			return true;
 		}
-		
+
 		return false;
 	}
 
 	function is_coordinator_of($league_id)
 	{
 		if($this->is_admin()) { return true; }
-		
+
 		if(!$this->is_a_coordinator) { return false; }
 
 		if($league_id == 1) {
 			/* All coordinators can coordinate "Inactive Teams" */
 			return true;
 		}
-		
+
 		if( array_key_exists($league_id, $this->leagues) ) {
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -361,7 +361,7 @@ class Person extends LeaguerunnerObject
 
 		$result = db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $team_id);
 
-		$league = db_fetch_object($result);	
+		$league = db_fetch_object($result);
 
 		return $this->is_coordinator_of( $league->league_id );
 	}

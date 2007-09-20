@@ -128,7 +128,7 @@ CREATE TABLE league (
 	see_sotg          ENUM('true','false') default 'true',
    -- Allow exclusion of teams during scheduling?
 	excludeTeams      ENUM('true','false') default 'true',
-	
+
 	-- Placeholder for an email distribution list address for all coordinators of this league
 	coord_list		varchar(100),
 	-- Placeholder for an email distribution list address for all captains of this league

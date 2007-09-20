@@ -271,14 +271,14 @@ function table($header, $rows, $attrArray = array()) {
   */
 
   if (is_array($header)) {
-    $output .= " <tr>";
+    $output .= "<tr>";
     foreach ($header as $cell) {
       if (is_array($cell) && $cell["field"]) {
         $cell = tablesort($cell, $header);
       }
       $output .= table_cell($cell, 1);
     }
-    $output .= " </tr>\n";
+    $output .= "</tr>\n";
   }
 
   /*
@@ -289,18 +289,18 @@ function table($header, $rows, $attrArray = array()) {
     foreach ($rows as $number => $row) {
 	  if($attrArray['alternate-colours']) {
         if ($number % 2 == 1) {
-          $output .= " <tr class=\"light\">";
+          $output .= "<tr class=\"light\">";
         }
         else {
-          $output .= " <tr class=\"dark\">";
+          $output .= "<tr class=\"dark\">";
         }
       } else {
-        $output .= " <tr>";
+        $output .= "<tr>";
 	  }
       foreach ($row as $cell) {
         $output .= table_cell($cell, 0);
       }
-      $output .= " </tr>\n";
+      $output .= "</tr>\n";
     }
   }
 
@@ -771,23 +771,23 @@ function validate_us_address ( $street, $city, $state, $zip)
  */
 function validate_province_abbrev( $prov )
 {
-        switch (strtoupper($prov)) {
-            case 'AB':
-            case 'BC':
-            case 'MB':
-            case 'NB':
-            case 'NF':
-            case 'NT':
-            case 'NS':
-            case 'NU':
-            case 'ON':
-            case 'PE':
-            case 'QC':
-            case 'SK':
-            case 'YK':
-                return true;
-        }
-        return false;
+	switch (strtoupper($prov)) {
+		case 'AB':
+		case 'BC':
+		case 'MB':
+		case 'NB':
+		case 'NF':
+		case 'NT':
+		case 'NS':
+		case 'NU':
+		case 'ON':
+		case 'PE':
+		case 'QC':
+		case 'SK':
+		case 'YK':
+			return true;
+	}
+	return false;
 }
 
 /**
@@ -1066,9 +1066,9 @@ function getOptionsFromTimeRange( $start, $finish, $increment )
 	{
 		$hour = floor( $min / 60 );
 		$minute = $min - $hour * 60;
-			$time = sprintf("%02d:%02d", $hour, $minute);
-			$result[$time] = $time;
-		}
+		$time = sprintf("%02d:%02d", $hour, $minute);
+		$result[$time] = $time;
+	}
 	return $result;
 }
 
@@ -1080,7 +1080,7 @@ function getOptionsFromEnum( $table, $col_name )
 {
 	$result = db_query("SHOW COLUMNS from $table LIKE '%s'", $col_name);
 	$row = db_fetch_array($result);
-		
+
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
 	$str = preg_replace("/\)$/","",$str);
 	$str = str_replace("'","",$str);
@@ -1219,40 +1219,40 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 // Not needed for PHP 5.1 and higher, which includes this function
 if ( !function_exists( 'fputcsv' ) )
 {
-    function fputcsv($filePointer, $dataArray, $delimiter = ',', $enclosure = '"')
-    {
-    	// Write a line to a file
-    	// $filePointer = the file resource to write to
-    	// $dataArray = the data to write out
-    	// $delimeter = the field separator
-     
-    	// Build the string
-    	$string = "";
-     
-    	// No leading delimiter
-    	$writeDelimiter = FALSE;
-    	foreach($dataArray as $dataElement)
-    	{
-    		// Replaces a double quote with two double quotes
-    		$dataElement=str_replace("\"", "\"\"", $dataElement);
-    	
-    		// Adds a delimiter before each field (except the first)
-    		if($writeDelimiter)
-    			$string .= $delimiter;
-    	
-    		// Encloses each field with $enclosure and adds it to the string
-    		$string .= $enclosure . $dataElement . $enclosure;
-    	
-    		// Delimiters are used every time except the first.
-    		$writeDelimiter = TRUE;
-    	}
-     
-    	// Append new line
-    	$string .= "\n";
-     
-    	// Write the string to the file
-    	fwrite($filePointer,$string);
-    }
+	function fputcsv($filePointer, $dataArray, $delimiter = ',', $enclosure = '"')
+	{
+		// Write a line to a file
+		// $filePointer = the file resource to write to
+		// $dataArray = the data to write out
+		// $delimeter = the field separator
+	 
+		// Build the string
+		$string = "";
+	 
+		// No leading delimiter
+		$writeDelimiter = FALSE;
+		foreach($dataArray as $dataElement)
+		{
+			// Replaces a double quote with two double quotes
+			$dataElement=str_replace("\"", "\"\"", $dataElement);
+		
+			// Adds a delimiter before each field (except the first)
+			if($writeDelimiter)
+				$string .= $delimiter;
+		
+			// Encloses each field with $enclosure and adds it to the string
+			$string .= $enclosure . $dataElement . $enclosure;
+		
+			// Delimiters are used every time except the first.
+			$writeDelimiter = TRUE;
+		}
+	 
+		// Append new line
+		$string .= "\n";
+	 
+		// Write the string to the file
+		fwrite($filePointer,$string);
+	}
 }
 
 /**

@@ -105,7 +105,7 @@ class Login extends Handler
 
 	function login_form($error = "")
 	{
-		
+
 		$output = "<p />";
 		if($error) {
 			$output .= "<div style='padding-top: 2em; text-align: center'>";

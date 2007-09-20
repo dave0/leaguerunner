@@ -64,7 +64,7 @@ class Game extends LeaguerunnerObject
 		}
 		return $short;
 	}
-	
+
 	function short_away_name()
 	{
 		$short = sprintf("%.20s", $this->away_name);
@@ -357,16 +357,16 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					// HOME default with no entry by AWAY
 					$this->set('status', 'home_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$def));
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('penalized',false,$opdefsnr));
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$def));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('penalized',false,$opdefsnr));
 					$this->set('home_spirit', 4); // home is penalized in SOTG because they defaulted
 					$this->set('away_spirit', 7); // away is penalized in SOTG because they didn't report the score
 					break;
 				case 'them':
 					// AWAY default with no entry by AWAY
 					$this->set('status', 'away_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect',false,$opdef));
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$defsnr));
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect',false,$opdef));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$defsnr));
 					$this->set('home_spirit', 10);
 					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
@@ -375,7 +375,7 @@ class Game extends LeaguerunnerObject
 					$this->save_spirit_entry( $this->home_id, $this->default_spirit('perfect'));
 					$this->set('home_spirit', 10);
 					$this->set('away_spirit', $home_entry->spirit);
-         	}
+			}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
@@ -384,16 +384,16 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					// AWAY default with no entry by HOME
 					$this->set('status', 'away_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('penalized',false,$opdefsnr));
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$def));
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('penalized',false,$opdefsnr));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser',false,$def));
 					$this->set('home_spirit', 7); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 4); // away is penalized in SOTG because they defaulted
 					break;
 				case 'them':
 					// HOME default with no entry by HOME
 					$this->set('status', 'home_default');
-			      $this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$defsnr));
-			      $this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect',false,$opdef));
+					$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser',false,$defsnr));
+					$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect',false,$opdef));
 					$this->set('home_spirit', 4); // home is penalized in SOTG because they didn't report the score
 					$this->set('away_spirit', 10);
 					break;
@@ -1095,7 +1095,7 @@ class Game extends LeaguerunnerObject
 		}
 	
 		$elo_change = 0;
-		
+
 		if( $this->home_score == $this->away_score) {
 			# For a tie, we assume the home team wins
 			$winner = $this->home_id;
@@ -1263,7 +1263,7 @@ class Game extends LeaguerunnerObject
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
-      $seed = rand();
+		$seed = rand();
 
 		// try to adhere to the home team's HOME FIELD DESIGNATION
 		// TODO: I could save a DB hit every time if I would just pass in the team object...
@@ -1274,22 +1274,22 @@ class Game extends LeaguerunnerObject
 			$slot_id = db_result($result);
 		}
 
-      // if no home field, try to adhere to the home team's field preference
+		// if no home field, try to adhere to the home team's field preference
 		if( ! $slot_id ) {
 			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
 			$slot_id = db_result($result);
 		}
-		
-      // if nothing can be found by home team preference, try the away team
+
+		// if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
 			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
 			$slot_id = db_result($result);
 		}
 
-      // if still nothing can be found, last try is just random:
+		// if still nothing can be found, last try is just random:
 		if( ! $slot_id ) {
-		   $result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
-		   $slot_id = db_result($result);
+			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
+			$slot_id = db_result($result);
 		}
 
 		if( ! $slot_id ) {

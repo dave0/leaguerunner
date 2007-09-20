@@ -9,7 +9,7 @@ function theme_header($title = "", $breadcrumbs = array())
 	global $lr_session, $BASE_URL;
 
 	$app_name = variable_get('app_name','Leaguerunner');
-	
+
 	if ($title) {
 		$title = "$title - $app_name";
 	} else {
@@ -21,9 +21,9 @@ function theme_header($title = "", $breadcrumbs = array())
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title><?php print $title ?></title>
-	<base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL ?>/" />
-	<link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
-	<link rel="stylesheet" type="text/css" href="style.css" />
+    <base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL ?>/" />
+    <link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
     <link rel="shortcut icon" href="/favicon.ico" />
   </head>
   <body>

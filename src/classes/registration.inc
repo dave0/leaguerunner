@@ -151,20 +151,20 @@ class Registration extends LeaguerunnerObject
 
 		// form builder might be null if there are no questions
 		if( isset( $formbuilder ) ) {
-		// save in DB
-		while( list($qkey, $answer) = each($answers) ) {
+			// save in DB
+			while( list($qkey, $answer) = each($answers) ) {
 				$question = $formbuilder->_questions[$qkey];
 				// We need to skip "answers" for labels and descriptions
 				if($question->qtype != 'label' && $question->qtype != 'description')
 				{
 					db_query("REPLACE INTO registration_answers (order_id,qkey,akey) VALUES (%d,'%s','%s')",
 						$this->order_id,
-				$qkey,
-				$answer
-			);
-	    	if( db_affected_rows() < 1) {
-	      		return false;
-	    	}
+						$qkey,
+						$answer
+					);
+					if( db_affected_rows() < 1) {
+						return false;
+					}
 				}
 			}
 		}

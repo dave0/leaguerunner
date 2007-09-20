@@ -726,11 +726,11 @@ class EventView extends Handler
 			if ($row->paid) {
 				if ($this->event->multiple) {
 					$output = para('You have already registered and paid for this event. However, this event allows multiple registrations (e.g. the same person can register teams to play on different nights).');
-			}
-			else {
-					return para('You have already registered and paid for this event.');
-					}
 				}
+				else {
+					return para('You have already registered and paid for this event.');
+				}
+			}
 			else {
 				$reg = registration_load( array('order_id' => $row->order_id ) );
 
@@ -745,8 +745,8 @@ class EventView extends Handler
 				$output .= OfflinePaymentText($order_num);
 				$output .= RefundPolicyText();
 
-			return $output;
-		}
+				return $output;
+			}
 		}
 
 		// If there is a preregistration record, we ignore open and close times

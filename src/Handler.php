@@ -79,7 +79,7 @@ class Handler
 		if( ! $lr_session->is_loaded() ) {
 			return false;
 		}
-		
+
 		// TODO: This belongs as a config option
 		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
 
@@ -144,7 +144,7 @@ class Handler
 		trigger_error("Missing handler for process() in this class");
 		return false;
 	}
-	
+
 	/** 
 	 * Set both page title and breadcrumbs
 	 * Array consists of several key-value pairs.  If there's a nonzero value,
@@ -173,7 +173,7 @@ class Handler
 	 */
 	function generateSingleList($query, $ops, $dbParams = array())
 	{
-		
+
 		$result = db_query($query, $dbParams);
 		$output = "<table>\n";
 		while($thisRow = db_fetch_array($result)) {
@@ -213,8 +213,7 @@ class Handler
 		$dbParams[] = $letter;
 		$output .= $this->generateSingleList($query, $ops, $dbParams);
 		return $output;
-	
-		
+
 		if(!isset($letter)) {
 			$letter = $letters[0];
 		}
@@ -224,7 +223,7 @@ class Handler
 	{
 		$opsLinks = array();
 		foreach($opsList as $op) {
-			$opsLinks[] = l($op['name'], $op['target'] . $idValue);			
+			$opsLinks[] = l($op['name'], $op['target'] . $idValue);
 		}
 		return $opsLinks;
 	}

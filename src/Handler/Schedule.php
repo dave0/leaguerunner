@@ -373,7 +373,7 @@ class ScheduleView extends Handler
 		$this->setLocation(array(
 			$this->league->fullname => "league/view/".$this->league->league_id,
 			$this->title => 0));
-			
+
 		/* 
 		 * Now, grab the schedule
 		 */

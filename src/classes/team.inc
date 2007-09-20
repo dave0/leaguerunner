@@ -44,7 +44,6 @@ class Team extends LeaguerunnerObject
 		$this->avg_skill = -1;
 		$this->home_games = -1;
 		$this->away_games = -1;
-		
 
 		return true;
 	}
@@ -113,7 +112,7 @@ class Team extends LeaguerunnerObject
 				error_exit("Couldn't create team record");
 			}
 		}
-	
+
 		$fields      = array();
 		$fields_data = array();
 
@@ -126,13 +125,13 @@ class Team extends LeaguerunnerObject
 				$fields_data[] = $this->{$key};
 			}
 		}
-		
+
 		if(count($fields_data) != count($fields)) {
 			error_exit("Internal error: Incorrect number of fields set");
 		}
-		
+
 		$sql = "UPDATE team SET ";
-		$sql .= join(", ", $fields);	
+		$sql .= join(", ", $fields);
 		$sql .= " WHERE team_id = %d";
 
 		$fields_data[] = $this->team_id;
@@ -142,11 +141,11 @@ class Team extends LeaguerunnerObject
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
-		
+
 		unset($this->_modified_fields);
 
 		# TODO: process roster list and add/remove as necessary
-		
+
 		return true;
 	}
 
@@ -166,7 +165,7 @@ class Team extends LeaguerunnerObject
 		}
 
 		$this->team_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
-		
+
 		return true;
 	}
 
@@ -198,7 +197,7 @@ class Team extends LeaguerunnerObject
 
 		// Delete from the team table
 		db_query("DELETE FROM team WHERE team_id = %d", $this->team_id);
-	
+
 		return true;
 	}
 
@@ -212,7 +211,7 @@ class Team extends LeaguerunnerObject
 		if(0 == strcasecmp($value,'NOW()')) {
 			return "%s";
 		}
-	
+
 		switch($key) {
 			case 'team_id':
 			case 'rating':
@@ -234,7 +233,7 @@ class Team extends LeaguerunnerObject
 	function calculate_sbf()
 	{
 		$sbf = db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $this->team_id, $this->team_id));
-		
+
 		if( $sbf == "") {
 			$sbf = "n/a";
 		}
@@ -261,7 +260,7 @@ class Team extends LeaguerunnerObject
 	function home_away_ratio()
 	{
 		if( $this->home_games == -1 ) {
-		
+
 			$this->home_games = db_result(db_query("SELECT count(*) from schedule where home_team = %d", $this->team_id));
 			$this->away_games = db_result(db_query("SELECT count(*) from schedule where away_team = %d", $this->team_id));
 		}
@@ -279,14 +278,14 @@ class Team extends LeaguerunnerObject
 	function move_team_to( $league_id, $rank = 0 ) 
 	{
 		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $league_id, $rank, $this->team_id, $this->league_id);
-		
+
 		if( 1 != db_affected_rows() ) {
 			error_exit("Couldn't move team between leagues");
 		}
-		
+
 		$this->league_id = $league_id;
 		$this->rank = $rank;
-		
+
 		return true;
 	}
 
@@ -310,12 +309,12 @@ class Team extends LeaguerunnerObject
 		if( $this_league_id == $other_league_id ) {
 			return false;
 		}
-	
+
 		# Move team to other league
 		$this->move_team_to( $other_league_id, $other_rank);
-		
+
 		$other->move_team_to( $this_league_id, $this_rank);
-		
+
 		# Get future games for $this and $other
 		$this_games = game_load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
 		$other_games = game_load_many(array('either_team' => $other->team_id, 'game_date_future' => 1));
@@ -360,7 +359,7 @@ function team_query( $array = array() )
 				$query[] = "t.$key = '" . check_query($value) . "'";
 		}
 	}
-		
+
 	return db_query("SELECT 
 		t.*,
 		s.rank,
