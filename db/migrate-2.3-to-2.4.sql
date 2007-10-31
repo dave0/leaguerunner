@@ -88,8 +88,9 @@ alter table league add capt_list varchar(100) after coord_list;
 alter table schedule add rating_home integer after away_spirit;
 alter table schedule add rating_away integer after rating_home;
 
-delete from question;
-delete from multiplechoice_answers;
+DELETE FROM multiplechoice_answers WHERE qkey IN (SELECT qkey FROM question WHERE genre = "team_spirit");
+DELETE FROM question WHERE genre = "team_spirit";
+
 INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES ('Timeliness','team_spirit','Our opponents had a full line and were ready to play','multiplechoice',0);
 INSERT INTO multiplechoice_answers VALUES('OnTime', 'Timeliness','early, or at the official start time','0',0);
 INSERT INTO multiplechoice_answers VALUES('FiveOrLess', 'Timeliness','less than five minutes late','-1',1);
