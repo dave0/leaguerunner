@@ -276,13 +276,13 @@ function leaguerunner_auth($username, $password, $server)
 function leaguerunner_user($op, &$edit, &$account, $category = null)
 {
 
-	if ($op == 'login') {
+	// Strip name and server from ID:
+	$name = '';
+	if ($server = strrchr($account->init, '@')) {
+		$name = substr($account->init, 0, strlen($account->init) - strlen($server));
+	}
 
-		// Strip name and server from ID:
-		$name = '';
-		if ($server = strrchr($account->init, '@')) {
-			$name = substr($account->init, 0, strlen($account->init) - strlen($server));
-		}
+	if ($op == 'login') {
 
 		if( ! $name ) {
 			return;
@@ -330,7 +330,10 @@ function leaguerunner_user($op, &$edit, &$account, $category = null)
 
 	// Log the user out of Leaguerunner when logging out of Drupal
 	if ($op == 'logout') {
-		leaguerunner_destroy ($account->name);
+		if( ! $name ) {
+			return;
+		}
+		leaguerunner_destroy ($name);
 	}
 }
 
