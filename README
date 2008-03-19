@@ -8,8 +8,8 @@ different divisions and three seasons of play.
 Prerequisites:
 
   1) Webserver with PHP 4.3.10 or newer.
-     You should be running the most up-to-date version of PHP 4.  Leaguerunner
-     does not yet work with PHP 5.
+     You should be running the most up-to-date version of PHP 4 or 5.
+
   2) MySQL database, and the relevant PHP support for MySQL
 
   3) PHP PEAR libraries
