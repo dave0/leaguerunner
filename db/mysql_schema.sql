@@ -15,16 +15,16 @@ CREATE TABLE person (
 	lastname        varchar(100),
 
 	email	        varchar(100),
-	allow_publish_email	ENUM("Y","N") DEFAULT 'N',  -- Publish in directory.
+	allow_publish_email	ENUM('Y','N') DEFAULT 'N',  -- Publish in directory.
 	
 	home_phone      varchar(30),
-	publish_home_phone	ENUM("Y","N") DEFAULT 'N',
+	publish_home_phone	ENUM('Y','N') DEFAULT 'N',
 
 	work_phone      varchar(30),
-	publish_work_phone	ENUM("Y","N") DEFAULT 'N',
+	publish_work_phone	ENUM('Y','N') DEFAULT 'N',
 
 	mobile_phone    varchar(30),
-	publish_mobile_phone	ENUM("Y","N") DEFAULT 'N',
+	publish_mobile_phone	ENUM('Y','N') DEFAULT 'N',
 
 	addr_street     varchar(50),
 	addr_city       varchar(50),
@@ -33,7 +33,7 @@ CREATE TABLE person (
 
 	ward_id 	integer,
 
-	gender 		ENUM("Male","Female"),
+	gender 		ENUM('Male','Female'),
 
 	birthdate       date,
 
@@ -50,14 +50,14 @@ CREATE TABLE person (
 
 	waiver_signed datetime,
 
-	has_dog		  ENUM("Y","N") DEFAULT 'N',
+	has_dog		  ENUM('Y','N') DEFAULT 'N',
 	dog_waiver_signed datetime,
 
-	survey_completed  ENUM("Y","N") DEFAULT 'N',
+	survey_completed  ENUM('Y','N') DEFAULT 'N',
 
-	willing_to_volunteer  ENUM("Y","N") DEFAULT 'N',
+	willing_to_volunteer  ENUM('Y','N') DEFAULT 'N',
 
-	contact_for_feedback  ENUM("Y","N") DEFAULT 'Y',
+	contact_for_feedback  ENUM('Y','N') DEFAULT 'Y',
 
 	last_login datetime,
 	client_ip      varchar(50),
@@ -68,7 +68,7 @@ CREATE TABLE person (
 DROP TABLE IF EXISTS member_id_sequence;
 CREATE TABLE member_id_sequence (
 	year	year not null,
-	gender 	ENUM("Male","Female"),
+	gender 	ENUM('Male','Female'),
 	id 	integer not null,
  	KEY (year,gender)
 );
@@ -76,21 +76,22 @@ CREATE TABLE member_id_sequence (
 DROP TABLE IF EXISTS team;
 CREATE TABLE team (
 	team_id         integer NOT NULL AUTO_INCREMENT,
-	name            varchar(100) UNIQUE NOT NULL,
+	name            varchar(100) NOT NULL,
 	website         varchar(100),
 	shirt_colour    varchar(50),
 	home_field      integer,
 	region_preference varchar(50),
-	status          ENUM("open","closed"),
+	status          ENUM('open','closed'),
 	rating		int DEFAULT 1500,
-	PRIMARY KEY (team_id)
+	PRIMARY KEY (team_id),
+	INDEX name (name)
 );
 
 DROP TABLE IF EXISTS teamroster;
 CREATE TABLE teamroster (
 	team_id		integer NOT NULL,
 	player_id	integer NOT NULL,
-	status		ENUM("coach", "captain", "assistant", "player", "substitute", "captain_request", "player_request"),
+	status		ENUM('coach', 'captain', 'assistant', 'player', 'substitute', 'captain_request', 'player_request'),
 	date_joined	date,
 	PRIMARY KEY (team_id,player_id)
 );
@@ -101,15 +102,22 @@ CREATE TABLE league (
     name		varchar(100),
 	-- can play more than one day a week, so make it a set.	
 	day 		SET('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
-	season		ENUM('none','Spring','Summer','Fall','Winter'),
+	season		ENUM('none','Winter','Spring','Summer','Fall'),
 	tier		integer,
 	ratio		ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
 -- This information is for handling different rounds in the schedule
 -- The current round is used to determine what round a new week will be 
 -- and to determine what to display (if stats_display == currentround)
 	current_round int DEFAULT 1,
+
+	-- Roster deadline, no changes allowed after this date
+	roster_deadline	datetime DEFAULT 0,
+
 	stats_display ENUM('all','currentround') DEFAULT 'all',
 	year        integer,
+
+	-- Open leagues show up in normal lists, closed are only in historical lists
+	status		ENUM('open','closed') NOT NULL default 'open',
 
 	-- What type of scheduling should this league have?  
 	-- roundrobin is standard
@@ -127,13 +135,18 @@ CREATE TABLE league (
    -- Allow players to see SOTG answers assigned to their team?
 	see_sotg          ENUM('true','false') default 'true',
    -- Allow exclusion of teams during scheduling?
-	excludeTeams      ENUM('true','false') default 'true',
+	excludeTeams      ENUM('true','false') default 'false',
 
 	-- Placeholder for an email distribution list address for all coordinators of this league
 	coord_list		varchar(100),
 	-- Placeholder for an email distribution list address for all captains of this league
 	capt_list		varchar(100),
 	
+	-- how many hours grace period before we email score reminders
+	email_after integer NOT NULL DEFAULT '0',
+	-- how many hours grace period before we finalize the score
+	finalize_after integer NOT NULL DEFAULT '0',
+
 	PRIMARY KEY (league_id)
 );
 
@@ -210,6 +223,15 @@ CREATE TABLE score_entry (
     PRIMARY KEY (team_id,game_id)
 );
 
+-- for remembering and tracking missing score reminders
+DROP TABLE IF EXISTS score_reminder;
+CREATE TABLE score_reminder (
+	game_id INTEGER NOT NULL,
+	team_id INTEGER NOT NULL,
+	sent_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY ( game_id, team_id )
+);
+
 -- Spirit System
 DROP TABLE IF EXISTS question;
 CREATE TABLE question (
@@ -219,7 +241,7 @@ CREATE TABLE question (
 	qtype   varchar(255),
 	restrictions   varchar(255),  -- used for start/end dates, upper/lower limits, etc.
 	required	ENUM('Y','N') DEFAULT 'Y',
-	sorder	integer default 0
+	sorder	integer default 0,
 	PRIMARY KEY  (qkey,genre)
 );
 
@@ -229,7 +251,7 @@ CREATE TABLE multiplechoice_answers (
 	qkey	varchar(255),
 	answer	varchar(255),
 	value	varchar(255),
-	sorder	integer default 0		-- sort order
+	sorder	integer default 0,		-- sort order
 	PRIMARY KEY  (akey,qkey)
 );
 
@@ -275,6 +297,7 @@ CREATE TABLE field (
 	biking_directions text,
 	washrooms text,
 	site_instructions text,
+	sponsor text,
 	location_url varchar(255),
 	layout_url varchar(255),
 
@@ -326,7 +349,7 @@ CREATE TABLE registration_events (
 	registration_id int(10) unsigned NOT NULL auto_increment,
 	name varchar(100) default NULL,
 	description blob,
-	type enum('individual_event','team_event','individual_league','team_league') NOT NULL default 'individual_event',
+	type enum('membership', 'individual_event','team_event','individual_league','team_league') NOT NULL default 'individual_event',
 	cost decimal(7,2) default NULL,
 	gst decimal(7,2) default NULL,
 	pst decimal(7,2) default NULL,
@@ -355,8 +378,9 @@ CREATE TABLE registrations (
 	order_id int(10) unsigned NOT NULL auto_increment,
 	user_id int(11) NOT NULL default '0',
 	registration_id int(10) unsigned NOT NULL default '0',
-	`time` timestamp NOT NULL,
-	paid tinyint(1) NOT NULL default '0',
+	`time` timestamp NULL default 0,
+	modified timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	payment enum('Unpaid', 'Pending', 'Paid', 'Refunded') NOT NULL default 'Unpaid',
 	notes blob,
 	PRIMARY KEY  (order_id),
 	KEY user_id (user_id,registration_id)
@@ -399,26 +423,4 @@ CREATE TABLE preregistrations (
 	user_id int(11) NOT NULL default '0',
 	registration_id int(10) unsigned NOT NULL default '0',
 	KEY user_id (user_id,registration_id)
-);
-
--- refunded registrations
-DROP TABLE IF EXISTS refunds;
-CREATE TABLE refunds (
-	order_id int(10) unsigned NOT NULL default '0',
-	user_id int(11) NOT NULL default '0',
-	registration_id int(10) unsigned NOT NULL default '0',
-	`time` timestamp NOT NULL,
-	paid tinyint(1) NOT NULL default '0',
-	notes blob,
-	PRIMARY KEY  (order_id),
-	KEY user_id (user_id,registration_id)
-);
-
--- answers to registration questions, for refunded registrations
-DROP TABLE IF EXISTS refund_answers;
-CREATE TABLE refund_answers (
-	order_id int(10) unsigned NOT NULL default '0',
-	qkey varchar(255) NOT NULL default '',
-	akey varchar(255) default NULL,
-	PRIMARY KEY  (order_id,qkey)
 );
