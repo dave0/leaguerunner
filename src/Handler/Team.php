@@ -33,6 +33,13 @@ function team_dispatch()
 				$obj->player = person_load( array('user_id' => arg(3)) );
 			}
 			break;
+		case 'request':
+			$obj = new TeamRosterRequest;
+			$player_id = arg(3);
+			if( $player_id ) {
+				$obj->player = person_load( array('user_id' => arg(3)) );
+			}
+			break;
 		case 'schedule':
 			$obj = new TeamSchedule;
 			break;
@@ -135,6 +142,9 @@ function team_menu()
 		}
 		reset($lr_session->user->teams);
 	}
+	if( count($lr_session->user->historical_teams) ) {
+		menu_add_child('team','person/historical','my historical teams', array('link' => "person/historical/{$lr_session->user->user_id}", 'weight' => 5) );
+	}
 
 	if($lr_session->has_permission('team','statistics')) {
 		menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));
@@ -148,33 +158,36 @@ function team_add_to_menu( &$team )
 {
 	global $lr_session;
 
-	menu_add_child('team', $team->name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
-   menu_add_child($team->name, "$team->name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id/$team->team_id"));
-	menu_add_child($team->name, "$team->name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
+	// Now that team names aren't unique, we need a unique id for the menu
+	$menu_name = $team->name . $team->team_id;
+
+	menu_add_child('team', $menu_name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
+	menu_add_child($menu_name, "$menu_name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id/$team->team_id"));
+	menu_add_child($menu_name, "$menu_name/schedule",'schedule', array('weight' => -1, 'link' => "team/schedule/$team->team_id"));
 
 	if( $lr_session->user && !array_key_exists( $team->team_id, $lr_session->user->teams ) ) {
 		if($team->status != 'closed') {
-			menu_add_child($team->name, "$team->name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $lr_session->attr_get('user_id')));
+			menu_add_child($menu_name, "$menu_name/join",'join team', array('weight' => 0, 'link' => "team/roster/$team->team_id/" . $lr_session->attr_get('user_id')));
 		}
 	} 
 
-	menu_add_child($team->name, "$team->name/spirit", "spirit", array('weight' => 1, 'link' => "team/spirit/$team->team_id"));
+	menu_add_child($menu_name, "$menu_name/spirit", "spirit", array('weight' => 1, 'link' => "team/spirit/$team->team_id"));
 
 	if( $lr_session->has_permission('team','edit',$team->team_id)) {
-		menu_add_child($team->name, "$team->name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
-		menu_add_child($team->name, "$team->name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
 	}
 
 	if( $lr_session->has_permission('team','email',$team->team_id)) {
-		menu_add_child($team->name, "$team->name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/emails",'player emails', array('weight' => 2, 'link' => "team/emails/$team->team_id"));
 	}
 
 	if( $lr_session->has_permission('team','delete',$team->team_id)) {
-		menu_add_child($team->name, "$team->name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/delete",'delete team', array('weight' => 1, 'link' => "team/delete/$team->team_id"));
 	}
 
 	if( $lr_session->has_permission('team','move',$team->team_id)) {
-		menu_add_child($team->name, "$team->name/move",'move team', array('weight' => 1, 'link' => "team/move/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/move",'move team', array('weight' => 1, 'link' => "team/move/$team->team_id"));
 	}
 }
 
@@ -204,9 +217,12 @@ function team_splash ()
 	}
 	reset($lr_session->user->teams);
 	if( count($lr_session->user->teams) < 1) {
-		$rows[] = array( array('colspan' => 2, 'data' => "You are not yet on any teams"));
+		$rows[] = array( array('colspan' => 2, 'data' => 'You are not yet on any teams'));
 	}
-	return table( array( array('data' => 'My Teams', colspan => 4),), $rows);
+	if( count($lr_session->user->historical_teams) ) {
+		$rows[] = array( array('colspan' => 2, 'data' => 'You have ' . l('historical team data', "person/historical/{$lr_session->user->user_id}") . ' saved'));
+	}
+	return table( array( array('data' => 'My Teams', colspan => 2),), $rows);
 }
 
 
@@ -223,21 +239,33 @@ class TeamCreate extends TeamEdit
 
 	function process ()
 	{
+		global $lr_session;
+
 		$this->title = "Create Team";
 		$edit = &$_POST['edit'];
 
 		switch($edit['step']) {
 			case 'confirm':
+				$this->team = new Team;
+				$this->team->league_id = 1;	// inactive teams
 				$rc = $this->generateConfirm( $edit );
 				break;
 			case 'perform':
 				$this->team = new Team;
+				$this->team->league_id = 1;	// inactive teams
 				$this->perform($edit);
 				local_redirect(url("team/view/" . $this->team->team_id));
 				break;
 			default:
-				$edit = array();
-				$rc = $this->generateForm( $edit );
+				if( variable_get('registration', 0) && ! $lr_session->is_admin() ) {
+					$mail = l(variable_get('app_admin_name', 'Leaguerunner Administrator'),
+								'mailto:' . variable_get('app_admin_email','webmaster@localhost'));
+					$rc = para(theme_error("Team creation is currently suspended, as this is integrated with team registration. If you need a team created for some other reason (e.g. a touring team), please email $mail with the details, or call the office."));
+				}
+				else {
+					$edit = array();
+					$rc = $this->generateForm( $edit );
+				}
 		}
 		$this->setLocation(array($this->title => 0));
 		return $rc;
@@ -250,11 +278,6 @@ class TeamCreate extends TeamEdit
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
-		$existing_team = team_load( array('name' => trim($edit['name'])) );
-		if($existing_team) {
-			error_exit("A team with that name already exists; please go back and try again");
 		}
 
 		if( ! parent::perform($edit) ) {
@@ -390,24 +413,27 @@ class TeamEdit extends Handler
 
 	function isDataInvalid ( $edit )
 	{
-		$errors = "";
+		$errors = '';
 
 		if( !validate_nonhtml($edit['name']) ) {
-			$errors .= "<li>You must enter a valid team name";
+			$errors .= '<li>You must enter a valid team name';
+		}
+		else if( !$this->team->validate_unique($edit['name']) ) {
+			$errors .= '<li>You must enter a unique team name';
 		}
 
 		if( !validate_nonhtml($edit['shirt_colour']) ) {
-			$errors .= "<li>Shirt colour cannot be left blank";
+			$errors .= '<li>Shirt colour cannot be left blank';
 		}
 
 		if(validate_nonblank($edit['website'])) {
 			if( ! validate_nonhtml($edit['website']) ) {
-				$errors .= "<li>If you provide a website URL, it must be valid. Otherwise, leave the website field blank.";
+				$errors .= '<li>If you provide a website URL, it must be valid. Otherwise, leave the website field blank.';
 			}
 		}
 
 		if(strlen($errors) > 0) {
-			return $errors;
+			return "<ul>$errors</ul>";
 		} else {
 			return false;
 		}
@@ -621,7 +647,13 @@ class TeamMove extends Handler
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
 		if( $lr_session->is_admin() ) { 
-			$result = db_query("SELECT league_id as theKey, IF(tier,CONCAT(name,' Tier ',IF(tier>9,tier,CONCAT('0',tier))), name) as theValue from league ORDER BY season,TheValue,tier");
+			$result = db_query("
+				SELECT
+					league_id as theKey,
+					IF(tier,CONCAT(name,' Tier ',IF(tier>9,tier,CONCAT('0',tier))), name) as theValue
+				FROM league
+				WHERE league.status = 'open'
+				ORDER BY season,TheValue,tier");
 			while($row = db_fetch_array($result)) {
 				$leagues[$row['theKey']] = $row['theValue'];
 			}
@@ -672,8 +704,27 @@ class TeamList extends Handler
 		}
 
 		$this->setLocation(array("List Teams" => 'team/list'));
-		return $this->generateAlphaList("SELECT name AS value, team_id AS id FROM team WHERE name LIKE '%s%%' ORDER BY name",
-			$ops, 'name', 'team', 'team/list', $_GET['letter']);
+		$join = 'team t
+			LEFT JOIN
+				leagueteams lt
+			ON
+				t.team_id = lt.team_id
+			LEFT JOIN
+				league l
+			ON
+				lt.league_id = l.league_id
+			WHERE
+				l.status = "open"';
+		return $this->generateAlphaList("
+			SELECT
+				t.name AS value,
+				t.team_id AS id
+			FROM
+				$join
+			AND
+				t.name LIKE '%s%%'
+			ORDER BY t.name",
+			$ops, 't.name', $join, 'team/list', $_GET['letter']);
 	}
 }
 
@@ -829,6 +880,12 @@ class TeamRosterStatus extends Handler
 
 		$this->title = "Roster Status";
 
+		if( $this->team->roster_deadline > 0 &&
+			!$lr_session->is_admin() &&
+			time() > $this->team->roster_deadline )
+		{
+			return para( 'The roster deadline has passed.' );
+		}
 
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
@@ -853,7 +910,7 @@ class TeamRosterStatus extends Handler
 			error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
 		}
 		if(!$this->player->is_member() && !$lr_session->is_admin()) {
-			error_exit('Only registered players can be added to a team');
+			error_exit('Only registered players can be added to a team.');
 		}
 
 		if( $edit['step'] == 'perform' ) {
@@ -951,8 +1008,137 @@ class TeamRosterStatus extends Handler
 			}
 		}
 
-		return true;
+		if( variable_get( 'generate_roster_email', 0 ) ) {
+			if( $edit['status'] == 'captain_request') {
+				$variables = array( 
+					'%fullname' => $this->player->fullname,
+					'%userid' => $this->player->user_id,
+					'%captain' => $lr_session->user->fullname,
+					'%teamurl' => "http://www.tuc.org/page.php?url=/leaguerunner/team/view/{$this->team->team_id}",
+					'%team' => $this->team->name,
+					'%league' => $this->team->league_name,
+					'%day' => $this->team->league_day,
+					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
+					'%site' => variable_get('app_org_name','league'));
+				$message = _person_mail_text('captain_request_body', $variables);
 
+				$rc = send_mail($this->player->email, $this->player->fullname,
+					false, false, // from the administrator
+					false, false, // no Cc
+					_person_mail_text('captain_request_subject', $variables), 
+					$message);
+				if($rc == false) {
+					error_exit("Error sending email to " . $this->person->email);
+				}
+			}
+			else if( $edit['status'] == 'player_request') {
+
+				// Find the list of captains and assistants for the team
+				if( variable_get('postnuke', 0) ) {
+					$result = db_query("
+							SELECT
+								firstname,
+								lastname,
+								n.pn_email as email,
+								r.status
+							FROM
+								person p
+							LEFT JOIN
+								nuke_users n
+							ON
+								p.user_id = n.pn_uid
+							LEFT JOIN
+								teamroster r
+							ON
+								p.user_id = r.player_id
+							WHERE
+								team_id = %d
+							AND
+								(
+									r.status = 'captain'
+								OR
+									r.status = 'assistant'
+								)",
+						$this->team->team_id);
+				} else {
+					$result = db_query("
+							SELECT
+								firstname,
+								lastname,
+								email,
+								r.status
+							FROM
+								person p
+							LEFT JOIN
+								teamroster r
+							ON
+								p.user_id = r.player_id
+							WHERE
+								team_id = %d
+							AND
+								(
+									r.status = 'captain'
+								OR
+									r.status = 'assistant'
+								)",
+						$this->team->team_id);
+				}
+
+				$captains = array();
+				$captain_names = array();
+				$assistants = array();
+				$assistant_names = array();
+				while( $row = db_fetch_object($result) ) {
+					if( $row->status == 'captain' ) {
+						$captains[] = $row->email;
+						$captain_names[] = "$row->firstname $row->lastname";
+					} else {
+						$assistants[] = $row->email;
+						$assistant_names[] = "$row->firstname $row->lastname";
+					}
+				}
+
+				$variables = array( 
+					'%fullname' => $this->player->fullname,
+					'%userid' => $this->player->user_id,
+					'%captains' => join(',', $captain_names),
+					'%teamurl' => "http://www.tuc.org/page.php?url=/leaguerunner/team/view/{$this->team->team_id}",
+					'%team' => $this->team->name,
+					'%league' => $this->team->league_name,
+					'%day' => $this->team->league_day,
+					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
+					'%site' => variable_get('app_org_name','league'));
+				$message = _person_mail_text('player_request_body', $variables);
+
+				$rc = send_mail($captains, $captain_names,
+					false, false, // from the administrator
+					$assistants, $assistant_names,
+					_person_mail_text('player_request_subject', $variables), 
+					$message);
+				if($rc == false) {
+					error_exit("Error sending email to team captains");
+				}
+			}
+		}
+
+		return true;
+	}
+}
+
+/**
+ * Handler for forced roster updates, can't check prereqs, because that's
+ * how we got here in the first place!
+ */
+class TeamRosterRequest extends TeamRosterStatus
+{
+	function checkPrereqs( $next )
+	{
+		return false;
+	}
+
+	function formPrompt()
+	{
+		return para("You have been invited to join the team <b>{$this->team->name}</b>. To ensure up-to-date rosters, you must either accept or decline this invitation. Please select your desired level of participation on this team from the list below:");
 	}
 }
 
@@ -974,7 +1160,7 @@ class TeamView extends Handler
 			$team_name => "team/view/" . $this->team->team_id,
 			"View Team" => 0));
 
-		/* Now build up team data */
+		// Now build up team data
 		$rows = array();
 		if($this->team->website) {
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
@@ -1043,6 +1229,7 @@ class TeamView extends Handler
 		$rows = array();
 		$totalSkill = 0;
 		$skillCount = 0;
+		$rosterCount = 0;
 		$rosterPositions = getRosterPositions();
 		while($player = db_fetch_object($result)) {
 
@@ -1056,12 +1243,16 @@ class TeamView extends Handler
 			$conflict = db_result(db_query("SELECT COUNT(*) from
 					league l, leagueteams t, teamroster r
 				WHERE
-					l.season = '%s' AND l.day = '%s' 
+					l.year = %d AND l.season = '%s' AND l.day = '%s' 
 					AND r.status != 'substitute'
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
-					AND r.player_id = %d",$this->team->league_season,$this->team->league_day,$player->id));
+					AND r.player_id = %d",
+					$this->team->league_year,
+					$this->team->league_season,
+					$this->team->league_day,
+					$player->id));
 
 			if($conflict > 1) {
 				$conflictText = "(roster conflict)";
@@ -1087,7 +1278,12 @@ class TeamView extends Handler
 			} else {
 				$roster_info = $rosterPositions[$player->status];
 			}
-
+			if( $player->status == 'captain' ||
+				$player->status == 'assistant' ||
+				$player->status == 'player'
+			) {
+				++$rosterCount;
+			}
 
 			$row = array(
 				$player_name,
@@ -1291,7 +1487,6 @@ class TeamSpirit extends Handler
 			error_exit("There are no games scheduled for this team");
 		}
 
-		$header = array();
 		$header = array(
 			"ID",
 			"Date",
@@ -1426,7 +1621,6 @@ class TeamSpirit extends Handler
 			error_exit("No games played, cannot display spirit");
 		}
 
-		$thisrow = array();
 		$thisrow = array(
 			"Average","-","-"
 		);
@@ -1469,20 +1663,22 @@ class TeamEmails extends Handler
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = %d",$this->team->team_id);
-			
+				r.team_id = %d
+			AND
+				p.user_id != %d
+			ORDER BY
+				p.lastname, p.firstname",
+			$this->team->team_id, $lr_session->user->user_id);
+		}
 
 		if( db_num_rows($result) <= 0 ) {
 			return false;
 		}
 
 		$emails = array();
-		$nameAndEmails = array();
+		$names = array();
 		while($user = db_fetch_object($result)) {
-			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
-				$user->firstname,
-				$user->lastname,
-				$user->email);
+			$names[] = "$user->firstname $user->lastname";
 			$emails[] = $user->email;
 		}
 
@@ -1492,9 +1688,10 @@ class TeamEmails extends Handler
 			$team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0));
 
-		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");
+		$list = create_rfc2822_address_list($emails, $names, true);
+		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', "mailto:$list") . " right away.");
 
-		$output .= pre(join(",\n", $nameAndEmails));
+		$output .= pre($list);
 		return $output;
 	}
 }
@@ -1516,13 +1713,14 @@ function team_statistics ( )
 	$rows[] = array("Teams by season:", table(null, $sub_table));
 
 	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
-        FROM teamroster r, league l, leagueteams lt, team t
+        FROM teamroster r, league l, leagueteams lt
+        LEFT JOIN team t ON (t.team_id = r.team_id) 
         WHERE 
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id 
+				AND l.status = 'open'
                 AND l.schedule_type != 'none' 
 				AND l.season = '%s'
-				AND t.team_id = r.team_id
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id 
         HAVING size < 12
@@ -1538,21 +1736,45 @@ function team_statistics ( )
 	}
 	$rows[] = array("$current_season teams with too few players:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.schedule_type != 'none' AND l.season = '%s' ORDER BY t.rating DESC LIMIT 10", $current_season);
+	$result = db_query("SELECT t.team_id, t.name, t.rating
+		FROM team t, league l, leagueteams lt
+		WHERE
+			lt.team_id = t.team_id
+			AND l.league_id = lt.league_id
+			AND l.status = 'open'
+			AND l.schedule_type != 'none'
+			AND l.season = '%s'
+		ORDER BY t.rating DESC LIMIT 10", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Top-rated $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id, t.name, t.rating FROM team t, league l, leagueteams lt WHERE lt.team_id = t.team_id AND l.league_id = lt.league_id AND l.schedule_type != 'none' AND l.season = '%s' ORDER BY t.rating ASC LIMIT 10", $current_season);
+	$result = db_query("SELECT t.team_id, t.name, t.rating
+		FROM team t, league l, leagueteams lt
+		WHERE
+			lt.team_id = t.team_id
+			AND l.league_id = lt.league_id
+			AND l.status = 'open'
+			AND l.schedule_type != 'none'
+			AND l.season = '%s'
+		ORDER BY t.rating ASC LIMIT 10", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Lowest-rated $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT COUNT(*) AS num, IF(s.status = 'home_default',s.home_team,s.away_team) AS team_id FROM schedule s, league l WHERE s.league_id = l.league_id AND l.season = '%s' AND (s.status = 'home_default' OR s.status = 'away_default') GROUP BY team_id ORDER BY num DESC", $current_season);
+	$result = db_query("SELECT COUNT(*) AS num,
+			IF(s.status = 'home_default',s.home_team,s.away_team) AS team_id
+		FROM schedule s, league l
+		WHERE
+			s.league_id = l.league_id
+			AND l.status = 'open'
+			AND l.season = '%s'
+			AND (s.status = 'home_default' OR s.status = 'away_default')
+		GROUP BY team_id ORDER BY num DESC", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$team = team_load( array('team_id' => $row['team_id']) );
@@ -1560,7 +1782,15 @@ function team_statistics ( )
 	}
 	$rows[] = array("Top defaulting $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT COUNT(*) AS num, IF(s.approved_by = -3,s.home_team,s.away_team) AS team_id FROM schedule s, league l WHERE s.league_id = l.league_id AND l.season = '%s' AND (s.approved_by = -2 OR s.approved_by = -3) GROUP BY team_id ORDER BY num DESC", $current_season);
+	$result = db_query("SELECT COUNT(*) AS num,
+			IF(s.approved_by = -3,s.home_team,s.away_team) AS team_id
+		FROM schedule s, league l
+		WHERE
+			s.league_id = l.league_id
+			AND l.status = 'open'
+			AND l.season = '%s'
+			AND (s.approved_by = -2 OR s.approved_by = -3)
+		GROUP BY team_id ORDER BY num DESC", $current_season);
 	$sub_table = array();
 	while($row = db_fetch_array($result)) {
 		$team = team_load( array('team_id' => $row['team_id']) );
