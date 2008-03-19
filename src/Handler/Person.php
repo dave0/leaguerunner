@@ -50,6 +50,10 @@ function person_dispatch()
 		case 'forgotpassword':
 			$obj = new PersonForgotPassword;
 			break;
+		case 'historical':
+			$obj = new PersonHistorical;
+			$obj->person = person_load( array('user_id' => $id) );
+			break;
 		default:
 			$obj = null;
 	}
@@ -68,10 +72,9 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	$create_fields = array( 'name', 'username', 'password');
 	$create_fields = array_merge($self_edit_fields, $create_fields);
 
+	$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
 	if (variable_get('dog_questions', 1)) {
-		$all_view_fields = array( 'name', 'gender', 'skill', 'dog', 'willing_to_volunteer' );
-	} else {
-		$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
+		$all_view_fields[] = 'dog';
 	}
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
 	$captain_view_fields = array( 'height', 'shirtsize' );
@@ -92,7 +95,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 					return true;
 				}
 			}
-			if( $user->status != 'active' ) {
+			if( ! $user->is_active() ) {
 				return false;
 			}
 			if( $user->user_id == $arg1 ) {
@@ -112,7 +115,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			}
 			break;
 		case 'view':
-			if( $user->status != 'active' ) {
+			if( ! $user->is_active() ) {
 				return false;
 			}
 			if( is_numeric( $arg1 )) {
@@ -145,8 +148,9 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 					 * their team, they are allowed to view email/phone
 					 */
 					if($user->is_a_captain) {
-						foreach( array_keys($player->teams) as $team_id ) {
-							if( $user->is_captain_of( $team_id ) ) {
+						foreach( $player->teams as $team ) {
+							if( $user->is_captain_of( $team->team_id ) &&
+								$team->position != 'captain_request' ) {
 								/* They are, so publish email and phone */
 								$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields, $captain_view_fields);
 								break;
@@ -170,7 +174,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			break;
 		case 'list':
 		case 'search':
-			if( $user->status != 'active' ) {
+			if( ! $user->is_active() ) {
 				return false;
 			}
 			return($user->class != 'visitor');
@@ -386,12 +390,14 @@ class PersonView extends Handler
 			);
 		}
 		reset($person->teams);
-
 		$rows[] = array("Teams:", table( null, $teams) );
+		if( count ($person->historical_teams) ) {
+			$rows[] = array( '', 'There is also ' . l('historical team data', "person/historical/$person->user_id") . ' saved');
+		}
 
 		if( $person->is_a_coordinator ) {
 			$leagues = array();
-			while(list(,$league) = each($person->leagues)) {
+			foreach( $person->leagues as $league ) {
 				$leagues[] = array(
 					"Coordinator of",
 					l($league->fullname, "league/view/$league->league_id")
@@ -404,7 +410,7 @@ class PersonView extends Handler
 
 		if( variable_get('registration', 0) ) {
 			if($lr_session->has_permission('registration','history',$person->user_id)) {
-				$rows[] = array("Registration:", l('View history', "registration/history/$person->user_id"));
+				$rows[] = array("Registration:", l('View registration history', "registration/history/$person->user_id"));
 			}
 		}
 
@@ -501,23 +507,7 @@ class PersonApproveNewAccount extends PersonView
 			'delete' 		  => 'Deleted silently',
 		);
 
-		/* Check to see if there are any duplicate users */
-		$result = db_query("SELECT
-			p.user_id,
-			p.firstname,
-			p.lastname
-			FROM person p, person q 
-			WHERE q.user_id = %d
-				AND p.gender = q.gender
-				AND p.user_id <> q.user_id
-				AND (
-					p.email = q.email
-					OR p.home_phone = q.home_phone
-					OR p.work_phone = q.work_phone
-					OR p.mobile_phone = q.mobile_phone
-					OR p.addr_street = q.addr_street
-					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-				)", $this->person->user_id);
+		$result = duplicate_user_query ($this->person->user_id);
 
 		if(db_num_rows($result) > 0) {
 			$duplicates = "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
@@ -526,6 +516,7 @@ class PersonApproveNewAccount extends PersonView
 				$duplicates .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
 
 				$dispositions["delete_duplicate:$user->user_id"] = "Deleted as duplicate of $user->firstname $user->lastname ($user->user_id)";
+				$dispositions["merge_duplicate:$user->user_id"] = "Merged backwards into $user->firstname $user->lastname ($user->user_id)";
 			}
 			$duplicates .= "</ul></div>";
 		}
@@ -578,11 +569,11 @@ class PersonApproveNewAccount extends PersonView
 					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 
-				$rc = mail($this->person->email, 
+				$rc = send_mail($this->person->email, $this->person->fullname,
+					false, false, // from the administrator
+					false, false, // no Cc
 					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
-					$message, 
-			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
-					"-f " . variable_get('app_admin_email','webmaster@localhost'));
+					$message);
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
@@ -601,11 +592,11 @@ class PersonApproveNewAccount extends PersonView
 					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
-				$rc = mail($this->person->email, 
+				$rc = send_mail($this->person->email, $this->person->fullname,
+					false, false, // from the administrator
+					false, false, // no Cc
 					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
-					$message, 
-			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
-					"-f " . variable_get('app_admin_email','webmaster@localhost'));
+					$message);
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
@@ -628,21 +619,102 @@ class PersonApproveNewAccount extends PersonView
 					'%adminname' => $lr_session->user->fullname,
 					'%site' => variable_get('app_name','Leaguerunner')));
 
+				$addresses = $names = array();
+				$addresses[] = $this->person->email;
+				$names[] = $this->person->fullname;
 				if($this->person->email != $existing->email) {
-					$to_addr = join(',',array($this->person->email,$existing->email));
-				} else { 
-					$to_addr = $this->person->email;
+					$addresses[] = $existing->email;
+					$names[] = $this->person->fullname;
 				}
 
 				if( ! $this->person->delete() ) {
 					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
-				$addresses = array($to_addr, variable_get('app_admin_email', 'webmaster@localhost') );
-				$rc = mail(join(', ',$addresses),
+
+				$rc = send_mail($addresses, $names,
+					false, false, // from the administrator
+					false, false, // no Cc
 					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
-					$message, 
-			 		"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
-					"-f " . variable_get('app_admin_email','webmaster@localhost'));
+					$message);
+
+				if($rc == false) {
+					error_exit("Error sending email to " . $this->person->email);
+				}
+				return true;
+
+			// This is basically the same as the delete duplicate, except
+			// that some old information (e.g. user ID) is preserved
+			case 'merge_duplicate':
+				$existing = person_load( array('user_id' => $dup_id) );
+				$message = _person_mail_text('dup_merge_body', array( 
+					'%fullname' => $this->person->fullname,
+					'%username' => $this->person->username,
+					'%existingusername' => $existing->username,
+					'%existingemail' => $existing->email,
+					'%passwordurl' => 'http://www.tuc.org/user.php?op=lostpassscreen&module=LostPassword',
+					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
+					'%site' => variable_get('app_name','Leaguerunner')));
+
+				$addresses = $names = array();
+				$addresses[] = $this->person->email;
+				$names[] = $this->person->fullname;
+				if($this->person->email != $existing->email) {
+					$addresses[] = $existing->email;
+					$names[] = $this->person->fullname;
+				}
+
+				// Copy over almost all of the new data; there must be a better way
+				$existing->set('status', 'active');
+				$existing->set('username', $this->person->username);
+				$existing->set('password', $this->person->password);
+				$existing->set('firstname', $this->person->firstname);
+				$existing->set('lastname', $this->person->lastname);
+				$existing->set('email', $this->person->email);
+				$existing->set('allow_publish_email', $this->person->allow_publish_email);
+				$existing->set('home_phone', $this->person->home_phone);
+				$existing->set('publish_home_phone', $this->person->publish_home_phone);
+				$existing->set('work_phone', $this->person->work_phone);
+				$existing->set('publish_work_phone', $this->person->publish_work_phone);
+				$existing->set('mobile_phone', $this->person->mobile_phone);
+				$existing->set('publish_mobile_phone', $this->person->publish_mobile_phone);
+				$existing->set('addr_street', $this->person->addr_street);
+				$existing->set('addr_city', $this->person->addr_city);
+				$existing->set('addr_prov', $this->person->addr_prov);
+				$existing->set('addr_postalcode', $this->person->addr_postalcode);
+				$existing->set('ward_id', $this->person->ward_id);
+				$existing->set('gender', $this->person->gender);
+				$existing->set('birthdate', $this->person->birthdate);
+				$existing->set('height', $this->person->height);
+				$existing->set('skill_level', $this->person->skill_level);
+				$existing->set('year_started', $this->person->year_started);
+				$existing->set('shirtsize', $this->person->shirtsize);
+				$existing->set('session_cookie', $this->person->session_cookie);
+				$existing->set('has_dog', $this->person->has_dog);
+				$existing->set('survey_completed', $this->person->survey_completed);
+				$existing->set('willing_to_volunteer', $this->person->willing_to_volunteer);
+				$existing->set('contact_for_feedback', $this->person->contact_for_feedback);
+				$existing->set('last_login', $this->person->last_login);
+				$existing->set('client_ip', $this->person->client_ip);
+				$existing->set('complete', $this->person->complete);
+
+				if( !$existing->member_id) {
+					$existing->generate_member_id();
+				}
+
+				if( ! $this->person->delete() ) {
+					error_exit("Delete of user " . $this->person->fullname . " failed.");
+				}
+
+				if( ! $existing->save() ) {
+					error_exit("Couldn't save new member information");
+				}
+
+				$rc = send_mail($addresses, $names,
+					false, false, // from the administrator
+					false, false, // no Cc
+					_person_mail_text('dup_merge_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
+					$message);
+
 				if($rc == false) {
 					error_exit("Error sending email to " . $this->person->email);
 				}
@@ -684,7 +756,12 @@ class PersonEdit extends Handler
 				break;
 			case 'perform':
 				$this->perform( $this->person, $edit );
-				local_redirect("person/view/" . $this->person->user_id);
+				if($this->person->is_active()) {
+					local_redirect('person/view/' . $this->person->user_id);
+				}
+				else {
+					local_redirect('');
+				}
 				break;
 			default:
 				$edit = object2array($this->person);
@@ -1329,7 +1406,11 @@ class PersonSignWaiver extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		return ($lr_session->is_valid());
+		if (variable_get('registration', 0) && variable_get('allow_tentative', 0)) {
+			return ($lr_session->is_loaded());
+		} else {
+			return ($lr_session->is_valid());
+		}
 	}
 
 	function process ()
@@ -1744,16 +1825,16 @@ END_TEXT;
 			}
 
 			/* And fire off an email */
-			$rc = mail($user->email, 
+			$rc = send_mail($user->email, "$user->firstname user->lastname",
+				false, false, // from the administrator
+				false, false, // no Cc
 				_person_mail_text('password_reset_subject', array('%site' => variable_get('app_name','Leaguerunner'))),
 				_person_mail_text('password_reset_body', array(
 					'%fullname' => "$user->firstname $user->lastname",
 					'%username' => $user->username,
 					'%password' => $pass,
 					'%site' => variable_get('app_name','Leaguerunner')
-				)),
-			 	"From: " . variable_get('app_admin_name', 'Leaguerunner Administrator') . " <" . variable_get('app_admin_email','webmaster@localhost') . ">\r\n",
-				"-f " . variable_get('app_admin_email','webmaster@localhost'));
+				)));
 			if($rc == false) {
 				error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
@@ -1772,6 +1853,71 @@ END_TEXT;
 </p>
 END_TEXT;
 		return $output;
+	}
+}
+
+/**
+ * Player historical data handler
+ */
+class PersonHistorical extends Handler
+{
+	var $person;
+
+	function has_permission ()
+	{
+		global $lr_session;
+
+		if(!$this->person) {
+			error_exit("That user does not exist");
+		}
+
+		return $lr_session->has_permission('person','view', $this->person->user_id);
+	}
+
+	function process ()
+	{
+		$this->title = 'View Historical Teams';
+		$this->setLocation(array(
+			$this->person->fullname => 'person/view/' . $this->person->user_id,
+			$this->title => 0));
+
+		return $this->generateView($this->person);
+	}
+
+	function generateView (&$person)
+	{
+		global $lr_session;
+
+		$rosterPositions = getRosterPositions();
+		$rows = array();
+		$last_year = $last_season = '';
+
+		foreach($person->historical_teams as $team) {
+			if( $team->year == $last_year ) {
+				$year = '';
+				if( $team->season == $last_season ) {
+					$season = '';
+				} else {
+					$season = $team->season;
+				}
+			} else {
+				$year = $team->year;
+				$season = $team->season;
+			}
+			$last_year = $team->year;
+			$last_season = $team->season;
+
+			$rows[] = array(
+				$year,
+				$season,
+				$rosterPositions[$team->position],
+				'on',
+				l($team->name, "team/view/$team->id"),
+				"(" . l($team->league_name, "league/view/$team->league_id") . ")"
+			);
+		}
+
+		return table(null, $rows);
 	}
 }
 
@@ -1821,6 +1967,24 @@ function _person_mail_text($messagetype, $variables = array() )
 				return strtr("%site Account Update", $variables);
 			case 'dup_delete_body':
 				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'dup_merge_subject':
+				return strtr("%site Account Update", $variables);
+			case 'dup_merge_body':
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already had an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nTo preserve historical information (registrations, team records, etc.) this old account has been merged with your new information.  You will be able to access this account with your newly chosen user name and password.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'captain_request_subject':
+			case 'player_request_subject':
+				return strtr("%site Request to Join Team", $variables);
+			case 'captain_request_body':
+				return strtr("Dear %fullname,\n\nYou have been invited to join the roster of the %site team %team playing on %day in the '%league' league.  We ask that you please accept or decline this invitation at your earliest convenience.  More details about %team may be found at\n%teamurl\n\nIf you accept the invitation, you will be added to the team's roster and your contact information will be made available to the team captain.  If you decline the invitation you will be removed from this team's roster and your contact information will not be made available to the captain.  This protocol is in accordance with the %site Privacy Policy.\n\nPlease be advised that players are NOT considered a part of a team roster until they have accepted a captain's request to join.  Your team's roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a 'regular player' (accepted the captain request).\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'player_request_body':
+				return strtr("Dear %captains,\n\n%fullname has requested to join the roster of the %site team %team playing on %day in the '%league' league.  We ask that you please accept or decline this request at your earliest convenience.  Your team roster may be accessed at\n%teamurl\n\nIf you accept the invitation, %fullname will be added to the team's roster in whatever capacity you assign.  If you decline the invitation they will be removed from this team's roster.\n\nPlease be advised that players are NOT considered a part of a team roster until their request to join has been accepted by a captain.  Your team's roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a 'regular player' (accepted by the captain).\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'score_reminder_subject':
+				return strtr("%site Reminder to Submit Score", $variables);
+			case 'score_reminder_body':
+				return strtr("Dear %fullname,\n\nYou have not yet submitted a score for the game between your team %team and %opponent, which was scheduled for %gamedate in %league. Scores need to be submitted in a timely fashion by both captains to substantiate results and for optimal scheduling of future games.  We ask you to please update the score as soon as possible.  You can submit the score for this game at\n%scoreurl\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+
+			default:
+				return "Unknown message type '$messagetype'!";
 		}
 	}
 }
@@ -1840,6 +2004,22 @@ function person_settings ( )
 	$group .= form_textfield('Subject of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_subject]', _person_mail_text('dup_delete_subject'), 70, 180, 'Customize the subject of your account deletion mail, sent to a user who has created a duplicate account. Available variables are: %site.');
  
 	$group .= form_textarea('Body of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_body]', _person_mail_text('dup_delete_body'), 70, 10, 'Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
+
+	$group .= form_textfield('Subject of duplicate account merge e-mail', 'edit[person_mail_dup_merge_subject]', _person_mail_text('dup_merge_subject'), 70, 180, 'Customize the subject of your account merge mail, sent to a user who has created a duplicate account. Available variables are: %site.');
+ 
+	$group .= form_textarea('Body of duplicate account merge e-mail', 'edit[person_mail_dup_merge_body]', _person_mail_text('dup_merge_body'), 70, 10, 'Customize the body of your account merge e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
+
+	$group .= form_textfield('Subject of captain request e-mail', 'edit[person_mail_captain_request_subject]', _person_mail_text('captain_request_subject'), 70, 180, 'Customize the subject of your captain request mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %league, %day, %adminname.');
+ 
+	$group .= form_textarea('Body of captain request e-mail', 'edit[person_mail_captain_request_body]', _person_mail_text('captain_request_body'), 70, 10, 'Customize the body of your captain request e-mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %teamurl, %league, %day, %adminname.');
+
+	$group .= form_textfield('Subject of player request e-mail', 'edit[person_mail_player_request_subject]', _person_mail_text('player_request_subject'), 70, 180, 'Customize the subject of your player request mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %team, %league, %day, %adminname.');
+ 
+	$group .= form_textarea('Body of player request e-mail', 'edit[person_mail_player_request_body]', _person_mail_text('player_request_body'), 70, 10, 'Customize the body of your player request e-mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %captains, %team, %teamurl, %league, %day, %adminname.');
+
+	$group .= form_textfield('Subject of score reminder e-mail', 'edit[person_mail_score_reminder_subject]', _person_mail_text('score_reminder_subject'), 70, 180, 'Customize the subject of your score reminder mail, sent to captains when they have not submitted a score in a timely fashion. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+ 
+	$group .= form_textarea('Body of score reminder e-mail', 'edit[person_mail_score_reminder_body]', _person_mail_text('score_reminder_body'), 70, 10, 'Customize the body of your score reminder e-mail, sent to captains when they have not submitted a score in a timely fashion. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
 
 	$output = form_group('User email settings', $group);
 
