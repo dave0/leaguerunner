@@ -97,7 +97,7 @@ function game_permissions ( &$user, $action, &$game, $extra )
 			if( $extra == 'submission' ) {
 				return ($user->is_coordinator_of($game->league_id));
 			}
-			return ($user->status == 'active');
+			return ($user->is_active());
 			break; // unreached
 		case 'reschedule':
 			//TODO
@@ -149,7 +149,6 @@ function game_splash ()
 
 	$games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
         AND g.game_date >= CURDATE() ORDER BY g.game_date, g.game_start asc LIMIT 4", $lr_session->user->user_id);
-	$timeNow = time();
 	while($row = db_fetch_object($games) ) {
 		$game = game_load( array('game_id' => $row->game_id) );
 		$score = '';
@@ -760,7 +759,7 @@ class GameSubmit extends Handler
 		$javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
 		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
 
-		$output .= generateSOTGButtonAndJavascript("", "Enter the SOTG score you would like to assign, or click the Suggest button.");
+		$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
 
 		$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
@@ -1134,6 +1133,34 @@ class GameEdit extends Handler
 			/*
 			 * Otherwise, scores are still pending.
 			 */
+			if( $lr_session->is_coordinator_of($game->league_id)) {
+				$result = db_query( "SELECT
+								user_id
+							FROM
+								person p
+							LEFT JOIN
+								teamroster r
+							ON
+								p.user_id = r.player_id
+							WHERE
+								r.team_id IN (%d,%d)
+							AND
+								r.status = 'captain'
+							AND
+								p.user_id != %d",
+					$game->home_id, $game->away_id, $lr_session->user->user_id);
+				$emails = array();
+				$names = array();
+				while($user = db_fetch_object($result)) {
+					$captain = person_load(array('user_id' => $user->user_id));
+					$emails[] = $captain->email;
+					$names[] = $captain->fullname;
+				}
+
+				$list = create_rfc2822_address_list($emails, $names, true);
+				$output .= para( l('Click here to send an email', "mailto:$list") . ' to all captains.' );
+			}
+
 			$stats_group = '';
 			/* Use our ratings to try and predict the game outcome */
 			$homePct = $game->home_expected_win();
@@ -1963,8 +1990,8 @@ class GameRatings extends Handler
 	{
 		global $lr_session;
 		
-		$home_rating = arg(3);
-		$away_rating = arg(4);
+		$rating_home = arg(3);
+		$rating_away = arg(4);
 		$whatifratings = true;
 		
 		# Alias, to avoid typing.  Bleh.
@@ -1986,9 +2013,9 @@ class GameRatings extends Handler
 			}
 		}
 
-		if ($home_rating == null || $away_rating == null) {		
-			$home_rating = $home_team->rating;
-			$away_rating = $away_team->rating;
+		if ($rating_home == null || $rating_away == null) {		
+			$rating_home = $home_team->rating;
+			$rating_away = $away_team->rating;
 			$whatifratings = false;
 		}
 		
@@ -2014,14 +2041,14 @@ class GameRatings extends Handler
 		$away = $game->away_name;
 		
 		if ($whatifratings) {
-      	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$home_rating</b> ".
-      			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$away_rating</b>");
+      	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$rating_home</b> ".
+      			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$rating_away</b>");
 		} else {
-      	$output .= para("HOME: <b>$home</b>, current rating of <b>$home_rating</b> ".
-      			"<br>AWAY: <b>$away</b>, current rating of <b>$away_rating</b>");
+      	$output .= para("HOME: <b>$home</b>, current rating of <b>$rating_home</b> ".
+      			"<br>AWAY: <b>$away</b>, current rating of <b>$rating_away</b>");
 		}
 
-		$ratings_table = $game->get_ratings_table( $home_rating, $away_rating, true );
+		$ratings_table = $game->get_ratings_table( $rating_home, $rating_away, true );
 
 		return $output . $ratings_table ;
 	}
