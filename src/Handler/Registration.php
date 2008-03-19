@@ -18,10 +18,6 @@ function registration_dispatch()
 			$obj->event = event_load( array('registration_id' => $obj->registration->registration_id) );
 			$obj->registration_form_load($obj->registration->registration_id, true);
 			break;
-		case 'refund':
-			$obj = new RegistrationRefund;
-			$obj->registration = registration_load( array('order_id' => $id) );
-			break;
 		case 'history':
 			$obj = new RegistrationHistory;
 			$obj->user = $id;
@@ -55,13 +51,12 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 	{
 		case 'view':
 		case 'edit':
-		case 'refund':
 			// Only admin can view details or edit
 			break;
 		case 'register':
 		case 'unregister':
 			// Only players with completed profiles can register
-			return ($lr_session->user->status == 'active' && $lr_session->is_complete());
+			return ($lr_session->user->is_active() && $lr_session->is_complete());
 		case 'history':
 			// Players with completed profiles can view their own history
 			if ($id) {
@@ -90,6 +85,7 @@ function registration_menu()
 		if( $lr_session->is_admin() ) {
 			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
 			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
+			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'statistics/registration/unpaid') );
 		}
 	}
 }
@@ -109,12 +105,7 @@ function registration_add_to_menu( &$registration )
 		if($lr_session->has_permission('registration','edit', $registration->order_id) ) {
 			menu_add_child($order_num, "$order_num/edit",'edit registration', array('weight' => 1, 'link' => "registration/edit/$registration->order_id"));
 		}
-		if($registration->paid) {
-			if ($lr_session->has_permission('registration','refund', $registration->order_id) ) {
-				menu_add_child($order_num, "$order_num/refund",'refund registration', array('weight' => 1, 'link' => "registration/refund/$registration->order_id"));
-			}
-		}
-		else {
+		if($registration->payment == 'Unpaid' || $registration->payment == 'Pending') {
 			if ($lr_session->has_permission('registration','unregister', $registration->order_id) ) {
 				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id"));
 			}
@@ -181,11 +172,16 @@ class RegistrationView extends Handler
 		}
 		$item = db_fetch_array($result);
 
+		$event_name = db_result(db_query('SELECT name FROM registration_events WHERE registration_id = %d',
+				$this->registration->registration_id));
+
 		$userrows = array();
 		$userrows[] = array ('Name', $item['firstname'] . ' ' . $item['lastname']);
 		$userrows[] = array ('User&nbsp;ID', $this->registration->user_id);
-		$userrows[] = array ('Event&nbsp;ID', $this->registration->registration_id);
-		$userrows[] = array ('Paid', $this->registration->paid);
+		$userrows[] = array ('Event', l($event_name, "event/view/{$this->registration->registration_id}"));
+		$userrows[] = array ('Payment', $this->registration->payment);
+		$userrows[] = array ('Created', $this->registration->time);
+		$userrows[] = array ('Modified', $this->registration->modified);
 		$userrows[] = array ('Notes', $this->registration->notes);
 		$output = form_group('Registration details', '<div class="pairtable">' . table(NULL, $userrows) . '</div>');
 
@@ -294,7 +290,8 @@ class RegistrationEdit extends RegistrationForm
 		$userrows[] = array ('User&nbsp;ID', $this->registration->user_id);
 		$userrows[] = array ('Event&nbsp;ID', $this->registration->registration_id);
 		$form = '<div class="pairtable">' . table(NULL, $userrows) . '</div>';
-		$form .= form_radios('Paid', 'edit[paid]', $this->registration->paid, array('No', 'Yes'));
+		$pay_opts = array('Unpaid'=>'Unpaid', 'Pending'=>'Pending', 'Paid'=>'Paid', 'Refunded'=>'Refunded');
+		$form .= form_radios('Payment', 'edit[payment]', $this->registration->payment, $pay_opts);
 		$form .= form_textarea('Notes', 'edit[notes]', $this->registration->notes, 45, 5);
 		$output .= form_group('Registration details', $form);
 
@@ -347,7 +344,7 @@ class RegistrationEdit extends RegistrationForm
 		$output = form_hidden('edit[step]', 'submit');
 
 		$rows = array();
-		$rows[] = array( 'Paid', form_hidden('edit[paid]', $edit['paid']) . check_form($edit['paid']) );
+		$rows[] = array( 'Payment', form_hidden('edit[payment]', $edit['payment']) . check_form($edit['payment']) );
 		$rows[] = array( 'Notes', form_hidden('edit[notes]', $edit['notes']) . check_form($edit['notes']) );
 		$output .= form_group('Registration details', "<div class='pairtable'>" . table(null, $rows) . '</div>');
 
@@ -378,7 +375,7 @@ class RegistrationEdit extends RegistrationForm
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$this->registration->set('paid', $edit['paid']);
+		$this->registration->set('payment', $edit['payment']);
 		$this->registration->set('notes', $edit['notes']);
 
 		if( !$this->registration->save() ) {
@@ -399,13 +396,6 @@ class RegistrationEdit extends RegistrationForm
 	{
 		$errors = '';
 
-		if( !validate_number($edit['paid'] ) ) {
-			$errors .= '<li>Invalid paid status: not a number';
-		}
-		else if( $edit['paid'] < 0 || $edit['paid'] > 1 ) {
-			$errors .= '<li>Invalid paid status: must be 0 or 1';
-		}
-
 		// nonhtml also checks that the string is not blank, so we'll just
 		// tack on a trailing letter so that it will only check for HTML...
 		if( !validate_nonhtml($edit['notes'] . 'a' ) ) {
@@ -417,56 +407,6 @@ class RegistrationEdit extends RegistrationForm
 		} else {
 			return false;
 		}
-	}
-}
-
-/**
- * Refund handler.  Does anything required to update the database.
- * TODO: Handle online credit card refunds?  We just issue cheques right now.
- */
-class RegistrationRefund extends Handler
-{
-	function has_permission()
-	{
-		global $lr_session;
-		if (!$this->registration) {
-			error_exit('That registration does not exist');
-		}
-		return $lr_session->has_permission('registration', 'refund', $this->registration->order_id);
-	}
-
-	function process()
-	{
-		$edit = $_POST['edit'];
-
-		switch($edit['step']) {
-			case 'submit':
-				$rc = $this->registration->refund();
-				break;
-
-			default:
-				$rc = $this->generateConfirm();
-		}
-
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
-		$this->setLocation(array(
-			$order_num => 'registration/view/' .$this->registration->order_id,
-			$this->title => 0
-		));
-
-		return $rc;
-	}
-
-	function generateConfirm()
-	{
-		$this->title = 'Confirm refund';
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
-
-		$output = form_hidden('edit[step]', 'submit');
-		$output .= para("Please confirm that you want to issue a refund for order ID $order_num");
-		$output .= para(form_submit('submit'));
-
-		return form($output);
 	}
 }
 
@@ -628,6 +568,8 @@ class RegistrationRegister extends RegistrationForm
 		$auto_data['status'] = 'closed';
 
 		$team = new TeamCreate;
+		$team->team = new Team;	// need a team record for unique name checking
+		$team->team->league_id = 1;	// inactive teams
 		return $team->isDataInvalid( $auto_data );
 	}
 
@@ -647,7 +589,8 @@ class RegistrationRegister extends RegistrationForm
 		$auto_data['status'] = 'closed';
 
 		$team = new TeamCreate;
-		$team->team = new Team;
+		$team->team = new Team;	// need a team record for unique name checking
+		$team->team->league_id = 1;	// inactive teams
 		if( $team->perform( $auto_data ) ) {
 			return para( theme_error( 'A team record has been created with you as captain.' ) );
 		}
@@ -674,7 +617,7 @@ class RegistrationRegister extends RegistrationForm
 			db_query ('UPDATE
 							registrations
 						SET
-							paid = 1
+							payment = "Paid"
 						WHERE
 							order_id = %d',
 						$this->registration->order_id);
@@ -746,6 +689,8 @@ class RegistrationUnregister extends Handler
 
 		switch($edit['step']) {
 			case 'submit':
+				// TODO If this is a team registration, delete the team record
+
 				db_query('DELETE
 							FROM
 								registration_answers
@@ -912,12 +857,12 @@ HTML_HEADER;
 				db_query ('UPDATE
 								registrations
 							SET
-								paid = 1
+								payment = "Paid"
 							WHERE
 								order_id = %d',
 							$short_order_id);
 				if ( 1 != db_affected_rows() ) {
-					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your 'paid' status in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
+					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
 				}
 
 				db_query ("INSERT INTO
@@ -993,7 +938,7 @@ class RegistrationHistory extends Handler
 								e.name,
 								r.order_id,
 								r.time,
-								r.paid
+								r.payment
 							FROM
 								registrations r
 							LEFT JOIN
@@ -1013,8 +958,7 @@ class RegistrationHistory extends Handler
 				$order = l($order, 'registration/view/' . $row['order_id']);
 			}
 
-			$rows[] = array( $name, $order, substr($row['time'], 0, 10),
-							($row['paid'] ? 'Yes' : 'No') );
+			$rows[] = array( $name, $order, substr($row['time'], 0, 10), $row['payment'] );
 		}
 
 		/* Add in any preregistrations */
@@ -1038,7 +982,7 @@ class RegistrationHistory extends Handler
 			$rows[] = array( $name, $order, '', 'No' );
 		}
 
-		$header = array('Event', 'Order ID', 'Date', 'Paid?');
+		$header = array('Event', 'Order ID', 'Date', 'Payment');
 		$output = table($header, $rows);
 
 		$this->setLocation(array($this->title => 0));
@@ -1068,6 +1012,7 @@ function AddAutoQuestions( &$formbuilder, $type )
 {
 	switch ($type) {
 		// Individual registrations have no extra questions at this time
+		case 'membership':
 		case 'individual_event':
 		case 'individual_league':
 			break;
@@ -1101,34 +1046,38 @@ function registration_settings ( )
 {
 	$group = form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 60, 120, 'sprintf format string for the unique order ID.');
 
-	$group .= form_radios('Online payments', 'edit[online_payments]', variable_get('online_payments', 1), array('Disabled', 'Enabled'), 'Do we handle online payments? (All options below are ignored if this is disabled.)');
+	$group .= form_radios('Allow tentative members to register?', 'edit[allow_tentative]', variable_get('allow_tentative', 0), array('Disabled', 'Enabled'), 'Tentative members include those whose accounts have not yet been approved but don\'t appear to be duplicates of existing accounts, and those who have registered for membership and called to arrange an offline payment which has not yet been received.');
 
-	$group .= form_textfield('Payment provider implementation file', 'edit[payment_implementation]', variable_get('payment_implementation', 'moneris'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
+	$group .= form_radios('Online payments', 'edit[online_payments]', variable_get('online_payments', 1), array('Disabled', 'Enabled'), 'Do we handle online payments?');
 
-	$group .= form_textfield('Invoice implementation file', 'edit[invoice_implementation]', variable_get('invoice_implementation', 'invoice'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
+	$group_online = form_textfield('Payment provider implementation file', 'edit[payment_implementation]', variable_get('payment_implementation', 'moneris'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
 
-	$group .= form_textfield('Registration ID format string', 'edit[reg_id_format]', variable_get('reg_id_format', 'Reg%05d'), 60, 120, 'sprintf format string for the registration ID, sent to the payment processor as the item number.');
+	$group_online .= form_textfield('Invoice implementation file', 'edit[invoice_implementation]', variable_get('invoice_implementation', 'invoice'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
 
-	$group .= form_radios('Testing payments', 'edit[test_payments]', variable_get('test_payments', 0), array('Nobody', 'Everybody', 'Admins'), 'Who should get test instead of live payments?');
+	$group_online .= form_textfield('Registration ID format string', 'edit[reg_id_format]', variable_get('reg_id_format', 'Reg%05d'), 60, 120, 'sprintf format string for the registration ID, sent to the payment processor as the item number.');
 
-	$group .= form_textfield('Live payment store ID', 'edit[live_store]', variable_get('live_store', ''), 60, 120);
-	$group .= form_textfield('Live payment password', 'edit[live_password]', variable_get('live_password', ''), 60, 120);
+	$group_online .= form_radios('Testing payments', 'edit[test_payments]', variable_get('test_payments', 0), array('Nobody', 'Everybody', 'Admins'), 'Who should get test instead of live payments?');
 
-	$group .= form_textfield('Test payment store ID', 'edit[test_store]', variable_get('test_store', ''), 60, 120);
-	$group .= form_textfield('Test payment password', 'edit[test_password]', variable_get('test_password', ''), 60, 120);
+	$group_online .= form_textfield('Live payment store ID', 'edit[live_store]', variable_get('live_store', ''), 60, 120);
+	$group_online .= form_textfield('Live payment password', 'edit[live_password]', variable_get('live_password', ''), 60, 120);
+
+	$group_online .= form_textfield('Test payment store ID', 'edit[test_store]', variable_get('test_store', ''), 60, 120);
+	$group_online .= form_textfield('Test payment password', 'edit[test_password]', variable_get('test_password', ''), 60, 120);
+
+	$group .= form_group('Online payment options', $group_online);
  
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
 
 	$offline_steps = li('Mail (or personally deliver) a cheque for the appropriate amount to the league office');
-	$offline_steps .= li("Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.");
+	$offline_steps .= li('Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.');
 	$offline_steps .= li('Also include a note indicating which registration the cheque is for, along with your full name.');
 	$offline_steps .= li('If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.');
 	$offline = ul($offline_steps);
-	$offline .= para("Please note that online payment registrations are 'live' while offline payments are not.  You will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt).");
+	$offline .= para('Please note that online payment registrations are \'live\' while offline payments are not.  You will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt).');
  
 	$group .= form_textarea('Text of offline payment directions', 'edit[offline_payment_text]', variable_get('offline_payment_text', $offline), 70, 10, 'Customize the text of your offline payment policy. Available variables are: %order_num');
 
-	$output = form_group("Registration configuration", $group);
+	$output = form_group('Registration configuration', $group);
 
 	return settings_form($output);
 }
@@ -1136,6 +1085,7 @@ function registration_settings ( )
 function registration_statistics($args)
 {
 	$level = arg(2);
+	global $TZ_ADJUST;
 
 	if (!$level)
 	{
@@ -1149,6 +1099,8 @@ function registration_statistics($args)
 								registration_events e
 							ON
 								r.registration_id = e.registration_id
+							WHERE
+								r.payment != "Refunded"
 							GROUP BY
 								r.registration_id
 							ORDER BY
@@ -1189,6 +1141,8 @@ function registration_statistics($args)
 										r.user_id = p.user_id
 									WHERE
 										r.registration_id = %d
+									AND
+										r.payment != "Refunded"
 									GROUP BY
 										p.gender
 									ORDER BY
@@ -1202,6 +1156,25 @@ function registration_statistics($args)
 				$rows[] = array("By gender:", table(null, $sub_table));
 			}
 
+			$result = db_query('SELECT
+									payment,
+									COUNT(order_id)
+								FROM
+									registrations
+								WHERE
+									registration_id = %d
+								GROUP BY
+									payment
+								ORDER BY
+									payment',
+								$id);
+
+			$sub_table = array();
+			while($row = db_fetch_array($result)) {
+				$sub_table[] = $row;
+			}
+			$rows[] = array("By payment:", table(null, $sub_table));
+
 			$formkey = 'registration_' . $id;
 			$formbuilder = formbuilder_load($formkey);
 			if( $formbuilder )
@@ -1214,7 +1187,7 @@ function registration_statistics($args)
 					// well
 					if ($question->qtype == 'multiplechoice' )
 					{
-						$result = db_query("SELECT
+						$result = db_query('SELECT
 												akey,
 												COUNT(registration_answers.order_id)
 											FROM
@@ -1226,11 +1199,13 @@ function registration_statistics($args)
 											WHERE
 												registration_id = %d
 											AND
-												qkey = '%s'
+												qkey = "%s"
+											AND
+												payment != "Refunded"
 											GROUP BY
 												akey
 											ORDER BY
-												akey",
+												akey',
 											$id,
 											$qkey);
 
@@ -1300,7 +1275,7 @@ function registration_statistics($args)
 				$result = db_query('SELECT
 										order_id,
 										DATE_ADD(time, INTERVAL %d MINUTE) as time,
-										paid,
+										payment,
 										p.user_id,
 										p.firstname,
 										p.lastname
@@ -1313,10 +1288,11 @@ function registration_statistics($args)
 									WHERE
 										r.registration_id = %d
 									ORDER BY
+										payment,
 										order_id
 									LIMIT
 										%d,%d',
-									3 * 60,
+									-$TZ_ADJUST,
 									$id,
 									$from,
 									$items);
@@ -1327,11 +1303,10 @@ function registration_statistics($args)
 
 					$rows[] = array( $order_id,
 									l("${row['firstname']} ${row['lastname']}", "person/view/${row['user_id']}"),
-									$row['time'],
-									($row['paid'] ? 'Yes' : 'No') );
+									$row['time'], $row['payment']);
 				}
 
-				$header = array( 'Order ID', 'Player', 'Date/Time', 'Paid?' );
+				$header = array( 'Order ID', 'Player', 'Date/Time', 'Payment' );
 				$output .= "<div class='pairtable'>" . table($header, $rows) . "</div>";
 
 				if( $total )
@@ -1381,8 +1356,9 @@ function registration_statistics($args)
 								'Skill Level',
 								'Shirt Size',
 								'Order ID',
-								'Date',
-								'Paid' );
+								'Created Date',
+								'Modified Date',
+								'Payment' );
 			} else {
 				$data = array();
 			}
@@ -1412,7 +1388,8 @@ function registration_statistics($args)
 			$result = db_query('SELECT
 									order_id,
 									DATE_ADD(time, INTERVAL %d MINUTE) as time,
-									paid,
+									DATE_ADD(modified, INTERVAL %d MINUTE) as modified,
+									payment,
 									p.*,
 									n.pn_email
 								FROM
@@ -1428,8 +1405,10 @@ function registration_statistics($args)
 								WHERE
 									r.registration_id = %d
 								ORDER BY
+									payment,
 									order_id',
-								3 * 60,
+								-$TZ_ADJUST,
+								-$TZ_ADJUST,
 								$id);
 
 			while($row = db_fetch_array($result)) {
@@ -1455,7 +1434,8 @@ function registration_statistics($args)
 									$row['shirtsize'],
 									$order_id,
 									$row['time'],
-									($row['paid'] ? 'Yes' : 'No') );
+									$row['modified'],
+									$row['payment'] );
 				} else {
 					$data = array();
 				}
@@ -1490,6 +1470,63 @@ function registration_statistics($args)
 
 			// Returning would cause the Leaguerunner menus to be added
 			exit;
+		}
+
+		else if ($level == 'unpaid')
+		{
+			$total = array();
+
+			$result = db_query('SELECT
+									r.order_id,
+									r.registration_id,
+									r.payment,
+									r.modified,
+									r.notes,
+									e.name,
+									p.user_id,
+									p.firstname,
+									p.lastname
+								FROM
+									registrations r
+								LEFT JOIN
+									registration_events e
+								ON
+									r.registration_id = e.registration_id
+								LEFT JOIN
+									person p
+								ON
+									r.user_id = p.user_id
+								WHERE
+									r.payment = "Unpaid" OR r.payment = "Pending"
+								ORDER BY
+									r.payment, r.modified');
+			$rows = array();
+			while($row = db_fetch_array($result)) {
+				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
+				$rows[] = array(
+								l($order_id, "registration/view/${row['order_id']}"),
+								l("${row['firstname']} ${row['lastname']}", "person/view/${row['user_id']}"),
+								$row['modified'],
+								$row['payment'],
+								l('Unregister', "registration/unregister/${row['order_id']}"),
+								l('Edit', "registration/edit/${row['order_id']}")
+								);
+				$rows[] = array( '', array( 'data' => l($row['name'], "event/view/${row['registration_id']}"), 'colspan' => 5 ) );
+				if( $row['notes'] ) {
+					$rows[] = array( '', array( 'data' => $row['notes'], 'colspan' => 5 ) );
+				}
+				$rows[] = array('&nbsp;');
+				$total[$row['payment']] ++;
+			}
+
+			$total_output = array();
+			foreach ($total as $key => $value) {
+				$total_output[] = array ($key, $value);
+			}
+
+			$output = '<div class="pairtable">' . table(null, $rows) . table(array('Totals:'), $total_output) . '</div>';
+
+			return form_group('Unpaid registrations', $output);
 		}
 
 		else
