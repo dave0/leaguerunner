@@ -10,6 +10,9 @@ fieldset {
 	margin-bottom: 1em;
 	padding: .5em;
 }
+fieldset fieldset {
+	border: 1px solid #993333;
+}
 
 #main table { 
     width: auto; 
@@ -78,9 +81,10 @@ tr.dark {
 .fieldlist th    { background-color: black; color: white; font-weight: bold;
                    font-size: 9pt; }
 .fieldlist td    { font-size: 8pt; }
+.fieldlist ul    { margin-top: 0; margin-left: 0; padding-left: 1em; }
 
 
-.splash table { border-collapse: collapse; width: 80% !important }
+.splash table { border-collapse: collapse; width: 100% !important; }
 .splash th { text-align: left; background-color: black; color: white;
               font-weight: bold; font-size: 9pt; }
 .splash td { font-size: 8pt; }
