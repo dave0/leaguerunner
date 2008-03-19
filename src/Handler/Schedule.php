@@ -491,7 +491,14 @@ function schedule_render_viewable( &$game )
 {
 	global $lr_session;
 	if($game->home_name) {
-		$homeTeam = l($game->short_home_name(), "team/view/" . $game->home_id);
+		$short = $game->short_home_name();
+		$attr = array();
+		if ($short != $game->home_name)
+		{
+			$attr['title'] = $game->home_name;
+		}
+
+		$homeTeam = l($short, "team/view/" . $game->home_id, $attr);
 	} else {
 		if ($game->home_dependant_game && $game->home_dependant_type) {
 			$homeTeam = $game->home_dependant_type . " of " . $game->home_dependant_game;
@@ -500,7 +507,14 @@ function schedule_render_viewable( &$game )
 		}
 	}
 	if($game->away_name) {
-		$awayTeam = l($game->short_away_name(), "team/view/" . $game->away_id);
+		$short = $game->short_away_name();
+		$attr = array();
+		if ($short != $game->away_name)
+		{
+			$attr['title'] = $game->away_name;
+		}
+
+		$awayTeam = l($short, "team/view/" . $game->away_id, $attr);
 	} else {
 		if ($game->away_dependant_game && $game->away_dependant_type) {
 			$awayTeam = $game->away_dependant_type . " of " . $game->away_dependant_game;
