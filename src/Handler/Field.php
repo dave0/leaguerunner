@@ -48,13 +48,13 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 			break;
 		case 'edit':
 			// Admin and "volunteer" can edit
-			if($user->class == 'volunteer') {
+			if($user && $user->class == 'volunteer') {
 				return true;
 			}
 			break;
 		case 'view':
 			// Everyone can view, but valid users get extra info
-			if($user->status == 'active') {
+			if($user && $user->is_active()) {
 				$viewable_data = array_merge($public_data, $member_data);
 			} else {
 				$viewable_data = $public_data;
@@ -72,7 +72,7 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 			break;
 		case 'view bookings':
 			// Only valid users can view bookings
-			if($user && ($user->status == 'active')) {
+			if($user && $user->is_active()) {
 				return true;
 			}
 	}
@@ -241,6 +241,8 @@ class FieldEdit extends Handler
 			$output .= form_textarea("Public Washrooms", 'edit[washrooms]', $data['washrooms'], 60, 5, "");
 
 			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site that don't fit any other category.");
+
+			$output .= form_textarea("Sponsorship", 'edit[sponsor]', $data['sponsor'], 60, 5, "");
 		}
 		$output .= form_submit('Submit') .  form_reset('Reset');
 
@@ -297,6 +299,7 @@ class FieldEdit extends Handler
 			$rows[] = array( "Biking Directions:", form_hidden('edit[biking_directions]', $edit['biking_directions']) . check_form($edit['biking_directions']));
 			$rows[] = array( "Public Washrooms:", form_hidden('edit[washrooms]', $edit['washrooms']) . check_form($edit['washrooms']));
 			$rows[] = array( "Special Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
+			$rows[] = array( "Sponsorship:", form_hidden('edit[sponsor]', $edit['sponsor']) . check_form($edit['sponsor']));
 		}
 
 		$rows[] = array( form_submit('Submit'), "");
@@ -341,6 +344,7 @@ class FieldEdit extends Handler
 			$field->set('parking_details', $edit['parking_details']);
 			$field->set('washrooms', $edit['washrooms']);
 			$field->set('site_instructions', $edit['site_instructions']);
+			$field->set('sponsor', $edit['sponsor']);
 		}
 
 		if( !$field->save() ) {
@@ -563,7 +567,13 @@ class FieldView extends Handler
 			$this->title => 0
 		));
 
-		return "<div class='pairtable'>" . table(null, $rows, array('alternate-colours' => true)) . "</div>";
+		// Add sponsorship details
+		$sponsor = '';
+		if( $this->field->sponsor ) {
+			$sponsor = "<div class='sponsor'>{$this->field->sponsor}</div>";
+		}
+
+		return "<div class='pairtable'>" . table(null, $rows, array('alternate-colours' => true)) . "</div>\n$sponsor";
 	}
 }
 
@@ -595,7 +605,9 @@ class FieldBooking extends Handler
 			$this->field->fullname => 0
 		));
 
-		$result = slot_query( array('fid' => $this->field->fid, '_order' => 'g.game_date, g.game_start'));
+		$result = slot_query( array('fid' => $this->field->fid,
+									'_extra' => 'YEAR(g.game_date) = YEAR(NOW())',
+									'_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
@@ -610,9 +622,9 @@ class FieldBooking extends Handler
 			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
-				$booking = l($game->league_name,"game/view/$game->game_id");
-				if( $lr_session->has_permission('game','reschedule', $game->game_id)) {
-					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
+				$booking = l($game->league_name,"game/view/$slot->game_id");
+				if( $lr_session->has_permission('game','reschedule', $slot->game_id)) {
+					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
 				}
 			}
 			$rows[] = array($slot->game_date, $slot->game_start, $slot->game_end, $booking, theme_links($actions));
