@@ -177,7 +177,8 @@ class League extends LeaguerunnerObject
 	*/
 	function update_current_round()
 	{
-		$result = db_query("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = %d AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1", $this->league_id);
+		global $TZ_ADJUST;
+		$result = db_query("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = %d AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( (UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1", $this->league_id);
 
 		$round = db_result($result);
 		if( $round != $this->current_round ) {
@@ -188,25 +189,119 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
-	* Finalize any games considered 'old'.  For now, 'old' is 72 hours after
-	* the start time of the game. 
+	* Finalize any games considered 'old'.
 	*/
 	function finalize_old_games()
 	{
-		$result = db_query("SELECT DISTINCT s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) AS start_timestamp FROM schedule s, gameslot g WHERE s.league_id = %d AND g.game_id = s.game_id AND UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) < UNIX_TIMESTAMP(NOW()) AND (ISNULL(s.home_score) OR ISNULL(s.away_score))", $this->league_id);
+		if( $this->finalize_after == 0 )
+			return '';
+
+		global $TZ_ADJUST;
+		$output = '';
+
+		$result = db_query("
+			SELECT
+				DISTINCT s.game_id,
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
+			FROM
+				schedule s,
+				gameslot g
+			WHERE
+				s.league_id = %d
+			AND
+				g.game_id = s.game_id
+			AND
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) < UNIX_TIMESTAMP(NOW())
+			AND
+				(ISNULL(s.home_score) OR ISNULL(s.away_score))
+			ORDER BY
+				g.game_id
+			",
+			$TZ_ADJUST * 60,
+			$this->league_id,
+			// TZ_ADJUST is in minutes, finalize_after is in hours
+			$TZ_ADJUST + ($this->finalize_after * 60) * 60);
 
 		while( $foo = db_fetch_array($result) ) {
 			$id = $foo['game_id'];
 
-			# Expiry is 2 days from game start.
-			# TODO: should be per-league configurable
-			$expiry_factor = 2 * 24 * 60 * 60; 
-
-			if ( ($foo['start_timestamp'] + $expiry_factor) < time() ) {
-				$game = game_load( array('game_id' => $id) );
-				$game->finalize();
+			$game = game_load( array('game_id' => $id) );
+			if ($game->finalize())
+			{
+				$stat = 'Finalized';
 			}
+			else
+			{
+				$stat = 'DID NOT finalize';
+			}
+			$output .= "<p>$stat game " .
+				l($id, "game/edit/$id") .
+				' between ' .
+				l($game->home_name, "team/view/$game->home_team") .
+				' and ' .
+				l($game->away_name, "team/view/$game->away_team") .
+				", status {$game->status}</p>";
 		}
+
+		return $output;
+	}
+
+	/**
+	* Send email reminders to any captains that haven't scored their games.
+	*/
+	function send_scoring_reminders()
+	{
+		if( $this->email_after == 0 )
+			return '';
+
+		global $TZ_ADJUST;
+		$output = '';
+
+		$result = db_query("
+			SELECT
+				DISTINCT s.game_id,
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
+			FROM
+				schedule s,
+				gameslot g
+			WHERE
+				s.league_id = %d
+			AND
+				g.game_id = s.game_id
+			AND
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) < UNIX_TIMESTAMP(NOW())
+			AND
+				(ISNULL(s.home_score) OR ISNULL(s.away_score))
+			ORDER BY
+				g.game_id
+			",
+			$TZ_ADJUST * 60,
+			$this->league_id,
+			// TZ_ADJUST is in minutes, email_after is in hours
+			$TZ_ADJUST + ($this->email_after * 60) * 60);
+
+		while( $foo = db_fetch_array($result) ) {
+			$id = $foo['game_id'];
+
+			$game = game_load( array('game_id' => $id) );
+			if ($game->remind())
+			{
+				$stat = 'Emailed';
+			}
+			else
+			{
+				$stat = 'DID NOT email';
+			}
+			$output .= "<p>$stat reminder for game " .
+				l($id, "game/edit/$id") .
+				' between ' .
+				l($game->home_name, "team/view/$game->home_team") .
+				' and ' .
+				l($game->away_name, "team/view/$game->away_team") .
+				", status {$game->status}</p>";
+		}
+
+		return $output;
 	}
 
 	# TODO: add_team and remove_team, same as add and remove coordinator.
