@@ -149,10 +149,16 @@ function registration_query ( $array = array() )
 		}
 	}
 
+	global $TZ_ADJUST;
 	return db_query("SELECT
-		r.*
+		r.*,
+		DATE_ADD(r.time, INTERVAL %d MINUTE) as time,
+		DATE_ADD(r.modified, INTERVAL %d MINUTE) as modified
 		FROM registrations r
-	WHERE " . implode(' AND ',$query) .  $order);
+		WHERE " . implode(' AND ',$query) .  $order,
+		-$TZ_ADJUST,
+		-$TZ_ADJUST
+	);
 }
 
 /**
