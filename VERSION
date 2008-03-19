@@ -1,4 +1,21 @@
 
+Version: 2.6
+SVN Revision: 939
+
+Date: March 19, 2008
+
+Details:
+
+- support for historical team data (no more need to wipe the database after a season)
+- roster deadlines
+- time before automatic approval of scores is per-league configurable
+- email generated in more places
+- first implementation of a generic method for sending email
+- streamlining of the registration process for both users and admins
+- handling of servers in different time zones than the league
+
+------------------------------------------------------------------------------
+
 Version: 2.5
 SVN Revision: 901
 
