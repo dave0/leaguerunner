@@ -94,6 +94,14 @@ class Handler
 				&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
 				return url("person/signdogwaiver","next=$next");
 			}
+
+			if( variable_get('force_roster_request', 0) ) {
+				foreach( $lr_session->user->teams as $team ) {
+					if( $team->position == 'captain_request' ) {
+						return url("team/request/{$team->id}/{$lr_session->user->user_id}","next=$next");
+					}
+				}
+			}
 		}
 
 # DMO: Disable the survey.
