@@ -149,6 +149,55 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
+	function validate_unique ($name)
+	{
+		$opt = '';
+
+		$league_data = db_fetch_array( db_query( '
+			SELECT
+				year,
+				season,
+				day
+			FROM
+				league
+			WHERE
+				league_id = %d',
+			$this->league_id ) );
+
+		foreach( array_keys( $league_data ) as $key )
+		{
+			if( isset( $league_data[$key] ) && $league_data[$key] != '' ) {
+				$opt .= "AND league.$key = '{$league_data[$key]}' ";
+			} else {
+				$opt .= "AND league.$key IS NULL ";
+			}
+		}
+
+		if (isset ($this->team_id)) {
+			$opt .= "AND team.team_id != {$this->team_id}";
+		}
+
+		$count = db_result (db_query("
+					SELECT
+						COUNT(*)
+					FROM
+						team
+					LEFT JOIN
+						leagueteams
+					ON
+						team.team_id = leagueteams.team_id
+					LEFT JOIN
+						league
+					ON
+						leagueteams.league_id = league.league_id
+					WHERE
+						team.name = '%s'
+					$opt",
+					$name));
+
+		return ($count == 0);
+	}
+
 	function create ()
 	{
 		if( $this->_in_database ) {
@@ -343,6 +392,8 @@ class Team extends LeaguerunnerObject
 
 function team_query( $array = array() )
 {
+	global $TZ_ADJUST;
+
 	$order = '';
 	$query = array();
 
@@ -367,7 +418,8 @@ function team_query( $array = array() )
 		l.tier AS league_tier,
 		l.day AS league_day, 
 		l.season AS league_season, 
-		l.league_id
+		l.league_id,
+		(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + ($TZ_ADJUST * 60)) AS roster_deadline
 		FROM team t
 		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
 		INNER JOIN league l ON (s.league_id = l.league_id)
