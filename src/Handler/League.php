@@ -205,25 +205,28 @@ function league_splash ()
  */
 function league_cron()
 {
+	$output = '';
+
 	$season = variable_get('current_season', 'fall');
 	$result = db_query("SELECT distinct league_id from league where season = '%s'", $season);
 	while( $foo = db_fetch_array($result)) {
 		$id = $foo['league_id'];
 		$league = league_load( array('league_id' => $id) );
 
-		// Task #1:
-		// find all games older than our expiry time, and
-		// finalize them
-		$league->finalize_old_games();
+		// Find all games older than our expiry time, and finalize them
+		$output .= $league->finalize_old_games();
 
-		// Task #2:
+		// Send any email scoring reminders. Do this after finalizing, so
+		// captains don't get useless reminders.
+		$output .= $league->send_scoring_reminders();
+
 		// If schedule is round-robin, possibly update the current round
 		if($league->schedule_type == 'roundrobin') {
 			$league->update_current_round();
 		}
 	}
 
-	return "<pre>Completed league_cron run</pre>";
+	return "$output<pre>Completed league_cron run</pre>";
 }
 
 /**
@@ -325,48 +328,59 @@ class LeagueEdit extends Handler
 
 	function generateForm ( &$formData )
 	{
-		$output .= form_hidden("edit[step]", 'confirm');
+		$output .= form_hidden('edit[step]', 'confirm');
 
 		$rows = array();
-		$rows[] = array("League Name:", form_textfield('', 'edit[name]', $formData['name'], 35,200, "The full name of the league.  Tier numbering will be automatically appended."));
+		$rows[] = array('League Name:', form_textfield('', 'edit[name]', $formData['name'], 35,200, 'The full name of the league.  Tier numbering will be automatically appended.'));
 
-		$rows[] = array("Year:", form_textfield('', 'edit[year]', $formData['year'], 4,4, "Year of play."));
+		$rows[] = array('Status:',
+			form_select('', 'edit[status]', $formData['status'], getOptionsFromEnum('league','status'), 'Teams in closed leagues are locked and can be viewed only in historical modes'));
 
-		$rows[] = array("Season:",
-			form_select("", "edit[season]", $formData['season'], getOptionsFromEnum('league','season'), "Season of play for this league. Choose 'none' for administrative groupings and comp teams."));
+		$rows[] = array('Year:', form_textfield('', 'edit[year]', $formData['year'], 4,4, 'Year of play.'));
 
-		$rows[] = array("Day(s) of play:",
-			form_select("", "edit[day]", $formData['day'], getOptionsFromEnum('league','day'), "Day, or days, on which this league will play.", 0, true));
+		$rows[] = array('Season:',
+			form_select('', 'edit[season]', $formData['season'], getOptionsFromEnum('league','season'), "Season of play for this league. Choose 'none' for administrative groupings and comp teams."));
+
+		$rows[] = array('Day(s) of play:',
+			form_select('', 'edit[day]', $formData['day'], getOptionsFromEnum('league','day'), 'Day, or days, on which this league will play.', 0, true));
+
+		$thisYear = strftime('%Y', time());
+		$rows[] = array('Roster deadline:',
+			form_select_date('', 'edit[roster_deadline]', $formData['roster_deadline'], ($thisYear - 1), ($thisYear + 1), 'The date after which teams are no longer allowed to edit their rosters.'));
 
 		/* TODO: 10 is a magic number.  Make it a config variable */
-		$rows[] = array("Tier:",
-			form_select("", "edit[tier]", $formData['tier'], getOptionsFromRange(0, 10), "Tier number.  Choose 0 to not have numbered tiers."));
+		$rows[] = array('Tier:',
+			form_select('', 'edit[tier]', $formData['tier'], getOptionsFromRange(0, 10), 'Tier number.  Choose 0 to not have numbered tiers.'));
 
-		$rows[] = array("Gender Ratio:",
-			form_select("", "edit[ratio]", $formData['ratio'], getOptionsFromEnum('league','ratio'), "Gender format for the league."));
+		$rows[] = array('Gender Ratio:',
+			form_select('', 'edit[ratio]', $formData['ratio'], getOptionsFromEnum('league','ratio'), 'Gender format for the league.'));
 
 		/* TODO: 5 is a magic number.  Make it a config variable */
-		$rows[] = array("Current Round:",
-			form_select("", "edit[current_round]", $formData['current_round'], getOptionsFromRange(1, 5), "New games will be scheduled in this round by default."));
+		$rows[] = array('Current Round:',
+			form_select('', 'edit[current_round]', $formData['current_round'], getOptionsFromRange(1, 5), 'New games will be scheduled in this round by default.'));
 
-		$rows[] = array(" Scheduling Type:",
-			form_select("", "edit[schedule_type]", $formData['schedule_type'], getOptionsFromEnum('league','schedule_type'), "What type of scheduling to use.  This affects how games are scheduled and standings displayed."));
+		$rows[] = array('Scheduling Type:',
+			form_select('', 'edit[schedule_type]', $formData['schedule_type'], getOptionsFromEnum('league','schedule_type'), 'What type of scheduling to use.  This affects how games are scheduled and standings displayed.'));
 
-		$rows[] = array(" Pyramid/Ratings - Games Before Repeat:",
-			form_select("", "edit[games_before_repeat]", $formData['games_before_repeat'], getOptionsFromRange(0,9), "The number of games before two teams can be scheduled to play each other again (FOR PYRAMID/RATINGS LADDER SCHEDULING ONLY)."));
+		$rows[] = array('Pyramid/Ratings - Games Before Repeat:',
+			form_select('', 'edit[games_before_repeat]', $formData['games_before_repeat'], getOptionsFromRange(0,9), 'The number of games before two teams can be scheduled to play each other again (FOR PYRAMID/RATINGS LADDER SCHEDULING ONLY).'));
 
-		$rows[] = array("Players see SOTG?:", 
-			form_select("", "edit[see_sotg]", $formData['see_sotg'], getOptionsFromEnum('league','see_sotg'), "Allows players to see SOTG answers assigned by their opponents to their teams."));
+		$rows[] = array('Players see SOTG?', 
+			form_select('', 'edit[see_sotg]', $formData['see_sotg'], getOptionsFromEnum('league','see_sotg'), 'Allows players to see SOTG answers assigned by their opponents to their teams.'));
 		
-		$rows[] = array("League Coordinator Email List:", form_textfield('', 'edit[coord_list]', $formData['coord_list'], 35,200, "An email alias for all coordinators of this league (can be a comma separated list of individual email addresses)"));
+		$rows[] = array('League Coordinator Email List:', form_textfield('', 'edit[coord_list]', $formData['coord_list'], 35,200, 'An email alias for all coordinators of this league (can be a comma separated list of individual email addresses)'));
 
-		$rows[] = array("League Captain Email List:", form_textfield('', 'edit[capt_list]', $formData['capt_list'], 35,200, "An email alias for all captains of this league"));
+		$rows[] = array('League Captain Email List:', form_textfield('', 'edit[capt_list]', $formData['capt_list'], 35,200, 'An email alias for all captains of this league'));
 
-		$rows[] = array("Allow exclusion of teams during scheduling?:", 
-			form_select("", "edit[excludeTeams]", $formData['excludeTeams'], getOptionsFromEnum('league','excludeTeams'), "Allows coordinators to exclude teams from schedule generation."));
+		$rows[] = array('Allow exclusion of teams during scheduling?', 
+			form_select('', 'edit[excludeTeams]', $formData['excludeTeams'], getOptionsFromEnum('league','excludeTeams'), 'Allows coordinators to exclude teams from schedule generation.'));
 		
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		$output .= para(form_submit("submit") . form_reset("reset"));
+		$rows[] = array('Scoring reminder delay:', form_textfield('', 'edit[email_after]', $formData['email_after'], 5, 5, 'Email captains who haven\'t scored games after this many hours, no reminder if 0'));
+
+		$rows[] = array('Game finalization delay:', form_textfield('', 'edit[finalize_after]', $formData['finalize_after'], 5, 5, 'Games which haven\'t been scored will be automatically finalized after this many hours, no finalization if 0'));
+
+		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
+		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		return form($output);
 	}
@@ -389,6 +403,9 @@ class LeagueEdit extends Handler
 		$rows[] = array("League Name:",
 			form_hidden('edit[name]', $edit['name']) . $edit['name']);
 
+		$rows[] = array("Status:",
+			form_hidden('edit[status]', $edit['status']) . $edit['status']);
+
 		$rows[] = array("Year:",
 			form_hidden('edit[year]', $edit['year']) . $edit['year']);
 
@@ -397,6 +414,12 @@ class LeagueEdit extends Handler
 
 		$rows[] = array("Day(s) of play:",
 			form_hidden('edit[day]',$edit['day']) . $edit['day']);
+
+		$rows[] = array("Roster deadline:",
+			form_hidden('edit[roster_deadline][year]',$edit['roster_deadline']['year'])
+			. form_hidden('edit[roster_deadline][month]',$edit['roster_deadline']['month'])
+			. form_hidden('edit[roster_deadline][day]',$edit['roster_deadline']['day'])
+			. $edit['roster_deadline']['year'] . '/' . $edit['roster_deadline']['month'] . '/' . $edit['roster_deadline']['day']);
 
 		$rows[] = array("Tier:",
 			form_hidden('edit[tier]', $edit['tier']) . $edit['tier']);
@@ -415,7 +438,7 @@ class LeagueEdit extends Handler
 				form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
       }
 
-		$rows[] = array("Players see SOTG?:", 
+		$rows[] = array("Players see SOTG?", 
 			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
 
 		$rows[] = array("League Coordinator Email List:", 
@@ -424,8 +447,14 @@ class LeagueEdit extends Handler
 		$rows[] = array("League Captain Email List:", 
 			form_hidden('edit[capt_list]', $edit['capt_list']) . $edit['capt_list']);
 
-		$rows[] = array("Allow exclusion of teams during scheduling?:", 
+		$rows[] = array("Allow exclusion of teams during scheduling?", 
 			form_hidden('edit[excludeTeams]', $edit['excludeTeams']) . $edit['excludeTeams']);
+
+		$rows[] = array('Scoring reminder delay:',
+			form_hidden('edit[email_after]', $edit['email_after']) . $edit['email_after']);
+
+		$rows[] = array('Game finalization delay:',
+			form_hidden('edit[finalize_after]', $edit['finalize_after']) . $edit['finalize_after']);
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
@@ -441,9 +470,14 @@ class LeagueEdit extends Handler
 		}
 
 		$this->league->set('name', $edit['name']);
+		$this->league->set('status', $edit['status']);
 		$this->league->set('day', $edit['day']);
 		$this->league->set('year', $edit['year']);
 		$this->league->set('season', $edit['season']);
+		$this->league->set('roster_deadline', join('-',array(
+								$edit['roster_deadline']['year'],
+								$edit['roster_deadline']['month'],
+								$edit['roster_deadline']['day'])));
 		$this->league->set('tier', $edit['tier']);
 		$this->league->set('ratio', $edit['ratio']);
 		$this->league->set('current_round', $edit['current_round']);
@@ -458,6 +492,9 @@ class LeagueEdit extends Handler
 		$this->league->set('capt_list', $edit['capt_list']);
 		$this->league->set('excludeTeams', $edit['excludeTeams']);
 		
+		$this->league->set('email_after', $edit['email_after']);
+		$this->league->set('finalize_after', $edit['finalize_after']);
+
 		if( !$this->league->save() ) {
 			error_exit("Internal error: couldn't save changes");
 		}
@@ -472,6 +509,11 @@ class LeagueEdit extends Handler
 
 		if ( ! validate_nonhtml($edit['name'])) {
 			$errors .= "<li>A valid league name must be entered";
+		}
+
+		if( !validate_date_input($edit['roster_deadline']['year'], $edit['roster_deadline']['month'], $edit['roster_deadline']['day']) )
+		{
+			$errors .= '<li>You must provide a valid roster deadline';
 		}
 
 		switch($edit['schedule_type']) {
@@ -493,6 +535,14 @@ class LeagueEdit extends Handler
 			if( !$edit['day'] ) {
 				$errors .= "<li>One or more days of play must be selected";
 			}
+		}
+
+		if ( ! validate_number($edit['email_after']) || $edit['email_after'] < 0 ) {
+			$errors .= "<li>A valid number must be entered for the scoring reminder delay";
+		}
+
+		if ( ! validate_number($edit['finalize_after']) || $edit['finalize_after'] < 0 ) {
+			$errors .= "<li>A valid number must be entered for the game finalization delay";
 		}
 
 		if(strlen($errors) > 0) {
@@ -527,7 +577,7 @@ class LeagueList extends Handler
 		$seasons = getOptionsFromEnum('league', 'season');
 
 		$seasonLinks = array();
-		while(list(,$curSeason) = each($seasons)) {
+		foreach($seasons as $curSeason) {
 			$curSeason = strtolower($curSeason);
 			if($curSeason == '---') {
 				continue;
@@ -548,7 +598,7 @@ class LeagueList extends Handler
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 
-		$leagues = league_load_many( array( 'season' => $season, '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
+		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
 
 		if ( $leagues ) {
 			foreach ( $leagues as $league ) {
@@ -777,8 +827,6 @@ class LeagueStandings extends Handler
 				$row[] = array( 'data' => '-', 'class'=>"$rowstyle");
 			}
 
-			// initialize the sotg to dashes!
-			$sotg = "---";
 			$sotg = sprintf("%.2f", calculateAverageSOTG($season[$tid]->spirit, true));
 			$row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
 			$rows[] = $row;
@@ -809,7 +857,7 @@ class LeagueView extends Handler
 	{
 		global $lr_session;
 
-		$this->title = "View League";
+		$this->title = 'View League';
 
 		foreach( $this->league->coordinators as $c ) {
 			$coordinator = l($c->fullname, "person/view/$c->user_id");
@@ -822,41 +870,52 @@ class LeagueView extends Handler
 
 		$rows = array();
 		if( count($coordinators) ) {
-			$rows[] = array("Coordinators:",
-				join("<br />", $coordinators));
+			$rows[] = array('Coordinators:',
+				join('<br />', $coordinators));
 		}
 
-		if ($this->league->coord_list != null && $this->league->coord_list != "") {
-			$rows[] = array("Coordinator Email List:", l($this->league->coord_list, "mailto:" . $this->league->coord_list));
+		if ($this->league->coord_list != null && $this->league->coord_list != '') {
+			$rows[] = array('Coordinator Email List:', l($this->league->coord_list, "mailto:" . $this->league->coord_list));
 		}
-		if ($this->league->capt_list != null && $this->league->capt_list != "") {
-			$rows[] = array("Captain Email List:", l($this->league->capt_list, "mailto:" . $this->league->capt_list));
+		if ($this->league->capt_list != null && $this->league->capt_list != '') {
+			$rows[] = array('Captain Email List:', l($this->league->capt_list, "mailto:" . $this->league->capt_list));
 		}
 
+		$rows[] = array('Status:', $this->league->status);
 		if($this->league->year) {
-			$rows[] = array("Year:", $this->league->year);
+			$rows[] = array('Year:', $this->league->year);
 		}
-		$rows[] = array("Season:", $this->league->season);
+		$rows[] = array('Season:', $this->league->season);
 		if($this->league->day) {
-			$rows[] = array("Day(s):", $this->league->day);
+			$rows[] = array('Day(s):', $this->league->day);
+		}
+		if($this->league->roster_deadline) {
+			$rows[] = array('Roster deadline:', $this->league->roster_deadline);
 		}
 		if($this->league->tier) {
-			$rows[] = array("Tier:", $this->league->tier);
+			$rows[] = array('Tier:', $this->league->tier);
 		}
-		$rows[] = array("Type:", $this->league->schedule_type);
+		$rows[] = array('Type:', $this->league->schedule_type);
 
 		// Certain things should only be visible for certain types of league.
 		if($this->league->schedule_type != 'none') {
-			$rows[] = array("League SBF:", $this->league->calculate_sbf());
+			$rows[] = array('League SBF:', $this->league->calculate_sbf());
 		}
 
 		if($this->league->schedule_type == 'roundrobin') {
-			$rows[] = array("Current Round:", $this->league->current_round);
+			$rows[] = array('Current Round:', $this->league->current_round);
+		}
+
+		if($lr_session->has_permission('league','view', $league->league_id, 'delays') ) {
+			if( $this->league->email_after )
+				$rows[] = array('Scoring reminder delay:', $this->league->email_after . ' hours');
+			if( $this->league->finalize_after )
+				$rows[] = array('Game finalization delay:', $this->league->finalize_after . ' hours');
 		}
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
-		$header = array( "Team Name", "Players", "Rating", "Avg. Skill", "&nbsp;",);
+		$header = array( 'Team Name', 'Players', 'Rating', 'Avg. Skill', '&nbsp;',);
 		if( $this->league->schedule_type == 'ladder' || 
 		    $this->league->schedule_type == 'pyramid') {
 			array_unshift($header, 'Rank');
@@ -927,6 +986,7 @@ class LeagueCaptainEmails extends Handler
 	function process ()
 	{
 		$this->title = 'Captain Emails';
+		global $lr_session;
 		
 		$result = db_query(
 			"SELECT
@@ -937,18 +997,21 @@ class LeagueCaptainEmails extends Handler
 			WHERE
 				l.league_id = %d
 				AND l.team_id = r.team_id
-				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')",$this->league->league_id);
+				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')
+					AND p.user_id != %d
+			ORDER BY
+				p.lastname, p.firstname",
+			$this->league->league_id,
+			$lr_session->user->user_id);
+
 		if( db_num_rows($result) <= 0 ) {
 			error_exit("That league contains no teams.");
 		}
 
 		$emails = array();
-		$nameAndEmails = array();
+		$names = array();
 		while($user = db_fetch_object($result)) {
-			$nameAndEmails[] = sprintf("\"%s %s\" &lt;%s&gt;",
-				$user->firstname,
-				$user->lastname,
-				$user->email);
+			$names[] = "$user->firstname $user->lastname";
 			$emails[] = $user->email;
 		}
 
@@ -957,9 +1020,10 @@ class LeagueCaptainEmails extends Handler
 			$this->title => 0
 		));
 
-		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', 'mailto:' . join(',',$emails)) . " right away.");
+		$list = create_rfc2822_address_list($emails, $names, true);
+		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', "mailto:$list") . " right away.");
 
-		$output .= pre(join(",\n", $nameAndEmails));
+		$output .= pre($list);
 		return $output;
 	}
 }
@@ -974,12 +1038,14 @@ class LeagueApproveScores extends Handler
 
 	function process ()
 	{
+		global $TZ_ADJUST;
+
 		$this->title = "Approve Scores";
 
 		/* Fetch games in need of verification */
 		$result = db_query("SELECT DISTINCT
 			se.game_id,
-			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp,
+			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60) as timestamp,
 			s.home_team,
 			h.name AS home_name,
 			s.away_team,
@@ -1005,9 +1071,30 @@ class LeagueApproveScores extends Handler
 				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 3),
 				array('data' => $game->home_name, 'colspan' => 2),
 				array('data' => $game->away_name, 'colspan' => 2),
-				array('data' => l("approve score", "game/approve/$game->game_id"), 'rowspan' => 3)
+				array('data' => l("approve score", "game/approve/$game->game_id"))
 			);
 		
+			$result2 = db_query( "SELECT
+							user_id
+						FROM
+							person p
+						LEFT JOIN
+							teamroster r
+						ON
+							p.user_id = r.player_id
+						WHERE
+							r.team_id IN (%d,%d)
+						AND
+							r.status = 'captain'",
+				$game->home_team, $game->away_team);
+			$emails = array();
+			$names = array();
+			while($user = db_fetch_object($result2)) {
+				$captain = person_load(array('user_id' => $user->user_id));
+				$emails[] = $captain->email;
+				$names[] = $captain->fullname;
+			}
+
 			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
 
 			if(!$home) {
@@ -1025,13 +1112,17 @@ class LeagueApproveScores extends Handler
 				);
 			}
 
+			$list = create_rfc2822_address_list($emails, $names, true);
 			$rows[] = array(
-				"Home Score:", $home['score_for'], "Home Score:", $away['score_against']
+				"Home Score:", $home['score_for'], "Home Score:", $away['score_against'],
+				l('email captains', "mailto:$list")
 			);
 
 			$rows[] = array(
-				"Away Score:", $home['score_against'], "Away Score:", $away['score_for']
+				"Away Score:", $home['score_against'], "Away Score:", $away['score_for'], ''
 			);
+
+			$rows[] = array( '&nbsp;' );
 
 		}
 
@@ -1274,7 +1365,7 @@ class LeagueSpirit extends Handler
 		/*
 		 * Grab schedule info
 		 */
-		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date DESC,g.game_id') );
+		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
 
 		if( !is_array($games) ) {
 			error_exit("There are no games scheduled for this league");
