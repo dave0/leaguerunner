@@ -38,6 +38,7 @@ class Field extends LeaguerunnerObject
 			$this->parking_details = $parent->parking_details;
 			$this->washrooms = $parent->washrooms;
 			$this->site_instructions = $parent->site_instructions;
+			$this->sponsor = $parent->sponsor;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
