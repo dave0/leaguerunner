@@ -1,6 +1,6 @@
 The Main TODO List
 
-Docs:	
+Docs:
 	- need better user docs
 	- developer docs
 	- code is mostly uncommented =(
@@ -15,7 +15,7 @@ Known Bugs:
 	  headers
 	- login page should have focus on username field
 	- login page tab order should move from username -> password
-	
+
 
 New Features:
 
@@ -25,46 +25,25 @@ New Features:
 	  schedule a ladder that's automatically filled in as results are
 	  provided.
 
- 2) League History
-	- start using the 'year' column for leagues, to allow multiple leagues
-	  to co-exist for sequential seasons.
-	- also requires multiple team rosters (see below)
-	- add start/end dates 
-	
- 3) Multi-roster support
- 	- allow teams to create multiple rosters if they so desire
-	- to do this, extend the teamroster table to have a roster ID, and add
-	  a roster table with (team,rostername)
-	- team also gets an extra field, current_roster, which points to the
-	  roster ID of the current roster.
-	- leagueteams table also gets a 'roster' field, so (team, roster)
-	  defines the players in that league
-	- may want to lock old rosters at the end of the season and auto-create
-	  new ones
-	
- 4) Automatic email
-	- score-reminder code for notifying captains of missing scores.
+ 2) Automatic email
 	- send email:
 		+ when account is created
-		+ to captain when player requests to join
-		+ to player, when captain requests them
 	- Better handling of automatic mailing-list generation (for Mailman)
 	  from Leaguerunner.
 
- 5) Carpool code
+ 3) Carpool code
 	- carpool arrangements
 	- should allow cross-team carpooling
 
- 6) Player-team matchups
+ 4) Player-team matchups
 	- players looking for teams / teams looking for players
 
- 7) Scheduling changes 
- 	- implement pyramid ladder (see other doc)
+ 5) Scheduling changes
 	- automatic generation of round-robin schedule (3 game split tier, or
 	  7-game full tier).  This depends on the abovementioned "game slot"
 	  support to allow automatic selection of fields.
-	
- 8) Field Management
+
+ 6) Field Management
  	- extra per-field attributes: for player view
         	- GPS coordinates and/or mapquest search criteria
 		- public transit info
@@ -76,20 +55,16 @@ New Features:
 			+ limited, carpool recommended
 			+ average
 			+ ample
-		    - parking instructions
-			- text field explaining where to park (also, indicate on map if
-			  possible)
+			- indicate on map if possible
 			- list alternate parking locations and/or special restrictions
 			  (ie: illegal parking frequently ticketed, no parking on
 			  game-day for the Renegades, etc)
 		- field permits
 		    - URL of scanned field permit
-		- special instructions
-		    - field setup notes, notification of hazards
-		    
+
 	- extra data for administrators:
 		- field status
-		    - open, closed, newly located, 
+		    - newly located
 		- Condition log
 		    - reported conditions based on game result submissions.
 		      This may be something we want to make public, so players know
@@ -111,7 +86,7 @@ New Features:
 		- URL of scanned contract
 		- Year acquired or use started
 		- administrative notes
-		
- 9) Implement RRI
+
+ 7) Implement RRI
  	- see http://www.upa.org/scores/RRI.html
-	
+
