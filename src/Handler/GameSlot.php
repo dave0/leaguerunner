@@ -186,7 +186,11 @@ class GameSlotCreate extends Handler
 			l.name,
 			l.tier
 			FROM league l
-			WHERE l.schedule_type != 'none' AND (FIND_IN_SET('%s', l.day) > 0) ORDER BY l.day,l.name,l.tier", $weekday);
+			WHERE l.schedule_type != 'none'
+			AND (FIND_IN_SET('%s', l.day) > 0)
+			AND l.status = 'open'
+			ORDER BY l.day,l.name,l.tier",
+			$weekday);
 			
 		while($league = db_fetch_object($result)) {
 			if( $league->tier ) {
@@ -386,7 +390,10 @@ class GameSlotAvailability extends Handler
 			l.name,
 			l.tier
 			FROM league l
-			WHERE l.schedule_type != 'none' AND (FIND_IN_SET('%s', l.day) > 0)", $weekday);
+			WHERE l.schedule_type != 'none'
+			AND (FIND_IN_SET('%s', l.day) > 0)
+			AND l.status = 'open'",
+			$weekday);
 			
 		while($league = db_fetch_object($result)) {
 			if( $league->tier ) {
@@ -482,9 +489,9 @@ class GameSlotListDay extends Handler
 			}
 			if($slot->game_id) {
 				$game = game_load( array('game_id' => $slot->game_id) );
-				$booking = l($game->league_name,"game/view/$game->game_id");
-				if( $lr_session->has_permission('game','reschedule', $game->game_id)) {
-					$actions[] = l('reschedule/move', "game/reschedule/$game->game_id");
+				$booking = l($game->league_name,"game/view/$slot->game_id");
+				if( $lr_session->has_permission('game','reschedule', $slot->game_id)) {
+					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
 				}
 			}
 			$rows[] = array(l("$field->code $field->num","field/view/$field->fid"), $slot->game_start, $slot->game_end, $booking, theme_links($actions));
