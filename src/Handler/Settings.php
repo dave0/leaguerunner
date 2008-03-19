@@ -82,6 +82,10 @@ function feature_settings()
 
 	$group .= form_radios("Lock sessions to initiating IP address", "edit[session_requires_ip]", variable_get("session_requires_ip", 1), array("Disabled", "Enabled"), "If enabled, session cookies are only accepted if they come from the same IP as the initial login.  This adds a bit of security against cookie theft, but causes problems for users behind a firewall that routes HTTP requests out through multiple IP addresses.  Recommended setting is to enable unless you notice problems. This setting is ignored if Post-Nuke authentication is enabled.");
 
+	$group .= form_radios("Force roster request responses", "edit[force_roster_request]", variable_get('force_roster_request', 0), array("Disabled", "Enabled"), "Should players be forced to respond to roster requests immediately?");
+
+	$group .= form_radios("Generate roster request emails", "edit[generate_roster_email]", variable_get('generate_roster_email', 0), array("Disabled", "Enabled"), "Should emails be sent to players invited to join rosters, and captains who have players request to join their teams?");
+
 	$output = form_group("Feature configuration", $group);
 
 	return settings_form($output);
