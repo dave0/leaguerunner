@@ -53,6 +53,7 @@ function event_dispatch()
 
 	if( $obj ) {
 		$obj->event_types = array(
+			'membership' => 'Individual membership',
 			'individual_league' => 'Individual for league',
 			'team_league' => 'Team for league',
 			'individual_event' => 'Individual for tournament or other one-time event',
@@ -80,7 +81,7 @@ function event_permissions ( &$user, $action, $id, $data_field )
 			break;
 		case 'view':
 			// Only players with completed and activated profiles can view details
-			return ( $lr_session->is_complete() && ($lr_session->user->status == 'active') );
+			return ( $lr_session->is_complete() && $lr_session->user->is_active() );
 		case 'list':
 			// Everyone can list
 			return true;
@@ -447,14 +448,25 @@ class EventList extends Handler
 		ob_end_clean();
 
 		if( $lr_session->is_admin() ) {
-			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -60 DAY)', '_order' => 'e.open,e.name') );
+			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.name') );
 		} else {
-			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.open,e.name') );
+			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.name') );
 		}
 
+		$type_desc = array('membership' => 'Membership Registrations',
+							'individual_event' => 'One-time Individual Event Registrations',
+							'team_event' => 'One-time Team Event Registrations',
+							'individual_league' => 'Individual Registrations (for players without a team)',
+							'team_league' => 'Team Registrations');
+		$last_type = '';
 		$rows = array();
 
 		while( $event = db_fetch_object( $result ) ) {
+			if ($event->type != $last_type) {
+				$rows[] = array( array('colspan' => 4, 'data' => h2($type_desc[$event->type])));
+				$last_type = $event->type;
+			}
+
 			if ($links) {
 				$name = l($event->name, "event/view/$event->registration_id", array('title' => 'View event details'));
 			}
@@ -699,13 +711,42 @@ class EventView extends Handler
 	function check_prereq()
 	{
 		global $lr_session;
-		$output = '';
+		$output = $payment = '';
 		$can_register = false;
 
 		// Make sure the user is allowed to register for anything!
-		if( $lr_session->user->status != 'active' ) {
+		if( ! $lr_session->user->is_active() ) {
 			return para('You may not register for an event until your account is activated');
 		}
+
+		// We need these numbers in a couple of places below
+		if ($this->event->cap_female == -2)
+		{
+			$applicable_cap = $this->event->cap_male;
+			$where = '';
+		}
+		else
+		{
+			$applicable_cap = ( $lr_session->user->gender == 'Male' ?
+									$this->event->cap_male :
+									$this->event->cap_female );
+			$where = " AND p.gender = '" . $lr_session->user->gender . "'";
+		}
+		$registered_count = db_result( db_query(
+								"SELECT
+									COUNT(order_id)
+								FROM
+									registrations r
+								LEFT JOIN
+									person p
+								ON
+									r.user_id = p.user_id
+								WHERE
+									registration_id = %d
+								AND
+									(payment = 'Paid' OR payment = 'Pending')
+								$where",
+								$this->event->registration_id ) );
 
 		// Check if the user has already registered for this event
 		$result = db_query('SELECT
@@ -716,36 +757,62 @@ class EventView extends Handler
 								user_id = %d
 							AND
 								registration_id = %d
+							AND
+								payment != "Refunded"
 							ORDER BY
-								paid',
+								payment',
 					$lr_session->user->user_id,
 					$this->event->registration_id);
 		$row = db_fetch_object( $result );
 		if ($row)
 		{
-			if ($row->paid) {
-				if ($this->event->multiple) {
-					$output = para('You have already registered and paid for this event. However, this event allows multiple registrations (e.g. the same person can register teams to play on different nights).');
+			// If there's an unpaid registration, we may want to allow the
+			// option to pay it.  However, the option may be displayed after
+			// other text, so we'll build it here and save it for later.
+			if( is_unpaid ($row) )
+			{
+				$payment = para('You have already registered for this event, but not yet paid.');
+				$payment .= para('If you registered in error, or have changed your mind about participating, or want to change your previously selected preferences, you can ' . l('unregister', 'registration/unregister/' . $row->order_id) . '.');
+
+				// An unpaid registration might have been pre-empted by someone
+				// who paid.
+				if ( $row->payment == 'Unpaid' &&
+					$applicable_cap > 0 && $registered_count >= $applicable_cap )
+				{
+					$payment .= para('Your payment was not received in time, so your registration has been moved to a waiting list. If you have any questions about this, please contact the head office.');
 				}
-				else {
-					return para('You have already registered and paid for this event.');
+				else
+				{
+					$reg = registration_load( array('order_id' => $row->order_id ) );
+					$order_num = sprintf(variable_get('order_id_format', '%d'), $reg->order_id);
+
+					$payment .= h2('Payment');
+					$payment .= generatePayForm($this->event, $order_num);
+
+					$payment .= OfflinePaymentText($order_num);
+					$payment .= RefundPolicyText();
 				}
 			}
+
+			// If the record is considered paid, and we allow multiple
+			// registrations, show that.
+			if( is_paid ($row) && $this->event->multiple )
+			{
+				$output = para('You have already registered for this event. However, this event allows multiple registrations (e.g. the same person can register teams to play on different nights).');
+			}
+
+			// Multiples are not allowed.  If the registration is actually paid
+			// for (not pending payment), just exit now, with no extra
+			// description required.
+			else if( $row->payment == 'Paid' ) {
+				return para('You have already registered and paid for this event.');
+			}
+
+			// Only way to get here is if multiple registrations are not
+			// allowed, and a registration exists with a pending payment.  Let
+			// the user make the payment, and nothing else.
 			else {
-				$reg = registration_load( array('order_id' => $row->order_id ) );
-
-				$order_num = sprintf(variable_get('order_id_format', '%d'), $reg->order_id);
-
-				$output = para('You have already registered for this event, but not yet paid.');
-				$output .= para('If you registered in error, or have changed your mind about participating, or want to change your previously selected preferences, you can ' . l('unregister', 'registration/unregister/' . $reg->order_id . '/' . $this->event->registration_id) . '.');
-
-				$output .= h2('Payment');
-				$output .= generatePayForm($this->event, $order_num);
-
-				$output .= OfflinePaymentText($order_num);
-				$output .= RefundPolicyText();
-
-				return $output;
+				return $payment;
 			}
 		}
 
@@ -762,61 +829,43 @@ class EventView extends Handler
 										$this->event->registration_id));
 		if ($prereg == 0)
 		{
-			$currentTime = date ('Y-m-d H:i:s', time() + 3 * 60 * 60);
+			$currentTime = date ('Y-m-d H:i:s', time());
 
 			// Admins can test registration before it opens...
 			if (! $lr_session->is_admin())
 			{
 				if ($this->event->open_timestamp > time()) {
-					return para('This event is not yet open for registration.');
+					// Preregistrations might allow that there is a payment-
+					// pending registration already done, so we allow for
+					// payment to be made anyway.
+					return para('This event is not yet open for registration.') . $payment;
 				}
 			}
 			if (time() > $this->event->close_timestamp) {
-				return para('Registration for this event has closed.');
+				// There may be a payment-pending registration already done,
+				// so we allow for payment to be made.
+				return para('Registration for this event has closed.') . $payment;
 			}
-		}
-
-		// Check if this event is already full
-		if ($this->event->cap_female == -2)
-		{
-			$applicable_cap = $this->event->cap_male;
-			$where = '';
-		}
-		else
-		{
-			$applicable_cap = ( $lr_session->user->gender == 'Male' ?
-									$this->event->cap_male :
-									$this->event->cap_female );
-			$where = " AND p.gender = '" . $lr_session->user->gender . "'";
 		}
 
 		// 0 means that nobody of this gender is allowed
 		if ( $applicable_cap == 0 )
 		{
+			// No way for a payment-pending registration to have been done.
 			return para( 'This event is for the opposite gender only.' );
 		}
 
 		// -1 means there is no cap, so don't even check the database
 		else if ( $applicable_cap > 0 )
 		{
-			$registered_count = db_result( db_query(
-									'SELECT
-										COUNT(order_id)
-									FROM
-										registrations r
-									LEFT JOIN
-										person p
-									ON
-										r.user_id = p.user_id
-									WHERE
-										registration_id = %d' . $where,
-									$this->event->registration_id ) );
-
+			// Check if this event is already full
 			if ( $registered_count >= $applicable_cap )
 			{
 				// TODO: Allow people to put themselves on a waiting list
 				$output .= para( 'This event is already full.  You may email <a href="mailto:gm@tuc.org">gm@tuc.org</a> or phone the head office to be put on a waiting list in case others drop out.' );
-				return $output;
+				// There may be a payment-pending registration already done,
+				// if multiples are allowed, so we allow for payment to be made.
+				return $output . $payment;
 			}
 		}
 
@@ -824,6 +873,7 @@ class EventView extends Handler
 		$result = $this->query_prereqs(0);
 		while( $prereq = db_fetch_object( $result ) ) {
 			$output .= para("You may not register for this because you have previously registered for $prereq->name.", array('class' => 'closed'));
+			// No way for a payment-pending registration to have been done.
 			return $output;
 		}
 
@@ -847,8 +897,10 @@ class EventView extends Handler
 		{
 			// Check if the user has registered for any prerequisite event
 			$result = $this->query_prereqs(1);
-			while( $prereq = db_fetch_object( $result ) ) {
-				if( $prereq->paid ) {
+			while( $prereq = db_fetch_object( $result ) )
+			{
+				if( is_paid ($prereq) )
+				{
 					$output .= para("You may register for this because you have previously registered for $prereq->name.", array('class' => 'open'));
 					$can_register = true;
 				}
@@ -858,10 +910,13 @@ class EventView extends Handler
 		if ($can_register)
 		{
 			$output .= para(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)));
-			return $output;
+			// There may be a payment-pending registration already done,
+			// if multiples are allowed, so we allow for payment to be made.
+			return $output . $payment;
 		}
 
 		// If we get here, they are missing something...
+		// No way for a payment-pending registration to have been done.
 		return para('You may not register for this event until you have registered and paid for one of the prerequisites listed above.', array('class' => 'closed'));
 	}
 
@@ -869,7 +924,7 @@ class EventView extends Handler
 	{
 		global $lr_session;
 
-		return db_query("SELECT time, paid, name
+		return db_query('SELECT time, payment, name
 								FROM registrations r
 									LEFT JOIN registration_events e
 									ON r.registration_id = e.registration_id
@@ -880,11 +935,29 @@ class EventView extends Handler
 									FROM registration_prereq
 									WHERE registration_id = %d
 									AND is_prereq = %d
-									)",
+									)
+								AND payment != "Refunded"
+							',
 			$lr_session->user->user_id,
 			$this->event->registration_id,
 			$is_prereq);
 	}
+}
+
+// These functions tell whether a registration record is considered to be paid,
+// and whether it can still be paid.  They are not necessarily exclusive; if
+// tentative registrations are allowed, then a record can be considered both
+// paid (for the purposes of allowing further registrations) but also unpaid
+// (for the purposes of deciding whether to allow the user to pay for it).
+function is_paid ($record)
+{
+	return( $record->payment == 'Paid' || 
+		( variable_get('allow_tentative', 0) && $record->payment == 'Pending' ) );
+}
+
+function is_unpaid ($record)
+{
+	return( $record->payment == 'Unpaid' || $record->payment == 'Pending' );
 }
 
 ?>
