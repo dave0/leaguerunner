@@ -19,7 +19,6 @@ class Person extends LeaguerunnerObject
 
 	function load_from_query_result ( $array = array() )
 	{
-
 		$this->_in_database = true;
 
 		foreach ($array as $key => $value) {
@@ -41,14 +40,21 @@ class Person extends LeaguerunnerObject
 				r.team_id,
 				t.name,
 				l.league_id,
-				IF(l.tier,CONCAT_WS(' ',l.name,'Tier',l.tier),l.name) as league_name
+				IF(l.tier,CONCAT_WS(' ',l.name,'Tier',l.tier),l.name) AS league_name,
+				l.year,
+				l.season,
+				l.day,
+				l.status AS league_status
 			FROM 
 				teamroster r 
 				INNER JOIN team t ON (r.team_id = t.team_id)
 				INNER JOIN leagueteams lt ON (lt.team_id = t.team_id)
 				INNER JOIN league l ON (lt.league_id = l.league_id)
 			WHERE 
-				r.player_id = %d", $this->user_id);
+				r.player_id = %d
+			ORDER BY
+				l.year DESC, l.season DESC, l.day
+			", $this->user_id);
 
 		$this->teams = array();
 		while($team = db_fetch_object($result)) {
@@ -56,8 +62,13 @@ class Person extends LeaguerunnerObject
 				# TODO: evil hack.
 				$this->is_a_captain = true;
 			}
-			$this->teams[ $team->team_id ] = $team;
-			$this->teams[ $team->team_id ]->id = $team->team_id;
+			if($team->league_status == 'closed') {
+				$this->historical_teams[ $team->team_id ] = $team;
+				$this->historical_teams[ $team->team_id ]->id = $team->team_id;
+			} else {
+				$this->teams[ $team->team_id ] = $team;
+				$this->teams[ $team->team_id ]->id = $team->team_id;
+			}
 		}
 
 		/* Fetch league info.  Can't use league_load as it calls person_load,
@@ -69,13 +80,19 @@ class Person extends LeaguerunnerObject
 				l.name,
 				l.tier,
 				l.year,
+				l.season,
+				l.day,
 				l.schedule_type,
+				l.status AS league_status,
 				m.status
 			 FROM 
 			 	leaguemembers m 
 				INNER JOIN league l ON (m.league_id = l.league_id)
-			 WHERE m.status = 'coordinator' AND m.player_id = %d
-			 ORDER BY l.season, l.name, l.tier", $this->user_id);
+			 WHERE
+				m.status = 'coordinator'
+			 AND
+				m.player_id = %d
+			 ORDER BY l.year, l.season, l.day, l.name, l.tier", $this->user_id);
 		$this->leagues = array();
 		while($league = db_fetch_object($result)) {
 			# TODO: evil hack.
@@ -90,7 +107,11 @@ class Person extends LeaguerunnerObject
 			} else {
 				$league->fullname = "$league->name $year";
 			}
-			$this->leagues[ $league->league_id ] = $league;
+			if($league->league_status == 'closed') {
+				$this->historical_leagues[ $league->league_id ] = $league;
+			} else {
+				$this->leagues[ $league->league_id ] = $league;
+			}
 		}
 
 		/* Evil hack to get 'Inactive Teams' into menu */
@@ -197,13 +218,21 @@ class Person extends LeaguerunnerObject
 			error_exit("Account cannot be deleted while player is a league coordinator.");
 		}
 
+		/* Don't remove users that have registration records, for
+		 * accounting purposes.
+		 */
+		$reg = db_result (db_query ('SELECT COUNT(*) FROM registrations WHERE user_id = %d', $this->user_id) );
+		if ( $reg > 0 ) {
+			error_exit("Account cannot be deleted while player has registration records.");
+		}
+
 		/* remove user from team rosters.  Don't check for affected
 		 * rows, as there may not be any
 		 */
-		db_query("DELETE from teamroster WHERE player_id = %d",$this->user_id);
+		db_query('DELETE from teamroster WHERE player_id = %d', $this->user_id);
 
 		/* remove user account */
-		db_query("DELETE from person WHERE user_id = %d", $this->user_id);
+		db_query('DELETE from person WHERE user_id = %d', $this->user_id);
 
 		return (1 == db_affected_rows());
 	}
@@ -309,8 +338,29 @@ class Person extends LeaguerunnerObject
 		return true;
 	}
 
+	function is_active()
+	{
+		if( $this->status == 'active' ) {
+			return true;
+		}
+
+		// New users may be treated as active, if the right setting is on
+		if( $this->status == 'new' && variable_get('allow_tentative', 0) ) {
+			$result = duplicate_user_query ($this->user_id);
+			if(db_num_rows($result) == 0) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	function is_captain_of ($team_id)
 	{
+		// We intentionally don't want to check $this->historical_teams;
+		// this is an easy way to make sure that nobody but admins has
+		// permission to edit or view anything personal about historical
+		// teams.
 		if( ! array_key_exists($team_id, $this->teams) ) {
 			return false;
 		}
@@ -325,6 +375,10 @@ class Person extends LeaguerunnerObject
 
 	function is_player_on ($team_id)
 	{
+		// We intentionally don't want to check $this->historical_teams;
+		// this is an easy way to make sure that nobody but admins has
+		// permission to edit or view anything personal about historical
+		// teams.
 		if( ! array_key_exists($team_id, $this->teams) ) {
 			return false;
 		}
@@ -348,6 +402,9 @@ class Person extends LeaguerunnerObject
 			return true;
 		}
 
+		// We intentionally don't want to check $this->historical_leagues;
+		// this is an easy way to make sure that nobody but admins has
+		// permission to edit anything about historical leagues.
 		if( array_key_exists($league_id, $this->leagues) ) {
 			return true;
 		}
@@ -432,6 +489,50 @@ function person_load_many( $array = array() )
 		if( $g->load_from_query_result( $ary ) ) {
 			$result[$g->user_id] = $g;
 		}
+	}
+
+	return $result;
+}
+
+function duplicate_user_query ($user_id)
+{
+	/* Check to see if there are any duplicate users */
+	if( variable_get('postnuke', 0)) {
+		$result = db_query("SELECT
+			p.user_id,
+			p.firstname,
+			p.lastname
+			FROM person p, person q 
+			LEFT JOIN nuke_users np ON np.pn_uid = p.user_id
+			LEFT JOIN nuke_users nq ON nq.pn_uid = q.user_id
+			WHERE q.user_id = %d
+				AND p.gender = q.gender
+				AND p.user_id <> q.user_id
+				AND (
+					np.pn_email = nq.pn_email
+					OR p.home_phone = q.home_phone
+					OR p.work_phone = q.work_phone
+					OR p.mobile_phone = q.mobile_phone
+					OR p.addr_street = q.addr_street
+					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+				)", $user_id);
+	} else {
+		$result = db_query("SELECT
+			p.user_id,
+			p.firstname,
+			p.lastname
+			FROM person p, person q 
+			WHERE q.user_id = %d
+				AND p.gender = q.gender
+				AND p.user_id <> q.user_id
+				AND (
+					p.email = q.email
+					OR p.home_phone = q.home_phone
+					OR p.work_phone = q.work_phone
+					OR p.mobile_phone = q.mobile_phone
+					OR p.addr_street = q.addr_street
+					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+				)", $user_id);
 	}
 
 	return $result;
