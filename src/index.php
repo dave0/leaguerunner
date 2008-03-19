@@ -34,12 +34,14 @@ require_once("includes/compatibility.inc");
  */
 $phpCode = file_get_contents("./leaguerunner.conf");
 eval($phpCode);
+putenv($LOCAL_TZ);
 
 require_once("includes/common.inc");
 require_once("includes/module.inc");
 require_once("includes/menu.inc");
 require_once("includes/theme.inc");
 require_once("includes/database.inc");
+require_once("includes/mail/php.inc");
 
 // Initialise configuration variables
 $conf = variable_init();
