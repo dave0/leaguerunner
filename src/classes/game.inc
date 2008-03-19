@@ -164,9 +164,19 @@ class Game extends LeaguerunnerObject
             if ( $oldgameresults['home_score'] > $oldgameresults['away_score'] ) {
                if ($this->home_score <= $this->away_score) {
                   // need to put home team rank back...
-                  $pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->home_team);
+						$pyramidResult = db_query("
+							SELECT *
+							FROM leagueteams
+							WHERE league_id = %d
+							AND team_id = %d",
+							$league->league_id, $this->home_team);
 			         $row = db_fetch_array( $pyramidResult );
-                  db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank']+1, $league->league_id, $this->home_team);
+						db_query("
+							UPDATE leagueteams
+							SET rank = %d
+							WHERE league_id = %d
+							AND team_id = %d",
+							$row['rank']+1, $league->league_id, $this->home_team);
                } else {
                   // nothing to do because this is still a home win.
                   return true;
@@ -174,9 +184,19 @@ class Game extends LeaguerunnerObject
             } else if ( $oldgameresults['home_score'] < $oldgameresults['away_score'] ) {
                if ($this->home_score >= $this->away_score) {
                   // if it used to be an away win but not anymore...
-                  $pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->away_team);
+						$pyramidResult = db_query("
+							SELECT *
+							FROM leagueteams
+							WHERE league_id = %d
+							AND team_id = %d",
+							$league->league_id, $this->away_team);
 			         $row = db_fetch_array( $pyramidResult );
-                  db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank']+1, $league->league_id, $this->away_team);
+						db_query("
+							UPDATE leagueteams
+							SET rank = %d
+							WHERE league_id = %d
+							AND team_id = %d",
+							$row['rank']+1, $league->league_id, $this->away_team);
                } else {
                   // nothing to do because this is still an away win.
                   return true;
@@ -408,6 +428,7 @@ class Game extends LeaguerunnerObject
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 		} else if ( !$home_entry && !$away_entry ) {
 # TODO: don't do automatic forfeit yet.  Make it per-tier configurable
+			return false;
 #			$this->set('status', 'forfeit');
 #			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
 #			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
@@ -437,6 +458,100 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 	
+	/*
+	 * Send any required reminders to captains about unscored games.
+	 */
+	function remind()
+	{
+		if( $this->is_finalized() ) {
+			return false;
+		}
+
+		$ret = $this->remind_team( $this->home_team, $this->home_name, $this->away_name ) |
+				$this->remind_team( $this->away_team, $this->away_name, $this->home_name );
+
+		return $ret;
+	}
+
+	function remind_team($team_id, $team_name, $opponent)
+	{
+		if( array_key_exists($team_id, $this->_score_entries) ) {
+			return false;
+		}
+
+		$sent = db_result(db_query("
+			SELECT COUNT(*)
+			FROM
+				score_reminder
+			WHERE game_id = %d
+			AND team_id = %d",
+			$this->game_id, $team_id));
+		if( $sent ) {
+			return false;
+		}
+
+		if( variable_get('postnuke', 0)) {
+			$result = db_query("
+				SELECT
+					CONCAT(p.firstname, ' ', p.lastname) as fullname,
+					n.pn_email as email,
+					r.status
+				FROM teamroster r
+				LEFT JOIN person p ON r.player_id = p.user_id
+				LEFT JOIN nuke_users n ON r.player_id = n.pn_uid
+				WHERE team_id = %d
+				AND (r.status = 'captain' OR r.status = 'assistant')",
+				$team_id);
+		} else {
+			$result = db_query("
+				SELECT
+					CONCAT(p.firstname, ' ', p.lastname) as fullname,
+					email,
+					r.status
+				FROM teamroster r
+				LEFT JOIN person p ON r.player_id = p.user_id
+				WHERE team_id = %d
+				AND r.status = 'captain' OR r.status = 'assistant'",
+				$team_id);
+		}
+
+		$to_addr = $to_name = $cc_addr = $cc_name = array();
+		while( $row = db_fetch_object( $result ) ) {
+			if( $row->status == 'captain' ) {
+				$to_addr[] = $row->email;
+				$to_name[] = $row->fullname;
+			} else {
+				$cc_addr[] = $row->email;
+				$cc_name[] = $row->fullname;
+			}
+		}
+
+		$variables = array(
+			'%fullname' => join(',', $to_name),
+			'%team' => $team_name,
+			'%opponent' => $opponent,
+			'%league' => $this->league_name,
+			'%gamedate' => $this->game_date,
+			'%scoreurl' => "http://www.tuc.org/page.php?url=/leaguerunner/game/submitscore/{$this->game_id}/$team_id",
+			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
+			'%site' => variable_get('app_name','Leaguerunner'));
+		$message = _person_mail_text('score_reminder_body', $variables);
+
+		if (!send_mail($to_addr, $to_name,
+			false, false, // from the administrator
+			$cc_addr, $cc_name,
+			_person_mail_text('score_reminder_subject', $variables),
+			$message))
+		{
+			return false;
+		}
+
+		db_query("INSERT into score_reminder (game_id, team_id) VALUES(%d,%d)",
+			$this->game_id, $team_id);
+
+		return true;
+	}
+
 	function save ()
 	{
 		if(! count($this->_modified_fields)) {
@@ -872,7 +987,7 @@ class Game extends LeaguerunnerObject
 		$spirit = 10;
 		while( list($qkey, $answer) = each($entry) ) {
 			// if any of the answers are blank, they'll all be blank, so just return -1 to indicate it
-			if ($answer == null || $answer == "") {
+			if ($qkey != "CommentsToCoordinator" && ($answer == null || $answer == "")) {
 				return -1;
 			}
 			$result = db_query("SELECT value from multiplechoice_answers WHERE qkey = '%s' AND akey = '%s'", $qkey, $answer);
@@ -1051,7 +1166,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function home_expected_win()
 	{
-		return $this->calculate_expected_win ($this->home_rating, $this->away_rating);
+		return $this->calculate_expected_win ($this->rating_home, $this->rating_away);
 	}
 	
 	/**
@@ -1307,7 +1422,7 @@ class Game extends LeaguerunnerObject
 		return array(true,'');;
 	}
 	
-	function get_ratings_table ( $home_rating, $away_rating, $whatif ) {
+	function get_ratings_table ( $rating_home, $rating_away, $whatif ) {
 		/* Build up header & rows*/
 		$header = array( array('data' => '&nbsp') );
 		$rows = array( );
@@ -1324,16 +1439,16 @@ class Game extends LeaguerunnerObject
 				if ($h > $a) {
 					// home win
 					$elo_change = $this->calculate_elo_change($h, $a, 
-						$this->calculate_expected_win($home_rating, $away_rating));
+						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $elo_change, 'title'=>"'$home' wins $h to $a, takes $elo_change rating points from '$away'", 'class'=>"highlight");
 				} else if ($h == $a) {
 					// treat as a home win
 					$elo_change = $this->calculate_elo_change($h, $a, 
-						$this->calculate_expected_win($home_rating, $away_rating));
+						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $elo_change, 'title'=>"Tie $h to $a, '$home' takes $elo_change rating points from '$away'", 'class'=>"highlight");
 				} else {
 					$elo_change = $this->calculate_elo_change($a, $h, 
-						$this->calculate_expected_win($away_rating, $home_rating));
+						$this->calculate_expected_win($rating_away, $rating_home));
 					$current_row[] = array('data' => $elo_change, 'title'=>"'$away' wins $a to $h, takes $elo_change rating points from '$home'");
 				}
 			}
@@ -1344,10 +1459,10 @@ class Game extends LeaguerunnerObject
 			// what if teams had different ratings?
 			$output2 = para("&nbsp;");
 			$output2 .= para("What if the teams had different ratings?  Check it here:");
-			$output2 .= para("<form name='whatif'>$home <input type='text' size=5 name='home_rating' value='$home_rating'><br>" .
-					"$away <input type='text' size=5 name='away_rating' value='$away_rating'><br>" .
+			$output2 .= para("<form name='whatif'>$home <input type='text' size=5 name='rating_home' value='$rating_home'><br>" .
+					"$away <input type='text' size=5 name='rating_away' value='$rating_away'><br>" .
 					"<input type=button value='What If?' onclick='window.location=\"/leaguerunner/game/ratings/" . $this->game_id .
-					"/\"+document.whatif.home_rating.value+\"/\"+document.whatif.away_rating.value'");
+					"/\"+document.whatif.rating_home.value+\"/\"+document.whatif.rating_away.value'");
 			
 		}
 		return "<div class='listtable'>" . table($header, $rows, array('border'=>1)) . "</div>" . $output2;
@@ -1356,6 +1471,7 @@ class Game extends LeaguerunnerObject
 
 function game_query ( $array = array() )
 {
+	global $TZ_ADJUST;
 
 	$order = '';
 	$tables = array( 'schedule s');
@@ -1365,10 +1481,10 @@ function game_query ( $array = array() )
 				$query[] = "g.game_date = '" . check_query($value) . "'";
 				break;
 			case 'game_date_past':
-				$query[] = "UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) < UNIX_TIMESTAMP(NOW())";
+				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'game_date_future':
-				$query[] = "UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) > UNIX_TIMESTAMP(NOW())";
+				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) > UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'either_team':
 				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';
@@ -1396,10 +1512,10 @@ function game_query ( $array = array() )
 		IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
 		s.home_team AS home_id,
 		h.name AS home_name, 
-		h.rating AS home_rating,
+		h.rating AS rating_home,
 		s.away_team AS away_id,
 		a.name AS away_name,
-		a.rating AS away_rating,
+		a.rating AS rating_away,
 		g.slot_id,
 		g.game_date,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
@@ -1407,7 +1523,7 @@ function game_query ( $array = array() )
 		g.fid,
 		UNIX_TIMESTAMP(g.game_date) as day_id,
 		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
-		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) as timestamp
+		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60) as timestamp
 	FROM " . join(',', $tables) . 
 		" INNER JOIN league l ON (l.league_id = s.league_id)
 		LEFT JOIN gameslot g ON (g.game_id = s.game_id)
