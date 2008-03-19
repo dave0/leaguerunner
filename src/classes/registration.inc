@@ -69,49 +69,6 @@ class Registration extends LeaguerunnerObject
 		return true;
 	}
 
-	function refund()
-	{
-		db_query( 'INSERT INTO
-						refunds
-					SELECT
-						*
-					FROM
-						registrations
-					WHERE
-						order_id = %d',
-					$this->order_id );
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-
-		db_query( 'DELETE FROM
-						registrations
-					WHERE
-						order_id = %d',
-					$this->order_id );
-		if( 1 != db_affected_rows() ) {
-			return false;
-		}
-
-		db_query( 'INSERT INTO
-						refund_answers
-					SELECT
-						*
-					FROM
-						registration_answers
-					WHERE
-						order_id = %d',
-					$this->order_id );
-
-		db_query( 'DELETE FROM
-						registration_answers
-					WHERE
-						order_id = %d',
-					$this->order_id );
-
-		return para('Registration successfully moved to the refund table.');
-	}
-
 	function create ()
 	{
 		if( $this->_in_database ) {
@@ -123,8 +80,8 @@ class Registration extends LeaguerunnerObject
 		}
 
 		db_query('INSERT
-					INTO registrations (user_id, registration_id)
-					VALUES (%d, %d)',
+					INTO registrations (user_id, registration_id, time)
+					VALUES (%d, %d, NOW())',
 				$this->user_id,
 				$this->registration_id);
 
