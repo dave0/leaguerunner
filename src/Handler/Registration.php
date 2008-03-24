@@ -185,22 +185,26 @@ class RegistrationView extends Handler
 		$userrows[] = array ('Notes', $this->registration->notes);
 		$output = form_group('Registration details', '<div class="pairtable">' . table(NULL, $userrows) . '</div>');
 
-		// Get registration answers/preferences
-		$result = db_query('SELECT
-								qkey, akey
-							FROM
-								registration_answers
-							WHERE
-								order_id = %d',
-							$this->registration->order_id);
+		$anonymous = db_result( db_query( 'SELECT anonymous FROM registration_events WHERE registration_id = %d', $this->registration->registration_id ) );
+		if( ! $anonymous )
+		{
+			// Get registration answers/preferences
+			$result = db_query('SELECT
+									qkey, akey
+								FROM
+									registration_answers
+								WHERE
+									order_id = %d',
+								$this->registration->order_id);
 
-		$prefrows = array();
-		if(0 != db_num_rows($result)) {
+			$prefrows = array();
+			if(0 != db_num_rows($result)) {
 
-			while($row = db_fetch_array($result)) {
-				$prefrows[] = $row;
+				while($row = db_fetch_array($result)) {
+					$prefrows[] = $row;
+				}
+				$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
 			}
-			$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
 		}
 
 		// Get payment audit information, if available
@@ -1087,11 +1091,18 @@ function registration_statistics($args)
 	$level = arg(2);
 	global $TZ_ADJUST;
 
-	if (!$level)
+	if (!$level || $level == 'past')
 	{
+		if( $level == 'past' ) {
+			$year = arg(3);
+		} else {
+			$year = 'YEAR(NOW())';
+		}
+
 		$result = db_query('SELECT
 								r.registration_id,
-								name,
+								e.name,
+								e.type,
 								COUNT(*)
 							FROM
 								registrations r
@@ -1101,17 +1112,46 @@ function registration_statistics($args)
 								r.registration_id = e.registration_id
 							WHERE
 								r.payment != "Refunded"
+							AND
+								(
+									YEAR(e.open) = %s
+								OR
+									YEAR(e.close) = %s
+								)
 							GROUP BY
 								r.registration_id
 							ORDER BY
-								e.open DESC, r.registration_id');
+								e.type, e.open DESC, e.close DESC, r.registration_id',
+							$year, $year);
+
+		$type_desc = array('membership' => 'Membership Registrations',
+							'individual_event' => 'One-time Individual Event Registrations',
+							'team_event' => 'One-time Team Event Registrations',
+							'individual_league' => 'Individual Registrations (for players without a team)',
+							'team_league' => 'Team Registrations');
+		$last_type = '';
 		$rows = array();
+
 		while($row = db_fetch_array($result)) {
+			if ($row['type'] != $last_type) {
+				$rows[] = array( array('colspan' => 4, 'data' => h2($type_desc[$row['type']])));
+				$last_type = $row['type'];
+			}
 			$rows[] = array( l($row['name'], "statistics/registration/summary/${row['registration_id']}"),
 							$row['COUNT(*)'] );
 		}
 
 		$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
+
+		$first_year = db_result( db_query( 'SELECT YEAR(MIN(open)) FROM registration_events' ) );
+		$current_year = date('Y');
+		if( $first_year != $current_year ) {
+			$output .= '<p><p>Historical data:';
+			for( $year = $first_year; $year <= $current_year; ++ $year ) {
+				$output .= ' ' . l($year, "statistics/registration/past/$year");
+			}
+		}
+
 		return form_group('Registrations by event', $output);
 	}
 	else
@@ -1226,11 +1266,14 @@ function registration_statistics($args)
 			{
 				$output .= "<div class='pairtable'>" . table(NULL, $rows) . "</div>";
 
+				$opts = array(
+					l('See detailed registration list', "statistics/registration/users/$id/1"),
+					l('download detailed registration list', "statistics/registration/list/$id"),
+				);
 				if( $event->anonymous ) {
-					$output .= para( l('Download detailed registration list as CSV', "statistics/registration/csv/$id") );
-				} else {
-					$output .= para( l('See detailed registration list', "statistics/registration/users/$id/1") . ' or ' . l('download detailed registration list as CSV', "statistics/registration/csv/$id") );
+					$opts[] = l('download survey results', "statistics/registration/survey/$id");
 				}
+				$output .= para( join( ' or ', $opts ) );
 			}
 
 			return form_group('Summary of registrations', $output);
@@ -1249,10 +1292,6 @@ function registration_statistics($args)
 			if (! $event )
 			{
 				return para( "Unknown event ID $id" );
-			}
-			if ( $event->anonymous )
-			{
-				return para( "Cannot view detailed registration list for anonymous event $id" );
 			}
 			$output = h2('Event: ' .
 							l($event->name, "event/view/$id"));
@@ -1323,7 +1362,7 @@ function registration_statistics($args)
 			return form_group('Registrations by user', $output);
 		}
 
-		else if ($level == 'csv')
+		else if ($level == 'list')
 		{
 			$id = arg(3);
 
@@ -1332,36 +1371,34 @@ function registration_statistics($args)
 			{
 				return para( "Unknown event ID $id" );
 			}
-			$formkey = 'registration_' . $id;
-			$formbuilder = new FormBuilder;
-			$formbuilder->load($formkey);
-			AddAutoQuestions( $formbuilder, $event->type );
-
 			if( ! $event->anonymous ) {
-				$data = array( 'User ID',
-								'Member ID',
-								'First Name',
-								'Last Name',
-								'Email Address',
-								'Address',
-								'City',
-								'Province',
-								'Postal Code',
-								'Home Phone',
-								'Work Phone',
-								'Mobile Phone',
-								'Gender',
-								'Birthdate',
-								'Height',
-								'Skill Level',
-								'Shirt Size',
-								'Order ID',
-								'Created Date',
-								'Modified Date',
-								'Payment' );
-			} else {
-				$data = array();
+				$formkey = 'registration_' . $id;
+				$formbuilder = new FormBuilder;
+				$formbuilder->load($formkey);
+				AddAutoQuestions( $formbuilder, $event->type );
 			}
+
+			$data = array( 'User ID',
+							'Member ID',
+							'First Name',
+							'Last Name',
+							'Email Address',
+							'Address',
+							'City',
+							'Province',
+							'Postal Code',
+							'Home Phone',
+							'Work Phone',
+							'Mobile Phone',
+							'Gender',
+							'Birthdate',
+							'Height',
+							'Skill Level',
+							'Shirt Size',
+							'Order ID',
+							'Created Date',
+							'Modified Date',
+							'Payment' );
 
 			if( $formbuilder )
 			{
@@ -1371,13 +1408,7 @@ function registration_statistics($args)
 				}
 			}
 
-			if( ! $event->anonymous ) {
-				$data[] = 'Notes';
-			}
-
-			if( empty( $data ) ) {
-				return para( 'No details available for download.' );
-			}
+			$data[] = 'Notes';
 
 			// Start the output, let the browser know what type it is
 			header('Content-type: text/x-csv');
@@ -1414,31 +1445,27 @@ function registration_statistics($args)
 			while($row = db_fetch_array($result)) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
-				if( ! $event->anonymous ) {
-					$data = array( $row['user_id'],
-									$row['member_id'],
-									$row['firstname'],
-									$row['lastname'],
-									$row['pn_email'],
-									$row['addr_street'],
-									$row['addr_city'],
-									$row['addr_prov'],
-									$row['addr_postalcode'],
-									$row['home_phone'],
-									$row['work_phone'],
-									$row['mobile_phone'],
-									$row['gender'],
-									$row['birthdate'],
-									$row['height'],
-									$row['skill_level'],
-									$row['shirtsize'],
-									$order_id,
-									$row['time'],
-									$row['modified'],
-									$row['payment'] );
-				} else {
-					$data = array();
-				}
+				$data = array( $row['user_id'],
+								$row['member_id'],
+								$row['firstname'],
+								$row['lastname'],
+								$row['pn_email'],
+								$row['addr_street'],
+								$row['addr_city'],
+								$row['addr_prov'],
+								$row['addr_postalcode'],
+								$row['home_phone'],
+								$row['work_phone'],
+								$row['mobile_phone'],
+								$row['gender'],
+								$row['birthdate'],
+								$row['height'],
+								$row['skill_level'],
+								$row['shirtsize'],
+								$order_id,
+								$row['time'],
+								$row['modified'],
+								$row['payment'] );
 
 				// Add all of the answers
 				if( $formbuilder )
@@ -1458,8 +1485,82 @@ function registration_statistics($args)
 					}
 				}
 
-				if( ! $event->anonymous ) {
-					$data[] = $row['notes'];
+				$data[] = $row['notes'];
+
+				// Output the data row
+				fputcsv($out, $data);
+			}
+
+			fclose($out);
+
+			// Returning would cause the Leaguerunner menus to be added
+			exit;
+		}
+
+		else if ($level == 'survey')
+		{
+			$id = arg(3);
+
+			$event = event_load( array('registration_id' => $id) );
+			if (! $event )
+			{
+				return para( "Unknown event ID $id" );
+			}
+			$formkey = 'registration_' . $id;
+			$formbuilder = new FormBuilder;
+			$formbuilder->load($formkey);
+			AddAutoQuestions( $formbuilder, $event->type );
+
+			$data = array();
+
+			if( $formbuilder )
+			{
+				foreach ($formbuilder->_questions as $question)
+				{
+					$data[] = $question->qkey;
+				}
+			}
+
+			if( empty( $data ) ) {
+				return para( 'No details available for download.' );
+			}
+
+			// Start the output, let the browser know what type it is
+			header('Content-type: text/x-csv');
+			header("Content-Disposition: attachment; filename=\"{$event->name}_survey.csv\"");
+			$out = fopen('php://output', 'w');
+			fputcsv($out, $data);
+
+			$result = db_query('SELECT
+									order_id
+								FROM
+									registrations r
+								WHERE
+									r.registration_id = %d
+								ORDER BY
+									order_id',
+								$id);
+
+			while($row = db_fetch_array($result)) {
+				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
+				$data = array();
+
+				// Add all of the answers
+				if( $formbuilder )
+				{
+					foreach ($formbuilder->_questions as $question)
+					{
+						$data[] = db_result (db_query("SELECT
+												akey
+											FROM
+												registration_answers
+											WHERE
+												order_id = %d
+											AND
+												qkey = '%s'",
+											$row['order_id'],
+											$question->qkey));
+					}
 				}
 
 				// Output the data row
