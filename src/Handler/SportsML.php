@@ -96,8 +96,16 @@ xml version="1.0" encoding="ISO-8859-1"?>
 <?php
 		while(list(,$id) = each($order) ) {
 			$team = &$season[$id];
-			if( ! $team->rank ) {
-				$team->rank = ++$rank;
+
+			switch( $this->league->schedule_type ) {
+				case 'ratings_ladder':
+					$team->rank = $team->rating;
+					break;
+				case 'pyramid':
+					# Pyramid uses rank
+					break;
+				default:
+					$team->rank = ++$rank;
 			}
 ?>
     <team>
@@ -107,7 +115,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
         <team-stats standing-points="<?php print (2 * $team->win) + $team->tie ?>">
             <outcome-totals wins="<?php print $team->win ?>" losses="<?php print $team->loss ?>" ties="<?php print $team->tie ?>" points-scored-for="<?php print $team->points_for ?>" points-scored-against="<?php print $team->points_against ?>" />
             <team-stats-ultimate>
-                <stats-ultimate-spirit value="<?php if( $team->games > 3 ) { printf("%.2f", ($team->spirit / $team->games)); } ?>" />
+                <stats-ultimate-spirit value="<?php if( $team->games > 3 ) { printf("%.2f", calculateAverageSOTG($team->spirit)); } ?>" />
                 <stats-ultimate-miscellaneous defaults="<?php print $team->defaults_against ?>" plusminus="<?php print $team->points_for - $team->points_against ?>" />
             </team-stats-ultimate>
             <rank competition-scope="tier" value="<? print $team->rank ?>" />
