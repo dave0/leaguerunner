@@ -313,10 +313,6 @@ class PersonView extends Handler
 					$person->addr_postalcode
 				)
 			);
-			if($person->ward_number) {
-				$rows[] = array('Ward:', 
-					l("$person->ward_name ($person->ward_city Ward $person->ward_number)","ward/view/$person->ward_id"));
-			}
 		}
 
 		if($lr_session->has_permission('person','view',$person->user_id, 'birthdate')) {
@@ -681,7 +677,6 @@ class PersonApproveNewAccount extends PersonView
 				$existing->set('addr_city', $this->person->addr_city);
 				$existing->set('addr_prov', $this->person->addr_prov);
 				$existing->set('addr_postalcode', $this->person->addr_postalcode);
-				$existing->set('ward_id', $this->person->ward_id);
 				$existing->set('gender', $this->person->gender);
 				$existing->set('birthdate', $this->person->birthdate);
 				$existing->set('height', $this->person->height);

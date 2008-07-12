@@ -24,7 +24,6 @@ class Field extends LeaguerunnerObject
 			$this->name = $parent->name;
 			$this->code = $parent->code;
 			$this->region = $parent->region;
-			$this->ward_id = $parent->ward_id;
 			
 			$this->location_street = $parent->location_street;
 			$this->location_city = $parent->location_city;

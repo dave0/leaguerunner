@@ -220,12 +220,6 @@ class FieldEdit extends Handler
 			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
 			$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
 
-			if( variable_get('wards', '1') ) {
-				$output .= form_select("City Ward", 'edit[ward_id]', $data['ward_id'],
-					getOptionsFromQuery("SELECT ward_id as theKey, CONCAT(name, ' (', city, ' Ward ', num, ')') as theValue FROM ward ORDER BY ward_id"),
-					"Official city ward this field is located in");
-			}
-
 			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
 			$output .= form_textfield("Layout Map", 'edit[layout_url]', $data['layout_url'], 50, 255, "URL for image that shows how to set up fields at the site");
@@ -268,11 +262,6 @@ class FieldEdit extends Handler
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
 			$rows[] = array("Parent&nbsp;Field:", form_hidden('edit[parent_fid]', $edit['parent_fid']) . $parent->fullname);
 		} else {
-			if( variable_get('wards', '1') ) {
-				$ward = ward_load( array('ward_id' => $edit['ward_id']) );
-			} else {
-				$ward = 0;
-			}
 
 			$rows = array();
 			$rows[] = array( "Name:", form_hidden('edit[name]', $edit['name']) . check_form($edit['name']));
@@ -288,9 +277,6 @@ class FieldEdit extends Handler
 			$rows[] = array( "Latitude:", form_hidden('edit[latitude]', $edit['latitude']) . check_form($edit['latitude']));
 			$rows[] = array( "Longitude:", form_hidden('edit[longitude]', $edit['longitude']) . check_form($edit['longitude']));
 
-			if( variable_get('wards', '1') ) {
-				$rows[] = array( "City&nbsp;Ward:", form_hidden('edit[ward_id]', $edit['ward_id']) .  "$ward->name ($ward->city Ward $ward->num)");
-			}
 			$rows[] = array( "Location&nbsp;Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout&nbsp;Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
 			$rows[] = array( "Driving Directions:", form_hidden('edit[driving_directions]', $edit['driving_directions']) . check_form($edit['driving_directions']));
@@ -335,7 +321,6 @@ class FieldEdit extends Handler
 			$field->set('longitude', $edit['longitude']);
 
 			$field->set('region', $edit['region']);
-			$field->set('ward_id', $edit['ward_id']);
 			$field->set('location_url', $edit['location_url']);
 			$field->set('layout_url', $edit['layout_url']);
 			$field->set('driving_directions', $edit['driving_directions']);
@@ -381,12 +366,6 @@ class FieldEdit extends Handler
 		}
 		if( !validate_nonhtml($edit['code'] ) ) {
 			$errors .= "<li>Code cannot be left blank and cannot contain HTML";
-		}
-
-		if(variable_get('wards', '1')) {
-			if( ! validate_number($edit['ward_id']) ) {
-				$errors .= "<li>Ward must be selected";
-			}
 		}
 
 		if( ! validate_nonhtml($edit['region']) ) {
@@ -509,10 +488,6 @@ class FieldView extends Handler
 			$rows[] = array("Longitude:",  $this->field->longitude);
 		}
 
-		if( $this->field->ward_id ) {
-			$ward = ward_load( array('ward_id' => $this->field->ward_id) );
-			$rows[] = array("City&nbsp;Ward:", l("$ward->name ($ward->city Ward $ward->num)", "ward/view/" . $this->field->ward_id));
-		}
 		$rows[] = array("Map:", 
 			$this->field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
 				: "N/A");

@@ -74,8 +74,6 @@ function feature_settings()
 
 	$group .= form_radios("Dog questions", "edit[dog_questions]", variable_get("dog_questions", 1), array("Disabled", "Enabled"), "Enable or disable questions and options about dogs");
 
-	$group .= form_radios("Wards", "edit[wards]", variable_get("wards", 1), array("Disabled", "Enabled"), "Enable or disable use of city wards");
-
 	$group .= form_radios("Clean URLs", "edit[clean_url]", variable_get("clean_url", 0), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
 
 	$group .= form_radios("Use Post-Nuke authentication", "edit[postnuke]", variable_get("postnuke", 0), array("Disabled", "Enabled"), "If enabled, Leaguerunner will use your Post-Nuke user database for authentication. Everything to do with passwords will be hidden.");

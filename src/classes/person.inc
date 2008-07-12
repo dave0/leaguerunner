@@ -251,7 +251,6 @@ class Person extends LeaguerunnerObject
 		switch($key) {
 			case 'user_id':
 			case 'member_id':
-			case 'ward_id':
 			case 'height':
 			case 'skill_level':
 			case 'year_started':
@@ -456,12 +455,8 @@ function person_query ( $array = array() )
 	return db_query("SELECT 
 		p.*,
 		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
-		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp,
-		w.name AS ward_name, 
-		w.num AS ward_number, 
-		w.city AS ward_city 
+		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp
 		FROM person p 
-		LEFT JOIN ward w ON (p.ward_id = w.ward_id)
 		WHERE " . implode(' AND ',$query) . $order . $limit);
 }
 

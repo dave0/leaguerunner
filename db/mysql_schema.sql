@@ -31,8 +31,6 @@ CREATE TABLE person (
 	addr_prov       ENUM('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon','Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'),
 	addr_postalcode varchar(7),
 
-	ward_id 	integer,
-
 	gender 		ENUM('Male','Female'),
 
 	birthdate       date,
@@ -60,8 +58,7 @@ CREATE TABLE person (
 	contact_for_feedback  ENUM('Y','N') DEFAULT 'Y',
 
 	last_login datetime,
-	client_ip      varchar(50),
-	INDEX person_ward (ward_id)
+	client_ip      varchar(50)
 );
 
 -- For use when assigning member IDs
@@ -290,7 +287,6 @@ CREATE TABLE field (
 	longitude  double,
 
 	region	enum('Central','East','South','West'),
-	ward_id integer,
 	driving_directions text,
 	parking_details text,
 	transit_directions text,
@@ -299,9 +295,7 @@ CREATE TABLE field (
 	site_instructions text,
 	sponsor text,
 	location_url varchar(255),
-	layout_url varchar(255),
-
-	INDEX field_ward (ward_id)
+	layout_url varchar(255)
 );
 
 -- Game slots for scheduling
@@ -320,19 +314,6 @@ DROP TABLE IF EXISTS league_gameslot_availability;
 CREATE TABLE league_gameslot_availability (
 	league_id 	integer NOT NULL,
 	slot_id		integer NOT NULL
-);
-
-
--- city wards
-DROP TABLE IF EXISTS ward;
-CREATE TABLE ward (
-	ward_id integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	num tinyint,
-	name varchar(255) UNIQUE,
-	city       varchar(50),
-	region   enum('Central','East','South','West'),
-	url       varchar(255),
-	INDEX ward_city (city)
 );
 
 -- configuration variables
