@@ -115,7 +115,7 @@ while( my($league_id, $name, $day, $ratio, $tier) = $league_sth->fetchrow_array(
 	}
 
 	my @user_emails;
-	my $sth = $DB->prepare(q{SELECT p.email FROM leagueteams l, teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE l.league_id = ? AND l.team_id = r.team_id AND (r.status = 'captain' OR r.status = 'assistant')});
+	my $sth = $DB->prepare(q{SELECT p.email FROM leagueteams l, teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE l.league_id = ? AND l.team_id = r.team_id AND (r.status = 'captain' OR r.status = 'assistant' OR r.status = 'COACH')});
 	$sth->execute($league_id);
 	while( my($email_addr) = $sth->fetchrow_array() ) {
 		print "Adding $email_addr to $day\n";
