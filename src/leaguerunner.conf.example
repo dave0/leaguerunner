@@ -1,5 +1,8 @@
 ## 
 ## Leaguerunner configuration file.
+## 
+## This is an example configuration file.  It should be copied to
+## leaguerunner.conf in the src/ directory and modified for your database.
 ##
 ## This file is parsed by both PHP and Perl, and so should contain ONLY lines
 ## of the format 
