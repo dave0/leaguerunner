@@ -680,11 +680,15 @@ function question_render_maintenance( &$q )
 function question_render_editable_multiplechoice( &$q, $editgroup, $value = '', $formtype = 'auto' )
 {
 	if( $formtype == 'auto' ) {
+		/*
 		if( count($q->answers) > 4 ) {
 			$formtype = 'select';
 		} else {
+		*/
 			$formtype = 'radio';
+		/*
 		}
+		*/
 	}
 
 	$form = '';
@@ -748,7 +752,7 @@ function question_render_maintenance_multiplechoice( &$q, $formtype = 'auto' )
 
 			break;
 		default:
-			die("Unsupported formtype of $formtype given to question_render_editable_multiplechoice");
+			die("Unsupported formtype of $formtype given to question_render_maintenance_multiplechoice");
 	}
 
 	// Add a form group for adding a new answer
