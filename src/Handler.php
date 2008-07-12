@@ -16,7 +16,6 @@ module_register("Handler/Field.php", 'field');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
 module_register("Handler/Cron.php",'cron');
-module_register("Handler/Season.php",'season');
 module_register("Handler/SportsML.php",'sportsml');
 module_register("Handler/GoogleMaps.php",'gmaps');
 module_register("Handler/Image.php",'image');
