@@ -1668,8 +1668,8 @@ class TeamEmails extends Handler
 				p.user_id != %d
 			ORDER BY
 				p.lastname, p.firstname",
-			$this->team->team_id, $lr_session->user->user_id);
-		}
+			$this->team->team_id, $lr_session->user->user_id
+		);
 
 		if( db_num_rows($result) <= 0 ) {
 			return false;
