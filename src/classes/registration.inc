@@ -3,27 +3,15 @@ class Registration extends LeaguerunnerObject
 {
 	var $_answer_entries;
 
-	function load ( $array = array() )
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$result = registration_query( &$array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		$this->_in_database = true;
-
-		$item = db_fetch_array($result);
-
-		foreach ($item as $key => $value) {
-			$this->{$key} = $value;
-		}
-
 		return true;
 	}
 
 	function save ()
 	{
+		global $dbh;
+
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -39,11 +27,10 @@ class Registration extends LeaguerunnerObject
 		$fields_data = array();
 
 		foreach ( $this->_modified_fields as $key => $value) {
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
+			$fields[] = "$key = ?";
+			if( empty($this->{$key}) ) {
+				$fields_data[] = null;
 			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
 				$fields_data[] = $this->{$key};
 			}
 		}
@@ -52,14 +39,14 @@ class Registration extends LeaguerunnerObject
 			error_exit("Internal error: Incorrect number of fields set");
 		}
 
-		$sql = "UPDATE registrations SET ";
-		$sql .= join(", ", $fields);
-		$sql .= " WHERE order_id = %d";
+		$sth = $dbh->prepare('UPDATE registrations SET '
+			. join(", ", $fields)
+			. ' WHERE order_id = ?');
 
 		$fields_data[] = $this->order_id;
 
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
+		$sth->execute($fields_data);
+		if(1 < $sth->rowCount()) {
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
@@ -71,6 +58,8 @@ class Registration extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
+
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -79,17 +68,16 @@ class Registration extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query('INSERT
-					INTO registrations (user_id, registration_id, time)
-					VALUES (%d, %d, NOW())',
-				$this->user_id,
-				$this->registration_id);
+		$sth = $dbh->prepare('INSERT INTO registrations (user_id, registration_id, time) VALUES (?,?, NOW())');
+		$sth->execute( array( $this->user_id, $this->registration_id) );
 
-		if( 1 != db_affected_rows() ) {
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
-		$this->order_id = db_result(db_query("SELECT LAST_INSERT_ID() from registrations"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM registrations');
+		$sth->execute();
+		$this->order_id = $sth->fetchColumn();
 
 		return true;
 	}
@@ -99,6 +87,8 @@ class Registration extends LeaguerunnerObject
 	 */
 	function save_answers ($formbuilder, $answers)
 	{
+		global $dbh;
+
 		if( !is_array($answers) ) {
 			die("Answser argument to save_answers() must be an array");
 		}
@@ -109,17 +99,18 @@ class Registration extends LeaguerunnerObject
 		// form builder might be null if there are no questions
 		if( isset( $formbuilder ) ) {
 			// save in DB
+			$sth = $dbh->prepare('REPLACE INTO registration_answers (order_id, qkey, akey) VALUES (?,?,?)');
 			while( list($qkey, $answer) = each($answers) ) {
 				$question = $formbuilder->_questions[$qkey];
 				// We need to skip "answers" for labels and descriptions
 				if($question->qtype != 'label' && $question->qtype != 'description')
 				{
-					db_query("REPLACE INTO registration_answers (order_id,qkey,akey) VALUES (%d,'%s','%s')",
+					$sth->execute( array(
 						$this->order_id,
 						$qkey,
 						$answer
-					);
-					if( db_affected_rows() < 1) {
+					) );
+					if( $sth->rowCount() < 1) {
 						return false;
 					}
 				}
@@ -132,6 +123,8 @@ class Registration extends LeaguerunnerObject
 
 function registration_query ( $array = array() )
 {
+	global $TZ_ADJUST, $dbh;
+
 	$query = array();
 	$query[] = '1 = 1';
 	$order = '';
@@ -145,20 +138,24 @@ function registration_query ( $array = array() )
 				$order = ' ORDER BY ' . $value;
 				break;
 			default:
-				$query[] = "r.$key = '" . check_query($value) . "'";
+				$query[] = "r.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	global $TZ_ADJUST;
-	return db_query("SELECT
+	// Yes, do it twice.
+	$params = array_merge( array( -$TZ_ADJUST, -$TZ_ADJUST), $params );
+
+	$sth = $dbh->prepare("SELECT 
+		1 as _in_database,
 		r.*,
-		DATE_ADD(r.time, INTERVAL %d MINUTE) as time,
-		DATE_ADD(r.modified, INTERVAL %d MINUTE) as modified
+		DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
+		DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified
 		FROM registrations r
-		WHERE " . implode(' AND ',$query) .  $order,
-		-$TZ_ADJUST,
-		-$TZ_ADJUST
+		WHERE " . implode(' AND ',$query) .  $order
 	);
+	$sth->execute( $params );
+	return $sth;
 }
 
 /**
@@ -166,11 +163,7 @@ function registration_query ( $array = array() )
  */
 function registration_load( $array = array() )
 {
-	$s = new Registration;
-	if($s->load($array)) {
-		return $s;
-	} else {
-		return null;
-	}
+	$sth = registration_query( $array );
+	return $sth->fetchObject('Registration');
 }
 ?>

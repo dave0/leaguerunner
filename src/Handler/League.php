@@ -205,12 +205,14 @@ function league_splash ()
  */
 function league_cron()
 {
+	global $dbh;
+
 	$output = '';
 
 	$season = variable_get('current_season', 'fall');
-	$result = db_query("SELECT distinct league_id from league where season = '%s'", $season);
-	while( $foo = db_fetch_array($result)) {
-		$id = $foo['league_id'];
+	$sth = $dbh->prepare('SELECT distinct league_id from league where season = ?');
+	$sth->execute( array($season) );
+	while( $id = $sth->fetchColumn() ) {
 		$league = league_load( array('league_id' => $id) );
 
 		// Find all games older than our expiry time, and finalize them
@@ -1001,34 +1003,39 @@ class LeagueCaptainEmails extends Handler
 
 	function process ()
 	{
+		global $dbh;
+
 		$this->title = 'Captain Emails';
 		global $lr_session;
-		
-		$result = db_query(
+	
+		$sth = $dbh->prepare(
 			"SELECT
 				p.firstname, p.lastname, p.email
 			FROM
 				leagueteams l, teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				l.league_id = %d
+				l.league_id = ?
 				AND l.team_id = r.team_id
 				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')
-					AND p.user_id != %d
+					AND p.user_id != ?
 			ORDER BY
-				p.lastname, p.firstname",
+				p.lastname, p.firstname");
+	
+		$sth->execute(array(
 			$this->league->league_id,
-			$lr_session->user->user_id);
+			$lr_session->user->user_id));
 
-		if( db_num_rows($result) <= 0 ) {
-			error_exit("That league contains no teams.");
-		}
 
 		$emails = array();
 		$names = array();
-		while($user = db_fetch_object($result)) {
+		while($user = $sth->fetchObject() ) {
 			$names[] = "$user->firstname $user->lastname";
 			$emails[] = $user->email;
+		}
+
+		if( ! count( $emails ) ) {
+			error_exit("That league contains no teams.");
 		}
 
 		$this->setLocation(array(
@@ -1054,12 +1061,12 @@ class LeagueApproveScores extends Handler
 
 	function process ()
 	{
-		global $TZ_ADJUST;
+		global $TZ_ADJUST, $dbh;
 
 		$this->title = "Approve Scores";
 
 		/* Fetch games in need of verification */
-		$result = db_query("SELECT DISTINCT
+		$game_sth = $dbh->prepare( "SELECT DISTINCT
 			se.game_id,
 			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60) as timestamp,
 			s.home_team,
@@ -1073,14 +1080,15 @@ class LeagueApproveScores extends Handler
 				team h,
 				team a
 			WHERE
-				s.league_id = %d
+				s.league_id = ?
 				AND se.game_id = s.game_id
 				AND g.game_id = s.game_id
 				AND h.team_id = s.home_team
 				AND a.team_id = s.away_team
 			ORDER BY 
 				timestamp
-		", $this->league->league_id);
+		");
+		$game_sth->execute( array($this->league->league_id) );
 
 		$header = array(
 			'Game Date',
@@ -1090,38 +1098,30 @@ class LeagueApproveScores extends Handler
 		);
 		$rows = array();
 
-		$se_query = "SELECT score_for, score_against FROM score_entry WHERE team_id = %d AND game_id = %d";
+		$se_sth = $dbh->prepare('SELECT score_for, score_against FROM score_entry WHERE team_id = ? AND game_id = ?');
+		$captains_sth = $dbh->prepare("SELECT user_id FROM person p
+						LEFT JOIN teamroster r ON p.user_id = r.player_id
+						WHERE r.team_id IN (?,?) AND r.status = 'captain'");
 
-		while($game = db_fetch_object($result)) {
+		while($game = $game_sth->fetchObject() ) {
 			$rows[] = array(
 				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 3),
 				array('data' => $game->home_name, 'colspan' => 2),
 				array('data' => $game->away_name, 'colspan' => 2),
 				array('data' => l("approve score", "game/approve/$game->game_id"))
 			);
-		
-			$result2 = db_query( "SELECT
-							user_id
-						FROM
-							person p
-						LEFT JOIN
-							teamroster r
-						ON
-							p.user_id = r.player_id
-						WHERE
-							r.team_id IN (%d,%d)
-						AND
-							r.status = 'captain'",
-				$game->home_team, $game->away_team);
+	
+			$captains_sth->execute(array( $game->home_team, $game->away_team) );
 			$emails = array();
 			$names = array();
-			while($user = db_fetch_object($result2)) {
-				$captain = person_load(array('user_id' => $user->user_id));
+			while($id = $captains_sth->fetchColumn()) {
+				$captain = person_load(array('user_id' => $id ));
 				$emails[] = $captain->email;
 				$names[] = $captain->fullname;
 			}
 
-			$home = db_fetch_array(db_query($se_query, $game->home_team, $game->game_id));
+			$se_sth->execute( array( $game->home_team, $game->game_id ) );
+			$home = $sth->fetch(PDO::FETCH_ASSOC);
 
 			if(!$home) {
 				$home = array(
@@ -1130,7 +1130,8 @@ class LeagueApproveScores extends Handler
 				);
 			}
 
-			$away = db_fetch_array(db_query($se_query, $game->away_team, $game->game_id));
+			$se_sth->execute( array( $game->away_team, $game->game_id ) );
+			$away = $sth->fetch(PDO::FETCH_ASSOC);
 			if(!$away) {
 				$away = array(
 					'score_for' => 'not entered',
@@ -1270,23 +1271,25 @@ class LeagueRatings extends Handler
 
    }
 
-   function perform ( $edit )
-   {
-      // make sure the teams are loaded
-      $this->league->load_teams();
+	function perform ( $edit )
+	{
+		global $dbh;
+		// make sure the teams are loaded
+		$this->league->load_teams();
 
-      // go through what was submitted
-      foreach ($edit as $key => $value) {
-         if (is_numeric($key) && is_numeric($value)) {
-            $team = $this->league->teams[$key];
+		$sth = $dbh->prepare('UPDATE team SET rating = ? WHERE team_id = ?');	
+		// go through what was submitted
+		foreach ($edit as $team_id => $rating) {
+			if (is_numeric($team_ide) && is_numeric($rating)) {
+				$team = $this->league->teams[$team_id];
 
-            // TODO:  Move this logic to a function inside the league.inc file
-            // update the database
-            db_query( "UPDATE team SET rating = %d WHERE team_id = %d", $value, $key);
-         }
-      }
-      
-      return true;
+				// TODO:  Move this logic to a function inside the league.inc file
+				// update the database
+				$sth->execute( array( $rating, $team_id ) );
+			}
+		}
+		
+		return true;
 	}
 }
 
@@ -1352,18 +1355,19 @@ class LeagueRank extends Handler
 
 	function perform ( $edit )
 	{
+		global $dbh;
 		// make sure the teams are loaded
 		$this->league->load_teams();
 
+		$sth = $dbh->prepare('UPDATE leagueteams SET rank = ? WHERE league_id = ? AND team_id = ?');
 		// go through what was submitted
-		foreach ($edit as $key => $value) {
-			if (is_numeric($key) && is_numeric($value)) {
-				$team = $this->league->teams[$key];
+		foreach ($edit as $team_id => $rank) {
+			if (is_numeric($team_id) && is_numeric($rank)) {
+				$team = $this->league->teams[$team_id];
 
 				// TODO:  Move this logic to a function inside the league.inc file
 				// update the database
-				db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-					$value + 1000, $this->league->league_id, $key);
+				$sth->execute( array( $rank + 1000, $this->league->league_id, $team_id ) );
 			}
 		}
 
@@ -1381,7 +1385,7 @@ class LeagueSpirit extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $dbh;
 		$this->title = "League Spirit";
 
 		$this->setLocation(array(
@@ -1401,8 +1405,9 @@ class LeagueSpirit extends Handler
 		$rows = array();
 
 		$answer_values = array();
-		$result = db_query("SELECT akey, value FROM multiplechoice_answers");
-		while( $ary = db_fetch_array($result) ) {
+		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
+		$sth->execute();
+		while( $ary = $sth->fetch() ) {
 			$answer_values[ $ary['akey'] ] = $ary['value'];
 		}
 
@@ -1565,8 +1570,8 @@ class LeagueStatusReport extends Handler
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
 
 		$fields = array();
-		$field_results = field_query( array( '_order' => 'f.code') );
-		while( $field = db_fetch_object( $field_results ) ) {
+		$sth = field_query( array( '_extra' => '1 = 1', '_order' => 'f.code') );
+		while( $field = $sth->fetchObject('Field') ) {
 			$fields[$field->code] = $field->region;
 		}
 
@@ -1592,9 +1597,8 @@ class LeagueStatusReport extends Handler
 
 		// get the schedule
 		$schedule = array();
-		$games = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-		while($g = db_fetch_array($games)) {
-			$g = game_load( array('game_id' => $g['game_id']) );
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		while($g = $sth->fetchObject('Game') ) {
 			$schedule[] = $g;
 		}
 

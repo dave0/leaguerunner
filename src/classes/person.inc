@@ -1,40 +1,31 @@
 <?php
 class Person extends LeaguerunnerObject
 {
-	/**
-	 * Load a single user account object from the database using the 
-	 * supplied query data.  If more than one account matches, we will
-	 * return only the first one.  If fewer than one matches, this object
-	 * remains empty.
- 	 * @param	array 	$array key-value pairs that identify the user to be loaded.
- 	 */
-	function load ( $array = array() )
+	/*
+	 * Load related tables, and perform some post-load cleanups
+	 */
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$result = person_query( $array );
-		if(1 != db_num_rows($result)) {
-			return null;
-		}
-		return $this->load_from_query_result( db_fetch_array($result) );
-	}
-
-	function load_from_query_result ( $array = array() )
-	{
-		$this->_in_database = true;
-
-		foreach ($array as $key => $value) {
-			$this->{$key} = $value;
-		}
+		global $dbh;
 
 		/* set any defaults for unset values */
 		if(!$this->height) {
 			$this->height = 0;
 		}
+		
+		if( ! $this->user_id ) {
+			return;
+		}
 
 		/* set derived attributes */
 		$this->fullname = "$this->firstname $this->lastname";
 
+		if( $this->user_id == 'new' || $load_mode == LOAD_OBJECT_ONLY ) {
+			return;
+		}
+
 		/* Now fetch team info */
-		$result = db_query(
+		$sth = $dbh->prepare(
 			"SELECT 
 				r.status AS position,
 				r.team_id,
@@ -51,14 +42,16 @@ class Person extends LeaguerunnerObject
 				INNER JOIN leagueteams lt ON (lt.team_id = t.team_id)
 				INNER JOIN league l ON (lt.league_id = l.league_id)
 			WHERE 
-				r.player_id = %d
+				r.player_id = ?
 			ORDER BY
-				l.year DESC, l.season DESC, l.day
-			", $this->user_id);
+				l.year DESC, l.season DESC, l.day");
+	
+		$sth->setFetchMode(PDO::FETCH_CLASS, 'Team', array(LOAD_OBJECT_ONLY));
+		$sth->execute(array($this->user_id));
 
 		$this->teams = array();
-		while($team = db_fetch_object($result)) {
-         if($team->position == 'captain' || $team->position == 'assistant' || $team->position == 'coach') {
+		while($team = $sth->fetch() ) {
+			if($team->position == 'captain' || $team->position == 'assistant' || $team->position == 'coach') {
 				# TODO: evil hack.
 				$this->is_a_captain = true;
 			}
@@ -74,7 +67,7 @@ class Person extends LeaguerunnerObject
 		/* Fetch league info.  Can't use league_load as it calls person_load,
 		 * which makes this recursively painful.
 		 */
-		$result = db_query(
+		$sth = $dbh->prepare(
 			"SELECT 
 				l.league_id, 
 				l.name,
@@ -91,11 +84,13 @@ class Person extends LeaguerunnerObject
 			 WHERE
 				m.status = 'coordinator'
 			 AND
-				m.player_id = %d
-			 ORDER BY l.year, l.season, l.day, l.name, l.tier", $this->user_id);
+				m.player_id = ?
+			 ORDER BY l.year, l.season, l.day, l.name, l.tier");
+		$sth->setFetchMode(PDO::FETCH_CLASS, 'League', array(LOAD_OBJECT_ONLY));
+		$sth->execute(array($this->user_id));
 		$this->leagues = array();
-		while($league = db_fetch_object($result)) {
-			# TODO: evil hack.
+		while($league = $sth->fetch) {
+			# TODO: evil hack... this belongs in the league constructor, no?
 			$this->is_a_coordinator = true;
 			if($league->year == 0) { 
 				$year = ''; 
@@ -116,11 +111,8 @@ class Person extends LeaguerunnerObject
 
 		/* Evil hack to get 'Inactive Teams' into menu */
 		if( $this->is_a_coordinator ) {
-			$result = db_query(
-				"SELECT l.* FROM league l where league_id = 1");
-			$league = db_fetch_object($result);
-			$league->fullname = $league->name;
-			$this->leagues[ 1 ] = $league;
+			$sth = league_query( array( 'league_id' => $id ) );
+			$this->leagues[1] = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 		}
 
 		return true;
@@ -128,6 +120,8 @@ class Person extends LeaguerunnerObject
 
 	function save ()
 	{
+		global $dbh;
+
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -143,11 +137,10 @@ class Person extends LeaguerunnerObject
 		$fields_data = array();
 
 		foreach ( $this->_modified_fields as $key => $value) {
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
+			$fields[] = "$key = ?";
+			if( empty($this->{$key}) ) {
+				$fields_data[] = null;
 			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
 				$fields_data[] = $this->{$key};
 			}
 		}
@@ -158,12 +151,13 @@ class Person extends LeaguerunnerObject
 
 		$sql = "UPDATE person SET ";
 		$sql .= join(", ", $fields);
-		$sql .= " WHERE user_id = %d";
+		$sql .= " WHERE user_id = ?";
 
 		$fields_data[] = $this->user_id;
 
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
+		$sth = $dbh->prepare( $sql );
+		$sth->execute( $fields_data );
+		if($sth->rowCount() < 1) {
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
@@ -174,6 +168,8 @@ class Person extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
+
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -186,12 +182,14 @@ class Person extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into person (username, password, status) VALUES('%s','%s','new')", $this->username, $this->password);
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT into person (username, password, status) VALUES(?,?,?)');
+		$sth->execute( array($this->username, $this->password, 'new') );
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
-
-		$this->user_id = db_result(db_query("SELECT LAST_INSERT_ID() from person"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM person');
+		$sth->execute();
+		$this->user_id = $sth->fetchColumn();
 
 		return true;
 	}
@@ -206,6 +204,8 @@ class Person extends LeaguerunnerObject
 	 */
 	function delete ()
 	{
+		global $dbh;
+
 		if( ! $this->_in_database ) {
 			return false;
 		}
@@ -221,54 +221,36 @@ class Person extends LeaguerunnerObject
 		/* Don't remove users that have registration records, for
 		 * accounting purposes.
 		 */
-		$reg = db_result (db_query ('SELECT COUNT(*) FROM registrations WHERE user_id = %d', $this->user_id) );
-		if ( $reg > 0 ) {
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM registrations WHERE user_id = ?');
+		$sth->execute( array( $this->user_id ));
+		if ( $sth->fetchColumn > 0 ) {
 			error_exit("Account cannot be deleted while player has registration records.");
 		}
 
 		/* remove user from team rosters.  Don't check for affected
 		 * rows, as there may not be any
 		 */
-		db_query('DELETE from teamroster WHERE player_id = %d', $this->user_id);
+		$sth = $dbh->prepare('DELETE from teamroster WHERE player_id = ?');
+		$sth->execute( array($this->user_id) );
 
 		/* remove user account */
-		db_query('DELETE from person WHERE user_id = %d', $this->user_id);
+		$sth = $dbh->prepare('DELETE from person WHERE user_id = ?');
+		$sth->execute( array($this->user_id) );
 
-		return (1 == db_affected_rows());
-	}
-
-	function get_placeholder( $key, $value )
-	{
-		if(0 == strcasecmp($value,'NULL')) {
-			return "%s";
-		}
-
-		// Hack for NOW() timestamps
-		if(0 == strcasecmp($value,'NOW()')) {
-			return "%s";
-		}
-
-		switch($key) {
-			case 'user_id':
-			case 'member_id':
-			case 'height':
-			case 'skill_level':
-			case 'year_started':
-				return "%d";
-			default:
-				return "'%s'";
-		}
+		return (1 == $sth->rowCount());
 	}
 
 	function generate_member_id()
-	{
-		$result = db_query("UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = %d AND gender = '%s'", 
-			$this->year_started, $this->gender);
-		$rows = db_affected_rows();
+	{	
+		global $dbh;
+		$sth = $dbh->prepare('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ? AND gender = ?');
+		$sth->execute( array( $this->year_started, $this->gender) );
+		$rows = $sth->rowCount();
 		if($rows == 1) {
 			// Got a result, so we will use it.
-			$result = db_query("SELECT LAST_INSERT_ID() from member_id_sequence");
-			$member_id = db_result($result);
+			$sth = $dbh->prepare('SELECT LAST_INSERT_ID() from member_id_sequence');
+			$sth->execute();
+			$member_id = $sth->fetchColumn();
 			if( !isset($member_id)) {
 				return false;
 			}
@@ -279,16 +261,17 @@ class Person extends LeaguerunnerObject
 				. "_" 
 				. $this->gender 
 				. "_lock";
-			$result = db_query("SELECT GET_LOCK('$lockname',10)");
-			$lock = db_result($result);
+			$sth = $dbh->prepare("SELECT GET_LOCK('$lockname',10)");
+			$dbh->execute();
+			$lock = $dbh->fetchColumn();
 
 			if(!isset($lock) || $lock == 0) {
 				return false;
 			}
-			db_query( "REPLACE INTO member_id_sequence values(%d,'%s',1)", 
-				$this->year_started, $this->gender);
+			$sth = $dbh->prepare('REPLACE INTO member_id_sequence values(?,?,?)');
+			$sth->execute( array( $this->year_started, $this->gender, 1) );
 
-			db_query("SELECT RELEASE_LOCK('$lockname')");
+			$dbh->exec("SELECT RELEASE_LOCK('$lockname')");
 
 			$member_id = 1;
 		} else {
@@ -345,8 +328,9 @@ class Person extends LeaguerunnerObject
 
 		// New users may be treated as active, if the right setting is on
 		if( $this->status == 'new' && variable_get('allow_tentative', 0) ) {
-			$result = duplicate_user_query ($this->user_id);
-			if(db_num_rows($result) == 0) {
+
+			$sth = $this->find_duplicates();
+			if( ! $sth->fetch() ) {
 				return true;
 			}
 		}
@@ -413,29 +397,87 @@ class Person extends LeaguerunnerObject
 
 	function coordinates_league_containing( $team_id )
 	{
+		global $dbh;
 		if($this->is_admin()) { return true; }
-
-		$result = db_query("SELECT league_id FROM leagueteams WHERE team_id = %d", $team_id);
-
-		$league = db_fetch_object($result);
+	
+		$sth = $dbh->prepare('SELECT league_id FROM leagueteams WHERE team_id = ?');
+		$sth->execute($team_id);
+		$league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 
 		return $this->is_coordinator_of( $league->league_id );
 	}
+
+	function find_duplicates ( )
+	{
+		global $dbh;
+		/* Check to see if there are any duplicate users */
+		$query = '';
+		if( variable_get('postnuke', 0)) {
+			$query = 'SELECT
+				p.user_id,
+				p.firstname,
+				p.lastname
+				FROM person p, person q 
+				LEFT JOIN nuke_users np ON np.pn_uid = p.user_id
+				LEFT JOIN nuke_users nq ON nq.pn_uid = q.user_id
+				WHERE q.user_id = ?
+					AND p.gender = q.gender
+					AND p.user_id <> q.user_id
+					AND (
+						np.pn_email = nq.pn_email
+						OR p.home_phone = q.home_phone
+						OR p.work_phone = q.work_phone
+						OR p.mobile_phone = q.mobile_phone
+						OR p.addr_street = q.addr_street
+						OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+					)';
+		} else {
+			$query = 'SELECT
+				p.user_id,
+				p.firstname,
+				p.lastname
+				FROM person p, person q 
+				WHERE q.user_id = ?
+					AND p.gender = q.gender
+					AND p.user_id <> q.user_id
+					AND (
+						p.email = q.email
+						OR p.home_phone = q.home_phone
+						OR p.work_phone = q.work_phone
+						OR p.mobile_phone = q.mobile_phone
+						OR p.addr_street = q.addr_street
+						OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+					)';
+		}
+
+		$sth = $dbh->prepare( $query );
+		if( ! $sth->execute (array($this->user_id)) ) {
+			return null;
+		}
+
+		return $sth;
+	}
+
 
 }
 
 function person_query ( $array = array() )
 {
-	$query = array();
+	global $dbh;
+
+	$query  = array();
+	$params = array();
 
 	foreach ($array as $key => $value) {
 		switch( $key ) {
 			case 'lastname_wildcard':
-				$value = strtr( check_query($value), array('*'=>'%') );
-				$query[] = "p.lastname LIKE '$value'";
+				$value = strtr( $value, array('*'=>'%') );
+				$query[]  = "p.lastname LIKE ?";
+				$params[] = $value;
 				break;
 			case 'password':
-				$query[] = "p.$key = '" . md5($value) . "'";
+				$query[]  = 'p.password = ?';
+				$params[] = md5($value);
 				break;
 			case '_extra':
 				/* Just slap on any extra query fields desired */
@@ -448,89 +490,46 @@ function person_query ( $array = array() )
 				$limit = " LIMIT $value ";
 				break;
 			default:
-				$query[] = "p.$key = '" . check_query($value) . "'";
+				$query[]  = "p.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT 
+	
+	$sth = $dbh->prepare("SELECT 
 		p.*,
+		1 AS _in_database,
 		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
 		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp
 		FROM person p 
 		WHERE " . implode(' AND ',$query) . $order . $limit);
+
+	$sth->execute( $params );
+
+	return $sth;
 }
 
 function person_load( $array = array() )
 {
-	$p = new Person;
-	if($p->load($array)) {
-		return $p;
-	} else {
+	$result = person_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('Person');
 }
 
-function person_load_many( $array = array() )
+function person_count( $array = array() ) 
 {
-	$result = person_query( &$array );
-
-	if(db_num_rows($result) < 1 ) {
-		return false;
+	global $dbh;
+	$query = array();
+	$params = array();
+	foreach ($array as $key => $value) {
+		$query[]  = "$key = ?";
+		$params[] = $value;
 	}
-
-	$result = array();
-	while($ary = db_fetch_array($result)) {
-		$g = new Person;
-		if( $g->load_from_query_result( $ary ) ) {
-			$result[$g->user_id] = $g;
-		}
-	}
-
-	return $result;
-}
-
-function duplicate_user_query ($user_id)
-{
-	/* Check to see if there are any duplicate users */
-	if( variable_get('postnuke', 0)) {
-		$result = db_query("SELECT
-			p.user_id,
-			p.firstname,
-			p.lastname
-			FROM person p, person q 
-			LEFT JOIN nuke_users np ON np.pn_uid = p.user_id
-			LEFT JOIN nuke_users nq ON nq.pn_uid = q.user_id
-			WHERE q.user_id = %d
-				AND p.gender = q.gender
-				AND p.user_id <> q.user_id
-				AND (
-					np.pn_email = nq.pn_email
-					OR p.home_phone = q.home_phone
-					OR p.work_phone = q.work_phone
-					OR p.mobile_phone = q.mobile_phone
-					OR p.addr_street = q.addr_street
-					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-				)", $user_id);
-	} else {
-		$result = db_query("SELECT
-			p.user_id,
-			p.firstname,
-			p.lastname
-			FROM person p, person q 
-			WHERE q.user_id = %d
-				AND p.gender = q.gender
-				AND p.user_id <> q.user_id
-				AND (
-					p.email = q.email
-					OR p.home_phone = q.home_phone
-					OR p.work_phone = q.work_phone
-					OR p.mobile_phone = q.mobile_phone
-					OR p.addr_street = q.addr_street
-					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-				)", $user_id);
-	}
-
-	return $result;
+	$sth = $dbh->prepare('SELECT COUNT(*) FROM person WHERE ' . implode( ' AND ', $query ));
+	$sth->execute( $params );
+	return $sth->fetchColumn();
 }
 
 ?>

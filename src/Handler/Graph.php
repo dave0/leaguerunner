@@ -340,13 +340,15 @@ class GraphPlayerSkill extends Handler
 
 	function process ()
 	{
+		global $dbh;
 		$graph = new PieGraph(300,200,'auto',LR_GRAPH_TIMEOUT);
 		$graph->title->Set("Player Skill Distribution");
 
-		$result = db_query("SELECT skill_level, COUNT(*) AS count FROM person GROUP BY skill_level");
+		$sth = $dbh->prepare("SELECT skill_level, COUNT(*) AS count FROM person GROUP BY skill_level");
 		$data = array();
 		$legend = array();
-		while($row = db_fetch_array($result)) {
+		$sth->execute();
+		while($row = $sth->fetch() ) {
 			$legend[] = $row['skill_level'];
 			$data[] = $row['count'];
 		}
@@ -372,6 +374,7 @@ class GraphRosterSize extends Handler
 
 	function process ()
 	{
+		global $dbh;
 		$current_season = arg(2);
 		if(!$current_season) {
 			$current_season = variable_get('current_season', 'Summer');
@@ -379,20 +382,21 @@ class GraphRosterSize extends Handler
 		$graph = new PieGraph(300,200,'auto',LR_GRAPH_TIMEOUT);
 		$graph->title->Set("Team Roster Size ($current_season)");
 
-		$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
+		$sth = $dbh->prepare("SELECT COUNT(r.player_id) as size 
    	     	FROM teamroster r , league l, leagueteams lt
     	    LEFT JOIN team t ON (t.team_id = r.team_id) 
        		WHERE 
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id 
                 AND l.schedule_type != 'none' 
-				AND l.season = '%s'
+				AND l.season = ?
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         	GROUP BY t.team_id 
-        	ORDER BY size desc", $current_season);
+        	ORDER BY size desc");
+		$sth->execute( $current_season);
 		$sizes = array();
-		while($row = db_fetch_array($result)) {
-			$sizes[$row['size']]++;
+		while($size = $sth->fetchColumn() ) { 
+			$sizes[$size]++;
 		}
 		$plot = new PiePlot(array_values($sizes));
 		$plot->SetLegends(array_keys($sizes));

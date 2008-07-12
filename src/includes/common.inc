@@ -152,8 +152,10 @@ function object2array($obj) {
  */
 function variable_init( $conf = array() )
 {
-	$result = db_query("SELECT * from variable");
-	while ($variable = db_fetch_object($result)) {
+	global $conf,$dbh;
+	$sth = $dbh->prepare('SELECT * FROM variable');
+	$sth->execute();
+	while ($variable = $sth->fetchObject()) {
 		if( !isset($conf[$variable->name]) ) {
 			$conf[$variable->name] = unserialize($variable->value);
 		}
@@ -173,16 +175,23 @@ function variable_get($name, $default)
 
 function variable_set($name, $value) 
 {
-	global $conf;
-	db_query("DELETE FROM variable WHERE name = '%s'", $name);
-	db_query("INSERT INTO variable (name, value) VALUES ('%s','%s')", $name, serialize($value));
+	global $conf,$dbh;
+
+	// TODO: These queries should be wrapped in a transaction
+	$sth = $dbh->prepare('DELETE FROM variable WHERE name = ?');
+	$sth->execute(array($name));
+
+
+	$sth = $dbh->prepare('INSERT INTO variable (name, value) VALUES (?, ?)');
+	$sth->execute(array($name, serialize($value)));
 	$conf[$name] = $value;
 }
 
 function variable_del($name) 
 {
-	global $conf;
-	db_query("DELETE FROM variable WHERE name = '%s'", $name);
+	global $conf,$dbh;
+	$sth = $dbh->prepare('DELETE FROM variable WHERE name = ?');
+	$sth->execute(array($name));
 	unset($conf[$name]);
 }
 
@@ -1018,10 +1027,10 @@ function getRosterPositions()
 		'substitute'        => "substitute player",
 		'captain_request'   => "request to join by captain",
 		'player_request'    => "request to join by player",
-		'coach'	            => "COACH",
-		'captain'	        => "captain",
-		'assistant'	        => "assistant captain",
-		'none'	        	=> "not on team",
+		'coach'	            => "coach",
+		'captain'	    => "captain",
+		'assistant'	    => "assistant captain",
+		'none'	            => "not on team",
 	);
 }
 
@@ -1078,8 +1087,10 @@ function getOptionsFromTimeRange( $start, $finish, $increment )
  */
 function getOptionsFromEnum( $table, $col_name )
 {
-	$result = db_query("SHOW COLUMNS from $table LIKE '%s'", $col_name);
-	$row = db_fetch_array($result);
+	global $dbh;
+	$sth = $dbh->prepare("SHOW COLUMNS FROM $table LIKE ?");
+	$sth->execute(array($col_name));
+	$row = $sth->fetch();
 
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
 	$str = preg_replace("/\)$/","",$str);
@@ -1097,15 +1108,18 @@ function getOptionsFromEnum( $table, $col_name )
 
 /**
  * Fetch options using the given query.
- * TODO: Fix this!  It should instead take a $result arg produced by db_query,
+ * TODO: Fix this!  It should instead take a prepared $sth
  * not the raw sql.
  */
 function getOptionsFromQuery( $sql, $data = array() )
 {
-	$result = db_query($sql,$data);
+	global $dbh;
+
+	$sth = $dbh->prepare($sql);
+	$sth->execute($data);
 
 	$options[0] = "-- select from list --"	;
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch() ) {
 		$options[$row['theKey']] = $row['theValue'];	
 	}
 	return $options;

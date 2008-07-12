@@ -36,11 +36,24 @@ $phpCode = file_get_contents("./leaguerunner.conf");
 eval($phpCode);
 putenv($LOCAL_TZ);
 
+/* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
+ * loading all related class data
+ */
+define('LOAD_OBJECT_ONLY', 0);
+define('LOAD_RELATED_DATA', 1);
+
+// Configure database
+try {
+	$dbh = new PDO($DB_DSN, $DB_USER, $DB_PASS);
+} catch (PDOException $e) {
+	print "Error!: " . $e->getMessage() . "<br/>";
+	die();
+}
+
 require_once("includes/common.inc");
 require_once("includes/module.inc");
 require_once("includes/menu.inc");
 require_once("includes/theme.inc");
-require_once("includes/database.inc");
 require_once("includes/mail/php.inc");
 
 // Initialise configuration variables

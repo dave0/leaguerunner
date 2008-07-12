@@ -1,31 +1,9 @@
 <?php
 class Team extends LeaguerunnerObject
 {
-	/**
-	 * Load a single team object from the database using the supplied query data.
-	 * If more than one object matches, we will load only the first one.  If
-	 * fewer than one matches, this object remains empty.
-	 *
-	 * @param	mixed 	$array key-value pairs that identify the team to be loaded.
-	 */
-	function load ( $array = array() )
+	function __construct( $array = array() ) 
 	{
-
-		$result = team_query( $array );
-		if( 1 != db_num_rows($result) ) {
-			return false;
-		}
-
-		return $this->load_from_query_result( db_fetch_array($result) );
-	}
-
-	function load_from_query_result( $array = array() ) 
-	{
-		foreach ($array as $key => $value) {
-			$this->{$key} = $value;
-		}
-
-		$this->_in_database = true;
+		global $dbh;
 
 		// Fixups 
 		if($this->league_tier) {
@@ -41,7 +19,8 @@ class Team extends LeaguerunnerObject
 
 		// Set default for calculated values to -1, so that load-on-demand
 		// will work
-		$this->avg_skill = -1;
+		$this->_avg_skill = null;
+		$this->_player_count = null;
 		$this->home_games = -1;
 		$this->away_games = -1;
 
@@ -92,16 +71,21 @@ class Team extends LeaguerunnerObject
 
 	function count_players()
 	{
-		$result = db_query("SELECT COUNT(r.player_id) as size
-			FROM teamroster r
-			WHERE 
-                (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
-				AND r.team_id = %d", $this->team_id);
-		return db_result($result);
+		global $dbh;
+		
+		if( is_null($this->_player_count) ) {
+			$sth = $dbh->prepare("SELECT COUNT(r.player_id) FROM teamroster r WHERE r.status IN ('player', 'captain', 'assistant') AND r.team_id = ?");
+			$sth->execute(array( $this->team_id));
+			$this->_player_count = $sth->fetchColumn();
+		}
+
+		return $this->_player_count;
 	}
 
 	function save ()
 	{
+		global $dbh;
+
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -117,27 +101,23 @@ class Team extends LeaguerunnerObject
 		$fields_data = array();
 
 		foreach ( $this->_modified_fields as $key => $value) {
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
-			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
-				$fields_data[] = $this->{$key};
-			}
+			$fields[] = "$key = ?";
+			$fields_data[] = $this->{$key};
 		}
 
 		if(count($fields_data) != count($fields)) {
 			error_exit("Internal error: Incorrect number of fields set");
 		}
 
-		$sql = "UPDATE team SET ";
-		$sql .= join(", ", $fields);
-		$sql .= " WHERE team_id = %d";
+
+		$sth = $dbh->prepare('UPDATE team SET '
+			. join(", ", $fields)
+			. ' WHERE team_id = ?');
 
 		$fields_data[] = $this->team_id;
 
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
+		$sth->execute( $fields_data );
+		if(1 < $sth->rowCount()) {
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
@@ -149,57 +129,51 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
+	// TODO: this belongs in league.inc
 	function validate_unique ($name)
 	{
+		global $dbh;
 		$opt = '';
+		$params = array(
+			$name,
+		);
 
-		$league_data = db_fetch_array( db_query( '
-			SELECT
-				year,
-				season,
-				day
-			FROM
-				league
-			WHERE
-				league_id = %d',
-			$this->league_id ) );
+		$sth = $dbh->prepare('SELECT year, season, day
+			FROM league
+			WHERE league_id = ?');
+	
+		$sth->execute( array( $this->league_id ) );
 
+		$league_data = $sth->fetch(PDO::FETCH_ASSOC);
 		foreach( array_keys( $league_data ) as $key )
 		{
 			if( isset( $league_data[$key] ) && $league_data[$key] != '' ) {
-				$opt .= "AND league.$key = '{$league_data[$key]}' ";
+				$opt .= " AND league.$key = ?";
+				$params[] = $league_data[$key];
 			} else {
-				$opt .= "AND league.$key IS NULL ";
+				$opt .= " AND league.$key IS NULL";
 			}
 		}
 
 		if (isset ($this->team_id)) {
-			$opt .= "AND team.team_id != {$this->team_id}";
+			$opt .= ' AND team.team_id != ?';
+			$params[] = $this->team_id;
 		}
 
-		$count = db_result (db_query("
-					SELECT
-						COUNT(*)
-					FROM
-						team
-					LEFT JOIN
-						leagueteams
-					ON
-						team.team_id = leagueteams.team_id
-					LEFT JOIN
-						league
-					ON
-						leagueteams.league_id = league.league_id
-					WHERE
-						team.name = '%s'
-					$opt",
-					$name));
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM team, leagueteams, league
+					WHERE team.name = ? 
+						AND team.team_id = leagueteams.team_id
+						AND leagueteams.league_id = league.league_id
+					' . $opt);
+		$sth->execute( $params );
 
-		return ($count == 0);
+		return ($sth->fetchColumn() == 0 );
 	}
 
 	function create ()
 	{
+		global $dbh;
+
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -208,12 +182,14 @@ class Team extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into team (name) VALUES('%s')", $this->name);
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT INTO team (name) VALUES(?)'); 
+		$sth->execute( array( $this->name ) );
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
-
-		$this->team_id = db_result(db_query("SELECT LAST_INSERT_ID() from team"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM team');
+		$sth->execute();
+		$this->team_id = $sth->fetchColumn();
 
 		return true;
 	}
@@ -223,6 +199,7 @@ class Team extends LeaguerunnerObject
 	 */
 	function delete()
 	{
+		global $dbh;
 		if ( ! $this->_in_database ) {
 			return false;
 		}
@@ -233,41 +210,26 @@ class Team extends LeaguerunnerObject
 		}
 
 		// Check that this team is not scheduled for any games.  If so, we
-		// bail.
-		$num_games = db_result(db_query("SELECT COUNT(*) FROM schedule WHERE home_team = %d OR away_team = %d", $this->team_id, $this->team_id));
-		if( $num_games > 0) {
+		// bail
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM schedule WHERE home_team = :team_id OR away_team = :team_id');
+		$sth->execute( array( team_id => $this->team_id ) );
+		if( $sth->fetchColumn() > 0) {
 			error_exit("Cannot delete team: Team must not have any games on the schedule");
 		}
 
 		// If we have anyone on the roster, remove 'em
-		db_query("DELETE FROM teamroster WHERE team_id = %d", $this->team_id);
+		$sth = $dbh->prepare('DELETE FROM teamroster WHERE team_id = ?');
+		$sth-> execute( array($this->team_id) );
+
 		// If we're in a league, remove ourself
-		db_query("DELETE FROM leagueteams WHERE team_id = %d", $this->team_id);
+		$sth = $dbh->prepare('DELETE FROM leagueteams WHERE team_id = ?');
+		$sth-> execute( array($this->team_id) );
 
 		// Delete from the team table
-		db_query("DELETE FROM team WHERE team_id = %d", $this->team_id);
+		$sth = $dbh->prepare('DELETE FROM team WHERE team_id = ?');
+		$sth-> execute( array($this->team_id) );
 
 		return true;
-	}
-
-	function get_placeholder( $key, $value )
-	{
-		if(0 == strcasecmp($value,'NULL')) {
-			return "%s";
-		}
-
-		// Hack for NOW() timestamps
-		if(0 == strcasecmp($value,'NOW()')) {
-			return "%s";
-		}
-
-		switch($key) {
-			case 'team_id':
-			case 'rating':
-				return "%d";
-			default:
-				return "'%s'";
-		}
 	}
 
 	/**
@@ -281,7 +243,11 @@ class Team extends LeaguerunnerObject
 	 */
 	function calculate_sbf()
 	{
-		$sbf = db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = %d or s.away_team = %d", $this->team_id, $this->team_id));
+		global $dbh;
+		$sth = $dbh->prepare('SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = :id OR s.away_team = :id');
+		$sth->execute(array( ':id' => $this->team_id) );
+
+		$sbf = $sth->fetchColumn();
 
 		if( $sbf == "") {
 			$sbf = "n/a";
@@ -295,10 +261,15 @@ class Team extends LeaguerunnerObject
 	 */
 	function avg_skill()
 	{
-		if( $this->avg_skill == -1 ) {
-			$this->avg_skill = db_result(db_query("SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = %d", $this->team_id));
+		global $dbh;
+		
+		if( is_null($this->_avg_skill) ) {
+			$sth = $dbh->prepare('SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = ?');
+			$sth->execute(array( $this->team_id));
+			$this->_avg_skill = $sth->fetchColumn();
 		}
-		return $this->avg_skill;
+
+		return $this->_avg_skill;
 	}
 
 
@@ -308,10 +279,16 @@ class Team extends LeaguerunnerObject
 	 */
 	function home_away_ratio()
 	{
-		if( $this->home_games == -1 ) {
+		global $dbh;
 
-			$this->home_games = db_result(db_query("SELECT count(*) from schedule where home_team = %d", $this->team_id));
-			$this->away_games = db_result(db_query("SELECT count(*) from schedule where away_team = %d", $this->team_id));
+		if( $this->home_games == -1 ) {
+			$sth = $dbh->prepare('SELECT count(*) FROM schedule WHERE home_team = ?');
+			$sth->execute( array( $this->team_id ) );
+			$this->home_games = $sth->fetchColumn();
+
+			$sth = $dbh->prepare('SELECT count(*) FROM schedule WHERE away_team = ?');
+			$sth->execute( array( $this->team_id ) );
+			$this->away_games = $sth->fetchColumn();
 		}
 
 		# avoid divide-by-zero
@@ -326,9 +303,12 @@ class Team extends LeaguerunnerObject
 	 */
 	function move_team_to( $league_id, $rank = 0 ) 
 	{
-		db_query("UPDATE leagueteams SET league_id = %d, rank = %d WHERE team_id = %d AND league_id = %d", $league_id, $rank, $this->team_id, $this->league_id);
+		global $dbh;
 
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('UPDATE leagueteams SET league_id = ?, rank = ? WHERE team_id = ? AND league_id = ?');
+		$sth->execute( array($league_id, $rank, $this->team_id, $this->league_id) );
+
+		if( 1 != $sth->rowCount() ) {
 			error_exit("Couldn't move team between leagues");
 		}
 
@@ -392,10 +372,11 @@ class Team extends LeaguerunnerObject
 
 function team_query( $array = array() )
 {
-	global $TZ_ADJUST;
+	global $TZ_ADJUST, $dbh;
 
 	$order = '';
 	$query = array();
+	$params = array();
 
 	foreach ($array as $key => $value) {
 		switch( $key ) {
@@ -406,13 +387,20 @@ function team_query( $array = array() )
 			case '_order':
 				$order = ' ORDER BY ' . $value;
 				break;
+			case 'league_id':
+				$query[]  = "l.$key = ?";
+				$params[] = $value;
+				break;
 			default:
-				$query[] = "t.$key = '" . check_query($value) . "'";
+				$query[]  = "t.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT 
+
+	$sth = $dbh->prepare("SELECT 
 		t.*,
+		1 AS _in_database,
 		s.rank,
 		l.name AS league_name,
 		l.tier AS league_tier,
@@ -424,32 +412,27 @@ function team_query( $array = array() )
 		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
 		INNER JOIN league l ON (s.league_id = l.league_id)
 		WHERE " . implode(' AND ',$query) . $order);
+	$sth->execute( $params );
+
+	return $sth;
 }
 
 function team_load( $array = array() )
 {
-	$t = new Team;
-	if($t->load($array)) {
-		return $t;
-	} else {
+	$result = team_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('Team');
 }
 
 function team_load_many( $array = array() )
 {
-	$result = team_query( &$array );
-
-	if(db_num_rows($result) < 1 ) {
-		return false;
-	}
+	$sth = team_query( &$array );
 
 	$teams = array();
-	while($ary = db_fetch_array($result)) {
-		$g = new Team;
-		if( $g->load_from_query_result( $ary ) ) {
-			$teams[$g->team_id] = $g;
-		}
+	while( $t = $sth->fetchObject('Team', array(LOAD_RELATED_DATA))) {
+		$teams[$t->team_id] = $t;
 	}
 
 	return $teams;

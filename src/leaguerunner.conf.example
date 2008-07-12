@@ -10,9 +10,13 @@
 ## or Bad Things will happen.  More robust parsing may be added in the future,
 ## but don't hold your breath.
 
-## Database configuration.  Format is
-## 	database://username:password@hostname/database_name
-$DB_URL   = 'mysql://ocua_4x:ocua_4x@localhost/leaguerunner';
+## Database configuration.
+## DB_DSN should be a PDO-compatible DSN
+$DB_DSN   = 'mysql:host=localhost;dbname=leaguerunner';
+
+## DB_USER and DB_PASS are what you'd expect... the username and password
+$DB_USER  = 'leaguerunner';
+$DB_PASS  = 'password';
 
 ## Base URL.
 ## This should be the directory containing Leaguerunner.  Don't 

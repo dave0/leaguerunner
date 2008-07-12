@@ -122,29 +122,29 @@ class GoogleMapsAllFields extends Handler
 
 	function render_footer()
 	{
-        print  "\n</markers>";
+		print  "\n</markers>";
 	}
 
-    function render_field( $field )
+	function render_field( $field )
 	{
-        print "<marker lat=\"$field->latitude\" lng=\"$field->longitude\" fid=\"$field->fid\">\n";
-        print "<balloon><![CDATA[<a href=\"" . url('field/view/'. $field->fid) . "\">$field->name</a> ($field->code)]]></balloon>\n";
-        print "<tooltip>$field->name ($field->code)</tooltip>\n";
-        print "<image>" . url('image/pins/' . $field->code . '.png') . "</image>";
-        print "</marker>\n";
+		print "<marker lat=\"$field->latitude\" lng=\"$field->longitude\" fid=\"$field->fid\">\n";
+		print "<balloon><![CDATA[<a href=\"" . url('field/view/'. $field->fid) . "\">$field->name</a> ($field->code)]]></balloon>\n";
+		print "<tooltip>$field->name ($field->code)</tooltip>\n";
+		print "<image>" . url('image/pins/' . $field->code . '.png') . "</image>";
+		print "</marker>\n";
 	}
 
 	function process()
 	{
 		$this->render_header();
-		$result = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
+		$sth = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
 
-		while( $field = db_fetch_object( $result ) ) {
+		while( $field = $sth->fetchObject('Field') ) {
 			if(!$field->latitude || !$field->longitude) {
 				continue;
 			}
-            $this->render_field( $field );
-        }
+			$this->render_field( $field );
+		}
 		
 		$this->render_footer();
 		exit(); // To prevent header/footer being displayed.

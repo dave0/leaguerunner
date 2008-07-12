@@ -221,7 +221,8 @@ function person_menu()
 	}
 
 	if($lr_session->is_admin()) {
-		$newUsers = db_result(db_query("SELECT COUNT(*) FROM person WHERE status = 'new'"));
+	
+		$newUsers = person_count(array( 'status' => 'new' ));
 		if($newUsers) {
 			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
 		}
@@ -503,18 +504,15 @@ class PersonApproveNewAccount extends PersonView
 			'delete' 		  => 'Deleted silently',
 		);
 
-		$result = duplicate_user_query ($this->person->user_id);
+		$sth = $this->person->find_duplicates();
 
-		if(db_num_rows($result) > 0) {
-			$duplicates = "<div class='warning'><br>The following users may be duplicates of this account:<ul>\n";
-			while($user = db_fetch_object($result)) {
-				$duplicates .= "<li>$user->firstname $user->lastname";
-				$duplicates .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
+		$duplicates = '';
+		while( $user = $sth->fetchObject('Person', array(LOAD_OBJECT_ONLY)) ) {
+			$duplicates .= "<li>$user->firstname $user->lastname";
+			$duplicates .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
 
-				$dispositions["delete_duplicate:$user->user_id"] = "Deleted as duplicate of $user->firstname $user->lastname ($user->user_id)";
-				$dispositions["merge_duplicate:$user->user_id"] = "Merged backwards into $user->firstname $user->lastname ($user->user_id)";
-			}
-			$duplicates .= "</ul></div>";
+			$dispositions["delete_duplicate:$user->user_id"] = "Deleted as duplicate of $user->firstname $user->lastname ($user->user_id)";
+			$dispositions["merge_duplicate:$user->user_id"] = "Merged backwards into $user->firstname $user->lastname ($user->user_id)";
 		}
 
 		$approval_form = 
@@ -527,8 +525,14 @@ class PersonApproveNewAccount extends PersonView
 			$this->person->fullname => "person/view/" . $this->person->user_id,
 			$this->title => 0));
 
+		if( strlen($duplicates) > 0 ) {
+			$duplicates = para("<div class='warning'><br>The following users may be duplicates of this account:<ul>\n"
+				. $duplicates
+				. "</ul></div>");
+		}
+
 		return 
-			para($duplicates)
+			$duplicates
 			. form( para($approval_form) )
 			. $this->generateView($this->person);
 	}
@@ -1076,7 +1080,7 @@ END_TEXT;
 			if(strlen($num)) {
 				$person->set($type, clean_telephone_number($num));
 			} else {
-				$person->set($type, 'NULL');
+				$person->set($type, null);
 			}
 
 			$person->set('publish_' . $type, $edit['publish_' . $type] ? 'Y' : 'N');
@@ -1391,9 +1395,9 @@ class PersonSignWaiver extends Handler
 
 	function initialize ()
 	{
-		$this->title = "Consent Form for League Play";
+		$this->title = 'Consent Form for League Play';
 		$this->formFile = 'waiver_form.html';
-		$this->querystring = "UPDATE person SET waiver_signed=NOW() where user_id = %d";
+		$this->querystring = 'UPDATE person SET waiver_signed=NOW() where user_id = ?';
 
 		return true;
 	}
@@ -1438,18 +1442,18 @@ class PersonSignWaiver extends Handler
 	 */
 	function perform( $edit = array() )
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		if('yes' != $edit['signed']) {
 			error_exit("Sorry, your account may only be activated by agreeing to the waiver.");
 		}
 
-		/* otherwise, it's yes.  Perform the appropriate query to markt he
+		/* otherwise, it's yes.  Perform the appropriate query to mark the
 		 * waiver as signed.
 		 */
-		db_query($this->querystring, $lr_session->attr_get('user_id'));
-
-		return (1 == db_affected_rows());
+		$sth = $dbh->prepare( $this->querystring );
+		$sth->execute( $lr_session->attr_get('user_id'));
+		return (1 == $sth->rowCount() );
 	}
 
 	function generateForm( $next )
@@ -1474,9 +1478,9 @@ class PersonSignDogWaiver extends PersonSignWaiver
 {
 	function initialize ()
 	{
-		$this->title = "Consent Form For Dog Owners";
+		$this->title = 'Consent Form For Dog Owners';
 		$this->formFile = 'dog_waiver_form.html';
-		$this->querystring = "UPDATE person SET dog_waiver_signed=NOW() where user_id = %d";
+		$this->querystring = 'UPDATE person SET dog_waiver_signed=NOW() where user_id = ?';
 		return true;
 	}
 }
@@ -1558,7 +1562,7 @@ class PersonSearch extends Handler
 		}
 
 		$result = person_query( $search );
-		if( db_num_rows($result) < 1) {
+		if( $result->rowCount() < 1 ) {
 			return "No players matching <b>" . $edit['lastname'] . "</b> found";
 		}
 
@@ -1575,9 +1579,25 @@ class PersonSearch extends Handler
 			);
 		}
 
+		$count = 0;
+		$people = '';
+		$result->setFetchMode(PDO::FETCH_CLASS, 'Person', array(LOAD_OBJECT_ONLY));
+		while($person = $result->fetch() ) {
+			if(++$count > $this->max_results) {
+				break;
+			}
+			$people .= "<tr><td>$person->lastname, $person->firstname</td>";
+			while ( list($key, $value) = each($this->ops)) {
+				$people .= '<td>' .l($key,sprintf($value, $person->user_id)) . "</td>";
+			}
+			reset($this->ops);
+			$people .= "</tr>";
+		}
+		$people .= "</table>";
+
 		$output .= "</td><td align='right'>";
 
-		if( db_num_rows($result) > $this->max_results ) {
+		if( $count > $this->max_results ) {
 			$output .= form( 
 				form_hidden("edit[step]",'perform')
 				. form_hidden('edit[lastname]', $edit['lastname'])
@@ -1586,20 +1606,7 @@ class PersonSearch extends Handler
 			);
 		}
 		$output .= "</td></tr>";
-
-		$count = 0;
-		while( $person = db_fetch_object($result) ) {
-			if(++$count > $this->max_results) {
-				break;
-			}
-			$output .= "<tr><td>$person->lastname, $person->firstname</td>";
-			while ( list($key, $value) = each($this->ops)) {
-				$output .= '<td>' .l($key,sprintf($value, $person->user_id)) . "</td>";
-			}
-			reset($this->ops);
-			$output .= "</tr>";
-		}
-		$output .= "</table>";
+		$output .= $people;
 
 		return $output;
 	}
@@ -1626,10 +1633,10 @@ class PersonListNewAccounts extends Handler
 			'delete' => 'person/delete/%d'
 		);
 
-		$result = person_query( $search );
+		$sth = person_query( $search );
 
 		$output = "<table>";
-		while( $person = db_fetch_object($result) ) {
+		while( $person = $sth->fetchObject('Person', array(LOAD_OBJECT_ONLY)) ) {
 			$output .= "<tr><td>$person->lastname, $person->firstname</td><td>";
 			while ( list($key, $value) = each($ops)) {
 				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
@@ -2023,67 +2030,62 @@ function person_settings ( )
 
 function person_statistics ( )
 {
+	global $dbh;
 	$rows = array();
-
-	$result = db_query("SELECT COUNT(*) FROM person");
-	$rows[] = array("Number of players (total):", db_result($result));
-
-	$result = db_query("SELECT status, COUNT(*) FROM person GROUP BY status");
-	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = $row;
-	}
-	$rows[] = array("Players by account status:", table(null, $sub_table));
 	
-	$result = db_query("SELECT class, COUNT(*) FROM person GROUP BY class");
-	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = $row;
-	}
-	$rows[] = array("Players by account class:", table(null, $sub_table));
+	$sth = $dbh->prepare('SELECT status, COUNT(*) FROM person GROUP BY status');
+	$sth->execute();
 
-	$result = db_query("SELECT gender, COUNT(*) FROM person GROUP BY gender");
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	$sum = 0;
+	while($row = $sth->fetch(PDO::FETCH_NUM)) {
 		$sub_table[] = $row;
+		$sum += $row[1];
 	}
-	$rows[] = array("Players by gender:", table(null, $sub_table));
+	$sub_table[] = array('Total', $sum);
+	$rows[] = array('Players by account status:', table(null, $sub_table));
 
-	$result = db_query("SELECT FLOOR((YEAR(NOW()) - YEAR(birthdate)) / 5) * 5 as age_bucket, COUNT(*) AS count FROM person GROUP BY age_bucket");
-	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = array($row['age_bucket'] . " to " . ($row['age_bucket'] + 4), $row['count']);
-	}
-	$rows[] = array("Players by age:", table(null, $sub_table));
+	$sth = $dbh->prepare('SELECT class, COUNT(*) FROM person GROUP BY class');
+	$sth->execute();
+	$sub_table = $sth->fetchAll(PDO::FETCH_NUM);
+	$rows[] = array('Players by account class:', table(null, $sub_table));
 
-	$result = db_query("SELECT addr_city, COUNT(*) AS num FROM person GROUP BY addr_city HAVING num > 2 ORDER BY num DESC");
-	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = $row;
-	}
-	$rows[] = array("Players by city:", table(null, $sub_table));
+	$sth = $dbh->prepare('SELECT gender, COUNT(*) FROM person GROUP BY gender');
+	$sth->execute();
+	$sub_table = $sth->fetchAll(PDO::FETCH_NUM);
+	$rows[] = array('Players by gender:', table(null, $sub_table));
 
-	$result = db_query("SELECT skill_level, COUNT(*) FROM person GROUP BY skill_level");
+	$sth = $dbh->prepare('SELECT FLOOR((YEAR(NOW()) - YEAR(birthdate)) / 5) * 5 as age_bucket, COUNT(*) AS count FROM person GROUP BY age_bucket');
+	$sth->execute();
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = $row;
+	while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+		$sub_table[] = array($row['age_bucket'] . ' to ' . ($row['age_bucket'] + 4), $row['count']);
 	}
-	$rows[] = array("Players by skill level:", table(null, $sub_table));
+	$rows[] = array('Players by age:', table(null, $sub_table));
 
-	$result = db_query("SELECT year_started, COUNT(*) FROM person GROUP BY year_started");
-	$sub_table = array();
-	while($row = db_fetch_array($result)) {
-		$sub_table[] = $row;
-	}
-	$rows[] = array("Players by starting year:", table(null, $sub_table));
+	$sth = $dbh->prepare('SELECT addr_city, COUNT(*) AS num FROM person GROUP BY addr_city HAVING num > 2 ORDER BY num DESC');
+	$sth->execute();
+	$sub_table = $sth->fetchAll(PDO::FETCH_NUM);
+	$rows[] = array('Players by city:', table(null, $sub_table));
+
+	$sth = $dbh->prepare('SELECT skill_level, COUNT(*) FROM person GROUP BY skill_level');
+	$sth->execute();
+	$sub_table = $sth->fetchAll(PDO::FETCH_NUM);
+	$rows[] = array('Players by skill level:', table(null, $sub_table));
+
+	$sth = $dbh->prepare('SELECT year_started, COUNT(*) FROM person GROUP BY year_started');
+	$sth->execute();
+	$sub_table = $sth->fetchAll(PDO::FETCH_NUM);
+	$rows[] = array('Players by starting year:', table(null, $sub_table));
 
 	if (variable_get('dog_questions', 1)) {
-		$result = db_query("SELECT COUNT(*) FROM person where has_dog = 'Y'");
-		$rows[] = array("Players with dogs :", db_result($result));
+		$sth = $dbh->prepare("SELECT COUNT(*) FROM person where has_dog = 'Y'");
+		$sth->execute();
+		$rows[] = array('Players with dogs :', $sth->fetchColumn());
 	}
 
 	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
-	return form_group("Player Statistics", $output);
+	return form_group('Player Statistics', $output);
 }
 
 ?>

@@ -195,10 +195,11 @@ class FieldEdit extends Handler
 
 		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
 
-		$result = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
+		// TODO: Should become Field::get_eligible_parents()
+		$sth = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
 		$parents = array();
 		$parents[0] = "---";
-		while($p = db_fetch_object($result)) {
+		while($p = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$parents[$p->fid] = $p->fullname;
 		}
 
@@ -416,15 +417,16 @@ class FieldList extends Handler
 			ob_end_clean();
 		}
 
+		// TODO: this open/closed crap doesn't work everywhere!
 		if( $this->closed ) {
 			$status = "AND status = 'closed'";
 		} else {
 			$status = "AND (status = 'open' OR ISNULL(status))";
 		}
-		$result = field_query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
+		$sth = field_query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
 
 		$fieldsByRegion = array();
-		while($field = db_fetch_object($result)) {
+		while($field = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if(! array_key_exists( $field->region, $fieldsByRegion) ) {
 				$fieldsByRegion[$field->region] = "";
 			}
@@ -460,7 +462,7 @@ class FieldView extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		$this->title= "View Field";
 
 		$rows = array();
@@ -520,15 +522,16 @@ class FieldView extends Handler
 		}
 
 		// list other fields at this site
+		$sth = $dbh->prepare('SELECT * FROM field WHERE parent_fid = :fid OR fid = :fid ORDER BY num');
 		if( $this->field->parent_fid ) {
-			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $this->field->parent_fid, $this->field->parent_fid);
+			$sth->execute(array( 'fid' => $this->field->parent_fid ) );
 		} else {
-			$result = db_query("SELECT * FROM field WHERE parent_fid = %d OR fid = %d ORDER BY num", $this->field->fid, $this->field->fid);
+			$sth->execute(array( 'fid' => $this->field->fid ) );
 		}
 
 		$fieldRows = array();
 		$header = array("Fields","&nbsp;");
-		while( $related = db_fetch_object( $result ) ) {
+		while( $related = $sth->fetch(PDO::FETCH_OBJ)) {
 			$fieldRows[] = array(
 				$this->field->code . " $related->num",
 				l("view field", "field/view/$related->fid", array('title' => "View field details"))
@@ -580,13 +583,12 @@ class FieldBooking extends Handler
 			$this->field->fullname => 0
 		));
 
-		$result = slot_query( array('fid' => $this->field->fid,
-									'_extra' => 'YEAR(g.game_date) = YEAR(NOW())',
-									'_order' => 'g.game_date, g.game_start'));
+		$sth = slot_query( array('fid' => $this->field->fid,
+				'_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
-		while($slot = db_fetch_object($result)) {
+		while($slot = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$booking = '';
 			$actions = array();
 			if( $lr_session->has_permission('gameslot','edit', $slot->slot_id)) {

@@ -5,41 +5,11 @@ class League extends LeaguerunnerObject
 	var $coordinators;
 	var $teams;
 
-	function League ()
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$this->LeaguerunnerObject(); // Upcall to parent
-
 		$this->_teams_loaded = false;
 		$this->coordinators = array();
 		$this->teams = array();
-	}
-
-	/**
-	 * Load a single league object from the database using the
-	 * supplied query data.  If more than one  matches, we will return only
-	 * the first one.  If fewer than one matches, this object remains empty.
-	 * @param	array 	$array key-value pairs that identify the league to be loaded.
-	 */
-	function load ( $array = array() )
-	{
-		$result = league_query( $array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		return $this->load_from_query_result( db_fetch_array($result) );
-	}
-
-
-	function load_from_query_result ( $array = array() ) 
-	{
-
-		foreach ($array as $key => $value) {
-			$this->{$key} = $value;
-		}
-
-		$this->_in_database = true;
 
 		/* set derived attributes */
 		$year = '';
@@ -52,6 +22,10 @@ class League extends LeaguerunnerObject
 			$this->fullname = "$this->name $year";
 		}
 
+		if( $load_mode == LOAD_OBJECT_ONLY ) {
+			return;
+		}
+
 		$this->load_coordinators();
 
 		return true;
@@ -59,16 +33,14 @@ class League extends LeaguerunnerObject
 
 	function load_coordinators() 
 	{
-		$result = db_query("SELECT
-			m.player_id
-			FROM leaguemembers m
-			WHERE m.league_id = %d", $this->league_id);
+		global $dbh;
 
-		while( $array = db_fetch_array($result) ) {
-			$c = person_load( array('user_id' => $array['player_id']) );
-			if( ! $c ) {
-				error_exit("Invalid coordinator listed for league $league->league_id");
-			}
+		$sth = $dbh->prepare('SELECT m.player_id FROM leaguemembers m WHERE m.league_id = ?');
+		$sth->execute(array($this->league_id));
+
+		while( $id = $sth->fetchColumn() ) {
+			$c_sth = person_query( array( 'user_id' => $id ) );
+			$c = $c_sth->fetchObject('Person', array(LOAD_OBJECT_ONLY));
 			$c->coordinator_status = 'loaded';
 			$this->coordinators[$c->user_id] = $c;
 		}
@@ -81,14 +53,16 @@ class League extends LeaguerunnerObject
 	*/
 	function contains_team( $team_id ) 
 	{
+		global $dbh;
 		if($this->_teams_loaded) {
 			return array_key_exists( $team_id , $this->teams );
 		}
 
 		// Otherwise, we have to check directly
-		$result = db_query("SELECT team_id FROM leagueteams WHERE league_id = %d AND team_id = %d", $this->league_id, $team_id);
+		$sth = $dbh->prepare('SELECT team_id FROM leagueteams WHERE league_id = ? AND team_id = ?');
+		$sth->execute( array( $this->league_id, $team_id) );
 
-		return (db_result($result) == $team_id);
+		return ($sth->fetchColumn() == $team_id);
 	}
 
 	/**
@@ -100,7 +74,7 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		$this->teams = team_load_many( array('_extra' => 'l.league_id = ' . check_query($this->league_id), '_order' => 't.name'));
+		$this->teams = team_load_many( array('league_id' => $this->league_id, '_order' => 't.name'));
 
 		// Cheat.  If we didn't find any teams, set $this->teams to an empty
 		// array again.
@@ -134,8 +108,10 @@ class League extends LeaguerunnerObject
 	*/
 	function has_schedule() 
 	{
-		$result = db_result(db_query("SELECT COUNT(*) from schedule where league_id = %d", $this->league_id));
-		return ($result > 0);
+		global $dbh;
+		$sth = $dbh->prepare('SELECT COUNT(*) from schedule where league_id = ?');
+		$sth->execute(array( $this->league_id));
+		return ($sth->fetchColumn() > 0);
 	}
 
 	/** 
@@ -177,10 +153,11 @@ class League extends LeaguerunnerObject
 	*/
 	function update_current_round()
 	{
-		global $TZ_ADJUST;
-		$result = db_query("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = %d AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( (UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1", $this->league_id);
+		global $TZ_ADJUST, $dbh;
+		$sth = $dbh->prepare("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = ? AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( (UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1");
+		$sth->execute(array($this->league_id));
 
-		$round = db_result($result);
+		$round = $sth->fetchColumn();
 		if( $round != $this->current_round ) {
 			$this->set('current_round',$round);
 			return $this->save();
@@ -193,39 +170,38 @@ class League extends LeaguerunnerObject
 	*/
 	function finalize_old_games()
 	{
+		global $dbh;
 		if( $this->finalize_after == 0 )
 			return '';
 
 		global $TZ_ADJUST;
 		$output = '';
 
-		$result = db_query("
-			SELECT
-				DISTINCT s.game_id,
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
+		// TODO: game_load_many()?  Or at least game_query()?
+		$sth = $dbh->prepare("SELECT DISTINCT s.game_id,
 			FROM
 				schedule s,
 				gameslot g
 			WHERE
-				s.league_id = %d
+				s.league_id = ? 
 			AND
 				g.game_id = s.game_id
 			AND
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) < UNIX_TIMESTAMP(NOW())
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) < UNIX_TIMESTAMP(NOW())
 			AND
 				(ISNULL(s.home_score) OR ISNULL(s.away_score))
 			ORDER BY
-				g.game_id
-			",
+				g.game_id");
+
+		$sth->execute( array(
 			$TZ_ADJUST * 60,
 			$this->league_id,
 			// TZ_ADJUST is in minutes, finalize_after is in hours
-			$TZ_ADJUST + ($this->finalize_after * 60) * 60);
+			$TZ_ADJUST + ($this->finalize_after * 60) * 60
+		));
 
-		while( $foo = db_fetch_array($result) ) {
-			$id = $foo['game_id'];
-
-			$game = game_load( array('game_id' => $id) );
+		while( $game_id = $sth->fetchColumn() ) {
+			$game = game_load( array('game_id' => $game_id) );
 			if ($game->finalize())
 			{
 				$stat = 'Finalized';
@@ -257,8 +233,8 @@ class League extends LeaguerunnerObject
 		global $TZ_ADJUST;
 		$output = '';
 
-		$result = db_query("
-			SELECT
+		// TODO: game_load_many()?  Or at least game_query()?
+		$sth = $dbh->prepare("SELECT DISTINCT s.game_id,
 				DISTINCT s.game_id,
 				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
 			FROM
@@ -274,16 +250,16 @@ class League extends LeaguerunnerObject
 				(ISNULL(s.home_score) OR ISNULL(s.away_score))
 			ORDER BY
 				g.game_id
-			",
+			");
+	
+		$sth->execute( array(
 			$TZ_ADJUST * 60,
 			$this->league_id,
 			// TZ_ADJUST is in minutes, email_after is in hours
-			$TZ_ADJUST + ($this->email_after * 60) * 60);
+			$TZ_ADJUST + ($this->email_after * 60) * 60 ));
 
-		while( $foo = db_fetch_array($result) ) {
-			$id = $foo['game_id'];
-
-			$game = game_load( array('game_id' => $id) );
+		while( $game_id = $sth->fetchColumn() ) {
+			$game = game_load( array('game_id' => $game_id) );
 			if ($game->remind())
 			{
 				$stat = 'Emailed';
@@ -308,6 +284,8 @@ class League extends LeaguerunnerObject
 
 	function save ()
 	{
+		global $dbh;
+
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
 				error_exit("Couldn't create league");
@@ -319,40 +297,42 @@ class League extends LeaguerunnerObject
 			$fields_data = array();
 
 			foreach ( $this->_modified_fields as $key => $value) {
-				if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-					$fields[] = "$key = %s";
-					$fields_data[] = 'NULL';
+				$fields[] = "$key = ?";
+				if( empty($this->{$key}) ) {
+					$fields_data[] = null;
 				} else {
-					$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
 					$fields_data[] = $this->{$key};
 				}
 			}
 
 			if(count($fields_data) != count($fields)) {
-				error_exit("Internal error: Incorrect number of fields set");
+				error_exit('Internal error: Incorrect number of fields set');
 			}
-
-			$sql = "UPDATE league SET ";
-			$sql .= join(", ", $fields);	
-			$sql .= " WHERE league_id = %d";
 
 			$fields_data[] = $this->league_id;
 
-			db_query( $sql, $fields_data);
+			$sth = $dbh->prepare( 'UPDATE league SET '
+				. join(', ', $fields)
+				. ' WHERE league_id = ?');
+
+			$sth->execute( $fields_data );
+
 			# Affecting zero rows is possible
-			if(1 < db_affected_rows()) {
-				error_exit("Internal error: Strange number of rows affected");
+			if(1 < $sth->rowCount()) {
+				error_exit('Internal error: Strange number of rows affected');
 			}
 		}
 
+		$add_sth = $dbh->prepare('INSERT INTO leaguemembers (league_id, player_id, status) VALUES (?,?,?)');
+		$del_sth = $dbh->prepare('DELETE FROM leaguemembers WHERE league_id = ? AND player_id = ?');
 		foreach( $this->coordinators as $coord ) {
 			switch( $coord->coordinator_status ) {
 				case 'add':
-					db_query("INSERT into leaguemembers (league_id, player_id, status) VALUES (%d,%d,'coordinator')", $this->league_id, $coord->user_id);
+					$add_sth->execute( array($this->league_id, $coord->user_id, 'coordinator') );
 					$this->coordinators[$coord->user_id]->coordinator_status = 'loaded';
 					break;
 				case 'delete':	
-					db_query("DELETE FROM leaguemembers WHERE league_id = %d AND player_id = %d", $this->league_id, $coord->user_id);
+					$del_sth->execute( array($this->league_id, $coord->user_id ));
 					unset($this->coordinators[$coord->user_id]);
 					break;
 				default:
@@ -368,6 +348,8 @@ class League extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
+
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -375,36 +357,17 @@ class League extends LeaguerunnerObject
 		if( ! $this->name ) {
 			return false;
 		}
-
-		db_query("INSERT into league (name) VALUES('%s')", $this->name);
-		if( 1 != db_affected_rows() ) {
+		
+		$sth = $dbh->prepare('INSERT into league (name) VALUES(?)');
+		$sth->execute( array( $this->name) );
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
-		$this->league_id = db_result(db_query("SELECT LAST_INSERT_ID() from league"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM league');
+		$sth->execute();
+		$this->league_id = $sth->fetchColumn();
 
 		return true;
-	}
-
-	function get_placeholder( $key, $value )
-	{
-		if(0 == strcasecmp($value,'NULL')) {
-			return "%s";
-		}
-
-		// Hack for NOW() timestamps
-		if(0 == strcasecmp($value,'NOW()')) {
-			return "%s";
-		}
-
-		switch($key) {
-			case 'league_id':
-			case 'tier':
-			case 'current_round':
-			case 'year':
-				return "%d";
-			default:
-				return "'%s'";
-		}
 	}
 
 	/**
@@ -414,7 +377,11 @@ class League extends LeaguerunnerObject
 	*/
 	function calculate_sbf()
 	{
-		$sbf = db_result(db_query("SELECT ROUND(AVG(ABS(s.home_score - s.away_score)), 2) FROM schedule s WHERE s.league_id = %d", $this->league_id));
+		global $dbh;
+		$sth = $dbh->prepare('SELECT ROUND(AVG(ABS(s.home_score - s.away_score)), 2) FROM schedule s WHERE s.league_id = ?');
+		$sth->execute(array( $this->league_id) );
+
+		$sbf = $sth->fetchColumn();
 
 		if( $sbf == "") {
 			$sbf = "n/a";
@@ -437,8 +404,8 @@ class League extends LeaguerunnerObject
 		$game_set = $number_of_teams / 2;
 
 		// get the schedule
-		$result = game_query ( array( 'league_id' => $this->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
-		if( ! $result ) {
+		$sth = game_query ( array( 'league_id' => $this->league_id, '_order' => 'g.game_date, g.game_id, g.game_start') );
+		if( ! $sth ) {
 			return false;
 		}
 
@@ -446,7 +413,7 @@ class League extends LeaguerunnerObject
 		$backup_games = array();
 		$games = array();
 		$changed_games = array();
-		while($game = db_fetch_array($result)) {
+		while($game = $sth->fetch()) {
 			if ($game['round'] >= $round) {
 				$game = game_load( array('game_id' => $game['game_id']) );
 				if ($game->home_score || $game->away_score) {
@@ -663,7 +630,8 @@ class League extends LeaguerunnerObject
 	*/
 	function get_gameslots( $timestamp )
 	{
-		$result = db_query( "SELECT 
+		global $dbh;
+		$sth = $dbh->prepare("SELECT 
 			s.slot_id AS slot_id,
 			IF( f.parent_fid, 
 				CONCAT_WS(' ', s.game_start, p.name, f.num),
@@ -675,16 +643,17 @@ class League extends LeaguerunnerObject
 				LEFT JOIN league_gameslot_availability a ON (s.slot_id = a.slot_id)
 				LEFT JOIN schedule g ON (s.game_id = g.game_id) 
 			WHERE 
-				UNIX_TIMESTAMP(s.game_date) = %d
+				UNIX_TIMESTAMP(s.game_date) = :timestamp
 				AND ( 
-					(a.league_id=%d AND ISNULL(s.game_id)) 
+					(a.league_id=:league_id AND ISNULL(s.game_id)) 
 					OR
-					g.league_id=%d
+					g.league_id=:league_id
 				)
-			ORDER BY s.game_start, value", $timestamp, $this->league_id,$this->league_id);
+			ORDER BY s.game_start, value");
+		$sth->execute(array('timestamp' => $timestamp, 'league_id' =>  $this->league_id) );
 
 		$gameslots[0] = "---";
-		while($slot = db_fetch_object($result)) {
+		while($slot = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$gameslots[$slot->slot_id] = $slot->value;
 		}
 		return $gameslots;
@@ -698,6 +667,7 @@ class League extends LeaguerunnerObject
 	 */
 	function calculate_standings( $args = array() )
 	{
+		global $dbh;
 
 		if ($args['round'] && $args['round'] != 'all' ) {
 			$current_round = $args['round'];
@@ -733,13 +703,14 @@ class League extends LeaguerunnerObject
 			$round  = $this->teams;
 		}
 
-		/* Now, fetch the schedule.  Get all games played by anyone who is
-		* currently in this league, regardless of whether or not their
-		* opponents are still here
-		*/
+		/* Now, fetch the schedule.  Get all games played by anyone who
+		 * is currently in this league, regardless of whether or not
+		 * their opponents are still here
+		 */
 		// TODO: I'd like to use game_load_many here, but it's too slow.
-		$result = db_query( "SELECT DISTINCT 
+		$sth = $dbh->prepare('SELECT DISTINCT 
 			s.*, 
+			1 as _in_database,
 			s.home_team AS home_id, 
 			h.name AS home_name, 
 			s.away_team AS away_id,
@@ -748,16 +719,15 @@ class League extends LeaguerunnerObject
 				LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
 				LEFT JOIN gameslot g ON (g.game_id = s.game_id)
-			WHERE t.league_id = %d 
+			WHERE t.league_id = ?
 				AND NOT ISNULL(s.home_score) 
 				AND NOT ISNULL(s.away_score) 
 				AND (s.home_team = t.team_id 
 					OR s.away_team = t.team_id) 
-			ORDER BY g.game_date, g.game_start", $this->league_id);
+			ORDER BY g.game_date, g.game_start');
+		$sth->execute( array($this->league_id) );
 
-		while( $ary = db_fetch_array( $result) ) {
-			$g = new Game;
-			$g->load_from_query_result($ary);
+		while( $g = $sth->fetchObject('Game') ) {
 			$this->standings_record_game($season, $g);
 			if($current_round && $current_round == $g->round) {
 				$this->standings_record_game($round, $g);
@@ -2215,53 +2185,43 @@ class League extends LeaguerunnerObject
 
 function league_query( $array = array() )
 {
+	global $dbh;
 	$order = '';
-	$query = array();
+	$query  = array();
+	$params = array();
 
 	foreach ($array as $key => $value) {
 		switch( $key ) {
-		case '_extra':
-			/* Just slap on any extra query fields desired */
-			$query[] = $value;
-			break;
 		case '_order':
 			$order = ' ORDER BY ' . $value;
 			break;
 		default:
-			$query[] = "l.$key = '" . check_query($value) . "'";
+			$query[]  = "l.$key = ?";
+			$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT l.* FROM league l WHERE " . implode(' AND ',$query) . $order);
+	$sth = $dbh->prepare("SELECT l.*, 1 as _in_database FROM league l WHERE " . implode(' AND ',$query) . $order);
+	$sth->execute($params);
+	return $sth;
 }
 
-/**
-* Wrapper for convenience and backwards-compatibility.
-*/
 function league_load( $array = array() )
 {
-	$l = new League;
-	if($l->load($array)) {
-		return $l;
-	} else {
+	$result = league_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('League');
 }
 
 function league_load_many( $array = array() )
 {
-	$result = league_query( &$array );
-
-	if(db_num_rows($result) < 1 ) {
-		return false;
-	}
+	$sth = league_query( $array );
 
 	$leagues = array();
-	while($ary = db_fetch_array($result)) {
-		$l = new League;
-		if( $l->load_from_query_result( $ary ) ) {
-			$leagues[$l->league_id] = $l;
-		}
+	while($l = $sth->fetchObject('League') ) {
+		$leagues[$l->league_id] = $l;
 	}
 
 	return $leagues;

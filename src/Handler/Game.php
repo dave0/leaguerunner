@@ -111,14 +111,15 @@ function game_permissions ( &$user, $action, &$game, $extra )
  */
 function game_splash ()
 {
-	global $lr_session;
+	global $lr_session, $dbh;
 
-	$games = db_query("SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4", $lr_session->user->user_id);
+	$sth = game_load(array());
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4');
+	$sth->execute( array($lr_session->user->user_id) );
+
 	$rows = array();
-	while($row = db_fetch_object($games) ) {
-		$game = game_load( array('game_id' => $row->game_id) );
-		$score = '';
+	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
+		$game = game_load(array('game_id' => $row->game_id));
 		if( $game->is_finalized() ) {
 			$score = "$game->home_score - $game->away_score"	;
 		} else {
@@ -136,7 +137,7 @@ function game_splash ()
 			}
 		}
 		array_unshift($rows, array(
-         l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
 				" (home) vs. " .
@@ -147,10 +148,11 @@ function game_splash ()
 		));
 	}
 
-	$games = db_query("SELECT s.game_id, t.status, t.team_id FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_id = s.game_id
-        AND g.game_date >= CURDATE() ORDER BY g.game_date, g.game_start asc LIMIT 4", $lr_session->user->user_id);
-	while($row = db_fetch_object($games) ) {
-		$game = game_load( array('game_id' => $row->game_id) );
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date < CURDATE() ORDER BY g.game_date asc, g.game_start asc LIMIT 4');
+	$sth->execute( array($lr_session->user->user_id) );
+
+	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
+		$game = game_load(array('game_id' => $row->game_id));
 		$score = '';
 		if( $game->is_finalized() ) {
 			$score = "$game->home_score - $game->away_score"	;
@@ -399,6 +401,7 @@ class GameCreate extends Handler
 
 	function selectDate ( $edit )
 	{
+		global $dbh;
 		$num_teams = count($this->league->teams);
 
 		if (isset($edit['excludeTeamID'])) {
@@ -444,16 +447,17 @@ class GameCreate extends Handler
 
 		$tot_fields = $num_fields * $num_dates;
 		$output .= "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
-
-		$result = db_query(
-			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = %d ORDER BY s.game_date, s.game_start", $this->league->league_id);
+		
+		$sth = $dbh->prepare(
+			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = ? ORDER BY s.game_date, s.game_start");
+		$sth->execute( array( $this->league->league_id) );
 
 		$possible_dates = array();
-		while($date = db_fetch_object($result)) {
-		# TODO: for each day, ensure that:
-		#     a) the minimum $num_fields is available
-		#     b) there are $num_dates - 1 days beyond this onewith $num fields
-		#     available
+		while($date = $sth->fetch(PDO::FETCH_OBJ)) {
+			# TODO: for each day, ensure that:
+			#     a) the minimum $num_fields is available
+			#     b) there are $num_dates - 1 days beyond this onewith $num fields
+			#     available
 			$possible_dates[$date->datestamp] = strftime("%A %B %d %Y", $date->datestamp);
 		}
 		if( count($possible_dates) == 0) {
@@ -1022,7 +1026,7 @@ class GameEdit extends Handler
 
 	function generateForm ( )
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1135,7 +1139,7 @@ class GameEdit extends Handler
 			 * Otherwise, scores are still pending.
 			 */
 			if( $lr_session->is_coordinator_of($game->league_id)) {
-				$result = db_query( "SELECT
+				$sth = $dbh->prepare("SELECT
 								user_id
 							FROM
 								person p
@@ -1144,15 +1148,15 @@ class GameEdit extends Handler
 							ON
 								p.user_id = r.player_id
 							WHERE
-								r.team_id IN (%d,%d)
+								r.team_id IN (?,?)
 							AND
 								r.status = 'captain'
 							AND
-								p.user_id != %d",
-					$game->home_id, $game->away_id, $lr_session->user->user_id);
+								p.user_id != ?");
+				$sth->execute( array( $game->home_id, $game->away_id, $lr_session->user->user_id) );
 				$emails = array();
 				$names = array();
-				while($user = db_fetch_object($result)) {
+				while($user = $sth->fetch(PDO::FETCH_OBJ)) {
 					$captain = person_load(array('user_id' => $user->user_id));
 					$emails[] = $captain->email;
 					$names[] = $captain->fullname;
@@ -1189,11 +1193,16 @@ class GameEdit extends Handler
 			$score_group .= form_textfield( "Home ($game->home_name [rated: $game->rating_home]) score", 'edit[home_score]',$game->home_score,2,2);
 			$score_group .= form_textfield( "Away ($game->away_name [rated: $game->rating_away]) score",'edit[away_score]',$game->away_score,2,2);
 		
-			// horribly innefficient to run this query again from here, when it was just
-			// run from the "game_score_entry_display" call a few lines above here...
-			$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
-			$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
-			$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
+			// TODO: horribly inefficient to run this query again
+			// from here, when it was just run from the
+			// "game_score_entry_display" call a few lines above
+			// here...
+
+			$sth = $dbh->prepare('SELECT * FROM score_entry WHERE team_id = ? AND game_id = ?');
+			$sth->execute(array($game->home_team, $game->game_id));
+			$home = $sth->fetch();	
+			$sth->execute(array($game->away_team, $game->game_id));
+			$away = $sth->fetch();	
 
 			// if the game has not yet been finalized, spirit for home team was reported by away team (and vice-versa)
 			$hs = $away['spirit'];
@@ -1203,8 +1212,8 @@ class GameEdit extends Handler
 				$hs = $game->home_spirit;
 				$as = $game->away_spirit;
 			}
-		    $score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
-		    $score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
+			$score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
+			$score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
 		}
 
 		$output .= form_group("Scoring", $score_group);
@@ -1223,6 +1232,7 @@ class GameEdit extends Handler
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
+
 			if($this->can_edit) {
 				$home_spirit_group = $formbuilder->render_editable( $ary, 'home' );
 			} else {
@@ -1460,8 +1470,11 @@ class GameEdit extends Handler
 # since it's only ever used there
 function game_score_entry_display( $game )
 {
-	$se_query = "SELECT * FROM score_entry WHERE team_id = %d AND game_id = %d";
-	$home = db_fetch_array(db_query($se_query,$game->home_team,$game->game_id));
+	global $dbh;
+	$sth = $dbh->prepare('SELECT * FROM score_entry WHERE team_id = ? AND game_id = ?');
+	$sth->execute(array($game->home_team, $game->game_id));
+	$home = $sth->fetch();	
+
 	if(!$home) {
 		$home = array(
 			'score_for' => 'not entered',
@@ -1473,7 +1486,8 @@ function game_score_entry_display( $game )
 		$home['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 	}
 
-	$away = db_fetch_array(db_query($se_query,$game->away_team,$game->game_id));
+	$sth->execute(array($game->away_team, $game->game_id));
+	$away = $sth->fetch();	
 	if(!$away) {
 		$away = array(
 			'score_for' => 'not entered',

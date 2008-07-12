@@ -1,26 +1,11 @@
 <?php
 class Field extends LeaguerunnerObject
 {
-	function load ( $array = array() )
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$result = field_query( &$array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		$this->_in_database = true;
-
-		$item = db_fetch_array($result);
-
-		foreach ($item as $key => $value) {
-			$this->{$key} = $value;
-		}
-
 		// If we have a parent, override the overridables.
 		if( $this->parent_fid ) {
-			$result = field_query( array('fid' => $item['parent_fid']) );
-			$parent = db_fetch_object($result);
+			$parent = field_load( array('fid' => $this->parent_fid) );
 			$this->name = $parent->name;
 			$this->code = $parent->code;
 			$this->region = $parent->region;
@@ -41,6 +26,10 @@ class Field extends LeaguerunnerObject
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
+		}
+
+		if( $load_mode == LOAD_OBJECT_ONLY ) {
+			return;
 		}
 
 		$season = strtolower(variable_get("current_season","Summer"));
@@ -68,6 +57,8 @@ class Field extends LeaguerunnerObject
 	
 	function save ()
 	{
+		global $dbh;
+
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -84,10 +75,10 @@ class Field extends LeaguerunnerObject
 
 		foreach ( $this->_modified_fields as $key => $value) {
 			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
+				$fields[] = "$key = ?";
+				$fields_data[] = null;
 			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
+				$fields[] = "$key = ?";
 				$fields_data[] = $this->{$key};
 			}
 		}
@@ -98,12 +89,13 @@ class Field extends LeaguerunnerObject
 
 		$sql = "UPDATE field SET ";
 		$sql .= join(", ", $fields);	
-		$sql .= " WHERE fid = %d";
+		$sql .= " WHERE fid = ?";
 
 		$fields_data[] = $this->fid;
 
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
+		$sth = $dbh->prepare( $sql );
+		$sth->execute( $fields_data );
+		if(1 < $sth->rowCount()) {
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
@@ -114,6 +106,7 @@ class Field extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -129,16 +122,20 @@ class Field extends LeaguerunnerObject
 			if( ! $this->name ) {
 				return false;
 			}
-			db_query("INSERT into field (num, name, code) VALUES(%d, '%s','%s')", $this->num, $this->name, $this->code);
+			$sth = $dbh->prepare('INSERT into field (num, name, code) VALUES(?,?,?)');
+			$sth->execute(array($this->num, $this->name, $this->code));
 		} else {
-			db_query("INSERT into field (num, parent_fid) VALUES(%d, %d)", $this->num, $this->parent_fid);
+			$sth = $dbh->prepare('INSERT into field (num, parent_fid) VALUES(?,?)');
+			$sth->execute(array($this->num, $this->parent_fid));
 		}
 
-		if( 1 != db_affected_rows() ) {
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
-		$this->fid = db_result(db_query("SELECT LAST_INSERT_ID() from field"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM field');
+		$sth->execute();
+		$this->fid = $sth->fetchColumn();
 		
 		return true;
 	}
@@ -146,9 +143,10 @@ class Field extends LeaguerunnerObject
 
 function field_query ( $array = array() )
 {
+	global $dbh;
 
-	$query = array();
-	$query[] = '1 = 1';
+	$query  = array();
+	$params = array();
 	$order = '';
 	foreach ($array as $key => $value) {
 		switch( $key ) {
@@ -160,15 +158,20 @@ function field_query ( $array = array() )
 				$order = ' ORDER BY ' . $value;
 				break;
 			default:
-				$query[] = "f.$key = '" . check_query($value) . "'";
+				$query[] = "f.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT 
+	$sth = $dbh->prepare("SELECT 
 		f.*,
+		1 AS _in_database,
 		CONCAT_WS(' ',f.name,f.num) as fullname
 		FROM field f
 	WHERE " . implode(' AND ',$query) .  $order);
+
+	$sth->execute( $params );
+	return $sth;
 }
 
 function field_rating_values()
@@ -187,11 +190,10 @@ function field_rating_values()
  */
 function field_load( $array = array() )
 {
-	$s = new Field;
-	if($s->load($array)) {
-		return $s;
-	} else {
+	$result = field_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('Field');
 }
 ?>

@@ -75,20 +75,14 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
-		$result = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
+		$sth = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
 		
-		if( ! $result ) {
-			error_exit("That league does not have a schedule");
-		}
-
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
 			schedule_subheading( ),
 		);
-		while($g = db_fetch_array($result)) {
-			$game = new Game;
-			$game->load_from_query_result($g);
-			$rows[] = schedule_render_viewable($game);
+		while($g = $sth->fetchObject('Game') ) {
+			$rows[] = schedule_render_viewable($g);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
 		return $output;
@@ -157,19 +151,12 @@ class ScheduleEdit extends Handler
 
 		$this->league->rounds = $this->league->rounds_as_array();
 
-		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-		
-			
-		if( ! $result ) {
-			error_exit("That league does not have a schedule");
-		}
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$prevDayId = -1;
 		$rows = array();
 		/* For each game in the schedule for this league */
-		while($g = db_fetch_array($result)) {
-			$game = new Game;
-			$game->load_from_query_result($g);
+		while($game = $sth->fetchObject('Game') ) {
 
 			if( $game->day_id != $prevDayId ) {
 				if( $timestamp == $prevDayId) {
@@ -264,6 +251,7 @@ class ScheduleEdit extends Handler
 
 	function generateConfirm ($dayId, $edit )
 	{
+		global $dbh;
 		$dataInvalid = $this->isDataInvalid( $edit['games'] );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
@@ -296,12 +284,18 @@ class ScheduleEdit extends Handler
 					$game_info['away_text'],
 				);
 			} else {
+
+				$team_sth = $dbh->prepare('SELECT name FROM team WHERE team_id = ?');
+				$team_sth->execute( array($game_info['home_id']) );
+				$home_name = $team_sth->fetchColumn();
+				$team_sth->execute( array($game_info['away_id']) );
+				$away_name = $team_sth->fetchColumn();
 				$rows[] = array(
 					form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
 					form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
 					form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $gameslots[$game_info['slot_id']],
-					form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) .  db_result(db_query("SELECT name from team where team_id = %d", $game_info['home_id'])),
-					form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . db_result(db_query("SELECT name from team where team_id = %d", $game_info['away_id'])),
+					form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) . $home_name,
+					form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . $away_name,
 				);
 			}
 		}
@@ -314,6 +308,8 @@ class ScheduleEdit extends Handler
 	
 	function perform ($dayId, $edit) 
 	{
+		global $dbh;
+
 		$dataInvalid = $this->isDataInvalid( $edit['games'] );
 		if($dataInvalid) {
 			error_exit($dataInvalid);
@@ -343,7 +339,8 @@ class ScheduleEdit extends Handler
 			// to clear out the old game slot!
 			// (if the old slot id is blank, it means that this game's slot has already been overwritten)
 			if ($old_slot_id && $old_slot_id != $game->slot_id) {
-				db_query("UPDATE gameslot SET game_id = NULL WHERE slot_id = $old_slot_id");
+				$sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL WHERE slot_id = ?');
+				$sth->execute(array($old_slot_id));
 			}
 		}
 
@@ -377,17 +374,11 @@ class ScheduleView extends Handler
 		/* 
 		 * Now, grab the schedule
 		 */
-		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-		if( ! $result ) {
-			error_exit("That league does not have a schedule");
-		}
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$prevDayId = -1;
 		$rows = array();
-		/* For each game in the schedule for this league */
-		while($g = db_fetch_array($result)) {
-			$game = new Game;
-			$game->load_from_query_result($g);
+		while( $game = $sth->fetchObject('Game') ) {
 
 			if( $game->day_id != $prevDayId ) {
 				$rows[] = schedule_heading( 

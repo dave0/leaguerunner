@@ -29,7 +29,9 @@ function sess_write($key, $value)
 
 function sess_destroy($key)
 {
-	db_query("UPDATE person SET session_cookie = '' WHERE session_cookie = '%s'", $key);
+	global $dbh;
+	$sth = $dbh->prepare("UPDATE person SET session_cookie = '' WHERE session_cookie = ?");
+	$sth->execute($key);
 }
 
 function sess_gc($lifetime)
@@ -151,14 +153,15 @@ class UserSession
 	 */
 	function expire ()
 	{
+		global $dbh;
+
 		$user_id = $this->attr_get('user_id');
 		if(is_null($user_id)) {
 			return false;
 		}
 
-	    db_query("UPDATE person SET session_cookie = NULL WHERE user_id = %d", $user_id);
-
-		return true;
+		$sth = $dbh->prepare('UPDATE person SET session_cookie = NULL WHERE user_id = ?');
+		return $sth->execute(array($user_id));
 	}
 
 	/**
@@ -194,11 +197,13 @@ class UserSession
 	 */
 	function set_session_key ( $client_ip )
 	{
+		global $dbh;
+
 		$sesskey = session_id();
 
-		$result = db_query("UPDATE person SET session_cookie = '%s', last_login = NOW(), client_ip = '%s' WHERE user_id = %d", $sesskey, $client_ip, $this->user->user_id);
-		if(!db_affected_rows()) {
-			echo "Error: ", db_error();
+		$sth = $dbh->prepare('UPDATE person SET session_cookie = ?, last_login = NOW(), client_ip = ? WHERE user_id = ?');
+		$sth->execute(array($sesskey, $client_ip, $this->user->user_id));
+		if( $sth->rowCount != 1 ) {
 			return false;
 		}
 

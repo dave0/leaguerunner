@@ -154,75 +154,57 @@ class RegistrationView extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $dbh;
 		$this->title= 'View Registration';
 
-		// Get user information
-		$result = db_query('SELECT
-								firstname,
-								lastname
-							FROM
-								person
-							WHERE
-								person.user_id = %d',
-							$this->registration->user_id);
+		$person = person_load( array( 'user_id' => $this->registration->user_id ) );
 
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-		$item = db_fetch_array($result);
-
-		$event_name = db_result(db_query('SELECT name FROM registration_events WHERE registration_id = %d',
-				$this->registration->registration_id));
+		$sth = $dbh->prepare('SELECT name, anonymous FROM registration_events WHERE registration_id = ?');
+		$sth->execute( array( $this->registration->registration_id ) );
+		$event_reg = $sth->fetch(PDO::FETCH_OBJ);
 
 		$userrows = array();
-		$userrows[] = array ('Name', $item['firstname'] . ' ' . $item['lastname']);
+		$userrows[] = array ('Name', $person->fullname );
 		$userrows[] = array ('User&nbsp;ID', $this->registration->user_id);
-		$userrows[] = array ('Event', l($event_name, "event/view/{$this->registration->registration_id}"));
+		$userrows[] = array ('Event', l($event_reg->name, "event/view/{$this->registration->registration_id}"));
 		$userrows[] = array ('Payment', $this->registration->payment);
 		$userrows[] = array ('Created', $this->registration->time);
 		$userrows[] = array ('Modified', $this->registration->modified);
 		$userrows[] = array ('Notes', $this->registration->notes);
 		$output = form_group('Registration details', '<div class="pairtable">' . table(NULL, $userrows) . '</div>');
 
-		$anonymous = db_result( db_query( 'SELECT anonymous FROM registration_events WHERE registration_id = %d', $this->registration->registration_id ) );
-		if( ! $anonymous )
+		if( ! $event_reg->anonymous )
 		{
 			// Get registration answers/preferences
-			$result = db_query('SELECT
-									qkey, akey
-								FROM
-									registration_answers
-								WHERE
-									order_id = %d',
-								$this->registration->order_id);
+			$sth = $dbh->prepare('SELECT qkey, akey
+					FROM registration_answers
+					WHERE order_id = ?');
+			$sth->execute( array(
+				$this->registration->order_id
+			));
 
 			$prefrows = array();
-			if(0 != db_num_rows($result)) {
-
-				while($row = db_fetch_array($result)) {
-					$prefrows[] = $row;
-				}
+			while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
+				$prefrows[] = $row;
+			}
+			if( count($prefrows) ) {
 				$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
 			}
 		}
 
 		// Get payment audit information, if available
-		$result = db_query('SELECT
-								*
-							FROM
-								registration_audit
-							WHERE
-								order_id = %d',
-							$this->registration->order_id);
+		$sth = $dbh->prepare('SELECT *
+				FROM registration_audit
+				WHERE order_id = ?');
+		$sth->execute( array(
+			$this->registration->order_id
+		));
 
-		if(0 != db_num_rows($result)) {
-			$payrows = array();
-
-			$item = db_fetch_array($result);
-			foreach ($item as $key => $value) {
-				$payrows[] = array ($key, $value);
-			}
+		$payrows = array();
+		while($row = $sth->fetch()) {
+			$payrows[] = $row;
+		}
+		if( count($payrows) ) {
 			$output .= form_group('Payment details', '<div class="pairtable">' . table(NULL, $payrows) . '</div>');
 		}
 
@@ -270,24 +252,22 @@ class RegistrationEdit extends RegistrationForm
 
 	function generateForm()
 	{
+		global $dbh;
 		$this->title = 'Edit registration';
 
 		$output = form_hidden('edit[step]', 'confirm');
 
 		// Get user information
-		$result = db_query('SELECT
-								firstname,
-								lastname
-							FROM
-								person
-							WHERE
-								person.user_id = %d',
-							$this->registration->user_id);
+		$sth = $dbh->prepare('SELECT firstname, lastname
+					FROM person
+					WHERE person.user_id = ?');
+		$sth->execute( array($this->registration->user_id) );
 
-		if(1 != db_num_rows($result)) {
+		$item = $sth->fetch();
+
+		if( ! $item ) {
 			return false;
 		}
-		$item = db_fetch_array($result);
 
 		$userrows = array();
 		$userrows[] = array ('Name', $item['firstname'] . ' ' . $item['lastname']);
@@ -302,24 +282,19 @@ class RegistrationEdit extends RegistrationForm
 		if ( $this->formbuilder )
 		{
 			// Get registration answers/preferences
-			$result = db_query('SELECT
-									qkey, akey
-								FROM
-									registration_answers
-								WHERE
-									order_id = %d',
-								$this->registration->order_id);
+			$sth = $dbh->prepare('SELECT qkey, akey FROM registration_answers
+					WHERE order_id = ?');
+			$sth->execute( array( $this->registration->order_id) );
 
-			if(0 != db_num_rows($result)) {
-				$prefrows = array();
+			$prefrows = array();
+			while($row = $sth->fetch() ) {
+				$prefrows[$row['qkey']] = $row['akey'];
+			}
 
-				while($row = db_fetch_array($result)) {
-					$prefrows[$row['qkey']] = $row['akey'];
-				}
+			if( count($prefrows) > 0 ) {
 				$this->formbuilder->bulk_set_answers ($prefrows);
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (true));
-			}
-			else {
+			} else {
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (false));
 			}
 		}
@@ -618,14 +593,11 @@ class RegistrationRegister extends RegistrationForm
 		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
 
 		if( $this->event->cost == 0 ) {
-			db_query ('UPDATE
-							registrations
-						SET
-							payment = "Paid"
-						WHERE
-							order_id = %d',
-						$this->registration->order_id);
-			if ( 1 != db_affected_rows() ) {
+			$sth->prepare("UPDATE registrations SET payment = 'Paid' 
+					WHERE order_id = ?");
+			$sth->execute( array( $this->registration->order_id) );
+			if ( 1 != $sth->rowCount() ) {
+				# TODO: TUCism.
 				$errors .= para( theme_error( "Your registration was received, but there was an error updating the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc." ) );
 			}
 
@@ -643,9 +615,7 @@ class RegistrationRegister extends RegistrationForm
 			$output .= OfflinePaymentText($order_num);
 
 			$output .= para('Alternately, if you choose not to complete the payment process at this time, you will be able to start the registration process again at a later time and it will pick up where you have left off.');
-		}
-		else
-		{
+		} else {
 			$output = para( 'No text provided yet for all offline payments.' );
 		}
 		$output .= RefundPolicyText();
@@ -661,15 +631,11 @@ class RegistrationRegister extends RegistrationForm
 
 	function removePreregistration()
 	{
-		global $lr_session;
-		$result = db_query ('DELETE FROM
-								preregistrations
-							WHERE
-								user_id = %d
-							AND
-								registration_id = %d',
-							$lr_session->user->user_id,
-							$this->event->registration_id);
+		global $lr_session, $dbh;
+		$sth = $dbh->prepare('DELETE FROM preregistrations
+					WHERE user_id = ?
+					AND registration_id = ?');
+		$sth->execute( array( $lr_session->user->user_id, $this->event->registration_id) );
 	}
 }
 
@@ -686,29 +652,24 @@ class RegistrationUnregister extends Handler
 
 	function process()
 	{
-		global $lr_session;
+		global $dbh;
 		$edit = $_POST['edit'];
 		$this->title = 'Unregistering';
 		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->order_id);
 
 		switch($edit['step']) {
 			case 'submit':
+				// TODO should use transactions
 				// TODO If this is a team registration, delete the team record
+				$sth = $dbh->prepare('DELETE FROM registration_answers
+							WHERE order_id = ?');
+				$sth->execute( array( $this->order_id ));
 
-				db_query('DELETE
-							FROM
-								registration_answers
-							WHERE
-								order_id = %d',
-						$this->order_id);
-
-				db_query('DELETE
-							FROM
-								registrations
-							WHERE
-								order_id = %d',
-						$this->order_id);
-				if ( 1 != db_affected_rows() ) {
+				$sth = $dbh->prepare('DELETE FROM registrations
+							WHERE order_id = ?');
+				$sth->execute( array( $this->order_id ) );
+				if ( 1 != $sth->rowCount() ) {
+					// TODO: TUCism
 					error_exit ( para( theme_error( "There was an error deleting your registration information. Contact the TUC office, quoting order #<b>$order_num</b>, to have the problem resolved." ) ) );
 				}
 
@@ -742,6 +703,9 @@ class RegistrationUnregister extends Handler
 
 /**
  * Handle responses from the payment server
+ * see
+ * 	https://www3.moneris.com/connect/en/download/feb05/HOSTED/eSELECTplus_HPP_IG.pdf
+ * for details
  */
 class RegistrationOnlinePaymentResponse extends Handler
 {
@@ -825,32 +789,17 @@ HTML_HEADER;
 			// We can't necessarily rely on the session variable, in the
 			// case that the user is signed into tuc.org but the redirect
 			// went to www.tuc.org
-			$info = db_fetch_object(
-						db_query( 'SELECT
-										p.firstname,
-										p.lastname,
-										p.addr_street,
-										p.addr_city,
-										p.addr_prov,
-										p.addr_postalcode,
-										e.registration_id,
-										e.name,
-										e.cost,
-										e.gst,
-										e.pst
-									FROM
-										registrations r
-									LEFT JOIN
-										person p
-									ON
-										r.user_id = p.user_id
-									LEFT JOIN
-										registration_events e
-									ON
-										r.registration_id = e.registration_id
-									WHERE
-										r.order_id = %d',
-									$short_order_id ) );
+			$sth = $dbh->prepare('SELECT
+					p.firstname, p.lastname, p.addr_street, p.addr_city,
+					p.addr_prov, p.addr_postalcode, e.registration_id,
+					e.name, e.cost, e.gst, e.pst
+				FROM
+					registrations r
+					LEFT JOIN person p ON r.user_id = p.user_id
+					LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+				WHERE r.order_id = ?');
+			$sth->execute( array( $short_order_id ) );
+			$info = $sth->fetch( PDO::FETCH_ASSOC );
 
 			// Validate the response code
 			if ($response_code < 50 &&
@@ -858,36 +807,36 @@ HTML_HEADER;
 			{
 				$errors = '';
 
-				db_query ('UPDATE
-								registrations
-							SET
-								payment = "Paid"
-							WHERE
-								order_id = %d',
-							$short_order_id);
-				if ( 1 != db_affected_rows() ) {
+				$sth->prepare("UPDATE registrations
+						SET payment = 'Paid'
+						WHERE order_id = ?");
+				$sth->execute( array($short_order_id) );
+				if ( 1 != $sth->rowCount() ) {
+					// TODO: TUCism
 					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
 				}
 
-				db_query ("INSERT INTO
+				// TODO: Specify explicit column names
+				$sth = $dbh->prepare('INSERT INTO
 								registration_audit
-							VALUES (
-								%d, %d, %d,
-								'%s', '%s',
-								%s, '%s',
-								'%s', %.2f,
-								'%s', '%s', '%s', '%s',
-								'%s',
-								'%s', '%s', '%s'
-							)",
+							VALUES ( ?, ?, ?,
+								?, ?,
+								?, ?, ?,
+								?, ?,
+								?, ?, ?, ?, 
+								?, 
+								?, ?, ?)');
+				$sth->execute( array(
 						$short_order_id, $response_code, $iso_code,
 						$date_stamp, $time_stamp,
 						$bank_transaction_id, $bank_approval_code,
 						$trans_name, $charge_total,
 						$cardholder, $expiry, $f4l4, $card,
 						$message,
-						$issuer, $issuer_invoice, $issuer_confirmation);
-				if ( 1 != db_affected_rows() ) {
+						$issuer, $issuer_invoice, $issuer_confirmation)
+				);
+				if ( 1 != $sth->rowCount() ) {
+					// TODO: TUCism
 					$errors .= para( theme_error( "There was an error updating the audit record in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
 				}
 
@@ -932,29 +881,19 @@ class RegistrationHistory extends Handler
 
 	function process ($id)
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		$this->title= 'View Registration History';
 		$rows = array();
 
-		$result = db_query('SELECT
-								e.registration_id,
-								e.name,
-								r.order_id,
-								r.time,
-								r.payment
-							FROM
-								registrations r
-							LEFT JOIN
-								registration_events e
-							ON
-								r.registration_id = e.registration_id
-							WHERE
-								r.user_id = %d
-							ORDER BY
-								r.time',
-							$this->user);
-		while($row = db_fetch_array($result)) {
+		$sth = $dbh->prepare('SELECT
+				e.registration_id, e.name, r.order_id, r.time, r.payment
+			FROM registrations r
+				LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+			WHERE r.user_id = ?
+			ORDER BY r.time');
+		$sth->execute( array( $this->user ) );
+		while($row = $sth->fetch() ) {
 			$name = l($row['name'], 'event/view/' . $row['registration_id']);
 			$order = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
@@ -966,21 +905,13 @@ class RegistrationHistory extends Handler
 		}
 
 		/* Add in any preregistrations */
-		$result = db_query('SELECT
-								e.registration_id,
-								e.name
-							FROM
-								preregistrations r
-							LEFT JOIN
-								registration_events e
-							ON
-								r.registration_id = e.registration_id
-							WHERE
-								r.user_id = %d
-							ORDER BY
-								r.registration_id',
-							$this->user);
-		while($row = db_fetch_array($result)) {
+		$sth = $dbh->prepare('SELECT e.registration_id, e.name
+			FROM preregistrations r
+				LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+			WHERE r.user_id = ?
+			ORDER BY r.registration_id');
+		$sth->execute( array( $this->user) );
+		while($row = $sth->fetch() ) {
 			$name = l($row['name'], 'event/view/' . $row['registration_id']);
 			$order = 'Prereg';
 			$rows[] = array( $name, $order, '', 'No' );
@@ -1088,6 +1019,7 @@ function registration_settings ( )
 
 function registration_statistics($args)
 {
+	global $dbh;
 	$level = arg(2);
 	global $TZ_ADJUST;
 
@@ -1099,30 +1031,17 @@ function registration_statistics($args)
 			$year = 'YEAR(NOW())';
 		}
 
-		$result = db_query('SELECT
-								r.registration_id,
-								e.name,
-								e.type,
-								COUNT(*)
-							FROM
-								registrations r
-							LEFT JOIN
-								registration_events e
-							ON
-								r.registration_id = e.registration_id
-							WHERE
-								r.payment != "Refunded"
-							AND
-								(
-									YEAR(e.open) = %s
-								OR
-									YEAR(e.close) = %s
-								)
-							GROUP BY
-								r.registration_id
-							ORDER BY
-								e.type, e.open DESC, e.close DESC, r.registration_id',
-							$year, $year);
+		$sth = $dbh->prepare('SELECT r.registration_id, e.name, e.type, COUNT(*)
+			FROM registrations r
+				LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+			WHERE r.payment != "Refunded"
+				AND (
+					YEAR(e.open) = :year
+					OR YEAR(e.close) = :year
+				)
+			GROUP BY r.registration_id
+			ORDER BY e.type, e.open DESC, e.close DESC, r.registration_id');
+		$sth->execute( array( 'year' => $year ) );
 
 		$type_desc = array('membership' => 'Membership Registrations',
 							'individual_event' => 'One-time Individual Event Registrations',
@@ -1132,7 +1051,7 @@ function registration_statistics($args)
 		$last_type = '';
 		$rows = array();
 
-		while($row = db_fetch_array($result)) {
+		while($row = $sth->fetch() ) {
 			if ($row['type'] != $last_type) {
 				$rows[] = array( array('colspan' => 4, 'data' => h2($type_desc[$row['type']])));
 				$last_type = $row['type'];
@@ -1143,7 +1062,9 @@ function registration_statistics($args)
 
 		$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
-		$first_year = db_result( db_query( 'SELECT YEAR(MIN(open)) FROM registration_events' ) );
+		$sth = $dbh->prepare('SELECT YEAR(MIN(open)) FROM registration_events');
+		$sth->execute();
+		$first_year = $sth->fetchColumn();
 		$current_year = date('Y');
 		if( $first_year != $current_year ) {
 			$output .= '<p><p>Historical data:';
@@ -1170,47 +1091,31 @@ function registration_statistics($args)
 
 			if( ! $event->anonymous )
 			{
-				$result = db_query('SELECT
-										p.gender,
-										COUNT(order_id)
-									FROM
-										registrations r
-									LEFT JOIN
-										person p
-									ON
-										r.user_id = p.user_id
-									WHERE
-										r.registration_id = %d
-									AND
-										r.payment != "Refunded"
-									GROUP BY
-										p.gender
-									ORDER BY
-										gender',
-									$id);
+				$sth = $dbh->prepare('SELECT p.gender, COUNT(order_id)
+					FROM registrations r
+						LEFT JOIN person p ON r.user_id = p.user_id
+					WHERE r.registration_id = ?
+						AND r.payment != "Refunded"
+					GROUP BY p.gender
+					ORDER BY gender');
+				$sth->execute( array( $id) );
 
 				$sub_table = array();
-				while($row = db_fetch_array($result)) {
+				while($row = $sth->fetch(PDO::FETCH_ASSOC) ) {
 					$sub_table[] = $row;
 				}
 				$rows[] = array("By gender:", table(null, $sub_table));
 			}
 
-			$result = db_query('SELECT
-									payment,
-									COUNT(order_id)
-								FROM
-									registrations
-								WHERE
-									registration_id = %d
-								GROUP BY
-									payment
-								ORDER BY
-									payment',
-								$id);
+			$sth = $dbh->prepare('SELECT payment, COUNT(order_id)
+				FROM registrations
+				WHERE registration_id = ?
+				GROUP BY payment
+				ORDER BY payment');
+			$sth->execute( array($id) );
 
 			$sub_table = array();
-			while($row = db_fetch_array($result)) {
+			while($row = $sth->fetch(PDO::ARRAY_ASSOC) ) {
 				$sub_table[] = $row;
 			}
 			$rows[] = array("By payment:", table(null, $sub_table));
@@ -1227,30 +1132,20 @@ function registration_statistics($args)
 					// well
 					if ($question->qtype == 'multiplechoice' )
 					{
-						$result = db_query('SELECT
-												akey,
-												COUNT(registration_answers.order_id)
-											FROM
-												registration_answers
-											LEFT JOIN
-												registrations
-											ON
-												registration_answers.order_id = registrations.order_id
-											WHERE
-												registration_id = %d
-											AND
-												qkey = "%s"
-											AND
-												payment != "Refunded"
-											GROUP BY
-												akey
-											ORDER BY
-												akey',
-											$id,
-											$qkey);
+						$sth = $dbh->prepare('SELECT
+								akey,
+								COUNT(registration_answers.order_id)
+							FROM registration_answers
+								LEFT JOIN registrations ON registration_answers.order_id = registrations.order_id
+							WHERE registration_id = ?
+								AND qkey = ?
+								AND payment != "Refunded"
+							GROUP BY akey
+							ORDER BY akey');
+						$sth->execute( array( $id, $qkey) );
 
 						$sub_table = array();
-						while($row = db_fetch_array($result)) {
+						while($row = $sth->fetch(PDO::FETCH_ASSOC) ) {
 							$sub_table[] = $row;
 						}
 						$rows[] = array("$qkey:", table(null, $sub_table));
@@ -1301,43 +1196,30 @@ function registration_statistics($args)
 				$items = 1000000;
 			}
 			$from = ($page - 1) * $items;
-			$total = db_result( db_query( 'SELECT
-												COUNT(order_id)
-											FROM
-												registrations
-											WHERE
-												registration_id = %d',
-											$id ) );
+			$sth = $dbh->prepare('SELECT COUNT(order_id)
+				FROM registrations
+				WHERE registration_id = ?');
+			$sth->execute( array($id));
+			$total = $sth->fetchColumn();
 
 			if( $from <= $total )
 			{
-				$result = db_query('SELECT
-										order_id,
-										DATE_ADD(time, INTERVAL %d MINUTE) as time,
-										payment,
-										p.user_id,
-										p.firstname,
-										p.lastname
-									FROM
-										registrations r
-									LEFT JOIN
-										person p
-									ON
-										r.user_id = p.user_id
-									WHERE
-										r.registration_id = %d
-									ORDER BY
-										payment,
-										order_id
-									LIMIT
-										%d,%d',
-									-$TZ_ADJUST,
-									$id,
-									$from,
-									$items);
+				$sth = $dbh->prepare('SELECT
+						order_id,
+						DATE_ADD(time, INTERVAL ? MINUTE) as time,
+						payment,
+						p.user_id,
+						p.firstname,
+						p.lastname
+					FROM registrations r
+						LEFT JOIN person p ON r.user_id = p.user_id
+					WHERE r.registration_id = ?
+					ORDER BY payment, order_id
+					LIMIT ?,?');
+				$sth->execute( array( -$TZ_ADJUST, $id, $from, $items) );
 
 				$rows = array();
-				while($row = db_fetch_array($result)) {
+				while($row = $sth->fetch() ) {
 					$order_id = l(sprintf(variable_get('order_id_format', '%d'), $row['order_id']), 'registration/view/' . $row['order_id']);
 
 					$rows[] = array( $order_id,
@@ -1416,33 +1298,21 @@ function registration_statistics($args)
 			$out = fopen('php://output', 'w');
 			fputcsv($out, $data);
 
-			$result = db_query('SELECT
-									order_id,
-									DATE_ADD(time, INTERVAL %d MINUTE) as time,
-									DATE_ADD(modified, INTERVAL %d MINUTE) as modified,
-									payment,
-									p.*,
-									n.pn_email
-								FROM
-									registrations r
-								LEFT JOIN
-									person p
-								ON
-									r.user_id = p.user_id
-								LEFT JOIN
-									nuke_users n
-								ON
-									r.user_id = n.pn_uid
-								WHERE
-									r.registration_id = %d
-								ORDER BY
-									payment,
-									order_id',
-								-$TZ_ADJUST,
-								-$TZ_ADJUST,
-								$id);
+			$sth = $dbh->prepare('SELECT
+					order_id,
+					DATE_ADD(time, INTERVAL ? MINUTE) as time,
+					DATE_ADD(modified, INTERVAL ? MINUTE) as modified,
+					payment,
+					p.*,
+					n.pn_email
+				FROM registrations r
+					LEFT JOIN person p ON r.user_id = p.user_id
+					LEFT JOIN nuke_users n ON r.user_id = n.pn_uid
+				WHERE r.registration_id = ?
+				ORDER BY payment, order_id');
+			$sth->execute( array( -$TZ_ADJUST, -$TZ_ADJUST, $id) );
 
-			while($row = db_fetch_array($result)) {
+			while($row = $sth->fetch() ) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
 				$data = array( $row['user_id'],
@@ -1470,18 +1340,11 @@ function registration_statistics($args)
 				// Add all of the answers
 				if( $formbuilder )
 				{
+					$fsth = $dbh->prepare('SELECT akey FROM registration_answers WHERE order_id = ? AND qkey = ?');
 					foreach ($formbuilder->_questions as $question)
 					{
-						$data[] = db_result (db_query("SELECT
-												akey
-											FROM
-												registration_answers
-											WHERE
-												order_id = %d
-											AND
-												qkey = '%s'",
-											$row['order_id'],
-											$question->qkey));
+						$fsth->execute( array( $row['order_id'], $question->qkey));
+						$data[] = $fsth->fetchColumn();
 					}
 				}
 
@@ -1531,35 +1394,25 @@ function registration_statistics($args)
 			$out = fopen('php://output', 'w');
 			fputcsv($out, $data);
 
-			$result = db_query('SELECT
-									order_id
-								FROM
-									registrations r
-								WHERE
-									r.registration_id = %d
-								ORDER BY
-									order_id',
-								$id);
+			$sth = $dbh->prepare('SELECT order_id FROM registrations r
+				WHERE r.registration_id = ?  ORDER BY order_id');
+			$sth->execute( array($id) );
 
-			while($row = db_fetch_array($result)) {
+			while($row = $sth->fetch() ) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 				$data = array();
 
 				// Add all of the answers
 				if( $formbuilder )
 				{
+					$fsth = $dbh->prepare('SELECT akey
+						FROM registration_answers
+						WHERE order_id = ?
+						AND qkey = ?');
 					foreach ($formbuilder->_questions as $question)
 					{
-						$data[] = db_result (db_query("SELECT
-												akey
-											FROM
-												registration_answers
-											WHERE
-												order_id = %d
-											AND
-												qkey = '%s'",
-											$row['order_id'],
-											$question->qkey));
+						$fsth->execute( array( $row['order_id'], $question->qkey));
+						$data[] = $fsth->fetchColumn();
 					}
 				}
 
@@ -1577,32 +1430,19 @@ function registration_statistics($args)
 		{
 			$total = array();
 
-			$result = db_query('SELECT
-									r.order_id,
-									r.registration_id,
-									r.payment,
-									r.modified,
-									r.notes,
-									e.name,
-									p.user_id,
-									p.firstname,
-									p.lastname
-								FROM
-									registrations r
-								LEFT JOIN
-									registration_events e
-								ON
-									r.registration_id = e.registration_id
-								LEFT JOIN
-									person p
-								ON
-									r.user_id = p.user_id
-								WHERE
-									r.payment = "Unpaid" OR r.payment = "Pending"
-								ORDER BY
-									r.payment, r.modified');
+			$sth = $dbh->prepare('SELECT
+					r.order_id, r.registration_id,
+					r.payment, r.modified, r.notes, e.name,
+					p.user_id, p.firstname, p.lastname
+				FROM registrations r
+					LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+					LEFT JOIN person p ON r.user_id = p.user_id
+				WHERE r.payment = "Unpaid" 
+					OR r.payment = "Pending"
+				ORDER BY r.payment, r.modified');
+			$sth->execute();
 			$rows = array();
-			while($row = db_fetch_array($result)) {
+			while($row = $sth->fetch() ) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 				$rows[] = array(
 								l($order_id, "registration/view/${row['order_id']}"),

@@ -179,50 +179,17 @@ class Handler
 	 */
 	function generateSingleList($query, $ops, $dbParams = array())
 	{
-
-		$result = db_query($query, $dbParams);
+		global $dbh;
+		$sth = $dbh->prepare( $query );
+		$sth->execute( $dbParams );
 		$output = "<table>\n";
-		while($thisRow = db_fetch_array($result)) {
+		while($thisRow = $sth->fetch()) {
 			$output .= "<tr><td>" . $thisRow['value'] . "</td><td>";
 			$output .= theme_links( $this->generateOpsLinks($ops, $thisRow['id']));
 			$output .= "</td></tr>\n";
 		}
 		$output .= "</table>";
 		return $output;
-	}
-
-	/**
-	 * Generate a list, similar to generateSingleList, but separated into
-	 * pages based on the first letter of a given field.
-	 */
-	function generateAlphaList($query, $ops, $letterField, $fromWhere, $listOp, $letter = null, $dbParams = array(), $query_append = '')
-	{
-
-		$letters = array();
-		$letterQuery = db_query("select distinct UPPER(SUBSTRING($letterField,1,1)) as letter from $fromWhere ORDER BY letter asc");
-		while($l = db_fetch_object($letterQuery)) {
-			$letters[] = $l->letter;
-		}
-		if(!isset($letter)) {
-			$letter = 'A';
-		}
-
-		$letterLinks = array();
-		foreach($letters as $curLetter) {
-			if($curLetter == $letter) {
-				$letterLinks[] = "<b>$curLetter</b>";
-			} else {
-				$letterLinks[] = l($curLetter, url("$listOp", "letter=$curLetter$query_append"));
-			}
-		}
-		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
-		$dbParams[] = $letter;
-		$output .= $this->generateSingleList($query, $ops, $dbParams);
-		return $output;
-
-		if(!isset($letter)) {
-			$letter = $letters[0];
-		}
 	}
 
 	function generateOpsLinks($opsList, $idValue)

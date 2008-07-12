@@ -139,12 +139,10 @@ xml version="1.0" encoding="ISO-8859-1"?>
   <schedule content-label="<?php print $this->league->fullname ?>">
     <schedule-metadata team-coverage-type="multi-team" date-coverage-type='season-regular' date-coverage-value="<?php print $this->league->year ?>" />
 <?php
-		$result = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$currentTime = time();
-		while( $ary = db_fetch_array($result) ) {
-			$game = new Game;
-			$game->load_from_query_result($ary);
+		while( $game = $sth->fetchObject('Game') ) {
 			$event_status = 'pre-event';
 			if( $currentTime > $game->timestamp ) {
 				$event_status = 'post-event';

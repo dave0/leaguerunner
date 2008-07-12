@@ -1,34 +1,14 @@
 <?php
 class GameSlot extends LeaguerunnerObject
 {
-
 	var $leagues;
-	var $_leagues_loaded;
 
-	function GameSlot ()
+	function __construct ( )
 	{
-		$this->LeaguerunnerObject(); // Upcall to parent
-		$this->_leagues_loaded = false;
-		$this->leagues = array();
-	}
-
-	function load ( $array = array() )
-	{
-		$result = slot_query( &$array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		$this->_in_database = true;
-		
-		$item = db_fetch_array($result);
-		foreach ($item as $key => $value) {
-			$this->{$key} = $value;
-		}
-
-		$result = db_query("SELECT league_id from league_gameslot_availability WHERE slot_id = %d", $this->slot_id);
-		while( $league = db_fetch_object( $result ) ) {
+		global $dbh;
+		$sth = $dbh->prepare('SELECT league_id from league_gameslot_availability WHERE slot_id = ?');
+		$sth->execute(array($this->slot_id));
+		while( $league = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$league->league_status = 'loaded';
 			$this->leagues[$league->league_id] = $league;
 		}
@@ -70,6 +50,7 @@ class GameSlot extends LeaguerunnerObject
 	
 	function save ()
 	{
+		global $dbh;
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
 				error_exit("Couldn't create gameslot");
@@ -82,10 +63,10 @@ class GameSlot extends LeaguerunnerObject
 
 			foreach ( $this->_modified_fields as $key => $value) {
 				if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-					$fields[] = "$key = %s";
-					$fields_data[] = 'NULL';
+					$fields[] = "$key = ?";
+					$fields_data[] = null;
 				} else {
-					$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
+					$fields[] = "$key = ?";
 					$fields_data[] = $this->{$key};
 				}
 			}
@@ -93,15 +74,16 @@ class GameSlot extends LeaguerunnerObject
 			if(count($fields_data) != count($fields)) {
 				error_exit("Internal error: Incorrect number of fields set");
 			}
-			
-			$sql = "UPDATE gameslot SET ";
-			$sql .= join(", ", $fields);	
-			$sql .= " WHERE slot_id = %d";
 
 			$fields_data[] = $this->slot_id;
 
-			db_query( $sql, $fields_data);
-			if(1 < db_affected_rows()) {
+			$sth = $dbh->prepare('UPDATE gameslot SET '
+				. join(", ", $fields)
+				. 'WHERE slot_id = ?');
+
+			$sth->execute( $fields_data);
+				
+			if(1 < $sth->rowCount()) {
 				# Affecting zero rows is possible
 				error_exit("Internal error: Strange number of rows affected");
 			}
@@ -112,11 +94,13 @@ class GameSlot extends LeaguerunnerObject
 		foreach ( $this->leagues as $l ) {
 			switch( $l->league_status ) {
 				case 'add':
-					db_query('INSERT INTO league_gameslot_availability (slot_id, league_id) VALUES (%d,%d)', $this->slot_id, $l->league_id);
+					$sth = $dbh->prepare('INSERT INTO league_gameslot_availability (slot_id, league_id) VALUES (?,?)');
+					$sth->execute(array($this->slot_id, $l->league_id));
 					$this->leagues[$l->league_id]->league_status = 'loaded';
 					break;
 				case 'delete':
-					db_query("DELETE FROM league_gameslot_availability WHERE slot_id = %d AND league_id = %d", $this->slot_id, $l->league_id);
+					$sth = $dbh->prepare('DELETE FROM league_gameslot_availability WHERE slot_id = ? AND league_id = ?');
+					$sth->execute(array($this->slot_id, $l->league_id));
 					unset($this->leagues[$l->league_id]);
 					break;
 				default:
@@ -146,12 +130,15 @@ class GameSlot extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into gameslot (fid,game_date,game_start) VALUES(%d, '%s', '%s')", $this->fid, $this->game_date, $this->game_start);
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT into gameslot (fid,game_date,game_start) VALUES(?,?,?)');
+		$sth->execute(array($this->fid, $this->game_date, $this->game_start));
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
-		
-		$this->slot_id = db_result(db_query("SELECT LAST_INSERT_ID() from gameslot"));
+	
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() from gameslot');
+		$sth->execute();
+		$this->slot_id = $sth->fetchColumn();
 		return true;
 	}
 
@@ -160,6 +147,8 @@ class GameSlot extends LeaguerunnerObject
 	 */
 	function delete ()
 	{
+		global $dbh;
+
 		if ( ! $this->_in_database ) {
 			return false;
 		}
@@ -170,17 +159,22 @@ class GameSlot extends LeaguerunnerObject
 		}
 
 		// If we have assignments to leagues, remove them
-		db_query("DELETE FROM league_gameslot_availability WHERE slot_id = %d", $this->slot_id);
+
+		$sth = $dbh->prepare('DELETE FROM league_gameslot_availability WHERE slot_id = ?');
+		$sth->execute(array($this->slot_id));
 
 		// Then, delete gameslot from table
-		db_query("DELETE FROM gameslot WHERE slot_id = %d", $this->slot_id);
+		$sth = $dbh->prepare('DELETE FROM gameslot WHERE slot_id = ?');
+		$sth->execute(array($this->slot_id));
 		return true;
 	}
 }
 
 function slot_query ( $array = array() )
 {
-
+	global $dbh;
+	$query  = array();
+	$params = array();
 	$order = '';
 	foreach ($array as $key => $value) {
 		switch( $key ) {
@@ -192,11 +186,12 @@ function slot_query ( $array = array() )
 				$order = ' ORDER BY ' . $value;
 				break;
 			default:
-				$query[] = "g.$key = '" . check_query($value) . "'";
+				$query[] = "g.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT 
+	$sth = $dbh->prepare("SELECT
 		g.slot_id,
 		field.name AS field_name,
 		field.num AS field_num,
@@ -211,6 +206,9 @@ function slot_query ( $array = array() )
 		gameslot g
 		INNER JOIN field ON (g.fid = field.fid)
 	WHERE " . implode(' AND ',$query) .  $order);
+
+	$sth->execute($params);
+	return $sth;
 }
 
 /**
@@ -218,11 +216,10 @@ function slot_query ( $array = array() )
  */
 function slot_load( $array = array() )
 {
-	$g = new GameSlot;
-	if($g->load($array)) {
-		return $g;
-	} else {
+	$result = slot_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('GameSlot');
 }
 ?>

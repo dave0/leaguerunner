@@ -273,7 +273,7 @@ class TeamCreate extends TeamEdit
 
 	function perform ($edit = array() )
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
@@ -284,15 +284,17 @@ class TeamCreate extends TeamEdit
 			return false;
 		}
 
-		db_query("INSERT INTO leagueteams (league_id, team_id) VALUES(1, %d)", $this->team->team_id);
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT INTO leagueteams (league_id, team_id) VALUES(?, ?)');
+		$sth->execute( array(1, $this->team->team_id) );
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
 		# TODO: Replace with $team->add_player($lr_session->user,'captain')
 		#       and call before parent::perform()
-		db_query("INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(%d, %d, 'captain', NOW())", $this->team->team_id, $lr_session->attr_get('user_id'));
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, ?, NOW())');
+		$sth->execute( array($this->team->team_id, $lr_session->attr_get('user_id'), 'captain'));
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
@@ -478,6 +480,7 @@ class TeamDelete extends Handler
 
 	function generateConfirm ()
 	{
+		global $dbh;
 		$rows = array();
 		$rows[] = array("Team Name:", check_form($this->team->name, ENT_NOQUOTES));
 		if($this->team->website) {
@@ -489,9 +492,10 @@ class TeamDelete extends Handler
 		$rows[] = array("Team Status:", $this->team->status);
 
 		/* and, grab roster */
-		$result = db_query( "SELECT COUNT(r.player_id) as num_players FROM teamroster r WHERE r.team_id = %d", $this->team->team_id);
+		$sth = $dbh->prepare('SELECT COUNT(r.player_id) as num_players FROM teamroster r WHERE r.team_id = ?');
+		$sth->execute( array( $this->team->team_id) );
 
-		$rows[] = array("Num. players on roster:", db_result($result));
+		$rows[] = array("Num. players on roster:", $sth->fetchColumn());
 
 		$output = form_hidden('edit[step]', 'perform');
 		$output .= "<p>Do you really wish to delete this team?</p>";
@@ -642,19 +646,21 @@ class TeamMove extends Handler
 
 	function choose_league ( )
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
 		if( $lr_session->is_admin() ) { 
-			$result = db_query("
+			# TODO: league_load?
+			$sth = $dbh->prepare("
 				SELECT
 					league_id as theKey,
 					IF(tier,CONCAT(name,' Tier ',IF(tier>9,tier,CONCAT('0',tier))), name) as theValue
 				FROM league
 				WHERE league.status = 'open'
 				ORDER BY season,TheValue,tier");
-			while($row = db_fetch_array($result)) {
+			$sth->execute();
+			while($row = $sth->fetch()) {
 				$leagues[$row['theKey']] = $row['theValue'];
 			}
 		} else {
@@ -689,7 +695,7 @@ class TeamList extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		$ops = array(
 			array(
 				'name' => 'view',
@@ -704,27 +710,42 @@ class TeamList extends Handler
 		}
 
 		$this->setLocation(array("List Teams" => 'team/list'));
-		$join = 'team t
-			LEFT JOIN
-				leagueteams lt
-			ON
-				t.team_id = lt.team_id
-			LEFT JOIN
-				league l
-			ON
-				lt.league_id = l.league_id
-			WHERE
-				l.status = "open"';
-		return $this->generateAlphaList("
-			SELECT
+
+		$letter = $_GET['letter'];
+		$sth = $dbh->prepare("SELECT DISTINCT UPPER(SUBSTRING(t.name,1,1)) as letter
+			FROM team t 
+			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id 
+			LEFT JOIN league l       ON lt.league_id = l.league_id
+			WHERE l.status = 'open'
+			ORDER BY letter asc");
+		$sth->execute();
+		$letters = $sth->fetchAll(PDO::FETCH_COLUMN);
+		if(!isset($letter)) {
+			$letter = 'A';
+		}
+
+		$letterLinks = array();
+		foreach($letters as $curLetter) {
+			if($curLetter == $letter) {
+				$letterLinks[] = "<b>$curLetter</b>";
+			} else {
+				$letterLinks[] = l($curLetter, url('team/list', "letter=$curLetter$query_append"));
+			}
+		}
+		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
+		$dbParams[] = $letter;
+		$query = "SELECT
 				t.name AS value,
 				t.team_id AS id
-			FROM
-				$join
+			FROM team t 
+			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id 
+			LEFT JOIN league l       ON lt.league_id = l.league_id
+			WHERE l.status = 'open'
 			AND
-				t.name LIKE '%s%%'
-			ORDER BY t.name",
-			$ops, 't.name', $join, 'team/list', $_GET['letter']);
+				t.name LIKE ?
+			ORDER BY t.name";
+		$output .= $this->generateSingleList($query, $ops, array("$letter%"));
+		return $output;
 	}
 }
 
@@ -745,7 +766,7 @@ class TeamRosterStatus extends Handler
 	 */
 	function loadPermittedStates ($teamId, $playerId)
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		$is_captain = false;
 		$is_administrator = false;
@@ -769,7 +790,9 @@ class TeamRosterStatus extends Handler
 		/* Now, check for the player's status, or set 'none' if
 		 * not currently on team.
 		 */
-		$this->currentStatus = db_result(db_query("SELECT status FROM teamroster WHERE team_id = %d and player_id = %d", $teamId, $playerId));
+		$sth = $dbh->prepare('SELECT status FROM teamroster WHERE team_id = ? AND player_id = ?');
+		$sth->execute( array( $teamId, $playerId) );
+		$this->currentStatus = $sth->fetchColumn();
 
 		if(!$this->currentStatus) {
 			$this->currentStatus = 'none';
@@ -808,11 +831,13 @@ class TeamRosterStatus extends Handler
 
 	function getStatesForCaptain($id)
 	{
+		global $dbh;
 		switch($this->currentStatus) {
 		case 'captain':
-			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster where status = ? AND team_id = ?');
+			$sth->execute( array('captain', $id));
 
-			if($num_captains <= 1) {
+			if($sth->fetchColumn() <= 1) {
 				error_exit("All teams must have at least one player with captain status.");
 			}
 
@@ -841,11 +866,13 @@ class TeamRosterStatus extends Handler
 
 	function getStatesForPlayer($id)
 	{
+		global $dbh;
 		switch($this->currentStatus) {
 		case 'captain':
-			$num_captains = db_result(db_query("SELECT COUNT(*) FROM teamroster where status = 'captain' AND team_id = %d", $id));
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster where status = ? AND team_id = ?');
+			$sth->execute( array('captain', $id));
 
-			if($num_captains <= 1) {
+			if($sth->fetchColumn() <= 1) {
 				error_exit("All teams must have at least one player with captain status.");
 			}
 
@@ -863,9 +890,9 @@ class TeamRosterStatus extends Handler
 		case 'player_request':
 			return array( 'none' );
 		case 'none':
-			$is_open = db_result(db_query("SELECT status from team where team_id = %d",$id));
-
-			if($is_open != 'open') {
+			$sth = $dbh->prepare('SELECT status from team where team_id = ?');
+			$sth->execute( array( $id ));
+			if($sth->fetchColumn() != 'open') {
 				error_exit("Sorry, this team is not open for new players to join");
 			}
 			return array( 'player_request' );
@@ -956,7 +983,7 @@ class TeamRosterStatus extends Handler
 
 	function perform ( $edit )
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
@@ -968,6 +995,7 @@ class TeamRosterStatus extends Handler
 		}
 
 		/* Perms already checked, so just do it */
+		// TODO: this belongs in classes/team.inc
 		if($this->currentStatus != 'none') {
 			switch($edit['status']) {
 			case 'coach':
@@ -977,15 +1005,17 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("UPDATE teamroster SET status = '%s' WHERE team_id = %d AND player_id = %d", $edit['status'], $this->team->team_id, $this->player->user_id);
+				$sth = $dbh->prepare('UPDATE teamroster SET status = ? WHERE team_id = ? AND player_id = ?');
+				$sth->execute( array($edit['status'], $this->team->team_id, $this->player->user_id) );
 				break;
 			case 'none':
-				db_query("DELETE FROM teamroster WHERE team_id = %d AND player_id = %d", $this->team->team_id, $this->player->user_id);
+				$sth = $dbh->prepare('DELETE FROM teamroster WHERE team_id = ? AND player_id = ?');
+				$sth->execute( array($this->team->team_id, $this->player->user_id));
 				break;
 			default:
 				error_exit("Cannot set player to that state.");
 			}
-			if( 1 != db_affected_rows() ) {
+			if( 1 != $sth->rowCount() ) {
 				return false;
 			}
 		} else {
@@ -997,8 +1027,9 @@ class TeamRosterStatus extends Handler
 			case 'substitute':
 			case 'captain_request':
 			case 'player_request':
-				db_query("INSERT INTO teamroster VALUES(%d,%d,'%s',NOW())", $this->team->team_id, $this->player->user_id, $edit['status']);
-				if( 1 != db_affected_rows() ) {
+				$sth = $dbh->prepare('INSERT INTO teamroster VALUES(?,?,?,NOW())');
+				$sth->execute( array($this->team->team_id, $this->player->user_id, $edit['status']));
+				if( 1 != $sth->rowCount() ) {
 					return false;
 				}
 				break;
@@ -1034,8 +1065,7 @@ class TeamRosterStatus extends Handler
 
 				// Find the list of captains and assistants for the team
 				if( variable_get('postnuke', 0) ) {
-					$result = db_query("
-							SELECT
+					$sth = $dbh->prepare("SELECT
 								firstname,
 								lastname,
 								n.pn_email as email,
@@ -1051,17 +1081,15 @@ class TeamRosterStatus extends Handler
 							ON
 								p.user_id = r.player_id
 							WHERE
-								team_id = %d
+								team_id = ?
 							AND
 								(
 									r.status = 'captain'
 								OR
 									r.status = 'assistant'
-								)",
-						$this->team->team_id);
+								)");
 				} else {
-					$result = db_query("
-							SELECT
+					$sth = $dbh->prepare("SELECT
 								firstname,
 								lastname,
 								email,
@@ -1079,15 +1107,15 @@ class TeamRosterStatus extends Handler
 									r.status = 'captain'
 								OR
 									r.status = 'assistant'
-								)",
-						$this->team->team_id);
+								)");
 				}
+				$sth->execute( array( $this->team->team_id) );
 
 				$captains = array();
 				$captain_names = array();
 				$assistants = array();
 				$assistant_names = array();
-				while( $row = db_fetch_object($result) ) {
+				while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
 					if( $row->status == 'captain' ) {
 						$captains[] = $row->email;
 						$captain_names[] = "$row->firstname $row->lastname";
@@ -1151,7 +1179,7 @@ class TeamView extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		// Team names might have HTML in them, so we need to nuke it.
 		$team_name = check_form($this->team->name, ENT_NOQUOTES);
@@ -1205,7 +1233,7 @@ class TeamView extends Handler
 
 		/* and, grab roster */
 		// TODO: turn this into $team->get_roster()
-		$result = db_query(
+		$sth = $dbh->prepare(
 			"SELECT
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
@@ -1218,8 +1246,9 @@ class TeamView extends Handler
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = %d
-			ORDER BY r.status, p.gender, p.lastname", $this->team->team_id);
+				r.team_id = ?
+			ORDER BY r.status, p.gender, p.lastname");
+		$sth->execute(array($this->team->team_id));
 
 		$header = array( 'Name', 'Position', 'Gender','Rating' );
 		if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
@@ -1230,7 +1259,7 @@ class TeamView extends Handler
 		$skillCount = 0;
 		$rosterCount = 0;
 		$rosterPositions = getRosterPositions();
-		while($player = db_fetch_object($result)) {
+		while($player = $sth->fetch(PDO::FETCH_OBJ) ) {
 
 			/* 
 			 * Now check for conflicts.  Players who are subs get
@@ -1239,21 +1268,23 @@ class TeamView extends Handler
 			 * TODO: This is time-consuming and resource-inefficient.
 			 * TODO: Turn this into $team->check_roster_conflicts()
 			 */
-			$conflict = db_result(db_query("SELECT COUNT(*) from
+			$c_sth = $dbh->prepare("SELECT COUNT(*) from
 					league l, leagueteams t, teamroster r
 				WHERE
-					l.year = %d AND l.season = '%s' AND l.day = '%s' 
+					l.year = ? AND l.season = ? AND l.day = ?
 					AND r.status != 'substitute'
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
 					AND t.team_id = r.team_id
-					AND r.player_id = %d",
-					$this->team->league_year,
-					$this->team->league_season,
-					$this->team->league_day,
-					$player->id));
+					AND r.player_id = ?");
+			$c_sth->execute(array(
+				$this->team->league_year,
+				$this->team->league_season,
+				$this->team->league_day,
+				$player->id
+			));
 
-			if($conflict > 1) {
+			if($c_sth->fetchColumn() > 1) {
 				$conflictText = "(roster conflict)";
 			} else {
 				$conflictText = null;
@@ -1470,7 +1501,7 @@ class TeamSpirit extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		$this->title = "Team Spirit";
 
 		$this->setLocation(array(
@@ -1495,10 +1526,11 @@ class TeamSpirit extends Handler
 
 		$rows = array();
 
-		# TODO load all point values for answers into array
+		// TODO load all point values for answers into array
 		$answer_values = array();
-		$result = db_query("SELECT akey, value FROM multiplechoice_answers");
-		while( $ary = db_fetch_array($result) ) {
+		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
+		$sth->execute();
+		while( $ary = $sth->fetch() ) {
 			$answer_values[ $ary['akey'] ] = $ary['value'];
 		}
 
@@ -1656,30 +1688,29 @@ class TeamEmails extends Handler
 
 	function process ()
 	{
+		global $lr_session, $dbh;
 		$this->title = 'Player Emails';
-		$result = db_query(
-			"SELECT
+		$sth = $dbh->prepare('SELECT
 				p.firstname, p.lastname, p.email
 			FROM
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
-				r.team_id = %d
+				r.team_id = ?
 			AND
-				p.user_id != %d
+				p.user_id != ?
 			ORDER BY
-				p.lastname, p.firstname",
-			$this->team->team_id, $lr_session->user->user_id);
-
-		if( db_num_rows($result) <= 0 ) {
-			return false;
-		}
+				p.lastname, p.firstname');
+		$sth->execute( array( $this->team->team_id, $lr_session->user->user_id) );
 
 		$emails = array();
 		$names = array();
-		while($user = db_fetch_object($result)) {
+		while($user = $sth->fetch(PDO::FETCH_OBJ)) {
 			$names[] = "$user->firstname $user->lastname";
 			$emails[] = $user->email;
+		}
+		if( count($names) <= 0 ) {
+			return false;
 		}
 
 		$team = team_load( array('team_id' => $this->team->team_id) );
@@ -1698,36 +1729,42 @@ class TeamEmails extends Handler
 
 function team_statistics ( )
 {
+	global $dbh;
 	$rows = array();
 
 	$current_season = variable_get('current_season', 'Summer');
+	
+	$sth = $dbh->prepare('SELECT COUNT(*) FROM team');
+	$sth->execute();
+	$rows[] = array("Number of teams (total):", $sth->fetchColumn() );
 
-	$result = db_query("SELECT COUNT(*) FROM team");
-	$rows[] = array("Number of teams (total):", db_result($result));
-
-	$result = db_query("SELECT l.season, COUNT(*) FROM leagueteams t, league l WHERE t.league_id = l.league_id GROUP BY l.season");
+	$sth = $dbh->prepare('SELECT l.season, COUNT(*) FROM leagueteams t, league l WHERE t.league_id = l.league_id GROUP BY l.season');
+	$sth->execute();
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch(PDO::FETCH_ASSOC) ) {
 		$sub_table[] = $row;
 	}
 	$rows[] = array("Teams by season:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size
+	$sth = $dbh->prepare("SELECT t.team_id,t.name, COUNT(r.player_id) as size
         FROM teamroster r, league l, leagueteams lt, team t
         WHERE
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id
                 AND l.schedule_type != 'none'
-				AND l.season = '%s'
+				AND l.season = ?
 				AND t.team_id = r.team_id
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id
         HAVING size < 12
-        ORDER BY size desc, t.name", $current_season);
+        ORDER BY size desc, t.name");
+	$sth->execute( array($current_season) );
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	$sub_sth = $dbh->prepare("SELECT COUNT(*) FROM teamroster r WHERE r.team_id = ? AND r.status = 'substitute'");
+	while($row = $sth->fetch() ) {
 		if( $row['size'] < 12 ) {
-			$substitutes = db_result(db_query("SELECT COUNT(*) FROM teamroster r WHERE r.team_id = %d AND r.status = 'substitute'", $row['team_id']));
+			$sub_sth->execute( array($row['team_id']) );
+			$substitutes = $sub_sth->fetchColumn();
 			if( ($row['size'] + floor($substitutes / 3)) < 12 ) {
 				$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), ($row['size'] + floor($substitutes / 3)));
 			}
@@ -1735,63 +1772,67 @@ function team_statistics ( )
 	}
 	$rows[] = array("$current_season teams with too few players:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id, t.name, t.rating
+	$sth = $dbh->prepare("SELECT t.team_id, t.name, t.rating
 		FROM team t, league l, leagueteams lt
 		WHERE
 			lt.team_id = t.team_id
 			AND l.league_id = lt.league_id
 			AND l.status = 'open'
 			AND l.schedule_type != 'none'
-			AND l.season = '%s'
-		ORDER BY t.rating DESC LIMIT 10", $current_season);
+			AND l.season = ?
+		ORDER BY t.rating DESC LIMIT 10");
+	$sth->execute( array( $current_season ) );
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch() ) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Top-rated $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id, t.name, t.rating
+	$sth = $dbh->prepare("SELECT t.team_id, t.name, t.rating
 		FROM team t, league l, leagueteams lt
 		WHERE
 			lt.team_id = t.team_id
 			AND l.league_id = lt.league_id
 			AND l.status = 'open'
 			AND l.schedule_type != 'none'
-			AND l.season = '%s'
-		ORDER BY t.rating ASC LIMIT 10", $current_season);
+			AND l.season = ?
+		ORDER BY t.rating ASC LIMIT 10");
+	$sth->execute( array($current_season) );
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch() ) {
 		$sub_table[] = array( l($row['name'],"team/view/" . $row['team_id']), $row['rating']);
 	}
 	$rows[] = array("Lowest-rated $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT COUNT(*) AS num,
+	$sth = $dbh->prepare("SELECT COUNT(*) AS num,
 			IF(s.status = 'home_default',s.home_team,s.away_team) AS team_id
 		FROM schedule s, league l
 		WHERE
 			s.league_id = l.league_id
 			AND l.status = 'open'
-			AND l.season = '%s'
+			AND l.season = ?
 			AND (s.status = 'home_default' OR s.status = 'away_default')
-		GROUP BY team_id ORDER BY num DESC", $current_season);
+		GROUP BY team_id ORDER BY num DESC");
+	$sth->execute( array($current_season) );
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch()) {
 		$team = team_load( array('team_id' => $row['team_id']) );
 		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
 	}
 	$rows[] = array("Top defaulting $current_season teams:", table(null, $sub_table));
 
-	$result = db_query("SELECT COUNT(*) AS num,
+	$sth = $dbh->prepare("SELECT COUNT(*) AS num,
 			IF(s.approved_by = -3,s.home_team,s.away_team) AS team_id
 		FROM schedule s, league l
 		WHERE
 			s.league_id = l.league_id
 			AND l.status = 'open'
-			AND l.season = '%s'
+			AND l.season = ?
 			AND (s.approved_by = -2 OR s.approved_by = -3)
-		GROUP BY team_id ORDER BY num DESC", $current_season);
+		GROUP BY team_id ORDER BY num DESC");
+	$sth->execute( array($current_season) );
 	$sub_table = array();
-	while($row = db_fetch_array($result)) {
+	while($row = $sth->fetch() ) {
 		$team = team_load( array('team_id' => $row['team_id']) );
 		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
 	}

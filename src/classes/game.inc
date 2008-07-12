@@ -11,40 +11,15 @@ class Game extends LeaguerunnerObject
 	var $_score_entries;
 	var $_spirit_entries;
 
-	/**
-	 * Load a single game object from the database using the supplied query
-	 * data.  If more than one matches, we will load only the first one.  If
-	 * fewer than one matches, this object remains empty.
-	 *
-	 * @param	mixed 	$array key-value pairs that identify the team to be loaded.
-	 */
-	function load ( $array = array() )
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$result = game_query( &$array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		return $this->load_from_query_result( db_fetch_array($result) );
-	}
-
-	/** 
-	 * Populate a game object, given an array result generated from
-	 * game_query()
-	 */
-	function load_from_query_result ( $array = array() )
-	{
-		
-		foreach ($array as $key => $value) {
-			$this->{$key} = $value;
-		}
-
-		$this->_in_database = true;
-
 		// Fixups
 		if( ! $this->game_end ) {
 			$this->game_end = 'dark';
+		}
+
+		if( ! $this->in_database ) {
+			return true;
 		}
 
 		$this->load_score_entries();
@@ -146,6 +121,7 @@ class Game extends LeaguerunnerObject
 
 	function updatedependentgames( $oldgameresults = array() ) 
 	{
+		global $dbh;
 		$league = league_load(array('league_id' => $this->league_id));
 		if(!$league) {
 			error_exit("That league does not exist");
@@ -158,32 +134,27 @@ class Game extends LeaguerunnerObject
 			$winnerTeamId = $winlose['winner'];
 			$loserTeamId  = $winlose['loser'];
 
+			$rank_sth = $dbh->prepare('UPDATE leagueteams SET rank = rank + ? WHERE league_id = ? AND team_id = ?');
+
 			# see if there are old game results:
 			if(count($oldgameresults) > 0) {
 
-				# if it used to be a home win but not anymore...
+				// If we're changing the winner, modify the old
+				// winner's rank before changing the new one.
 				if($oldgameresults['home_score'] > $oldgameresults['away_score']) {
 					if($this->home_score <= $this->away_score) {
-
-						# need to put home team rank back...
-						$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->home_team);
-						$row = db_fetch_array($pyramidResult);
-						db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] + 1, $league->league_id, $this->home_team);
+						// Reset home team's rank
+						$rank_sth->execute( array(1, $league->league_id, $this->home_team)  );
 					} else {
-
-						# nothing to do because this is still a home win.
 						return true;
 					}
 				} else if($oldgameresults['home_score'] < $oldgameresults['away_score']) {
 					if($this->home_score >= $this->away_score) {
 
-						# if it used to be an away win but not anymore...
-						$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->away_team);
-						$row = db_fetch_array($pyramidResult);
-						db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] + 1, $league->league_id, $this->away_team);
+						// Fix away team's rank
+						// TODO: Is this even correct? Shouldn't the other team's rank change as well?
+						$rank_sth->execute( array(1, $league->league_id, $this->away_team) );
 					} else {
-
-						# nothing to do because this is still an away win.
 						return true;
 					}
 				}
@@ -194,10 +165,9 @@ class Game extends LeaguerunnerObject
 				return true;
 			}
 
-			# Update the ranks of these two teams only.  Winner goes up one, loser goes down one
-			$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $winnerTeamId);
-			$row = db_fetch_array($pyramidResult);
-			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] - 1, $league->league_id, $winnerTeamId);
+			// Bump the winner up one rank (note that it's a
+			// subtraction, because lower == better)
+			$rank_sth->execute( array(-1, $league->league_id, $winnerTeamId) );
 
 			# Return true which is ok.  We don't need to update the other
 			# teams for pyramid
@@ -213,17 +183,17 @@ class Game extends LeaguerunnerObject
 		#print($this->sprintf("debug"));
 
 		# Lets get the game objects.
-		$queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d", $this->game_id, $this->game_id);
+		$sth = $dbh->prepare('SELECT * FROM schedule WHERE home_dependant_game = :game_id OR away_dependant_game = :game_id');
+		$sth->execute( array( 'game_id' =>  $this->game_id)  );
 
-		$num_rows = db_num_rows($queryResult);
-		if($num_rows == 0) {
 
-			# No dependant games; that's OK, nothing more to do
-			return true;
+		$games = array();
+		while( $row = $sth->fetch() ) {
+			$games[] = $row;
 		}
 
 		# Should only ever get two games;
-		if($num_rows != 2) {
+		if(count($games) != 2) {
 			error_exit("Internal error: Found $num_rows dependant games, expecting 2");
 		}
 
@@ -234,7 +204,7 @@ class Game extends LeaguerunnerObject
 
 		# Now we can figure out which team the
 		# dependant games are looking for.
-		while ($row = db_fetch_array($queryResult)) {
+		while (list($crap,$row) = each($games)) {
 			$gameIdToUpdate = $row['game_id'];
 
 			if($row['home_dependant_game'] == $this->game_id) {
@@ -248,9 +218,11 @@ class Game extends LeaguerunnerObject
 				}
 
 				# Update the database.
-				db_query("UPDATE schedule SET home_team = %d WHERE game_id = %d ", $teamId, $gameIdToUpdate);
+				$sth = $dbh->prepare('UPDATE schedule SET home_team = ? WHERE game_id = ?');
+				$sth->execute( array($teamId, $gameIdToUpdate) );
 
-				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $teamRank, $league->league_id, $teamId);
+				$sth = $dbh->prepare('UPDATE leagueteams SET rank = ? WHERE league_id = ? AND team_id = ?');
+				$sth->execute( array($teamRank, $league->league_id, $teamId) );
 			}
 
 			if($row['away_dependant_game'] == $this->game_id) {
@@ -266,9 +238,11 @@ class Game extends LeaguerunnerObject
 				}
 
 				# Update the database.
-				db_query("UPDATE schedule SET away_team = %d WHERE game_id = %d ", $teamId, $gameIdToUpdate);
+				$sth = $dbh->prepare('UPDATE schedule SET away_team = ? WHERE game_id = ?');
+				$sth->execute( array($teamId, $gameIdToUpdate) );
 
-				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $teamRank, $league->league_id, $teamId);
+				$sth = $dbh->prepare('UPDATE leagueteams SET rank = ? WHERE league_id = ? AND team_id = ?');
+				$sth->execute( array($teamRank, $league->league_id, $teamId) );
 			}
 
 		}
@@ -452,23 +426,21 @@ class Game extends LeaguerunnerObject
 
 	function remind_team($team_id, $team_name, $opponent)
 	{
+		global $dbh;
 		if( array_key_exists($team_id, $this->_score_entries) ) {
 			return false;
 		}
-
-		$sent = db_result(db_query("
-			SELECT COUNT(*)
-			FROM
-				score_reminder
-			WHERE game_id = %d
-			AND team_id = %d",
-			$this->game_id, $team_id));
+		
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM score_reminder WHERE
+			game_id = ? AND team_id = ?');
+		$sth->execute( array( $this->game_id, $team_id) );
+		$sent = $sth->fetchColumn();
 		if( $sent ) {
 			return false;
 		}
 
 		if( variable_get('postnuke', 0)) {
-			$result = db_query("
+			$sth = $dbh->prepare("
 				SELECT
 					CONCAT(p.firstname, ' ', p.lastname) as fullname,
 					n.pn_email as email,
@@ -477,10 +449,9 @@ class Game extends LeaguerunnerObject
 				LEFT JOIN person p ON r.player_id = p.user_id
 				LEFT JOIN nuke_users n ON r.player_id = n.pn_uid
 				WHERE team_id = %d
-				AND (r.status = 'captain' OR r.status = 'assistant')",
-				$team_id);
+				AND (r.status = 'captain' OR r.status = 'assistant')");
 		} else {
-			$result = db_query("
+			$sth = $dbh->prepare("
 				SELECT
 					CONCAT(p.firstname, ' ', p.lastname) as fullname,
 					email,
@@ -488,12 +459,12 @@ class Game extends LeaguerunnerObject
 				FROM teamroster r
 				LEFT JOIN person p ON r.player_id = p.user_id
 				WHERE team_id = %d
-				AND r.status = 'captain' OR r.status = 'assistant'",
-				$team_id);
+				AND r.status = 'captain' OR r.status = 'assistant'");
 		}
+		$sth = $dbh->execute( array($team_id) );
 
 		$to_addr = $to_name = $cc_addr = $cc_name = array();
-		while( $row = db_fetch_object( $result ) ) {
+		while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if( $row->status == 'captain' ) {
 				$to_addr[] = $row->email;
 				$to_name[] = $row->fullname;
@@ -503,6 +474,7 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
+		// TODO fix tuc-ism
 		$variables = array(
 			'%fullname' => join(',', $to_name),
 			'%team' => $team_name,
@@ -523,14 +495,15 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
-		db_query("INSERT into score_reminder (game_id, team_id) VALUES(%d,%d)",
-			$this->game_id, $team_id);
+		$sth = $dbh->prepare('INSERT into score_reminder (game_id, team_id) VALUES(?,?)');
+		$sth->execute( array( $this->game_id, $team_id) );
 
 		return true;
 	}
 
 	function save ()
 	{
+		global $dbh;
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -542,9 +515,6 @@ class Game extends LeaguerunnerObject
 			}
 		}
 	
-		$fields      = array();
-		$fields_data = array();
-
 		// First, perform some evil.  Depending on game status, we may wish to
 		// override some values. But, we only want to do this when we're
 		// changing the status.
@@ -576,16 +546,17 @@ class Game extends LeaguerunnerObject
 			};
 		}
 
+		$fields      = array();
+		$fields_data = array();
 		foreach ( $this->_modified_fields as $key => $value) {
 			if( $key == 'slot_id' ) {
 				continue;
 			}
 		
-			if( is_null($this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
+			$fields[] = "$key = ?";
+			if( empty($this->{$key}) ) {
+				$fields_data[] = null;
 			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
 				$fields_data[] = $this->{$key};
 			}
 		}
@@ -594,14 +565,14 @@ class Game extends LeaguerunnerObject
 			error_exit("Internal error: Incorrect number of fields set");
 		}
 		if(count($fields)) {
-			$sql = "UPDATE schedule SET ";
-			$sql .= join(", ", $fields);	
-			$sql .= " WHERE game_id = %d";
+			$sth = $dbh->prepare('UPDATE schedule SET '
+				. join(", ", $fields)
+				. ' WHERE game_id = ?');
 
 			$fields_data[] = $this->game_id;
 
-			db_query( $sql, $fields_data);
-			if(1 < db_affected_rows()) {
+			$sth->execute( $fields_data );
+			if(1 < $sth->rowCount()) {
 				# Affecting zero rows is possible
 				error_exit("Internal error: Strange number of rows affected");
 			}
@@ -609,8 +580,9 @@ class Game extends LeaguerunnerObject
 
 		// Now deal with slot_id
 		if( array_key_exists('slot_id', $this->_modified_fields) ) {
-			db_query("UPDATE gameslot SET game_id = %d WHERE slot_id = %d", $this->game_id, $this->slot_id);
-			if(1 != db_affected_rows()) {
+			$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE slot_id = ?');
+			$sth->execute( array($this->game_id, $this->slot_id) );
+			if(1 != $sth->rowCount()) {
 				return false;
 			}
 		}
@@ -618,7 +590,8 @@ class Game extends LeaguerunnerObject
 		// Delete score entries and finalize the rating change if
 		// we've just updated the score
 		if( array_key_exists('home_score', $this->_modified_fields) || array_key_exists('away_score', $this->_modified_fields)) {
-			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
+			$sth = $dbh->prepare('DELETE FROM score_entry WHERE game_id = ?');
+			$sth->execute( array($this->game_id) );
 
 			$this->modify_team_ratings();
 		}
@@ -630,6 +603,8 @@ class Game extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
+
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -637,13 +612,16 @@ class Game extends LeaguerunnerObject
 		if( ! $this->league_id ) {
 			return false;
 		}
-		
-		db_query("INSERT into schedule (league_id) VALUES(%d)", $this->league_id);
-		if( 1 != db_affected_rows() ) {
+	
+		$sth = $dbh->prepare('INSERT into schedule (league_id) VALUES(?)'); 
+		$sth->execute( array($this->league_id) );
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
-		$this->game_id = db_result(db_query("SELECT LAST_INSERT_ID() from schedule"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM schedule');
+		$sth->execute();
+		$this->game_id = $sth->fetchColumn();
 
 		$this->_in_database = true;
 		
@@ -652,6 +630,7 @@ class Game extends LeaguerunnerObject
 	
 	function delete()
 	{
+		global $dbh;
 		if( ! $this->_in_database ) {
 			return false;
 		}
@@ -662,70 +641,75 @@ class Game extends LeaguerunnerObject
 		}
 
 		// Don't check result; there may not be any to change
-		db_query("UPDATE gameslot SET game_id = NULL where game_id = %d", $this->game_id);
+		$sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL where game_id = ?');
+		$sth->execute( array($this->game_id) );
 
 		// Remove game from schedule
-		db_query("DELETE FROM schedule WHERE game_id = %d", $this->game_id);
-		return (1 == db_affected_rows());
+		$sth = $dbh->prepare('DELETE FROM schedule WHERE game_id = ?');
+		$sth->execute( array($this->game_id) );
+		return (1 == $sth->rowCount());
 	}
 
 
 	function removeresults()
 	{
+		global $dbh;
+
 		if(!$this->_in_database) {
 			return false;
 		}
 
-		# TODO: is there anything that should prevent removal of results??
+		// TODO: is there anything that should prevent removal of results??
+		// TODO: This should really be in a transaction...
 
 		# Remove the spirit answers
-		db_query("DELETE FROM team_spirit_answers WHERE gid = %d", $this->game_id);
-		if(db_affected_rows() == 0) {
+		$sth = $dbh->prepare('DELETE FROM team_spirit_answers WHERE gid = ?');
+		$sth->execute( array($this->game_id) );
+		if($sth->rowCount() == 0) {
 			die("Uh-oh, problems removing results from the team_spirit_answers table... whew, you're still ok because this is the first thing I tried to do...");
 		}
 
 		# Update SCHEDULE table to remove these results
-		db_query("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = %d", $this->game_id);
-		if(db_affected_rows() == 0) {
+		$sth = $dbh->prepare("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = ?");
+		$sth->execute( array($this->game_id) );
+		if($sth->rowCount() == 0) {
 			die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
 		}
 
 		# put the rating points back...  and fix the rank...
+		$rating_sth = $dbh->prepare('UPDATE team SET rating = rating + ? WHERE team_id = ?');
+		$rank_sth = $dbh->prepare('UPDATE leagueteams set rank = rank + 1 where league_id = ? and team_id = ?');
 		if($this->home_score > $this->away_score) {
-
-			# home win
-
-			db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->away_team);
-			if(db_affected_rows() == 0) {
+			// home win
+			$rating_sth->execute( array( $this->rating_points, $this->away_team ) );
+			if($rating_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
 			}
 
-			db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->home_team);
-			if(db_affected_rows() == 0) {
+			$rating_sth->execute( array( 0 - $this->rating_points, $this->home_team ) );
+			if($rating_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
 			}
 
-			db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->home_team);
-			if(db_affected_rows() == 0) {
+			$rank_sth->execute( array( $this->league_id, $this->home_team) );
+			if($rank_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rank for team " + $this->home_team);
 			}
 
 		} else if($this->away_score > $this->home_score) {
-
-			# away win
-
-			db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->home_team);
-			if(db_affected_rows() == 0) {
+			// away win
+			$rating_sth->execute( array( $this->rating_points, $this->home_team ) );
+			if($rating_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
 			}
 
-			db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->away_team);
-			if(db_affected_rows() == 0) {
+			$rating_sth->execute( array( 0 - $this->rating_points, $this->away_team ) );
+			if($rating_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
 			}
 
-			db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->away_team);
-			if(db_affected_rows() == 0) {
+			$rank_sth->execute( array( $this->league_id, $this->away_team) );
+			if($rank_sth->rowCount() == 0) {
 				die("Uh-oh, problems fixing the rank for team " + $this->away_team);
 			}
 
@@ -811,19 +795,16 @@ class Game extends LeaguerunnerObject
 	 */
 	function load_score_entries ( )
 	{
+		global $dbh;
 		if( ! $this->_in_database ) {
-			die( "Cannot load entered scores for game not in database!");
+			die( "Cannot load entered scores for game not in database: ". $this->game_id);
 		}
 
-		$result = db_query("SELECT * from score_entry WHERE game_id = %d", $this->game_id);
-		if( db_num_rows($result) > 2 ) {
-			die("Too many score entries in DB for game $game->game_id");
-		}
-		
-		if( db_num_rows($result) > 0 ) {
-			while( $entry = db_fetch_object($result) ) {
-				$this->_score_entries[ $entry->team_id ] = $entry;
-			}
+		$sth = $dbh->prepare('SELECT * from score_entry WHERE game_id = ?');
+		$sth->execute(array($this->game_id));
+
+		while( $entry = $sth->fetch(PDO::FETCH_OBJ) ) {
+			$this->_score_entries[ $entry->team_id ] = $entry;
 		}
 
 		$this->load_spirit_entries();
@@ -833,12 +814,15 @@ class Game extends LeaguerunnerObject
 
 	function load_spirit_entries ( )
 	{
+		global $dbh;
 
 		if( ! $this->_in_database ) {
-			die( "Cannot load entered scores for game not in database!");
+			die( "Cannot load entered scores for game not in database: ". $this->game_id);
 		}
-		$result = db_query("SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = %d ORDER BY a.tid,q.sorder", $this->game_id);
-		while( $row = db_fetch_array( $result ) ) {
+		$sth = $dbh->prepare('SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = ? ORDER BY a.tid,q.sorder');
+		$sth->execute(array( $this->game_id));
+
+		while( $row = $sth->fetch() ) {
 			$got[$row['tid']] = 1;
 			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
 		}
@@ -884,6 +868,8 @@ class Game extends LeaguerunnerObject
 	 */
 	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted, $spirit )
 	{
+		global $dbh;
+
 		$entry->team_id = $team_id;
 		$entry->entry_id = $this->entry_id;
 		$entry->entered_by = $user_id;
@@ -911,18 +897,19 @@ class Game extends LeaguerunnerObject
 
 		// Save entry object in DB.  Use 'replace into' to handle the case
 		// where one might already exist.
-		db_query("REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,spirit,defaulted,entry_time) VALUES(%d,%d,%d,%d,%d,%d,'%s',NOW())",
+		$sth = $dbh->prepare('REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,spirit,defaulted,entry_time) VALUES(?,?,?,?,?,?,?,NOW())');
+		$sth->execute( array(
 			$this->game_id,
 			$entry->team_id,
 			$entry->entered_by,
 			$entry->score_for,
 			$entry->score_against,
 			$entry->spirit,
-			$entry->defaulted);
+			$entry->defaulted));
 			
-	    if( 1 != db_affected_rows() ) {
-		return false;
-	    }
+		if( 1 != $sth->rowCount() ) {
+			return false;
+		}
 
 		return true;		
 	}
@@ -955,6 +942,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function get_spirit_numeric( $team_id )
 	{
+		global $dbh;
 		$entry = $this->get_spirit_entry($team_id);
 		if( !$entry ) {
 			return null;
@@ -962,14 +950,15 @@ class Game extends LeaguerunnerObject
 
 		// Start with 10 spirit, subtract down
 		$spirit = 10;
+		$sth = $dbh->prepare('SELECT value from multiplechoice_answers WHERE qkey = ? AND akey = ?');
 		while( list($qkey, $answer) = each($entry) ) {
 			// if any of the answers are blank, they'll all be blank, so just return -1 to indicate it
 			if ($qkey != "CommentsToCoordinator" && ($answer == null || $answer == "")) {
 				return -1;
 			}
-			$result = db_query("SELECT value from multiplechoice_answers WHERE qkey = '%s' AND akey = '%s'", $qkey, $answer);
 
-			$spirit += db_result($result);
+			$sth->execute( array( $qkey, $answer) );
+			$spirit += $sth->fetchColumn();
 		}
 
 		return $spirit;
@@ -980,6 +969,7 @@ class Game extends LeaguerunnerObject
 	 */
 	function save_spirit_entry ( $team_id, $spirit )
 	{
+		global $dbh;
 
 		if( !is_array($spirit) ) {
 			die("Spirit argument to save_spirit_entry() must be an array");
@@ -991,17 +981,18 @@ class Game extends LeaguerunnerObject
 		$opponent_id = $this->get_opponent_id( $team_id );
 		
 		// save in DB
+		$sth = $dbh->prepare('REPLACE INTO team_spirit_answers (tid_created,tid,gid,qkey,akey) VALUES (?,?,?,?,?)');
 		while( list($qkey, $answer) = each($spirit) ) {
-			db_query("REPLACE INTO team_spirit_answers (tid_created,tid,gid,qkey,akey) VALUES (%d,%d,%d,'%s','%s')", 
+			$sth->execute( array(
 				$opponent_id,
 				$team_id,
 				$this->game_id,
 				$qkey,
 				$answer
-			);
-	    	if( db_affected_rows() < 1) {
-	      		return false;
-	    	}
+			));
+			if( $sth->rowCount() < 1) {
+				return false;
+			}
 		}
 		
 		return true;		
@@ -1165,6 +1156,8 @@ class Game extends LeaguerunnerObject
 	 */
 	function modify_team_ratings ( )
 	{
+		global $dbh;
+
 		if(!is_null($this->rating_points) && $this->rating_points >= 0) {
 			## If we already have a rating, don't recalculate it.
 			## TODO: in the future, it might be nice if we can
@@ -1174,19 +1167,18 @@ class Game extends LeaguerunnerObject
 		}
 
 		$change_calculator = 'calculate_elo_change';
-		$result = db_query("SELECT schedule_type from league where league_id = %d", $this->league_id);
-		$row = db_fetch_array( $result );
-		if( $row['schedule_type'] == 'ratings_wager_ladder' ) {
+		$sth = $dbh->prepare('SELECT schedule_type from league where league_id = ?');
+		$sth->execute( array($this->league_id) );
+		if( $sth->fetchColumn() == 'ratings_wager_ladder' ) {
 			$change_calculator = 'calculate_wager_change';
 		}
 
+		$rating_sth = $dbh->prepare('UPDATE schedule SET rating_points = ? WHERE game_id = ?');
+
 		## If we're not a normal game, avoid changing the rating.
 		if($this->status != 'normal') {
-			db_query("UPDATE schedule SET rating_points = 0 WHERE game_id = %d", $this->game_id);
-			if(1 != db_affected_rows()) {
-				return false;
-			}
-			return true;
+			$rating_sth->execute( array( 0, $this->game_id ) );
+			return (1 == $rating_sth->rowCount());
 		}
 
 		$change = 0;
@@ -1206,18 +1198,19 @@ class Game extends LeaguerunnerObject
 			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->away_expected_win());
 		}
 
-		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $change, $this->game_id);
-		if(1 != db_affected_rows()) {
+		$rating_sth->execute( array( $change, $this->game_id ) );
+		if(1 != $rating_sth->rowCount() ) {
 			return false;
 		}
 
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $change, $winner);
-		if(1 != db_affected_rows()) {
+		$sth = $dbh->prepare('UPDATE team SET rating = rating + ? WHERE team_id = ?');
+		$sth->execute( array($change, $winner) );
+		if(1 != $rating_sth->rowCount() ) {
 			return false;
 		}
 
-		db_query("UPDATE team SET rating = rating - %d WHERE team_id = %d", $change, $loser);
-		if(1 != db_affected_rows()) {
+		$sth->execute( array(0 - $change, $loser) );
+		if(1 != $rating_sth->rowCount() ) {
 			return false;
 		}
 
@@ -1318,6 +1311,8 @@ class Game extends LeaguerunnerObject
 	 */
 	function select_random_gameslot( $timestamp )
 	{
+		global $dbh;
+
 		if( $this->slot_id ) {
 			return array(false, "Cannot call select_random_gameslot() on a game with an existing gameslot value");
 		}
@@ -1336,32 +1331,37 @@ class Game extends LeaguerunnerObject
 		 * keep the locks a bit more granular, we lock on the timestamp, so
 		 * that we only protect against people trying to add games on the same
 		 * day.
-		 * TODO: Transactions might make this a bit nicer...
+		 * TODO: This needs transactions!  The locking stuff is stupid.
 		 */
 		$lockname = "schedule_lock_$timestamp";
-		
-		$result = db_query("SELECT GET_LOCK('$lockname',10)");	
-		$lock = db_result($result);
+	
+		$lock_sth = $dbh->prepare('SELECT GET_LOCK(?,10)');
+		$lock_sth->execute( array( $lockname ) );
+		$lock = $lock_sth->fetchColumn();
 		if(!isset($lock) || $lock == 0) {
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
+		$unlock_sth = $dbh->prepare('SELECT RELEASE_LOCK(?)');
+
       		$seed = rand();
-		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
-		$slot_id = db_result($result);
+		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND(?) LIMIT 1');
+		$sth->execute( array( $timestamp, $this->league_id, $rand) );
+		$slot_id = $sth->fetchColumn();
 		if( ! $slot_id ) {
-			db_query("SELECT RELEASE_LOCK('$lockname')");
+			$unlock_sth->execute( array( $lockname ) );
 			return array(false, "Couldn't get slot ID");
 		}
 
-		db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $this->game_id, $slot_id);
-		$gameslot_affected_rows = db_affected_rows();
-		db_query("SELECT RELEASE_LOCK('$lockname')");
+		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
+		$sth->execute( array( $this->game_id, $slot_id) );
+		$gameslot_affected_rows = $sth->rowCount();
+		$unlock_sth->execute( array( $lockname ) );
 		if(1 != $gameslot_affected_rows) {
 			return array(false, "Couldn't assign gameslot");
 		}
 		$this->slot_id = $slot_id;
-		return array(true,'');;
+		return array(true,'');
 	}
 	
 	/**
@@ -1378,6 +1378,8 @@ class Game extends LeaguerunnerObject
 	 */
 	function select_weighted_gameslot( $timestamp )
 	{
+		global $dbh;
+
 		if( $this->slot_id ) {
 			return array(false, "Cannot call select_weighted_gameslot() on a game with an existing gameslot value");
 		}
@@ -1396,62 +1398,72 @@ class Game extends LeaguerunnerObject
 		 * keep the locks a bit more granular, we lock on the timestamp, so
 		 * that we only protect against people trying to add games on the same
 		 * day.
-		 * TODO: Transactions might make this a bit nicer...
+		 * TODO: This needs transactions!  The locking stuff is stupid.
 		 */
 		$lockname = "schedule_lock_$timestamp";
-		
-		$result = db_query("SELECT GET_LOCK('$lockname',10)");	
-		$lock = db_result($result);
+	
+		$lock_sth = $dbh->prepare('SELECT GET_LOCK(?,10)');
+		$lock_sth->execute( array( $lockname ) );
+		$lock = $lock_sth->fetchColumn();
 		if(!isset($lock) || $lock == 0) {
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
+		$unlock_sth = $dbh->prepare('SELECT RELEASE_LOCK(?)');
+
 		$seed = rand();
 
 		// try to adhere to the home team's HOME FIELD DESIGNATION
-		// TODO: I could save a DB hit every time if I would just pass in the team object...
-		$t = new Team();
-		$t->load( array('team_id' => $this->home_team) );
+		// TODO: I could save a DB hit every time if I would just pass
+		// in the team object to this method...
+		$t = team_load( array('team_id' => $this->home_team) );
 		if ($t->home_field != null && $t->home_field != '') {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.home_field = f.fid ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
-			$slot_id = db_result($result);
+			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ? AND t.home_field = f.fid ORDER BY RAND(?) LIMIT 1');
+			$sth->execute( array($timestamp, $this->league_id, $this->home_team, $seed) );
+			$slot_id = $sth->fetchColumn();
 		}
 
 		// if no home field, try to adhere to the home team's field preference
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->home_team);
-			$slot_id = db_result($result);
+			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ?  AND t.region_preference = f.region ORDER BY RAND(?) LIMIT 1');
+			$sth->execute( array($timestamp, $this->league_id, $this->home_team, $seed) );
+			$slot_id = $sth->fetchColumn();
 		}
 
 		// if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = %d  AND t.region_preference = f.region ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id, $this->away_team);
-			$slot_id = db_result($result);
+			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ? AND t.region_preference = f.region ORDER BY RAND(?) LIMIT 1');
+			$sth->execute( array($timestamp, $this->league_id, $this->away_team, $seed) );
+			$slot_id = $sth->fetchColumn();
 		}
 
 		// if still nothing can be found, last try is just random:
 		if( ! $slot_id ) {
-			$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
-			$slot_id = db_result($result);
+			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND(?) LIMIT 1');
+			$sth->execute( array($timestamp, $this->league_id, $seed) );
+			$slot_id = $sth->fetchColumn();
 		}
 
 		if( ! $slot_id ) {
-			db_query("SELECT RELEASE_LOCK('$lockname')");
+			$unlock_sth->execute( array( $lockname ) );
 			return array(false, "Couldn't get slot ID");
 		}
 
-		db_query("UPDATE gameslot SET game_id = %d WHERE ISNULL(game_id) AND slot_id = %d", $this->game_id, $slot_id);
-		$gameslot_affected_rows = db_affected_rows();
-		db_query("SELECT RELEASE_LOCK('$lockname')");
+		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
+		$sth->execute(array($this->game_id, $slot_id));
+		$gameslot_affected_rows = $sth->rowCount();
+		$unlock_sth->execute( array( $lockname ) );
 		if(1 != $gameslot_affected_rows) {
 			return array(false, "Couldn't assign gameslot");
 		}
 		$this->slot_id = $slot_id;
-		return array(true,'');;
+		return array(true,'');
 	}
 	
-	function get_ratings_table ( $rating_home, $rating_away, $whatif ) {
-		/* Build up header & rows*/
+	function get_ratings_table ( $rating_home, $rating_away, $whatif ) 
+	{
+		global $dbh;
+
 		$header = array( array('data' => '&nbsp') );
 		$rows = array( );
 
@@ -1459,9 +1471,9 @@ class Game extends LeaguerunnerObject
 		$away = $this->away_name;
 
 		$change_calculator = 'calculate_elo_change';
-		$result = db_query("SELECT schedule_type from league where league_id = %d", $this->league_id);
-		$row = db_fetch_array( $result );
-		if( $row['schedule_type'] == 'ratings_wager_ladder' ) {
+		$sth = $dbh->prepare('SELECT schedule_type from league where league_id = ?');
+		$sth->execute(array($this->league_id));
+		if($sth->fetchColumn() == 'ratings_wager_ladder' ) {
 			$change_calculator = 'calculate_wager_change';
 		}
 		
@@ -1506,14 +1518,18 @@ class Game extends LeaguerunnerObject
 
 function game_query ( $array = array() )
 {
-	global $TZ_ADJUST;
+	global $TZ_ADJUST, $dbh;
 
 	$order = '';
 	$tables = array( 'schedule s');
+
+	$query  = array();
+	$params = array();
 	foreach ($array as $key => $value) {
 		switch( $key ) {
 			case 'game_date':
-				$query[] = "g.game_date = '" . check_query($value) . "'";
+				$query[] = "g.game_date = ?";
+				$params[] = $value;
 				break;
 			case 'game_date_past':
 				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())";
@@ -1522,10 +1538,14 @@ function game_query ( $array = array() )
 				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) > UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'either_team':
-				$query[] = '(s.home_team = ' . check_query($value) . ' OR s.away_team = ' . check_query($value) . ')';
+				$query[] = '(s.home_team = ? OR s.away_team = ?)';
+				$params[] = $value;
+				$params[] = $value;
 				break;
 			case 'dependant_game':
-				$query[] = '(s.home_dependant_game = ' . check_query($value) . ' OR s.away_dependant_game = ' . check_query($value) . ')';
+				$query[] = '(s.home_dependant_game = ? OR s.away_dependant_game = ?)';
+				$params[] = $value;
+				$params[] = $value;
 				break;
 			case '_extra':
 				/* Just slap on any extra query fields desired */
@@ -1538,12 +1558,14 @@ function game_query ( $array = array() )
 				array_push($tables, $value);
 				break;
 			default:
-				$query[] = "s.$key = '" . check_query($value) . "'";
+				$query[] = "s.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT 
+	$sth = $dbh->prepare("SELECT 
 		s.*,
+		1 as _in_database,
 		IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
 		s.home_team AS home_id,
 		h.name AS home_name, 
@@ -1567,6 +1589,10 @@ function game_query ( $array = array() )
 		LEFT JOIN team h ON (h.team_id = s.home_team) 
 		LEFT JOIN team a ON (a.team_id = s.away_team)
 	WHERE " . implode(' AND ',$query) .  $order);
+
+	$sth->execute( $params );
+
+	return $sth;
 }
 
 /**
@@ -1574,40 +1600,29 @@ function game_query ( $array = array() )
  */
 function game_load( $array = array() )
 {
-	$g = new Game;
-	if($g->load($array)) {
-		return $g;
-	} else {
+	$result = game_query( $array );
+	if( $result->rowCount() != 1 ) {
 		return null;
 	}
+	return $result->fetchObject('Game');
 }
 
 function game_load_many( $array = array() )
 {
-	$result = game_query( &$array );
+	$sth = game_query( $array );
 
-	if(db_num_rows($result) < 1 ) {
-		return false;
-	}
-
-	$g = new Game;
 	$games = array();
-	while($ary = db_fetch_array($result)) {
-		$g = new Game;
-		if( $g->load_from_query_result( $ary ) ) {
-			$games[$g->game_id] = $g;
-		}
+	while($g = $sth->fetchObject('Game') ) {
+		$games[$g->game_id] = $g;
 	}
 
 	// take the LAST game, and check for dependent games
+	// TODO: Necessary anymore?
 	$last_game = $g;
 	$dep_array = array( 'dependant_game' => $last_game->game_id, '_order' => 'g.game_date');
-	$result = game_query( &$dep_array );
-	while ($ary = db_fetch_array($result) ) {
-		$g = new Game;
-		if ($g->load_from_query_result($ary) ) {
-			$games[$g->game_id] = $g;
-		}
+	$dep_sth = game_query( &$dep_array );
+	while ($dep_g = $sth->fetchObject('Game') ) {
+		$games[$g->game_id] = $g;
 	}
 
 	return $games;

@@ -21,6 +21,8 @@ class FormBuilder
 	 */
 	function load ( $name )
 	{
+		global $dbh;
+
 		// Initialise variables before anything else, so that this is done
 		// even in case of early exit.
 		$this->_name = $name;
@@ -31,20 +33,19 @@ class FormBuilder
 		// unknown.
 		$this->_answer_validity = 'false';
 
-		$result = db_query("SELECT q.* from question q WHERE genre = '%s' order by q.sorder", $name);
+		$sth = $dbh->prepare('SELECT q.* from question q WHERE genre = ? order by q.sorder');
+		$sth->execute(array($name));
 
-		if(db_num_rows($result) < 1) {
-			return false;
-		}
+		while( $question = $sth->fetch(PDO::FETCH_OBJ) ) {
 
-		while( $question = db_fetch_object( $result ) ) {
 
 			switch( $question->qtype ) {
 				case 'multiplechoice':
 					$question->answers = array();
-					$answers = db_query("SELECT a.* from multiplechoice_answers a WHERE a.qkey = '%s' ORDER BY a.sorder", $question->qkey);
-					while($ans = db_fetch_object( $answers ) ) {
-						$question->answers[$ans->akey] = $ans;
+					$a_sth = $dbh->prepare('SELECT akey,qkey,answer,value,sorder from multiplechoice_answers WHERE qkey = ? ORDER BY sorder');
+					$a_sth->execute(array( $question->qkey));
+					while($row = $a_sth->fetch(PDO::FETCH_OBJ)) {
+						$question->answers[ $row->akey ] = $row;
 					}
 					break;
 				case 'checkbox':
@@ -119,61 +120,47 @@ class FormBuilder
 	 */
 	function save( $reload )
 	{
+		global $dbh;
 		// Save the data for the questions and answers
-		$qfields = join(', ', array( 'qkey', 'genre', 'question', 'qtype', 'restrictions', 'required', 'sorder' ) );
-		$qformats = array();
-		$qvalues = array();
-
-		$afields = join(', ', array( 'akey', 'qkey', 'answer', 'value', 'sorder' ) );
-		$aformats = array();
-		$avalues = array();
-
+		$all_questions = array();
+		$all_avalues = array();
 		$qkeys = array();
 
 		foreach( $this->_questions as $q ) {
-			$qformats[] = '(' . join( ', ', array( "'%s'", "'%s'", "'%s'", "'%s'", "'%s'", "'%s'", "%d" ) ) . ')';
-			$qvalues = array_merge( $qvalues, array( $q->qkey, $q->genre, $q->question, $q->qtype, $q->restrictions, ($q->required ? 'Y' : 'N'), $q->sorder ) );
-			$qkeys[] = "'$q->qkey'";
+			$all_questions[] = array( $q->qkey, $q->genre, $q->question, $q->qtype, $q->restrictions, ($q->required ? 'Y' : 'N'), $q->sorder );
+			$qkeys[] = $q->qkey;
 
 			foreach( $q->answers as $a ) {
-				$aformats[] = '(' . join( ', ', array( "'%s'", "'%s'", "'%s'", "'%s'", "%d" ) ) . ')';
-				$avalues = array_merge( $avalues, array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder ) );
+				$avalues[] = array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder );
 			}
 		}
 
 		// Execute the queries: delete the old data, put in the new.
 		// This is harsh, better to somehow update only what's needed, but
 		// it will do for now.
-
-		db_query("
-				DELETE FROM
-					question
-				WHERE
-					genre = '%s'",
-			$this->_name);
+		$sth = $dbh->prepare('DELETE FROM question WHERE genre = ?');
+		$sth->execute( array( $this->_name) );
 
 		if( count( $qkeys ) ) {
-			db_query('
-					DELETE FROM
-						multiplechoice_answers
-					WHERE
-						qkey IN (' . join( ', ', $qkeys ) . ')' );
+			$sth = $dbh->prepare('DELETE FROM multiplechoice_answers WHERE qkey = ?');
+			foreach ($qkeys as $key) {
+				$sth->execute( array( $key ) );
+			}
 		}
 
-		if( count( $qformats ) ) {
-			db_query("
-					INSERT INTO
-						question ($qfields)
-					VALUES " . join(', ', $qformats),
-				$qvalues);
+		if( count( $all_questions ) ) {
+			$sth = $dbh->prepare('INSERT INTO question (qkey, genre, question, qtype, restrictions, required, sorder)
+				VALUES (?, ?, ?, ?, ?, ?, ?)');
+			foreach ($all_questions as $question ) {
+				$sth->execute( $question );
+			}
 		}
 
 		if( count( $aformats ) ) {
-			db_query("
-					INSERT INTO
-						multiplechoice_answers ($afields)
-					VALUES " . join(', ', $aformats),
-				$avalues);
+			$sth = $dbh->prepare('INSERT INTO multiplechoice_answers (akey, qkey, answer, value, sorder) VALUES (?, ?, ?, ?, ?)');
+			foreach( $all_avalues as $avalues ) {
+				$sth->execute( $avalues );
+			}
 		}
 
 		// After saving, we might reload, so that any sort order changes get
@@ -430,6 +417,7 @@ class FormBuilder
 	 */
 	function perform_maintenance( $data )
 	{
+		global $dbh;
 		$output = '';
 
 		foreach( $data as $qkey => $qdata )
@@ -449,8 +437,9 @@ class FormBuilder
 					// Read in any answers, in case this is an existing question
 					if( $q->qtype == 'multiplechoice' ) {
 						$q->answers = array();
-						$answers = db_query("SELECT a.* from multiplechoice_answers a WHERE a.qkey = '%s' ORDER BY a.sorder", $q->qkey);
-						while($ans = db_fetch_object( $answers ) ) {
+						$sth = $dbh->prepare('SELECT a.* from multiplechoice_answers a WHERE a.qkey = ? ORDER BY a.sorder');
+						$sth->execute( array($q->qkey) );
+						while($ans = $sth->fetch(PDO::FETCH_OBJ) ) {
 							$q->answers[$ans->akey] = $ans;
 						}
 					}

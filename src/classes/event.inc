@@ -1,22 +1,8 @@
 <?php
 class Event extends LeaguerunnerObject
 {
-	function load ( $array = array() )
+	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
-		$result = event_query( &$array );
-
-		if(1 != db_num_rows($result)) {
-			return false;
-		}
-
-		$this->_in_database = true;
-
-		$item = db_fetch_array($result);
-
-		foreach ($item as $key => $value) {
-			$this->{$key} = $value;
-		}
-
 		// Split the open and close dates
 		list ($this->open_date, $this->open_time) = explode (' ', $this->open);
 		$this->open_time = substr ($this->open_time, 0, 5);
@@ -31,6 +17,7 @@ class Event extends LeaguerunnerObject
 
 	function save ()
 	{
+		global $dbh;
 		if(! count($this->_modified_fields)) {
 			// No modifications, no need to save
 			return true;
@@ -46,11 +33,10 @@ class Event extends LeaguerunnerObject
 		$fields_data = array();
 
 		foreach ( $this->_modified_fields as $key => $value) {
-			if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-				$fields[] = "$key = %s";
-				$fields_data[] = 'NULL';
+			$fields[] = "$key = ?";
+			if( empty($this->{$key}) ) {
+				$fields_data[] = null;
 			} else {
-				$fields[] = $key . " = " . $this->get_placeholder($key, $this->{$key});
 				$fields_data[] = $this->{$key};
 			}
 		}
@@ -59,14 +45,14 @@ class Event extends LeaguerunnerObject
 			error_exit("Internal error: Incorrect number of fields set");
 		}
 
-		$sql = "UPDATE registration_events SET ";
-		$sql .= join(", ", $fields);
-		$sql .= " WHERE registration_id = %d";
+		$sth = $dbh->prepare('UPDATE registration_events SET '
+			. join(", ", $fields)
+			. ' WHERE registration_id = ?');
 
 		$fields_data[] = $this->registration_id;
 
-		db_query( $sql, $fields_data);
-		if(1 < db_affected_rows()) {
+		$sth->execute($fields_data);
+		if(1 < $sth->rowCount()) {
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
@@ -77,6 +63,7 @@ class Event extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
 		if( $this->_in_database ) {
 			return false;
 		}
@@ -84,13 +71,17 @@ class Event extends LeaguerunnerObject
 		if( ! $this->name ) {
 			return false;
 		}
-		db_query("INSERT into registration_events (name) VALUES ('%s')", $this->name);
 
-		if( 1 != db_affected_rows() ) {
+		$sth = $dbh->prepare('INSERT into registration_events (name) VALUES (?)');
+		$sth->execute( array( $this->name ) );
+
+		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
 
-		$this->registration_id = db_result(db_query("SELECT LAST_INSERT_ID() from registration_events"));
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM registration_events');
+		$sth->execute();
+		$this->registration_id = $sth->fetchColumn();
 
 		return true;
 	}
@@ -98,8 +89,9 @@ class Event extends LeaguerunnerObject
 
 function event_query ( $array = array() )
 {
+	global $dbh; 
 	$query = array();
-	$query[] = '1 = 1';
+	$params = array();
 	$fields = '';
 	$order = '';
 	foreach ($array as $key => $value) {
@@ -115,17 +107,23 @@ function event_query ( $array = array() )
 				$order = ' ORDER BY ' . $value;
 				break;
 			default:
-				$query[] = "e.$key = '" . check_query($value) . "'";
+				$query[] = "e.$key = ?";
+				$params[] = $value;
 		}
 	}
 
-	return db_query("SELECT
+	$sth  = $dbh->prepare("SELECT
 		e.*,
+		1 as _in_database,
 		UNIX_TIMESTAMP(e.open) as open_timestamp,
 		UNIX_TIMESTAMP(e.close) as close_timestamp
 		$fields
 		FROM registration_events e
-	WHERE " . implode(' AND ',$query) .  $order);
+		WHERE " . implode(' AND ',$query) .  $order);
+
+	$sth->execute( $params );
+
+	return $sth;
 }
 
 /**
@@ -133,11 +131,7 @@ function event_query ( $array = array() )
  */
 function event_load( $array = array() )
 {
-	$s = new Event;
-	if($s->load($array)) {
-		return $s;
-	} else {
-		return null;
-	}
+	$sth = event_query( $array );
+	return $sth->fetchObject('Event');
 }
 ?>

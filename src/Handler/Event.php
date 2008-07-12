@@ -448,9 +448,9 @@ class EventList extends Handler
 		ob_end_clean();
 
 		if( $lr_session->is_admin() ) {
-			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.name') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.name') );
 		} else {
-			$result = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.name') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.name') );
 		}
 
 		$type_desc = array('membership' => 'Membership Registrations',
@@ -461,7 +461,7 @@ class EventList extends Handler
 		$last_type = '';
 		$rows = array();
 
-		while( $event = db_fetch_object( $result ) ) {
+		while( $event = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if ($event->type != $last_type) {
 				$rows[] = array( array('colspan' => 4, 'data' => h2($type_desc[$event->type])));
 				$last_type = $event->type;
@@ -507,7 +507,7 @@ class EventPreregister extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		$this->title = 'Create Preregistration';
 
 		if( !$this->player ) {
@@ -519,12 +519,13 @@ class EventPreregister extends Handler
 
 		else if ($this->op == 'add')
 		{
-			$result = db_query ('INSERT INTO
-									preregistrations
-								VALUES (%d,%d)',
-								$this->player->user_id,
-								$this->event->registration_id);
-			if( 1 != db_affected_rows() ) {
+			// TODO: need a preregistration class to handle create/delete
+			$sth = $dbh->prepare('INSERT INTO preregistrations VALUES (?,?)');
+			$sth->execute( array(
+				$this->player->user_id,
+				$this->event->registration_id)
+			);
+			if( 1 != $sth->rowCount() ) {
 				return false;
 			}
 			$output = para('Successfully created preregistration. ' . $this->player->fullname . ' is now permitted to proceed with registration for ' . $this->event->name . ', subject to the normal prerequisite checks.');
@@ -533,15 +534,12 @@ class EventPreregister extends Handler
 		else if ($this->op == 'delete')
 		{
 			$this->title = 'Delete Preregistration';
-			$result = db_query ('DELETE FROM
-									preregistrations
-								WHERE
-									user_id = %d
-								AND
-									registration_id = %d',
-								$this->player->user_id,
-								$this->event->registration_id);
-			if( 1 != db_affected_rows() ) {
+			$sth = $dbh->prepare('DELETE FROM preregistrations WHERE user_id = ?  AND registration_id = ?');
+			$sth->execute( array(
+				$this->player->user_id,
+				$this->event->registration_id)
+			);
+			if( 1 != $sth->rowCount() ) {
 				return false;
 			}
 			$output = para('Successfully removed preregistration record.');
@@ -573,34 +571,33 @@ class EventPreregisterList extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		$this->title = 'Preregistration List';
 		$this->setLocation(array($this->title => 0));
 
-		$result = db_query( 'SELECT
-								r.user_id,
-								r.registration_id,
-								p.firstname,
-								p.lastname,
-								e.name as eventname
-							FROM
-								preregistrations r
-							LEFT JOIN
-								person p
-							ON
-								p.user_id = r.user_id
-							LEFT JOIN
-								registration_events e
-							ON
-								e.registration_id = r.registration_id' );
+		$sth = $dbh->prepare('SELECT
+				r.user_id,
+				r.registration_id,
+				p.firstname,
+				p.lastname,
+				e.name as eventname
+			FROM
+				preregistrations r
+			LEFT JOIN
+				person p ON p.user_id = r.user_id
+			LEFT JOIN
+				registration_events e ON e.registration_id = r.registration_id');
+		$sth->execute();
 
 		$rows = array();
 
-		while( $row = db_fetch_object( $result ) ) {
-			$rows[] = array(l($row->firstname . ' ' . $row->lastname, "person/view/$row->user_id"),
-							l($row->eventname, "event/view/$row->registration_id"),
-							l('delete', "event/preregister/$row->registration_id/$row->user_id/delete"));
+		while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
+			$rows[] = array(
+				l($row->firstname . ' ' . $row->lastname, "person/view/$row->user_id"),
+				l($row->eventname, "event/view/$row->registration_id"),
+				l('delete', "event/preregister/$row->registration_id/$row->user_id/delete")
+			);
 		}
 
 		if (count ($rows))
@@ -635,7 +632,7 @@ class EventView extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $dbh;
 		$this->title= 'View Event';
 
 		$rows = array();
@@ -668,17 +665,16 @@ class EventView extends Handler
 		$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		// list prerequisites of this event
-		$result = db_query("SELECT
-								p.prereq_id as id,
-								p.is_prereq as pre,
-								e.name as name
-							FROM registration_prereq p
-							LEFT JOIN registration_events e
-								ON p.prereq_id = e.registration_id
-							WHERE p.registration_id = %d ORDER BY e.name",
-							$this->event->registration_id);
+		$sth = $dbh->prepare('SELECT
+				p.prereq_id as id,
+				p.is_prereq as pre,
+				e.name as name
+			FROM registration_prereq p
+			LEFT JOIN registration_events e ON p.prereq_id = e.registration_id
+			WHERE p.registration_id = ? ORDER BY e.name');
+		$sth->execute( array( $this->event->registration_id ));
 
-		while( $prereq = db_fetch_object( $result ) ) {
+		while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if ($prereq->pre) {
 				$preRows .= li(l($prereq->name, "event/view/$prereq->id",
 								array('title' => 'View event details')));
@@ -694,7 +690,7 @@ class EventView extends Handler
 			$this->title => 0
 		));
 
-		$output .= para();
+		$output .= para('');
 
 		if ($preRows) {
 			$output .= h2('Prerequisites') . ul($preRows);
@@ -710,7 +706,7 @@ class EventView extends Handler
 
 	function check_prereq()
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 		$output = $payment = '';
 		$can_register = false;
 
@@ -719,51 +715,42 @@ class EventView extends Handler
 			return para('You may not register for an event until your account is activated');
 		}
 
+		$where  = '';
+		$params = array( $this->event->registration_id );
 		// We need these numbers in a couple of places below
 		if ($this->event->cap_female == -2)
 		{
 			$applicable_cap = $this->event->cap_male;
-			$where = '';
 		}
 		else
 		{
 			$applicable_cap = ( $lr_session->user->gender == 'Male' ?
 									$this->event->cap_male :
 									$this->event->cap_female );
-			$where = " AND p.gender = '" . $lr_session->user->gender . "'";
+			$where = ' AND p.gender = ?';
+			array_push( $params, $lr_session->user->gender );
 		}
-		$registered_count = db_result( db_query(
-								"SELECT
-									COUNT(order_id)
-								FROM
-									registrations r
-								LEFT JOIN
-									person p
-								ON
-									r.user_id = p.user_id
-								WHERE
-									registration_id = %d
-								AND
-									(payment = 'Paid' OR payment = 'Pending')
-								$where",
-								$this->event->registration_id ) );
+		$sth = $dbh->prepare("SELECT COUNT(order_id)
+			FROM registrations r
+			LEFT JOIN person p ON r.user_id = p.user_id
+			WHERE registration_id = ?
+			AND (payment = 'Paid' OR payment = 'Pending')
+			$where");
+		$sth->execute( $params );
+		$registered_count = $sth->fetchColumn();
 
 		// Check if the user has already registered for this event
-		$result = db_query('SELECT
-								*
-							FROM
-								registrations
-							WHERE
-								user_id = %d
-							AND
-								registration_id = %d
-							AND
-								payment != "Refunded"
-							ORDER BY
-								payment',
-					$lr_session->user->user_id,
-					$this->event->registration_id);
-		$row = db_fetch_object( $result );
+		$sth = $dbh->prepare("SELECT *
+				FROM registrations
+				WHERE user_id = ?
+				AND registration_id = ?
+				AND payment != 'Refunded'
+				ORDER BY payment");
+		$sth->execute( array( 
+			$lr_session->user->user_id,
+			$this->event->registration_id)
+		);
+		$row = $sth->fetch(PDO::FETCH_OBJ);
 		if ($row)
 		{
 			// If there's an unpaid registration, we may want to allow the
@@ -817,16 +804,15 @@ class EventView extends Handler
 		}
 
 		// If there is a preregistration record, we ignore open and close times
-		$prereg = db_result (db_query ('SELECT
-											COUNT(*)
-										FROM
-											preregistrations
-										WHERE
-											user_id = %d
-										AND
-											registration_id = %d',
-										$lr_session->user->user_id,
-										$this->event->registration_id));
+		$sth = $dbh->prepare('SELECT COUNT(*)
+			FROM preregistrations
+			WHERE user_id = ?
+			AND registration_id = ?');
+		$sth->execute( array(
+			$lr_session->user->user_id,
+			$this->event->registration_id
+		));
+		$prereg = $sth->fetchColumn();
 		if ($prereg == 0)
 		{
 			$currentTime = date ('Y-m-d H:i:s', time());
@@ -870,24 +856,20 @@ class EventView extends Handler
 		}
 
 		// Check if the user has already registered for an antirequisite event
-		$result = $this->query_prereqs(0);
-		while( $prereq = db_fetch_object( $result ) ) {
+		$sth = $this->query_prereqs(0);
+		while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$output .= para("You may not register for this because you have previously registered for $prereq->name.", array('class' => 'closed'));
 			// No way for a payment-pending registration to have been done.
 			return $output;
 		}
 
 		// Check if this event has any prerequisites to satisfy
-		$prereq_count = db_result( db_query(
-							'SELECT
-								COUNT(prereq_id)
-							FROM
-								registration_prereq
-							WHERE
-								registration_id = %d
-							AND
-								is_prereq = 1',
-							$this->event->registration_id ) );
+		$sth = $dbh->prepare('SELECT COUNT(prereq_id)
+			FROM registration_prereq
+			WHERE registration_id = ?
+			AND is_prereq = 1');
+		$sth->execute( array( $this->event->registration_id ) );
+		$prereq_count = $sth->fetchColumn();
 		if (! $prereq_count )
 		{
 			$output .= para('You may register for this because there are no prerequisites.', array('class' => 'open'));
@@ -896,9 +878,8 @@ class EventView extends Handler
 		else
 		{
 			// Check if the user has registered for any prerequisite event
-			$result = $this->query_prereqs(1);
-			while( $prereq = db_fetch_object( $result ) )
-			{
+			$sth = $this->query_prereqs(1);
+			while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
 				if( is_paid ($prereq) )
 				{
 					$output .= para("You may register for this because you have previously registered for $prereq->name.", array('class' => 'open'));
@@ -922,25 +903,27 @@ class EventView extends Handler
 
 	function query_prereqs($is_prereq)
 	{
-		global $lr_session;
+		global $lr_session, $dbh;
 
-		return db_query('SELECT time, payment, name
-								FROM registrations r
-									LEFT JOIN registration_events e
-									ON r.registration_id = e.registration_id
-								WHERE user_id = %d
-								AND r.registration_id
-								IN (
-									SELECT prereq_id
-									FROM registration_prereq
-									WHERE registration_id = %d
-									AND is_prereq = %d
-									)
-								AND payment != "Refunded"
-							',
+		$sth = $dbh->prepare('SELECT time, payment, name
+			FROM registrations r
+			LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+			WHERE user_id = ?
+			AND r.registration_id IN (
+				SELECT prereq_id
+				FROM registration_prereq
+				WHERE registration_id = ?
+				AND is_prereq = ?
+			)
+			AND payment != ?');
+		$sth->execute(array(
 			$lr_session->user->user_id,
 			$this->event->registration_id,
-			$is_prereq);
+			$is_prereq,
+			'Refunded'
+		));
+
+		return $sth;
 	}
 }
 

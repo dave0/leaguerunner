@@ -171,7 +171,7 @@ class GameSlotCreate extends Handler
 
 	function generateForm ( &$field, $datestamp )
 	{
-	
+		global $dbh;	
 		$output = form_hidden('edit[step]', 'confirm');
 		
 		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
@@ -181,18 +181,19 @@ class GameSlotCreate extends Handler
 		
 		$weekday = strftime("%A", $datestamp);
 		$leagues = array();
-		$result = db_query("SELECT 
+		// TODO: Pull into get_league_checkbox();
+		$sth = $dbh->prepare("SELECT 
 			l.league_id,
 			l.name,
 			l.tier
 			FROM league l
 			WHERE l.schedule_type != 'none'
-			AND (FIND_IN_SET('%s', l.day) > 0)
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.status = 'open'
-			ORDER BY l.day,l.name,l.tier",
-			$weekday);
+			ORDER BY l.day,l.name,l.tier");
+		$sth->execute( array( $weekday) );
 			
-		while($league = db_fetch_object($result)) {
+		while($league = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if( $league->tier ) {
 				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
 			} else {
@@ -377,25 +378,26 @@ class GameSlotAvailability extends Handler
 
 	function generateForm()
 	{
-
+		global $dbh;
 		# What day is this weekday?
 		$weekday = strftime("%A", $this->slot->date_timestamp);
 
 		$output = "<p>Availability for " . $this->slot->game_date . " " . $this->slot->game_start. "</p>";
 
 		$leagues = array();
-		
-		$result = db_query("SELECT 
+		// TODO: Pull into get_league_checkbox();
+		$sth = $dbh->prepare("SELECT 
 			l.league_id,
 			l.name,
 			l.tier
 			FROM league l
 			WHERE l.schedule_type != 'none'
-			AND (FIND_IN_SET('%s', l.day) > 0)
-			AND l.status = 'open'",
-			$weekday);
+			AND (FIND_IN_SET(?, l.day) > 0)
+			AND l.status = 'open'
+			ORDER BY l.day,l.name,l.tier");
+		$sth->execute( array( $weekday) );
 			
-		while($league = db_fetch_object($result)) {
+		while($league = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if( $league->tier ) {
 				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
 			} else {
@@ -422,6 +424,7 @@ class GameSlotAvailability extends Handler
 	}
 }
 
+// TODO:  I don't think this feature is linked from anywhere?!
 class GameSlotListDay extends Handler
 {
 	function has_permission()
@@ -467,15 +470,15 @@ class GameSlotListDay extends Handler
 	function display_for_day ( $year, $month, $day )
 	{
 		global $lr_session;
-		$result = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
+		$sth = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
 		
-		if( ! $result ) {
+		if( ! $sth ) {
 			error_exit("Nothing available on that day");
 		}
 
 		$header = array("Field","Start Time","End Time","Booking", "Actions");
 		$rows = array();
-		while($slot = db_fetch_object($result)) {
+		while($slot = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$booking = '';
 
 			$field = field_load( array('fid' => $slot->fid));
