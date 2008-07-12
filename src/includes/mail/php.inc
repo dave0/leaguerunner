@@ -11,7 +11,7 @@
 function send_mail($to_addr, $to_name, $from_addr, $from_name, $cc_addr, $cc_name, $subject, $message)
 {
 	$crlf = "\r\n";
-	$to = create_rfc2822_address_list($to_addr, $to_name);
+	$to = create_rfc2822_address_list($to_addr, $to_name, false);
 
 	if( !$from_addr )
 	{
