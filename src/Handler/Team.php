@@ -2,7 +2,7 @@
 /*
  * Code for dealing with teams
  */
-function team_dispatch() 
+function team_dispatch()
 {
 	global $lr_session;
 	$op = arg(1);
@@ -98,7 +98,7 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			if( $user->is_captain_of( $id ) ) {
 				// Captain can adjust status of other players
 				return true;
-			} 
+			}
 			if( $user->user_id == $data_field ) {
 				// Player can adjust status of self
 				return true;
@@ -205,7 +205,7 @@ function team_splash ()
 	foreach($lr_session->user->teams as $team) {
 		$position = $rosterPositions[$team->position];
 
-		$rows[] = 
+		$rows[] =
 			array(
 				l($team->name, "team/view/$team->id") . " ($team->position)",
 				array('data' => theme_links(array(
@@ -350,7 +350,7 @@ class TeamEdit extends Handler
 
 		$rows[] = array("Region Preference", form_select('','edit[region_preference]', $formData['region_preference'], getOptionsFromEnum('field', 'region'), "Area of city where you would prefer to play"));
 
-		$rows[] = array("Team Status:", 
+		$rows[] = array("Team Status:",
 			form_select("", "edit[status]", $formData['status'], getOptionsFromEnum('team','status'), "Is your team open (others can join) or closed (only captain can add players)"));
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
@@ -433,7 +433,7 @@ class TeamEdit extends Handler
 		}
 
 		if(strlen($errors) > 0) {
-			return "<ul>$errors</ul>";
+			return $errors;
 		} else {
 			return false;
 		}
@@ -455,7 +455,7 @@ class TeamDelete extends Handler
 	{
 		$this->title = "Delete Team";
 
-		$this->setLocation(array( 
+		$this->setLocation(array(
 			$this->team->name => "team/view/" . $this->team->team_id,
 			$this->title => 0
 		));
@@ -610,7 +610,7 @@ class TeamMove extends Handler
 		}
 
 		$sourceleague = league_load( array('league_id' => $this->team->league_id));
-		$output .= para( 
+		$output .= para(
 			"You are attempting to move the team <b>" . $this->team->name . "</b> to <b>$targetleague->fullname</b>");
 		if( $target_team ) {
 			$output .= para("This team will be swapped with <b>$target_team->name</b>, which will be moved to <b>$sourceleague->fullname</b>.");
@@ -665,7 +665,7 @@ class TeamMove extends Handler
 		}
 
 		$output = form_hidden('edit[step]', 'swaptarget');
-		$output .= 
+		$output .=
 			para("You are attempting to move the team <b>" . $this->team->name . "</b>. Select the league you wish to move it to");
 
 		$output .= form_select('', 'edit[target]', '', $leagues);
@@ -754,7 +754,7 @@ class TeamRosterStatus extends Handler
 			$is_administrator = true;
 		}
 
-		if($lr_session->is_captain_of($teamId)) {  
+		if($lr_session->is_captain_of($teamId)) {
 			$is_captain = true;
 		}
 
@@ -886,7 +886,6 @@ class TeamRosterStatus extends Handler
 		{
 			return para( 'The roster deadline has passed.' );
 		}
-
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
 
@@ -934,7 +933,7 @@ class TeamRosterStatus extends Handler
 		return $output;
 	}
 
-	function generateForm () 
+	function generateForm ()
 	{
 		$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
 
@@ -1160,7 +1159,7 @@ class TeamView extends Handler
 			$team_name => "team/view/" . $this->team->team_id,
 			"View Team" => 0));
 
-		// Now build up team data
+		/* Now build up team data */
 		$rows = array();
 		if($this->team->website) {
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
@@ -1170,8 +1169,8 @@ class TeamView extends Handler
 
 // TONY: we don't care anymore about the rank, but instead of deleting this right away,
 // keep it around in case we go back to using the old pyramid ladder system...
-		// only show the rank selectively because in this view, we can only show the backend database rank, 
-		// which is near 1000, and not useful for people to see...
+// only show the rank selectively because in this view, we can only show the backend database rank,
+// which is near 1000, and not useful for people to see...
 //      if($this->team->rank && $lr_session->is_admin()) {
 //			$rows[] = array("Ranked:", $this->team->rank);
 //		}
@@ -1197,7 +1196,7 @@ class TeamView extends Handler
 			$leagueSBF = $league->calculate_sbf();
 			if( $leagueSBF ) {
 				$teamSBF .= " (league $leagueSBF)";
-			} 
+			}
 			$rows[] = array("Team SBF:", $teamSBF);
 		}
 		$rows[] = array("Rating:", $this->team->rating);
@@ -1205,9 +1204,9 @@ class TeamView extends Handler
 		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
 		/* and, grab roster */
-		// TODO: turn this into $team->get_roster() 
+		// TODO: turn this into $team->get_roster()
 		$result = db_query(
-			"SELECT 
+			"SELECT
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
 				p.gender,
@@ -1340,7 +1339,7 @@ class TeamSchedule extends Handler
 			$this->title => 0));
 
 		/*
-		 * Grab schedule info 
+		 * Grab schedule info
 		 */
 		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date,g.game_start,g.game_id') );
 
@@ -1479,7 +1478,7 @@ class TeamSpirit extends Handler
 			$this->title => 0));
 
 		/*
-		 * Grab schedule info 
+		 * Grab schedule info
 		 */
 		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
@@ -1487,6 +1486,7 @@ class TeamSpirit extends Handler
 			error_exit("There are no games scheduled for this team");
 		}
 
+		$header = array();
 		$header = array(
 			"ID",
 			"Date",
@@ -1621,6 +1621,7 @@ class TeamSpirit extends Handler
 			error_exit("No games played, cannot display spirit");
 		}
 
+		$thisrow = array();
 		$thisrow = array(
 			"Average","-","-"
 		);
@@ -1645,7 +1646,7 @@ class TeamSpirit extends Handler
 	}
 }
 
-class TeamEmails extends Handler 
+class TeamEmails extends Handler
 {
 	function has_permission ()
 	{
@@ -1659,7 +1660,7 @@ class TeamEmails extends Handler
 		$result = db_query(
 			"SELECT
 				p.firstname, p.lastname, p.email
-			FROM 
+			FROM
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
 			WHERE
@@ -1668,8 +1669,7 @@ class TeamEmails extends Handler
 				p.user_id != %d
 			ORDER BY
 				p.lastname, p.firstname",
-			$this->team->team_id, $lr_session->user->user_id
-		);
+			$this->team->team_id, $lr_session->user->user_id);
 
 		if( db_num_rows($result) <= 0 ) {
 			return false;
@@ -1712,17 +1712,16 @@ function team_statistics ( )
 	}
 	$rows[] = array("Teams by season:", table(null, $sub_table));
 
-	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
-        FROM teamroster r, league l, leagueteams lt
-        LEFT JOIN team t ON (t.team_id = r.team_id) 
-        WHERE 
+	$result = db_query("SELECT t.team_id,t.name, COUNT(r.player_id) as size
+        FROM teamroster r, league l, leagueteams lt, team t
+        WHERE
                 lt.team_id = r.team_id
-                AND l.league_id = lt.league_id 
-				AND l.status = 'open'
-                AND l.schedule_type != 'none' 
+                AND l.league_id = lt.league_id
+                AND l.schedule_type != 'none'
 				AND l.season = '%s'
+				AND t.team_id = r.team_id
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
-        GROUP BY t.team_id 
+        GROUP BY t.team_id
         HAVING size < 12
         ORDER BY size desc, t.name", $current_season);
 	$sub_table = array();

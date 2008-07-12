@@ -135,7 +135,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		if ( $league->schedule_type == "pyramid" ) {
 			menu_add_child($league->fullname, "$league->fullname/rank",'adjust ranks', array('weight' => 1, 'link' => "league/rank/$league->league_id"));
 		}
-		if ( $league->schedule_type == "ratings_ladder" ) {
+		if ( $league->schedule_type == "ratings_ladder" || $league->schedule_type == 'ratings_wager_ladder' ) {
 			menu_add_child($league->fullname, "$league->fullname/ratings",'adjust ratings', array('weight' => 1, 'link' => "league/ratings/$league->league_id"));
 		}
 		menu_add_child($league->fullname, "$league->fullname/member",'add coordinator', array('weight' => 2, 'link' => "league/member/$league->league_id"));
@@ -149,7 +149,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
 	}
 	if($lr_session->has_permission('league','edit', $league->league_id) ) {
-		if ( $league->schedule_type == "pyramid" || $league->schedule_type == "ratings_ladder" ) {
+		if ( $league->schedule_type == "ratings_ladder" || $league->schedule_type == 'ratings_wager_ladder' ) {
 			menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
 		}
 	}
@@ -433,12 +433,13 @@ class LeagueEdit extends Handler
 		$rows[] = array("Scheduling Type:",
 			form_hidden('edit[schedule_type]', $edit['schedule_type']) . $edit['schedule_type']);
 
-      if ($edit['schedule_type'] == 'pyramid' || $edit['schedule_type'] == 'ratings_ladder') {
-		   $rows[] = array("Pyramid/Ratings - Games Before Repeat:",
+		if (   $edit['schedule_type'] == 'pyramid' 
+		    || $edit['schedule_type'] == 'ratings_ladder'
+		    || $edit['schedule_type'] == 'ratings_wager_ladder') {
+			$rows[] = array("Pyramid/Ratings - Games Before Repeat:",
 				form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
-      }
-
-		$rows[] = array("Players see SOTG?", 
+		}
+		$rows[] = array("Players see SOTG?:", 
 			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
 
 		$rows[] = array("League Coordinator Email List:", 
@@ -483,7 +484,9 @@ class LeagueEdit extends Handler
 		$this->league->set('current_round', $edit['current_round']);
 		$this->league->set('schedule_type', $edit['schedule_type']);
 
-		if ($edit['schedule_type'] == 'pyramid' || $edit['schedule_type'] == 'ratings_ladder') {
+		if (   $edit['schedule_type'] == 'pyramid' 
+		    || $edit['schedule_type'] == 'ratings_ladder'
+		    || $edit['schedule_type'] == 'ratings_wager_ladder') {
 			$this->league->set('games_before_repeat', $edit['games_before_repeat']);
 		}
 
@@ -523,6 +526,7 @@ class LeagueEdit extends Handler
 				break;
 			case 'pyramid':
 			case 'ratings_ladder':
+			case 'ratings_wager_ladder':
 				if ($edit['games_before_repeat'] == null || $edit['games_before_repeat'] == 0) {
 					$errors .= "<li>Invalid 'Games Before Repeat' specified!";
 				}
@@ -678,9 +682,13 @@ class LeagueStandings extends Handler
 		// is set, don't remove items from $order.
 		$more_before = 0;
 		$more_after = 0;
-		if ( ($showall == null || $showall == 0 || $showall == "") && $teamid != null && $teamid != "" && 
-            ($this->league->schedule_type == "pyramid" || $this->league->schedule_type == "ratings_ladder") 
-            && count($order) > 24) {
+		if ( ($showall == null || $showall == 0 || $showall == "")
+		    && $teamid != null 
+		    && $teamid != "" 
+		    && ($this->league->schedule_type == "pyramid" 
+			 || $this->league->schedule_type == "ratings_ladder"
+			 || $this->league->schedule_type == "ratings_wager_ladder") 
+		    && count($order) > 24) {
 			$index_of_this_team = 0;
 			foreach ($order as $i => $value) {
 				if ($value == $teamid) {
@@ -708,7 +716,8 @@ class LeagueStandings extends Handler
 		/* Build up header */
 		$header = array( array('data' => 'Seed', 'rowspan' => 2) );
 		$header[] = array( 'data' => 'Team', 'rowspan' => 2 );
-		if($this->league->schedule_type == "ratings_ladder") {
+		if( $this->league->schedule_type == "ratings_ladder"
+		    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			$header[] = array('data' => "Rating", 'rowspan' => 2);
 		}
 
@@ -716,7 +725,8 @@ class LeagueStandings extends Handler
 
 		// Ladder leagues display standings differently.
 		// Eventually this should just be a brand new object.
-		if($this->league->schedule_type == "ratings_ladder") {
+		if( $this->league->schedule_type == "ratings_ladder"
+		    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
 			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
@@ -740,7 +750,8 @@ class LeagueStandings extends Handler
 			}
 		}
 
-		if($this->league->schedule_type != "ratings_ladder") {
+		if( $this->league->schedule_type == "ratings_ladder"
+		    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			$header[] = array('data' => "Rating", 'rowspan' => 2);
 		}
 		$header[] = array('data' => "Streak", 'rowspan' => 2);
@@ -802,13 +813,15 @@ class LeagueStandings extends Handler
 				}
 			}
 
-			if ($this->league->schedule_type != "roundrobin" &&
-			    $this->league->schedule_type != "ratings_ladder" ) {
+			if ($this->league->schedule_type != "roundrobin"
+			    && $this->league->schedule_type != "ratings_ladder"
+			    && $this->league->schedule_type != "ratings_wager_ladder" ) {
 				$row[] = array( 'data' => $season[$tid]->rank, 'class'=>"$rowstyle");
 			}
 
-			if ($this->league->schedule_type == "ratings_ladder" ) {
-	         $row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
+			if ($this->league->schedule_type == "ratings_ladder" 
+			    || $this->league->schedule_type == "ratings_wager_ladder" ) {
+				$row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
 			}
 			$row[] = array( 'data' => $season[$tid]->win, 'class'=>"$rowstyle");
 			$row[] = array( 'data' => $season[$tid]->loss, 'class'=>"$rowstyle");
@@ -817,7 +830,8 @@ class LeagueStandings extends Handler
 			$row[] = array( 'data' => $season[$tid]->points_for, 'class'=>"$rowstyle");
 			$row[] = array( 'data' => $season[$tid]->points_against, 'class'=>"$rowstyle");
 			$row[] = array( 'data' => $season[$tid]->points_for - $season[$tid]->points_against, 'class'=>"$rowstyle");
-			if ($this->league->schedule_type != "ratings_ladder" ) {
+			if ($this->league->schedule_type == "ratings_ladder" 
+			    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 				$row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
 			}
 
@@ -920,7 +934,8 @@ class LeagueView extends Handler
 		    $this->league->schedule_type == 'pyramid') {
 			array_unshift($header, 'Rank');
 			array_unshift($header, 'Seed');
-		} else if($this->league->schedule_type == 'ratings_ladder') {
+		} else if ($this->league->schedule_type == "ratings_ladder" 
+			    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			array_unshift($header, 'Seed');
 		}
 
@@ -948,7 +963,8 @@ class LeagueView extends Handler
 				    $this->league->schedule_type == 'pyramid') {
 					$row[] = $counter;
 					$row[] = $team->rank;
-				} else if( $this->league->schedule_type == 'ratings_ladder') {
+				} else if ($this->league->schedule_type == "ratings_ladder" 
+					|| $this->league->schedule_type == "ratings_wager_ladder" ) {
 					$row[] = $counter;
 				}
 	

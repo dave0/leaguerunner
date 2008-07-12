@@ -5,7 +5,6 @@ define("APPROVAL_AUTOMATIC_HOME", -2);  // approval, home score used
 define("APPROVAL_AUTOMATIC_AWAY", -3);  // approval, away score used
 define("APPROVAL_AUTOMATIC_FORFEIT", -4); // approval, no score entered
 
-
 class Game extends LeaguerunnerObject
 {
 
@@ -147,156 +146,134 @@ class Game extends LeaguerunnerObject
 
 	function updatedependentgames( $oldgameresults = array() ) 
 	{
-		$league = league_load( array('league_id' => $this->league_id) );
-		if(! $league ) {
+		$league = league_load(array('league_id' => $this->league_id));
+		if(!$league) {
 			error_exit("That league does not exist");
 		}
 
 		if($league->schedule_type == "pyramid") {
-			// Figure out winner and loser.
-			$winlose = $this->calculate_winner_loser();
+
+			# Figure out winner and loser.
+			$winlose      = $this->calculate_winner_loser();
 			$winnerTeamId = $winlose['winner'];
 			$loserTeamId  = $winlose['loser'];
 
-         // see if there are old game results:
-         if ( count($oldgameresults) > 0) {
-            // if it used to be a home win but not anymore...
-            if ( $oldgameresults['home_score'] > $oldgameresults['away_score'] ) {
-               if ($this->home_score <= $this->away_score) {
-                  // need to put home team rank back...
-						$pyramidResult = db_query("
-							SELECT *
-							FROM leagueteams
-							WHERE league_id = %d
-							AND team_id = %d",
-							$league->league_id, $this->home_team);
-			         $row = db_fetch_array( $pyramidResult );
-						db_query("
-							UPDATE leagueteams
-							SET rank = %d
-							WHERE league_id = %d
-							AND team_id = %d",
-							$row['rank']+1, $league->league_id, $this->home_team);
-               } else {
-                  // nothing to do because this is still a home win.
-                  return true;
-               }
-            } else if ( $oldgameresults['home_score'] < $oldgameresults['away_score'] ) {
-               if ($this->home_score >= $this->away_score) {
-                  // if it used to be an away win but not anymore...
-						$pyramidResult = db_query("
-							SELECT *
-							FROM leagueteams
-							WHERE league_id = %d
-							AND team_id = %d",
-							$league->league_id, $this->away_team);
-			         $row = db_fetch_array( $pyramidResult );
-						db_query("
-							UPDATE leagueteams
-							SET rank = %d
-							WHERE league_id = %d
-							AND team_id = %d",
-							$row['rank']+1, $league->league_id, $this->away_team);
-               } else {
-                  // nothing to do because this is still an away win.
-                  return true;
-               }
-            }
-         }
-         
-			// Pyramid allows for ties.  If there is a tie then just return
-			if ($this->home_score == $this->away_score) {
+			# see if there are old game results:
+			if(count($oldgameresults) > 0) {
+
+				# if it used to be a home win but not anymore...
+				if($oldgameresults['home_score'] > $oldgameresults['away_score']) {
+					if($this->home_score <= $this->away_score) {
+
+						# need to put home team rank back...
+						$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->home_team);
+						$row = db_fetch_array($pyramidResult);
+						db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] + 1, $league->league_id, $this->home_team);
+					} else {
+
+						# nothing to do because this is still a home win.
+						return true;
+					}
+				} else if($oldgameresults['home_score'] < $oldgameresults['away_score']) {
+					if($this->home_score >= $this->away_score) {
+
+						# if it used to be an away win but not anymore...
+						$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $this->away_team);
+						$row = db_fetch_array($pyramidResult);
+						db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] + 1, $league->league_id, $this->away_team);
+					} else {
+
+						# nothing to do because this is still an away win.
+						return true;
+					}
+				}
+			}
+
+			# Pyramid allows for ties.  If there is a tie then just return
+			if($this->home_score == $this->away_score) {
 				return true;
 			}
 
-			// Update the ranks of these two teams only.  Winner goes up one, loser goes down one
-			$pyramidResult = db_query( "SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d",
-				$league->league_id, $winnerTeamId);
-			$row = db_fetch_array( $pyramidResult );
-			db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-				$row['rank']-1, $league->league_id, $winnerTeamId);
+			# Update the ranks of these two teams only.  Winner goes up one, loser goes down one
+			$pyramidResult = db_query("SELECT * FROM leagueteams WHERE league_id = %d AND team_id = %d", $league->league_id, $winnerTeamId);
+			$row = db_fetch_array($pyramidResult);
+			db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $row['rank'] - 1, $league->league_id, $winnerTeamId);
 
-			// Return true which is ok.  We don't need to update the other
-			// teams for pyramid
+			# Return true which is ok.  We don't need to update the other
+			# teams for pyramid
 			return true;
 		}
 
-		// Just fail out with everthing being good if this isn't a ladder
-		// league.
+		# Just fail out with everthing being good if this isn't a ladder
+		# league.
 		if($league->schedule_type != "ladder") {
 			return true;
 		}
 
-		//print($this->sprintf("debug"));
+		#print($this->sprintf("debug"));
 
-
-		// Lets get the game objects.
-		$queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d",
-			$this->game_id,
-			$this->game_id);
+		# Lets get the game objects.
+		$queryResult = db_query("SELECT * FROM schedule WHERE home_dependant_game = %d OR away_dependant_game = %d", $this->game_id, $this->game_id);
 
 		$num_rows = db_num_rows($queryResult);
-		if( $num_rows == 0 ) {
-			// No dependant games; that's OK, nothing more to do
+		if($num_rows == 0) {
+
+			# No dependant games; that's OK, nothing more to do
 			return true;
 		}
-		
-		// Should only ever get two games;
-		if ($num_rows != 2) {
-			error_exit("Internal error: Found $num_rows dependant games, expecting 2");
-		} 
 
-		// Figure out winner and loser.
-		$winlose = $this->calculate_winner_loser();
+		# Should only ever get two games;
+		if($num_rows != 2) {
+			error_exit("Internal error: Found $num_rows dependant games, expecting 2");
+		}
+
+		# Figure out winner and loser.
+		$winlose      = $this->calculate_winner_loser();
 		$winnerTeamId = $winlose['winner'];
 		$loserTeamId  = $winlose['loser'];
 
-		// Now we can figure out which team the
-		// dependant games are looking for. 
-		while( $row = db_fetch_array( $queryResult ) ) {
-			$gameIdToUpdate = $row['game_id']; 
+		# Now we can figure out which team the
+		# dependant games are looking for.
+		while ($row = db_fetch_array($queryResult)) {
+			$gameIdToUpdate = $row['game_id'];
 
-			if ($row['home_dependant_game'] == $this->game_id) {
+			if($row['home_dependant_game'] == $this->game_id) {
 				$teamRank = $row['home_dependant_rank'];
-				if ($row['home_dependant_type'] == "winner") {
-					$teamId   = $winnerTeamId;
-				} else if ($row['home_dependant_type'] == "loser") {
-					$teamId   = $loserTeamId;
+				if($row['home_dependant_type'] == "winner") {
+					$teamId = $winnerTeamId;
+				} else if($row['home_dependant_type'] == "loser") {
+					$teamId = $loserTeamId;
 				} else {
 					error_exit("Should never get here. Bad dependent type.");
 				}
-				
-				// Update the database.
-				db_query( "UPDATE schedule SET home_team = %d WHERE game_id = %d ",
-				    $teamId, $gameIdToUpdate);
 
-				db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-				    $teamRank, $league->league_id, $teamId);
+				# Update the database.
+				db_query("UPDATE schedule SET home_team = %d WHERE game_id = %d ", $teamId, $gameIdToUpdate);
+
+				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $teamRank, $league->league_id, $teamId);
 			}
 
-			if ($row['away_dependant_game'] == $this->game_id) {
+			if($row['away_dependant_game'] == $this->game_id) {
 
 				$teamRank = $row['away_dependant_rank'];
 
-				if ($row['away_dependant_type'] == "winner") {
-					$teamId   = $winnerTeamId;
-				} else if ($row['away_dependant_type'] == "loser") {
-					$teamId   = $loserTeamId;
+				if($row['away_dependant_type'] == "winner") {
+					$teamId = $winnerTeamId;
+				} else if($row['away_dependant_type'] == "loser") {
+					$teamId = $loserTeamId;
 				} else {
 					error_exit("Should never get here. Bad dependent type.");
 				}
 
-				// Update the database.
-				db_query( "UPDATE schedule SET away_team = %d WHERE game_id = %d ",
-				    $teamId, $gameIdToUpdate);
+				# Update the database.
+				db_query("UPDATE schedule SET away_team = %d WHERE game_id = %d ", $teamId, $gameIdToUpdate);
 
-				db_query( "UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d",
-				    $teamRank, $league->league_id, $teamId);
+				db_query("UPDATE leagueteams SET rank = %d WHERE league_id = %d AND team_id = %d", $teamRank, $league->league_id, $teamId);
 			}
 
 		}
 
-		// It's all good.
+		# It's all good.
 		return true;
 	}
 
@@ -422,7 +399,7 @@ class Game extends LeaguerunnerObject
 					$this->save_spirit_entry( $this->away_id, $this->default_spirit('perfect'));
 					$this->set('away_spirit', 10);
 					$this->set('home_spirit', $away_entry->spirit);
-         }
+	 }
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
@@ -638,12 +615,12 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		// Delete score entries and finalize the elo rating if we've just
-		// updated the score
+		// Delete score entries and finalize the rating change if
+		// we've just updated the score
 		if( array_key_exists('home_score', $this->_modified_fields) || array_key_exists('away_score', $this->_modified_fields)) {
 			db_query("DELETE FROM score_entry WHERE game_id = %d",$this->game_id);
 
-			$this->save_elo_rating();
+			$this->modify_team_ratings();
 		}
 
 		
@@ -695,66 +672,66 @@ class Game extends LeaguerunnerObject
 
 	function removeresults()
 	{
-		if( ! $this->_in_database ) {
+		if(!$this->_in_database) {
 			return false;
 		}
 
-		// TODO: is there anything that should prevent removal of results??
+		# TODO: is there anything that should prevent removal of results??
 
+		# Remove the spirit answers
+		db_query("DELETE FROM team_spirit_answers WHERE gid = %d", $this->game_id);
+		if(db_affected_rows() == 0) {
+			die("Uh-oh, problems removing results from the team_spirit_answers table... whew, you're still ok because this is the first thing I tried to do...");
+		}
 
-      // Remove the spirit answers
-      db_query("DELETE FROM team_spirit_answers WHERE gid = %d", $this->game_id);
-      if (db_affected_rows() == 0) {
-         die("Uh-oh, problems removing results from the team_spirit_answers table... whew, you're still ok because this is the first thing I tried to do...");
-      }
-
-      // Update SCHEDULE table to remove these results
+		# Update SCHEDULE table to remove these results
 		db_query("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = %d", $this->game_id);
-      if (db_affected_rows() == 0) {
-         die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
-      }
+		if(db_affected_rows() == 0) {
+			die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
+		}
 
-      // put the rating points back...  and fix the rank...
-      if ( $this->home_score > $this->away_score ) {
-         // home win
+		# put the rating points back...  and fix the rank...
+		if($this->home_score > $this->away_score) {
 
-         db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->away_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
-         }
+			# home win
 
-         db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->home_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
-         }
+			db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->away_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+			}
 
-         db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->home_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rank for team " + $this->home_team);
-         }
+			db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->home_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+			}
 
-      } else if ($this->away_score > $this->home_score) {
-         // away win
+			db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->home_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rank for team " + $this->home_team);
+			}
 
-         db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->home_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
-         }
+		} else if($this->away_score > $this->home_score) {
 
-         db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->away_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
-         }
+			# away win
 
-         db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->away_team);
-         if (db_affected_rows() == 0) {
-            die("Uh-oh, problems fixing the rank for team " + $this->away_team);
-         }
+			db_query("UPDATE team SET rating = rating + %d where team_id = %d", $this->rating_points, $this->home_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+			}
 
-      }
+			db_query("UPDATE team SET rating = rating - %d where team_id = %d", $this->rating_points, $this->away_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+			}
 
+			db_query("UPDATE leagueteams set rank = rank + 1 where league_id = %d and team_id = %d", $this->league_id, $this->away_team);
+			if(db_affected_rows() == 0) {
+				die("Uh-oh, problems fixing the rank for team " + $this->away_team);
+			}
 
-      return true;
+		}
+
+		return true;
 	}
 
 
@@ -768,9 +745,9 @@ class Game extends LeaguerunnerObject
 				$output = "<pre>--- \n"
 					. "GAME_ID:       $this->game_id \n"
 					. "LEAGUE_ID:     $this->league_id \n"
-					. "ROUND:         $this->round \n"
-					. "DATE:          $this->game_date \n"
-					. "START:         $this->game_start \n"
+					. "ROUND:	 $this->round \n"
+					. "DATE:	  $this->game_date \n"
+					. "START:	 $this->game_start \n"
 					. "FIELDCODE:     $this->field_code \n"
 					. "HOME_TEAM:     $this->home_team \n"
 					. "HOME_NAME:     $this->home_name \n"
@@ -944,7 +921,7 @@ class Game extends LeaguerunnerObject
 			$entry->defaulted);
 			
 	    if( 1 != db_affected_rows() ) {
-	        return false;
+		return false;
 	    }
 
 		return true;		
@@ -1181,63 +1158,66 @@ class Game extends LeaguerunnerObject
 	/** 
 	 * Calculate the value to be added/subtracted from the competing
 	 * teams' ratings. 
-	 * This uses a modified Elo system, similar to the one used for
-	 * international soccer (http://www.eloratings.net) with several
-	 * modifications:
-	 * 	- all games are equally weighted
-	 * 	- score differential bonus adjusted for Ultimate patterns (ie: a 3
-	 * 	  point win in soccer is a much bigger deal than in Ultimate
-	 * 	- no bonus given for home-field advantage
 	 *
+	 * This can use either:
+	 * 	- a modified elo system
+	 * 	- a wager system
 	 */
-	function save_elo_rating ( )
+	function modify_team_ratings ( )
 	{
-      if( !is_null($this->rating_points) && $this->rating_points >= 0 ) {
-			// If we already have a rating, don't recalculate it.
-			// TODO: in the future, it might be nice if we can 
-			// recalculate the rating if the score changes, but for
-			// now we'll let the perl script do that 
+		if(!is_null($this->rating_points) && $this->rating_points >= 0) {
+			## If we already have a rating, don't recalculate it.
+			## TODO: in the future, it might be nice if we can
+			## recalculate the rating if the score changes, but for
+			## now we'll let the perl script do that
 			return true;
 		}
-		
-        // If we're not a normal game, avoid changing the rating.
-		if( $this->status != 'normal' ) {
+
+		$change_calculator = 'calculate_elo_change';
+		$result = db_query("SELECT schedule_type from league where league_id = %d", $this->league_id);
+		$row = db_fetch_array( $result );
+		if( $row['schedule_type'] == 'ratings_wager_ladder' ) {
+			$change_calculator = 'calculate_wager_change';
+		}
+
+		## If we're not a normal game, avoid changing the rating.
+		if($this->status != 'normal') {
 			db_query("UPDATE schedule SET rating_points = 0 WHERE game_id = %d", $this->game_id);
-			if( 1 != db_affected_rows()) {
+			if(1 != db_affected_rows()) {
 				return false;
 			}
 			return true;
 		}
-	
-		$elo_change = 0;
 
-		if( $this->home_score == $this->away_score) {
+		$change = 0;
+
+		if($this->home_score == $this->away_score) {
 			# For a tie, we assume the home team wins
-			$winner = $this->home_id;
-			$loser = $this->away_id;
-			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->home_expected_win());
-		} else if( $this->home_score > $this->away_score) {
-			$winner = $this->home_id;
-			$loser = $this->away_id;
-			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->home_expected_win());
-	    } else {
-			$winner = $this->away_id;
-			$loser = $this->home_id;
-			$elo_change = $this->calculate_elo_change($this->home_score, $this->away_score, $this->away_expected_win());
+			$winner     = $this->home_id;
+			$loser      = $this->away_id;
+			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->home_expected_win());
+		} else if($this->home_score > $this->away_score) {
+			$winner     = $this->home_id;
+			$loser      = $this->away_id;
+			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->home_expected_win());
+		} else {
+			$winner     = $this->away_id;
+			$loser      = $this->home_id;
+			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->away_expected_win());
 		}
 
-		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $elo_change, $this->game_id);
-		if( 1 != db_affected_rows()) {
+		db_query("UPDATE schedule SET rating_points = %d WHERE game_id = %d", $change, $this->game_id);
+		if(1 != db_affected_rows()) {
 			return false;
 		}
-	
-		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $elo_change, $winner);
-		if( 1 != db_affected_rows()) {
+
+		db_query("UPDATE team SET rating = rating + %d WHERE team_id = %d", $change, $winner);
+		if(1 != db_affected_rows()) {
 			return false;
 		}
-		
-		db_query("UPDATE team SET rating = rating - %d WHERE team_id = %d", $elo_change, $loser);
-		if( 1 != db_affected_rows()) {
+
+		db_query("UPDATE team SET rating = rating - %d WHERE team_id = %d", $change, $loser);
+		if(1 != db_affected_rows()) {
 			return false;
 		}
 
@@ -1246,6 +1226,14 @@ class Game extends LeaguerunnerObject
 
 	/**
 	 * Calculate the ELO change for the result provided. 
+	 *
+	 * This uses a modified Elo system, similar to the one used for
+	 * international soccer (http://www.eloratings.net) with several
+	 * modifications:
+	 * 	- all games are equally weighted
+	 * 	- score differential bonus adjusted for Ultimate patterns (ie: a 3
+	 * 	  point win in soccer is a much bigger deal than in Ultimate
+	 * 	- no bonus given for home-field advantage
 	 */
 	function calculate_elo_change ( $home_score, $away_score, $expected_win ) {
 		$weight_constant = 40;  // All games weighted equally
@@ -1276,6 +1264,46 @@ class Game extends LeaguerunnerObject
 
 		$elo_change = $weight_constant * $score_weight * ($game_value - $expected_win);
 		return ceil($elo_change);
+	}
+
+	/**
+	 * Calculate the wager ratings change for the result provided. 
+	 *
+	 * This uses a wagering system, where:
+	 * 	- the final score determines the total amount of the pot.
+	 * 	  It's based around a winning score of 15 points and tweaked
+	 * 	  to produce the same ratings change for similar point
+	 * 	  differentials for higher/lower final scores.
+	 *
+	 * 	- each team contributes a percentage of the pot based on their
+	 * 	  expected chance to win
+	 *
+	 * 	- the losing team always takes away the same number of rating
+	 * 	  points as their game points
+	 *
+	 * 	- the winning team takes away the remainder
+	 *
+	 * 	- thus, the point differential change amounts to:
+	 * 	   ($total_pot - $loser_score - $winner_wager)
+	 */
+	function calculate_wager_change ( $home_score, $away_score, $expected_win ) {
+
+		// Total wager value varies based on score
+		// High scoring games increase the wager value
+		$weight_constant = max($home_score, $away_score) * 2 + 10;
+
+		$winner_wager = ceil( $weight_constant * $expected_win );
+
+		$winner_gain = 0;
+		if($home_score == $away_score) {
+			$winner_gain = $weight_constant / 2;
+		} else if ( $home_score > $away_score ) {
+			$winner_gain = $weight_constant - $away_score;
+		} else {
+			$winner_gain = $weight_constant - $home_score;
+		}
+
+		return $winner_gain - $winner_wager;
 	}
 	
 	/**
@@ -1318,7 +1346,7 @@ class Game extends LeaguerunnerObject
 			// Couldn't obtain lock after 10 seconds, so bail.
 			return array(false, "Couldn't get lock");
 		}
-      $seed = rand();
+      		$seed = rand();
 		$result = db_query("SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = %d AND a.league_id = %d AND ISNULL(s.game_id) ORDER BY RAND($seed) LIMIT 1", $timestamp, $this->league_id);
 		$slot_id = db_result($result);
 		if( ! $slot_id ) {
@@ -1429,27 +1457,34 @@ class Game extends LeaguerunnerObject
 
 		$home = $this->home_name;
 		$away = $this->away_name;
+
+		$change_calculator = 'calculate_elo_change';
+		$result = db_query("SELECT schedule_type from league where league_id = %d", $this->league_id);
+		$row = db_fetch_array( $result );
+		if( $row['schedule_type'] == 'ratings_wager_ladder' ) {
+			$change_calculator = 'calculate_wager_change';
+		}
 		
 		// assume that games can have scores up to 17...
 		for ($h = 0; $h <= 17; $h++) {
 			$header[] =  array('data' => $h);
 			$current_row = array('data' => "<b>$h</b>");
 			for ($a = 0; $a <= 17; $a++) {
-				$elo_change = 0;
+				$change = 0;
 				if ($h > $a) {
 					// home win
-					$elo_change = $this->calculate_elo_change($h, $a, 
-						$this->calculate_expected_win($rating_home, $rating_away));
-					$current_row[] = array('data' => $elo_change, 'title'=>"'$home' wins $h to $a, takes $elo_change rating points from '$away'", 'class'=>"highlight");
+					$change = $this->$change_calculator($h, $a, 
+						$this->calculate_expected_win($home_rating, $away_rating));
+					$current_row[] = array('data' => $change, 'title'=>"'$home' wins $h to $a, takes $change rating points from '$away'", 'class'=>"highlight");
 				} else if ($h == $a) {
 					// treat as a home win
-					$elo_change = $this->calculate_elo_change($h, $a, 
-						$this->calculate_expected_win($rating_home, $rating_away));
-					$current_row[] = array('data' => $elo_change, 'title'=>"Tie $h to $a, '$home' takes $elo_change rating points from '$away'", 'class'=>"highlight");
+					$change = $this->$change_calculator($h, $a, 
+						$this->calculate_expected_win($home_rating, $away_rating));
+					$current_row[] = array('data' => $change, 'title'=>"Tie $h to $a, '$home' takes $change rating points from '$away'", 'class'=>"highlight");
 				} else {
-					$elo_change = $this->calculate_elo_change($a, $h, 
-						$this->calculate_expected_win($rating_away, $rating_home));
-					$current_row[] = array('data' => $elo_change, 'title'=>"'$away' wins $a to $h, takes $elo_change rating points from '$home'");
+					$change = $this->$change_calculator($h, $a, 
+						$this->calculate_expected_win($away_rating, $home_rating));
+					$current_row[] = array('data' => $change, 'title'=>"'$away' wins $a to $h, takes $change rating points from '$home'");
 				}
 			}
 			$rows[] = $current_row ;

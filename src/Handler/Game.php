@@ -384,6 +384,7 @@ class GameCreate extends Handler
             );
             break;
          case 'ratings_ladder':
+         case 'ratings_wager_ladder':
             $this->types = array(
 					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
                'oneset_ratings_ladder' => "set of ratings-scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"

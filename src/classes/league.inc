@@ -780,7 +780,7 @@ class League extends LeaguerunnerObject
 		}
 
 		// Now, sort it all
-		if ($this->schedule_type == "ratings_ladder") {
+		if ($this->schedule_type == "ratings_ladder" || $this->schedule_type == 'ratings_wager_ladder' ) {
 			// Call a function that will handle complete sorting of ladder standings:
 			$season = $this->sortLadderRating($season);
 			$sorted_order = &$season;
@@ -2048,7 +2048,7 @@ class League extends LeaguerunnerObject
 
 	function sort_league_teams () {
 		$this->load_teams();
-		if ($this->schedule_type == 'ratings_ladder') {
+		if ($this->schedule_type == 'ratings_ladder' || $this->schedule_type == 'ratings_wager_ladder' ) {
 			uasort($this->teams, array($this, 'standings_sort_rating_ladder'));	
 		} else if ($this->schedule_type == 'ladder' || $this->schedule_type == 'pyramid') {
 			uasort($this->teams, array($this, 'standings_sort_ladder'));	
