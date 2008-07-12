@@ -1050,11 +1050,21 @@ class LeagueApproveScores extends Handler
 			h.name AS home_name,
 			s.away_team,
 			a.name AS away_name
-			FROM schedule s, score_entry se
-				LEFT JOIN gameslot g ON (s.game_id = g.game_id)
-				LEFT JOIN team h ON (s.home_team = h.team_id)
-				LEFT JOIN team a ON (s.away_team = a.team_id)
-			WHERE s.league_id = %d AND s.game_id = se.game_id ORDER BY timestamp", $this->league->league_id);
+			FROM 
+				schedule s, 
+				score_entry se,
+				gameslot g,
+				team h,
+				team a
+			WHERE
+				s.league_id = %d
+				AND se.game_id = s.game_id
+				AND g.game_id = s.game_id
+				AND h.team_id = s.home_team
+				AND a.team_id = s.away_team
+			ORDER BY 
+				timestamp
+		", $this->league->league_id);
 
 		$header = array(
 			'Game Date',
