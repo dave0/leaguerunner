@@ -235,7 +235,6 @@ class League extends LeaguerunnerObject
 
 		// TODO: game_load_many()?  Or at least game_query()?
 		$sth = $dbh->prepare("SELECT DISTINCT s.game_id,
-				DISTINCT s.game_id,
 				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
 			FROM
 				schedule s,
@@ -251,7 +250,7 @@ class League extends LeaguerunnerObject
 			ORDER BY
 				g.game_id
 			");
-	
+
 		$sth->execute( array(
 			$TZ_ADJUST * 60,
 			$this->league_id,
