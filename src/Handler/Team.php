@@ -729,7 +729,7 @@ class TeamList extends Handler
 			if($curLetter == $letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$letterLinks[] = l($curLetter, url('team/list', "letter=$curLetter$query_append"));
+				$letterLinks[] = l($curLetter, url('team/list', "letter=$curLetter"));
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
