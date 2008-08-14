@@ -212,7 +212,7 @@ class Team extends LeaguerunnerObject
 		// Check that this team is not scheduled for any games.  If so, we
 		// bail
 		$sth = $dbh->prepare('SELECT COUNT(*) FROM schedule WHERE home_team = :team_id OR away_team = :team_id');
-		$sth->execute( array( team_id => $this->team_id ) );
+		$sth->execute( array( 'team_id' => $this->team_id ) );
 		if( $sth->fetchColumn() > 0) {
 			error_exit("Cannot delete team: Team must not have any games on the schedule");
 		}
@@ -245,7 +245,7 @@ class Team extends LeaguerunnerObject
 	{
 		global $dbh;
 		$sth = $dbh->prepare('SELECT ROUND(AVG(ABS(s.home_score - s.away_score)),2) FROM schedule s WHERE s.home_team = :id OR s.away_team = :id');
-		$sth->execute(array( ':id' => $this->team_id) );
+		$sth->execute(array( 'id' => $this->team_id) );
 
 		$sbf = $sth->fetchColumn();
 
