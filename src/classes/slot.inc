@@ -56,21 +56,20 @@ class GameSlot extends LeaguerunnerObject
 				error_exit("Couldn't create gameslot");
 			}
 		}
-		
+
 		if(count($this->_modified_fields)) {
 			$fields      = array();
 			$fields_data = array();
 
 			foreach ( $this->_modified_fields as $key => $value) {
+				$fields[] = "$key = ?";
 				if( !isset($this->{$key}) || ('' == $this->{$key}) ) {
-					$fields[] = "$key = ?";
 					$fields_data[] = null;
 				} else {
-					$fields[] = "$key = ?";
 					$fields_data[] = $this->{$key};
 				}
 			}
-			
+
 			if(count($fields_data) != count($fields)) {
 				error_exit("Internal error: Incorrect number of fields set");
 			}
@@ -82,7 +81,7 @@ class GameSlot extends LeaguerunnerObject
 				. 'WHERE slot_id = ?');
 
 			$sth->execute( $fields_data);
-				
+
 			if(1 < $sth->rowCount()) {
 				# Affecting zero rows is possible
 				error_exit("Internal error: Strange number of rows affected");
@@ -108,7 +107,7 @@ class GameSlot extends LeaguerunnerObject
 					break;
 			}
 		}
-		
+
 		return true;
 	}
 
