@@ -1459,8 +1459,8 @@ class Game extends LeaguerunnerObject
 		$this->slot_id = $slot_id;
 		return array(true,'');
 	}
-	
-	function get_ratings_table ( $rating_home, $rating_away, $whatif ) 
+
+	function get_ratings_table ( $rating_home, $rating_away, $whatif )
 	{
 		global $dbh;
 
@@ -1476,7 +1476,7 @@ class Game extends LeaguerunnerObject
 		if($sth->fetchColumn() == 'ratings_wager_ladder' ) {
 			$change_calculator = 'calculate_wager_change';
 		}
-		
+
 		// assume that games can have scores up to 17...
 		for ($h = 0; $h <= 17; $h++) {
 			$header[] =  array('data' => $h);
@@ -1485,17 +1485,17 @@ class Game extends LeaguerunnerObject
 				$change = 0;
 				if ($h > $a) {
 					// home win
-					$change = $this->$change_calculator($h, $a, 
-						$this->calculate_expected_win($home_rating, $away_rating));
+					$change = $this->$change_calculator($h, $a,
+						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"'$home' wins $h to $a, takes $change rating points from '$away'", 'class'=>"highlight");
 				} else if ($h == $a) {
 					// treat as a home win
-					$change = $this->$change_calculator($h, $a, 
-						$this->calculate_expected_win($home_rating, $away_rating));
+					$change = $this->$change_calculator($h, $a,
+						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"Tie $h to $a, '$home' takes $change rating points from '$away'", 'class'=>"highlight");
 				} else {
-					$change = $this->$change_calculator($h, $a, 
-						$this->calculate_expected_win($away_rating, $home_rating));
+					$change = $this->$change_calculator($h, $a,
+						$this->calculate_expected_win($rating_away, $rating_home));
 					$current_row[] = array('data' => $change, 'title'=>"'$away' wins $a to $h, takes $change rating points from '$home'");
 				}
 			}
@@ -1510,7 +1510,7 @@ class Game extends LeaguerunnerObject
 					"$away <input type='text' size=5 name='rating_away' value='$rating_away'><br>" .
 					"<input type=button value='What If?' onclick='window.location=\"/leaguerunner/game/ratings/" . $this->game_id .
 					"/\"+document.whatif.rating_home.value+\"/\"+document.whatif.rating_away.value'");
-			
+
 		}
 		return "<div class='listtable'>" . table($header, $rows, array('border'=>1)) . "</div>" . $output2;
 	}
