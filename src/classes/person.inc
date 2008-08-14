@@ -111,7 +111,7 @@ class Person extends LeaguerunnerObject
 
 		/* Evil hack to get 'Inactive Teams' into menu */
 		if( $this->is_a_coordinator ) {
-			$sth = league_query( array( 'league_id' => $id ) );
+			$sth = league_query( array( 'league_id' => 1 ) );
 			$this->leagues[1] = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 		}
 
