@@ -1238,9 +1238,9 @@ class LeagueRatings extends Handler
 			$row[] = $team->rating;
 			$row[] = check_form($team->name);
 			$row[] = $team->avg_skill();
-         $row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> better </a> " . 
+         $row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++ return false'> better </a> " . 
             "<input type='text' size='3' name='edit[$team->team_id]' value='$team->rating' />" .
-            "<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++; return false'> worse</a></font>";
+            "<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> worse</a></font>";
 
 			$rows[] = $row;
       }
@@ -1250,7 +1250,7 @@ class LeagueRatings extends Handler
 
       return form($output);
    }
-   
+ 
 	function process ()
 	{
 		$this->title = "League Ratings Adjustment";
