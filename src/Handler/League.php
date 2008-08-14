@@ -1280,7 +1280,7 @@ class LeagueRatings extends Handler
 		$sth = $dbh->prepare('UPDATE team SET rating = ? WHERE team_id = ?');	
 		// go through what was submitted
 		foreach ($edit as $team_id => $rating) {
-			if (is_numeric($team_ide) && is_numeric($rating)) {
+			if (is_numeric($team_id) && is_numeric($rating)) {
 				$team = $this->league->teams[$team_id];
 
 				// TODO:  Move this logic to a function inside the league.inc file
