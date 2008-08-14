@@ -143,7 +143,7 @@ function game_splash ()
 				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
 				" (away) at " .
-				l($game->field_code, "field/view/$game->fid"), 'colspan' => 2),
+				l($game->field_code, "field/view/$game->fid")),
 			$score
 		));
 	}
@@ -177,7 +177,7 @@ function game_splash ()
 				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
 				" (away) at " .
-				l($game->field_code, "field/view/$game->fid"), 'colspan' => 2),
+				l($game->field_code, "field/view/$game->fid")),
 			$score
 		);
 	}
@@ -187,7 +187,7 @@ function game_splash ()
 		return;
 	}
 
-	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 4)), $rows, array('alternate-colours' => true) ) . "</div>";
+	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 3)), $rows, array('alternate-colours' => true) ) . "</div>";
 }
 
 /**
