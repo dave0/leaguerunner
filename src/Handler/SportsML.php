@@ -41,7 +41,7 @@ function sportsml_cron()
 class SportsMLExporter extends Handler
 {
 	var $league;
-	
+
 	function has_permission()
 	{
 		return true;
@@ -50,12 +50,12 @@ class SportsMLExporter extends Handler
 	function render_header( $type = 'html' )
 	{
 		global $BASE_URL;
-		
+
 		header("Content-type: text/xml");
 		print '<?';
 ?>
 xml version="1.0" encoding="ISO-8859-1"?>
-<?php 
+<?php
 		print '<?xml-stylesheet type="text/xsl" href="';
 		if( $type == 'text') {
 			print "$BASE_URL/data/ocuasportsml2text.xsl";
@@ -84,7 +84,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 
 	function render_standings()
 	{
-		
+
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
 		}
@@ -99,10 +99,11 @@ xml version="1.0" encoding="ISO-8859-1"?>
 
 			switch( $this->league->schedule_type ) {
 				case 'ratings_ladder':
+				case 'ratings_wager_ladder':
 					$team->rank = $team->rating;
 					break;
 				case 'pyramid':
-					# Pyramid uses rank
+					# Pyramid uses its own rank
 					break;
 				default:
 					$team->rank = ++$rank;
@@ -128,10 +129,10 @@ xml version="1.0" encoding="ISO-8859-1"?>
   </standing>
 <?php
 	}
-	
+
 	function render_schedule()
 	{
-		
+
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
 		}
@@ -181,7 +182,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 class SportsMLStandings extends SportsMLExporter
 {
 	var $league;
-	
+
 	function has_permission()
 	{
 		return true;
@@ -204,12 +205,12 @@ class SportsMLStandings extends SportsMLExporter
 class SportsMLSchedule extends SportsMLExporter
 {
 	var $league;
-	
+
 	function has_permission()
 	{
 		return true;
 	}
-	
+
 	function process()
 	{
 		$type = $_GET['type'];
@@ -228,12 +229,12 @@ class SportsMLSchedule extends SportsMLExporter
 class SportsMLCombined extends SportsMLExporter
 {
 	var $league;
-	
+
 	function has_permission()
 	{
 		return true;
 	}
-	
+
 	function process()
 	{
 		$type = $_GET['type'];
@@ -247,8 +248,6 @@ class SportsMLCombined extends SportsMLExporter
 		$this->render_footer();
 		exit(); // To prevent header/footer being displayed.
 	}
-
 }
-
 
 ?>
