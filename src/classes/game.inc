@@ -1346,7 +1346,7 @@ class Game extends LeaguerunnerObject
 
       		$seed = rand();
 		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND(?) LIMIT 1');
-		$sth->execute( array( $timestamp, $this->league_id, $rand) );
+		$sth->execute( array( $timestamp, $this->league_id, $seed) );
 		$slot_id = $sth->fetchColumn();
 		if( ! $slot_id ) {
 			$unlock_sth->execute( array( $lockname ) );
