@@ -18,7 +18,7 @@ class Game extends LeaguerunnerObject
 			$this->game_end = 'dark';
 		}
 
-		if( ! $this->in_database ) {
+		if( ! $this->_in_database ) {
 			return true;
 		}
 
