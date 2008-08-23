@@ -274,11 +274,11 @@ class GameSlotDelete extends Handler
 	function process()
 	{
 		$this->title = "Delete Game Slot";
-		
+
 		if(!$this->slot) {
 			error_exit("That game slot does not exist");
 		}
-		
+
 		$this->setLocation(array( 
 			$slot->field->fullname => "field/view/" . $slot->field->fid,
 			$this->title => 0
@@ -308,10 +308,10 @@ class GameSlotDelete extends Handler
 		if ($this->slot->game_id) {
 			error_exit("Cannot delete a gameslot with a currently-scheduled game");
 		}
-		
+
 		// Print confirmation info
 		$output = form_hidden('edit[step]', 'perform');
-		
+
 		$group = form_item("Date", strftime("%A %B %d %Y", $this->slot->date_timestamp));
 		$group .= form_item('Game Start Time', $this->slot->game_start);
 		$group .= form_item('Game End Time', $this->slot->game_end);
@@ -323,7 +323,7 @@ class GameSlotDelete extends Handler
 			$group .= $league->fullname . "<br />";
 		}
 		$output .= form_group('Available To:', $group);
-	
+
 		$output .= form_submit('submit');
 
 		return form($output);

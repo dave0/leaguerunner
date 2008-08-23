@@ -18,6 +18,9 @@ function league_dispatch()
 		case 'view':
 			$obj = new LeagueView;
 			break;
+		case 'delete':
+			$obj = new LeagueDelete;
+			break;
 		case 'standings':
 			$obj = new LeagueStandings;
 			break;
@@ -986,6 +989,53 @@ class LeagueView extends Handler
 			$this->league->fullname => 'league/view/' . $this->league->league_id,
 			$this->title => 0));
 		return $output;
+	}
+}
+
+class LeagueDelete extends Handler
+{
+	function has_permission ()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('league','delete',$this->league->league_id);
+	}
+
+	function process ()
+	{
+		$this->title = "Delete League";
+
+		$this->setLocation(array(
+			$this->team->name => "league/view/" . $this->league->team_id,
+			$this->title => 0
+		));
+
+		switch($_POST['edit']['step']) {
+			case 'perform':
+				if ( $this->league->delete() ) {
+					local_redirect(url("league/view/1"));
+				} else {
+					error_exit("Failure deleting league");
+				}
+				break;
+			case 'confirm':
+			default:
+				return $this->generateConfirm();
+				break;
+		}
+		error_exit("Error: This code should never be reached.");
+	}
+
+	function generateConfirm ()
+	{
+		global $dbh;
+		$rows = array();
+		$rows[] = array("League Name:", check_form($this->league->name, ENT_NOQUOTES));
+		$output = form_hidden('edit[step]', 'perform');
+		$output .= "<p>Do you really wish to delete this league?</p>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		$output .= form_submit('submit');
+
+		return form($output);
 	}
 }
 

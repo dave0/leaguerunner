@@ -22,7 +22,7 @@ OCUA TODO items (not in any particular order)
 
 7) Use email address as login ID like every other site on earth.
 
-8) Allow deletion of leagues
+DONE 8) Allow deletion of leagues
 
 9) Multiple contact email addresses in LR profile
 

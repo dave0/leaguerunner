@@ -141,9 +141,6 @@ class GameSlot extends LeaguerunnerObject
 		return true;
 	}
 
-	/*
-	 * Wow, this would be so much safer if we used transactions...
-	 */
 	function delete ()
 	{
 		global $dbh;
@@ -157,15 +154,12 @@ class GameSlot extends LeaguerunnerObject
 			return false;
 		}
 
-		// If we have assignments to leagues, remove them
+		$queries = array(
+			'DELETE FROM league_gameslot_availability WHERE slot_id = ?',
+			'DELETE FROM gameslot WHERE slot_id = ?'
+		);
 
-		$sth = $dbh->prepare('DELETE FROM league_gameslot_availability WHERE slot_id = ?');
-		$sth->execute(array($this->slot_id));
-
-		// Then, delete gameslot from table
-		$sth = $dbh->prepare('DELETE FROM gameslot WHERE slot_id = ?');
-		$sth->execute(array($this->slot_id));
-		return true;
+		return $this->generic_delete( $queries, $this->slot_id );
 	}
 }
 
@@ -200,7 +194,8 @@ function slot_query ( $array = array() )
 		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
 		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
 		TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
-		g.game_id
+		g.game_id,
+		1 as _in_database
 	FROM
 		gameslot g
 		INNER JOIN field ON (g.fid = field.fid)

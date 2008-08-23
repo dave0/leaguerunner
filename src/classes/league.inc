@@ -369,6 +369,33 @@ class League extends LeaguerunnerObject
 		return true;
 	}
 
+	function delete()
+	{
+		global $dbh;
+
+		if ( ! $this->_in_database ) {
+			return false;
+		}
+
+		if ( $this->league_id == 1 ) {
+			error_exit("Cannot delete the 'Inactive Teams' league");
+		}
+
+		$queries = array(
+			'UPDATE leagueteams SET league_id = 1 WHERE league_id = ?',
+			'DELETE FROM leaguemembers WHERE league_id = ?',
+			'DELETE FROM score_entry USING score_entry, schedule WHERE score_entry.game_id = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM score_reminder USING score_reminder,schedule WHERE score_reminder.game_id = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM team_spirit_answers USING team_spirit_answers,schedule WHERE team_spirit_answers.gid = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM gameslot USING gameslot, schedule WHERE gameslot.game_id = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM league_gameslot_availability WHERE league_id = ?',
+			'DELETE FROM schedule WHERE league_id = ?',
+			'DELETE FROM league WHERE league_id = ?'
+		);
+
+		return $this->generic_delete( $queries, $this->league_id );
+	}
+
 	/**
 	* Calcluates the SBF "Spence" or "Sutton" Balance Factor.
 	* This is the average of all score differentials for games played

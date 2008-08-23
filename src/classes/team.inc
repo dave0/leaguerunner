@@ -194,9 +194,6 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
-	/*
-	 * Wow, this would be so much safer if we used transactions...
-	 */
 	function delete()
 	{
 		global $dbh;
@@ -209,27 +206,21 @@ class Team extends LeaguerunnerObject
 			error_exit("Cannot delete team: Team must be in the 'Inactive Teams' league to be deleted");
 		}
 
-		// Check that this team is not scheduled for any games.  If so, we
-		// bail
+		// Check that this team is not scheduled for any games.  If so,
+		// we bail
 		$sth = $dbh->prepare('SELECT COUNT(*) FROM schedule WHERE home_team = :team_id OR away_team = :team_id');
 		$sth->execute( array( 'team_id' => $this->team_id ) );
 		if( $sth->fetchColumn() > 0) {
 			error_exit("Cannot delete team: Team must not have any games on the schedule");
 		}
 
-		// If we have anyone on the roster, remove 'em
-		$sth = $dbh->prepare('DELETE FROM teamroster WHERE team_id = ?');
-		$sth-> execute( array($this->team_id) );
+		$queries = array(
+			'DELETE FROM teamroster WHERE team_id = ?',
+			'DELETE FROM leagueteams WHERE team_id = ?',
+			'DELETE FROM team WHERE team_id = ?',
+		);
 
-		// If we're in a league, remove ourself
-		$sth = $dbh->prepare('DELETE FROM leagueteams WHERE team_id = ?');
-		$sth-> execute( array($this->team_id) );
-
-		// Delete from the team table
-		$sth = $dbh->prepare('DELETE FROM team WHERE team_id = ?');
-		$sth-> execute( array($this->team_id) );
-
-		return true;
+		return $this->generic_delete( $queries, $this->team_id );
 	}
 
 	/**

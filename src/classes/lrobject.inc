@@ -73,5 +73,31 @@ class LeaguerunnerObject
 	{
 		die("Implemented by subclass");
 	}
+
+	/**
+	 * Delete an object from the db
+	 */
+	function generic_delete ( $queries, $id )
+	{
+		global $dbh;
+
+		$dbh->beginTransaction();
+
+		$all_ok = true;
+		foreach($queries as $query) {
+			$sth = $dbh->prepare($query);
+			if( ! $sth->execute( array( $id ) ) ) {
+				$all_ok = false;
+			}
+		}
+
+		if( $all_ok ) {
+			$dbh->commit();
+		} else {
+			$dbh->rollback();
+		}
+
+		return $all_ok;
+	}
 }
 ?>

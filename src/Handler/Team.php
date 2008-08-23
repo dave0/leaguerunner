@@ -442,9 +442,6 @@ class TeamEdit extends Handler
 	}
 }
 
-/**
- * Team viewing handler
- */
 class TeamDelete extends Handler
 {
 	function has_permission ()

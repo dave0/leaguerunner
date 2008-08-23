@@ -624,10 +624,10 @@ class Game extends LeaguerunnerObject
 		$this->game_id = $sth->fetchColumn();
 
 		$this->_in_database = true;
-		
+
 		return true;
 	}
-	
+
 	function delete()
 	{
 		global $dbh;
@@ -640,14 +640,15 @@ class Game extends LeaguerunnerObject
 			error_exit("Cannot delete games which have been scored");
 		}
 
-		// Don't check result; there may not be any to change
-		$sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL where game_id = ?');
-		$sth->execute( array($this->game_id) );
+		$queries = array(
+			'UPDATE gameslot SET game_id = NULL where game_id = ?',
+			'DELETE FROM team_spirit_answers WHERE gid = ?',
+			'DELETE FROM score_entry WHERE game_id = ?',
+			'DELETE FROM score_reminder WHERE game_id = ?',
+			'DELETE FROM schedule WHERE game_id = ?'
+		);
 
-		// Remove game from schedule
-		$sth = $dbh->prepare('DELETE FROM schedule WHERE game_id = ?');
-		$sth->execute( array($this->game_id) );
-		return (1 == $sth->rowCount());
+		return $this->generic_delete( $queries, $this->game_id );
 	}
 
 

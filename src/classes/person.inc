@@ -227,21 +227,16 @@ class Person extends LeaguerunnerObject
 			error_exit("Account cannot be deleted while player has registration records.");
 		}
 
-		/* remove user from team rosters.  Don't check for affected
-		 * rows, as there may not be any
-		 */
-		$sth = $dbh->prepare('DELETE from teamroster WHERE player_id = ?');
-		$sth->execute( array($this->user_id) );
+		$queries = array(
+			'DELETE FROM teamroster WHERE player_id = ?',
+			'DELETE FROM person WHERE user_id = ?',
+		);
 
-		/* remove user account */
-		$sth = $dbh->prepare('DELETE from person WHERE user_id = ?');
-		$sth->execute( array($this->user_id) );
-
-		return (1 == $sth->rowCount());
+		return $this->generic_delete( $queries, $this->user_id );
 	}
 
 	function generate_member_id()
-	{	
+	{
 		global $dbh;
 		$sth = $dbh->prepare('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ? AND gender = ?');
 		$sth->execute( array( $this->year_started, $this->gender) );
