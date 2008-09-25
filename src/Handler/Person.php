@@ -887,7 +887,7 @@ END_TEXT;
 		$group .= form_select('Year Started', 'edit[year_started]', $formData['year_started'], 
 				getOptionsFromRange(1986, $thisYear, 'reverse'), 'The year you started playing Ultimate in this league.');
 
-		$group .= form_select_date('Birthdate', 'edit[birth]', $formData['birthdate'], ($thisYear - 60), ($thisYear - 10), 'Please enter a correct birthdate; having accurate information is important for insurance purposes');
+		$group .= form_select_date('Birthdate', 'edit[birth]', $formData['birthdate'], ($thisYear - 75), ($thisYear - 5), 'Please enter a correct birthdate; having accurate information is important for insurance purposes');
 
 		$group .= form_textfield('Height','edit[height]',$formData['height'], 4, 4, 'Please enter your height in inches (5 feet is 60 inches; 6 feet is 72 inches).  This is used to help generate even teams for hat leagues.');
 
