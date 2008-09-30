@@ -505,7 +505,7 @@ class RegistrationRegister extends RegistrationForm
 	{
 		global $lr_session;
 
-		$output = para();
+		$output = para('');
 
 		$process_func = "save_{$this->event->type}";
 		if( method_exists( $this, $process_func ) ) {
@@ -1115,7 +1115,7 @@ function registration_statistics($args)
 			$sth->execute( array($id) );
 
 			$sub_table = array();
-			while($row = $sth->fetch(PDO::ARRAY_ASSOC) ) {
+			while($row = $sth->fetch(PDO::FETCH_ASSOC) ) {
 				$sub_table[] = $row;
 			}
 			$rows[] = array("By payment:", table(null, $sub_table));
