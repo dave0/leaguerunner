@@ -7,8 +7,8 @@ different divisions and three seasons of play.
 
 Prerequisites:
 
-  1) Webserver with PHP 4.3.10 or newer.
-     You should be running the most up-to-date version of PHP 4 or 5.
+  1) Webserver with PHP 5.x, with PDO (PHP Data Objects) extension.
+     PDO ships with PHP 5.1, and is available as a PECL extension for 5.0
 
   2) MySQL database, and the relevant PHP support for MySQL
 
