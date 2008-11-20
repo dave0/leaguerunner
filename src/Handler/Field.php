@@ -86,7 +86,7 @@ function field_menu()
 	menu_add_child('_root','field','Fields');
 	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
 
-	if( $lr_session->has_permission('field','edit') ) {
+	if( $lr_session->has_permission('field','list','closed') ) {
 		menu_add_child('field','field/list/closed','list closed fields', array('weight' => 3, 'link' => 'field/list/closed') );
 	}
 
@@ -437,9 +437,23 @@ class FieldList extends Handler
 		$fieldColumns = array();
 		$header = array();
 
-		while(list($region,$fields) = each($fieldsByRegion)) {
-			$fieldColumns[] = ul( $fields );
-			$header[] = ucfirst($region);
+		if( variable_get('narrow_display', '0') ) {
+			$cols = 2;
+			for( $i = 0; $i < $cols; ++ $i ) {
+				$fieldColumns[$i] = '';
+			}
+
+			$i = 0;
+			while(list($region,$fields) = each($fieldsByRegion)) {
+				$fieldColumns[$i] .= table( array( ucfirst( $region ) ), array( array( ul($fields) ) ) );
+				$i = ( $i + 1 ) % $cols;
+			}
+		}
+		else {
+			while(list($region,$fields) = each($fieldsByRegion)) {
+				$fieldColumns[] = ul( $fields );
+				$header[] = ucfirst($region);
+			}
 		}
 		$output .= "<div class='fieldlist'>" . table($header, array( $fieldColumns) ) . "</div>";
 
@@ -482,6 +496,7 @@ class FieldView extends Handler
 					$this->field->location_street,
 					$this->field->location_city,
 					$this->field->location_province,
+					'',
 					''));
 		}
 
@@ -532,13 +547,16 @@ class FieldView extends Handler
 		$fieldRows = array();
 		$header = array("Fields","&nbsp;");
 		while( $related = $sth->fetch(PDO::FETCH_OBJ)) {
-			$fieldRows[] = array(
-				$this->field->code . " $related->num",
-				l("view field", "field/view/$related->fid", array('title' => "View field details"))
-			);
+			if ($related->fid != $this->field->fid)
+			{
+				$fieldRows[] = array(
+					$this->field->code . " $related->num",
+					l("view field details page", "field/view/$related->fid")
+				);
+			}
 		}
 
-		$rows[] = array("Fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
+		$rows[] = array("Other fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
 
 		$this->setLocation(array(
 			$this->field->fullname => "field/view/" .$this->field->fid,
@@ -584,6 +602,7 @@ class FieldBooking extends Handler
 		));
 
 		$sth = slot_query( array('fid' => $this->field->fid,
+				'_extra' => 'YEAR(g.game_date) = YEAR(NOW())',
 				'_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
