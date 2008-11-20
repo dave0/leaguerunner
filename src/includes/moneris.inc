@@ -72,7 +72,7 @@ SCRIPT;
 	$online .= form_hidden('bill_city', $lr_session->user->addr_city);
 	$online .= form_hidden('bill_state_or_province', $lr_session->user->addr_prov);
 	$online .= form_hidden('bill_postal_code', $lr_session->user->addr_postalcode);
-	$online .= form_hidden('bill_country', 'Canada');
+	$online .= form_hidden('bill_country', $lr_session->user->addr_country);
 	$online .= form_hidden('bill_phone', $lr_session->user->home_phone);
 
 	$online .= para('If you want to pay online with Visa, MasterCard or INTERAC&reg; Online, ' . form_submit('click here', 'submit', 'onClick="open_payment_window();"') . ' to proceed to the secure online payment form (which will open in a new window).');
