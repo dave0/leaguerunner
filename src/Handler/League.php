@@ -45,6 +45,15 @@ function league_dispatch()
 		case 'status':
 			$obj = new LeagueStatusReport;
 			break;
+		case 'fields':
+			$obj = new LeagueFieldReport;
+			break;
+		case 'scores':
+			$obj = new LeagueScoresTable;
+			break;
+		case 'slots':
+			$obj = new LeagueFieldAvailability;
+			break;
 		default:
 			return null;
 	}
@@ -60,30 +69,27 @@ function league_dispatch()
 function league_permissions( $user, $action, $id, $data_field = '' )
 {
 	// TODO: finish this!
-	if( !$user ) {
-		return false;
-	}
 	switch($action)
 	{
 		case 'view':
 			switch($data_field) {
 				case 'spirit':
-					return $user->is_coordinator_of($id);
 				case 'captain emails':
-					return $user->is_coordinator_of($id);
+				case 'delays':
+					return ($user && $user->is_coordinator_of($id));
 				default:
 					return true;
 			}
 			break;
 		case 'list':
-			return ($user->is_player());
+			return true;
 		case 'edit':
 		case 'edit game':
 		case 'add game':
 		case 'approve scores':
 		case 'edit schedule':
 		case 'manage teams':
-			return ($user->is_coordinator_of($id));
+			return ($user && $user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
 			// admin only
@@ -125,6 +131,7 @@ function league_add_to_menu( &$league, $parent = 'league' )
 	if($league->schedule_type != 'none') {
 		menu_add_child($league->fullname, "$league->fullname/standings",'standings', array('weight' => -1, 'link' => "league/standings/$league->league_id"));
 		menu_add_child($league->fullname, "$league->fullname/schedule",'schedule', array('weight' => -1, 'link' => "schedule/view/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/scores",'scores', array('weight' => -1, 'link' => "league/scores/$league->league_id"));
 		if($lr_session->has_permission('league','add game', $league->league_id) ) {
 			menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/edit", 'add games', array('link' => "game/create/$league->league_id"));
 		}
@@ -156,6 +163,10 @@ function league_add_to_menu( &$league, $parent = 'league' )
 			menu_add_child($league->fullname, "$league->fullname/status",'status report', array('weight' => 1, 'link' => "league/status/$league->league_id"));
 		}
 	}
+	if($lr_session->has_permission('league','edit', $league->league_id) ) {
+		menu_add_child($league->fullname, "$league->fullname/fields",'field distribution', array('weight' => 1, 'link' => "league/fields/$league->league_id"));
+		menu_add_child($league->fullname, "$league->fullname/slots",'available fields', array('weight' => 1, 'link' => "league/slots/$league->league_id"));
+	}
 }
 
 /**
@@ -169,7 +180,7 @@ function league_splash ()
 	}
 
 	$header = array(
-			array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+		array( 'data' => "Leagues Coordinated", 'colspan' => 4)
 	);
 	$rows = array();
 
@@ -212,11 +223,11 @@ function league_cron()
 
 	$output = '';
 
-	$season = variable_get('current_season', 'fall');
-	$sth = $dbh->prepare('SELECT distinct league_id from league where season = ?');
-	$sth->execute( array($season) );
+	$sth = $dbh->prepare('SELECT DISTINCT league_id FROM league WHERE status = ? AND season != ? ORDER BY season, day, tier, league_id');
+	$sth->execute( array('open', 'none') );
 	while( $id = $sth->fetchColumn() ) {
 		$league = league_load( array('league_id' => $id) );
+		$output .= h2(l($league->name, "league/view/$league->league_id"));
 
 		// Find all games older than our expiry time, and finalize them
 		$output .= $league->finalize_old_games();
@@ -379,7 +390,7 @@ class LeagueEdit extends Handler
 
 		$rows[] = array('Allow exclusion of teams during scheduling?', 
 			form_select('', 'edit[excludeTeams]', $formData['excludeTeams'], getOptionsFromEnum('league','excludeTeams'), 'Allows coordinators to exclude teams from schedule generation.'));
-		
+
 		$rows[] = array('Scoring reminder delay:', form_textfield('', 'edit[email_after]', $formData['email_after'], 5, 5, 'Email captains who haven\'t scored games after this many hours, no reminder if 0'));
 
 		$rows[] = array('Game finalization delay:', form_textfield('', 'edit[finalize_after]', $formData['finalize_after'], 5, 5, 'Games which haven\'t been scored will be automatically finalized after this many hours, no finalization if 0'));
@@ -444,7 +455,8 @@ class LeagueEdit extends Handler
 			$rows[] = array("Pyramid/Ratings - Games Before Repeat:",
 				form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
 		}
-		$rows[] = array("Players see SOTG?:", 
+
+		$rows[] = array("Players see SOTG?",
 			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
 
 		$rows[] = array("League Coordinator Email List:", 
@@ -499,7 +511,7 @@ class LeagueEdit extends Handler
 		$this->league->set('coord_list', $edit['coord_list']);
 		$this->league->set('capt_list', $edit['capt_list']);
 		$this->league->set('excludeTeams', $edit['excludeTeams']);
-		
+
 		$this->league->set('email_after', $edit['email_after']);
 		$this->league->set('finalize_after', $edit['finalize_after']);
 
@@ -607,7 +619,7 @@ class LeagueList extends Handler
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 
-		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier") );
+		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
 
 		if ( $leagues ) {
 			foreach ( $leagues as $league ) {
@@ -693,7 +705,7 @@ class LeagueStandings extends Handler
 		    && ($this->league->schedule_type == "pyramid" 
 			 || $this->league->schedule_type == "ratings_ladder"
 			 || $this->league->schedule_type == "ratings_wager_ladder") 
-		    && count($order) > 24) {
+			&& count($order) > 24) {
 			$index_of_this_team = 0;
 			foreach ($order as $i => $value) {
 				if ($value == $teamid) {
@@ -728,29 +740,45 @@ class LeagueStandings extends Handler
 
 		$subheader = array();
 
+		if( variable_get('narrow_display', '0') ) {
+			$win = 'W';
+			$loss = 'L';
+			$tie = 'T';
+			$default = 'D';
+			$for = 'PF';
+			$against = 'PA';
+		} else {
+			$win = 'Win';
+			$loss = 'Loss';
+			$tie = 'Tie';
+			$default = 'Dfl';
+			$for = 'PF';
+			$against = 'PA';
+		}
+
 		// Ladder leagues display standings differently.
 		// Eventually this should just be a brand new object.
 		if( $this->league->schedule_type == "ratings_ladder"
 		    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			$header[] = array('data' => 'Season To Date', 'colspan' => 7); 
-			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			foreach(array($win, $loss, $tie, $default, $for, $against, "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		} else if($this->league->schedule_type == "ladder" || $this->league->schedule_type == "pyramid") {
-			$header[] = array('data' => 'Season To Date', 'colspan' => 8); 
-			foreach(array("Rank", "Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			$header[] = array('data' => 'Season To Date', 'colspan' => 8);
+			foreach(array("Rank", $win, $loss, $tie, $default, $for, $against, "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		} else {
 			if($current_round) {
 				$header[] = array('data' => "Current Round ($current_round)", 'colspan' => 7);
-				foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+				foreach(array($win, $loss, $tie, $default, $for, $against, "+/-") as $text) {
 					$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 				}
 			}
 
 			$header[] = array('data' => 'Season To Date', 'colspan' => 7);
-			foreach(array("Win", "Loss", "Tie", "Dfl", "PF", "PA", "+/-") as $text) {
+			foreach(array($win, $loss, $tie, $default, $for, $against, "+/-") as $text) {
 				$subheader[] = array('data' => $text, 'class'=>'subtitle', 'valign'=>'bottom');
 			}
 		}
@@ -943,6 +971,9 @@ class LeagueView extends Handler
 			    || $this->league->schedule_type == "ratings_wager_ladder" ) {
 			array_unshift($header, 'Seed');
 		}
+		if($lr_session->has_permission('league','manage teams',$this->league->league_id)) {
+			$header[] = 'Region';
+		}
 
 		$this->league->load_teams();
 
@@ -978,7 +1009,10 @@ class LeagueView extends Handler
 				$row[] = $team->rating;
 				$row[] = $team->avg_skill();
 				$row[] = theme_links($team_links);
-				
+				if($lr_session->has_permission('league','manage teams',$this->league->league_id)) {
+					$row[] = $team->region_preference;
+				}
+
 				$rows[] = $row;
 			}
 	
@@ -997,6 +1031,11 @@ class LeagueDelete extends Handler
 	function has_permission ()
 	{
 		global $lr_session;
+
+		if(!$this->league) {
+			error_exit("That league does not exist");
+		}
+
 		return $lr_session->has_permission('league','delete',$this->league->league_id);
 	}
 
@@ -1012,7 +1051,7 @@ class LeagueDelete extends Handler
 		switch($_POST['edit']['step']) {
 			case 'perform':
 				if ( $this->league->delete() ) {
-					local_redirect(url("league/view/1"));
+					local_redirect(url("league/list"));
 				} else {
 					error_exit("Failure deleting league");
 				}
@@ -1068,7 +1107,7 @@ class LeagueCaptainEmails extends Handler
 				l.league_id = ?
 				AND l.team_id = r.team_id
 				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')
-					AND p.user_id != ?
+				AND p.user_id != ?
 			ORDER BY
 				p.lastname, p.firstname");
 	
@@ -1131,6 +1170,7 @@ class LeagueApproveScores extends Handler
 				team a
 			WHERE
 				s.league_id = ?
+				AND g.game_date < CURDATE()
 				AND se.game_id = s.game_id
 				AND g.game_id = s.game_id
 				AND h.team_id = s.home_team
@@ -1153,14 +1193,19 @@ class LeagueApproveScores extends Handler
 						LEFT JOIN teamroster r ON p.user_id = r.player_id
 						WHERE r.team_id IN (?,?) AND r.status = 'captain'");
 
+		if( variable_get('narrow_display', '0') )
+			$time_format = '%a %b %d %Y, %H%Mh';
+		else
+			$time_format = '%A %B %d %Y, %H%Mh';
+
 		while($game = $game_sth->fetchObject() ) {
 			$rows[] = array(
-				array('data' => strftime("%A %B %d %Y, %H%Mh",$game->timestamp),'rowspan' => 3),
+				array('data' => strftime($time_format, $game->timestamp),'rowspan' => 3),
 				array('data' => $game->home_name, 'colspan' => 2),
 				array('data' => $game->away_name, 'colspan' => 2),
 				array('data' => l("approve score", "game/approve/$game->game_id"))
 			);
-	
+
 			$captains_sth->execute(array( $game->home_team, $game->away_team) );
 			$emails = array();
 			$names = array();
@@ -1271,36 +1316,36 @@ class LeagueRatings extends Handler
 		return $lr_session->has_permission('league','edit', $this->league->league_id);
 	}
 
-   function generateForm ( $data = '' ) 
-   {
-      $output = para("Use the links below to adjust a team's ratings for 'better' or for 'worse'.  Alternatively, you can enter a new rating into the box beside each team then click 'Adjust Ratings' below.  Multiple teams can have the same ratings, and likely will at the start of the season.");
-      $output .= para("For the rating values, a <b/>HIGHER</b/> numbered rating is <b/>BETTER</b/>, and a <b/>LOWER</b/> numbered rating is <b/>WORSE</b/>.");
-      $output .= para("<b/>WARNING: </b/> Adjusting ratings while the league is already under way is possible, but you'd better know what you are doing!!!");
+	function generateForm ( $data = '' ) 
+	{
+		$output = para("Use the links below to adjust a team's ratings for 'better' or for 'worse'.  Alternatively, you can enter a new rating into the box beside each team then click 'Adjust Ratings' below.  Multiple teams can have the same ratings, and likely will at the start of the season.");
+		$output .= para("For the rating values, a <b/>HIGHER</b/> numbered rating is <b/>BETTER</b/>, and a <b/>LOWER</b/> numbered rating is <b/>WORSE</b/>.");
+		$output .= para("<b/>WARNING: </b/> Adjusting ratings while the league is already under way is possible, but you'd better know what you are doing!!!");
 
-      $header = array( "Rating", "Team Name", "Avg.<br/>Skill", "New Rating",);
+		$header = array( "Rating", "Team Name", "Avg.<br/>Skill", "New Rating",);
 		$rows = array();
 
 		$this->league->load_teams();
-      list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
 		foreach($season as $team) {
 
 			$row = array();
 			$row[] = $team->rating;
 			$row[] = check_form($team->name);
 			$row[] = $team->avg_skill();
-         $row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++ return false'> better </a> " . 
-            "<input type='text' size='3' name='edit[$team->team_id]' value='$team->rating' />" .
-            "<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> worse</a></font>";
+			$row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++ return false'> better </a> " . 
+				"<input type='text' size='3' name='edit[$team->team_id]' value='$team->rating' />" .
+				"<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> worse</a></font>";
 
 			$rows[] = $row;
-      }
+		}
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		$output .= form_hidden("edit[step]", 'perform');
-      $output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ratings' /></div>";
+		$output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ratings' /></div>";
 
-      return form($output);
-   }
- 
+		return form($output);
+	}
+
 	function process ()
 	{
 		$this->title = "League Ratings Adjustment";
@@ -1315,11 +1360,11 @@ class LeagueRatings extends Handler
 			default:
 				$rc = $this->generateForm();
 		}
-      $this->setLocation(array( $this->league->name => "league/view/" . $this->league->league_id, $this->title => 0));
+		$this->setLocation(array( $this->league->name => "league/view/" . $this->league->league_id, $this->title => 0));
 
 		return $rc;
 
-   }
+	}
 
 	function perform ( $edit )
 	{
@@ -1338,7 +1383,7 @@ class LeagueRatings extends Handler
 				$sth->execute( array( $rating, $team_id ) );
 			}
 		}
-		
+
 		return true;
 	}
 }
@@ -1435,7 +1480,7 @@ class LeagueSpirit extends Handler
 
 	function process ()
 	{
-		global $dbh;
+		global $dbh, $BASE_URL;
 		$this->title = "League Spirit";
 
 		$this->setLocation(array(
@@ -1529,7 +1574,11 @@ class LeagueSpirit extends Handler
 				while( list($qkey,$answer) = each($entry) ) {
 
 					if( !$num_games ) {
-						$header[] = $qkey;
+						if( variable_get('narrow_display', '0') ) {
+							$header[] = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $qkey );
+						} else {
+							$header[] = $qkey;
+						}
 					}
 					if( $qkey == 'CommentsToCoordinator' ) {
 						$thisrow[] = $answer;
@@ -1542,13 +1591,13 @@ class LeagueSpirit extends Handler
 						switch( $answer_values[$answer] ) {
 							case -3:
 							case -2:
-								$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+								$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
 								break;
 							case -1:
 								$thisrow[] = "-";
 								break;
 							case 0:
-								$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+								$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
 								break;
 							default:
 								$thisrow[] = "?";
@@ -1580,16 +1629,22 @@ class LeagueSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+				$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {
 				$thisrow[] = "-";
 			} else {
-				$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+				$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
 			}
 		}
 		$rows[] = $thisrow;
 
-		return "<style>#main table td { font-size: 80% } </style>" . table($header,$rows, array('alternate-colours' => true) );
+		$style = '#main table td { font-size: 80% }';
+		if( variable_get('narrow_display', '0') ) {
+			$style .= ' th { font-size: 70%; }';
+		}
+		$output .= "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
+
+		return $output;
 	}
 }
 
