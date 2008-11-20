@@ -37,8 +37,6 @@ class FormBuilder
 		$sth->execute(array($name));
 
 		while( $question = $sth->fetch(PDO::FETCH_OBJ) ) {
-
-
 			switch( $question->qtype ) {
 				case 'multiplechoice':
 					$question->answers = array();
@@ -152,14 +150,14 @@ class FormBuilder
 			$sth = $dbh->prepare('INSERT INTO question (qkey, genre, question, qtype, restrictions, required, sorder)
 				VALUES (?, ?, ?, ?, ?, ?, ?)');
 			foreach ($all_questions as $question ) {
-				$sth->execute( $question );
+				$sth->execute( array($question) );
 			}
 		}
 
 		if( count( $aformats ) ) {
 			$sth = $dbh->prepare('INSERT INTO multiplechoice_answers (akey, qkey, answer, value, sorder) VALUES (?, ?, ?, ?, ?)');
 			foreach( $all_avalues as $avalues ) {
-				$sth->execute( $avalues );
+				$sth->execute( array($avalues) );
 			}
 		}
 
