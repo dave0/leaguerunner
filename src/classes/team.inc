@@ -74,7 +74,11 @@ class Team extends LeaguerunnerObject
 		global $dbh;
 		
 		if( is_null($this->_player_count) ) {
-			$sth = $dbh->prepare("SELECT COUNT(r.player_id) FROM teamroster r WHERE r.status IN ('player', 'captain', 'assistant') AND r.team_id = ?");
+			$sth = $dbh->prepare("SELECT COUNT(r.player_id)
+				FROM teamroster r
+				WHERE
+					r.status IN ('player', 'captain', 'assistant')
+					AND r.team_id = ?");
 			$sth->execute(array( $this->team_id));
 			$this->_player_count = $sth->fetchColumn();
 		}
@@ -397,6 +401,7 @@ function team_query( $array = array() )
 		l.tier AS league_tier,
 		l.day AS league_day, 
 		l.season AS league_season, 
+		l.year AS league_year, 
 		l.league_id,
 		(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + ($TZ_ADJUST * 60)) AS roster_deadline
 		FROM team t
