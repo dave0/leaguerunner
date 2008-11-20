@@ -49,6 +49,9 @@ function team_dispatch()
 		case 'emails':
 			$obj = new TeamEmails;
 			break;
+		case 'ical':
+			$obj = new TeamICALSchedule;
+			break;
 		default:
 			$obj = null;
 	}
@@ -62,55 +65,52 @@ function team_dispatch()
 
 function team_permissions ( &$user, $action, $id, $data_field )
 {
-	if( $user->status != 'active') {
-		return false;
-	}
-
 	switch( $action )
 	{
 		case 'create':
 			// Players can create teams at-will
-			return ($user->is_player());
+			return ($user && $user->is_active());
 		case 'list':
-		case 'view schedule':
 		case 'view':
-			// Everyone can list, view, and view schedule if they're a player
-			return ($user->is_player());
+			// Everyone can list and view if they're a player
+			return ($user && $user->is_active());
+		case 'view schedule':
+			return true;
 		case 'edit':
 		    if( $data_field == 'home_field' ) {
-				return ($user->is_admin());
+				return ($user && $user->is_admin());
 			}
-			return ($user->is_captain_of( $id ) );
+			return ($user && $user->is_captain_of( $id ) );
 		case 'player shirts':
-			if( $user->is_player_on( $id ) ) {
+			if( $user && $user->coordinates_league_containing( $id ) ) {
 				return true;
 			}
 			break;
 		case 'email':
-			if( $user->is_captain_of( $id ) ) {
+			if( $user && $user->is_captain_of( $id ) ) {
 				return true;
 			}
-			if( $user->coordinates_league_containing( $id ) ) {
+			if( $user && $user->coordinates_league_containing( $id ) ) {
 				return true;
 			}
 			break;
 		case 'player status':
-			if( $user->is_captain_of( $id ) ) {
+			if( $user && $user->is_captain_of( $id ) ) {
 				// Captain can adjust status of other players
 				return true;
 			}
-			if( $user->user_id == $data_field ) {
+			if( $user && $user->user_id == $data_field ) {
 				// Player can adjust status of self
 				return true;
 			}
 			break;
 		case 'delete':
-			if( $user->is_captain_of( $id ) ) {
+			if( $user && $user->is_captain_of( $id ) ) {
 				return true;
 			}
 			break;
 		case 'move':
-			if( $user->coordinates_league_containing( $id ) ) {
+			if( $user && $user->coordinates_league_containing( $id ) ) {
 				return true;
 			}
 			break;
@@ -118,8 +118,7 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			// admin-only
 			break;
 		case 'spirit':
-			return $user->is_player_on( $id );
-			break;
+			return ($user && $user->is_player_on( $id ));
 	}
 	return false;
 }
@@ -209,7 +208,7 @@ function team_splash ()
 			array(
 				l($team->name, "team/view/$team->id") . " ($team->position)",
 				array('data' => theme_links(array(
-						l("schedules", "team/schedule/$team->id"),
+						l("schedule", "team/schedule/$team->id"),
                   l("standings", "league/standings/$team->league_id/$team->team_id"))),
 					  'align' => 'right')
 		);
@@ -435,7 +434,7 @@ class TeamEdit extends Handler
 		}
 
 		if(strlen($errors) > 0) {
-			return $errors;
+			return "<ul>$errors</ul>";
 		} else {
 			return false;
 		}
@@ -866,7 +865,7 @@ class TeamRosterStatus extends Handler
 		global $dbh;
 		switch($this->currentStatus) {
 		case 'captain':
-			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster where status = ? AND team_id = ?');
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster WHERE status = ? AND team_id = ?');
 			$sth->execute( array('captain', $id));
 
 			if($sth->fetchColumn() <= 1) {
@@ -887,7 +886,7 @@ class TeamRosterStatus extends Handler
 		case 'player_request':
 			return array( 'none' );
 		case 'none':
-			$sth = $dbh->prepare('SELECT status from team where team_id = ?');
+			$sth = $dbh->prepare('SELECT status FROM team WHERE team_id = ?');
 			$sth->execute( array( $id ));
 			if($sth->fetchColumn() != 'open') {
 				error_exit("Sorry, this team is not open for new players to join");
@@ -980,7 +979,7 @@ class TeamRosterStatus extends Handler
 
 	function perform ( $edit )
 	{
-		global $lr_session, $dbh;
+		global $lr_session, $dbh, $BASE_URL;
 
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
@@ -1041,7 +1040,7 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captain' => $lr_session->user->fullname,
-					'%teamurl' => "http://www.tuc.org/page.php?url=/leaguerunner/team/view/{$this->team->team_id}",
+					'%teamurl' => "http://www.tuc.org/page.php?url=$BASE_URL/team/view/{$this->team->team_id}",
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,
@@ -1126,7 +1125,7 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captains' => join(',', $captain_names),
-					'%teamurl' => "http://www.tuc.org/page.php?url=/leaguerunner/team/view/{$this->team->team_id}",
+					'%teamurl' => "http://www.tuc.org/page.php?url=$BASE_URL/team/view/{$this->team->team_id}",
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,
@@ -1184,7 +1183,7 @@ class TeamView extends Handler
 			$team_name => "team/view/" . $this->team->team_id,
 			"View Team" => 0));
 
-		/* Now build up team data */
+		// Now build up team data
 		$rows = array();
 		if($this->team->website) {
 			$rows[] = array("Website:", l($this->team->website, $this->team->website));
@@ -1341,9 +1340,15 @@ class TeamView extends Handler
 
 		$rosterdata = "<div class='listtable'>" . table($header, $rows) . "</div>";
 
-		return table(null, array(
-			array( $teamdata, $rosterdata ),
-		));
+		if( variable_get('narrow_display', '0') ) {
+			$rc = $teamdata . '<p />' . $rosterdata;
+		} else {
+			$rc = table(null, array(
+				array( $teamdata, $rosterdata ),
+			));
+		}
+
+		return $rc;
 	}
 }
 
@@ -1465,13 +1470,14 @@ class TeamSchedule extends Handler
 					}
 				}
 			}
+			$field = field_load(array('fid' => $game->fid));
 			$rows[] = array(
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
 				$game->game_end,
 				$opponent_name,
-				l($game->field_code, "field/view/$game->fid"),
+				l($game->field_code, "field/view/$game->fid", array('title' => $field->fullname)),
 				$home_away,
 				$game_score,
 				$score_type
@@ -1484,7 +1490,13 @@ class TeamSchedule extends Handler
 		// add another row of dashes when you're done.
 		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 
-		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>";
+		// add iCal link
+		$ical_url = url("team/ical/".$this->team->team_id);
+
+		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
+		  . para("Get your team schedule in "
+		  . "<a href=\"$ical_url\"><img style=\"display: inline\" src=\"/images/misc/ical.gif\" alt=\"iCal\" /></a>"
+		  . " format or <a href=\"http://www.google.com/calendar/render?cid=$ical_url\" target=\"_blank\"><img style=\"display: inline; vertical-align: middle\" src=\"http://www.google.com/calendar/images/ext/gc_button6.gif\" alt=\"Add to Google Calendar\"></a>");
 	}
 }
 
@@ -1498,7 +1510,7 @@ class TeamSpirit extends Handler
 
 	function process ()
 	{
-		global $lr_session, $dbh;
+		global $lr_session, $dbh, $BASE_URL;
 		$this->title = "Team Spirit";
 
 		$this->setLocation(array(
@@ -1514,7 +1526,6 @@ class TeamSpirit extends Handler
 			error_exit("There are no games scheduled for this team");
 		}
 
-		$header = array();
 		$header = array(
 			"ID",
 			"Date",
@@ -1539,7 +1550,7 @@ class TeamSpirit extends Handler
 		$no_spirit_questions = 0;
 		$sotg_scores = array();
 
-		while(list(,$game) = each($games)) {
+		foreach($games as $game) {
 
 			if( ! $game->is_finalized() ) {
 				continue;
@@ -1590,14 +1601,19 @@ class TeamSpirit extends Handler
 			while( list($qkey,$answer) = each($entry) ) {
 
 				if( !$num_games ) {
+					if( variable_get('narrow_display', '0') ) {
+						$h = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $qkey );
+					} else {
+						$h = $qkey;
+					}
 					if( $qkey == 'CommentsToCoordinator') {
 						if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-							$header[] = $qkey;
+							$header[] = $h;
 						} else {
 							$header[] = '&nbsp;';
 						}
 					} else {
-						$header[] = $qkey;
+						$header[] = $h;
 					}
 				}
 				if( $qkey == 'CommentsToCoordinator' ) {
@@ -1616,13 +1632,13 @@ class TeamSpirit extends Handler
 					switch( $answer_values[$answer] ) {
 						case -3:
 						case -2:
-							$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+							$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
 							break;
 						case -1:
 							$thisrow[] = "-";
 							break;
 						case 0:
-							$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+							$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
 							break;
 						default:
 							$thisrow[] = "?";
@@ -1650,7 +1666,6 @@ class TeamSpirit extends Handler
 			error_exit("No games played, cannot display spirit");
 		}
 
-		$thisrow = array();
 		$thisrow = array(
 			"Average","-","-"
 		);
@@ -1662,16 +1677,21 @@ class TeamSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='/leaguerunner/misc/x.png' />";
+				$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {
 				$thisrow[] = "-";
 			} else {
-				$thisrow[] = "<img src='/leaguerunner/misc/check.png' />";
+				$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
 			}
 		}
+		$thisrow[] = '';
 		$rows[] = $thisrow;
 
-		return table($header,$rows, array('alternate-colours' => true) );
+		$style = '#main table td { font-size: 80% }';
+		if( variable_get('narrow_display', '0') ) {
+			$style .= ' th { font-size: 70%; }';
+		}
+		return "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
 	}
 }
 
@@ -1730,12 +1750,12 @@ function team_statistics ( )
 	$rows = array();
 
 	$current_season = variable_get('current_season', 'Summer');
-	
+
 	$sth = $dbh->prepare('SELECT COUNT(*) FROM team');
 	$sth->execute();
 	$rows[] = array("Number of teams (total):", $sth->fetchColumn() );
 
-	$sth = $dbh->prepare('SELECT l.season, COUNT(*) FROM leagueteams t, league l WHERE t.league_id = l.league_id GROUP BY l.season');
+	$sth = $dbh->prepare('SELECT l.season, COUNT(*) FROM leagueteams t, league l WHERE t.league_id = l.league_id AND l.status = "open" GROUP BY l.season');
 	$sth->execute();
 	$sub_table = array();
 	while($row = $sth->fetch(PDO::FETCH_ASSOC) ) {
@@ -1743,14 +1763,15 @@ function team_statistics ( )
 	}
 	$rows[] = array("Teams by season:", table(null, $sub_table));
 
-	$sth = $dbh->prepare("SELECT t.team_id,t.name, COUNT(r.player_id) as size
-        FROM teamroster r, league l, leagueteams lt, team t
+	$sth = $dbh->prepare("SELECT t.team_id,t.name, COUNT(r.player_id) as size 
+        FROM teamroster r, league l, leagueteams lt
+        LEFT JOIN team t ON (t.team_id = r.team_id) 
         WHERE
                 lt.team_id = r.team_id
                 AND l.league_id = lt.league_id
+				AND l.status = 'open'
                 AND l.schedule_type != 'none'
 				AND l.season = ?
-				AND t.team_id = r.team_id
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         GROUP BY t.team_id
         HAVING size < 12
