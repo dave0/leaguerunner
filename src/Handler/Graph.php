@@ -393,7 +393,7 @@ class GraphRosterSize extends Handler
                 AND (r.status = 'player' OR r.status = 'captain' OR r.status = 'assistant')
         	GROUP BY t.team_id 
         	ORDER BY size desc");
-		$sth->execute( $current_season);
+		$sth->execute(array($current_season));
 		$sizes = array();
 		while($size = $sth->fetchColumn() ) { 
 			$sizes[$size]++;
