@@ -872,7 +872,7 @@ class EventView extends Handler
 		$prereq_count = $sth->fetchColumn();
 		if (! $prereq_count )
 		{
-			$output .= para('You may register for this because there are no prerequisites.', array('class' => 'open'));
+			$output .= para("You may " . l('register for this', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)) . " because there are no prerequisites.", array('class' => 'open'));
 			$can_register = true;
 		}
 		else
@@ -882,7 +882,7 @@ class EventView extends Handler
 			while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
 				if( is_paid ($prereq) )
 				{
-					$output .= para("You may register for this because you have previously registered for $prereq->name.", array('class' => 'open'));
+					$output .= para("You may " . l('register for this', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)) . " because you have previously registered for $prereq->name.", array('class' => 'open'));
 					$can_register = true;
 				}
 			}
@@ -890,7 +890,7 @@ class EventView extends Handler
 
 		if ($can_register)
 		{
-			$output .= para(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)));
+			$output .= h2(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name, 'style' => 'text-decoration: underline;')));
 			// There may be a payment-pending registration already done,
 			// if multiples are allowed, so we allow for payment to be made.
 			return $output . $payment;
