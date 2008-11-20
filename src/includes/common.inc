@@ -6,9 +6,9 @@
  */
 
 /*
- * HTTP-mangling 
+ * HTTP-mangling
  */
-function local_redirect($url) 
+function local_redirect($url)
 {
     global $headers_sent;
     $url = str_replace("&amp;", "&", $url);
@@ -57,15 +57,15 @@ function valid_input_data($data) {
       }
     }
   }
-  else {  
+  else {
     /*
     ** Detect evil input data.
     */
 
     // check strings:
-    $match  = preg_match("/\Wjavascript\s*:/i", $data); 
-    $match += preg_match("/\Wexpression\s*\(/i", $data); 
-    $match += preg_match("/\Walert\s*\(/i", $data); 
+    $match  = preg_match("/\Wjavascript\s*:/i", $data);
+    $match += preg_match("/\Wexpression\s*\(/i", $data);
+    $match += preg_match("/\Walert\s*\(/i", $data);
 
     // check attributes:
     $match += preg_match("/\W(dynsrc|datasrc|data|lowsrc|on[a-z]+)\s*=[^>]+?>/i", $data);
@@ -101,7 +101,7 @@ function request_uri() {
   if (isset($_SERVER["REQUEST_URI"])) {
     $uri = $_SERVER["REQUEST_URI"];
   }
-  else {  
+  else {
     $uri = $_SERVER["PHP_SELF"] ."?". $_SERVER["QUERY_STRING"];
   }
 
@@ -123,10 +123,10 @@ function array2object($ary) {
 
   if (is_array($ary)) {
     foreach ($ary as $key => $value) {
-      $object->$key = $value; 
+      $object->$key = $value;
     }
   }
-  else {  
+  else {
     $object = $ary;
   }
 
@@ -140,7 +140,7 @@ function object2array($obj) {
       $array[$key] = $value;
     }
   }
-  else {  
+  else {
     $array = $obj;
   }
 
@@ -163,7 +163,7 @@ function variable_init( $conf = array() )
 	return $conf;
 }
 
-function variable_get($name, $default) 
+function variable_get($name, $default)
 {
 	global $conf;
 	if( isset($conf[$name]) ) {
@@ -173,7 +173,7 @@ function variable_get($name, $default)
 	}
 }
 
-function variable_set($name, $value) 
+function variable_set($name, $value)
 {
 	global $conf,$dbh;
 
@@ -187,7 +187,7 @@ function variable_set($name, $value)
 	$conf[$name] = $value;
 }
 
-function variable_del($name) 
+function variable_del($name)
 {
 	global $conf,$dbh;
 	$sth = $dbh->prepare('DELETE FROM variable WHERE name = ?');
@@ -388,9 +388,12 @@ function url($url = NULL, $query = NULL) {
 }
 
 
-function format_street_address( $street, $city, $province, $postalcode)
+function format_street_address( $street, $city, $province, $country, $postalcode)
 {
-	$foo =  "$street<br />\n$city, $province<br />\n$postalcode";
+	$arr = array ($city, $province);
+	if (! empty ($country))
+		$arr[] = $country;
+	$foo =  "$street<br />\n" . join (', ', $arr) . "<br />\n$postalcode";
 	$prov_abbr = substr($province,0,2);
 	$street_uri = strtr($street, array(' ' => '+'));
 	$foo .= "<br />[&nbsp;<a href=\"http://maps.google.com?q=$street_uri,+$city,+$province&hl=en\">maps.google.com</a>&nbsp;|&nbsp;<a href=\"http://www.mapquest.com/maps/map.adp?country=ca&zoom=7&city=$city&state=$prov_abbr&address=$street_uri\">MapQuest</a>&nbsp;]";
@@ -406,7 +409,7 @@ function check_url($uri) {
   */
 
   $uri = strtr($uri, array("(" => "&040;", ")" => "&041;"));
-  
+
   return $uri;
 }
 
@@ -472,7 +475,7 @@ function page_links ($prefix, $page, $total)
 /*
  * Form-generation functions
  */
-			
+
 function form($form, $method = "post", $action = 0, $options = 0)
 {
 	if (!$action) {
@@ -482,7 +485,7 @@ function form($form, $method = "post", $action = 0, $options = 0)
 }
 
 /* Displays a form item.  Called by other form_ functions */
-function form_item($title, $value, $description = 0) 
+function form_item($title, $value, $description = 0)
 {
 	if ($title) {
 		$colon = ':';
@@ -498,35 +501,34 @@ function form_item($title, $value, $description = 0)
 	return "<div class=\"form-item\">". $title . $value . ($description ? "<div class=\"description\">$description</div>" : "") ."</div>\n";
 }
 
-function form_group($legend, $group, $description = NULL) 
+function form_group($legend, $group, $description = NULL)
 {
 	return "<fieldset>" . ($legend ? "<legend>$legend</legend>" : "") . $group . ($description ? "<div class=\"description\">$description</div>" : "") . "</fieldset>\n";
 }
-  
 
-function form_radio($title, $name, $value = 1, $checked = 0, $description = 0) 
+function form_radio($title, $name, $value = 1, $checked = 0, $description = 0)
 {
 	return form_item(0, "<input type=\"radio\" class=\"form-radio\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
-function form_checkbox($title, $name, $value = 1, $checked = 0, $description = 0) 
+function form_checkbox($title, $name, $value = 1, $checked = 0, $description = 0)
 {
 	return form_item(0, "<input type=\"checkbox\" class=\"form-checkbox\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
-function form_textfield($title, $name, $value, $size, $maxlength, $description = 0) 
+function form_textfield($title, $name, $value, $size, $maxlength, $description = 0)
 {
 	$size = $size ? " size=\"$size\"" : "";
 	return form_item($title, "<input type=\"text\" maxlength=\"$maxlength\" class=\"form-text\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
-function form_password($title, $name, $value, $size, $maxlength, $description = 0) 
+function form_password($title, $name, $value, $size, $maxlength, $description = 0)
 {
 	$size = $size ? " size=\"$size\"" : "";
 	return form_item($title, "<input type=\"password\" class=\"form-password\" maxlength=\"$maxlength\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
-function form_textarea($title, $name, $value, $cols, $rows, $description = 0) 
+function form_textarea($title, $name, $value, $cols, $rows, $description = 0)
 {
 	$cols = $cols ? " cols=\"$cols\"" : "";
 	return form_item($title, "<textarea wrap=\"virtual\"$cols rows=\"$rows\" name=\"$name\" id=\"$name\">". check_form($value) ."</textarea>", $description);
@@ -543,7 +545,7 @@ function form_radiogroup($title, $name, $value, $options, $description = 0)
 	}
 }
 
-function __form_select($name, $value, $options, $extra = 0, $multiple = 0) 
+function __form_select($name, $value, $options, $extra = 0, $multiple = 0)
 {
 	if (count($options) > 0) {
 		foreach ($options as $key=>$choice) {
@@ -554,7 +556,7 @@ function __form_select($name, $value, $options, $extra = 0, $multiple = 0)
 }
 
 
-function form_select($title, $name, $value, $options, $description = 0, $extra = 0, $multiple = 0) 
+function form_select($title, $name, $value, $options, $description = 0, $extra = 0, $multiple = 0)
 {
 	if (count($options) > 0) {
 		return form_item($title, __form_select($name, $value, $options, $extra, $multiple), $description);
@@ -564,17 +566,17 @@ function form_select($title, $name, $value, $options, $description = 0, $extra =
 function form_select_date($title,$prefix,$value, $startYear, $endYear, $description)
 {
 	list($value_year, $value_month, $value_day) = split("-", $value);
-	$allSelect = __form_select($prefix . '[year]', $value_year, 
+	$allSelect = __form_select($prefix . '[year]', $value_year,
 		getOptionsFromRange($startYear, $endYear, 'reverse'));
-	$allSelect .= __form_select($prefix . '[month]', $value_month, 
+	$allSelect .= __form_select($prefix . '[month]', $value_month,
 		getOptionsFromRange('1','12'));
-	$allSelect .= __form_select($prefix . '[day]', $value_day, 
+	$allSelect .= __form_select($prefix . '[day]', $value_day,
 		getOptionsFromRange('1','31'));
-		
+
 	return form_item($title, $allSelect, $description);
 }
 
-function form_radios($title, $name, $value, $options, $description = 0) 
+function form_radios($title, $name, $value, $options, $description = 0)
 {
 	if (count($options) > 0) {
 		foreach ($options as $key=>$choice) {
@@ -584,22 +586,22 @@ function form_radios($title, $name, $value, $options, $description = 0)
 	}
 }
 
-function form_file($title, $name, $size, $description = 0) 
+function form_file($title, $name, $size, $description = 0)
 {
 	return form_item($title, "<input type=\"file\" class=\"form-file\" name=\"$name\" size=\"$size\" />\n", $description);
 }
 
-function form_hidden($name, $value) 
+function form_hidden($name, $value)
 {
 	return "<input type=\"hidden\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
-function form_submit($value, $name = "submit", $javascript = "") 
+function form_submit($value, $name = "submit", $javascript = "")
 {
 	return "<input type=\"submit\" class=\"form-submit\" name=\"$name\" value=\"". check_form($value) ."\" $javascript/>\n";
 }
 
-function form_reset($value, $name = "reset") 
+function form_reset($value, $name = "reset")
 {
 	return "<input type=\"reset\" class=\"form-reset\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
@@ -627,15 +629,15 @@ function validate_date_input ( $year, $month, $day )
 	$current = localtime(time(),1);
 	$this_year = $current['tm_year'] + 1900;
 
-	/* Checkdate doesn't check that the year is sane, so we have to 
-	 * do it ourselves.  Our sanity window is that anything earlier 
-	 * than 80 years ago, and anything 5 years in the future must be 
+	/* Checkdate doesn't check that the year is sane, so we have to
+	 * do it ourselves.  Our sanity window is that anything earlier
+	 * than 80 years ago, and anything 5 years in the future must be
 	 * bogus.
 	 */
 	if( ($year < $this_year - 80) || ($year > $this_year + 5) ) {
 		return false;
 	}
-	
+
 	if(!checkdate($month, $day, $year) ) {
 		return false;
 	}
@@ -661,7 +663,7 @@ function validate_name_input ( $string )
 	return true;
 }
 
-function validate_telephone_input( $string ) 
+function validate_telephone_input( $string )
 {
 	if( !validate_nonblank($string) ) {
 		return false;
@@ -671,7 +673,7 @@ function validate_telephone_input( $string )
 	}
 	return true;
 }
-	
+
 function validate_email_input ( $string )
 {
 	if( !validate_nonblank($string) ) {
@@ -694,9 +696,9 @@ function validate_email_input ( $string )
  */
 function validate_address ( $street, $city, $prov, $postalcode, $country )
 {
-    if( $country == 'CA' ) {
+    if( $country == 'Canada' ) {
         return validate_ca_address( $street, $city, $prov, $postalcode );
-    } else if( $country == 'US' ) {
+    } else if( $country == 'United States' ) {
         return validate_us_address( $street, $city, $prov, $postalcode );
     } else {
         return array( "That is not a valid country" );
@@ -704,7 +706,7 @@ function validate_address ( $street, $city, $prov, $postalcode, $country )
 }
 
 /**
- * 
+ *
  * Validates a Canadian address
  * @param string $street Street address (incl street name, house number,etc)
  * @param string $city   City name
@@ -719,7 +721,7 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
     if( ! validate_nonhtml( $street ) ) {
         array_push( $errors, 'You must supply a valid street address');
     }
-    
+
     if( ! validate_nonhtml( $city ) ) {
         array_push( $errors, 'You must supply a city');
     }
@@ -732,14 +734,11 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
         array_push( $errors, "You must enter a valid Canadian postalcode for province: $prov");
     }
 
-    if( count( $errors ) ) {
-        return $errors;
-    }
-    return array();
+	return $errors;
 }
 
 /**
- * 
+ *
  * Validates a USA address
  * @param string $street Street address (incl street name, house number,etc)
  * @param string $city   City name
@@ -749,28 +748,25 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
 function validate_us_address ( $street, $city, $state, $zip)
 {
     $errors = array();
-    
+
     # Street and city must only be non-HTML
     if( ! validate_nonhtml( $street ) ) {
         array_push( $errors, 'You must supply a valid street address');
     }
-    
+
     if( ! validate_nonhtml( $city ) ) {
         array_push( $errors, 'You must supply a city');
     }
 
-    if( ! validate_state_abbrev( $state ) ) {
+    if( ! validate_state_full( $state ) ) {
         array_push( $errors, 'You must select a valid US state or territory');
     }
 
     if( ! validate_us_zipcode( $zip, $state ) ) {
         array_push( $errors, 'You must enter a valid US Zip code');
     }
-    
-    if( count( $errors ) ) {
-        return $errors;
-    }
-    return true;
+
+	return $errors;
 }
 
 /**
@@ -859,7 +855,7 @@ function validate_canadian_postalcode ( $postalcode, $prov )
             $sRegExp = 'E';
             break;
         case 'QC':          // Quebec
-        CASE 'QUEBEC':
+        case 'QUEBEC':
             $sRegExp = '[GHJ]';
             break;
         case 'ON':          // Ontario
@@ -903,6 +899,75 @@ function validate_canadian_postalcode ( $postalcode, $prov )
     return (bool) preg_match($sRegExp, strtoupper($postalcode));
 }
 
+/**
+ * Validate US states
+ *
+ * @param string $prov Full state name
+ */
+function validate_state_full( $prov )
+{
+        switch (strtolower($prov)) {
+			case 'alabama':
+			case 'alaska':
+			case 'arizona':
+			case 'arkansas':
+			case 'california':
+			case 'colorado':
+			case 'connecticut':
+			case 'delaware':
+			case 'florida':
+			case 'georgia':
+			case 'hawaii':
+			case 'idaho':
+			case 'illinois':
+			case 'indiana':
+			case 'iowa':
+			case 'kansas':
+			case 'kentucky':
+			case 'louisiana':
+			case 'maine':
+			case 'maryland':
+			case 'massachusetts':
+			case 'michigan':
+			case 'minnesota':
+			case 'mississippi':
+			case 'missouri':
+			case 'montana':
+			case 'nebraska':
+			case 'nevada':
+			case 'new hampshire':
+			case 'new jersey':
+			case 'new mexico':
+			case 'new york':
+			case 'north carolina':
+			case 'north dakota':
+			case 'ohio':
+			case 'oklahoma':
+			case 'oregon':
+			case 'pennsylvania':
+			case 'rhode island':
+			case 'south carolina':
+			case 'south dakota':
+			case 'tennessee':
+			case 'texas':
+			case 'utah':
+			case 'vermont':
+			case 'virginia':
+			case 'washington':
+			case 'west virginia':
+			case 'wisconsin':
+			case 'wyoming';
+                return true;
+        }
+        return false;
+}
+
+function validate_us_zipcode ( $zipcode, $state )
+{
+	// TODO: Real validation
+	return true;
+}
+
 function validate_nonblank( $string )
 {
 	if( strlen(trim($string)) <= 0 ) {
@@ -915,7 +980,7 @@ function validate_nonblank( $string )
  * Clean up a telephone number so that it's in a common format
  * Assumption: phone number has passed validate_telephone_input()
  */
-function clean_telephone_number( $string ) 
+function clean_telephone_number( $string )
 {
 	$matches = array();
 	preg_match("/^\(?(\d{3})\)?\s*[-.]?\s*(\d{3})\s*[-.]?\s*(\d{4})\s*(?:[ext\.]*\s*(\d+))?$/", $string, $matches);
@@ -924,7 +989,7 @@ function clean_telephone_number( $string )
 	if(count($matches) == 5) {
 		$clean .= " x" . $matches[4];
 	}
-	
+
 	return $clean;
 }
 
@@ -956,7 +1021,7 @@ function numberToOrdinal ( $num )
 
 
 /**
- ** Miscellaneous stuff. 
+ ** Miscellaneous stuff.
  ** TODO: Some of this is old code that might be best removed entirely.
  */
 
@@ -988,7 +1053,17 @@ function getProvinceNames()
 	return $ary;
 }
 
-/** 
+function GetCountryNames()
+{
+	$names = array('Canada', 'United States');
+	$ary = array();
+	while(list(,$name) = each($names)) {
+		$ary[$name] = $name;
+	}
+	return $ary;
+}
+
+/**
  * Helper fn to get shirt sizes for pulldown list
  */
 function getShirtSizes()
@@ -1028,13 +1103,13 @@ function getRosterPositions()
 		'captain_request'   => "request to join by captain",
 		'player_request'    => "request to join by player",
 		'coach'	            => "coach",
-		'captain'	    => "captain",
-		'assistant'	    => "assistant captain",
-		'none'	            => "not on team",
+		'captain'	        => "captain",
+		'assistant'	        => "assistant captain",
+		'none'              => "not on team",
 	);
 }
 
-/** 
+/**
  * Helper fn to set up allowed values for an option list.
  * Use in preference to get_numeric_options, as that fn is deprecated
  */
@@ -1102,7 +1177,7 @@ function getOptionsFromEnum( $table, $col_name )
 	foreach($ary as $val) {
 		$options[$val] = $val;
 	}
-	
+
 	return $options;
 }
 
@@ -1120,7 +1195,7 @@ function getOptionsFromQuery( $sql, $data = array() )
 
 	$options[0] = "-- select from list --"	;
 	while($row = $sth->fetch() ) {
-		$options[$row['theKey']] = $row['theValue'];	
+		$options[$row['theKey']] = $row['theValue'];
 	}
 	return $options;
 }
@@ -1138,7 +1213,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$allDays = array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
 
 	$max = sizeof($highlightWeekdays);
-	for($i = 0; $i < $max; $i++) 
+	for($i = 0; $i < $max; $i++)
 	{
 		$highlightWeekdays[$i] = array_search($highlightWeekdays[$i], $allDays);
 	}
@@ -1151,7 +1226,7 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$startOfMonth = mktime(6, 0, 0, $month, 1, $year);
 	$firstDayOfWeek = date("w", $startOfMonth);
 	$numberOfDays = date("t", $startOfMonth);
-	
+
 	if($month == 1) {
 		$nextMonth = $month + 1;
 		$nextYear  = $year;
@@ -1172,19 +1247,19 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 	$output .= "\n<!-- calendar -->\n";
 	$output .= "<div class='calendar'>";
 	$output .= "<table border='1' cellspacing='0'>\n";
-	$output .= "<tr>" 
+	$output .= "<tr>"
 		. "<td colspan='7' class='header_month'>"
 		. l("<<<", "$calendarOp/$prevYear/$prevMonth")
 		. " " . date("F Y", $startOfMonth)
 		. " " . l(">>>", "$calendarOp/$nextYear/$nextMonth")
 		. "</td></tr>";
 
-	/* Generate days of the week headers 
+	/* Generate days of the week headers
 	 * The year 1995 was chosen because January 1995 starts on a Monday
 	 */
 	$firstcolumn = mktime(6, 0, 0, 1, 1, 1995);
 	$output .= " <tr class=\"header-week\">";
-	
+
 	foreach($allDays as $dayName) {
 		$output .= "<td>" . substr($dayName,0,2) . "</td>";
 	}
@@ -1207,11 +1282,11 @@ function generateCalendar( $year, $month, $day, $calendarOp, $dayOp, $highlightW
 		} else {
 			$attributes = '';
 		}
-		
+
 		$output .= "<td $attributes>"
 		. l($curDate, "$dayOp/$year/$month/$curDate")
 		. "</td>";
-		
+
 		if($curColumn == 6) {
 			$output .= "</tr>\n";
 		}
@@ -1239,31 +1314,31 @@ if ( !function_exists( 'fputcsv' ) )
 		// $filePointer = the file resource to write to
 		// $dataArray = the data to write out
 		// $delimeter = the field separator
-	 
+
 		// Build the string
 		$string = "";
-	 
+
 		// No leading delimiter
 		$writeDelimiter = FALSE;
 		foreach($dataArray as $dataElement)
 		{
 			// Replaces a double quote with two double quotes
 			$dataElement=str_replace("\"", "\"\"", $dataElement);
-		
+
 			// Adds a delimiter before each field (except the first)
 			if($writeDelimiter)
 				$string .= $delimiter;
-		
+
 			// Encloses each field with $enclosure and adds it to the string
 			$string .= $enclosure . $dataElement . $enclosure;
-		
+
 			// Delimiters are used every time except the first.
 			$writeDelimiter = TRUE;
 		}
-	 
+
 		// Append new line
 		$string .= "\n";
-	 
+
 		// Write the string to the file
 		fwrite($filePointer,$string);
 	}
@@ -1296,7 +1371,7 @@ function calculateAverageSOTG ( $scores , $drop = false ) {
 		$total = $total - $high - $low;
 		$size = $size - 2;
 	}
-	
+
 	return $total / $size;
 }
 
