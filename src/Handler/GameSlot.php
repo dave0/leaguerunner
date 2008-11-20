@@ -466,7 +466,7 @@ class GameSlotListDay extends Handler
 			return $output;
 		}
 	}
-	
+
 	function display_for_day ( $year, $month, $day )
 	{
 		global $lr_session;
