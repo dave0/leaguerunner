@@ -45,7 +45,7 @@ class ScheduleViewDay extends Handler
 		$year  = arg(2);
 		$month = arg(3);
 		$day   = arg(4);
-		
+
 		if(! validate_number($month)) {
 			$month = $today['mon'];
 		}
@@ -53,7 +53,7 @@ class ScheduleViewDay extends Handler
 		if(! validate_number($year)) {
 			$year = $today['year'];
 		}
-		
+
 		if( $day ) {
 			if( !validate_date_input($year, $month, $day) ) {
 				return "That date is not valid";
@@ -76,7 +76,11 @@ class ScheduleViewDay extends Handler
 	function displayGamesForDay ( $year, $month, $day )
 	{
 		$sth = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
-		
+
+		if( ! $sth->rowCount() ) {
+			error_exit("That league does not have a schedule");
+		}
+
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
 			schedule_subheading( ),
@@ -101,18 +105,17 @@ class ScheduleEdit extends Handler
 		global $lr_session;
 		return $lr_session->has_permission('league','edit schedule',$this->league->league_id);
 	}
-	
+
 	function process ()
 	{
 		$dayId = arg(3);
 		$edit = $_POST['edit'];
 		$this->title = "Edit Schedule";
-		
+
 		if( ! $this->league ) {
 			error_exit("That league does not exist");
 		}
 
-		
 		switch($edit['step']) {
 			case 'perform':
 				$this->perform($dayId, $edit);
@@ -153,6 +156,10 @@ class ScheduleEdit extends Handler
 
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
+		if( ! $sth->rowCount() ) {
+			error_exit("That league does not have a schedule");
+		}
+
 		$prevDayId = -1;
 		$rows = array();
 		/* For each game in the schedule for this league */
@@ -165,25 +172,25 @@ class ScheduleEdit extends Handler
 						array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
 					);
 				}
-				
+
 				$rows[] = schedule_heading( 
 					strftime('%a %b %d %Y', $game->timestamp),
 					false,
 					$game->day_id, $this->league->league_id );
-				
+
 				if($timestamp == $game->day_id) {
 					$rows[] = schedule_edit_subheading();
 				} else {
 					$rows[] = schedule_subheading( );
 				}
 			}
-			
+
 			if($timestamp == $game->day_id) {
 				$rows[] = schedule_render_editable($game, $this->league);
 			} else {
 				$rows[] = schedule_render_viewable($game);
 			}
-			$prevDayId = $game->day_id;	
+			$prevDayId = $game->day_id;
 		}
 		if( $timestamp == $prevDayId ) {
 			/* ensure we add the submit buttons for schedule editing */
@@ -196,13 +203,13 @@ class ScheduleEdit extends Handler
 
 		return form($output);
 	}
-	
+
 	function isDataInvalid ($games) 
 	{
 		if(!is_array($games) ) {
 			return "Invalid data supplied for games";
 		}
-	
+
 		$rc = true;
 		$seen_slot = array();
 		$seen_team = array();
@@ -217,7 +224,7 @@ class ScheduleEdit extends Handler
 			if ($game['slot_id'] == 0) {
 				return "You cannot choose the '---' as the game time/place!";
 			}
-			
+
 			if(in_array($game['slot_id'], $seen_slot) ) {
 				return "Cannot schedule the same gameslot twice";
 			} else {
@@ -245,7 +252,7 @@ class ScheduleEdit extends Handler
 			// TODO Check the database to ensure that no other game is
 			// scheduled on this field for this timeslot
 		}
-		
+
 		return false;
 	}
 
@@ -256,7 +263,7 @@ class ScheduleEdit extends Handler
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
-		
+
 		$gameslots = $this->league->get_gameslots($dayId);
 		if( count($gameslots) <= 1 ) {
 			error_exit("There are no fields assigned to this league!");
@@ -299,13 +306,13 @@ class ScheduleEdit extends Handler
 				);
 			}
 		}
-		
+
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		$output .= para(form_submit('submit'));
-		
+
 		return form($output);
 	}
-	
+
 	function perform ($dayId, $edit) 
 	{
 		global $dbh;
@@ -362,7 +369,7 @@ class ScheduleView extends Handler
 	{
 		global $lr_session;
 		$this->title = "View Schedule";
-		
+
 		if( !$this->league ) {
 			error_exit("That league does not exist");
 		}
@@ -376,6 +383,10 @@ class ScheduleView extends Handler
 		 */
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
+		if( ! $sth->rowCount() ) {
+			error_exit("That league does not have a schedule");
+		}
+
 		$prevDayId = -1;
 		$rows = array();
 		while( $game = $sth->fetchObject('Game') ) {
@@ -387,15 +398,15 @@ class ScheduleView extends Handler
 					$game->day_id, $this->league->league_id );
 				$rows[] = schedule_subheading( );
 			}
-			
+
 			$rows[] = schedule_render_viewable($game);
-			$prevDayId = $game->day_id;	
+			$prevDayId = $game->day_id;
 		}
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
 		return form($output);
 	}
 }
-	
+
 function schedule_heading( $date, $canEdit = false, $dayId = 0, $leagueId = 0 )
 {
 	$header = array(
@@ -513,7 +524,7 @@ function schedule_render_viewable( &$game )
 			$awayTeam = "Not yet scheduled.";
 		}
 	}
-	
+
 	$gameRow = array(
 		l($game->game_id, 'game/view/' . $game->game_id),
 		"$game->game_start - $game->game_end",
@@ -535,7 +546,7 @@ function schedule_render_viewable( &$game )
 		$gameRow[] = $awayTeam;
 		$gameRow[] = $game->away_score;
 	}
-	
+
 	return $gameRow;
 }
 ?>
