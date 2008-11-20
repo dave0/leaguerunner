@@ -31,7 +31,7 @@ function sess_destroy($key)
 {
 	global $dbh;
 	$sth = $dbh->prepare("UPDATE person SET session_cookie = '' WHERE session_cookie = ?");
-	$sth->execute($key);
+	$sth->execute(array($key));
 }
 
 function sess_gc($lifetime)
