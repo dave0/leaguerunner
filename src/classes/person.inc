@@ -12,7 +12,7 @@ class Person extends LeaguerunnerObject
 		if(!$this->height) {
 			$this->height = 0;
 		}
-		
+
 		if( ! $this->user_id ) {
 			return;
 		}
@@ -78,12 +78,12 @@ class Person extends LeaguerunnerObject
 				l.schedule_type,
 				l.status AS league_status,
 				m.status
-			 FROM 
+			FROM
 			 	leaguemembers m 
 				INNER JOIN league l ON (m.league_id = l.league_id)
-			 WHERE
+			WHERE
 				m.status = 'coordinator'
-			 AND
+			AND
 				m.player_id = ?
 			 ORDER BY l.year, l.season, l.day, l.name, l.tier");
 		$sth->setFetchMode(PDO::FETCH_CLASS, 'League', array(LOAD_OBJECT_ONLY));
@@ -394,7 +394,7 @@ class Person extends LeaguerunnerObject
 	{
 		global $dbh;
 		if($this->is_admin()) { return true; }
-	
+
 		$sth = $dbh->prepare('SELECT league_id FROM leagueteams WHERE team_id = ?');
 		$sth->execute($team_id);
 		$league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
@@ -416,7 +416,6 @@ class Person extends LeaguerunnerObject
 				LEFT JOIN nuke_users np ON np.pn_uid = p.user_id
 				LEFT JOIN nuke_users nq ON nq.pn_uid = q.user_id
 				WHERE q.user_id = ?
-					AND p.gender = q.gender
 					AND p.user_id <> q.user_id
 					AND (
 						np.pn_email = nq.pn_email
@@ -433,7 +432,6 @@ class Person extends LeaguerunnerObject
 				p.lastname
 				FROM person p, person q 
 				WHERE q.user_id = ?
-					AND p.gender = q.gender
 					AND p.user_id <> q.user_id
 					AND (
 						p.email = q.email
@@ -453,14 +451,13 @@ class Person extends LeaguerunnerObject
 		return $sth;
 	}
 
-
 }
 
 function person_query ( $array = array() )
 {
 	global $dbh;
 
-	$query  = array();
+	$query = array();
 	$params = array();
 
 	foreach ($array as $key => $value) {
