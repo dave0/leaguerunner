@@ -128,7 +128,7 @@
 		<td><?php print $info->addr_postalcode; ?></td>
 	</tr>
 	<tr>
-		<td>Canada</td>
+		<td><?php print $info->addr_country; ?></td>
 	</tr>
 	<tr>
 		<td><?php print $info->home_phone; ?></td>
@@ -136,11 +136,6 @@
 	<tr><td>&nbsp;</td></tr>
 
 	<tr><td bgcolor="#EEEEEE"><strong>Registration Refund Policy</strong></td></tr>
-	<tr><td>Refund requests should be directed to gm@tuc.org. Refunds are granted under the following conditions:<ul>
-		<li>If a member decides to quit after playing less than 25% of their games, a refund will be granted, less a 10% administration fee</li>
-		<li>If a member or team is incorrectly charged or charged more than once for their registration a refund will be granted for the incorrect difference</li>
-		<li>Pro-rated refunds can be requested in extraordinary circumstances (e.g. if a player becomes seriously injured after playing more than 25% of their games) and are at the discretion of the GM</li>
-		<li>Other situations may warrant a refund, at the discretion of the GM</li>
-		</ul>Appeals of the GM's refusal to grant a refund or partial refund should be directed to the TUC board at board@tuc.org.</td></tr>
+	<tr><td><?php print variable_get('refund_policy_text', ''); ?></td></tr>
 
 </table>
