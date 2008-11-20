@@ -130,12 +130,19 @@ function game_splash ()
 			 */
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
-				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
+				// need to match entered score order to displayed team order!
+				if ($entered->team_id == $game->home_id) {
+					$score = "$entered->score_for - $entered->score_against";
+				} else {
+					$score = "$entered->score_against - $entered->score_for";
+				}
+				$score .= " (unofficial, waiting for opponent)";
 			} else if($lr_session->has_permission('game','submit score', $game)
 				&& ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
 		}
+		$field = field_load(array('fid' => $game->fid));
 		array_unshift($rows, array(
 			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
@@ -143,7 +150,8 @@ function game_splash ()
 				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
 				" (away) at " .
-				l($game->field_code, "field/view/$game->fid")),
+				l($game->field_code, "field/view/$game->fid",
+				  array('title' => $field->fullname))),
 			$score
 		));
 	}
@@ -164,12 +172,19 @@ function game_splash ()
 			 */
 			$entered = $game->get_score_entry( $row->team_id );
 			if($entered) {
-				$score = "$entered->score_for - $entered->score_against (unofficial, waiting for opponent)";
+				// need to match entered score order to displayed team order!
+				if ($entered->team_id == $game->home_id) {
+					$score = "$entered->score_for - $entered->score_against";
+				} else {
+					$score = "$entered->score_against - $entered->score_for";
+				}
+				$score .= " (unofficial, waiting for opponent)";
 			} else if($lr_session->has_permission('game','submit score', $game)
 				&& ($game->timestamp < time()) ) {
 					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
 			}
 		}
+		$field = field_load(array('fid' => $game->fid));
 		$rows[] = array(
 			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
 			array('data' =>
@@ -177,7 +192,8 @@ function game_splash ()
 				" (home) vs. " .
 				l($game->away_name, "team/view/$game->away_id") .
 				" (away) at " .
-				l($game->field_code, "field/view/$game->fid")),
+				l($game->field_code, "field/view/$game->fid",
+				  array('title' => $field->fullname))),
 			$score
 		);
 	}
@@ -447,7 +463,7 @@ class GameCreate extends Handler
 
 		$tot_fields = $num_fields * $num_dates;
 		$output .= "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
-		
+
 		$sth = $dbh->prepare(
 			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = ? ORDER BY s.game_date, s.game_start");
 		$sth->execute( array( $this->league->league_id) );
@@ -860,19 +876,22 @@ class GameSubmit extends Handler
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
 
+		$win = variable_get('default_winning_score', 6);
+		$lose = variable_get('default_losing_score', 0);
+
 		$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
   function defaultCheckboxChanged() {
     if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
-        document.forms[0].elements['edit[score_for]'].value = "0";
+        document.forms[0].elements['edit[score_for]'].value = "$lose";
         document.forms[0].elements['edit[score_for]'].disabled = true;
-        document.forms[0].elements['edit[score_against]'].value = "6";
+        document.forms[0].elements['edit[score_against]'].value = "$win";
         document.forms[0].elements['edit[score_against]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][1].disabled = true;
     } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
-        document.forms[0].elements['edit[score_for]'].value = "6";
+        document.forms[0].elements['edit[score_for]'].value = "$win";
         document.forms[0].elements['edit[score_for]'].disabled = true;
-        document.forms[0].elements['edit[score_against]'].value = "0";
+        document.forms[0].elements['edit[score_against]'].value = "$lose";
         document.forms[0].elements['edit[score_against]'].disabled = true;
         document.forms[0].elements['edit[defaulted]'][0].disabled = true;
     } else {
@@ -891,16 +910,19 @@ ENDSCRIPT;
 
 	function interim_game_result( $edit, $opponent )
 	{
+		$win = variable_get('default_winning_score', 6);
+		$lose = variable_get('default_losing_score', 0);
+
 		$output = para( "For the game of " . $this->game->sprintf('short') . " you have entered:");
 		$rows = array();
 		switch($edit['defaulted']) {
 		case 'us':
-			$rows[] = array($this->team->name, "0 (defaulted)");
-			$rows[] = array($opponent->name, 6);
+			$rows[] = array($this->team->name, "$lose (defaulted)");
+			$rows[] = array($opponent->name, $win);
 			break;
 		case 'them':
-			$rows[] = array($this->team->name, 6);
-			$rows[] = array($opponent->name, "0 (defaulted)");
+			$rows[] = array($this->team->name, $win);
+			$rows[] = array($opponent->name, "$lose (defaulted)");
 			break;
 		default:
 			$rows[] = array($this->team->name, $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
@@ -1026,7 +1048,7 @@ class GameEdit extends Handler
 
 	function generateForm ( )
 	{
-		global $lr_session, $dbh;
+		global $lr_session, $dbh, $BASE_URL;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1174,7 +1196,7 @@ class GameEdit extends Handler
 			$stats_group .= form_item("Chance to win", table(null, array(
 				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
 				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))),
-				array("View the <a href='/leaguerunner/game/ratings/" . $game->game_id . "'>Ratings Table</a> for this game." ))
+				array("View the <a href='$BASE_URL/game/ratings/" . $game->game_id . "'>Ratings Table</a> for this game." ))
 				));
 			$output .= form_group("Statistics", $stats_group);
 
@@ -1280,18 +1302,21 @@ class GameEdit extends Handler
 		$home_spirit = formbuilder_load('team_spirit');
 		$away_spirit = formbuilder_load('team_spirit');
 
+		$win = variable_get('default_winning_score', 6);
+		$lose = variable_get('default_losing_score', 0);
+
 		switch($edit['status']) {
 			case 'home_default':
 				$home_spirit->bulk_set_answers($this->game->default_spirit('loser'));
 				$away_spirit->bulk_set_answers($this->game->default_spirit('winner'));
-				$edit['home_score'] = '0 (defaulted)';
-				$edit['away_score'] = '6';
+				$edit['home_score'] = "$lose (defaulted)";
+				$edit['away_score'] = $win;
 				break;
 			case 'away_default':
 				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
 				$home_spirit->bulk_set_answers($this->game->default_spirit('winner'));
-				$edit['home_score'] = '6';
-				$edit['away_score'] = '0 (defaulted)';
+				$edit['home_score'] = $win;
+				$edit['away_score'] = "$lose (defaulted)";
 				break;
 			case 'forfeit':
 				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
