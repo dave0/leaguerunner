@@ -145,7 +145,7 @@ function field_query ( $array = array() )
 {
 	global $dbh;
 
-	$query  = array();
+	$query = array();
 	$params = array();
 	$order = '';
 	foreach ($array as $key => $value) {

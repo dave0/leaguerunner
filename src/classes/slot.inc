@@ -134,7 +134,7 @@ class GameSlot extends LeaguerunnerObject
 		if( 1 != $sth->rowCount() ) {
 			return false;
 		}
-	
+
 		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() from gameslot');
 		$sth->execute();
 		$this->slot_id = $sth->fetchColumn();
@@ -143,8 +143,6 @@ class GameSlot extends LeaguerunnerObject
 
 	function delete ()
 	{
-		global $dbh;
-
 		if ( ! $this->_in_database ) {
 			return false;
 		}
