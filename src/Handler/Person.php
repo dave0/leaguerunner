@@ -144,10 +144,10 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 						$viewable_fields[] = 'email';
 					}
 
-					/* If the current user is a team captain, and the requested user is on
-					 * their team, they are allowed to view email/phone
-					 */
 					if($user->is_a_captain) {
+						/* If the current user is a team captain, and the requested user is on
+						 * their team, they are allowed to view email/phone
+						 */
 						foreach( $player->teams as $team ) {
 							if( $user->is_captain_of( $team->team_id ) &&
 								$team->position != 'captain_request' ) {
@@ -156,11 +156,39 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 								break;
 							}
 						}
+
+						/* If the current user is a team captain, and the requested user is
+						 * captain for a "nearby" team, they are allowed to view email/phone
+						 */
+						if($player->is_a_captain) {
+							foreach( $player->teams as $player_team ) {
+								if( $player->is_captain_of( $player_team->team_id ) ) {
+									foreach( $user->teams as $user_team ) {
+										if( $user->is_captain_of( $user_team->team_id ) &&
+											$player_team->league_id == $user_team->league_id )
+										{
+											$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+										}
+									}
+								}
+							}
+						}
 					}
 
 					/* Coordinator info is viewable */
 					if($player->is_a_coordinator) {
 						$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+					}
+
+					/* Coordinators get to see phone numbers of the captains they handle */
+					if($user->is_a_coordinator && $player->is_a_captain) {
+						foreach( $player->teams as $team ) {
+							if( $player->is_captain_of( $team->team_id ) &&
+								$user->coordinates_league_containing( $team->team_id ) )
+							{
+								$viewable_fields = array_merge($all_view_fields, $restricted_contact_fields);
+							}
+						}
 					}
 
 					// Finally, perform the check and return
@@ -285,6 +313,10 @@ class PersonView extends Handler
 			}
 		}
 
+		if($lr_session->has_permission('person','view',$person->user_id, 'user_id') ) {
+			$rows[] = array('Website User ID:', $person->user_id);
+		}
+
 		if($person->allow_publish_email == 'Y') {
 			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
 		} else {
@@ -311,6 +343,7 @@ class PersonView extends Handler
 					$person->addr_street,
 					$person->addr_city,
 					$person->addr_prov,
+					$person->addr_country,
 					$person->addr_postalcode
 				)
 			);
@@ -680,6 +713,7 @@ class PersonApproveNewAccount extends PersonView
 				$existing->set('addr_street', $this->person->addr_street);
 				$existing->set('addr_city', $this->person->addr_city);
 				$existing->set('addr_prov', $this->person->addr_prov);
+				$existing->set('addr_country', $this->person->addr_country);
 				$existing->set('addr_postalcode', $this->person->addr_postalcode);
 				$existing->set('gender', $this->person->gender);
 				$existing->set('birthdate', $this->person->birthdate);
@@ -772,7 +806,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		global $lr_session;
+		global $lr_session, $BASE_URL;
 		$output = <<<END_TEXT
 <script language="JavaScript" type="text/javascript">
 <!--
@@ -837,7 +871,9 @@ END_TEXT;
 
 		/* TODO: evil.  Need to allow Americans to use this at some point in
 		 * time... */
-		$group .= form_select('Province', 'edit[addr_prov]', $formdata['addr_prov'], getProvinceNames(), 'Select a province from the list');
+		$group .= form_select('Province', 'edit[addr_prov]', $formData['addr_prov'], getProvinceNames(), 'Select a province/state from the list');
+
+		$group .= form_select('Country', 'edit[addr_country]', $formData['addr_country'], getCountryNames(), 'Select a country from the list');
 
 		$group .= form_textfield('Postal Code', 'edit[addr_postalcode]', $formData['addr_postalcode'], 8, 7, 'Please enter a correct postal code matching the address above. ' . variable_get('app_org_short_name', 'the league') . ' uses this information to help locate new fields near its members.');
 
@@ -879,8 +915,8 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('/leaguerunner/data/rating.html')\">calculate your rating</a>"
-				"Please use the questionnaire to <a href=\"/leaguerunner/data/rating.html\" target='_new'>calculate your rating</a>"
+#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('$BASE_URL/data/rating.html')\">calculate your rating</a>"
+				"Please use the questionnaire to <a href=\"$BASE_URL/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
@@ -967,8 +1003,9 @@ END_TEXT;
 			form_hidden('edit[addr_street]',$edit['addr_street'])
 			. form_hidden('edit[addr_city]',$edit['addr_city'])
 			. form_hidden('edit[addr_prov]',$edit['addr_prov'])
+			. form_hidden('edit[addr_country]',$edit['addr_country'])
 			. form_hidden('edit[addr_postalcode]',$edit['addr_postalcode'])
-			. $edit['addr_street'] . "<br>" . $edit['addr_city'] . ", " . $edit['addr_prov'] . "<br>" . $edit['addr_postalcode']);
+			. "{$edit['addr_street']}<br>{$edit['addr_city']}, {$edit['addr_prov']}, {$edit['addr_country']}<br>{$edit['addr_postalcode']}");
 
 		$output .= form_group('Street Address', $group);
 
@@ -1094,6 +1131,7 @@ END_TEXT;
 		$person->set('addr_street', $edit['addr_street']);
 		$person->set('addr_city', $edit['addr_city']);
 		$person->set('addr_prov', $edit['addr_prov']);
+		$person->set('addr_country', $edit['addr_country']);
 
 		$postcode = $edit['addr_postalcode'];
 		if(strlen($postcode) == 6) {
@@ -1186,13 +1224,12 @@ END_TEXT;
 			$errors .= "\n<li>Mobile telephone number is not valid.  Please supply area code, number and (if any) extension.";
 		}
 
-		# TODO: 5th parameter below should be from a form field!
 		$address_errors = validate_address( 
 			$edit['addr_street'],
 			$edit['addr_city'],
 			$edit['addr_prov'],
 			$edit['addr_postalcode'],
-			'CA');
+			$edit['addr_country']);
 
 		if( count($address_errors) > 0) {
 			$errors .= "\n<li>" . join("\n<li>", $address_errors);
@@ -1452,7 +1489,7 @@ class PersonSignWaiver extends Handler
 		 * waiver as signed.
 		 */
 		$sth = $dbh->prepare( $this->querystring );
-		$sth->execute( $lr_session->attr_get('user_id'));
+		$sth->execute(array($lr_session->attr_get('user_id')));
 		return (1 == $sth->rowCount() );
 	}
 
@@ -1593,7 +1630,6 @@ class PersonSearch extends Handler
 			reset($this->ops);
 			$people .= "</tr>";
 		}
-		$people .= "</table>";
 
 		$output .= "</td><td align='right'>";
 
@@ -1605,8 +1641,7 @@ class PersonSearch extends Handler
 				. form_submit("Next")
 			);
 		}
-		$output .= "</td></tr>";
-		$output .= $people;
+		$output .= "</td></tr>$people</table>";
 
 		return $output;
 	}
@@ -1984,6 +2019,10 @@ function _person_mail_text($messagetype, $variables = array() )
 				return strtr("%site Reminder to Submit Score", $variables);
 			case 'score_reminder_body':
 				return strtr("Dear %fullname,\n\nYou have not yet submitted a score for the game between your team %team and %opponent, which was scheduled for %gamedate in %league. Scores need to be submitted in a timely fashion by both captains to substantiate results and for optimal scheduling of future games.  We ask you to please update the score as soon as possible.  You can submit the score for this game at\n%scoreurl\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'approval_notice_subject':
+				return strtr("%site Notification of Score Approval", $variables);
+			case 'approval_notice_body':
+				return strtr("Dear %fullname,\n\nYou have not submitted a score for the game between your team %team and %opponent, which was scheduled for %gamedate in %league. Scores need to be submitted in a timely fashion by both captains to substantiate results and for optimal scheduling of future games.  Your opponent's submission for this game has been accepted, they have been given a perfect spirit score, and your spirit score has been penalized.\n\nIf there is some reason why you were unable to submit your score in time, you may contact your convener who will consider reversing the penalty. To avoid such penalties in the future, please be sure to submit your scores promptly.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
 
 			default:
 				return "Unknown message type '$messagetype'!";
@@ -2023,6 +2062,10 @@ function person_settings ( )
  
 	$group .= form_textarea('Body of score reminder e-mail', 'edit[person_mail_score_reminder_body]', _person_mail_text('score_reminder_body'), 70, 10, 'Customize the body of your score reminder e-mail, sent to captains when they have not submitted a score in a timely fashion. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
 
+	$group .= form_textfield('Subject of approval notice e-mail', 'edit[person_mail_approval_notice_subject]', _person_mail_text('approval_notice_subject'), 70, 180, 'Customize the subject of your approval notice mail, sent to captains when a game has been approved without a score submission from them. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+ 
+	$group .= form_textarea('Body of approval notice e-mail', 'edit[person_mail_approval_notice_body]', _person_mail_text('approval_notice_body'), 70, 10, 'Customize the body of your approval notice e-mail, sent to captains when a game has been approved without a score submission from them. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+
 	$output = form_group('User email settings', $group);
 
 	return settings_form($output);
@@ -2032,7 +2075,7 @@ function person_statistics ( )
 {
 	global $dbh;
 	$rows = array();
-	
+
 	$sth = $dbh->prepare('SELECT status, COUNT(*) FROM person GROUP BY status');
 	$sth->execute();
 
