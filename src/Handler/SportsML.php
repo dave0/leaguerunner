@@ -72,7 +72,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 	{
 ?>
   <sports-metadata>
-    <sports-title><?php print $this->league->fullname ?></sports-title>
+    <sports-title><?php print htmlspecialchars($this->league->fullname) ?></sports-title>
   </sports-metadata>
 <?php
 	}
@@ -91,7 +91,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 ?>
-  <standing content-label="<?php print $this->league->fullname ?>">
+  <standing content-label="<?php print htmlspecialchars($this->league->fullname) ?>">
     <standing-metadata date-coverage-type="season-regular" date-coverage-value="<?php print $this->league->year ?>" />
 <?php
 		while(list(,$id) = each($order) ) {
@@ -111,7 +111,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 ?>
     <team>
         <team-metadata>
-            <name full="<?php print $team->name ?>" />
+            <name full="<?php print htmlspecialchars($team->name) ?>" />
         </team-metadata>
         <team-stats standing-points="<?php print (2 * $team->win) + $team->tie ?>">
             <outcome-totals wins="<?php print $team->win ?>" losses="<?php print $team->loss ?>" ties="<?php print $team->tie ?>" points-scored-for="<?php print $team->points_for ?>" points-scored-against="<?php print $team->points_against ?>" />
@@ -137,7 +137,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
 			error_exit("This league does not have a schedule or standings.");
 		}
 ?>
-  <schedule content-label="<?php print $this->league->fullname ?>">
+  <schedule content-label="<?php print htmlspecialchars($this->league->fullname) ?>">
     <schedule-metadata team-coverage-type="multi-team" date-coverage-type='season-regular' date-coverage-value="<?php print $this->league->year ?>" />
 <?php
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
@@ -158,13 +158,13 @@ xml version="1.0" encoding="ISO-8859-1"?>
 		/>
 		<team>
         	<team-metadata alignment="home">
-            	<name full="<?php print $game->home_name ?>" />
+            	<name full="<?php print htmlspecialchars($game->home_name) ?>" />
         	</team-metadata>
         	<team-stats score="<?php print $game->home_score ?>" />
 		</team>
 		<team>
         	<team-metadata alignment="away">
-            	<name full="<?php print $game->away_name ?>" />
+            	<name full="<?php print htmlspecialchars($game->away_name) ?>" />
         	</team-metadata>
         	<team-stats score="<?php print $game->away_score ?>" />
 		</team>
