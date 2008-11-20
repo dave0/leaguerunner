@@ -93,7 +93,6 @@ function theme_navbar($breadcrumbs = array())
 	print "<td class='nav'>$leftLink</td>";
 	print "<td class='nav' align='right'>$rightLink</td>";
 	print "</tr>";
-	
 	print "</div>\n";
 	print "\n<!-- end navbar -->\n";
 }
