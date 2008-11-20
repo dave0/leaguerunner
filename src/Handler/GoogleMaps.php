@@ -30,6 +30,7 @@ class GoogleMapsHTMLPage extends Handler
 	function process ()
 	{
 		$gmaps_key = variable_get('gmaps_key', 'No google maps key found');
+		global $BASE_URL;
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -37,8 +38,8 @@ class GoogleMapsHTMLPage extends Handler
  <head>
  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
  <title>Fields</title>
- <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=<? echo $gmaps_key ?>" type="text/javascript"></script>
-<script type="text/javascript">
+ <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=<?php echo $gmaps_key ?>" type="text/javascript"></script>
+ <script type="text/javascript">
 //<![CDATA[
 
 function load() {
@@ -52,8 +53,8 @@ function load() {
     map.setCenter(new GLatLng(45.247528,-75.618293), 13);
     map.addControl(new GSmallMapControl());
     map.addControl(new GMapTypeControl());
-				  
-    GDownloadUrl("/leaguerunner/gmaps/allfields", function(data, responseCode) { 
+
+    GDownloadUrl("<?php echo $BASE_URL ?>/gmaps/allfields", function(data, responseCode) { 
 
         var bounds = new GLatLngBounds;
 
@@ -129,7 +130,7 @@ class GoogleMapsAllFields extends Handler
 	{
 		print "<marker lat=\"$field->latitude\" lng=\"$field->longitude\" fid=\"$field->fid\">\n";
 		print "<balloon><![CDATA[<a href=\"" . url('field/view/'. $field->fid) . "\">$field->name</a> ($field->code)]]></balloon>\n";
-		print "<tooltip>$field->name ($field->code)</tooltip>\n";
+		print "<tooltip>" . htmlentities($field->name) . " ($field->code)</tooltip>\n";
 		print "<image>" . url('image/pins/' . $field->code . '.png') . "</image>";
 		print "</marker>\n";
 	}
@@ -137,7 +138,7 @@ class GoogleMapsAllFields extends Handler
 	function process()
 	{
 		$this->render_header();
-		$sth = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_order' => 'f.fid') );
+		$sth = field_query( array( '_extra' => 'ISNULL(parent_fid)', '_extra' => 'status = "open"', '_order' => 'f.fid') );
 
 		while( $field = $sth->fetchObject('Field') ) {
 			if(!$field->latitude || !$field->longitude) {
