@@ -89,7 +89,7 @@ class Person extends LeaguerunnerObject
 		$sth->setFetchMode(PDO::FETCH_CLASS, 'League', array(LOAD_OBJECT_ONLY));
 		$sth->execute(array($this->user_id));
 		$this->leagues = array();
-		while($league = $sth->fetch) {
+		while($league = $sth->fetch() ) {
 			# TODO: evil hack... this belongs in the league constructor, no?
 			$this->is_a_coordinator = true;
 			if($league->year == 0) { 
@@ -223,7 +223,7 @@ class Person extends LeaguerunnerObject
 		 */
 		$sth = $dbh->prepare('SELECT COUNT(*) FROM registrations WHERE user_id = ?');
 		$sth->execute( array( $this->user_id ));
-		if ( $sth->fetchColumn > 0 ) {
+		if ( $sth->fetchColumn() > 0 ) {
 			error_exit("Account cannot be deleted while player has registration records.");
 		}
 
@@ -396,7 +396,7 @@ class Person extends LeaguerunnerObject
 		if($this->is_admin()) { return true; }
 
 		$sth = $dbh->prepare('SELECT league_id FROM leagueteams WHERE team_id = ?');
-		$sth->execute($team_id);
+		$sth->execute(array($team_id));
 		$league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 
 		return $this->is_coordinator_of( $league->league_id );
