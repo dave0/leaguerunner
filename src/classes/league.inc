@@ -178,7 +178,9 @@ class League extends LeaguerunnerObject
 		$output = '';
 
 		// TODO: game_load_many()?  Or at least game_query()?
-		$sth = $dbh->prepare("SELECT DISTINCT s.game_id,
+		$sth = $dbh->prepare("SELECT
+				DISTINCT s.game_id,
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) AS start_timestamp
 			FROM
 				schedule s,
 				gameslot g
@@ -234,17 +236,20 @@ class League extends LeaguerunnerObject
 		$output = '';
 
 		// TODO: game_load_many()?  Or at least game_query()?
-		$sth = $dbh->prepare("SELECT DISTINCT s.game_id,
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) AS start_timestamp
+		$sth = $dbh->prepare("SELECT
+				DISTINCT s.game_id,
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) AS start_timestamp
 			FROM
 				schedule s,
 				gameslot g
 			WHERE
-				s.league_id = %d
+				s.league_id = ?
 			AND
 				g.game_id = s.game_id
 			AND
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + %d) < UNIX_TIMESTAMP(NOW())
+				s.status = 'normal'
+			AND
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) < UNIX_TIMESTAMP(NOW())
 			AND
 				(ISNULL(s.home_score) OR ISNULL(s.away_score))
 			ORDER BY
@@ -356,7 +361,7 @@ class League extends LeaguerunnerObject
 		if( ! $this->name ) {
 			return false;
 		}
-		
+
 		$sth = $dbh->prepare('INSERT into league (name) VALUES(?)');
 		$sth->execute( array( $this->name) );
 		if( 1 != $sth->rowCount() ) {
@@ -371,8 +376,6 @@ class League extends LeaguerunnerObject
 
 	function delete()
 	{
-		global $dbh;
-
 		if ( ! $this->_in_database ) {
 			return false;
 		}
@@ -2213,7 +2216,7 @@ function league_query( $array = array() )
 {
 	global $dbh;
 	$order = '';
-	$query  = array();
+	$query = array();
 	$params = array();
 
 	foreach ($array as $key => $value) {
