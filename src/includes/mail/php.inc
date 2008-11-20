@@ -27,6 +27,11 @@ function send_mail($to_addr, $to_name, $from_addr, $from_name, $cc_addr, $cc_nam
 		$headers .= "Cc: $cc$crlf";
 	}
 
+	if( empty( $to ) && empty( $cc ) )
+	{
+		return false;
+	}
+
 	return mail($to, $subject, $message, $headers, "-f $from_addr");
 }
 
