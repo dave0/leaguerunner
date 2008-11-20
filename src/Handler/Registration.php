@@ -22,6 +22,9 @@ function registration_dispatch()
 			$obj = new RegistrationHistory;
 			$obj->user = $id;
 			break;
+		case 'download':
+			$obj = new RegistrationDownload;
+			break;
 		case 'register':
 			$obj = new RegistrationRegister;
 			$obj->event = event_load( array('registration_id' => $id) );
@@ -47,6 +50,9 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 {
 	global $lr_session;
 
+	if (!$lr_session || !$lr_session->user)
+		return false;
+
 	switch( $action )
 	{
 		case 'view':
@@ -66,6 +72,7 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 				return ($lr_session->is_complete());
 			}
 		case 'statistics':
+		case 'download':
 			// admin only
 			break;
 	}
@@ -85,6 +92,7 @@ function registration_menu()
 		if( $lr_session->is_admin() ) {
 			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
 			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
+			menu_add_child('event','registration/registrations','download registrations', array('link' => 'registration/download') );
 			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'statistics/registration/unpaid') );
 		}
 	}
@@ -390,6 +398,74 @@ class RegistrationEdit extends RegistrationForm
 }
 
 /**
+ * Download a CSV of all registrations
+ */
+class RegistrationDownload extends Handler
+{
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('registration','download');
+	}
+
+	function process ()
+	{
+		global $dbh;
+
+		$data = array('Date', 'Order ID', 'Event', 'User ID', 'First name', 'Last name', 'Total');
+
+		// Start the output, let the browser know what type it is
+		header('Content-type: text/x-csv');
+		header("Content-Disposition: attachment; filename=\"registrations.csv\"");
+		$out = fopen('php://output', 'w');
+		fputcsv($out, $data);
+
+		$sth = $dbh->prepare('SELECT
+								a.date,
+								r.order_id,
+								e.name,
+								p.user_id,
+								p.firstname,
+								p.lastname,
+								a.charge_total
+							FROM
+								registration_audit a
+							LEFT JOIN
+								registrations r
+							ON a.order_id = r.order_id 
+							LEFT JOIN
+								registration_events e
+							ON r.registration_id = e.registration_id 
+							LEFT JOIN
+								person p
+							ON r.user_id = p.user_id
+							ORDER BY
+								a.date');
+		$sth->execute ();
+
+		while($row = $sth->fetch()) {
+			$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
+
+			$data = array( $row['date'],
+							$order_id,
+							$row['name'],
+							$row['user_id'],
+							$row['firstname'],
+							$row['lastname'],
+							$row['charge_total'] );
+
+			// Output the data row
+			fputcsv($out, $data);
+		}
+
+		fclose($out);
+
+		// Returning would cause the Leaguerunner menus to be added
+		exit;
+	}
+}
+
+/**
  * Registration handler
  */
 class RegistrationRegister extends RegistrationForm
@@ -597,8 +673,7 @@ class RegistrationRegister extends RegistrationForm
 					WHERE order_id = ?");
 			$sth->execute( array( $this->registration->order_id) );
 			if ( 1 != $sth->rowCount() ) {
-				# TODO: TUCism.
-				$errors .= para( theme_error( "Your registration was received, but there was an error updating the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc." ) );
+				$errors .= para( theme_error( "Your registration was received, but there was an error updating the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc." ) );
 			}
 
 			$this->title = 'Registration complete';
@@ -669,8 +744,7 @@ class RegistrationUnregister extends Handler
 							WHERE order_id = ?');
 				$sth->execute( array( $this->order_id ) );
 				if ( 1 != $sth->rowCount() ) {
-					// TODO: TUCism
-					error_exit ( para( theme_error( "There was an error deleting your registration information. Contact the TUC office, quoting order #<b>$order_num</b>, to have the problem resolved." ) ) );
+					error_exit ( para( theme_error( "There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved." ) ) );
 				}
 
 				$rc = para( 'You have been successfully unregistered for this event.' );
@@ -716,6 +790,8 @@ class RegistrationOnlinePaymentResponse extends Handler
 
 	function process ()
 	{
+		global $BASE_URL;
+
 		print <<<HTML_HEADER
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -723,7 +799,7 @@ class RegistrationOnlinePaymentResponse extends Handler
 <title>Toronto Ultimate Club - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <link rel="StyleSheet" href="/themes/SeaBreeze/style/tuc.css" type="text/css">
-<link rel="stylesheet" type="text/css" href="/leaguerunner/style.css">
+<link rel="stylesheet" type="text/css" href="$BASE_URL/style.css">
 <script type="text/javascript">
 <!--
 function close_and_redirect(url)
@@ -791,8 +867,8 @@ HTML_HEADER;
 			// went to www.tuc.org
 			$sth = $dbh->prepare('SELECT
 					p.firstname, p.lastname, p.addr_street, p.addr_city,
-					p.addr_prov, p.addr_postalcode, e.registration_id,
-					e.name, e.cost, e.gst, e.pst
+					p.addr_prov, p.addr_country, p.addr_postalcode,
+					e.registration_id, e.name, e.cost, e.gst, e.pst
 				FROM
 					registrations r
 					LEFT JOIN person p ON r.user_id = p.user_id
@@ -812,8 +888,7 @@ HTML_HEADER;
 						WHERE order_id = ?");
 				$sth->execute( array($short_order_id) );
 				if ( 1 != $sth->rowCount() ) {
-					// TODO: TUCism
-					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
+					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
 				}
 
 				// TODO: Specify explicit column names
@@ -836,8 +911,7 @@ HTML_HEADER;
 						$issuer, $issuer_invoice, $issuer_confirmation)
 				);
 				if ( 1 != $sth->rowCount() ) {
-					// TODO: TUCism
-					$errors .= para( theme_error( "There was an error updating the audit record in the database. Contact the TUC office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
+					$errors .= para( theme_error( "There was an error updating the audit record in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
 				}
 
 				$file = variable_get('invoice_implementation', 'invoice');
@@ -851,11 +925,11 @@ HTML_HEADER;
 
 				print OfflinePaymentText($order_id);
 
-				print para('Alternately, you can <a href="/" onClick="close_and_redirect(\'/leaguerunner/event/view/' . $info->registration_id . '\')">start the registration process again</a> and try a different payment option.');
+				print para("Alternately, you can <a href=\"/\" onClick=\"close_and_redirect('$BASE_URL/event/view/{$info->registration_id}')\">start the registration process again</a> and try a different payment option.");
 			}
 		}
 
-		print para('Click <a href="/" onClick="close_and_redirect(\'/leaguerunner/event/list\')">here</a> to close this window.');
+		print para("Click <a href=\"/\" onClick=\"close_and_redirect('$BASE_URL/event/list')\">here</a> to close this window.");
 
 		// Returning would cause the Leaguerunner menus to be added
 		exit;
@@ -1028,7 +1102,7 @@ function registration_statistics($args)
 		if( $level == 'past' ) {
 			$year = arg(3);
 		} else {
-			$year = 'YEAR(NOW())';
+			$year = date('Y');
 		}
 
 		$sth = $dbh->prepare('SELECT r.registration_id, e.name, e.type, COUNT(*)
@@ -1204,7 +1278,7 @@ function registration_statistics($args)
 
 			if( $from <= $total )
 			{
-				$sth = $dbh->prepare('SELECT
+				$sth = $dbh->prepare("SELECT
 						order_id,
 						DATE_ADD(time, INTERVAL ? MINUTE) as time,
 						payment,
@@ -1215,8 +1289,8 @@ function registration_statistics($args)
 						LEFT JOIN person p ON r.user_id = p.user_id
 					WHERE r.registration_id = ?
 					ORDER BY payment, order_id
-					LIMIT ?,?');
-				$sth->execute( array( -$TZ_ADJUST, $id, $from, $items) );
+					LIMIT $from, $items");
+				$sth->execute( array(-$TZ_ADJUST, $id) );
 
 				$rows = array();
 				while($row = $sth->fetch() ) {
@@ -1299,17 +1373,15 @@ function registration_statistics($args)
 			fputcsv($out, $data);
 
 			$sth = $dbh->prepare('SELECT
-					order_id,
-					DATE_ADD(time, INTERVAL ? MINUTE) as time,
-					DATE_ADD(modified, INTERVAL ? MINUTE) as modified,
-					payment,
-					p.*,
-					n.pn_email
-				FROM registrations r
-					LEFT JOIN person p ON r.user_id = p.user_id
-					LEFT JOIN nuke_users n ON r.user_id = n.pn_uid
-				WHERE r.registration_id = ?
-				ORDER BY payment, order_id');
+				order_id,
+				DATE_ADD(time, INTERVAL ? MINUTE) as time,
+				DATE_ADD(modified, INTERVAL ? MINUTE) as modified,
+				payment,
+				p.*
+			FROM registrations r
+				LEFT JOIN person p ON r.user_id = p.user_id
+			WHERE r.registration_id = ?
+			ORDER BY payment, order_id');
 			$sth->execute( array( -$TZ_ADJUST, -$TZ_ADJUST, $id) );
 
 			while($row = $sth->fetch() ) {
@@ -1319,7 +1391,7 @@ function registration_statistics($args)
 								$row['member_id'],
 								$row['firstname'],
 								$row['lastname'],
-								$row['pn_email'],
+								$row['email'],
 								$row['addr_street'],
 								$row['addr_city'],
 								$row['addr_prov'],
