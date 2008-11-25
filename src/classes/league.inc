@@ -1268,6 +1268,33 @@ class League extends LeaguerunnerObject
 		return array(true,'');
 	}
 
+	/**
+	 * Count how many distinct gameslot days are availabe from $datestamp onwards
+	 *
+	 */
+	function count_available_gameslot_days( $datestamp )
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare('SELECT game_date FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) >= ? AND a.league_id = ? AND ISNULL(s.game_id)');
+		$sth->execute(array($datestamp, $this->league_id));
+		return $sth->rowCount();
+	}
+
+	/**
+	 * Return next available day of play after $datestamp, based on gameslot availability
+	 *
+	 * value returned is a UNIX timestamp for the game day.
+	 */
+	function next_gameslot_day( $datestamp )
+	{
+		global $dbh;
+		$sth = $dbh->prepare('SELECT UNIX_TIMESTAMP(game_date) FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) >= ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY game_date LIMIT 1');
+		$sth->execute(array( $datestamp, $this->league_id) );
+
+		return $sth->fetchColumn();
+	}
+
 	/*
 	* Create a full round-robin for this league.
 	*/
@@ -1279,7 +1306,7 @@ class League extends LeaguerunnerObject
 				return(array(false, "Couldn't load team information"));
 			}
 			$teams = array_values($this->teams);
-		}	
+		}
 
 		$n = count($teams);
 
@@ -1293,6 +1320,14 @@ class League extends LeaguerunnerObject
 
 		# For n-1 iterations, generate games by pairing up teams
 		$iterations_remaining = $n - 1;
+
+		# and so we need n-1 days worth of gameslots
+		$day_count = $this->count_available_gameslot_days( $datestamp );
+
+		if( $day_count < $iterations_remaining ) {
+			return array(false, "Need $iterations_remaining weeks of gameslots, yet only $day_count are available.  Add more gameslots");
+		}
+
 		while($iterations_remaining--) {
 
 			# Round-robin algorithm for n teams:
@@ -1304,7 +1339,7 @@ class League extends LeaguerunnerObject
 				$set_teams[] = $teams[$k];
 				$set_teams[] = $teams[($n - $k - 1)];
 			}
-			#   b.  schedule them	
+			#   b.  schedule them
 			list($rc, $message) = $this->schedule_one_set( $set_teams, $datestamp );
 			if( ! $rc ) {
 				return array( false, "Aieee... had to stop with $iterations_remaining sets left to schedule: $message");
@@ -1315,9 +1350,7 @@ class League extends LeaguerunnerObject
 			$teams = rotate_all_except_first( $teams );
 
 			# Now, move the datestamp forward to next available game date
-			# TODO: fix this for fall league.  Need to take $league->day into
-			# account. Right now we just advance it by a week.
-			$datestamp += (60 * 60 * 24 * 7);
+			$datestamp = $this->next_gameslot_day( $datestamp );
 
 		}
 
@@ -2025,7 +2058,7 @@ class League extends LeaguerunnerObject
 					$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
 					}
 				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+				return array(false, "Could not create the games you requested, during addition of opponents.$extra_errors");
 			}
 			$rollback_list[] = $g;
 
@@ -2035,10 +2068,10 @@ class League extends LeaguerunnerObject
 				* games */
 				foreach( $rollback_list as $to_rollback ) {
 					if( ! $to_rollback->delete() ) {
-					$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
+						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
 					}
 				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields: $message $extra_errors");
 			}
 		}
 
