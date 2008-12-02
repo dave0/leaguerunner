@@ -156,10 +156,9 @@ class Person extends LeaguerunnerObject
 		$fields_data[] = $this->user_id;
 
 		$sth = $dbh->prepare( $sql );
-		$sth->execute( $fields_data );
-		if($sth->rowCount() < 1) {
-			# Affecting zero rows is possible
-			error_exit("Internal error: Strange number of rows affected");
+		if( ! $sth->execute( $fields_data ) ) {
+			$arr = $sth->errorInfo();
+			error_exit("Couldn't save: " . join(' ', $arr));
 		}
 
 		unset($this->_modified_fields);
