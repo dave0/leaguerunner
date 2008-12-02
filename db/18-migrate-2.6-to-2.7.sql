@@ -36,3 +36,6 @@ ALTER TABLE teamroster ENGINE=INNODB;
 ALTER TABLE variable ENGINE=INNODB;
 ALTER TABLE waitinglist ENGINE=INNODB;
 ALTER TABLE waitinglistmembers ENGINE=INNODB;
+
+-- Add country field to person table
+ALTER TABLE person ADD COLUMN addr_country varchar(50) AFTER addr_prov;
