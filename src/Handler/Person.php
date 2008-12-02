@@ -1306,6 +1306,7 @@ class PersonCreate extends PersonEdit
 				break;
 			case 'perform':
 				$this->person = new Person;
+				$this->person->user_id = $id;
 				return $this->perform( $this->person, $edit );
 
 			default:
