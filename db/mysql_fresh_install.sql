@@ -1,3 +1,6 @@
+-- Use InnoDB tables
+SET storage_engine=INNODB;
+
 --
 -- People and accounts
 --
@@ -40,7 +43,7 @@ CREATE TABLE person (
         contact_for_feedback ENUM('Y','N') DEFAULT 'Y',
         last_login           datetime,
         client_ip            varchar(50)
-) ENGINE=InnoDB;
+);
 
 -- For use when assigning member IDs
 
@@ -51,7 +54,7 @@ CREATE TABLE member_id_sequence (
         gender    ENUM('Male','Female'),
         id       integer not null,
         KEY (year,gender)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS team;
 
@@ -66,7 +69,7 @@ CREATE TABLE team (
         rating            int DEFAULT 1500,
         PRIMARY KEY (team_id),
         INDEX name (name)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS teamroster;
 
@@ -76,7 +79,7 @@ CREATE TABLE teamroster (
         status      ENUM('coach', 'captain', 'assistant', 'player', 'substitute', 'captain_request', 'player_request'),
         date_joined date,
         PRIMARY KEY (team_id,player_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS league;
 
@@ -102,7 +105,7 @@ CREATE TABLE league (
         email_after         integer NOT NULL DEFAULT '0',
         finalize_after      integer NOT NULL DEFAULT '0',
         PRIMARY KEY (league_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS leagueteams;
 
@@ -112,7 +115,7 @@ CREATE TABLE leagueteams (
         rank        integer NOT NULL DEFAULT 0,
         PRIMARY KEY (team_id,league_id),
         INDEX leagueteams_league (league_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS leaguemembers;
 
@@ -122,7 +125,7 @@ CREATE TABLE leaguemembers (
         status      varchar(64),
         PRIMARY KEY (league_id, player_id),
         INDEX leaguemembers_league (league_id)
-) ENGINE=InnoDB;
+);
 
 -- Tables for scheduling/scorekeeping
 
@@ -152,7 +155,7 @@ CREATE TABLE schedule (
         INDEX game_league (league_id),
         INDEX game_home_team (home_team),
         INDEX game_away_team (away_team)
-) ENGINE=InnoDB;
+);
 
 -- score_entry table is used to store scores entered by either team
 -- before they are approved
@@ -169,7 +172,7 @@ CREATE TABLE score_entry (
         defaulted     enum('no','us','them') DEFAULT 'no',
         entry_time    datetime,
         PRIMARY KEY (team_id,game_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS score_reminder;
 
@@ -178,7 +181,7 @@ CREATE TABLE score_reminder (
         team_id   integer NOT NULL,
         sent_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY ( game_id, team_id )
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS question;
 
@@ -191,7 +194,7 @@ CREATE TABLE question (
         required     ENUM('Y','N') DEFAULT 'Y',
         sorder       integer default 0,
         PRIMARY KEY  (qkey,genre)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS multiplechoice_answers;
 
@@ -202,7 +205,7 @@ CREATE TABLE multiplechoice_answers (
         value       varchar(255),
         sorder      integer default 0,
         PRIMARY KEY (akey,qkey)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS team_spirit_answers;
 
@@ -213,7 +216,7 @@ CREATE TABLE team_spirit_answers (
         qkey        varchar(255) NOT NULL,
         akey        blob,
         PRIMARY KEY (tid_created,gid,qkey)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS field;
 
@@ -241,7 +244,7 @@ CREATE TABLE field (
         sponsor            text,
         location_url       varchar(255),
         layout_url         varchar(255)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS gameslot;
 
@@ -252,14 +255,14 @@ CREATE TABLE gameslot (
         game_start time,
         game_end   time,
         game_id    integer
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS league_gameslot_availability;
 
 CREATE TABLE league_gameslot_availability (
         league_id integer NOT NULL,
         slot_id   integer NOT NULL
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS variable;
 
@@ -267,7 +270,7 @@ CREATE TABLE variable (
         name        varchar(50) NOT NULL default '',
         value        longtext    NOT NULL,
         PRIMARY KEY(name)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS registration_events;
 
@@ -287,7 +290,7 @@ CREATE TABLE registration_events (
         anonymous tinyint(1) default '0',
         PRIMARY KEY  (registration_id),
         UNIQUE KEY name (name)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS registration_prereq;
 
@@ -296,7 +299,7 @@ CREATE TABLE registration_prereq (
         prereq_id int(11) NOT NULL default '0',
         is_prereq tinyint(1) NOT NULL default '0',
         PRIMARY KEY  (registration_id,prereq_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS registrations;
 
@@ -310,7 +313,7 @@ CREATE TABLE registrations (
         notes blob,
         PRIMARY KEY  (order_id),
         KEY user_id (user_id,registration_id)
-) ENGINE=InnoDB;
+);
 
 -- answers to registration questions
 
@@ -321,7 +324,7 @@ CREATE TABLE registration_answers (
         qkey varchar(255) NOT NULL default '',
         akey varchar(255) default NULL,
         PRIMARY KEY  (order_id,qkey)
-) ENGINE=InnoDB;
+);
 
 -- online registration payment details
 
@@ -346,7 +349,7 @@ CREATE TABLE registration_audit (
         issuer_invoice varchar(20) default NULL,
         issuer_confirmation varchar(15) default NULL,
         PRIMARY KEY  (order_id)
-) ENGINE=InnoDB;
+);
 
 DROP TABLE IF EXISTS preregistrations;
 
@@ -354,7 +357,7 @@ CREATE TABLE preregistrations (
         user_id int(11) NOT NULL default '0',
         registration_id int(10) unsigned NOT NULL default '0',
         KEY user_id (user_id,registration_id)
-) ENGINE=InnoDB;
+);
 
 INSERT INTO person (username,password,firstname,lastname,class,status)
         VALUES ('admin',
@@ -363,7 +366,7 @@ INSERT INTO person (username,password,firstname,lastname,class,status)
                 'Administrator',
                 'administrator',
                 'active'
-) ENGINE=InnoDB;
+);
 
 INSERT INTO league (name,season,schedule_type) VALUES ('Inactive Teams', 'none', 'none');
 
