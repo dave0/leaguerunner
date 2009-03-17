@@ -304,12 +304,39 @@ class Person extends LeaguerunnerObject
 
 	function is_member()
 	{
+		global $dbh;
+
 		if ( ! $this->is_player() ) {
 			return false;
 		}
 
-		// TUC has code here to check for current membership registration,
-		// but it's a hack, so it's not included at the moment.
+		if( variable_get('registration', 0) ) {
+			// Defaulting the value here to 0 matches no real events while preventing SQL errors.
+			$registration_ids = variable_get('membership_ids', '0');
+
+			if( variable_get('allow_tentative', 0) )
+			{
+				$paid_check = '(payment = "Pending" OR payment = "Paid")';
+			}
+			else
+			{
+				$paid_check = 'payment = "Paid"';
+			}
+
+			$sth = $dbh->prepare("
+					SELECT
+						COUNT(registration_id)
+					FROM
+						registrations
+					WHERE
+						user_id = ?
+					AND
+						$paid_check
+					AND
+						registration_id in ($registration_ids)");
+			$sth->execute( array($this->user_id) );
+			return ($sth->fetchColumn() > 0);
+		}
 
 		return true;
 	}
@@ -411,11 +438,11 @@ class Person extends LeaguerunnerObject
 				p.user_id,
 				p.firstname,
 				p.lastname
-				FROM person p, person q 
-				LEFT JOIN nuke_users np ON np.pn_uid = p.user_id
-				LEFT JOIN nuke_users nq ON nq.pn_uid = q.user_id
+				FROM person p, person q, nuke_users np, nuke_users nq
 				WHERE q.user_id = ?
 					AND p.user_id <> q.user_id
+					AND np.pn_uid = p.user_id
+					AND nq.pn_uid = q.user_id
 					AND (
 						np.pn_email = nq.pn_email
 						OR p.home_phone = q.home_phone
@@ -486,13 +513,12 @@ function person_query ( $array = array() )
 		}
 	}
 
-	
-	$sth = $dbh->prepare("SELECT 
+	$sth = $dbh->prepare("SELECT
 		p.*,
 		1 AS _in_database,
 		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
 		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp
-		FROM person p 
+		FROM person p
 		WHERE " . implode(' AND ',$query) . $order . $limit);
 
 	$sth->execute( $params );
