@@ -78,7 +78,7 @@ if( variable_get('registration', 0) &&
 	$file = variable_get('payment_implementation', NULL);
 	if ($file)
 	{
-		require_once("includes/$file.inc");
+		require_once("includes/payment/$file.inc");
 	}
 }
 
