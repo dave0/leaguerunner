@@ -707,7 +707,7 @@ class TeamList extends Handler
 
 		$this->setLocation(array("List Teams" => 'team/list'));
 
-		$letter = $_GET['letter'];
+		$letter = arg(2);
 		$sth = $dbh->prepare("SELECT DISTINCT UPPER(SUBSTRING(t.name,1,1)) as letter
 			FROM team t 
 			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id 
@@ -725,7 +725,7 @@ class TeamList extends Handler
 			if($curLetter == $letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
-				$letterLinks[] = l($curLetter, url('team/list', "letter=$curLetter"));
+				$letterLinks[] = l($curLetter, url("team/list/$curLetter"));
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
@@ -979,7 +979,7 @@ class TeamRosterStatus extends Handler
 
 	function perform ( $edit )
 	{
-		global $lr_session, $dbh, $BASE_URL;
+		global $lr_session, $dbh;
 
 		/* To be valid:
 		 *  - ID and player ID required (already checked by the
@@ -1040,7 +1040,8 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captain' => $lr_session->user->fullname,
-					'%teamurl' => "http://www.tuc.org/page.php?url=$BASE_URL/team/view/{$this->team->team_id}",
+					// URGENT TODO: TUCism
+					'%teamurl' => "http://www.tuc.org/Leaguerunner/team/view/{$this->team->team_id}",
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,
@@ -1125,7 +1126,8 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captains' => join(',', $captain_names),
-					'%teamurl' => "http://www.tuc.org/page.php?url=$BASE_URL/team/view/{$this->team->team_id}",
+					// URGENT TODO: TUCism
+					'%teamurl' => "http://www.tuc.org/Leaguerunner/team/view/{$this->team->team_id}",
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,
@@ -1271,6 +1273,7 @@ class TeamView extends Handler
 					AND r.status != 'substitute'
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id 
+					AND l.status = 'open'
 					AND t.team_id = r.team_id
 					AND r.player_id = ?");
 			$c_sth->execute(array(
@@ -1495,7 +1498,7 @@ class TeamSchedule extends Handler
 
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
 		  . para("Get your team schedule in "
-		  . "<a href=\"$ical_url\"><img style=\"display: inline\" src=\"/images/misc/ical.gif\" alt=\"iCal\" /></a>"
+		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"/images/misc/ical.gif\" alt=\"iCal\" /></a>"
 		  . " format or <a href=\"http://www.google.com/calendar/render?cid=$ical_url\" target=\"_blank\"><img style=\"display: inline; vertical-align: middle\" src=\"http://www.google.com/calendar/images/ext/gc_button6.gif\" alt=\"Add to Google Calendar\"></a>");
 	}
 }
@@ -1510,7 +1513,7 @@ class TeamSpirit extends Handler
 
 	function process ()
 	{
-		global $lr_session, $dbh, $BASE_URL;
+		global $lr_session, $dbh, $FILE_URL;
 		$this->title = "Team Spirit";
 
 		$this->setLocation(array(
@@ -1632,13 +1635,13 @@ class TeamSpirit extends Handler
 					switch( $answer_values[$answer] ) {
 						case -3:
 						case -2:
-							$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
+							$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
 							break;
 						case -1:
 							$thisrow[] = "-";
 							break;
 						case 0:
-							$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
+							$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
 							break;
 						default:
 							$thisrow[] = "?";
@@ -1677,11 +1680,11 @@ class TeamSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
+				$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {
 				$thisrow[] = "-";
 			} else {
-				$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
+				$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
 			}
 		}
 		$thisrow[] = '';
@@ -1856,8 +1859,174 @@ function team_statistics ( )
 	}
 	$rows[] = array("Top non-score-submitting $current_season teams:", table(null, $sub_table));
 
+	$sth = $dbh->prepare("SELECT
+		ROUND( AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ), 2) AS avgspirit,
+			lt.team_id AS team_id
+		FROM league l, leagueteams lt, schedule s
+		WHERE
+			lt.league_id = l.league_id
+			AND l.league_id = s.league_id
+			AND s.league_id = lt.league_id
+			AND l.status = 'open'
+			AND l.season = ?
+			AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
+			AND s.approved_by
+		GROUP BY team_id
+		ORDER BY avgspirit DESC
+		LIMIT 10");
+	$sth->execute ( array ($current_season) );
+	$sub_table = array();
+	while($row = $sth->fetch() ) {
+		$team = team_load( array('team_id' => $row['team_id']) );
+		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['avgspirit']);
+	}
+	$rows[] = array("Best spirited $current_season teams:", table(null, $sub_table));
+
+	$sth = $dbh->prepare("SELECT
+		ROUND( AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ), 2) AS avgspirit,
+			lt.team_id AS team_id
+		FROM league l, leagueteams lt, schedule s
+		WHERE
+			lt.league_id = l.league_id
+			AND l.league_id = s.league_id
+			AND s.league_id = lt.league_id
+			AND l.status = 'open'
+			AND l.season = '%s'
+			AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
+			AND s.approved_by
+		GROUP BY team_id
+		HAVING avgspirit < 10
+		ORDER BY avgspirit ASC
+		LIMIT 10");
+	$sth->execute ( array ($current_season) );
+	$sub_table = array();
+	while($row = $sth->fetch() ) {
+		$team = team_load( array('team_id' => $row['team_id']) );
+		$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['avgspirit']);
+	}
+	$rows[] = array("Lowest spirited $current_season teams:", table(null, $sub_table));
+
 	$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 	return form_group("Team Statistics", $output);
 }
+
+
+/**
+ * RMK April 2008
+ * Team schedule as ical handler
+ */
+class TeamICALSchedule extends Handler
+{
+	function has_permission ()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('team','view schedule', $this->team->team_id);
+	}
+
+	// Does not return, as we don't want normal LR theme output
+	// Will output in target format (ical)
+	function process ()
+	{
+		$my_team = $this->team->name;
+
+		/*
+		 * Grab schedule info 
+		 */
+		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date DESC,g.game_start,g.game_id') );
+
+		// We'll be outputting an ical
+		header('Content-type: text/calendar; charset=UTF-8');
+		// Prevent caching
+		header("Cache-Control: no-cache, must-revalidate");
+
+		// get league name for iCalendar name
+		$short_league_name = variable_get('app_org_short_name', 'League');
+
+		// get domain URL for signing games
+		$arr = split('@',variable_get('app_admin_email',"@$short_league_name"));
+		$domain_url = $arr[1];
+
+		// ical header
+		print utf8_encode("BEGIN:VCALENDAR
+PRODID:-//Leaguerunner//Team Schedule//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:$my_team schedule from $short_league_name
+");
+
+		// TODO: add VTIMEZONE group
+
+
+		while(list(,$game) = each($games)) {
+			if($game->home_id == $this->team->team_id) {
+				$opponent_id = $game->away_id;
+				$opponent_name = $game->away_name;
+				$home_away = '(home)';
+			} else {
+				$opponent_id = $game->home_id;
+				$opponent_name = $game->home_name;
+				$home_away = '(away)';
+			}
+
+			if ($opponent_name == "") {
+				$opponent_name = "(to be determined)";
+				$opponent_colour = "";
+			} else {
+				// look up opponent's shirt colour
+				$opponent_team = team_load( array('team_id' => $opponent_id) );
+				$opponent_colour = $opponent_team->shirt_colour;
+			}
+
+			// encode game start and end times
+			$game_date = strftime('%Y%m%d', $game->timestamp); // from date type
+			$game_start = $game_date . 'T' 
+			  . join(explode(':', $game->game_start)) // from 'hh:mm' string
+			  . '00';
+			// HACK to fix games until dark
+			if ($game->game_end == 'dark') {
+				$game_end = $game_date . 'T210000'; // default 'dark' to 9pm
+			} else {
+				$game_end = $game_date . 'T' 
+					. join(explode(':', $game->game_end))  // from 'hh:mm' string
+					. '00';
+			}
+
+			// date stamp this file
+			$now = gmstrftime('%Y%m%dT%H%M%SZ'); // MUST be in UTC
+
+			// generate field url
+			$field_url = url("field/view/$game->fid");
+
+			// look up field's full name
+			$field = field_load(array('fid' => $game->fid));
+
+			// output game
+			// TODO: need to track when games are created/modified
+			print utf8_encode("BEGIN:VEVENT
+UID:$game->game_id@$domain_url
+DTSTAMP:$now
+CREATED:20080101T000000Z
+LAST-MODIFIED:20080101T000000Z
+DTSTART:$game_start
+DTEND:$game_end
+LOCATION:$field->fullname ($game->field_code)
+X-LOCATION-URL:$field_url
+SUMMARY:$my_team vs. $opponent_name
+DESCRIPTION:Game $game->game_id: $my_team vs. $opponent_name at $field->fullname ($game->field_code) on ".strftime('%a %b %d %Y', $game->timestamp)." $game->game_start to $game->game_end"
+. ($opponent_colour ? " (they wear $opponent_colour)" : "") . "
+X-OPPONENT-COLOUR:$opponent_colour
+STATUS:CONFIRMED
+TRANSP:OPAQUE
+END:VEVENT
+");
+
+		}
+
+		print "END:VCALENDAR\n";
+		exit; // don't return, as we don't want the HTML printed
+	}
+}
+
 
 ?>
