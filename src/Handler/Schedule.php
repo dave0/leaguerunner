@@ -413,10 +413,15 @@ function schedule_heading( $date, $canEdit = false, $dayId = 0, $leagueId = 0 )
 		array('data' => $date, 'colspan' => ($canEdit ? 5 : 7), 'class' => 'gamedate')
 	);
 
-	if( $canEdit ) {
+	if( $canEdit && $dayId ) {
+
+		$day_links = array(l("fields", "league/slots/$leagueId/".strftime('%Y/%m/%d', $dayId)),
+						   l("edit week", "schedule/edit/$leagueId/$dayId"));
+
 		$header[] = array(
-			'data' => l("edit week", "schedule/edit/$leagueId/$dayId"),
-			'class' => 'gamedate', 'colspan' => 2, 'style' => 'text-align:right;'
+						  'data' => theme_links($day_links) ,
+						  'class' => 'gamedate', 'colspan' => 2,
+						  'style' => 'text-align:right;'
 		);
 	}
 	return $header;
