@@ -684,7 +684,7 @@ class PersonApproveNewAccount extends PersonView
 					'%username' => $this->person->username,
 					'%existingusername' => $existing->username,
 					'%existingemail' => $existing->email,
-					'%passwordurl' => 'http://www.tuc.org/user.php?op=lostpassscreen&module=LostPassword',
+					'%passwordurl' => 'http://www.tuc.org/Users/lostpassword',
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 
@@ -806,7 +806,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		global $lr_session, $BASE_URL;
+		global $lr_session, $FILE_URL;
 		$output = <<<END_TEXT
 <script language="JavaScript" type="text/javascript">
 <!--
@@ -915,8 +915,8 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('$BASE_URL/data/rating.html')\">calculate your rating</a>"
-				"Please use the questionnaire to <a href=\"$BASE_URL/data/rating.html\" target='_new'>calculate your rating</a>"
+#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('$FILE_URL/data/rating.html')\">calculate your rating</a>"
+				"Please use the questionnaire to <a href=\"$FILE_URL/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
@@ -954,7 +954,7 @@ END_TEXT;
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
-		return form($output);
+		return form($output, 'post', null, 'id="player_form"');
 	}
 
 	function generateConfirm ( $id, $edit = array() )
@@ -1496,11 +1496,14 @@ class PersonSignWaiver extends Handler
 
 	function generateForm( $next )
 	{
+		global $FILE_URL;
+		$FILE_PATH = trim ($FILE_URL, '/');
+
 		$output = form_hidden('next', $next);
 		$output .= form_hidden('edit[step]', 'perform');
 
 		ob_start();
-		$retval = @readfile("data/" . $this->formFile);
+		$retval = @readfile("$FILE_PATH/data/{$this->formFile}");
 		if (false !== $retval) {
 			$output .= ob_get_contents();
 		}

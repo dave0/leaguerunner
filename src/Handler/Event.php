@@ -434,14 +434,16 @@ class EventList extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $FILE_URL;
+		$FILE_PATH = trim ($FILE_URL, '/');
+
 		$links = $lr_session->has_permission('event','view');
 
 		$this->title = 'Registration Event List';
 		$this->setLocation(array($this->title => 0));
 
 		ob_start();
-		$retval = @readfile('data/registration_notice.html');
+		$retval = @readfile("$FILE_PATH/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}           

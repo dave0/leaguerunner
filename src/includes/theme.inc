@@ -6,7 +6,7 @@
 
 function theme_header($title = "", $breadcrumbs = array())
 {
-	global $lr_session, $BASE_URL;
+	global $lr_session, $FILE_URL;
 
 	$app_name = variable_get('app_name','Leaguerunner');
 
@@ -21,7 +21,7 @@ function theme_header($title = "", $breadcrumbs = array())
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title><?php print $title ?></title>
-    <base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL ?>/" />
+    <base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $FILE_URL ?>/" />
     <link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
     <link rel="stylesheet" type="text/css" href="style.css" />
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -69,11 +69,11 @@ function theme_header($title = "", $breadcrumbs = array())
 
 function theme_navbar($breadcrumbs = array()) 
 {
-	global $lr_session;
+	global $lr_session, $FILE_URL;
 
 	print "\n<!-- start navbar -->\n";
     print "<div class='lr_topbar'><table border='0' cellpadding='0' cellspacing='0' width='99%' bgcolor='white'>\n";
-	$rightLink = l("help", "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/data/howto.html", array( 'class' => 'topbarlink', 'target' => '_new' ));
+	$rightLink = l("help", "{$FILE_URL}/data/howto.html", array( 'class' => 'topbarlink' ));
 
 	$trail = menu_get_trail();
 	$section = $trail[1]['title'];
@@ -93,6 +93,7 @@ function theme_navbar($breadcrumbs = array())
 	print "<td class='nav'>$leftLink</td>";
 	print "<td class='nav' align='right'>$rightLink</td>";
 	print "</tr>";
+	print "</table>";
 	print "</div>\n";
 	print "\n<!-- end navbar -->\n";
 }
@@ -114,7 +115,7 @@ function theme_footer()
 </td></tr></table>
 <!-- start footer -->
 <p />
-<hr noshade />
+<hr noshade="noshade" />
 <i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner</a>, version 2.6</i>
 </body>
 </html>

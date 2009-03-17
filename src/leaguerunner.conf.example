@@ -22,6 +22,7 @@ $DB_PASS  = 'password';
 ## This should be the directory containing Leaguerunner.  Don't 
 ## add a trailing slash.
 $BASE_URL = '/leaguerunner';
+$FILE_URL = '/leaguerunner';
 
 ## Session name. Set if necessary.
 $SESSION_NAME = 'www.ocua.ca';
