@@ -281,6 +281,8 @@ class Game extends LeaguerunnerObject
 	 */
 	function finalize()
 	{
+		global $dbh;
+
 		if( $this->is_finalized() ) {
 			return false;
 		}
@@ -319,7 +321,57 @@ class Game extends LeaguerunnerObject
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
 			} else {
-				// print "&nbsp;&nbsp;entries do not agree; mail coordinator<br/>\n";
+				// Team id = 0 in the reminder table means the convener
+				$sth = $dbh->prepare('
+					SELECT COUNT(*)
+					FROM
+						score_reminder
+					WHERE game_id = ?
+					AND team_id = 0');
+				$sth->execute( array($this->game_id) );
+				if( $sth->fetchColumn() ) {
+					return false;
+				}
+
+				if( variable_get('postnuke', 0)) {
+					$sth = $dbh->prepare("
+						SELECT
+							CONCAT(p.firstname, ' ', p.lastname) as fullname,
+							n.pn_email as email
+						FROM leaguemembers m
+						LEFT JOIN person p ON m.player_id = p.user_id
+						LEFT JOIN nuke_users n ON m.player_id = n.pn_uid
+						WHERE league_id = ?
+						AND (m.status = 'coordinator')");
+				} else {
+					$sth = $dbh->prepare("
+						SELECT
+							CONCAT(p.firstname, ' ', p.lastname) as fullname,
+							email
+						FROM leaguemembers m
+						LEFT JOIN person p ON m.player_id = p.user_id
+						WHERE league_id = ?
+						AND (m.status = 'coordinator')");
+				}
+				$sth->execute( array($this->league_id) );
+
+				$to_addr = $to_name = array();
+				while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
+					$to_addr[] = $row->email;
+					$to_name[] = $row->fullname;
+				}
+
+				$message = "Game {$this->game_id} between {$this->home_name} and {$this->away_name} in {$this->league_name} has score entries which do not match. Edit the game here:\nhttp://www.tuc.org/Leaguerunner/game/edit/{$this->game_id}";
+
+				if( send_mail($to_addr, $to_name,
+					false, false, // from the administrator
+					false, false, // no Cc
+					'Score entry mismatch',
+					$message) )
+				{
+					$sth = $dbh->prepare('INSERT into score_reminder (game_id, team_id) VALUES(?,0)');
+					$sth->execute( array($this->game_id) );
+				}
 				return false;
 			}
 		} else if ( $home_entry && !$away_entry ) {
@@ -383,10 +435,8 @@ class Game extends LeaguerunnerObject
 		}
 
 		// load the teams in order to be able to save their current rating
-		$home_team = new Team();
-		$home_team->load( array('team_id' => $this->home_id) );
-		$away_team = new Team();
-		$away_team->load( array('team_id' => $this->away_id) );
+		$home_team = team_load( array('team_id' => $this->home_id) );
+		$away_team = team_load( array('team_id' => $this->away_id) );
 
 		// save the current snapshot of each team's rating:
 		$this->set('rating_home', $home_team->rating);
@@ -479,7 +529,7 @@ class Game extends LeaguerunnerObject
 			'%opponent' => $opponent,
 			'%league' => $this->league_name,
 			'%gamedate' => $this->game_date,
-			'%scoreurl' => "http://www.tuc.org/page.php?url=/leaguerunner/game/submitscore/{$this->game_id}/$team_id",
+			'%scoreurl' => "http://www.tuc.org/Leaguerunner/game/submitscore/{$this->game_id}/$team_id",
 			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 			'%site' => variable_get('app_name','Leaguerunner'));
 		$message = _person_mail_text('score_reminder_body', $variables);
@@ -1864,18 +1914,19 @@ function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
 	}
 	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
 	$sotgjs .= "var sotg=10;\n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (document.forms[0].elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "var form = document.getElementById('score_form');\n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
 	$sotgjs .= "return sotg;\n";
 	$sotgjs .= "}\n";
 	$sotgjs .= "</script>\n";
@@ -1883,7 +1934,7 @@ function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
     return para( $sotgjs . "<div class=\"form-item\"><label>$label</label>" .
     	"<br> <input type=\"text\" maxlength=\"2\" class=\"form-text\" name=\"edit[sotg$use]\" size=\"2\" value=\"$default\" /> ".
 		" <input type='button' name='suggest' value='Suggest' " .
-		" onclick=\"document.forms[0].elements['edit[sotg$use]'].value=sotg$use();\"></div>");
+		" onclick=\"document.getElementById('score_form').elements['edit[sotg$use]'].value=sotg$use();\"></div>");
 }
 
 ?>
