@@ -70,7 +70,7 @@ function game_permissions ( &$user, $action, &$game, $extra )
 	{
 		case 'submit score':
 			if($extra) {
-				if( $user->is_captain_of($extra->team_id)) {
+				if( $user && $user->is_captain_of($extra->team_id)) {
 					// If we have a specific team in mind, this user must be a
 					// captain to submit
 					return true;
@@ -78,26 +78,26 @@ function game_permissions ( &$user, $action, &$game, $extra )
 					return false;
 				}
 			}
-			if( $user->is_captain_of( $game->home_team )
+			if( $user && $user->is_captain_of( $game->home_team )
 				|| $user->is_captain_of($game->away_team )) {
 				// Otherwise, check that user is captain of one of the teams
 				return true;
 			}
-			if($user->is_coordinator_of($game->league_id)) {
+			if($user && $user->is_coordinator_of($game->league_id)) {
 				return true;
 			}
 			break;
 		case 'edit':
-			return ($user->is_coordinator_of($game->league_id));
+			return ($user && $user->is_coordinator_of($game->league_id));
 			break; // unreached
 		case 'view':
 			if( $extra == 'spirit' ) {
-				return ($user->is_coordinator_of($game->league_id));
+				return ($user && $user->is_coordinator_of($game->league_id));
 			}
 			if( $extra == 'submission' ) {
-				return ($user->is_coordinator_of($game->league_id));
+				return ($user && $user->is_coordinator_of($game->league_id));
 			}
-			return ($user->is_active());
+			return ($user && $user->is_active());
 			break; // unreached
 		case 'reschedule':
 			//TODO
@@ -770,21 +770,22 @@ class GameSubmit extends Handler
 
 		//TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
 		// javascript to ask for comments if any of the "worst" answers are chosen...
-		$javascript = "if (document.forms[0].elements['team_spirit[RulesKnowledge]'][2].checked || document.forms[0].elements['team_spirit[RulesKnowledge]'][3].checked || ";
-		$javascript .= "document.forms[0].elements['team_spirit[Sportsmanship]'][2].checked || document.forms[0].elements['team_spirit[Sportsmanship]'][3].checked || ";
-		$javascript .= "document.forms[0].elements['team_spirit[Enjoyment]'][3].checked) { ";
-		$javascript .= "  if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+		$javascript = "var form = document.getElementById('score_form'); ";
+		$javascript .= "if (form.elements['team_spirit[RulesKnowledge]'][2].checked || form.elements['team_spirit[RulesKnowledge]'][3].checked || ";
+		$javascript .= "form.elements['team_spirit[Sportsmanship]'][2].checked || form.elements['team_spirit[Sportsmanship]'][3].checked || ";
+		$javascript .= "form.elements['team_spirit[Enjoyment]'][3].checked) { ";
+		$javascript .= "  if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
 		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
 		// javascript to ask for comments if the SOTG score will be 5 or less:
-		$javascript .= "if (document.forms[0].elements['edit[sotg]'].value == '') { document.forms[0].elements['edit[sotg]'].value = sotg(); } ";
-		$javascript .= "if (sotg() <= 5 || document.forms[0].elements['edit[sotg]'].value <= 5) { if (document.forms[0].elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+		$javascript .= "if (form.elements['edit[sotg]'].value == '') { form.elements['edit[sotg]'].value = sotg(); } ";
+		$javascript .= "if (sotg() <= 5 || form.elements['edit[sotg]'].value <= 5) { if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
 		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
 
 		$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
 
 		$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
 
-		return form($output);
+		return form($output, 'post', null, 'id="score_form"');
 	}
 
 
@@ -882,30 +883,31 @@ class GameSubmit extends Handler
 		$script = <<<ENDSCRIPT
 <script type="text/javascript"> <!--
   function defaultCheckboxChanged() {
-    if (document.forms[0].elements['edit[defaulted]'][0].checked == true) {
-        document.forms[0].elements['edit[score_for]'].value = "$lose";
-        document.forms[0].elements['edit[score_for]'].disabled = true;
-        document.forms[0].elements['edit[score_against]'].value = "$win";
-        document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = true;
-    } else if (document.forms[0].elements['edit[defaulted]'][1].checked == true) {
-        document.forms[0].elements['edit[score_for]'].value = "$win";
-        document.forms[0].elements['edit[score_for]'].disabled = true;
-        document.forms[0].elements['edit[score_against]'].value = "$lose";
-        document.forms[0].elements['edit[score_against]'].disabled = true;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = true;
+	form = document.getElementById('score_form');
+    if (form.elements['edit[defaulted]'][0].checked == true) {
+        form.elements['edit[score_for]'].value = "$lose";
+        form.elements['edit[score_for]'].disabled = true;
+        form.elements['edit[score_against]'].value = "$win";
+        form.elements['edit[score_against]'].disabled = true;
+        form.elements['edit[defaulted]'][1].disabled = true;
+    } else if (form.elements['edit[defaulted]'][1].checked == true) {
+        form.elements['edit[score_for]'].value = "$win";
+        form.elements['edit[score_for]'].disabled = true;
+        form.elements['edit[score_against]'].value = "$lose";
+        form.elements['edit[score_against]'].disabled = true;
+        form.elements['edit[defaulted]'][0].disabled = true;
     } else {
-        document.forms[0].elements['edit[score_for]'].disabled = false;
-        document.forms[0].elements['edit[score_against]'].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][0].disabled = false;
-        document.forms[0].elements['edit[defaulted]'][1].disabled = false;
+        form.elements['edit[score_for]'].disabled = false;
+        form.elements['edit[score_against]'].disabled = false;
+        form.elements['edit[defaulted]'][0].disabled = false;
+        form.elements['edit[defaulted]'][1].disabled = false;
     }
   }
 // -->
 </script>
 ENDSCRIPT;
 
-		return $script . form($output);
+		return $script . form($output, 'post', null, 'id="score_form"');
 	}
 
 	function interim_game_result( $edit, $opponent )
@@ -1442,10 +1444,8 @@ class GameEdit extends Handler
 		}
 
 		// load the teams in order to be able to save their current rating
-		$home_team = new Team();
-		$home_team->load( array('team_id' => $this->game->home_id) );
-		$away_team = new Team();
-		$away_team->load( array('team_id' => $this->game->away_id) );
+		$home_team = team_load( array('team_id' => $this->game->home_id) );
+		$away_team = team_load( array('team_id' => $this->game->away_id) );
 
 		// only save the current team ratings if we didn't already save them
 		if ($this->game->rating_home == null || $this->game->rating_home == "" &&
