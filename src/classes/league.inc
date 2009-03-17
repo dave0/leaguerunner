@@ -232,13 +232,16 @@ class League extends LeaguerunnerObject
 		if( $this->email_after == 0 )
 			return '';
 
-		global $TZ_ADJUST;
+		global $TZ_ADJUST, $dbh;
 		$output = '';
 
 		// TODO: game_load_many()?  Or at least game_query()?
+		// TZ_ADJUST is in minutes, email_after is in hours
+		$start_offset = $TZ_ADJUST * 60;
+		$email_offset = $TZ_ADJUST + ($this->email_after * 60) * 60;
 		$sth = $dbh->prepare("SELECT
 				DISTINCT s.game_id,
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) AS start_timestamp
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $start_offset) AS start_timestamp
 			FROM
 				schedule s,
 				gameslot g
@@ -249,18 +252,14 @@ class League extends LeaguerunnerObject
 			AND
 				s.status = 'normal'
 			AND
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) < UNIX_TIMESTAMP(NOW())
+				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $email_offset) < UNIX_TIMESTAMP(NOW())
 			AND
 				(ISNULL(s.home_score) OR ISNULL(s.away_score))
 			ORDER BY
 				g.game_id
 			");
 
-		$sth->execute( array(
-			$TZ_ADJUST * 60,
-			$this->league_id,
-			// TZ_ADJUST is in minutes, email_after is in hours
-			$TZ_ADJUST + ($this->email_after * 60) * 60 ));
+		$sth->execute( array( $this->league_id ) );
 
 		while( $game_id = $sth->fetchColumn() ) {
 			$game = game_load( array('game_id' => $game_id) );
@@ -272,8 +271,8 @@ class League extends LeaguerunnerObject
 			{
 				$stat = 'DID NOT email';
 			}
-			$output .= "<p>$stat reminder for game " .
-				l($id, "game/edit/$id") .
+			$output .= "<p>$stat reminder for $game->game_date-$game->game_start game " .
+				l($game_id, "game/edit/$game_id") .
 				' between ' .
 				l($game->home_name, "team/view/$game->home_team") .
 				' and ' .
@@ -1808,12 +1807,12 @@ class League extends LeaguerunnerObject
 		$max_retries = $this->schedule_attempts;
 		$ret = null;
 
-		global $BASE_URL;
+		global $FILE_URL;
 		print "<html>";
 		print "<head>";
-		print "<base href=\"$BASE_URL/\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://www.ocua.ca/themes/pushbutton_ocua/style.css\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$BASE_URL/style.css\" />";
+		print "<base href=\"$FILE_URL/\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$FILE_URL/themes/pushbutton/style.css\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$FILE_URL/style.css\" />";
 		print "</head>";
 		print "<body><div id='main'><h1>Processing your request</h1>\n";
 		print "<h2>Scheduling games using the Pyramid Ladder scheduler</h2>\n";
@@ -1919,12 +1918,12 @@ class League extends LeaguerunnerObject
 
 		$start_time = time();
 		
-		global $BASE_URL;
+		global $FILE_URL;
 		print "<html>";
 		print "<head>";
-		print "<base href=\"$BASE_URL/\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"http://www.ocua.ca/themes/pushbutton_ocua/style.css\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$BASE_URL/style.css\" />";
+		print "<base href=\"$FILE_URL/\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$FILE_URL/themes/pushbutton/style.css\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"$FILE_URL/style.css\" />";
 		print "</head>";
 		print "<body><div id='main'><h1>Processing your request</h1>\n";
 		print "<h2>Scheduling games using the Ratings Ladder scheduler</h2>\n";
