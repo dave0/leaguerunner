@@ -92,6 +92,7 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 			return ($user && $user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
+		case 'ratings':
 			// admin only
 			break;
 	}
@@ -783,10 +784,6 @@ class LeagueStandings extends Handler
 			}
 		}
 
-		if( $this->league->schedule_type == "ratings_ladder"
-		    || $this->league->schedule_type == "ratings_wager_ladder" ) {
-			$header[] = array('data' => "Rating", 'rowspan' => 2);
-		}
 		$header[] = array('data' => "Streak", 'rowspan' => 2);
 		$header[] = array('data' => "Avg.<br>SOTG", 'rowspan' => 2);
 
@@ -863,10 +860,6 @@ class LeagueStandings extends Handler
 			$row[] = array( 'data' => $season[$tid]->points_for, 'class'=>"$rowstyle");
 			$row[] = array( 'data' => $season[$tid]->points_against, 'class'=>"$rowstyle");
 			$row[] = array( 'data' => $season[$tid]->points_for - $season[$tid]->points_against, 'class'=>"$rowstyle");
-			if ($this->league->schedule_type == "ratings_ladder" 
-			    || $this->league->schedule_type == "ratings_wager_ladder" ) {
-				$row[] = array( 'data' => $season[$tid]->rating, 'class'=>"$rowstyle");
-			}
 
 			if( count($season[$tid]->streak) > 1 ) {
 				$row[] = array( 'data' => count($season[$tid]->streak) . $season[$tid]->streak[0], 'class'=>"$rowstyle");
@@ -1216,7 +1209,7 @@ class LeagueApproveScores extends Handler
 			}
 
 			$se_sth->execute( array( $game->home_team, $game->game_id ) );
-			$home = $sth->fetch(PDO::FETCH_ASSOC);
+			$home = $se_sth->fetch(PDO::FETCH_ASSOC);
 
 			if(!$home) {
 				$home = array(
@@ -1226,7 +1219,7 @@ class LeagueApproveScores extends Handler
 			}
 
 			$se_sth->execute( array( $game->away_team, $game->game_id ) );
-			$away = $sth->fetch(PDO::FETCH_ASSOC);
+			$away = $se_sth->fetch(PDO::FETCH_ASSOC);
 			if(!$away) {
 				$away = array(
 					'score_for' => 'not entered',
@@ -1313,7 +1306,7 @@ class LeagueRatings extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('league','edit', $this->league->league_id);
+		return $lr_session->has_permission('league','ratings', $this->league->league_id);
 	}
 
 	function generateForm ( $data = '' ) 
@@ -1333,9 +1326,9 @@ class LeagueRatings extends Handler
 			$row[] = $team->rating;
 			$row[] = check_form($team->name);
 			$row[] = $team->avg_skill();
-			$row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++ return false'> better </a> " . 
+			$row[] = "<font size='-4'><a href='#' onClick='document.getElementById(\"ratings_form\").elements[\"edit[$team->team_id]\"].value++; return false'> better </a> " . 
 				"<input type='text' size='3' name='edit[$team->team_id]' value='$team->rating' />" .
-				"<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> worse</a></font>";
+				"<a href='#' onClick='document.getElementById(\"ratings_form\").elements[\"edit[$team->team_id]\"].value--; return false'> worse</a></font>";
 
 			$rows[] = $row;
 		}
@@ -1343,7 +1336,7 @@ class LeagueRatings extends Handler
 		$output .= form_hidden("edit[step]", 'perform');
 		$output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ratings' /></div>";
 
-		return form($output);
+		return form($output, 'post', null, 'id="ratings_form"');
 	}
 
 	function process ()
@@ -1415,9 +1408,9 @@ class LeagueRank extends Handler
 			$row[] = $team->count_players();
 			$row[] = $team->rating;
 			$row[] = $team->avg_skill();
-			$row[] = "<font size='-4'><a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value--; return false'> better </a> " .
+			$row[] = "<font size='-4'><a href='#' onClick='document.getElementById(\"ratings_form\").elements[\"edit[$team->team_id]\"].value--; return false'> better </a> " .
 				"<input type='text' size='3' name='edit[$team->team_id]' value='$team->rank' />" .
-				"<a href='#' onClick='document.forms[0].elements[\"edit[$team->team_id]\"].value++; return false'> worse</a></font>";
+				"<a href='#' onClick='document.getElementById(\"ratings_form\").elements[\"edit[$team->team_id]\"].value++; return false'> worse</a></font>";
 
 			$rows[] = $row;
 		}
@@ -1425,7 +1418,7 @@ class LeagueRank extends Handler
 		$output .= form_hidden("edit[step]", 'perform');
 		$output .= "<input type='reset' />&nbsp;<input type='submit' value='Adjust Ranks' /></div>";
 
-		return form($output);
+		return form($output, 'post', null, 'id="ratings_form"');
 	}
 
 	function process ()
@@ -1480,7 +1473,7 @@ class LeagueSpirit extends Handler
 
 	function process ()
 	{
-		global $dbh, $BASE_URL;
+		global $dbh, $FILE_URL;
 		$this->title = "League Spirit";
 
 		$this->setLocation(array(
@@ -1495,6 +1488,10 @@ class LeagueSpirit extends Handler
 		if( !is_array($games) ) {
 			error_exit("There are no games scheduled for this league");
 		}
+
+		// RK - show avg spirit report first
+		$output .= $this->generateAverages();
+		$output .="\n";
 
 		$header = array( "Game", "Entry By", "Given To");
 		$rows = array();
@@ -1591,13 +1588,13 @@ class LeagueSpirit extends Handler
 						switch( $answer_values[$answer] ) {
 							case -3:
 							case -2:
-								$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
+								$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
 								break;
 							case -1:
 								$thisrow[] = "-";
 								break;
 							case 0:
-								$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
+								$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
 								break;
 							default:
 								$thisrow[] = "?";
@@ -1629,11 +1626,11 @@ class LeagueSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
+				$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
 			} else if ( $avg < -0.5 ) {
 				$thisrow[] = "-";
 			} else {
-				$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
+				$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
 			}
 		}
 		$rows[] = $thisrow;
@@ -1642,7 +1639,203 @@ class LeagueSpirit extends Handler
 		if( variable_get('narrow_display', '0') ) {
 			$style .= ' th { font-size: 70%; }';
 		}
+		$output .= h2('Spirit reports per game');
 		$output .= "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
+
+		return $output;
+	}
+
+	// RK 30 Apr 2008 - generate average spirit report for league
+	function generateAverages ()
+	{
+		global $dbh, $FILE_URL;
+
+		// make sure the teams are loaded
+		$this->league->load_teams();
+
+		$header = array(
+				"Team",
+				"Avg Spirit",
+				"Scores"
+                );
+		$headers_done = 0;
+		$totalteams = 0;
+
+		// load all point values for answers into array
+		$answer_values = array();
+		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
+		$sth->execute();
+		while( $ary = $sth->fetch() ) {
+			$answer_values[ $ary['akey'] ] = $ary['value'];
+		}
+
+		$rows = array();
+
+		// this query is similar to team statistics report query;
+		// we want teams in decreasing avg spirit order.
+		// leagueteams used to restrict to only teams currently in this league
+		// restrict spirit average to finalized games in THIS league
+		$sth = $dbh->prepare('SELECT
+                AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ) AS avgspirit,
+                        lt.team_id AS team_id
+                FROM leagueteams lt, schedule s
+                WHERE
+					lt.league_id = ?
+                        AND s.league_id = lt.league_id
+                        AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
+                        AND s.approved_by
+                GROUP BY team_id
+                ORDER BY avgspirit DESC');
+		$sth->execute ( array($this->league->league_id) );
+
+		while( $row = $sth->fetch() ) {
+			$team = team_load( array('team_id' => $row['team_id']) );
+
+			$thisrow = array( l($team->name,"team/view/" . $row['team_id']),
+				   sprintf('%.2f', $row['avgspirit']));
+			$thesescores = array($row['avgspirit']);
+			// remember this spirit score for summary table
+			$spirit_count[round($row['avgspirit']-0.5)]++;
+			$totalteams++;
+
+			/*
+			* Grab schedule info
+			*/
+			$games = game_load_many( array( 'either_team' => $team->team_id, '_order' => 'g.game_date') );
+			if( !is_array($games) ) {
+				// TODO: NO GAMES SCHEDULED!
+			}
+
+			$question_sums = array();
+			$num_games = 0;
+			$no_spirit_questions = 0;
+			$sotg_scores = array();
+
+			while(list(,$game) = each($games)) {
+
+				if( ! $game->is_finalized() ) {
+					continue;
+				}
+
+				# Fetch spirit answers for games
+				$entry = $game->get_spirit_entry( $team->team_id );
+				if( !$entry ) {
+					continue;
+				}
+
+				// get_spirit_numeric looks at the SOTG answers to determine the score
+				$spirit = $game->get_spirit_numeric( $team->team_id );
+				//$score_total += $spirit;
+				$sotg_scores[] = $spirit;
+
+				while( list($qkey,$answer) = each($entry) ) {
+
+					// finish filling headers during first pass
+					if( !$headers_done ) {
+						if( variable_get('narrow_display', '0') ) {
+							$h = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $qkey );
+						} else {
+							$h = $qkey;
+						}
+						if( $qkey != 'CommentsToCoordinator') {
+							// omit comment since we can't average them
+							$header[] = $h;
+						}
+					}
+
+					if( $qkey == 'CommentsToCoordinator' ) {
+						// omit since we can't average comments
+						continue;
+					}
+					if ($answer == null || $answer == "") {
+						$no_spirit_questions++;
+					} else {
+						$question_sums[ $qkey ] += $answer_values[ $answer ];
+					}
+				} #end for each spirit answer
+				$num_games++;
+				$headers_done = 1;
+
+			} #end for each game
+
+			if( !$num_games ) {
+				$thisrow[] = "No games played";
+			} else {
+				// compute average spirit question scores for this team
+				$avgSOTG = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
+				$thisrow[] = $avgSOTG;
+				$thesescores[] = $avgSOTG;
+
+				reset($question_sums);
+				foreach( $question_sums as $qkey => $answer) {
+					$avg = ($answer / ($num_games - $no_spirit_questions));
+					$thesescores[] = $avg;
+					if( $avg < -1.5 ) {
+							$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
+					} else if ( $avg < -0.5 ) {
+							$thisrow[] = "-";
+					} else {
+							$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
+					}
+				}
+			}
+
+			$rows[] = $thisrow;
+			$scores[] = $thesescores;
+		}
+
+		/*
+		 * print league means and std dev
+		 */
+		$thisrow = array('League avg');
+		$mean = array();
+		for ($question = 0; $question < count($scores[0]); $question++) {
+			$numteams = 0;
+			$total = 0;
+			for ($team = 0; $team < count($scores); $team++) {
+				//if ($scores[$team][$question]) {
+					$numteams++;
+					$total += $scores[$team][$question];
+				//}
+			}
+			$mean[] = $total / $numteams;
+			$thisrow[] = sprintf('%.2f', $total / $numteams);
+		}
+		$rows[] = $thisrow;
+
+		$thisrow = array('League stddev');
+		for ($question = 0; $question < count($scores[0]); $question++) {
+			$numteams = 0;
+			$sumsqrs = 0;
+			for ($team = 0; $team < count($scores); $team++) {
+				//if ($scores[$team][$question]) {
+					$numteams++;
+					$sumsqrs += pow($scores[$team][$question] - $mean[$question], 2);
+				//}
+			}
+			$thisrow[] = sprintf('%.2f', sqrt($sumsqrs / $numteams));
+		}
+		$rows[] = $thisrow;
+
+		$output = h2('Team spirit summary')
+			. table($header,$rows, array('alternate-colours' => true) );
+
+		/*
+		 * show summary table of spirit score distribution
+		 */
+		$header = array('Spirit score',
+				'Number of teams',
+				'Percentage of league');
+		$rows = array();
+		for ($spirit = 10; $spirit >= 0; $spirit--) {
+			$percentage = round($spirit_count[$spirit] / $totalteams * 100);
+			$rows[] = array( $spirit == 10 ? '10' : $spirit .' - '. ($spirit+1),
+							$spirit_count[$spirit],
+							$percentage > 0 ? "$percentage%" : "&nbsp;");
+		}
+
+		$output .= h2('Distribution of team average spirit scores')
+			. table($header,$rows);
 
 		return $output;
 	}
@@ -1798,6 +1991,509 @@ class LeagueStatusReport extends Handler
 
 		return form($output);
 	}
+}
+
+
+// RK: print a field distribution report for this league
+// for field balancing
+class LeagueFieldReport extends Handler
+{
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('league','edit', $this->league->league_id);
+	}
+
+	function process ()
+	{
+		$this->title = "League Field Distribution Report";
+
+		$rc = $this->generateStatusPage();
+
+		$this->setLocation(array( $this->league->name => "league/fields/" . $this->league->league_id, $this->title => 0));
+
+		return $rc;
+	}
+
+	function generateStatusPage ( )
+	{
+		global $dbh;
+
+		// make sure the teams are loaded
+		$this->league->load_teams();
+
+		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
+
+		$fields = array();
+		$sth = field_query( array( '_order' => 'f.code') );
+		while( $field = $sth->fetchObject('Field') ) {
+			$fields[$field->code] = $field->region;
+		}
+
+		$output = para("This is a general field scheduling balance report for the league.");
+
+		$num_teams = sizeof($order);
+
+		$header[] = array('data' => "Rating", 'rowspan' => 2);
+		$header[] = array('data' => "Team", 'rowspan' => 2);
+		$header[] = array('data' => "Region", 'rowspan' => 2);
+
+		// now gather all possible fields this league can use
+		$sth = $dbh->prepare('SELECT
+				DISTINCT IF(f.parent_fid, pf.code, f.code) AS field_code,
+				TIME_FORMAT(g.game_start, "%H:%i") as game_start,
+				IF(f.parent_fid, pf.region, f.region) AS field_region,
+				IF(f.parent_fid, pf.fid, f.fid) AS fid,
+				IF(f.parent_fid, pf.name, f.name) AS name
+			FROM league_gameslot_availability a
+			INNER JOIN gameslot g ON (g.slot_id = a.slot_id)
+			LEFT JOIN field f ON (f.fid = g.fid)
+			LEFT JOIN field pf ON (pf.fid = f.parent_fid)
+			WHERE a.league_id = ?
+			ORDER BY field_region DESC, field_code, game_start');
+		$sth->execute( array ($this->league->league_id) );
+		$last_region = "";
+		$field_region_count = 0;
+		while($row = $sth->fetch(PDO::FETCH_OBJ)) {
+			$field_list[] = "$row->field_code $row->game_start";
+			$subheader[] = array('data' => l($row->field_code, "field/view/$row->fid",
+							 array('title'=> $row->name)) . " $row->game_start",
+					     'class' => "subtitle");
+			if ($last_region == $row->field_region) {
+				$field_region_count++;
+			} else {
+				if ($field_region_count > 0) {
+					$header[] = array('data' => $last_region,
+							  'colspan' => $field_region_count);
+				}
+				$last_region = $row->field_region;
+				$field_region_count = 1;
+			}
+		}
+		// and make the last region header too
+		if ($field_region_count > 0) {
+			$header[] = array('data' => $last_region,
+					  'colspan' => $field_region_count);
+		}
+		$header[] = array('data' => "Games", 'rowspan' => 2);
+
+		$rows = array();
+		$rows[] = $subheader;
+
+		$rowstyle = "standings_light";
+
+		// get the schedule
+		$schedule = array();
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		while($g = $sth->fetchObject('Game') ) {
+			$schedule[] = $g;
+		}
+
+		// we'll cache these results, so we can compute avgs and highlight numbers too far from average
+		$cache_rows = array();
+		while(list(, $tid) = each($order)) {
+			if ($rowstyle == "standings_light") {
+				$rowstyle = "standings_dark";
+			} else {
+				$rowstyle = "standings_light";
+			}
+			$row = array( array('data'=>$season[$tid]->rating, 'class'=>"$rowstyle") );
+			$row[] = array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
+			$row[] = array('data'=>$season[$tid]->region_preference, 'class'=>"$rowstyle");
+
+			// count number of games per field for this team:
+			$numgames = 0;
+			$count = array();
+
+			// parse the schedule
+			reset($schedule);
+			while(list(,$game) = each($schedule)) {
+				if ($game->home_team == $tid || $game->away_team == $tid) {
+					$numgames++;
+					list($code, $num) = split(" ", $game->field_code);
+					$count["$code $game->game_start"]++;
+				}
+			}
+
+			foreach ($field_list as $f) {
+				if ($count[$f]) {
+					$row[] = array('data'=> $count[$f], 'class'=>"$rowstyle", 'align'=>'center');
+					$total_at_field[$f] += $count[$f];
+				} else {
+					$row[] = array('data'=> "0", 'class'=>"$rowstyle", 'align'=>'center');
+				}
+			}
+
+			$row[] = array('data'=>$numgames, 'class'=>"$rowstyle", 'align'=>"center");
+
+			$cache_rows[] = $row;
+		}
+
+		// pass through cached rows and highlight entries far from avg
+		foreach ($cache_rows as $row) {
+			$i = 3;  // first data column
+			foreach ($field_list as $f) {
+				$avg = $total_at_field[$f] / $num_teams;
+				// we'll consider more than 1.5 game from avg too much
+				if ($avg - 1.5 > $row[$i]['data'] || $row[$i]['data'] > $avg + 1.5) {
+					$row[$i]['data'] = "<b><font color='red'>". ($row[$i]['data']) ."</font></b>";
+				}
+				$i++; // move to next column in cached row
+			}
+			$rows[] = $row;
+		}
+
+		// output totals line
+		$row = array(array('data' => "Total games:", 'colspan' => 3, 'align' => 'right'));
+		foreach ($field_list as $f) {
+			if ($total_at_field[$f]) {
+				$row[] = array('data'=> $total_at_field[$f], 'align'=>'center');
+			} else {
+				$row[] = array('data'=> "0", 'align'=>'center');
+			}
+		}
+		$rows[] = $row;
+
+		$row = array(array('data' => "Average:", 'colspan' => 3, 'align' => 'right'));
+		foreach ($field_list as $f) {
+			if ($total_at_field[$f]) {
+				$row[] = array('data'=> sprintf('%.1f', $total_at_field[$f] / $num_teams), 'align'=>'center');
+			} else {
+				$row[] = array('data'=> "0", 'align'=>'center');
+			}
+		}
+		$rows[] = $row;
+
+
+		//$output .= table($header, $rows);
+		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
+
+		return form($output);
+	}
+}
+
+/*
+ * RK: tabular report of scores for all league games
+ */
+class LeagueScoresTable extends Handler
+{
+	function has_permission ()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('league','view', $this->league->league_id);
+	}
+
+	function process ()
+	{
+		$id = arg(2);
+
+		$this->title = "Scores";
+
+		if($this->league->schedule_type == 'none') {
+			error_exit("This league does not have a schedule or standings.");
+		}
+
+		// TODO: do we need to handle multiple rounds differently?
+
+		$this->setLocation(array(
+			$this->league->fullname => "league/scores/$id",
+			$this->title => 0,
+		));
+
+		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
+
+		$this->league->load_teams();
+		if( $this->league->teams <= 0 ) {
+			return para('This league has no teams.');
+		}
+
+		$header = array('');
+		$seed = 0;
+		foreach ($order as $tid) {
+			$seed++;
+			$short_name = $season[$tid]->name;
+			$header[] = l($short_name, "team/view/$tid",
+						  array('title' => htmlspecialchars($season[$tid]->name)
+								." Rank:$seed Rating:".$season[$tid]->rating));
+		}
+		$header[] = '';
+
+		$rows = array($header);
+
+		$seed = 0;
+		foreach ($order as $tid) {
+			$seed++;
+			$row = array();
+			$row[] = l($season[$tid]->name, "team/schedule/$tid", 
+					   array('title'=>"Rank:$seed Rating:".$season[$tid]->rating));
+
+			// grab schedule information
+			$games = game_load_many( array( 'either_team' => $tid,
+											'_order' => 'g.game_date,g.game_start,g.game_id') );
+			$gameentry = array();
+			//while(list(,$game) = each($games)) {
+			foreach ($games as &$game) {
+				if($game->home_id == $tid) {
+					$opponent_id = $game->away_id;
+				} else {
+					$opponent_id = $game->home_id;
+				}
+				// if score finalized, save game for printing
+				if($game->is_finalized()) {
+					$gameentry[$opponent_id][] = $game;
+				}
+			}
+
+			// output game results row
+			foreach ($order as $opponent_id) {
+				if ($opponent_id == $tid) {
+					// no games against my own team
+					$row[] = array('data'=>'&nbsp;', 'bgcolor'=>'gray');
+					continue;
+				}
+				$results = array();
+				$wins = $losses = 0;
+				foreach ($gameentry[$opponent_id] as &$game) {
+					$game_score = '';
+					$game_result = "";
+					switch($game->status) {
+					case 'home_default':
+						$game_score = "(default)";
+						$game_result = "$game->home_name defaulted";
+						break;
+					case 'away_default':
+						$game_score = "(default)";
+						$game_result = "$game->away_name defaulted";
+						break;
+					case 'forfeit':
+						$game_score = "(forfeit)";
+						$game_result = "forfeit";
+						break;
+					default: //normal finalized game
+						if($game->home_id == $tid) {
+							$opponent_name = $game->away_name;
+							$game_score = "$game->home_score-$game->away_score";
+							if ($game->home_score > $game->away_score) {
+								$wins++;
+							} else if ($game->home_score < $game->away_score) {
+								$losses++;
+							}
+						} else {
+							$opponent_name = $game->home_name;
+							$game_score = "$game->away_score-$game->home_score";
+							if ($game->away_score > $game->home_score) {
+								$wins++;
+							} else if ($game->away_score < $game->home_score) {
+								$losses++;
+							}
+						}
+						if ($game->home_score > $game->away_score) {
+							$game_result = "$game->home_name defeated $game->away_name"
+								." $game->home_score-$game->away_score";
+						} else if ($game->home_score < $game->away_score) {
+							$game_result = "$game->away_name defeated $game->home_name"
+								." $game->away_score-$game->home_score";
+						} else {
+							$game_result = "$game->home_name and $game->away_name tied $game_score";
+						}
+						$game_result .= " ($game->rating_points rating points transferred)";
+					}
+
+					$popup = strftime('%a %b %d', $game->timestamp)." at $game->field_code: $game_result";
+
+					$results[] = l($game_score, "game/view/$game->game_id",
+								   array('title' => htmlspecialchars($popup)));
+				}
+				$thiscell = implode('<br />', $results);
+				if ($thiscell == '') {
+					$thiscell = '&nbsp;';
+				}
+				if ($wins > $losses) {
+					/* $row[] = array('data'=>$thiscell, 'bgcolor'=>'#A0FFA0'); */
+					$row[] = array('data'=>$thiscell, 'class'=>'winning');
+				} else if ($wins < $losses) {
+					$row[] = array('data'=>$thiscell, 'class'=>'losing');
+				} else {
+					$row[] = $thiscell;
+				}
+			}
+
+			// repeat team name
+			$row[] = l($season[$tid]->name, "team/schedule/$tid", 
+					   array('title'=>"Rank:$seed Rating:".$season[$tid]->rating));
+			$rows[] = $row;
+		}
+
+		//return "<div class='pairtable'>" . table(null, $rows, array('border'=>'1')) . "</div>"
+		return "<div class='scoretable'>" . table(null, $rows, array('class'=>'scoretable')) . "</div>"
+			. para("Scores are listed with the first score belonging the team whose name appears on the left.<br />"
+			. "Green backgrounds means row team is winning season series, red means column team is winning series. Defaulted games are not counted.");
+		//return "<div class='pairtable'>" . table(null, $rows, array('style'=>'border: 1px solid gray;')) . "</div>";
+		//return "<div class='listtable'>" . table(null, $rows) . "</div>";
+	}
+}
+
+/*
+ * RK: report of which fields are available for use
+ */
+class LeagueFieldAvailability extends Handler
+{
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('league','edit', $this->league->league_id);
+	}
+
+	function process ()
+	{
+		$this->title = 'League Field Availability Report';
+
+		$this->setLocation(array(
+			$this->league->fullname => 'league/slots/'.$this->league->league_id,
+			$this->title => 0,
+		));
+
+		$today = getdate();
+
+		$year  = arg(3);
+		$month = arg(4);
+		$day   = arg(5);
+		
+		if(! validate_number($month)) {
+			$month = $today['mon'];
+		}
+
+		if(! validate_number($year)) {
+			$year = $today['year'];
+		}
+		if( $day ) {
+			if( !validate_date_input($year, $month, $day) ) {
+				return 'That date is not valid';
+			}
+			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$month,$day,$year));
+			$this->setLocation(array(
+				"$this->title &raquo; $formattedDay" => 0));
+			return $this->displaySlotsForDay( $year, $month, $day );
+		} else {
+			$this->setLocation(array( "$this->title" => 0));
+			$output = para('Select a date below on which to view all available gameslots');
+			$output .= generateCalendar( $year, $month, $day,
+										 'league/slots/'.$this->league->league_id, 
+										 'league/slots/'.$this->league->league_id);
+			return $output;
+		}
+	}
+
+	/**
+	 * List all games on a given day.
+	 */
+	function displaySlotsForDay ( $year, $month, $day )
+	{
+		global $dbh;
+
+		menu_add_child($this->league->fullname."/slots", "$league->fullname/slots/$year/$month/$day","$year/$month/$day", array('weight' => 1, 'link' => "league/slots/".$this->league->league_id."/$year/$month/$day"));
+		$sth = $dbh->prepare('SELECT
+                g.slot_id,
+                field.name AS field_name,
+                field.num AS field_num,
+                field.code AS field_code,
+                g.fid,
+                g.game_date,
+                UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
+                TIME_FORMAT(g.game_start,"%H:%i") AS game_start,
+                TIME_FORMAT(g.game_end,"%H:%i") AS game_end,
+                g.game_id
+        FROM
+                league_gameslot_availability l
+                INNER JOIN gameslot g ON (l.slot_id = g.slot_id)
+                INNER JOIN field ON (g.fid = field.fid)
+        WHERE l.league_id = ?
+		AND g.game_date = ?
+		ORDER BY g.game_start, field_code, field_num');
+		$sth->execute( array ($this->league->league_id,
+				sprintf('%d-%d-%d', $year, $month, $day)) );
+
+		$row = array();
+		$num_open = 0;
+		while($g = $sth->fetch()) {
+
+			if ( ! $g['game_end'] ) {
+				$g['game_end'] = 'dark';
+			}
+			$row = array($g['slot_id'], 
+						 $g['game_start'].' - '.$g['game_end']);
+
+			// load field info
+			$field = field_load(array('fid' => $g['fid']));
+			$row[] = l("$field->code $field->num", "field/view/$field->fid",
+					   array('title' => $field->fullname));
+
+			// load game info, if game scheduled
+			if ($g['game_id']) {
+				$game = game_load( array('game_id' => $g['game_id']) );
+				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
+				array_splice($row, count($row), 0,
+							 array_slice(schedule_render_viewable($game), 3, 4));
+				if (! $leagues[$game->league_id]) {
+					$leagues[$game->league_id] = league_load(array('league_id' => $game->league_id));
+				}
+				$row[] = array('data' => l($game->league_id, 
+										   "league/view/$game->league_id",
+										   array('title'=>htmlspecialchars($leagues[$game->league_id]->fullname))),
+							   'align' => 'center');
+			} else {
+				$row[] = array('data' => "<b>---- field open ----</b>",
+							   'colspan' => '5');
+				$num_open++;
+			}
+
+			$rows[] = $row;
+		}
+		if( ! count( $rows ) ) {
+			error_exit("No gameslots available for this league on this day");
+		}
+
+		// now that we know the fields, sort the rows
+		usort($rows, 'slots_cmp');
+		$num_fields = count($rows);
+
+		$header = array( 
+			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
+			$this->subheading( ),
+		);
+		array_splice($rows, 0, 0, $header);
+		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>"
+			. para("There are $num_fields fields available for use this week, currently $num_open of these are unused.");
+		return $output;
+	}
+
+	function subheading( )
+	{
+        return array(
+					 array('data' => 'Slot', 'class' => 'column-heading'),
+					 array('data' => 'Time/Place', 'colspan' => 2, 'class' => 'column-heading'),
+					 array('data' => 'Game', 'class' => 'column-heading'),
+					 array('data' => 'Home', 'colspan' => 2, 'class' => 'column-heading'),
+					 array('data' => 'Away', 'colspan' => 2, 'class' => 'column-heading'),
+					 array('data' => 'League', 'class' => 'column-heading'),
+					 );
+	}
+}
+
+// sorting function for slot availability list...
+// php ||, or functions won't maintain strcmp return values... ugh...
+// gotta resort to ugly if statements instead of pretty logical expr
+function slots_cmp($a, $b)
+{
+	// sort on start_time, field_code, slot_id
+	$res = strncmp($a[1], $b[1], 5);
+	if (! $res) {
+		$res = strcmp($a[2], $b[2]);
+	}
+	if (! $res) {
+		$res = strcmp($a[0], $b[0]);
+	}
+	return $res;
 }
 
 ?>
