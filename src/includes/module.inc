@@ -12,7 +12,7 @@
 function module_register($filename, $modulename) {
   global $_modules;
   $_modules[] = $modulename;
-  include_once($filename);
+  require_once($filename);
 }
 
 // return array of module names 
