@@ -209,8 +209,9 @@ class RegistrationView extends Handler
 		));
 
 		$payrows = array();
-		while($row = $sth->fetch()) {
-			$payrows[] = $row;
+		$row = $sth->fetch(PDO::FETCH_ASSOC);
+		foreach($row as $key => $value) {
+			$payrows[] = array($key, $value);
 		}
 		if( count($payrows) ) {
 			$output .= form_group('Payment details', '<div class="pairtable">' . table(NULL, $payrows) . '</div>');
@@ -518,6 +519,9 @@ class RegistrationRegister extends RegistrationForm
 
 	function generateForm ()
 	{
+		global $FILE_URL;
+		$FILE_PATH = trim ($FILE_URL, '/');
+
 		$this->title = 'Preferences';
 
 		// This shouldn't happen...
@@ -527,7 +531,7 @@ class RegistrationRegister extends RegistrationForm
 		}
 
 		ob_start();
-		$retval = @readfile('data/registration_notice.html');
+		$retval = @readfile("$FILE_PATH/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}
@@ -790,8 +794,9 @@ class RegistrationOnlinePaymentResponse extends Handler
 
 	function process ()
 	{
-		global $BASE_URL;
+		global $BASE_URL, $FILE_URL;
 
+		// TODO: Use the correct theme style sheet below
 		print <<<HTML_HEADER
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -799,7 +804,7 @@ class RegistrationOnlinePaymentResponse extends Handler
 <title>Toronto Ultimate Club - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <link rel="StyleSheet" href="/themes/SeaBreeze/style/tuc.css" type="text/css">
-<link rel="stylesheet" type="text/css" href="$BASE_URL/style.css">
+<link rel="stylesheet" type="text/css" href="$FILE_URL/style.css">
 <script type="text/javascript">
 <!--
 function close_and_redirect(url)
@@ -813,121 +818,7 @@ function close_and_redirect(url)
 <body>
 HTML_HEADER;
 
-		$order_num_len = strlen(sprintf(variable_get('order_id_format', '%d'), 0));
-
-		// Check for cancellation
-		$cancel = $_GET['cancelTXN'];
-		if ($cancel) {
-			$long_order_id = $_GET['order_id'];
-			$order_id = substr( $long_order_id, 0, $order_num_len );
-			print para(theme_error('You cancelled the transaction.'));
-
-			print OfflinePaymentText($order_id);
-
-			print para('Alternately, if you choose not to complete the payment process at this time, you will be able to start the registration process again at a later time and it will pick up where you have left off.');
-		}
-
-		else {
-			// Retrieve the parameters sent from the server
-			$long_order_id = $_GET['response_order_id'];
-			$order_id = substr( $long_order_id, 0, $order_num_len );
-			$date_stamp = $_GET['date_stamp'];
-			$time_stamp = $_GET['time_stamp'];
-			$bank_transaction_id = $_GET['bank_transaction_id'];
-			$charge_total = $_GET['charge_total'];
-			$bank_approval_code = $_GET['bank_approval_code'];
-			$response_code = $_GET['response_code'];
-			$cardholder = $_GET['cardholder'];
-			$expiry = $_GET['expiry_date'];
-			$f4l4 = $_GET['f4l4'];
-			$card = $_GET['card'];
-			$iso_code = $_GET['iso_code'];
-			$message = $_GET['message'];
-			$trans_name = $_GET['trans_name'];
-
-			// Values specific to INTERAC
-			if ($trans_name == 'idebit_purchase')
-			{
-				$issuer = $_GET['ISSNAME'];
-				$issuer_invoice = $_GET['INVOICE'];
-				$issuer_confirmation = $_GET['ISSCONF'];
-			}
-			else
-			{
-				$issuer = '';
-				$issuer_invoice = '';
-				$issuer_confirmation = '';
-			}
-
-			// TODO: Make the extraction of the short order ID configurable
-			$short_order_id = substr($order_id, 1);
-
-			// We can't necessarily rely on the session variable, in the
-			// case that the user is signed into tuc.org but the redirect
-			// went to www.tuc.org
-			$sth = $dbh->prepare('SELECT
-					p.firstname, p.lastname, p.addr_street, p.addr_city,
-					p.addr_prov, p.addr_country, p.addr_postalcode,
-					e.registration_id, e.name, e.cost, e.gst, e.pst
-				FROM
-					registrations r
-					LEFT JOIN person p ON r.user_id = p.user_id
-					LEFT JOIN registration_events e ON r.registration_id = e.registration_id
-				WHERE r.order_id = ?');
-			$sth->execute( array( $short_order_id ) );
-			$info = $sth->fetch( PDO::FETCH_ASSOC );
-
-			// Validate the response code
-			if ($response_code < 50 &&
-				$bank_transaction_id > 0 )
-			{
-				$errors = '';
-
-				$sth->prepare("UPDATE registrations
-						SET payment = 'Paid'
-						WHERE order_id = ?");
-				$sth->execute( array($short_order_id) );
-				if ( 1 != $sth->rowCount() ) {
-					$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
-				}
-
-				// TODO: Specify explicit column names
-				$sth = $dbh->prepare('INSERT INTO
-								registration_audit
-							VALUES ( ?, ?, ?,
-								?, ?,
-								?, ?, ?,
-								?, ?,
-								?, ?, ?, ?, 
-								?, 
-								?, ?, ?)');
-				$sth->execute( array(
-						$short_order_id, $response_code, $iso_code,
-						$date_stamp, $time_stamp,
-						$bank_transaction_id, $bank_approval_code,
-						$trans_name, $charge_total,
-						$cardholder, $expiry, $f4l4, $card,
-						$message,
-						$issuer, $issuer_invoice, $issuer_confirmation)
-				);
-				if ( 1 != $sth->rowCount() ) {
-					$errors .= para( theme_error( "There was an error updating the audit record in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
-				}
-
-				$file = variable_get('invoice_implementation', 'invoice');
-				include "includes/$file.inc";
-				print $errors;
-			}
-
-			else {
-				print para(theme_error('Your payment was declined. The reason given was:'));
-				print para(theme_error($message));
-
-				print OfflinePaymentText($order_id);
-
-				print para("Alternately, you can <a href=\"/\" onClick=\"close_and_redirect('$BASE_URL/event/view/{$info->registration_id}')\">start the registration process again</a> and try a different payment option.");
-			}
-		}
+		handlePaymentResponse();
 
 		print para("Click <a href=\"/\" onClick=\"close_and_redirect('$BASE_URL/event/list')\">here</a> to close this window.");
 
@@ -1028,18 +919,7 @@ function AddAutoQuestions( &$formbuilder, $type )
 
 		// League team registrations have these additional questions
 		case 'team_league':
-			$areas = array(
-				'East' => 'East (any field East of Keele St.)',
-				'West' => 'West (any field West of Hwy 404/DVP)',
-				'North' => 'North (any field North of Eglinton)',
-				'South' => 'South (any field South of Hwy 401)',
-				'North East' => 'North East (any field North of Eglinton and East of Keele)',
-				'North West' => 'North West (any field North of Eglinton and East of DVP)',
-				'South East' => 'South East (any field South of Hwy 401 and East of Keele)',
-				'South West' => 'South West (any field South of Hwy 401 and West of DVP)'
-			);
-			$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, $areas);
-			//$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, getOptionsFromEnum('field', 'region'));
+			$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, getOptionsFromEnum('field', 'region'));
 			//$formbuilder->add_question('__auto__status', 'Team Status', 'Is your team open (others can join) or closed (only captain can add players)', 'multiplechoice', true, -48, getOptionsFromEnum('team', 'status'));
 			// Note: intentionally fall through to the next case
 
@@ -1057,9 +937,11 @@ function registration_settings ( )
 
 	$group .= form_radios('Allow tentative members to register?', 'edit[allow_tentative]', variable_get('allow_tentative', 0), array('Disabled', 'Enabled'), 'Tentative members include those whose accounts have not yet been approved but don\'t appear to be duplicates of existing accounts, and those who have registered for membership and called to arrange an offline payment which has not yet been received.');
 
+	$group .= form_textfield('Current membership registration event IDs', 'edit[membership_ids]', variable_get('membership_ids', ''), 60, 120, 'Comma separated list of event IDs that should be considered current memberships.');
+
 	$group .= form_radios('Online payments', 'edit[online_payments]', variable_get('online_payments', 1), array('Disabled', 'Enabled'), 'Do we handle online payments?');
 
-	$group_online = form_textfield('Payment provider implementation file', 'edit[payment_implementation]', variable_get('payment_implementation', 'moneris'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
+	$group_online = form_textfield('Payment provider implementation file', 'edit[payment_implementation]', variable_get('payment_implementation', 'moneris'), 60, 120, 'File will have .inc added, and be looked for in the includes/payment folder.');
 
 	$group_online .= form_textfield('Invoice implementation file', 'edit[invoice_implementation]', variable_get('invoice_implementation', 'invoice'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
 
@@ -1068,10 +950,10 @@ function registration_settings ( )
 	$group_online .= form_radios('Testing payments', 'edit[test_payments]', variable_get('test_payments', 0), array('Nobody', 'Everybody', 'Admins'), 'Who should get test instead of live payments?');
 
 	$group_online .= form_textfield('Live payment store ID', 'edit[live_store]', variable_get('live_store', ''), 60, 120);
-	$group_online .= form_textfield('Live payment password', 'edit[live_password]', variable_get('live_password', ''), 60, 120);
+	$group_online .= form_textfield('Live payment password', 'edit[live_password]', variable_get('live_password', ''), 60, 120, 'For Moneris, this is the login password; for Chase it is the merchant transaction key');
 
 	$group_online .= form_textfield('Test payment store ID', 'edit[test_store]', variable_get('test_store', ''), 60, 120);
-	$group_online .= form_textfield('Test payment password', 'edit[test_password]', variable_get('test_password', ''), 60, 120);
+	$group_online .= form_textfield('Test payment password', 'edit[test_password]', variable_get('test_password', ''), 60, 120, 'For Moneris, this is the login password; for Chase it is the merchant transaction key');
 
 	$group .= form_group('Online payment options', $group_online);
  
