@@ -113,6 +113,7 @@ class GameSlot extends LeaguerunnerObject
 
 	function create ()
 	{
+		global $dbh;
 		if ($this->_in_database) {
 			return false;
 		}

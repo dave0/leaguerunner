@@ -83,6 +83,8 @@ class Event extends LeaguerunnerObject
 		$sth->execute();
 		$this->registration_id = $sth->fetchColumn();
 
+		$this->_in_database = true;
+
 		return true;
 	}
 }

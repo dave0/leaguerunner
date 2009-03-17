@@ -129,7 +129,7 @@ class FormBuilder
 			$qkeys[] = $q->qkey;
 
 			foreach( $q->answers as $a ) {
-				$avalues[] = array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder );
+				$all_avalues[] = array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder );
 			}
 		}
 
@@ -150,14 +150,14 @@ class FormBuilder
 			$sth = $dbh->prepare('INSERT INTO question (qkey, genre, question, qtype, restrictions, required, sorder)
 				VALUES (?, ?, ?, ?, ?, ?, ?)');
 			foreach ($all_questions as $question ) {
-				$sth->execute( array($question) );
+				$sth->execute( $question );
 			}
 		}
 
-		if( count( $aformats ) ) {
+		if( count( $all_avalues ) ) {
 			$sth = $dbh->prepare('INSERT INTO multiplechoice_answers (akey, qkey, answer, value, sorder) VALUES (?, ?, ?, ?, ?)');
 			foreach( $all_avalues as $avalues ) {
-				$sth->execute( array($avalues) );
+				$sth->execute( $avalues );
 			}
 		}
 
