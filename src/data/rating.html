@@ -114,7 +114,7 @@ function doranking() {
   therank = Math.round(therank);
 
   // put the result into the text box
-  window.opener.document.forms[0].elements['edit[skill_level]'].value = therank;
+  window.opener.document.getElementById('player_form').elements['edit[skill_level]'].value = therank;
   window.close();
 }
 
