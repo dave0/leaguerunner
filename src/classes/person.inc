@@ -256,8 +256,8 @@ class Person extends LeaguerunnerObject
 				. $this->gender 
 				. "_lock";
 			$sth = $dbh->prepare("SELECT GET_LOCK('$lockname',10)");
-			$dbh->execute();
-			$lock = $dbh->fetchColumn();
+			$sth->execute();
+			$lock = $sth->fetchColumn();
 
 			if(!isset($lock) || $lock == 0) {
 				return false;
