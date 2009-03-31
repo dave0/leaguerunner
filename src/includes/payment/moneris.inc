@@ -1,6 +1,9 @@
 <?php
 /*
  * Code for dealing with Moneris online payment.
+ * see
+ * 	https://www3.moneris.com/connect/en/download/feb05/HOSTED/eSELECTplus_HPP_IG.pdf
+ * for details
  */
 
 function generatePayForm ($event, $order_num)

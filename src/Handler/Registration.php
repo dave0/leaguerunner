@@ -781,9 +781,6 @@ class RegistrationUnregister extends Handler
 
 /**
  * Handle responses from the payment server
- * see
- * 	https://www3.moneris.com/connect/en/download/feb05/HOSTED/eSELECTplus_HPP_IG.pdf
- * for details
  */
 class RegistrationOnlinePaymentResponse extends Handler
 {
@@ -803,8 +800,8 @@ class RegistrationOnlinePaymentResponse extends Handler
 <head>
 <title>Toronto Ultimate Club - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<link rel="StyleSheet" href="/themes/SeaBreeze/style/tuc.css" type="text/css">
-<link rel="stylesheet" type="text/css" href="$FILE_URL/style.css">
+<link rel="StyleSheet" href="http://{$_SERVER["SERVER_NAME"]}/themes/SeaBreeze/style/tuc.css" type="text/css">
+<link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$FILE_URL/style.css">
 <script type="text/javascript">
 <!--
 function close_and_redirect(url)
@@ -820,7 +817,7 @@ HTML_HEADER;
 
 		handlePaymentResponse();
 
-		print para("Click <a href=\"/\" onClick=\"close_and_redirect('$BASE_URL/event/list')\">here</a> to close this window.");
+		print para("Click <a href=\"/\" onClick=\"close_and_redirect('http://{$_SERVER["SERVER_NAME"]}$BASE_URL/event/list')\">here</a> to close this window.");
 
 		// Returning would cause the Leaguerunner menus to be added
 		exit;
