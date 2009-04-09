@@ -793,14 +793,13 @@ class RegistrationOnlinePaymentResponse extends Handler
 	{
 		global $BASE_URL, $FILE_URL;
 
-		// TODO: Use the correct theme style sheet below
+		$org = variable_get('app_org_name','league');
 		print <<<HTML_HEADER
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>Toronto Ultimate Club - Online Transaction Result</title>
+<title>$org - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<link rel="StyleSheet" href="http://{$_SERVER["SERVER_NAME"]}/themes/SeaBreeze/style/tuc.css" type="text/css">
 <link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$FILE_URL/style.css">
 <script type="text/javascript">
 <!--
