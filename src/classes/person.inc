@@ -477,6 +477,36 @@ class Person extends LeaguerunnerObject
 		return $sth;
 	}
 
+	function send_membership_letter()
+	{
+		global $dbh;
+
+		// Send the email
+		$variables = array(
+			'%fullname' => $this->fullname,
+			'%firstname' => $this->firstname,
+			'%lastname' => $this->lastname,
+			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
+			'%site' => variable_get('app_org_name','league'),
+			'%year' => date('Y'));
+		$message = _person_mail_text('member_letter_body', $variables);
+
+		if (!send_mail($this->email, $this->fullname,
+			false, false, // from the administrator
+			false, false,
+			_person_mail_text('member_letter_subject', $variables),
+			$message))
+		{
+			return false;
+		}
+
+		// Update the activity log
+		$year = date('Y');
+		$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
+		$sth->execute( array("email_membership_letter", $year, $this->user_id) );
+		return( 1 == $sth->rowCount() );
+	}
+
 }
 
 function person_query ( $array = array() )

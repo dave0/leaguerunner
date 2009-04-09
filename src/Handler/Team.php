@@ -1040,8 +1040,7 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captain' => $lr_session->user->fullname,
-					// URGENT TODO: TUCism
-					'%teamurl' => "http://www.tuc.org/Leaguerunner/team/view/{$this->team->team_id}",
+					'%teamurl' => url("team/view/{$this->team->team_id}"),
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,
@@ -1126,8 +1125,7 @@ class TeamRosterStatus extends Handler
 					'%fullname' => $this->player->fullname,
 					'%userid' => $this->player->user_id,
 					'%captains' => join(',', $captain_names),
-					// URGENT TODO: TUCism
-					'%teamurl' => "http://www.tuc.org/Leaguerunner/team/view/{$this->team->team_id}",
+					'%teamurl' => url("team/view/{$this->team->team_id}"),
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
 					'%day' => $this->team->league_day,

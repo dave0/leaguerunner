@@ -3,15 +3,15 @@
 	<tr><td colspan="4" class="center"><span class="highlight">Your Transaction has been Approved</span></td></tr>
 	<tr><td colspan="4" class="center"><span class="highlight">Print this receipt for your records</span></td></tr>
 	<tr><td colspan="4" bgcolor="#EEEEEE">&nbsp;</td></tr>
-	<tr><td align="center" colspan="4"><h2 class="center">Toronto Ultimate Club</h2></td></tr>
-	<tr><td align="center" colspan="4">1185 Eglinton Ave. East</td></tr>
-	<tr><td align="center" colspan="4">Suite 703</td></tr>
-	<tr><td align="center" colspan="4">Toronto, ON</td></tr>
-	<tr><td align="center" colspan="4">M3C 3C6</td></tr>
+	<tr><td align="center" colspan="4"><h2 class="center"><?php echo variable_get('app_org_name','league'); ?></h2></td></tr>
+	<tr><td align="center" colspan="4"><?php echo variable_get('app_org_address'); ?></td></tr>
+	<tr><td align="center" colspan="4"><?php echo variable_get('app_org_address2'); ?></td></tr>
+	<tr><td align="center" colspan="4"><?php echo variable_get('app_org_city'); ?>, <?php echo variable_get('app_org_province'); ?></td></tr>
+	<tr><td align="center" colspan="4"><?php echo variable_get('app_org_postal'); ?></td></tr>
 	<tr><td>&nbsp;</td></tr>
-	<tr><td align="center" colspan="4">1 416 426 7175</td></tr>
+	<tr><td align="center" colspan="4"><?php echo variable_get('app_org_phone'); ?></td></tr>
 
-	<tr><td align="center" colspan="4"><a href="http://www.tuc.org/">www.tuc.org</a></td></tr>
+	<tr><td align="center" colspan="4"><a href="http://<?php echo $_SERVER["SERVER_NAME"]; ?>/"><?php echo $_SERVER["SERVER_NAME"]; ?></a></td></tr>
 	<tr><td>&nbsp;</td></tr>
 
 	<tr bgcolor="#EEEEEE"><td colspan="4"><b>Transaction Type: <?php

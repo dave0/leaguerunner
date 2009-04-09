@@ -146,8 +146,8 @@ function handlePaymentResponse()
 		$short_order_id = substr($order_id, 1);
 
 		// We can't necessarily rely on the session variable, in the
-		// case that the user is signed into tuc.org but the redirect
-		// went to www.tuc.org
+		// case that the user is signed into example.com but the redirect
+		// went to www.example.com
 		$sth = $dbh->prepare('SELECT
 				p.firstname, p.lastname, p.addr_street, p.addr_city,
 				p.addr_prov, p.addr_country, p.addr_postalcode,

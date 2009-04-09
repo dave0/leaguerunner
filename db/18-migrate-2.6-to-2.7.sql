@@ -39,3 +39,15 @@ ALTER TABLE waitinglistmembers ENGINE=INNODB;
 
 -- Add country field to person table
 ALTER TABLE person ADD COLUMN addr_country varchar(50) AFTER addr_prov;
+
+-- Change score reminder table into something more generic
+RENAME TABLE score_reminder TO activity_log;
+ALTER TABLE activity_log ADD `type` VARCHAR( 128 ) NOT NULL FIRST;
+ALTER TABLE activity_log
+	CHANGE game_id primary_id INT( 11 ) NOT NULL DEFAULT '0',
+	CHANGE team_id secondary_id INT( 11 ) NOT NULL DEFAULT '0',
+	DROP PRIMARY KEY,
+	ADD PRIMARY KEY ( `type` , primary_id , secondary_id ),
+	ADD INDEX SECONDARY ( `type` , primary_id );
+UPDATE activity_log SET `type` = "email_score_reminder" WHERE secondary_id != 0;
+UPDATE activity_log SET `type` = "email_score_mismatch" WHERE secondary_id = 0;

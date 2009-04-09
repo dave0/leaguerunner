@@ -450,9 +450,9 @@ class EventList extends Handler
 		ob_end_clean();
 
 		if( $lr_session->is_admin() ) {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.name') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		} else {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.name') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		}
 
 		$type_desc = array('membership' => 'Membership Registrations',
@@ -850,7 +850,9 @@ class EventView extends Handler
 			if ( $registered_count >= $applicable_cap )
 			{
 				// TODO: Allow people to put themselves on a waiting list
-				$output .= para( 'This event is already full.  You may email <a href="mailto:gm@tuc.org">gm@tuc.org</a> or phone the head office to be put on a waiting list in case others drop out.' );
+				$admin_name = variable_get('app_admin_name', 'Leaguerunner Admin');
+				$admin_addr = variable_get('app_admin_email','webmaster@localhost');
+				$output .= para( "This event is already full.  You may email the <a href=\"mailto:$admin_addr\">$admin_name</a> or phone the head office to be put on a waiting list in case others drop out." );
 				// There may be a payment-pending registration already done,
 				// if multiples are allowed, so we allow for payment to be made.
 				return $output . $payment;

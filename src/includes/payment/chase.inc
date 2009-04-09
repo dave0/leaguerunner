@@ -130,6 +130,12 @@ function handlePaymentResponse()
 	$message = $_POST['Bank_Message'];
 	$hash = $_POST['x_MD5_Hash'];
 
+	// See if we can get a better card number from the receipt
+	if (preg_match ('#CARD NUMBER : (\*+\d+)#im', $_POST['exact_ctr'], $matches))
+	{
+		$f4l4 = $matches[1];
+	}
+
 	// TODO: no better way to get these from the response?
 	if (stripos ($card, 'interac') === false)
 		$trans_name = 'purchase';
@@ -167,8 +173,8 @@ function handlePaymentResponse()
 	$short_order_id = substr($order_id, 1);
 
 	// We can't necessarily rely on the session variable, in the
-	// case that the user is signed into tuc.org but the redirect
-	// went to www.tuc.org
+	// case that the user is signed into example.com but the redirect
+	// went to www.example.com
 	$sth = $dbh->prepare('SELECT
 			p.firstname, p.lastname, p.addr_street, p.addr_city,
 			p.addr_prov, p.addr_country, p.addr_postalcode,

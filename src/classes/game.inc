@@ -321,13 +321,12 @@ class Game extends LeaguerunnerObject
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
 			} else {
-				// Team id = 0 in the reminder table means the convener
 				$sth = $dbh->prepare('
 					SELECT COUNT(*)
 					FROM
-						score_reminder
-					WHERE game_id = ?
-					AND team_id = 0');
+						activity_log
+					WHERE type = "email_score_mismatch"
+					AND primary_id = ?');
 				$sth->execute( array($this->game_id) );
 				if( $sth->fetchColumn() ) {
 					return false;
@@ -361,7 +360,7 @@ class Game extends LeaguerunnerObject
 					$to_name[] = $row->fullname;
 				}
 
-				$message = "Game {$this->game_id} between {$this->home_name} and {$this->away_name} in {$this->league_name} has score entries which do not match. Edit the game here:\nhttp://www.tuc.org/Leaguerunner/game/edit/{$this->game_id}";
+				$message = "Game {$this->game_id} between {$this->home_name} and {$this->away_name} in {$this->league_name} has score entries which do not match. Edit the game here:\n" . url("game/edit/{$this->game_id}");
 
 				if( send_mail($to_addr, $to_name,
 					false, false, // from the administrator
@@ -369,8 +368,8 @@ class Game extends LeaguerunnerObject
 					'Score entry mismatch',
 					$message) )
 				{
-					$sth = $dbh->prepare('INSERT into score_reminder (game_id, team_id) VALUES(?,0)');
-					$sth->execute( array($this->game_id) );
+					$sth = $dbh->prepare('INSERT into activity_log (type, primary_id) VALUES(?,?)');
+					$sth->execute( array("email_score_mismatch", $this->game_id) );
 				}
 				return false;
 			}
@@ -478,8 +477,9 @@ class Game extends LeaguerunnerObject
 
 		if( $update_db )
 		{
-			$sth = $dbh->prepare('SELECT COUNT(*) FROM score_reminder WHERE
-				game_id = ? AND team_id = ?');
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM activity_log
+				WHERE type = "email_score_reminder"
+				AND primary_id = ? AND secondary_id = ?');
 			$sth->execute( array( $this->game_id, $team_id) );
 			$sent = $sth->fetchColumn();
 			if( $sent ) {
@@ -522,14 +522,13 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		// TODO fix tuc-ism
 		$variables = array(
 			'%fullname' => join(',', $to_name),
 			'%team' => $team_name,
 			'%opponent' => $opponent,
 			'%league' => $this->league_name,
 			'%gamedate' => $this->game_date,
-			'%scoreurl' => "http://www.tuc.org/Leaguerunner/game/submitscore/{$this->game_id}/$team_id",
+			'%scoreurl' => url("game/submitscore/{$this->game_id}/$team_id"),
 			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 			'%site' => variable_get('app_name','Leaguerunner'));
 		$message = _person_mail_text('score_reminder_body', $variables);
@@ -545,8 +544,8 @@ class Game extends LeaguerunnerObject
 
 		if( $update_db )
 		{
-			$sth = $dbh->prepare('INSERT into score_reminder (game_id, team_id) VALUES(?,?)');
-			$sth->execute( array( $this->game_id, $team_id) );
+			$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
+			$sth->execute( array("email_score_reminder", $this->game_id, $team_id) );
 		}
 
 		return true;
@@ -693,7 +692,8 @@ class Game extends LeaguerunnerObject
 			'UPDATE gameslot SET game_id = NULL where game_id = ?',
 			'DELETE FROM team_spirit_answers WHERE gid = ?',
 			'DELETE FROM score_entry WHERE game_id = ?',
-			'DELETE FROM score_reminder WHERE game_id = ?',
+			'DELETE FROM activity_log WHERE primary_id = ? AND
+				(type = "email_score_mismatch" OR type = "email_score_reminder")',
 			'DELETE FROM schedule WHERE game_id = ?'
 		);
 

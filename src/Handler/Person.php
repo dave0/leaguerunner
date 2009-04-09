@@ -264,6 +264,49 @@ function person_menu()
 }
 
 /**
+ * Periodic tasks to perform.  This should handle any internal checkpointing
+ * necessary, as the cron task may be called more or less frequently than we
+ * expect.
+ */
+function person_cron()
+{
+	global $dbh;
+
+	$output = '';
+
+	if( variable_get('registration', 0) ) {
+		$output .= h2('Membership welcome letters');
+
+		// Defaulting the value here to 0 matches no real events while preventing SQL errors.
+		$registration_ids = variable_get('membership_ids', '0');
+		// TODO: Make the rollover date configurable; this starts the new year's letters in April
+		$year = date('Y');
+		if (date('n') < 4)
+			-- $year;
+
+		$sth = $dbh->prepare("SELECT user_id FROM person
+								WHERE user_id IN 
+									(SELECT DISTINCT user_id FROM registrations
+									WHERE registration_id IN ($registration_ids)
+									AND payment = 'Paid')
+								AND user_id NOT IN
+									(SELECT secondary_id FROM activity_log
+									WHERE type = ? AND primary_id = ?)");
+		$sth->execute( array("email_membership_letter", $year) );
+
+		$emailed = 0;
+		while( $id = $sth->fetchColumn() ) {
+			$person = person_load( array('user_id' => $id) );
+			if ($person->send_membership_letter())
+				++ $emailed;
+		}
+		$output .= para("Emailed $emailed membership letters.");
+	}
+
+	return "$output<pre>Completed person_cron run</pre>";
+}
+
+/**
  * Player viewing handler
  */
 class PersonView extends Handler
@@ -648,7 +691,7 @@ class PersonApproveNewAccount extends PersonView
 					'%username' => $this->person->username,
 					'%existingusername' => $existing->username,
 					'%existingemail' => $existing->email,
-					'%passwordurl' => url("person/forgotpassword"),
+					'%passwordurl' => variable_get('password_reset', url('person/forgotpassword')),
 					'%adminname' => $lr_session->user->fullname,
 					'%site' => variable_get('app_name','Leaguerunner')));
 
@@ -684,7 +727,7 @@ class PersonApproveNewAccount extends PersonView
 					'%username' => $this->person->username,
 					'%existingusername' => $existing->username,
 					'%existingemail' => $existing->email,
-					'%passwordurl' => 'http://www.tuc.org/Users/lostpassword',
+					'%passwordurl' => variable_get('password_reset', url('person/forgotpassword')),
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 
@@ -2000,6 +2043,10 @@ function _person_mail_text($messagetype, $variables = array() )
 				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYour new permanent member number is\n\t%memberid\nThis number will identify you for member services, discounts, etc, so please write it down in a safe place so you'll remember it.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
 			case 'approved_body_visitor':
 				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
+			case 'member_letter_subject':
+				return strtr("%site %year Membership",$variables);
+			case 'member_letter_body':
+				return strtr("Dear %fullname,\n\nThank you for confirming your membership in the %site for %year. You are now eligible to be added to team rosters and enjoy all the other benefits of membership in the %site.\n\nThanks,\n%adminname", $variables);
 			case 'password_reset_subject':
 				return strtr("%site Password Reset",$variables);
 			case 'password_reset_body':
@@ -2036,11 +2083,15 @@ function _person_mail_text($messagetype, $variables = array() )
 
 function person_settings ( )
 {
-	$group = form_textfield("Subject of account approval e-mail", "edit[person_mail_approved_subject]", _person_mail_text("approved_subject"), 70, 180, "Customize the subject of your approval e-mail, which is sent after account is approved." ." ". "Available variables are:" ." %username, %site, %url.");
+	$group = form_textfield('Subject of account approval e-mail', 'edit[person_mail_approved_subject]', _person_mail_text('approved_subject'), 70, 180, 'Customize the subject of your approval e-mail, which is sent after account is approved. Available variables are: %username, %site, %url.');
  
 	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
 
 	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
+
+	$group .= form_textfield('Subject of membership letter e-mail', 'edit[person_mail_member_letter_subject]', _person_mail_text('member_letter_subject'), 70, 180, 'Customize the subject of your membership letter e-mail, which is sent annually after membership is paid for. Available variables are: %fullname, %firstname, %lastname, %site, %year.');
+ 
+	$group .= form_textarea('Body of membership letter e-mail (player)', 'edit[person_mail_member_letter_body]', _person_mail_text('member_letter_body'), 70, 10, 'Customize the body of your membership letter e-mail, which is sent annually after membership is paid for. If registrations are disabled, or this field is empty, no letters will be sent. Available variables are: %fullname, %firstname, %lastname, %adminname, %site, %year.');
 
 	$group .= form_textfield('Subject of password reset e-mail', 'edit[person_mail_password_reset_subject]', _person_mail_text('password_reset_subject'), 70, 180, 'Customize the subject of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %site.');
  
