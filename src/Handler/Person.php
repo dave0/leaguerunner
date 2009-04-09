@@ -1719,7 +1719,14 @@ class PersonListNewAccounts extends Handler
 
 		$output = "<table>";
 		while( $person = $sth->fetchObject('Person', array(LOAD_OBJECT_ONLY)) ) {
-			$output .= "<tr><td>$person->lastname, $person->firstname</td><td>";
+			$output .= '<tr><td>';
+			$dup_sth = $person->find_duplicates();
+			if( $dup_sth->fetch() ) {
+				$output .= "<span class='error'>$person->lastname, $person->firstname</span>";
+			} else {
+				$output .= "$person->lastname, $person->firstname";
+			}
+			$output .= '</td><td>';
 			while ( list($key, $value) = each($ops)) {
 				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
 				$output .= "&nbsp;";
