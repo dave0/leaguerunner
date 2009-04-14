@@ -1846,14 +1846,12 @@ class PersonForgotPassword extends Handler
 		$org = variable_get('app_org_short_name', 'league');
 		$output = <<<END_TEXT
 <p>
-	If you'd like to reset your password, please enter ANY ONE OF:
+	If you'd like to reset your password, please enter ONLY ONE OF:
 	<ul>
 		<li>Your username 
 		<li>Your email address
-		<li>Your member number
 	</ul>
-	in the form below.  You only need to provide multiple pieces of
-	information if you are sharing an email account with another $org player.
+	in the form below. 
 </p>
 <p>
 	If the information you provide matches an account, an email will be sent
@@ -1871,7 +1869,6 @@ END_TEXT;
 		$output .= "<div class='pairtable'>";
 		$output .= table(null, array(
 			array("Username:", form_textfield('', 'edit[username]', '', 25, 100)),
-			array("Member ID Number:", form_textfield('', 'edit[member_id]', '', 25, 100)),
 			array("Email Address:", form_textfield('', 'edit[email]', '', 40, 100, "(please enter only ONE email address in this box)"))
 		));
 		$output .= "</div>";
@@ -1889,12 +1886,9 @@ END_TEXT;
 		if(validate_nonblank($edit['email'])) {
 			$fields['email'] = $edit['email'];
 		}
-		if(validate_nonblank($edit['member_id'])) {
-			$fields['member_id'] = $edit['member_id'];
-		}
 
 		if( count($fields) < 1 ) {
-			error_exit("You must supply at least one of username, member ID, or email address");
+			error_exit("You must supply at least one of username or email address");
 		}
 
 		/* Now, try and find the user */
