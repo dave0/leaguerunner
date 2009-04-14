@@ -39,7 +39,9 @@ class StatisticsHandler extends Handler
 	function process ()
 	{
 		$mod = arg(1);
-		$this->title = 'Statistics';
+
+		$this->title = ucfirst($mod) . ' Statistics';
+		$this->setLocation(array($this->title => 0));
 		return module_invoke($mod, 'statistics');
 	}
 }
