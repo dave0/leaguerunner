@@ -1117,7 +1117,7 @@ END_TEXT;
 		return form($output);
 	}
 
-	function perform ( &$person, $edit = array() )
+	function perform ( $person, $edit = array() )
 	{
 		global $lr_session;
 

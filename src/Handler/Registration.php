@@ -840,7 +840,7 @@ class RegistrationHistory extends Handler
 		return $lr_session->has_permission('registration','history', $this->user);
 	}
 
-	function process ($id)
+	function process ()
 	{
 		global $lr_session, $dbh;
 

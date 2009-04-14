@@ -1,15 +1,33 @@
 <?php
 class Event extends LeaguerunnerObject
 {
+	var $registration_id;
+	var $name;
+	var $description;
+	var $type;
+	var $cost;
+	var $gst;
+	var $pst;
+	var $open;
+	var $close;
+	var $cap_male;
+	var $cap_female;
+	var $multiple;
+	var $anonymous;
+
 	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
 		// Split the open and close dates
-		list ($this->open_date, $this->open_time) = explode (' ', $this->open);
-		$this->open_time = substr ($this->open_time, 0, 5);
-		list ($this->close_date, $this->close_time) = explode (' ', $this->close);
-		$this->close_time = substr ($this->close_time, 0, 5);
-		if ($this->close_time == '23:59') {
-			$this->close_time = '24:00';
+		if( isset($this->open) ) {
+			list ($this->open_date, $this->open_time) = explode (' ', $this->open);
+			$this->open_time = substr ($this->open_time, 0, 5);
+		}
+		if( $this->close ) {
+			list ($this->close_date, $this->close_time) = explode (' ', $this->close);
+			$this->close_time = substr ($this->close_time, 0, 5);
+			if ($this->close_time == '23:59') {
+				$this->close_time = '24:00';
+			}
 		}
 
 		return true;

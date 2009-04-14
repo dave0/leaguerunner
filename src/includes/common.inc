@@ -112,11 +112,11 @@ function arg($index) {
 
   static $arguments;
 
-  if (empty($arguments)) {
+  if (empty($arguments) && array_key_exists('q', $_GET) ) {
     $arguments = explode("/", $_GET["q"]);
   }
 
-  return $arguments[$index];
+  return isset($arguments[$index]) ? $arguments[$index] : null;
 }
 
 function array2object($ary) {
@@ -199,7 +199,7 @@ function variable_del($name)
  * HTML-generation functions
  */
 
-function simple_tag($name, &$content, $attributes = array())
+function simple_tag($name, $content, $attributes = array())
 {
 	$t = array();
 	foreach ($attributes as $key => $value) {
@@ -245,6 +245,7 @@ function ul($text, $attributes = array())
 }
 
 function table_cell($cell, $header = 0) {
+  $attributes = '';
   if (is_array($cell)) {
     $data = $cell["data"];
     foreach ($cell as $key => $value) {
@@ -267,8 +268,10 @@ function table_cell($cell, $header = 0) {
   return $output;
 }
 
-function table($header, $rows, $attrArray = array()) {
+function table($header, $rows, $attrArray = array())
+{
 
+  $attributes = '';
   foreach ($attrArray as $key => $value) {
     $attributes .= " $key=\"$value\"";
   }
@@ -296,7 +299,7 @@ function table($header, $rows, $attrArray = array()) {
 
   if (is_array($rows)) {
     foreach ($rows as $number => $row) {
-	  if($attrArray['alternate-colours']) {
+	  if(array_key_exists( 'alternate-colours', $attrArray) && $attrArray['alternate-colours']) {
         if ($number % 2 == 1) {
           $output .= "<tr class=\"light\">";
         }
@@ -579,6 +582,7 @@ function form_select_date($title,$prefix,$value, $startYear, $endYear, $descript
 function form_radios($title, $name, $value, $options, $description = 0)
 {
 	if (count($options) > 0) {
+		$output = '';
 		foreach ($options as $key=>$choice) {
 			$output .= form_radio($choice, $name, $key, ($key == $value));
 		}

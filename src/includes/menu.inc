@@ -1,6 +1,4 @@
 <?php
-// $Id$
-
 /** 
  * Add a child to a parent menu. 
  * parentName, thisKey, and title are required
@@ -31,6 +29,8 @@ function menu_add_child( $parentName, $name, $title, $args = array() )
 		'title'    => $title,
 		'parent'   => $parentName,
 		'weight'   => 0,  // Default weight
+		'children' => array(),
+		'expanded' => false,
 	); 
 
 	$_menu[$name] = array_merge($item, $args);
@@ -98,8 +98,8 @@ function menu_render($parentKey = '_root', $depth = 0) {
 
 	$parents = _menu_get_parents($_GET["q"]);
 	foreach($parents as $key) {
-		$_menu[$key]['expanded'] = true;
-	}
+			$_menu[$key]['expanded'] = true;
+		}
 	
 	$active  = _menu_get_active($_GET["q"]);
 	$_menu[$active]['expanded'] = true;
@@ -153,13 +153,12 @@ function _menu_internal_sort($a, $b) {
 function _menu_render_item(&$item, $isActive) {
 
 	if($isActive) {
-		
 		$attrs = array('class' => 'active');
 	} else {
 		$attrs = array();
 	}
 
-	if ( $item['link'] ) {
+	if ( isset($item['link']) ) {
 		return l($item['title'], $item['link'], $attrs);
 	} else {
 		return $item["title"];
@@ -180,17 +179,20 @@ function menu_build( ) {
 /**
  * Get the parent menu items that lead to a given page
  */
-function menu_get_trail( $path = 0)
+function menu_get_trail( $path = 0 )
 {
 	global $_menu;
-	
+
 	if(!$path) {
-		$path = $_GET["q"];
+		$path = $_GET['q'];
 	}
 
 	$trail = array();
-	$parents = _menu_get_parents($path);	
+	$parents = _menu_get_parents($path);
 	while( list(,$key) = each($parents) ) {
+		if( ! $key ) {
+			continue;
+		}
 		if(!is_null($_menu[$key])) {
 			$trail[] = $_menu[$key];
 		}

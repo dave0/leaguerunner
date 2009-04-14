@@ -221,7 +221,7 @@ function team_splash ()
 	if( count($lr_session->user->historical_teams) ) {
 		$rows[] = array( array('colspan' => 2, 'data' => 'You have ' . l('historical team data', "person/historical/{$lr_session->user->user_id}") . ' saved'));
 	}
-	return table( array( array('data' => 'My Teams', colspan => 2),), $rows);
+	return table( array( array('data' => 'My Teams', 'colspan' => 2),), $rows);
 }
 
 

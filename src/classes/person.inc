@@ -1,6 +1,46 @@
 <?php
 class Person extends LeaguerunnerObject
 {
+	var $user_id;
+	var $username;
+	var $password;
+	var $member_id;
+	var $firstname;
+	var $lastname;
+	var $email;
+	var $allow_publish_email;
+	var $home_phone;
+	var $publish_home_phone;
+	var $work_phone;
+	var $publish_work_phone;
+	var $mobile_phone;
+	var $publish_mobile_phone;
+	var $addr_street;
+	var $addr_city;
+	var $addr_prov;
+	var $addr_country;
+	var $addr_postalcode;
+	var $gender;
+	var $birthdate;
+	var $height;
+	var $skill_level;
+	var $year_started;
+	var $shirtsize;
+	var $session_cookie;
+	var $class;
+	var $status;
+	var $waiver_signed;
+	var $has_dog;
+	var $dog_waiver_signed;
+	var $survey_completed;
+	var $willing_to_volunteer;
+	var $contact_for_feedback;
+	var $last_login;
+	var $client_ip;
+
+        var $is_a_coordinator;
+        var $historical_teams;
+
 	/*
 	 * Load related tables, and perform some post-load cleanups
 	 */
@@ -513,8 +553,10 @@ function person_query ( $array = array() )
 {
 	global $dbh;
 
-	$query = array();
+	$query  = array();
 	$params = array();
+	$order  = '';
+	$limit  = '';
 
 	foreach ($array as $key => $value) {
 		switch( $key ) {

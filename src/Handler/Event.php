@@ -442,11 +442,12 @@ class EventList extends Handler
 		$this->title = 'Registration Event List';
 		$this->setLocation(array($this->title => 0));
 
+		$output = '';
 		ob_start();
 		$retval = @readfile("$FILE_PATH/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
-		}           
+		}
 		ob_end_clean();
 
 		if( $lr_session->is_admin() ) {
@@ -602,6 +603,7 @@ class EventPreregisterList extends Handler
 			);
 		}
 
+		$output = '';
 		if (count ($rows))
 		{
 			$header = array( 'User', 'Event');

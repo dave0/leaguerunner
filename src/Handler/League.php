@@ -282,7 +282,7 @@ class LeagueCreate extends LeagueEdit
 		return $rc;
 	}
 
-	function perform ( &$edit )
+	function perform ( $edit )
 	{
 		global $lr_session;
 
