@@ -1929,6 +1929,9 @@ class TeamICALSchedule extends Handler
 	// Will output in target format (ical)
 	function process ()
 	{
+		global $LOCAL_TZ;
+		$timezone = str_replace ('TZ=', 'TZID=', $LOCAL_TZ);
+
 		$my_team = $this->team->name;
 
 		/*
@@ -2008,10 +2011,10 @@ X-WR-CALNAME:$my_team schedule from $short_league_name
 			print utf8_encode("BEGIN:VEVENT
 UID:$game->game_id@$domain_url
 DTSTAMP:$now
-CREATED:20080101T000000Z
-LAST-MODIFIED:20080101T000000Z
-DTSTART:$game_start
-DTEND:$game_end
+CREATED:20090101T000000Z
+LAST-MODIFIED:20090101T000000Z
+DTSTART;$timezone:$game_start
+DTEND;$timezone:$game_end
 LOCATION:$field->fullname ($game->field_code)
 X-LOCATION-URL:$field_url
 SUMMARY:$my_team vs. $opponent_name
