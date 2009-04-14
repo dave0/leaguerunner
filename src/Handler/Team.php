@@ -1237,7 +1237,8 @@ class TeamView extends Handler
 				p.shirtsize,
 				p.skill_level,
 				p.status AS player_status,
-				r.status
+				r.status,
+				r.date_joined
 			FROM
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
@@ -1250,6 +1251,7 @@ class TeamView extends Handler
 		if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
 			array_push($header, 'Shirt Size');
 		}
+		array_push($header, 'Date Joined');
 		$rows = array();
 		$totalSkill = 0;
 		$skillCount = 0;
@@ -1321,6 +1323,7 @@ class TeamView extends Handler
 			if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
 				array_push($row, $player->shirtsize);
 			}
+			array_push($row, $player->date_joined);
 			$rows[] = $row;
 
 			$totalSkill += $player->skill_level;
