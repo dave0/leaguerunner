@@ -24,7 +24,7 @@ class LeaguerunnerObject
 	 */
 	function load ( $array = array() )
 	{
-		die("Implemented by subclass");
+		die("Load implemented by subclass");
 	}
 
 	/** 
@@ -41,9 +41,17 @@ class LeaguerunnerObject
 			}
 		}
 
-		$this->_modified_fields[$key] = true;	
+		$this->touch ($key);
 		$this->{$key} = $value;
 		return true;
+	}
+
+	/** 
+	 * Sets a particular field as modified so it will be inserted/updated into database.
+	 */
+	function touch ( $key )
+	{
+		$this->_modified_fields[$key] = true;	
 	}
 
 	/**
@@ -52,7 +60,7 @@ class LeaguerunnerObject
 	 */
 	function save ()
 	{
-		die("Implemented by subclass");
+		die("Save implemented by subclass");
 	}
 
 	/**
@@ -62,7 +70,7 @@ class LeaguerunnerObject
 	 */
 	function create ()
 	{
-		die("Implemented by subclass");
+		die("Create implemented by subclass");
 	}
 
 	/**
@@ -71,7 +79,7 @@ class LeaguerunnerObject
 	 */
 	function delete ()
 	{
-		die("Implemented by subclass");
+		die("Delete implemented by subclass");
 	}
 
 	/**

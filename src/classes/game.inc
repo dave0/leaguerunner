@@ -1673,7 +1673,14 @@ function game_load( $array = array() )
 	if( $result->rowCount() != 1 ) {
 		return null;
 	}
-	return $result->fetchObject('Game');
+	$game = $result->fetchObject('Game');
+
+	// These two fields come from a different table, but need to be saved
+	// when we update this record.
+	$game->touch ('rating_home');
+	$game->touch ('rating_away');
+
+	return $game;
 }
 
 function game_load_many( $array = array() )
@@ -1682,6 +1689,11 @@ function game_load_many( $array = array() )
 
 	$games = array();
 	while($g = $sth->fetchObject('Game') ) {
+		// These two fields come from a different table, but need to be saved
+		// when we update this record.
+		$g->touch ('rating_home');
+		$g->touch ('rating_away');
+
 		$games[$g->game_id] = $g;
 	}
 
