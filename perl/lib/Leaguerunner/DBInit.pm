@@ -2,7 +2,7 @@ package Leaguerunner::DBInit;
 use strict;
 use warnings;
 
-my $LATEST_SCHEMA = 18;
+my $LATEST_SCHEMA = 19;
 
 my @TABLES = (
 	'person' => [q{
@@ -107,7 +107,7 @@ my @TABLES = (
 			stats_display       ENUM('all','currentround') DEFAULT 'all',
 			year                integer,
 			status              ENUM('open','closed') NOT NULL default 'open',
-			schedule_type       ENUM('none','roundrobin','ladder','pyramid','ratings_ladder') default 'roundrobin',
+			schedule_type       ENUM('none','roundrobin','ladder','pyramid','ratings_ladder', 'ratings_wager_ladder') default 'roundrobin',
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			see_sotg            ENUM('true','false') default 'true',
@@ -1341,5 +1341,6 @@ sub upgrade_18_to_19
 		}],
 	]);
 }
+
 
 1;
