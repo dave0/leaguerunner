@@ -711,24 +711,35 @@ class League extends LeaguerunnerObject
 		}
 
 		// Initialise stats for each team
-		while(list($id,) = each($this->teams)) {
-			$this->teams[$id]->points_for = 0;
-			$this->teams[$id]->points_against = 0;
-			$this->teams[$id]->spirit = array();
-			$this->teams[$id]->win = 0;
-			$this->teams[$id]->loss = 0;
-			$this->teams[$id]->tie = 0;
-			$this->teams[$id]->defaults_for = 0;
-			$this->teams[$id]->defaults_against = 0;
-			$this->teams[$id]->games = 0;
-			$this->teams[$id]->vs = array();
-			$this->teams[$id]->vspm = array();
-			$this->teams[$id]->streak = array();
-		}
-
 		$season = $this->teams;
-		if( $current_round ) {
-			$round  = $this->teams;
+		$round  = array();
+		while(list($id,) = each($season)) {
+			$season[$id]->points_for = 0;
+			$season[$id]->points_against = 0;
+			$season[$id]->spirit = array();
+			$season[$id]->win = 0;
+			$season[$id]->loss = 0;
+			$season[$id]->tie = 0;
+			$season[$id]->defaults_for = 0;
+			$season[$id]->defaults_against = 0;
+			$season[$id]->games = 0;
+			$season[$id]->vs = array();
+			$season[$id]->vspm = array();
+			$season[$id]->streak = array();
+			if( $current_round ) {
+				$round[$id]->points_for = 0;
+				$round[$id]->points_against = 0;
+				$round[$id]->spirit = array();
+				$round[$id]->win = 0;
+				$round[$id]->loss = 0;
+				$round[$id]->tie = 0;
+				$round[$id]->defaults_for = 0;
+				$round[$id]->defaults_against = 0;
+				$round[$id]->games = 0;
+				$round[$id]->vs = array();
+				$round[$id]->vspm = array();
+				$round[$id]->streak = array();
+			}
 		}
 
 		/* Now, fetch the schedule.  Get all games played by anyone who
