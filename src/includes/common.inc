@@ -421,10 +421,6 @@ function check_form($input, $quotes = ENT_QUOTES)
 	return htmlspecialchars($input, $quotes);
 }
 
-function check_query($text) {
-    return addslashes($text);
-}
-
 // TODO: Handle this and the user search result pagination in the same way
 function page_links ($prefix, $page, $total)
 {
