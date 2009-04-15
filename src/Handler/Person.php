@@ -1354,7 +1354,7 @@ class PersonCreate extends PersonEdit
 
 			default:
 				$edit = array();
-				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . url('person/forgotpassword') . "\">follow these instructions</a> to gain access to your account.");
+				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . variable_get('password_reset', url('person/forgotpassword')) . "\">follow these instructions</a> to gain access to your account.");
 		}
 		$this->setLocation(array( $this->title => 0));
 		return $rc;
