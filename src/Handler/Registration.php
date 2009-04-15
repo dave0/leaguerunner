@@ -669,11 +669,12 @@ class RegistrationRegister extends RegistrationForm
 	function generatePay()
 	{
 		global $lr_session;
+		global $dbh;
 
 		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
 
 		if( $this->event->cost == 0 ) {
-			$sth->prepare("UPDATE registrations SET payment = 'Paid' 
+			$sth = $dbh->prepare("UPDATE registrations SET payment = 'Paid' 
 					WHERE order_id = ?");
 			$sth->execute( array( $this->registration->order_id) );
 			if ( 1 != $sth->rowCount() ) {
