@@ -210,10 +210,10 @@ class RegistrationView extends Handler
 
 		$payrows = array();
 		$row = $sth->fetch(PDO::FETCH_ASSOC);
-		foreach($row as $key => $value) {
-			$payrows[] = array($key, $value);
-		}
-		if( count($payrows) ) {
+		if( $row ) {
+			foreach($row as $key => $value) {
+				$payrows[] = array($key, $value);
+			}
 			$output .= form_group('Payment details', '<div class="pairtable">' . table(NULL, $payrows) . '</div>');
 		}
 
