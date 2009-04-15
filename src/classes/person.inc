@@ -277,51 +277,12 @@ class Person extends LeaguerunnerObject
 	function generate_member_id()
 	{
 		global $dbh;
-		$sth = $dbh->prepare('UPDATE member_id_sequence SET id=LAST_INSERT_ID(id+1) where year = ? AND gender = ?');
-		$sth->execute( array( $this->year_started, $this->gender) );
-		$rows = $sth->rowCount();
-		if($rows == 1) {
-			// Got a result, so we will use it.
-			$sth = $dbh->prepare('SELECT LAST_INSERT_ID() from member_id_sequence');
-			$sth->execute();
-			$member_id = $sth->fetchColumn();
-			if( !isset($member_id)) {
-				return false;
-			}
-		} else if($rows == 0) {
-			// Possible empty, so fill it
-			$lockname = "member_id_" 
-				. $this->year_started
-				. "_" 
-				. $this->gender 
-				. "_lock";
-			$sth = $dbh->prepare("SELECT GET_LOCK('$lockname',10)");
-			$sth->execute();
-			$lock = $sth->fetchColumn();
 
-			if(!isset($lock) || $lock == 0) {
-				return false;
-			}
-			$sth = $dbh->prepare('REPLACE INTO member_id_sequence values(?,?,?)');
-			$sth->execute( array( $this->year_started, $this->gender, 1) );
-
-			$dbh->exec("SELECT RELEASE_LOCK('$lockname')");
-
-			$member_id = 1;
-		} else {
-			// Something bad happened
-			return false;
-		}
-
-		/* Now, that's really not the full member ID.  We need to build that
-		 * from other info too.
-		 */
-		$real_id = sprintf("%.4d%.1d%03d", 
-			$this->year_started,
-			($this->gender == "Male") ? 0 : 1,
-			$member_id);
-		$this->set('member_id', $real_id);
-		return true;
+		// we add 21000000 to the user_id to arrive at a member_id
+		// value that won't clash with pre-existing ones that were
+		// based on YYYYGNNN where G = gender, and NNN was a count of
+		// players registered from that year.
+		return $this->set('member_id', 21000000 + $this->user_id);
 	}
 
 	/* 

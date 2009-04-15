@@ -47,17 +47,6 @@ my @TABLES = (
 			last_login           datetime,
 			client_ip            varchar(50)
 		);
-	},
-	q{
-		DROP TABLE IF EXISTS member_id_sequence;
-	},
-	q{
-		CREATE TABLE member_id_sequence (
-			year      year not null,
-			gender    ENUM('Male','Female'),
-			id       integer not null,
-			KEY (year,gender)
-		);
 	}],
 
 	'team' => [q{
@@ -1338,6 +1327,12 @@ sub upgrade_18_to_19
 		add_wager_ladder => [q{
 			ALTER TABLE league
 				MODIFY schedule_type ENUM('none','roundrobin','ladder','pyramid','ratings_ladder', 'ratings_wager_ladder') DEFAULT 'roundrobin';
+		}],
+
+		# Member IDs are now based on the user_id value, rather than
+		# silly, unnecessary complexity based on the year and gender.
+		change_member_id => [q{
+			DROP TABLE member_id_sequence;
 		}],
 	]);
 }
