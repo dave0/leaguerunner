@@ -1288,7 +1288,7 @@ class GameEdit extends Handler
 		if( $this->can_edit ) {
 			$output .= para(form_submit("submit") . form_reset("reset"));
 		}
-		return $script . form($output);
+		return $script . form($output, 'post', null, 'id="score_form"');
 	}
 
 	function generateConfirm ( $game, $edit )
