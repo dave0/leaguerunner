@@ -743,6 +743,7 @@ class EventView extends Handler
 		$sth->execute( $params );
 		$registered_count = $sth->fetchColumn();
 
+		// TODO: why are we not using the registrations class?
 		// Check if the user has already registered for this event
 		$sth = $dbh->prepare("SELECT *
 				FROM registrations
@@ -778,7 +779,9 @@ class EventView extends Handler
 					$order_num = sprintf(variable_get('order_id_format', '%d'), $reg->order_id);
 
 					$payment .= h2('Payment');
-					$payment .= generatePayForm($this->event, $order_num);
+					if( variable_get( 'online_payments', 1 ) ) {
+						$payment .= generatePayForm($this->event, $order_num);
+					}
 
 					$payment .= OfflinePaymentText($order_num);
 					$payment .= RefundPolicyText();
