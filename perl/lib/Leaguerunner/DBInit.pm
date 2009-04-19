@@ -1314,6 +1314,8 @@ sub upgrade_17_to_18
 		},
 		q{
 			UPDATE activity_log SET `type` = "email_score_reminder" WHERE secondary_id != 0
+		},
+		q{
 			UPDATE activity_log SET `type` = "email_score_mismatch" WHERE secondary_id = 0
 		}],
 	]);
