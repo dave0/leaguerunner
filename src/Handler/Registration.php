@@ -32,7 +32,7 @@ function registration_dispatch()
 			break;
 		case 'unregister':
 			$obj = new RegistrationUnregister;
-			$obj->order_id = $id;
+			$obj->registration = registration_load( array('order_id' => $id ) );
 			break;
 		case 'online':
 			$obj = new RegistrationOnlinePaymentResponse;
@@ -60,9 +60,20 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 			// Only admin can view details or edit
 			break;
 		case 'register':
-		case 'unregister':
 			// Only players with completed profiles can register
 			return ($lr_session->user->is_active() && $lr_session->is_complete());
+		case 'unregister':
+			// Players may only unregister themselves from events before paying.
+			// TODO: should be $registration->user_can_unregister()
+			if($lr_session->user->is_active() && $lr_session->is_complete() && $data_field->user_id == $lr_session->user->user_id) {
+				if($registration->payment != 'Unpaid' || $registration->payment != 'Pending') {
+					// Don't allow user to unregister from paid events themselves -- admin must do it
+					return 0;
+				}
+				return 1;
+			}
+			return 0;
+
 		case 'history':
 			// Players with completed profiles can view their own history
 			if ($id) {
@@ -114,7 +125,7 @@ function registration_add_to_menu( &$registration )
 			menu_add_child($order_num, "$order_num/edit",'edit registration', array('weight' => 1, 'link' => "registration/edit/$registration->order_id"));
 		}
 		if($registration->payment == 'Unpaid' || $registration->payment == 'Pending') {
-			if ($lr_session->has_permission('registration','unregister', $registration->order_id) ) {
+			if ($lr_session->has_permission('registration','unregister', null, $registration) ) {
 				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id"));
 			}
 		}
@@ -727,7 +738,11 @@ class RegistrationUnregister extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('registration','unregister');
+		if (!$this->registration) {
+			error_exit('That registration does not exist');
+		}
+
+		return $lr_session->has_permission('registration','unregister', null, $this->registration);
 	}
 
 	function process()
@@ -735,20 +750,12 @@ class RegistrationUnregister extends Handler
 		global $dbh;
 		$edit = $_POST['edit'];
 		$this->title = 'Unregistering';
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->order_id);
+		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
 
 		switch($edit['step']) {
 			case 'submit':
-				// TODO should use transactions
-				// TODO If this is a team registration, delete the team record
-				$sth = $dbh->prepare('DELETE FROM registration_answers
-							WHERE order_id = ?');
-				$sth->execute( array( $this->order_id ));
-
-				$sth = $dbh->prepare('DELETE FROM registrations
-							WHERE order_id = ?');
-				$sth->execute( array( $this->order_id ) );
-				if ( 1 != $sth->rowCount() ) {
+				$ok = $this->registration->delete();
+				if ( ! $ok ) {
 					error_exit ( para( theme_error( "There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved." ) ) );
 				}
 
@@ -770,7 +777,6 @@ class RegistrationUnregister extends Handler
 	function generateConfirm()
 	{
 		$this->title = 'Confirm unregister';
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->order_id);
 
 		$output = form_hidden('edit[step]', 'submit');
 		$output .= para('Please confirm that you want to unregister from this event');
