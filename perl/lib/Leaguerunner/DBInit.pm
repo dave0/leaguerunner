@@ -1316,10 +1316,6 @@ sub upgrade_17_to_18
 			UPDATE activity_log SET `type` = "email_score_reminder" WHERE secondary_id != 0
 			UPDATE activity_log SET `type` = "email_score_mismatch" WHERE secondary_id = 0
 		}],
-
-		add_schema => [q{
-			INSERT INTO variable (name,value) VALUES ('_SchemaVersion', 18)
-		}],
 	]);
 }
 
