@@ -653,8 +653,12 @@ sub set_schema_version
 
 	my $dbh = $self->get_dbh();
 	local $dbh->{RaiseError} = 1;
+	my $rows_affected = $dbh->do(q{UPDATE variable set value = ? WHERE name = '_SchemaVersion'}, undef, $new_version);
+	if( $rows_affected == 0 ) {
+		$rows_affected = $dbh->do(q{INSERT INTO variable (name, value) VALUES('_SchemaVersion', ?)}, undef, $new_version);
+	}
 
-	return $dbh->do(q{UPDATE variable set value = ? WHERE name = '_SchemaVersion'}, undef, $new_version);
+	return $rows_affected;
 }
 
 sub fresh_install
