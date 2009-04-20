@@ -77,10 +77,6 @@ class ScheduleViewDay extends Handler
 	{
 		$sth = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
 
-		if( ! $sth->rowCount() ) {
-			error_exit("That league does not have a schedule");
-		}
-
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
 			schedule_subheading( ),
@@ -155,10 +151,6 @@ class ScheduleEdit extends Handler
 		$this->league->rounds = $this->league->rounds_as_array();
 
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-
-		if( ! $sth->rowCount() ) {
-			error_exit("That league does not have a schedule");
-		}
 
 		$prevDayId = -1;
 		$rows = array();
@@ -382,10 +374,6 @@ class ScheduleView extends Handler
 		 * Now, grab the schedule
 		 */
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-
-		if( ! $sth->rowCount() ) {
-			error_exit("That league does not have a schedule");
-		}
 
 		$prevDayId = -1;
 		$rows = array();

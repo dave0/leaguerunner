@@ -191,9 +191,6 @@ function field_rating_values()
 function field_load( $array = array() )
 {
 	$result = field_query( $array );
-	if( $result->rowCount() != 1 ) {
-		return null;
-	}
 	return $result->fetchObject('Field');
 }
 ?>

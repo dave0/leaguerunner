@@ -427,9 +427,6 @@ function team_query( $array = array() )
 function team_load( $array = array() )
 {
 	$result = team_query( $array );
-	if( $result->rowCount() != 1 ) {
-		return null;
-	}
 	return $result->fetchObject('Team');
 }
 

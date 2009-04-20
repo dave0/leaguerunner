@@ -1646,9 +1646,6 @@ class PersonSearch extends Handler
 		}
 
 		$result = person_query( $search );
-		if( $result->rowCount() < 1 ) {
-			return "No players matching <b>" . $edit['lastname'] . "</b> found";
-		}
 
 		$output = $this->form( $edit['lastname' ]);
 

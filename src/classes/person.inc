@@ -562,9 +562,6 @@ function person_query ( $array = array() )
 function person_load( $array = array() )
 {
 	$result = person_query( $array );
-	if( $result->rowCount() != 1 ) {
-		return null;
-	}
 	return $result->fetchObject('Person');
 }
 

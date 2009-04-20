@@ -1670,10 +1670,10 @@ function game_query ( $array = array() )
 function game_load( $array = array() )
 {
 	$result = game_query( $array );
-	if( $result->rowCount() != 1 ) {
+	$game = $result->fetchObject('Game');
+	if( !$game ) {
 		return null;
 	}
-	$game = $result->fetchObject('Game');
 
 	// These two fields come from a different table, but need to be saved
 	// when we update this record.

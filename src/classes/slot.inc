@@ -210,9 +210,6 @@ function slot_query ( $array = array() )
 function slot_load( $array = array() )
 {
 	$result = slot_query( $array );
-	if( $result->rowCount() != 1 ) {
-		return null;
-	}
 	return $result->fetchObject('GameSlot');
 }
 ?>

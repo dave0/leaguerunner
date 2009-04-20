@@ -1286,9 +1286,9 @@ class League extends LeaguerunnerObject
 	{
 		global $dbh;
 
-		$sth = $dbh->prepare('SELECT game_date FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) >= ? AND a.league_id = ? AND ISNULL(s.game_id)');
+		$sth = $dbh->prepare('SELECT count(game_date) FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) >= ? AND a.league_id = ? AND ISNULL(s.game_id)');
 		$sth->execute(array($datestamp, $this->league_id));
-		return $sth->rowCount();
+		return $sth->fetchColumn();
 	}
 
 	/**
@@ -2281,9 +2281,6 @@ function league_query( $array = array() )
 function league_load( $array = array() )
 {
 	$result = league_query( $array );
-	if( $result->rowCount() != 1 ) {
-		return null;
-	}
 	return $result->fetchObject('League');
 }
 
