@@ -36,6 +36,9 @@ $phpCode = file_get_contents("./leaguerunner.conf");
 eval($phpCode);
 putenv($LOCAL_TZ);
 
+//error_reporting(E_ALL & ~E_NOTICE);
+
+
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
  * loading all related class data
  */
@@ -44,7 +47,12 @@ define('LOAD_RELATED_DATA', 1);
 
 // Configure database
 try {
-	$dbh = new PDO($DB_DSN, $DB_USER, $DB_PASS);
+	$dbh = new PDO($DB_DSN, $DB_USER, $DB_PASS,
+	array(
+		PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+		PDO::ATTR_EMULATE_PREPARES         => true,
+	)
+	);
 } catch (PDOException $e) {
 	print "Error!: " . $e->getMessage() . "<br/>";
 	die();
