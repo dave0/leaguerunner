@@ -1192,13 +1192,7 @@ sub upgrade_17_to_18
 			ALTER TABLE person DROP ward_id
 		},
 		q{
-			DROP INDEX person_ward
-		},
-		q{
 			ALTER TABLE field DROP ward_id
-		},
-		q{
-			DROP INDEX field_ward
 		},
 		q{
 			DROP TABLE ward
