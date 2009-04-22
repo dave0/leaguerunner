@@ -16,6 +16,7 @@ function game_dispatch()
 			$obj = new GameSubmit;
 			$obj->game = game_load( array('game_id' => $id) );
 			$obj->team = team_load( array('team_id' => arg(3)) );
+			$obj->league = league_load( array('league_id' => $obj->game->league_id) );
 			break;
 		case 'view':
 		case 'approve':
@@ -289,7 +290,7 @@ class GameCreate extends Handler
 		}
 
 		$edit = &$_POST['edit'];
-		$this->setLocation(array( 
+		$this->setLocation(array(
 			$this->league->fullname => "league/view/" . $this->league->league_id,
 			$this->title => 0
 		));
@@ -320,30 +321,30 @@ class GameCreate extends Handler
 		}
 		error_exit("Error: This code should never be reached.");
 	}
-	
+
 	function excludeTeams ( $edit ) {
 		$this->league->load_teams();
-		
+
 		$output = "<P><br>The 'excludeTeams' option is set for this league.  This gives you the chance to <b>EXCLUDE</b> some teams from scheduling. ";
 		$output .= "You may want to do this because you have an un-even number of teams in your league, or if your league consists of some teams who don't play every game...</P>";
 		$output .= "<P>Please select the teams you wish to <b>EXCLUDE</b> from scheduling.</P>";
 		$output .= "<P>You must ensure that you leave an even number of teams.</P>";
 		$output .= form_hidden('edit[step]', 'selecttype');
-		
+
 		foreach($this->league->teams as $team) {
 			$output .= form_checkbox( $team->name, "edit[excludeTeamID][]", $team->team_id );
 		}
-		
+
 		$output .= form_submit('Next step');
-		
+
 		return form($output);
-		
+
 	}
-	
+
 	function selectType ( $edit )
 	{
 		$num_teams = count($this->league->teams);
-		
+
 		if (isset($edit['excludeTeamID'])) {
 			$output = "<p><br>You will be excluding the following teams from the schedule: <br><b>";
 			$counter = 0;
@@ -355,12 +356,12 @@ class GameCreate extends Handler
 				$num_teams--;
 			}
 			$output .= $excludes . "</b></p>";
-			
+
 			if ($num_teams % 2) {
 				error_exit("You marked " . count($edit['excludeTeamID']) . " teams to exclude, that leaves $num_teams.  Cannot schedule games for an un-even number of teams!");
 			}
 		}
-		
+
 		$this->loadTypes ($num_teams);
 
 		$output .= "<p>Please enter some information about the game(s) to create.</p>";
@@ -511,10 +512,10 @@ class GameCreate extends Handler
 
 		$num_teams = count($this->league->teams) - count($edit['excludeTeamID']);
 		$this->loadTypes ($num_teams);
-		
+
 		$output .= form_item('What', $this->types[$edit['type']]);
 		$output .= form_item('Start date', strftime("%A %B %d %Y", $edit['startdate']));
-		
+
 		if (isset($edit['excludeTeamID'])) {
 			$counter = 0;
 			$excludes = "";
@@ -626,16 +627,29 @@ class GameSubmit extends Handler
 		}
 
 		$edit = $_POST['edit'];
+		$spirit = $incident = $allstar = null;
+		if (array_key_exists ('team_spirit', $_POST))
+			$spirit = $_POST['team_spirit'];
+		if (array_key_exists ('incident', $_POST))
+			$incident = $_POST['incident'];
+		if (array_key_exists ('allstars', $_POST))
+			$allstars = $_POST['allstars'];
 
 		switch($edit['step']) {
 			case 'spirit':
 				$rc = $this->generateSpiritForm($edit, $opponent);
 				break;
+			case 'incident':
+				$rc = $this->generateIncidentForm($edit, $opponent, $spirit);
+				break;
+			case 'allstar':
+				$rc = $this->generateAllStarForm($edit, $opponent, $spirit, $incident);
+				break;
 			case 'confirm':
-				$rc = $this->generateConfirm($edit, $opponent);
+				$rc = $this->generateConfirm($edit, $opponent, $spirit, $incident, $allstars);
 				break;
 			case 'save':
-				$rc = $this->perform($edit, $opponent);
+				$rc = $this->perform($edit, $opponent, $spirit, $incident, $allstars);
 				break;
 			default:
 				$rc = $this->generateForm( $opponent );
@@ -643,6 +657,24 @@ class GameSubmit extends Handler
 
 		$this->setLocation(array($this->title => 0));
 		return $rc;
+	}
+
+	// We don't know what path we may take through the submission, so we don't
+	// know what data may be present at any particular step. This checks for
+	// any possible data errors.
+	function isDataInvalid ($edit, $questions = null, $incident = null, $allstars = null) {
+		$ret = $this->isScoreDataInvalid ($edit);
+		if ($ret === false && $questions != null) {
+			$msg = $questions->answers_invalid();
+			$msg .= $this->isSOTGDataInvalid ($edit);
+			if ($msg)
+				$ret = $msg;
+		}
+		if ($ret === false && $incident != null)
+			$ret = $this->isIncidentDataInvalid ($incident);
+		if ($ret === false && $allstars != null)
+			$ret = $this->isAllStarDataInvalid ($allstars);
+		return $ret;
 	}
 
 	function isSOTGDataInvalid ( $edit ) {
@@ -660,13 +692,13 @@ class GameSubmit extends Handler
 			case '10':
 				return false;
 			default:
-				return "<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.";
+				return '<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.';
 		}
 	}
-	
+
 	function isScoreDataInvalid( $edit )
 	{
-		$errors = "";
+		$errors = '';
 
 		if( $edit['defaulted'] ) {
 			switch($defaulted) {
@@ -675,16 +707,16 @@ class GameSubmit extends Handler
 				case '':
 					return false;  // Ignore other data in cases of default.
 				default:
-					return "An invalid value was specified for default.";
+					return 'An invalid value was specified for default.';
 			}
 		}
 
 		if( !validate_number($edit['score_for']) ) {
-			$errors .= "<br>You must enter a valid number for your score";
+			$errors .= '<br>You must enter a valid number for your score.';
 		}
 
 		if( !validate_number($edit['score_against']) ) {
-			$errors .= "<br>You must enter a valid number for your opponent's score";
+			$errors .= '<br>You must enter a valid number for your opponent\'s score.';
 		}
 
 		if(strlen($errors) > 0) {
@@ -694,24 +726,76 @@ class GameSubmit extends Handler
 		}
 	}
 
-	function perform ($edit, $opponent)
+	function isIncidentDataInvalid( $invalid )
 	{
-		global $lr_session;
+		$errors = '';
 
-		$dataInvalid = $this->isScoreDataInvalid( $edit );
-		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+		$types = $this->incident_types();
+		if (!array_key_exists('type', $invalid) ||
+			empty ($invalid['type']) ||
+			!array_key_exists ($invalid['type'], $types))
+		{
+			$errors .= '<br>You must select a valid incident type.';
 		}
+
+		if (!array_key_exists('details', $invalid) ||
+			empty ($invalid['details']))
+		{
+			$errors .= '<br>You must enter the details of the incident.';
+		}
+		if (!validate_nonhtml($invalid['details']))
+		{
+			$errors .= '<br>HTML is not allowed in the incident details.';
+		}
+
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
+	}
+
+	function isAllStarDataInvalid( $allstars )
+	{
+		$errors = '';
+
+		if (!array_key_exists('male', $allstars)) {
+			$errors .= '<br>You must select an option from the list of males ("none" if you don\'t want to nominate a male all-star).';
+		}
+
+		if (!array_key_exists('female', $allstars)) {
+			$errors .= '<br>You must select an option from the list of females ("none" if you don\'t want to nominate a female all-star).';
+		}
+
+		if (array_key_exists('male', $allstars) && $allstars['male'] == 0 &&
+			array_key_exists('female', $allstars) && $allstars['female'] == 0) {
+			$errors .= '<br>You must select at least one all-star.';
+		}
+
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
+	}
+
+	function perform ($edit, $opponent, $spirit, $incident, $allstars)
+	{
+		global $lr_session, $dbh;
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
-			$questions->bulk_set_answers( $_POST['team_spirit'] );
-			$dataInvalid = $questions->answers_invalid();
-			$dataInvalid .= $this->isSOTGDataInvalid( $edit );
-			if( $dataInvalid ) {
-				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-			}
+			$questions->bulk_set_answers( $spirit );
+		} else {
+			$questions = null;
+		}
 
+		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident, $allstars );
+		if($dataInvalid) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+		}
+
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			// Save the spirit entry if non-default
 			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
 				error_exit("Error saving spirit entry for " . $this->team->team_id);
@@ -727,33 +811,58 @@ class GameSubmit extends Handler
 		// now, check if the opponent has an entry
 		if( ! $this->game->get_score_entry( $opponent->team_id ) ) {
 			// No, so we just mention that it's been saved and move on
-			$resultMessage ="This score has been saved.  Once your opponent has entered their score, it will be officially posted";
-			return para($resultMessage);
-		}
-
-		// Otherwise, both teams have an entry.  So, attempt to finalize using
-		// this information.
-		if( $this->game->finalize() ) {
-			$resultMessage = "This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.";
+			$resultMessage = para('This score has been saved.  Once your opponent has entered their score, it will be officially posted.');
 		} else {
-			// Or, we have a disagreement.  Since we've already saved the
-			// score, just say so, and continue.
-			$resultMessage = "This score doesn't agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.";
+			// Otherwise, both teams have an entry.  So, attempt to finalize using
+			// this information.
+			if( $this->game->finalize() ) {
+				$resultMessage = para('This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.');
+			} else {
+				// Or, we have a disagreement.  Since we've already saved the
+				// score, just say so, and continue.
+				$resultMessage = para('This score doesn\'t agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.');
+			}
 		}
 
-		return para($resultMessage);
+		// Send the incident report, if required
+		if( $incident ) {
+			$addr = variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']);
+			$link = l($addr, "mailto:$addr");
+			$rc = send_mail($addr, 'Incident Manager',
+				false, false, // from the administrator
+				false, false, // no Cc
+				"Incident report: {$incident['type']}",
+				$incident['details']);
+			if($rc) {
+				$resultMessage .= para('Your incident report details have been sent for handling.');
+			} else {
+				$resultMessage .= para(theme_error('There was an error sending your incident report details. Please send them to $link to ensure proper handling.'));
+			}
+		}
+
+		// Save the all-star nominations, if present
+		if( $allstars ) {
+			$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
+			foreach ($allstars as $player_id) {
+				$sth->execute( array('allstar_nomination', $this->game->game_id, $player_id) );
+			}
+			$resultMessage .= para('Your all-star nominations have been saved.');
+		}
+
+		return $resultMessage;
 	}
 
 	function generateSpiritForm ($edit, $opponent )
 	{
-		$dataInvalid = $this->isScoreDataInvalid( $edit );
+		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
 			// If it's a default, short-circuit the spirit-entry form and skip
-			// straight to the confirmation
+			// straight to the confirmation.  This skips incident reports and
+			// all-star nominations as well, but that's probably okay...
 			return $this->generateConfirm($edit, $opponent);
 		} else {
 			// Force a non-default to display correctly
@@ -761,7 +870,14 @@ class GameSubmit extends Handler
 		}
 
 		$output = $this->interim_game_result($edit, $opponent);
-		$output .= form_hidden('edit[step]', 'confirm');
+		if (array_key_exists ('incident', $edit) && $edit['incident']) {
+			$edit['step'] = 'incident';
+		} else if (array_key_exists ('allstar', $edit) && $edit['allstar']) {
+			$edit['step'] = 'allstar';
+		} else {
+			$edit['step'] = 'confirm';
+		}
+		$output .= $this->hidden_fields ('edit', $edit);
 
 		$output .= para("Now, you must rate your opponents using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
 
@@ -788,43 +904,141 @@ class GameSubmit extends Handler
 		return form($output, 'post', null, 'id="score_form"');
 	}
 
-
-	function generateConfirm ($edit, $opponent )
+	function generateIncidentForm ($edit, $opponent, $spirit = null )
 	{
-		$dataInvalid = $this->isScoreDataInvalid( $edit );
-		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
-
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
-			$questions->bulk_set_answers( $_POST['team_spirit'] );
-			$dataInvalid = $questions->answers_invalid();
-			$dataInvalid .= $this->isSOTGDataInvalid( $edit );
-			if( $dataInvalid ) {
-				error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-			}
+			$questions->bulk_set_answers( $spirit );
+		} else {
+			$questions = null;
+		}
 
-			// Force a non-default to display correctly
-			$edit['defaulted'] = 'no';
+		$dataInvalid = $this->isDataInvalid( $edit, $questions );
+		if($dataInvalid) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+		}
+
+		$output = para('You have indicated that you want to report an incident that occurred during this game. Please enter the details of the incident below.');
+
+		if (array_key_exists ('allstar', $edit) && $edit['allstar']) {
+			$edit['step'] = 'allstar';
+		} else {
+			$edit['step'] = 'confirm';
+		}
+		$output .= $this->hidden_fields ('edit', $edit);
+		$output .= $this->hidden_fields ('team_spirit', $spirit);
+
+		$output .= form_select('Incident type', 'incident[type]', '', $this->incident_types(), '');
+		$output .= form_textarea('Incident Details', 'incident[details]', '', 60, 5, '');
+
+		$output .= para(form_submit('Next Step'));
+
+		return form($output);
+	}
+
+	function generateAllStarForm ($edit, $opponent, $spirit = null, $incident = null )
+	{
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$questions = formbuilder_load('team_spirit');
+			$questions->bulk_set_answers( $spirit );
+		} else {
+			$questions = null;
+		}
+
+		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident );
+		if($dataInvalid) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+		}
+
+		$output = para('You have indicated that you want to nominate all-stars from this game. You may select one male and/or one female all-star from the list below.');
+
+		$edit['step'] = 'confirm';
+		$output .= $this->hidden_fields ('edit', $edit);
+		$output .= $this->hidden_fields ('team_spirit', $spirit);
+		$output .= $this->hidden_fields ('incident', $incident);
+
+		$team = team_load( array('team_id' => $opponent->team_id) );
+		$team->get_roster();
+		$males = $females = array();
+		$valid_status = array('captain', 'assistant', 'player', 'substitute');
+		foreach ($team->roster as $player) {
+			if (in_array($player->status, $valid_status)) {
+				if ($player->gender == 'Male')
+					$males[$player->id] = $player->fullname;
+				else
+					$females[$player->id] = $player->fullname;
+			}
+		}
+		$males[0] = 'none';
+		$females[0] = 'none';
+		$output .= h2('Males');
+		$output .= form_radiogroup('', 'allstars[male]', 'none', $males, '');
+		$output .= h2('Females');
+		$output .= form_radiogroup('', 'allstars[female]', 'none', $females, '');
+		$convener = 'league convener';
+		if (! empty ($this->league->coord_list)) {
+			$convener = l($convener, "mailto:{$this->league->coord_list}");
+		}
+		$output .= para("If you feel strongly about nominating a second male or female please contact your $convener.");
+
+		$output .= para(form_submit('Next Step'));
+
+		return form($output);
+	}
+
+	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null, $allstars = null )
+	{
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$questions = formbuilder_load('team_spirit');
+			$questions->bulk_set_answers( $spirit );
+		} else {
+			$questions = null;
+		}
+
+		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident, $allstars );
+		if($dataInvalid) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$output = $this->interim_game_result($edit, $opponent);
-		
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$output .= "<p>A <b>Spirit Of The Game</b> score of <b>" . $edit['sotg'] . "</b> will be assigned.</p>";
-			$output .= para("The following answers will be tracked by your coordinator:");
-			$output .= $questions->render_viewable();
-			$output .= $questions->render_hidden();
-		} else {
-			$output .= para("A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.");
-		}
-		$output .= form_hidden('edit[sotg]', $edit['sotg']);
-		$output .= form_hidden('edit[step]', 'save');
 
-	
-		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the score."
-		);
+		$edit['step'] = 'save';
+		$output .= $this->hidden_fields ('edit', $edit);
+		$output .= $this->hidden_fields ('team_spirit', $spirit);
+		$output .= $this->hidden_fields ('incident', $incident);
+		$output .= $this->hidden_fields ('allstars', $allstars);
+
+		if( $questions != null ) {
+			$output .= "<p>A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.</p>";
+			$output .= para('The following answers will be tracked by your coordinator:');
+			$output .= $questions->render_viewable();
+		} else {
+			$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
+		}
+
+		if( $incident != null ) {
+			$output .= para("You are reporting an incident of type <b>{$incident['type']}</b> with the following details:");
+			$output .= para($incident['details']);
+		}
+
+		if( $allstars != null ) {
+			$players = array();
+
+			if ($allstars['male'] != 0) {
+				$player = person_load( array('user_id' => $allstars['male']));
+				$players[] = "<b>{$player->fullname}</b>";
+			}
+
+			if ($allstars['female'] != 0) {
+				$player = person_load( array('user_id' => $allstars['female']));
+				$players[] = "<b>{$player->fullname}</b>";
+			}
+
+			$output .= para('You are nominating ' . implode(' and ', $players) . ' as ' .
+				((count($players) == 1) ? 'an all-star.' : 'all-stars.'));
+		}
+
+		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.");
 
 		$output .= para(form_submit('Submit'));
 
@@ -833,8 +1047,6 @@ class GameSubmit extends Handler
 
 	function generateForm ( $opponent )
 	{
-
-		$output = para( "For the game of " . $this->game->sprintf('short') . " you have entered:");
 		$output = para( "Submit the score for the "
 			. $this->game->sprintf('short')
 			. " between " . $this->team->name . " and $opponent->name.");
@@ -859,7 +1071,6 @@ class GameSubmit extends Handler
 		$rows = array();
 		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry");
 
-
 		$rows[] = array(
 			$this->team->name,
 			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
@@ -875,6 +1086,10 @@ class GameSubmit extends Handler
 		);
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
+		if (variable_get('incident_reports', false))
+			$output .= form_checkbox( 'I have an incident to report', "edit[incident]" );
+		if ($this->league->allstars)
+			$output .= form_checkbox( 'I want to nominate an all-star', "edit[allstar]" );
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
 
 		$win = variable_get('default_winning_score', 6);
@@ -890,17 +1105,27 @@ class GameSubmit extends Handler
         form.elements['edit[score_against]'].value = "$win";
         form.elements['edit[score_against]'].disabled = true;
         form.elements['edit[defaulted]'][1].disabled = true;
+        form.elements['edit[incident]'].checked = false;
+        form.elements['edit[incident]'].disabled = true;
+        form.elements['edit[allstar]'].checked = false;
+        form.elements['edit[allstar]'].disabled = true;
     } else if (form.elements['edit[defaulted]'][1].checked == true) {
         form.elements['edit[score_for]'].value = "$win";
         form.elements['edit[score_for]'].disabled = true;
         form.elements['edit[score_against]'].value = "$lose";
         form.elements['edit[score_against]'].disabled = true;
         form.elements['edit[defaulted]'][0].disabled = true;
+        form.elements['edit[incident]'].checked = false;
+        form.elements['edit[incident]'].disabled = true;
+        form.elements['edit[allstar]'].checked = false;
+        form.elements['edit[allstar]'].disabled = true;
     } else {
         form.elements['edit[score_for]'].disabled = false;
         form.elements['edit[score_against]'].disabled = false;
         form.elements['edit[defaulted]'][0].disabled = false;
         form.elements['edit[defaulted]'][1].disabled = false;
+        form.elements['edit[incident]'].disabled = false;
+        form.elements['edit[allstar]'].disabled = false;
     }
   }
 // -->
@@ -927,12 +1152,10 @@ ENDSCRIPT;
 			$rows[] = array($opponent->name, "$lose (defaulted)");
 			break;
 		default:
-			$rows[] = array($this->team->name, $edit['score_for'] . form_hidden('edit[score_for]', $edit['score_for']));
-			$rows[] = array($opponent->name, $edit['score_against'] . form_hidden('edit[score_against]', $edit['score_against']));
+			$rows[] = array($this->team->name, $edit['score_for']);
+			$rows[] = array($opponent->name, $edit['score_against']);
 			break;
 		}
-
-		$output .= form_hidden('edit[defaulted]', $edit['defaulted']);
 
 		$output .= '<div class="pairtable">'
 			. table(null, $rows)
@@ -958,6 +1181,22 @@ ENDSCRIPT;
 		$output .= para("If confirmed, this would be recorded as a <b>$what</b>.");
 
 		return $output;
+	}
+
+	function hidden_fields ($group, $fields)
+	{
+		$output = '';
+		if (is_array($fields) && !empty ($fields)) {
+			foreach ($fields as $name => $value)
+				$output .= form_hidden("{$group}[$name]", $value);
+		}
+		return $output;
+	}
+
+	function incident_types()
+	{
+		$types = array('Field condition', 'Injury', 'Rules disagreement', 'Escalated incident', 'Other');
+		return array_merge(array('' => 'Select one:'), array_combine ($types, $types));
 	}
 }
 
@@ -986,7 +1225,7 @@ class GameEdit extends Handler
 			case '10':
 				break;
 			default:
-				return "<br>An invalid value was specified for HOME SOTG.  Please use a whole number between 1 and 10.";
+				return '<br>An invalid value was specified for HOME SOTG.  Please use a whole number between 1 and 10.';
 		}
 		switch($edit['sotg_away']) {
 			case '0':
@@ -1002,11 +1241,11 @@ class GameEdit extends Handler
 			case '10':
 				break;
 			default:
-				return "<br>An invalid value was specified for AWAY SOTG.  Please use a whole number between 1 and 10.";
+				return '<br>An invalid value was specified for AWAY SOTG.  Please use a whole number between 1 and 10.';
 		}
 		return false;
 	}
-	
+
 	function process ()
 	{
 		global $lr_session;
@@ -1125,7 +1364,7 @@ class GameEdit extends Handler
 
 			if ($game->home_score == $game->away_score && $game->rating_points == 0){
 				$score_group .= form_item("Rating Points", "No points were transferred between teams");
-			}			
+			}
 			else {
 				if ($game->home_score >= $game->away_score) {
 					$winner = l($game->home_name,"team/view/$game->home_id");
@@ -1134,7 +1373,7 @@ class GameEdit extends Handler
 				elseif ($game->home_score < $game->away_score) {
 					$winner = l($game->away_name,"team/view/$game->away_id");
 					$loser = l($game->home_name,"team/view/$game->home_id");
-					
+
 				}
 				$score_group .= form_item("Rating Points", $game->rating_points , $winner." gain " .$game->rating_points. " points and " .$loser. " lose " .$game->rating_points. " points");
 			}
@@ -1216,7 +1455,7 @@ class GameEdit extends Handler
 			$score_group .= form_select('Game Status','edit[status]', $game->status, getOptionsFromEnum('schedule','status'), "To mark a game as defaulted, select the appropriate option here.  Appropriate scores will automatically be entered.");
 			$score_group .= form_textfield( "Home ($game->home_name [rated: $game->rating_home]) score", 'edit[home_score]',$game->home_score,2,2);
 			$score_group .= form_textfield( "Away ($game->away_name [rated: $game->rating_away]) score",'edit[away_score]',$game->away_score,2,2);
-		
+
 			// TODO: horribly inefficient to run this query again
 			// from here, when it was just run from the
 			// "game_score_entry_display" call a few lines above
@@ -1224,9 +1463,9 @@ class GameEdit extends Handler
 
 			$sth = $dbh->prepare('SELECT * FROM score_entry WHERE team_id = ? AND game_id = ?');
 			$sth->execute(array($game->home_team, $game->game_id));
-			$home = $sth->fetch();	
+			$home = $sth->fetch();
 			$sth->execute(array($game->away_team, $game->game_id));
-			$away = $sth->fetch();	
+			$away = $sth->fetch();
 
 			// if the game has not yet been finalized, spirit for home team was reported by away team (and vice-versa)
 			$hs = $away['spirit'];
@@ -1293,11 +1532,9 @@ class GameEdit extends Handler
 
 	function generateConfirm ( $game, $edit )
 	{
-
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
-
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
@@ -1346,14 +1583,14 @@ class GameEdit extends Handler
 		$output .= form_hidden('edit[status]', $edit['status']);
 		$output .= form_hidden('edit[home_score]', $edit['home_score']);
 		$output .= form_hidden('edit[away_score]', $edit['away_score']);
-		$output .= form_hidden('edit[sotg_home]', $edit['sotg_home']);		
-		$output .= form_hidden('edit[sotg_away]', $edit['sotg_away']);		
+		$output .= form_hidden('edit[sotg_home]', $edit['sotg_home']);
+		$output .= form_hidden('edit[sotg_away]', $edit['sotg_away']);
 		$output .= $home_spirit->render_hidden('home');
 		$output .= $away_spirit->render_hidden('away');
 
 		$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", $edit['away_score']);
-		
+
 		if ($edit['status'] != 'home_default' && $edit['status'] != 'away_default') {
 			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->home_name:</label><br>" . $edit['sotg_home'];
 			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->away_name:</label><br>" . $edit['sotg_away'];
@@ -1473,14 +1710,14 @@ class GameEdit extends Handler
 
 		if($edit['status'] == 'normal') {
 			if( !validate_number($edit['home_score']) ) {
-				$errors .= "<br>You must enter a valid number for the home score";
+				$errors .= '<br>You must enter a valid number for the home score.';
 			}
 			if( !validate_number($edit['away_score']) ) {
-				$errors .= "<br>You must enter a valid number for the away score";
+				$errors .= '<br>You must enter a valid number for the away score.';
 			}
-			
+
 			$errors .= $this->isSOTGDataInvalid( $edit );
-			
+
 		}
 
 		if(strlen($errors) > 0) {
@@ -1498,7 +1735,7 @@ function game_score_entry_display( $game )
 	global $dbh;
 	$sth = $dbh->prepare('SELECT * FROM score_entry WHERE team_id = ? AND game_id = ?');
 	$sth->execute(array($game->home_team, $game->game_id));
-	$home = $sth->fetch();	
+	$home = $sth->fetch();
 
 	if(!$home) {
 		$home = array(
@@ -1512,7 +1749,7 @@ function game_score_entry_display( $game )
 	}
 
 	$sth->execute(array($game->away_team, $game->game_id));
-	$away = $sth->fetch();	
+	$away = $sth->fetch();
 	if(!$away) {
 		$away = array(
 			'score_for' => 'not entered',
@@ -1537,7 +1774,7 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
 	$rows[] = array( "Entry time:", $home['entry_time'], $away['entry_time'],);
-	$rows[] = array( "SOTG Assigned:", $away['spirit'], $home['spirit'],);	
+	$rows[] = array( "SOTG Assigned:", $away['spirit'], $home['spirit'],);
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 
@@ -2000,13 +2237,13 @@ class GameRemoveResults extends Handler
 class GameRatings extends Handler
 {
 	var $game;
-	
+
 	function has_permission ()
 	{
 		global $lr_session;
 		return $lr_session->has_permission('game','view', $this->game);
 	}
-	
+
 	function process ()
 	{
 		global $lr_session;
@@ -2017,32 +2254,32 @@ class GameRatings extends Handler
 		$this->can_edit = false;
 
 		$this->title = "Game Ratings Table";
-		
+
 		$this->setLocation(array(
 			"$this->title &raquo; Game " . $this->game->game_id => 0));
 
 		$rc = $this->generateForm( );
-		
+
 		return $rc;
 	}
-	
-	function generateForm ( ) 
+
+	function generateForm ( )
 	{
 		global $lr_session;
-		
+
 		$rating_home = arg(3);
 		$rating_away = arg(4);
 		$whatifratings = true;
-		
+
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
 
 		$game->load_score_entries();
-		
+
 		$teams = $league->load_teams();
 		$teams = $league->teams;
-		
+
 		$home_team = null;
 		$away_team = null;
 		foreach ($teams as $team) {
@@ -2053,12 +2290,12 @@ class GameRatings extends Handler
 			}
 		}
 
-		if ($rating_home == null || $rating_away == null) {		
+		if ($rating_home == null || $rating_away == null) {
 			$rating_home = $home_team->rating;
 			$rating_away = $away_team->rating;
 			$whatifratings = false;
 		}
-		
+
       $output = para("The number of rating points transferred depends on several factors:" .
       		"<br>- the total score" .
       		"<br>- the difference in score" .
@@ -2073,13 +2310,13 @@ class GameRatings extends Handler
 				"Unless the two team's rating scores are very close, one team is expected to win. " .
 				"If that team doesn't win, they will lose rating points. " .
 				"The opposite is also true: if a team is expected to lose, but they tie, they will gain some rating points.");
-				
+
 		$output .= para("Ties are shown from the home team's perspective.  So, a negative value indicates " .
 				"that in the event of a tie, the home team will lose rating points (and the away team will gain them).");
 
 		$home = $game->home_name;
 		$away = $game->away_name;
-		
+
 		if ($whatifratings) {
       	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$rating_home</b> ".
       			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$rating_away</b>");

@@ -96,23 +96,29 @@ function global_settings()
 
 function feature_settings()
 {
-	$group = form_radios("Handle registration", "edit[registration]", variable_get("registration", 0), array("Disabled", "Enabled"), "Enable or disable processing of registrations");
+	$group = form_radios('Handle registration', 'edit[registration]', variable_get('registration', 0), array('Disabled', 'Enabled'), 'Enable or disable processing of registrations');
 
-	$group .= form_radios("Dog questions", "edit[dog_questions]", variable_get("dog_questions", 1), array("Disabled", "Enabled"), "Enable or disable questions and options about dogs");
+	$group .= form_radios('Dog questions', 'edit[dog_questions]', variable_get('dog_questions', 1), array('Disabled', 'Enabled'), 'Enable or disable questions and options about dogs');
 
-	$group .= form_radios("Clean URLs", "edit[clean_url]", variable_get("clean_url", 0), array("Disabled", "Enabled"), "Enable or disable clean URLs.  If enabled, you'll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner's top-level directory.");
+	$group .= form_radios('Clean URLs', 'edit[clean_url]', variable_get('clean_url', 0), array('Disabled', 'Enabled'), 'Enable or disable clean URLs.  If enabled, you\'ll need <code>ModRewrite</code> support.  See also the <code>.htaccess</code> file in Leaguerunner\'s top-level directory.');
 
-	$group .= form_radios("Use Zikula authentication", "edit[postnuke]", variable_get("postnuke", 0), array("Disabled", "Enabled"), "If enabled, Leaguerunner will use your Zikula user database for user names, passwords and email addresses. Everything to do with passwords and logins will be hidden.");
+	$group .= form_radios('Use Zikula authentication', 'edit[postnuke]', variable_get('postnuke', 0), array('Disabled', 'Enabled'), 'If enabled, Leaguerunner will use your Zikula user database for user names, passwords and email addresses. Everything to do with passwords and logins will be hidden.');
 
-	$group .= form_radios("Narrow display", "edit[narrow_display]", variable_get("narrow_display", 0), array("Disabled", "Enabled"), "If enabled, various displays will be adjusted for horizontal compactness. This is most useful when using Zikula, as its left menu block eats up valuable real estate.");
+	$group .= form_radios('Narrow display', 'edit[narrow_display]', variable_get('narrow_display', 0), array('Disabled', 'Enabled'), 'If enabled, various displays will be adjusted for horizontal compactness. This is most useful when using Zikula, as its left menu block eats up valuable real estate.');
 
-	$group .= form_radios("Lock sessions to initiating IP address", "edit[session_requires_ip]", variable_get("session_requires_ip", 1), array("Disabled", "Enabled"), "If enabled, session cookies are only accepted if they come from the same IP as the initial login.  This adds a bit of security against cookie theft, but causes problems for users behind a firewall that routes HTTP requests out through multiple IP addresses.  Recommended setting is to enable unless you notice problems. This setting is ignored if Zikula authentication is enabled.");
+	$group .= form_radios('Lock sessions to initiating IP address', 'edit[session_requires_ip]', variable_get('session_requires_ip', 1), array('Disabled', 'Enabled'), 'If enabled, session cookies are only accepted if they come from the same IP as the initial login.  This adds a bit of security against cookie theft, but causes problems for users behind a firewall that routes HTTP requests out through multiple IP addresses.  Recommended setting is to enable unless you notice problems. This setting is ignored if Zikula authentication is enabled.');
 
-	$group .= form_radios("Force roster request responses", "edit[force_roster_request]", variable_get('force_roster_request', 0), array("Disabled", "Enabled"), "Should players be forced to respond to roster requests immediately?");
+	$group .= form_radios('Force roster request responses', 'edit[force_roster_request]', variable_get('force_roster_request', 0), array('Disabled', 'Enabled'), 'Should players be forced to respond to roster requests immediately?');
 
-	$group .= form_radios("Generate roster request emails", "edit[generate_roster_email]", variable_get('generate_roster_email', 0), array("Disabled", "Enabled"), "Should emails be sent to players invited to join rosters, and captains who have players request to join their teams?");
+	$group .= form_radios('Generate roster request emails', 'edit[generate_roster_email]', variable_get('generate_roster_email', 0), array('Disabled', 'Enabled'), 'Should emails be sent to players invited to join rosters, and captains who have players request to join their teams?');
 
-	$output = form_group("Feature configuration", $group);
+	$group .= form_radios('Allow incident reports', 'edit[incident_reports]', variable_get('incident_reports', 0), array('Disabled', 'Enabled'), 'Allow captains to file incident reports when submitting scores?');
+
+	$group .= form_textfield('Incident report e-mail address', 'edit[incident_report_email]', variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']), 60, 120, 'The e-mail address to send incident reports to, if enabled.');
+
+	$group .= form_radios('Allow all-star submissions', 'edit[allstars]', variable_get('allstars', 0), array('Disabled', 'Enabled'), 'If this is enabled, all-star submissions will be a per-league option; otherwise, they will be disabled entirely.');
+
+	$output = form_group('Feature configuration', $group);
 
 	return settings_form($output);
 }

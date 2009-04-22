@@ -924,24 +924,25 @@ class Game extends LeaguerunnerObject
 		$entry->entry_id = $this->entry_id;
 		$entry->entered_by = $user_id;
 		$entry->defaulted = $defaulted;
-		$entry->spirit = $spirit;
 
 		switch ($defaulted) {
 			case 'us':
-				$score_for = 0;
-				$score_against = 6;
+				$entry->score_for = variable_get('default_losing_score', 0);
+				$entry->score_against = variable_get('default_winning_score', 6);
+				$entry->spirit = $this->default_spirit('winner', true);
 				break;
 			case 'them':
-				$score_against = 0;
-				$score_for = 6;
+				$entry->score_against = variable_get('default_losing_score', 0);
+				$entry->score_for = variable_get('default_winning_score', 6);
+				$entry->spirit = $this->default_spirit('loser', true);
 				break;
 			case 'no':
 			default:
+				$entry->score_for = $score_for;
+				$entry->score_against = $score_against;
+				$entry->spirit = $spirit;
 				break;
 		}
-
-		$entry->score_for = $score_for;
-		$entry->score_against = $score_against;
 
 		$this->_score_entries[$team_id] = $entry;
 
