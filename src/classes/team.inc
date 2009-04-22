@@ -11,6 +11,7 @@ class Team extends LeaguerunnerObject
 	var $rating;
 	var $league_name;
 	var $league_tier;
+	var $roster;
 
 	function __construct( $array = array() ) 
 	{
@@ -78,6 +79,34 @@ class Team extends LeaguerunnerObject
 
 		// TODO 
 		return false;
+	}
+
+	function get_roster()
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare(
+			"SELECT
+				p.user_id as id,
+				CONCAT(p.firstname, ' ', p.lastname) as fullname,
+				p.gender,
+				p.shirtsize,
+				p.skill_level,
+				p.status AS player_status,
+				r.status,
+				r.date_joined
+			FROM
+				teamroster r
+				LEFT JOIN person p ON (r.player_id = p.user_id)
+			WHERE
+				r.team_id = ?
+			ORDER BY r.status, p.gender, p.lastname");
+		$sth->execute(array($this->team_id));
+
+		$this->roster = array();
+		while($player = $sth->fetch(PDO::FETCH_OBJ) ) {
+			$this->roster[] = $player;
+		}
 	}
 
 	function count_players()
@@ -402,7 +431,6 @@ function team_query( $array = array() )
 				$params[] = $value;
 		}
 	}
-
 
 	$sth = $dbh->prepare("SELECT 
 		t.*,
