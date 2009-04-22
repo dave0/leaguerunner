@@ -156,7 +156,7 @@ function variable_init( $conf = array() )
 	$sth = $dbh->prepare('SELECT * FROM variable');
 	$sth->execute();
 	while ($variable = $sth->fetchObject()) {
-		if( !isset($conf[$variable->name]) ) {
+		if( !isset($conf[$variable->name]) && $variable->name != '_SchemaVersion' ) {
 			$conf[$variable->name] = unserialize($variable->value);
 		}
 	}
