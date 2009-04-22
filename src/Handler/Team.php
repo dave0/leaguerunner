@@ -912,6 +912,8 @@ class TeamRosterStatus extends Handler
 		$this->positions = getRosterPositions();
 		$this->currentStatus = null;
 
+		$edit = &$_POST['edit'];
+
 		if( !$this->player ) {
 			if( !($lr_session->is_admin() || $lr_session->is_captain_of($this->team->team_id))) {
 				error_exit("You cannot add a person to that team!");
@@ -919,20 +921,61 @@ class TeamRosterStatus extends Handler
 
 			$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, "Add Player" => 0));
 
+			// Handle bulk player adds from previous rosters
+			if( array_key_exists ('add', $edit)) {
+				$this->processBatch ($edit);
+				local_redirect(url("team/view/" . $this->team->team_id));
+			} else if( array_key_exists ('team', $edit)) {
+				return $this->generatePastRosterForm ($edit);
+			}
+
 			$new_handler = new PersonSearch;
 			$new_handler->initialize();
 			$new_handler->ops['Add to ' . $this->team->name] = 'team/roster/' .$this->team->team_id . '/%d';
-			return $new_handler->process();
+			$search = $new_handler->process();
+
+			$team = para('Or select a team from your history below to invite people from that roster.');
+			// The "home_team" part of the query is to include only teams that played
+			// games, not ones created for tracking playoffs, tournaments, etc.  Not
+			// sure if it's the best way to go.
+			$team .= form_select('', 'edit[team]', '', getOptionsFromQuery(
+				'SELECT t.team_id as theKey, CONCAT(t.name, " (", l.season, " ", l.year, ")") as theValue FROM team t
+					LEFT JOIN leagueteams lt ON t.team_id = lt.team_id 
+					LEFT JOIN league l       ON lt.league_id = l.league_id
+					WHERE t.team_id IN
+						(SELECT team_id FROM teamroster WHERE player_id = ? AND team_id != ?)
+					AND t.team_id IN
+						(SELECT DISTINCT home_team FROM schedule)
+					AND l.status = "closed"
+					ORDER BY t.team_id DESC',
+				array($lr_session->user->user_id, $this->team->team_id)
+			));
+			$team .= form_hidden('edit[step]', 'team');
+
+			$team .= para(form_submit("show roster"));
+
+			return $search . form ($team);
 		}
 
 		$this->loadPermittedStates($this->team->team_id, $this->player->user_id);
-		$edit = &$_POST['edit'];
 
 		if($this->player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
 			error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
 		}
+		if(!$this->player->complete && $edit['status'] && $edit['status'] != 'none') {
+			error_exit("This player has not yet completed their profile, and may only be removed from a team.  Please contact this player directly to have them complete their profile.");
+		}
 		if(!$this->player->is_member() && !$lr_session->is_admin()) {
-			error_exit('Only registered players can be added to a team.');
+			if(!$this->player->is_player() ) {
+				error_exit('Only registered players can be added to a team.');
+			} else {
+				$he = ($this->player->gender == 'Male' ? 'he' : 'she');
+				$his = ($this->player->gender == 'Male' ? 'his' : 'her');
+				$him = ($this->player->gender == 'Male' ? 'him' : 'her');
+				$mail = l(variable_get('app_admin_name', 'Leaguerunner Administrator'),
+							'mailto:' . variable_get('app_admin_email','webmaster@localhost'));
+				error_exit("Only registered players can be added to a team. {$this->player->firstname} has yet to register and pay for this year's membership.  Please contact {$this->player->firstname} to remind $him to pay for $his membership.  If $he has registered and paid for $his membership please have $him contact $mail.");
+			}
 		}
 
 		if( $edit['step'] == 'perform' ) {
@@ -975,6 +1018,67 @@ class TeamRosterStatus extends Handler
 		$output .= para( form_submit('submit') . form_reset('reset') );
 
 		return form($output);
+	}
+
+	function generatePastRosterForm ( $edit )
+	{
+		$old_team = team_load( array('team_id' => $edit['team']) );
+		$old_team->get_roster();
+		$this->team->get_roster();
+
+		$form = '';
+		$non_members = array();
+
+		foreach ($old_team->roster as $old_player) {
+			$present = false;
+			foreach ($this->team->roster as $player) {
+				if ($player->id == $old_player->id) {
+					$present = true;
+					break;
+				}
+			}
+			if (!$present) {
+				// This is really ugly, but the object returned as part of the roster
+				// is incomplete for these purposes.
+				$user = person_load (array('user_id' => $old_player->id));
+				if ($user->is_member()) {
+					$form .= form_checkbox($old_player->fullname, 'edit[add][]', $old_player->id);
+				} else {
+					$non_members[] = l($old_player->fullname, url("person/view/{$old_player->id}"));
+				}
+			}
+		}
+
+		if (!empty ($form)) {
+			$form = para("The following players were on the roster for {$old_team->name} in {$old_team->league_season}, {$old_team->league_year} but are not on your current roster:") .
+				form ($form . para( form_submit('invite') ) );
+		}
+
+		if (!empty ($non_members)) {
+			$form .= para('The following players are not yet registered members for this year and cannot be added to your roster:') . para (implode(', ', $non_members));
+		}
+
+		return $form;
+	}
+
+	// TODO: Merge common code from here and perform
+	function processBatch ( $edit )
+	{
+		global $dbh;
+
+		/* To have gotten here, the current user is the captain of the team,
+		 * so we assume that it's okay to send a captain request to the player.
+		 */
+		foreach ($edit['add'] as $id) {
+			$player = person_load (array('user_id' => $id));
+			if ($player->is_member() && !$player->is_player_on ($this->team->team_id)) {
+				$sth = $dbh->prepare('INSERT INTO teamroster VALUES(?,?,?,NOW())');
+				$sth->execute( array($this->team->team_id, $player->user_id, 'captain_request'));
+
+				// Send an email, if configured
+				$this->sendInvitation ('captain_request', $player);
+			}
+		}
 	}
 
 	function perform ( $edit )
@@ -1034,12 +1138,21 @@ class TeamRosterStatus extends Handler
 			}
 		}
 
+		// Send an email, if configured
+		$this->sendInvitation ($edit['status'], $this->player);
+
+		return true;
+	}
+
+	function sendInvitation ($status, $player) {
+		global $lr_session;
+
 		if( variable_get( 'generate_roster_email', 0 ) ) {
-			if( $edit['status'] == 'captain_request') {
+			if( $status == 'captain_request') {
 				$variables = array( 
-					'%fullname' => $this->player->fullname,
-					'%userid' => $this->player->user_id,
-					'%captain' => $lr_session->user->fullname,
+					'%fullname' => $player->fullname,
+					'%userid' => $player->user_id,
+					'%captain' => $lr_session->attr_get('fullname'),
 					'%teamurl' => url("team/view/{$this->team->team_id}"),
 					'%team' => $this->team->name,
 					'%league' => $this->team->league_name,
@@ -1048,16 +1161,16 @@ class TeamRosterStatus extends Handler
 					'%site' => variable_get('app_org_name','league'));
 				$message = _person_mail_text('captain_request_body', $variables);
 
-				$rc = send_mail($this->player->email, $this->player->fullname,
+				$rc = send_mail($player->email, $player->fullname,
 					false, false, // from the administrator
 					false, false, // no Cc
 					_person_mail_text('captain_request_subject', $variables), 
 					$message);
 				if($rc == false) {
-					error_exit("Error sending email to " . $this->person->email);
+					error_exit("Error sending email to " . $player->email);
 				}
 			}
-			else if( $edit['status'] == 'player_request') {
+			else if( $status == 'player_request') {
 
 				// Find the list of captains and assistants for the team
 				if( variable_get('postnuke', 0) ) {
@@ -1097,7 +1210,7 @@ class TeamRosterStatus extends Handler
 							ON
 								p.user_id = r.player_id
 							WHERE
-								team_id = %d
+								team_id = ?
 							AND
 								(
 									r.status = 'captain'
@@ -1122,8 +1235,8 @@ class TeamRosterStatus extends Handler
 				}
 
 				$variables = array( 
-					'%fullname' => $this->player->fullname,
-					'%userid' => $this->player->user_id,
+					'%fullname' => $player->fullname,
+					'%userid' => $player->user_id,
 					'%captains' => join(',', $captain_names),
 					'%teamurl' => url("team/view/{$this->team->team_id}"),
 					'%team' => $this->team->name,
@@ -1143,8 +1256,6 @@ class TeamRosterStatus extends Handler
 				}
 			}
 		}
-
-		return true;
 	}
 }
 
@@ -1227,26 +1338,6 @@ class TeamView extends Handler
 
 		$teamdata = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
-		/* and, grab roster */
-		// TODO: turn this into $team->get_roster()
-		$sth = $dbh->prepare(
-			"SELECT
-				p.user_id as id,
-				CONCAT(p.firstname, ' ', p.lastname) as fullname,
-				p.gender,
-				p.shirtsize,
-				p.skill_level,
-				p.status AS player_status,
-				r.status,
-				r.date_joined
-			FROM
-				teamroster r
-				LEFT JOIN person p ON (r.player_id = p.user_id)
-			WHERE
-				r.team_id = ?
-			ORDER BY r.status, p.gender, p.lastname");
-		$sth->execute(array($this->team->team_id));
-
 		$header = array( 'Name', 'Position', 'Gender','Rating' );
 		if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
 			array_push($header, 'Shirt Size');
@@ -1257,8 +1348,9 @@ class TeamView extends Handler
 		$skillCount = 0;
 		$rosterCount = 0;
 		$rosterPositions = getRosterPositions();
-		while($player = $sth->fetch(PDO::FETCH_OBJ) ) {
 
+		$this->team->get_roster();
+		foreach ($this->team->roster as $player) {
 			/* 
 			 * Now check for conflicts.  Players who are subs get
 			 * conflicts ignored, but not others.
