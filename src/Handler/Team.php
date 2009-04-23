@@ -1465,7 +1465,7 @@ class TeamSchedule extends Handler
 
 	function process ()
 	{
-		global $lr_session;
+		global $lr_session, $FILE_URL;
 		$this->title = "Schedule";
 		$this->setLocation(array(
 			$this->team->name => "team/view/" . $this->team->team_id,
@@ -1595,7 +1595,7 @@ class TeamSchedule extends Handler
 
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
 		  . para("Get your team schedule in "
-		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"/images/misc/ical.gif\" alt=\"iCal\" /></a>"
+		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$FILE_URL/image/icons/ical.gif\" alt=\"iCal\" /></a>"
 		  . " format or <a href=\"http://www.google.com/calendar/render?cid=$ical_url\" target=\"_blank\"><img style=\"display: inline; vertical-align: middle\" src=\"http://www.google.com/calendar/images/ext/gc_button6.gif\" alt=\"Add to Google Calendar\"></a>");
 	}
 }
