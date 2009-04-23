@@ -1596,13 +1596,13 @@ class LeagueSpirit extends Handler
 						switch( $answer_values[$answer] ) {
 							case -3:
 							case -2:
-								$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
+								$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
 								break;
 							case -1:
-								$thisrow[] = "-";
+								$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
 								break;
 							case 0:
-								$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
+								$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
 								break;
 							default:
 								$thisrow[] = "?";
@@ -1634,11 +1634,11 @@ class LeagueSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
+				$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
 			} else if ( $avg < -0.5 ) {
-				$thisrow[] = "-";
+				$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
 			} else {
-				$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
+				$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
 			}
 		}
 		$rows[] = $thisrow;
@@ -1779,11 +1779,11 @@ class LeagueSpirit extends Handler
 					$avg = ($answer / ($num_games - $no_spirit_questions));
 					$thesescores[] = $avg;
 					if( $avg < -1.5 ) {
-							$thisrow[] = "<img src='$FILE_URL/misc/x.png' />";
+							$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
 					} else if ( $avg < -0.5 ) {
-							$thisrow[] = "-";
+							$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
 					} else {
-							$thisrow[] = "<img src='$FILE_URL/misc/check.png' />";
+							$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
 					}
 				}
 			}
