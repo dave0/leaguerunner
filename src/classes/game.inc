@@ -1220,7 +1220,7 @@ class Game extends LeaguerunnerObject
 
 		return $winner_gain - $winner_wager;
 	}
-
+	
 	/**
 	 * Select a random gameslot for this game.
 	 * Gameslot is to be selected from those available for the league in which
@@ -1253,25 +1253,35 @@ class Game extends LeaguerunnerObject
 		 * keep the locks a bit more granular, we lock on the timestamp, so
 		 * that we only protect against people trying to add games on the same
 		 * day.
+		 * TODO: This needs transactions!  The locking stuff is stupid.
 		 */
+		$lockname = "schedule_lock_$timestamp";
+
+		$lock_sth = $dbh->prepare('SELECT GET_LOCK(?,10)');
+		$lock_sth->execute( array( $lockname ) );
+		$lock = $lock_sth->fetchColumn();
+		if(!isset($lock) || $lock == 0) {
+			// Couldn't obtain lock after 10 seconds, so bail.
+			return array(false, "Couldn't get lock");
+		}
+		$unlock_sth = $dbh->prepare('SELECT RELEASE_LOCK(?)');
+
 		$seed = rand();
-		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE slot_id = (
-			SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND(?) LIMIT 1
-		)');
-		$sth->execute( array( $this->game_id, $timestamp, $this->league_id, $seed) );
+		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND(?) LIMIT 1');
+		$sth->execute( array( $timestamp, $this->league_id, $seed) );
+		$slot_id = $sth->fetchColumn();
+		if( ! $slot_id ) {
+			$unlock_sth->execute( array( $lockname ) );
+			return array(false, "Couldn't get slot ID");
+		}
+
+		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
+		$sth->execute( array( $this->game_id, $slot_id) );
 		$gameslot_affected_rows = $sth->rowCount();
+		$unlock_sth->execute( array( $lockname ) );
 		if(1 != $gameslot_affected_rows) {
 			return array(false, "Couldn't assign gameslot");
 		}
-
-		$sth = $dbh->prepare('SELECT slot_id FROM gameslot where s.game_id =?');
-		$sth->execute( array( $this->game_id ) );
-		$slot_id = $sth->fetchColumn();
-		if( ! $slot_id ) {
-			return array(false, "Couldn't get slot ID");
-		}
-		$sth->execute( array( $this->game_id, $slot_id) );
-
 		$this->slot_id = $slot_id;
 		return array(true,'');
 	}
