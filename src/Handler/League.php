@@ -36,6 +36,9 @@ function league_dispatch()
 		case 'spirit':
 			$obj = new LeagueSpirit;
 			break;
+		case 'spiritdownload':
+			$obj = new LeagueSpiritDownload;
+			break;
 		case 'ratings':
 			$obj = new LeagueRatings;
 			break;
@@ -93,6 +96,7 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 		case 'create':
 		case 'delete':
 		case 'ratings':
+		case 'download':
 			// admin only
 			break;
 	}
@@ -158,6 +162,9 @@ function league_add_to_menu( &$league, $parent = 'league' )
 
 	if($lr_session->has_permission('league','view', $league->league_id, 'spirit') ) {
 		menu_add_child($league->fullname, "$league->fullname/spirit",'spirit', array('weight' => 3, 'link' => "league/spirit/$league->league_id"));
+	}
+	if($lr_session->has_permission('league', 'download', $league->league_id, 'spirit') ) {
+		menu_add_child($league->fullname, "$league->fullname/spirit_download",'spirit report', array('weight' => 3, 'link' => "league/spiritdownload/$league->league_id"));
 	}
 	if($lr_session->has_permission('league','edit', $league->league_id) ) {
 		if ( $league->schedule_type == "ratings_ladder" || $league->schedule_type == 'ratings_wager_ladder' ) {
@@ -1849,6 +1856,129 @@ class LeagueSpirit extends Handler
 	}
 }
 
+/**
+ * Download a CSV spirit report of all active teams
+ */
+class LeagueSpiritDownload extends Handler
+{
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('league', 'download', $this->league->league_id, 'spirit');
+	}
+
+	function process ()
+	{
+		global $dbh;
+
+		$this->league->load_teams();
+
+		// Start the output, let the browser know what type it is
+		header('Content-type: text/x-csv');
+		header("Content-Disposition: attachment; filename=\"spirit{$this->league_id}.csv\"");
+		$out = fopen('php://output', 'w');
+
+		$still_need_header = 1;
+		$header = array('Team', 'TeamID', 'Opponent', 'Team Score', 'Opp Score', 'Spirit', 'Calc Spirit'); // +questions
+
+		// get spirit questions headers
+		$answer_values = array();
+		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
+		$sth->execute();
+		while( $ary = $sth->fetch() ) {
+			$answer_values[ $ary['akey'] ] = $ary['value'];
+		}
+
+		$question_sums = array();
+		$num_games = 0;
+		$no_spirit_questions = 0;
+		$sotg_scores = array();
+
+		// produce one line per team
+		foreach($this->league->teams as $team) {
+			$thisrow = array($team->name, $team->team_id);
+			// Grab schedule info for this team
+			$games = game_load_many( array( 'either_team' => $team->team_id,
+							'_order' => 'g.game_date') );
+
+			// process each game for this team
+			foreach($games as $game) {
+				if($game->home_id == $team->team_id) {
+					$opponent_id = $game->away_id;
+					$opponent_name = $game->away_name;
+					$opponent_score = $game->away_score;
+					$my_score = $game->home_score;
+					$home_away = '(home)';
+					$spirit = $game->home_spirit;
+				} else {
+					$opponent_id = $game->home_id;
+					$opponent_name = $game->home_name;
+					$opponent_score = $game->home_score;
+					$my_score = $game->away_score;
+					$home_away = '(away)';
+					$spirit = $game->away_spirit;
+				}
+
+				$thisrow[] = $opponent_name;
+				$thisrow[] = $my_score;
+				$thisrow[] = $opponent_score;
+				$thisrow[] = $spirit;
+
+				// Fetch spirit answers for games
+				$entry = $game->get_spirit_entry( $team->team_id );
+				if( !$entry ) {
+					array_push($thisrow, '','','','','','');
+					continue;
+				}
+				$numeric = $game->get_spirit_numeric( $team->team_id );
+				$thisrow[] = sprintf("%.2f",$numeric);
+
+				while( list($qkey,$answer) = each($entry) ) {
+					if ( $still_need_header ) {
+						$header[] = $qkey;
+					}
+					if( $qkey == 'CommentsToCoordinator' ) {
+						$thisrow[] = $answer;
+				  	      continue;
+					} else if ($answer == null || $answer == "") {
+						$thisrow[] = "?";
+					} else {
+						$thisrow[] = $answer_values[$answer];
+					/*
+					switch( $answer_values[$answer] ) {
+						case -3:
+						case -2:
+							$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
+							break;
+						case -1:
+							$thisrow[] = "-";
+							break;
+						case 0:
+							$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
+							break;
+						default:
+							$thisrow[] = "?";
+					}
+					*/
+					}
+				}
+				if ($still_need_header) {
+					fputcsv($out, $header);
+					$still_need_header = 0;
+				}
+			}
+
+			// Output the data row
+			fputcsv($out, $thisrow);
+		}
+
+		fclose($out);
+
+		// Returning would cause the Leaguerunner menus to be added
+		exit;
+	}
+}
+
 class LeagueStatusReport extends Handler
 {
 	function has_permission()
@@ -2366,7 +2496,7 @@ class LeagueFieldAvailability extends Handler
 		$year  = arg(3);
 		$month = arg(4);
 		$day   = arg(5);
-		
+
 		if(! validate_number($month)) {
 			$month = $today['mon'];
 		}
@@ -2421,7 +2551,6 @@ class LeagueFieldAvailability extends Handler
 		$sth->execute( array ($this->league->league_id,
 				sprintf('%d-%d-%d', $year, $month, $day)) );
 
-		$row = array();
 		$num_open = 0;
 		while($g = $sth->fetch()) {
 
@@ -2440,9 +2569,10 @@ class LeagueFieldAvailability extends Handler
 			if ($g['game_id']) {
 				$game = game_load( array('game_id' => $g['game_id']) );
 				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
-				array_splice($row, count($row), 0,
-							 array_slice(schedule_render_viewable($game), 3, 4));
-				if (! $leagues[$game->league_id]) {
+				$sched = schedule_render_viewable($game);
+				$row[] = $sched[3];
+				$row[] = $sched[5];
+				if (!array_key_exists ($game->league_id, $leagues)) {
 					$leagues[$game->league_id] = league_load(array('league_id' => $game->league_id));
 				}
 				$row[] = array('data' => l($game->league_id, 
@@ -2481,8 +2611,8 @@ class LeagueFieldAvailability extends Handler
 					 array('data' => 'Slot', 'class' => 'column-heading'),
 					 array('data' => 'Time/Place', 'colspan' => 2, 'class' => 'column-heading'),
 					 array('data' => 'Game', 'class' => 'column-heading'),
-					 array('data' => 'Home', 'colspan' => 2, 'class' => 'column-heading'),
-					 array('data' => 'Away', 'colspan' => 2, 'class' => 'column-heading'),
+					 array('data' => 'Home', 'class' => 'column-heading'),
+					 array('data' => 'Away', 'class' => 'column-heading'),
 					 array('data' => 'League', 'class' => 'column-heading'),
 					 );
 	}
