@@ -814,7 +814,6 @@ class League extends LeaguerunnerObject
 				$dbh->rollBack();
 				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.");
 			}
-			$rollback_list[] = $g;
 
 			list($rc, $message) = $g->select_random_gameslot($datestamp);
 			if( ! $rc ) {
@@ -840,7 +839,7 @@ class League extends LeaguerunnerObject
 		if (isset($excludeTeamsIDs)) { 
 			$num_teams = $num_teams - count($excludeTeamsIDs);
 		}
-		
+
 		if($num_teams < 2) {
 			return array(false, "Must have two teams");
 		}
@@ -848,8 +847,6 @@ class League extends LeaguerunnerObject
 		if($num_teams % 2) {
 			return array(false, "Must have even number of teams");
 		}
-
-		$rollback_list = array();
 
 		# sort teams so ratings scheduling works properly
 		$teams = array();
@@ -885,8 +882,6 @@ class League extends LeaguerunnerObject
 		if($num_teams % 2) {
 			return array(false, "Must have even number of teams");
 		}
-
-		$rollback_list = array();
 
 		# randomize team IDs
 		$teams = array_values($this->teams);
@@ -1084,6 +1079,8 @@ class League extends LeaguerunnerObject
 	 * versus team 1 and 2 arrays
 	 */
 	function schedule_one_set_ratings_ladder_commit ( $vt1, $vt2, $datestamp ) {
+		global $dbh;
+
 		$games_list = array();
 		$teams_list = array();
 
@@ -1091,37 +1088,32 @@ class League extends LeaguerunnerObject
 		// use random indexes so that field preferences are not given always to top or bottom teams...
 		$random_indexes = array_keys($vt1);
 		shuffle($random_indexes);
+
+		$dbh->beginTransaction();
 		foreach( $random_indexes as $i ) {
 			$team = $vt1[$i];
 			$opponent = $vt2[$i];
 
 			$teams_list[] = $team;
 			$teams_list[] = $opponent;
-					
+
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
 			$g->add_teams_balanced( $team, $opponent );
 			if ( ! $g->save() ) {
-				foreach( $games_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Balanced.$extra_errors");
+				$dbh->rollBack();
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields (save failed after add_teams_balanced)");
 			}
 			$games_list[] = $g;
 		}
-		
+
 		list($success, $rc, $message) = assign_fields_by_preferences($games_list, $teams_list, $datestamp);
 
 		if (!$success) {
-			foreach( $games_list as $to_rollback ) {
-				if( ! $to_rollback->delete() ) {
-					$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-				}
-			}
-			return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. Gameslot.$extra_errors");
+			$dbh->rollBack();
+			return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields. (assign_fields_by_preferences failed: $message)");
 		}
+		$dbh->commit;
 		return array(true, "");
 	}
 
@@ -1431,34 +1423,26 @@ class League extends LeaguerunnerObject
 	*/
 	function schedule_one_set( $teams, $datestamp )
 	{
-		$rollback_list = array();
+		global $dbh;
+
+		$dbh->beginTransaction();
 		while ($teams) {
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
 			$g->add_teams_balanced( array_shift($teams), array_shift($teams));
 			if ( ! $g->save() ) {
-				foreach( $rollback_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-					$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
+				$dbh->rollBack();
 				return array(false, "Could not create the games you requested, during addition of opponents.$extra_errors");
 			}
-			$rollback_list[] = $g;
 
 			list($rc, $message) = $g->select_weighted_gameslot($datestamp);
-			if( ! $rc ) { 
-				/* Argh, something failed, so roll back the whole pile of
-				* games */
-				foreach( $rollback_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields: $message $extra_errors");
+			if( ! $rc ) {
+				$dbh->rollBack();
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields (select_weighted_gameslot failed with: $message)");
 			}
 		}
 
+		$dbh->commit();
 		return array(true,'');
 	}
 
