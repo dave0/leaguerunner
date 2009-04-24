@@ -119,144 +119,6 @@ class Game extends LeaguerunnerObject
 		return $result;
 	}
 
-	// This function must only be called after a save has been performed on
-	// this game object.
-	// Also where this function is called from must already confirm that the
-	// scores have been finalized.
-
-	// TODO: perhaps call from $game->save() instead of requiring an explicit
-	// call in the handler?
-
-	function updatedependentgames( $oldgameresults = array() )
-	{
-		global $dbh;
-		$league = league_load(array('league_id' => $this->league_id));
-		if(!$league) {
-			error_exit("That league does not exist");
-		}
-
-		if($league->schedule_type == "pyramid") {
-			// Figure out winner and loser.
-			$winlose      = $this->calculate_winner_loser();
-			$winnerTeamId = $winlose['winner'];
-			$loserTeamId  = $winlose['loser'];
-
-			$rank_sth = $dbh->prepare('UPDATE leagueteams SET rank = rank + ? WHERE league_id = ? AND team_id = ?');
-
-			// see if there are old game results:
-			if(count($oldgameresults) > 0) {
-
-				// If we're changing the winner, modify the old
-				// winner's rank before changing the new one.
-				if($oldgameresults['home_score'] > $oldgameresults['away_score']) {
-					if($this->home_score <= $this->away_score) {
-						// Reset home team's rank
-						$rank_sth->execute( array(1, $league->league_id, $this->home_team)  );
-					} else {
-						return true;
-					}
-				} else if($oldgameresults['home_score'] < $oldgameresults['away_score']) {
-					if($this->home_score >= $this->away_score) {
-
-						// Fix away team's rank
-						// TODO: Is this even correct? Shouldn't the other team's rank change as well?
-						$rank_sth->execute( array(1, $league->league_id, $this->away_team) );
-					} else {
-						return true;
-					}
-				}
-			}
-
-			// Pyramid allows for ties.  If there is a tie then just return
-			if($this->home_score == $this->away_score) {
-				return true;
-			}
-
-			// Bump the winner up one rank (note that it's a
-			// subtraction, because lower == better)
-			$rank_sth->execute( array(-1, $league->league_id, $winnerTeamId) );
-
-			// Return true which is ok.  We don't need to update the other
-			// teams for pyramid
-			return true;
-		}
-
-		// Just fail out with everything being good if this isn't a ladder
-		// league.
-		if($league->schedule_type != "ladder") {
-			return true;
-		}
-
-		//print($this->sprintf("debug"));
-
-		# Lets get the game objects.
-		$sth = $dbh->prepare('SELECT * FROM schedule WHERE home_dependant_game = :game_id OR away_dependant_game = :game_id');
-		$sth->execute( array( 'game_id' =>  $this->game_id)  );
-
-		$games = array();
-		while( $row = $sth->fetch() ) {
-			$games[] = $row;
-		}
-
-		# Should only ever get two games;
-		if(count($games) != 2) {
-			error_exit("Internal error: Found $num_rows dependant games, expecting 2");
-		}
-
-		// Figure out winner and loser.
-		$winlose      = $this->calculate_winner_loser();
-		$winnerTeamId = $winlose['winner'];
-		$loserTeamId  = $winlose['loser'];
-
-		// Now we can figure out which team the
-		// dependant games are looking for.
-		while (list($crap,$row) = each($games)) {
-			$gameIdToUpdate = $row['game_id'];
-
-			if($row['home_dependant_game'] == $this->game_id) {
-				$teamRank = $row['home_dependant_rank'];
-				if($row['home_dependant_type'] == "winner") {
-					$teamId = $winnerTeamId;
-				} else if($row['home_dependant_type'] == "loser") {
-					$teamId = $loserTeamId;
-				} else {
-					error_exit("Should never get here. Bad dependent type.");
-				}
-
-				// Update the database.
-				$sth = $dbh->prepare('UPDATE schedule SET home_team = ? WHERE game_id = ?');
-				$sth->execute( array($teamId, $gameIdToUpdate) );
-
-				$sth = $dbh->prepare('UPDATE leagueteams SET rank = ? WHERE league_id = ? AND team_id = ?');
-				$sth->execute( array($teamRank, $league->league_id, $teamId) );
-			}
-
-			if($row['away_dependant_game'] == $this->game_id) {
-
-				$teamRank = $row['away_dependant_rank'];
-
-				if($row['away_dependant_type'] == "winner") {
-					$teamId = $winnerTeamId;
-				} else if($row['away_dependant_type'] == "loser") {
-					$teamId = $loserTeamId;
-				} else {
-					error_exit("Should never get here. Bad dependent type.");
-				}
-
-				// Update the database.
-				$sth = $dbh->prepare('UPDATE schedule SET away_team = ? WHERE game_id = ?');
-				$sth->execute( array($teamId, $gameIdToUpdate) );
-
-				$sth = $dbh->prepare('UPDATE leagueteams SET rank = ? WHERE league_id = ? AND team_id = ?');
-				$sth->execute( array($teamRank, $league->league_id, $teamId) );
-			}
-
-		}
-
-		// It's all good.
-		return true;
-	}
-
 	/**
 	 * Take what is currently known about the game, and finalize it.
 	 * If we have:
@@ -445,10 +307,6 @@ class Game extends LeaguerunnerObject
 			error_exit("Could not successfully save game results");
 		}
 
-		// Game has been saved to database.  Now we can update the dependant games.
-		if (! $this->updatedependentgames()) {
-			error_exit("Could not update dependant games.");
-		}
 		return true;
 	}
 
@@ -786,15 +644,9 @@ class Game extends LeaguerunnerObject
 					. "HOME_TEAM:     $this->home_team \n"
 					. "HOME_NAME:     $this->home_name \n"
 					. "HOME_SCORE:    $this->home_score \n"
-					. "HOME_DEP_GAME: $this->home_dependant_game \n"
-					. "HOME_DEP_TYPE: $this->home_dependant_type \n"
-					. "HOME_DEP_RANK: $this->home_dependant_rank \n"
 					. "AWAY_TEAM:     $this->away_team \n"
 					. "AWAY_NAME:     $this->away_name \n"
-					. "AWAY_SCORE:    $this->away_score \n"
-					. "AWAY_DEP_GAME: $this->away_dependant_game \n"
-					. "AWAY_DEP_TYPE: $this->away_dependant_type \n"
-					. "AWAY_DEP_RANK: $this->away_dependant_rank \n</pre>\n";
+					. "AWAY_SCORE:    $this->away_score \n</pre>\n";
 				break;
 			case 'vs':
 				$output = "$this->game_date $this->game_start at "
@@ -1612,11 +1464,6 @@ function game_query ( $array = array() )
 				$params[] = $value;
 				$params[] = $value;
 				break;
-			case 'dependant_game':
-				$query[] = '(s.home_dependant_game = ? OR s.away_dependant_game = ?)';
-				$params[] = $value;
-				$params[] = $value;
-				break;
 			case '_extra':
 				/* Just slap on any extra query fields desired */
 				$query[] = $value;
@@ -1695,15 +1542,6 @@ function game_load_many( $array = array() )
 		$g->touch ('rating_home');
 		$g->touch ('rating_away');
 
-		$games[$g->game_id] = $g;
-	}
-
-	// take the LAST game, and check for dependent games
-	// TODO: Necessary anymore?
-	$last_game = $g;
-	$dep_array = array( 'dependant_game' => $last_game->game_id, '_order' => 'g.game_date');
-	$dep_sth = game_query( &$dep_array );
-	while ($dep_g = $sth->fetchObject('Game') ) {
 		$games[$g->game_id] = $g;
 	}
 

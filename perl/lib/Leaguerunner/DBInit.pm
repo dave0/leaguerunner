@@ -96,7 +96,7 @@ my @TABLES = (
 			stats_display       ENUM('all','currentround') DEFAULT 'all',
 			year                integer,
 			status              ENUM('open','closed') NOT NULL default 'open',
-			schedule_type       ENUM('none','roundrobin','ladder','pyramid','ratings_ladder', 'ratings_wager_ladder') default 'roundrobin',
+			schedule_type       ENUM('none','roundrobin','ratings_ladder', 'ratings_wager_ladder') default 'roundrobin',
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			see_sotg            ENUM('true','false') default 'true',
@@ -143,13 +143,7 @@ my @TABLES = (
 			league_id           int NOT NULL,
 			round               varchar(10) NOT NULL DEFAULT '1',
 			home_team           integer,
-			home_dependant_game integer,
-			home_dependant_type enum('winner','loser'),
-			home_dependant_rank integer,
 			away_team           integer,
-			away_dependant_game integer,
-			away_dependant_type enum('winner','loser'),
-			away_dependant_rank integer,
 			home_score          tinyint,
 			away_score          tinyint,
 			home_spirit         tinyint,
@@ -1320,9 +1314,10 @@ sub upgrade_18_to_19
 	my ($self) = @_;
 
 	$self->_run_sql([
+		# Add ratings_wager_ladder, remove pyramid and ladder(hold/move variety)
 		add_wager_ladder => [q{
 			ALTER TABLE league
-				MODIFY schedule_type ENUM('none','roundrobin','ladder','pyramid','ratings_ladder', 'ratings_wager_ladder') DEFAULT 'roundrobin';
+				MODIFY schedule_type ENUM('none','roundrobin','ratings_ladder', 'ratings_wager_ladder') DEFAULT 'roundrobin';
 		}],
 
 		# Member IDs are now based on the user_id value, rather than
@@ -1330,6 +1325,17 @@ sub upgrade_18_to_19
 		change_member_id => [q{
 			DROP TABLE member_id_sequence;
 		}],
+
+		# The hold/move ladder is now dead
+		remove_holdmove_ladder_columns => [q{
+			ALTER TABLE schedule
+				DROP COLUMN home_dependant_game,
+				DROP COLUMN home_dependant_type,
+				DROP COLUMN home_dependant_rank,
+				DROP COLUMN away_dependant_game,
+				DROP COLUMN away_dependant_type,
+				DROP COLUMN away_dependant_rank
+		}]
 	]);
 }
 

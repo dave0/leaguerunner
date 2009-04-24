@@ -226,21 +226,20 @@ class ScheduleEdit extends Handler
 			$seen_team[$game['home_id']]++;
 			$seen_team[$game['away_id']]++;
 
-			if( $this->league->schedule_type != 'ladder' ) {
-				if( !validate_number($game['home_id'])) {
-					return "Game entry missing home team ID";
-				}
-				if( !validate_number($game['away_id'])) {
-					return "Game entry missing away team ID";
-				}
-				if ( ($seen_team[$game['home_id']] > 1) || ($seen_team[$game['away_id']] > 1) ) {
-					// TODO: Needs to be fixed to deal with doubleheader games.
-					return "Cannot schedule a team to play two games at the same time";
-				}
-				if( $game['home_id'] != 0 && ($game['home_id'] == $game['away_id']) ) {
-					return "Cannot schedule a team to play themselves.";
-				}
+			if( !validate_number($game['home_id'])) {
+				return "Game entry missing home team ID";
 			}
+			if( !validate_number($game['away_id'])) {
+				return "Game entry missing away team ID";
+			}
+			if ( ($seen_team[$game['home_id']] > 1) || ($seen_team[$game['away_id']] > 1) ) {
+				// TODO: Needs to be fixed to deal with doubleheader games.
+				return "Cannot schedule a team to play two games at the same time";
+			}
+			if( $game['home_id'] != 0 && ($game['home_id'] == $game['away_id']) ) {
+				return "Cannot schedule a team to play themselves.";
+			}
+
 			// TODO Check the database to ensure that no other game is
 			// scheduled on this field for this timeslot
 		}
@@ -274,29 +273,22 @@ class ScheduleEdit extends Handler
 			reset($game_info);
 
 			$slot = slot_load( array('slot_id' => $game_info['slot_id']) );
-			if ($this->league->schedule_type == "ladder") {
-				$rows[] = array(
-					form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
-					$game_info['round_text'],
-					form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $gameslots[$game_info['slot_id']],
-					$game_info['home_text'],
-					$game_info['away_text'],
-				);
-			} else {
 
-				$team_sth = $dbh->prepare('SELECT name FROM team WHERE team_id = ?');
-				$team_sth->execute( array($game_info['home_id']) );
-				$home_name = $team_sth->fetchColumn();
-				$team_sth->execute( array($game_info['away_id']) );
-				$away_name = $team_sth->fetchColumn();
-				$rows[] = array(
-					form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
-					form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
-					form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $gameslots[$game_info['slot_id']],
-					form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) . $home_name,
-					form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . $away_name,
-				);
-			}
+			$team_sth = $dbh->prepare('SELECT name FROM team WHERE team_id = ?');
+
+			$team_sth->execute( array($game_info['home_id']) );
+			$home_name = $team_sth->fetchColumn();
+
+			$team_sth->execute( array($game_info['away_id']) );
+			$away_name = $team_sth->fetchColumn();
+
+			$rows[] = array(
+				form_hidden("edit[games][$game_id][game_id]", $game_id) . $game_id,
+				form_hidden("edit[games][$game_id][round]", $game_info['round']) . $game_info['round'],
+				form_hidden("edit[games][$game_id][slot_id]", $game_info['slot_id']) . $gameslots[$game_info['slot_id']],
+				form_hidden("edit[games][$game_id][home_id]", $game_info['home_id']) . $home_name,
+				form_hidden("edit[games][$game_id][away_id]", $game_info['away_id']) . $away_name,
+			);
 		}
 
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
@@ -320,11 +312,13 @@ class ScheduleEdit extends Handler
 				error_exit("Attempted to edit game info for a nonexistant game!");
 			}
 
-			if ($this->league->schedule_type != "ladder") {
+			if ($this->league->schedule_type == "roundrobin") {
 				$game->set('round', $game_info['round']);
-				$game->set('home_team', $game_info['home_id']);
-				$game->set('away_team', $game_info['away_id']);
 			}
+
+			$game->set('home_team', $game_info['home_id']);
+			$game->set('away_team', $game_info['away_id']);
+
 			// find the old slot id!
 			$old_slot_id = $game->slot_id;
 
@@ -452,21 +446,6 @@ function schedule_render_editable( &$game, &$league )
 	$form_home = form_select('',"edit[games][$game->game_id][home_id]", $game->home_id, $league->teams);
 	$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
 
-	// but, if this league is a ladder league, we don't want to make everything editable!
-	if ($league->schedule_type == "ladder") {
-		$form_round = $game->round;
-		if ($game->home_name) {
-			$form_home = $game->home_name;
-		} else {
-			$form_home = "$game->home_dependant_type of $game->home_dependant_game";
-		}
-		if ($game->away_name) {
-			$form_away = $game->away_name;
-		} else {
-			$form_away = "$game->away_dependant_type of $game->away_dependant_game";
-		}
-	}
-
 	return array(
 		form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) 
 		. $form_round . form_hidden("edit[games][$game->game_id][round_text]", $form_round),
@@ -495,11 +474,7 @@ function schedule_render_viewable( &$game )
 
 		$homeTeam = l($short, "team/view/" . $game->home_id, $attr);
 	} else {
-		if ($game->home_dependant_game && $game->home_dependant_type) {
-			$homeTeam = $game->home_dependant_type . " of " . $game->home_dependant_game;
-		} else {
-			$homeTeam = "Not yet scheduled.";
-		}
+		$homeTeam = "Not yet scheduled.";
 	}
 	if($game->away_name) {
 		$short = $game->short_away_name();
@@ -511,11 +486,7 @@ function schedule_render_viewable( &$game )
 
 		$awayTeam = l($short, "team/view/" . $game->away_id, $attr);
 	} else {
-		if ($game->away_dependant_game && $game->away_dependant_type) {
-			$awayTeam = $game->away_dependant_type . " of " . $game->away_dependant_game;
-		} else {
-			$awayTeam = "Not yet scheduled.";
-		}
+		$awayTeam = "Not yet scheduled.";
 	}
 
 	$gameRow = array(

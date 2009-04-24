@@ -396,19 +396,13 @@ class GameCreate extends Handler
 					unset($this->types['halfroundrating']);
 				}
 				break;
-         case 'pyramid':
-            $this->types = array(
+			case 'ratings_ladder':
+			case 'ratings_wager_ladder':
+				$this->types = array(
 					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
-               'oneset_pyramid' => "set of pyramid scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
-            );
-            break;
-         case 'ratings_ladder':
-         case 'ratings_wager_ladder':
-            $this->types = array(
-					'single' => 'single blank, unscheduled game (2 teams, one field, one day)',
-               'oneset_ratings_ladder' => "set of ratings-scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
-            );
-            break;
+					'oneset_ratings_ladder' => "set of ratings-scheduled games for all teams ($num_teams teams, " . ($num_teams / 2) . " games, one day)"
+				);
+				break;
 
 			default:
 				error_exit("Wassamattayou!");
@@ -442,8 +436,7 @@ class GameCreate extends Handler
 				$num_dates = 1;
 				break;
 			case 'oneset':
-         case 'oneset_pyramid':
-         case 'oneset_ratings_ladder':
+			case 'oneset_ratings_ladder':
 			case 'blankset':
 				$num_dates = 1;
 				$num_fields = ($num_teams / 2);
@@ -493,7 +486,6 @@ class GameCreate extends Handler
 		switch($edit['type']) {
 			case 'single':
 			case 'oneset':
-			case 'oneset_pyramid':
 			case 'oneset_ratings_ladder':
 			case 'blankset':
 			case 'fullround':
@@ -553,14 +545,10 @@ class GameCreate extends Handler
 				# Create game for all teams in tier
 				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'] ) ;
 				break;
-         case 'oneset_pyramid':
-            # Create game for all teams in league
-            list( $rc, $message) = $this->league->create_scheduled_set_pyramid( $edit['startdate'] ) ;
-            break;
-         case 'oneset_ratings_ladder':
-            # Create game for all teams in league
-            list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] , $edit['excludeTeamID']) ;
-            break;
+			case 'oneset_ratings_ladder':
+				# Create game for all teams in league
+				list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] , $edit['excludeTeamID']) ;
+				break;
 			case 'fullround':
 				# Create full roundrobin
 				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'] );
@@ -1694,11 +1682,6 @@ class GameEdit extends Handler
 
 		if ( ! $this->game->save() ) {
 			error_exit("Could not successfully save game results");
-		}
-
-		// Game has been saved to database.  Now we can update the dependant games.
-		if (! $this->game->updatedependentgames( $oldgameresults )) {
-			error_exit("Could not update dependant games.");
 		}
 
 		return true;

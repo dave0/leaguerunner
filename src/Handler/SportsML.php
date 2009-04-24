@@ -102,9 +102,6 @@ xml version="1.0" encoding="ISO-8859-1"?>
 				case 'ratings_wager_ladder':
 					$team->rank = $team->rating;
 					break;
-				case 'pyramid':
-					# Pyramid uses its own rank
-					break;
 				default:
 					$team->rank = ++$rank;
 			}

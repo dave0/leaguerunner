@@ -586,11 +586,7 @@ class TeamMove extends Handler
 		if( $target_team ) {
 			$rc = $this->team->swap_team_with( $target_team );
 		} else {
-         $newrank = 0;
-         if ($targetleague->schedule_type == 'pyramid') {
-            // Default rank for pyramid league!
-            $newrank = 1000;
-         }
+			$newrank = 0;
 			$rc = $this->team->move_team_to( $targetleague->league_id, $newrank );
 		}
 
@@ -1302,14 +1298,6 @@ class TeamView extends Handler
 		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour, ENT_NOQUOTES));
 		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
 
-// TONY: we don't care anymore about the rank, but instead of deleting this right away,
-// keep it around in case we go back to using the old pyramid ladder system...
-// only show the rank selectively because in this view, we can only show the backend database rank,
-// which is near 1000, and not useful for people to see...
-//      if($this->team->rank && $lr_session->is_admin()) {
-//			$rows[] = array("Ranked:", $this->team->rank);
-//		}
-
 		if($this->team->home_field) {
 			$field = field_load(array('fid' => $this->team->home_field));
 			$rows[] = array("Home Field:", l($field->fullname,"field/view/$field->fid"));
@@ -1492,12 +1480,7 @@ class TeamSchedule extends Handler
 		$rows = array();
 
 		$empty_row_added = 0;
-		$prev_game_id = 0;
-		$countgames = 0;
-		$numgames = count($games);
-		$update_prev_game_id = 1;
 		while(list(,$game) = each($games)) {
-			$countgames++;
 			$space = '&nbsp;';
 			$dash = '-';
 			if($game->home_id == $this->team->team_id) {
@@ -1548,28 +1531,6 @@ class TeamSchedule extends Handler
 				$score_type .= " (default)";
 			}
 
-			// see if you're at the next dependant games (only for ladder!)
-			if ( ($numgames - $countgames < 2) && ($game->home_id == "" || $game->away_id == "") ) {
-				$update_prev_game_id = 0;
-				if (!$empty_row_added) {
-					$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
-					$empty_row_added = 1;
-				}
-				if ($game->home_dependant_game == $prev_game_id) {
-					if ($game->home_dependant_type == "winner") {
-						$score_type = "<b>(if win $prev_game_id)</b>";
-					} else {
-						$score_type = "<b>(if lose $prev_game_id)</b>";
-					}
-				}
-				if ($game->away_dependant_game == $prev_game_id) {
-					if ($game->away_dependant_type == "winner") {
-						$score_type = "<b>(if win $prev_game_id)</b>";
-					} else {
-						$score_type = "<b>(if lose $prev_game_id)</b>";
-					}
-				}
-			}
 			$field = field_load(array('fid' => $game->fid));
 			$rows[] = array(
 				l($game->game_id, "game/view/$game->game_id"),
@@ -1582,10 +1543,6 @@ class TeamSchedule extends Handler
 				$game_score,
 				$score_type
 			);
-
-			if ($update_prev_game_id) {
-				$prev_game_id = $game->game_id;
-			}
 		}
 		// add another row of dashes when you're done.
 		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
