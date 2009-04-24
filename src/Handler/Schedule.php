@@ -437,7 +437,11 @@ function schedule_render_editable( &$game, &$league )
 	$league->teams[$game->home_id] = $game->home_name;
 	$league->teams[$game->away_id] = $game->away_name;
 
-	$form_round = form_select('',"edit[games][$game->game_id][round]", $game->round, $league->rounds);
+	if ($league->schedule_type == "roundrobin") {
+		$form_round = form_select('',"edit[games][$game->game_id][round]", $game->round, $league->rounds);
+	} else {
+		$form_round = '';
+	}
 	$form_gameslot = 
 		array( 
 			'data' => form_select('',"edit[games][$game->game_id][slot_id]", $game->slot_id, $league->gameslots), 
@@ -447,8 +451,7 @@ function schedule_render_editable( &$game, &$league )
 	$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
 
 	return array(
-		form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) 
-		. $form_round . form_hidden("edit[games][$game->game_id][round_text]", $form_round),
+		form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) . $form_round,
 		$form_gameslot,
 		array(
 			'data' => $form_home . form_hidden("edit[games][$game->game_id][home_text]", $form_home),
