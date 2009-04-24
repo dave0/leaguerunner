@@ -784,6 +784,8 @@ class League extends LeaguerunnerObject
 	*/
 	function create_empty_set( $datestamp ) 
 	{
+		global $dbh;
+
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
 		}
@@ -800,37 +802,27 @@ class League extends LeaguerunnerObject
 
 
 		/* Now, randomly create our games.  Don't add any teams, or set a
-		* round, or anything.  Then, use that game ID to randomly allocate us
-		* a gameslot.
-		* TODO This would be soooo much nicer with transactions...
-		*/
+		 * round, or anything.  Then, use that game ID to randomly allocate us
+		 * a gameslot.
+		 */
+		$dbh->beginTransaction();
 		$num_games = ( $num_teams / 2 );
-		$rollback_list = array();
 		for($i = 0; $i < $num_games; $i++) {
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
 			if ( ! $g->save() ) {
-				foreach( $rollback_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+				$dbh->rollBack();
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.");
 			}
 			$rollback_list[] = $g;
 
 			list($rc, $message) = $g->select_random_gameslot($datestamp);
-			if( ! $rc ) { 
-				/* Argh, something failed, so roll back the whole pile of
-				* games */
-				foreach( $rollback_list as $to_rollback ) {
-					if( ! $to_rollback->delete() ) {
-						$extra_errors = "<br />Also, failed to delete failed games correctly.  Please contact the system administrator";
-					}
-				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.$extra_errors");
+			if( ! $rc ) {
+				$dbh->rollBack();
+				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields.");
 			}
 		}
+		$dbh->commit();
 
 		return array(true,'');
 	}

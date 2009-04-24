@@ -1253,7 +1253,7 @@ class Game extends LeaguerunnerObject
 		 * keep the locks a bit more granular, we lock on the timestamp, so
 		 * that we only protect against people trying to add games on the same
 		 * day.
-		 * TODO: This needs transactions!  The locking stuff is stupid.
+		 * TODO: This should be called from code already executing in a transaction, so make the locks go away
 		 */
 		$lockname = "schedule_lock_$timestamp";
 

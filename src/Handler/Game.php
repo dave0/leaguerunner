@@ -527,7 +527,8 @@ class GameCreate extends Handler
 		# generate appropriate games, roll back on error
 		switch($edit['type']) {
 			case 'single':
-				# Create single game
+				// Create single game
+				// TODO: Push back in to game.inc or league.inc
 				$g = new Game;
 				$g->set('league_id', $this->league->league_id);
 				if( ! $g->save() ) {
