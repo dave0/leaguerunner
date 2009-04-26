@@ -958,7 +958,7 @@ class LeagueView extends Handler
 
 		$this->league->load_teams();
 
-		if( $this->league->teams > 0 ) {
+		if( count($this->league->teams) > 0 ) {
 			$rows = array();
 			list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
 			$counter = 0;
