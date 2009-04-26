@@ -624,7 +624,7 @@ class LeagueList extends Handler
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 
-		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
+		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
 
 		if ( $leagues ) {
 			foreach ( $leagues as $league ) {
