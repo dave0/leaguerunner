@@ -100,6 +100,7 @@ my @TABLES = (
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			see_sotg            ENUM('true','false') default 'true',
+			allstars            ENUM('true','false') default 'false',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
 			capt_list           varchar(100),
@@ -1335,6 +1336,11 @@ sub upgrade_18_to_19
 				DROP COLUMN away_dependant_game,
 				DROP COLUMN away_dependant_type,
 				DROP COLUMN away_dependant_rank
+		}],
+
+		# Selection of per-game allstars
+		allstars => [q{
+			ALTER TABLE league ADD allstars  ENUM('true','false') DEFAULT 'false' AFTER see_sotg
 		}]
 	]);
 }
