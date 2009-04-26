@@ -75,7 +75,10 @@ class ScheduleViewDay extends Handler
 	 */
 	function displayGamesForDay ( $year, $month, $day )
 	{
-		$sth = game_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code') );
+		$sth = game_query ( array(
+			'game_date' => sprintf('%d-%d-%d', $year, $month, $day),
+			'published' => true,
+			'_order' => 'g.game_start, field_code') );
 
 		$rows = array( 
 			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
@@ -138,7 +141,7 @@ class ScheduleEdit extends Handler
 			error_exit("There may be no teams in this league");
 		}
 		$teams[0] = "---";
-		 
+
 		$this->league->teams = $teams;
 
 		// get the game slots for this league and this day
@@ -154,12 +157,15 @@ class ScheduleEdit extends Handler
 
 		$prevDayId = -1;
 		$rows = array();
+		$should_publish = 1;
 		/* For each game in the schedule for this league */
 		while($game = $sth->fetchObject('Game') ) {
-
 			if( $game->day_id != $prevDayId ) {
 				if( $timestamp == $prevDayId) {
 					/* ensure we add the submit buttons for schedule editing */
+					$rows[] = array(
+						array('data' => para( form_checkbox("Set as published for player viewing?", 'edit[published]', 'yes', $should_publish, '') ), 'colspan' => 9)
+					);
 					$rows[] = array(
 						array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
 					);
@@ -183,9 +189,14 @@ class ScheduleEdit extends Handler
 				$rows[] = schedule_render_viewable($game);
 			}
 			$prevDayId = $game->day_id;
+
+			$should_publish = $game->published;
 		}
 		if( $timestamp == $prevDayId ) {
 			/* ensure we add the submit buttons for schedule editing */
+			$rows[] = array(
+				array('data' => para( form_checkbox("Set as published for player viewing?", 'edit[published]', 'yes', $should_publish, '') ), 'colspan' => 9)
+			);
 			$rows[] = array(
 				array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
 			);
@@ -260,8 +271,16 @@ class ScheduleEdit extends Handler
 			error_exit("There are no fields assigned to this league!");
 		}
 
-		$output = para(
-			"Confirm that the changes below are correct, and click 'Submit' to proceed.");
+		$output = para("Confirm that the changes below are correct, and click 'Submit' to proceed.");
+
+		if( $edit['published'] == 'yes' ) {
+			$output .= para("Games will be made available for player viewing.")
+				. form_hidden('edit[published]', 'yes');
+		} else {
+			$output .= para("Games will be hidden from player view until you choose to publish them.")
+				. form_hidden('edit[published]', 'no');
+		}
+
 		$output .= form_hidden('edit[step]', 'perform');
 
 		$header = array(
@@ -297,7 +316,7 @@ class ScheduleEdit extends Handler
 		return form($output);
 	}
 
-	function perform ($dayId, $edit) 
+	function perform ($dayId, $edit)
 	{
 		global $dbh;
 
@@ -305,6 +324,7 @@ class ScheduleEdit extends Handler
 		if($dataInvalid) {
 			error_exit($dataInvalid);
 		}
+		$should_publish = ($edit['published'] == 'yes' ? 1 : 0);
 
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 			$game = game_load( array('game_id' => $game_id) );
@@ -323,6 +343,8 @@ class ScheduleEdit extends Handler
 			$old_slot_id = $game->slot_id;
 
 			$game->set('slot_id', $game_info['slot_id']);
+
+			$game->set('published', $should_publish);
 
 			if( !$game->save() ) {
 				error_exit("Couldn't save game information!");
@@ -372,6 +394,10 @@ class ScheduleView extends Handler
 		$prevDayId = -1;
 		$rows = array();
 		while( $game = $sth->fetchObject('Game') ) {
+
+			if( ! ($game->published || $lr_session->has_permission('league','edit schedule', $this->league->league_id) ) ) {
+				continue;
+			}
 
 			if( $game->day_id != $prevDayId ) {
 				$rows[] = schedule_heading( 

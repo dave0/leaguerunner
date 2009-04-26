@@ -137,7 +137,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
   <schedule content-label="<?php print htmlspecialchars($this->league->fullname) ?>">
     <schedule-metadata team-coverage-type="multi-team" date-coverage-type='season-regular' date-coverage-value="<?php print $this->league->year ?>" />
 <?php
-		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		$sth = game_query ( array( 'league_id' => $this->league->league_id, 'published' => 1, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$currentTime = time();
 		while( $game = $sth->fetchObject('Game') ) {

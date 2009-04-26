@@ -115,7 +115,7 @@ function game_splash ()
 	global $lr_session, $dbh;
 
 	$sth = game_load(array());
-	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4');
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE s.published AND ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4');
 	$sth->execute( array($lr_session->user->user_id) );
 
 	$rows = array();
@@ -157,7 +157,7 @@ function game_splash ()
 		));
 	}
 
-	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date >= CURDATE() ORDER BY g.game_date asc, g.game_start asc LIMIT 4');
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE s.published AND ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date >= CURDATE() ORDER BY g.game_date asc, g.game_start asc LIMIT 4');
 	$sth->execute( array($lr_session->user->user_id) );
 
 	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {

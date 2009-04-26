@@ -143,6 +143,7 @@ my @TABLES = (
 			game_id             int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 			league_id           int NOT NULL,
 			round               varchar(10) NOT NULL DEFAULT '1',
+			published           BOOL default true,
 			home_team           integer,
 			away_team           integer,
 			home_score          tinyint,
@@ -1341,7 +1342,13 @@ sub upgrade_18_to_19
 		# Selection of per-game allstars
 		allstars => [q{
 			ALTER TABLE league ADD allstars  ENUM('true','false') DEFAULT 'false' AFTER see_sotg
-		}]
+		}],
+
+		# Allow unpublished games
+		unpublished_games => [q{
+			ALTER TABLE schedule
+				ADD COLUMN published BOOL default true
+		}],
 	]);
 }
 
