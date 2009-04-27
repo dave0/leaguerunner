@@ -520,7 +520,7 @@ function schedule_render_viewable( &$game )
 
 	$gameRow = array(
 		l($game->game_id, 'game/view/' . $game->game_id),
-		"$game->game_start - $game->game_end",
+		"$game->game_start - " . $game->display_game_end(),
 		l( $game->field_code, "field/view/$game->fid"),
 	);
 

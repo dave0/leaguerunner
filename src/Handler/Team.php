@@ -1536,7 +1536,7 @@ class TeamSchedule extends Handler
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),
 				$game->game_start,
-				$game->game_end,
+				$game->display_game_end(),
 				$opponent_name,
 				l($game->field_code, "field/view/$game->fid", array('title' => $field->fullname)),
 				$home_away,
@@ -2040,14 +2040,9 @@ X-WR-CALNAME:$my_team schedule from $short_league_name
 			$game_start = $game_date . 'T' 
 			  . join(explode(':', $game->game_start)) // from 'hh:mm' string
 			  . '00';
-			// HACK to fix games until dark
-			if ($game->game_end == 'dark') {
-				$game_end = $game_date . 'T210000'; // default 'dark' to 9pm
-			} else {
-				$game_end = $game_date . 'T' 
-					. join(explode(':', $game->game_end))  // from 'hh:mm' string
+			$game_end = $game_date . 'T'
+					. join(explode(':', $game->display_game_end()))  // from 'hh:mm' string
 					. '00';
-			}
 
 			// date stamp this file
 			$now = gmstrftime('%Y%m%dT%H%M%SZ'); // MUST be in UTC
@@ -2070,7 +2065,7 @@ DTEND;$timezone:$game_end
 LOCATION:$field->fullname ($game->field_code)
 X-LOCATION-URL:$field_url
 SUMMARY:$my_team vs. $opponent_name
-DESCRIPTION:Game $game->game_id: $my_team vs. $opponent_name at $field->fullname ($game->field_code) on ".strftime('%a %b %d %Y', $game->timestamp)." $game->game_start to $game->game_end"
+DESCRIPTION:Game $game->game_id: $my_team vs. $opponent_name at $field->fullname ($game->field_code) on ".strftime('%a %b %d %Y', $game->timestamp)." $game->game_start to " . $game->display_game_end()
 . ($opponent_colour ? " (they wear $opponent_colour)" : "") . "
 X-OPPONENT-COLOUR:$opponent_colour
 STATUS:CONFIRMED

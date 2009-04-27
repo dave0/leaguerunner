@@ -145,7 +145,7 @@ function game_splash ()
 		}
 		$field = field_load(array('fid' => $game->fid));
 		array_unshift($rows, array(
-			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-" . $game->display_game_end(),"game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
 				" (home) vs. " .
@@ -187,7 +187,7 @@ function game_splash ()
 		}
 		$field = field_load(array('fid' => $game->fid));
 		$rows[] = array(
-			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-$game->game_end","game/view/$game->game_id"),
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-" . $game->display_game_end(),"game/view/$game->game_id"),
 			array('data' =>
 				l($game->home_name, "team/view/$game->home_id") .
 				" (home) vs. " .
@@ -1303,7 +1303,7 @@ class GameEdit extends Handler
 		if( $this->can_edit ) {
 			$note = "To edit time, date, or location, use the 'reschedule' link";
 		}
-		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until $game->game_end", $note);
+		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end() . $note);
 
 		$field = field_load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
@@ -1766,6 +1766,7 @@ function game_score_entry_display( $game )
 # TONY added this GameDelete, which is pretty much a copy of GameEdit.
 # It can use some work to be nicer, but I don't have time.
 # For now, you can't delete a game that is already finalized.
+# TODO: needs cleanup (as above)
 #
 class GameDelete extends Handler
 {
@@ -1846,7 +1847,7 @@ class GameDelete extends Handler
 		if( $this->can_edit ) {
 			$note = "To edit time, date, or location, use the 'reschedule' link";
 		}
-		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until $game->game_end", $note);
+		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end(), $note);
 
 		$field = field_load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
@@ -2086,7 +2087,7 @@ class GameRemoveResults extends Handler
 		if( $this->can_edit ) {
 			$note = "To edit time, date, or location, use the 'reschedule' link";
 		}
-		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until $game->game_end", $note);
+		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end(), $note);
 
 		$field = field_load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
