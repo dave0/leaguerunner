@@ -19,21 +19,15 @@
  *
  * Authors: Dave O'Neill <dmo@acm.org>
  *          Mackenzie King <mackking@canada.com>
- * 
+ *
  */
 
-/* 
- * First, read in the configuration data.
- * The data is in a file formatted as PHP/Perl variable assignments.
- * It's done this way to allow the same configfile to be used for both
- * PHP and Perl without:
- *   - writing Yet Another Config Parser
- *   - requiring extra unnecessary library dependancies from CPAN 
- *     or PEAR
- */
-$phpCode = file_get_contents("./leaguerunner.conf");
-eval($phpCode);
-putenv($LOCAL_TZ);
+$CONFIG = parse_ini_file('./leaguerunner.conf', true);
+if( ! $CONFIG ) {
+	error_exit("Could not read leaguerunner.conf file");
+}
+
+putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
 //error_reporting(E_ALL & ~E_NOTICE);
 
@@ -46,7 +40,7 @@ define('LOAD_RELATED_DATA', 1);
 
 // Configure database
 try {
-	$dbh = new PDO($DB_DSN, $DB_USER, $DB_PASS,
+	$dbh = new PDO($CONFIG['database']['dsn'], $CONFIG['database']['username'], $CONFIG['database']['password'],
 	array(
 		PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
 		PDO::ATTR_EMULATE_PREPARES         => true,

@@ -153,8 +153,9 @@ class League extends LeaguerunnerObject
 	*/
 	function update_current_round()
 	{
-		global $TZ_ADJUST, $dbh;
-		$sth = $dbh->prepare("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = ? AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( (UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1");
+		global $CONFIG, $dbh;
+		$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
+		$sth = $dbh->prepare("SELECT s.round FROM schedule s, gameslot g WHERE s.league_id = ? AND (NOT ISNULL(s.round)) AND g.game_id = s.game_id AND ( (UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $local_adjust_secs) < UNIX_TIMESTAMP(NOW())) ORDER BY g.game_date DESC LIMIT 1");
 		$sth->execute(array($this->league_id));
 
 		$round = $sth->fetchColumn();
@@ -170,11 +171,10 @@ class League extends LeaguerunnerObject
 	*/
 	function finalize_old_games()
 	{
-		global $dbh;
+		global $CONFIG, $dbh;
 		if( $this->finalize_after == 0 )
 			return '';
 
-		global $TZ_ADJUST;
 		$output = '';
 
 		// TODO: game_load_many()?  Or at least game_query()?
@@ -195,11 +195,11 @@ class League extends LeaguerunnerObject
 			ORDER BY
 				g.game_id");
 
+		$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
 		$sth->execute( array(
-			$TZ_ADJUST * 60,
+			$local_adjust_secs,
 			$this->league_id,
-			// TZ_ADJUST is in minutes, finalize_after is in hours
-			$TZ_ADJUST + ($this->finalize_after * 60) * 60
+			$local_adjust_secs + ($this->finalize_after * 60) * 60
 		));
 
 		while( $game_id = $sth->fetchColumn() ) {
@@ -229,16 +229,16 @@ class League extends LeaguerunnerObject
 	*/
 	function send_scoring_reminders()
 	{
+		global $CONFIG, $dbh;
+
 		if( $this->email_after == 0 )
 			return '';
 
-		global $TZ_ADJUST, $dbh;
 		$output = '';
 
 		// TODO: game_load_many()?  Or at least game_query()?
-		// TZ_ADJUST is in minutes, email_after is in hours
-		$start_offset = $TZ_ADJUST * 60;
-		$email_offset = $TZ_ADJUST + ($this->email_after * 60) * 60;
+		$start_offset = $CONFIG['localization']['tz_adjust'] * 60;
+		$email_offset = $start_offset + ($this->email_after * 60) * 60;
 		$sth = $dbh->prepare("SELECT
 				DISTINCT s.game_id,
 				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $start_offset) AS start_timestamp

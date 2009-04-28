@@ -403,8 +403,7 @@ class FieldList extends Handler
 
 	function process ()
 	{
-		global $FILE_URL;
-		$FILE_PATH = trim ($FILE_URL, '/');
+		global $CONFIG;
 
 		$output = '';
 		if( $this->closed ) {
@@ -413,10 +412,10 @@ class FieldList extends Handler
 			$this->setLocation(array('List Fields' => 'field/list'));
 
 			ob_start();
-			$retval = @readfile("$FILE_PATH/data/field_caution.html");
+			$retval = @readfile($CONFIG['paths']['file_url']. "/data/field_caution.html");
 			if (false !== $retval) {
 				$output .= ob_get_contents();
-			}           
+			}
 			ob_end_clean();
 		}
 

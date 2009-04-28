@@ -849,7 +849,7 @@ class PersonEdit extends Handler
 
 	function generateForm ( $id, &$formData, $instructions = "")
 	{
-		global $lr_session, $FILE_URL;
+		global $lr_session, $CONFIG;
 		$output = <<<END_TEXT
 <script language="JavaScript" type="text/javascript">
 <!--
@@ -958,8 +958,7 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-#				"Please use the questionnaire to <a href=\"javascript:doNothing()\" onClick=\"popup('$FILE_URL/data/rating.html')\">calculate your rating</a>"
-				"Please use the questionnaire to <a href=\"$FILE_URL/data/rating.html\" target='_new'>calculate your rating</a>"
+				"Please use the questionnaire to <a href=\"" . $CONFIG['paths']['file_url'] . "/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
@@ -1539,14 +1538,13 @@ class PersonSignWaiver extends Handler
 
 	function generateForm( $next )
 	{
-		global $FILE_URL;
-		$FILE_PATH = trim ($FILE_URL, '/');
+		global $CONFIG;
 
 		$output = form_hidden('next', $next);
 		$output .= form_hidden('edit[step]', 'perform');
 
 		ob_start();
-		$retval = @readfile("$FILE_PATH/data/{$this->formFile}");
+		$retval = @readfile( $CONFIG['paths']['file_url'] . "/data/{$this->formFile}");
 		if (false !== $retval) {
 			$output .= ob_get_contents();
 		}

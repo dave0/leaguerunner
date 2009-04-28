@@ -1476,10 +1476,12 @@ class Game extends LeaguerunnerObject
 
 function game_query ( $array = array() )
 {
-	global $TZ_ADJUST, $dbh;
+	global $CONFIG, $dbh;
 
 	$order = '';
 	$tables = array( 'schedule s');
+
+	$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
 
 	$query  = array();
 	$params = array();
@@ -1490,10 +1492,10 @@ function game_query ( $array = array() )
 				$params[] = $value;
 				break;
 			case 'game_date_past':
-				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) < UNIX_TIMESTAMP(NOW())";
+				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) < UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'game_date_future':
-				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60)) > UNIX_TIMESTAMP(NOW())";
+				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) > UNIX_TIMESTAMP(NOW())";
 				break;
 			case 'either_team':
 				$query[] = '(s.home_team = ? OR s.away_team = ?)';
@@ -1533,7 +1535,7 @@ function game_query ( $array = array() )
 		g.fid,
 		UNIX_TIMESTAMP(g.game_date) as day_id,
 		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
-		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60) as timestamp
+		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs as timestamp
 	FROM " . join(',', $tables) .
 		" INNER JOIN league l ON (l.league_id = s.league_id)
 		LEFT JOIN gameslot g ON (g.game_id = s.game_id)

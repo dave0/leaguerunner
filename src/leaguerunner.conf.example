@@ -1,37 +1,38 @@
-## 
-## Leaguerunner configuration file.
-## 
-## This is an example configuration file.  It should be copied to
-## leaguerunner.conf in the src/ directory and modified for your database.
-##
-## This file is parsed by both PHP and Perl, and so should contain ONLY lines
-## of the format 
-##   $variable = 'value';
-## or Bad Things will happen.  More robust parsing may be added in the future,
-## but don't hold your breath.
+; vim: set filetype=dosini :
+;
+; Leaguerunner configuration file.
+;
+; This is an example configuration file.  It should be copied to
+; leaguerunner.conf in the src/ directory and modified for your database.
+;
+; Parsed by both parse_ini_file() in PHP, and Config::Tiny in Perl.
 
-## Database configuration.
-## DB_DSN should be a PDO-compatible DSN
-$DB_DSN   = 'mysql:host=localhost;dbname=leaguerunner';
+; Database configuration.
+[database]
+; dsn should be a PDO-compatible DSN
+dsn = "mysql:hostname=localhost;dbname=leaguerunner"
+; username and password of mysql user
+username = leaguerunner
+password = password
 
-## DB_USER and DB_PASS are what you'd expect... the username and password
-$DB_USER  = 'leaguerunner';
-$DB_PASS  = 'password';
+; Various paths (system and URL) used by Leaguerunner
+[paths]
+; This should be the directory containing Leaguerunner.  Don't add a trailing slash.
+base_url = "/leaguerunner"
+file_url = "/leaguerunner"
+;$BASE_URL = '/leaguerunner';
+;$FILE_URL = '/leaguerunner';
 
-## Base URL.
-## This should be the directory containing Leaguerunner.  Don't 
-## add a trailing slash.
-$BASE_URL = '/leaguerunner';
-$FILE_URL = '/leaguerunner';
+; Session defaults
+[session]
+; Session name. Set if necessary.
+;session_name = "www.ocua.ca"
 
-## Session name. Set if necessary.
-$SESSION_NAME = 'www.ocua.ca';
+[localization]
+; Set up time zone information.
+; See http://ca3.php.net/timezones for a list of valid timezone names
+local_tz = "TZ=US/Eastern"
 
-## Set up time zone information.
-## See http://ca3.php.net/timezones for a list of valid timezone names
-$LOCAL_TZ = 'TZ=US/Eastern';
-## Difference, in minutes, from the local timezone to the server timezone.
-## Value is negative if server is to your west, positive if it's east.
-$TZ_ADJUST = 0;
-
-1;
+; Difference, in minutes, from the local timezone to the server timezone.
+; Value is negative if server is to your west, positive if it's east.
+tz_adjust = 0

@@ -434,8 +434,8 @@ class EventList extends Handler
 
 	function process ()
 	{
-		global $lr_session, $FILE_URL;
-		$FILE_PATH = trim ($FILE_URL, '/');
+		global $lr_session, $CONFIG;
+		$file_path = $CONFIG['paths']['file_url'];
 
 		$links = $lr_session->has_permission('event','view');
 
@@ -444,7 +444,7 @@ class EventList extends Handler
 
 		$output = '';
 		ob_start();
-		$retval = @readfile("$FILE_PATH/data/registration_notice.html");
+		$retval = @readfile("$file_path/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}

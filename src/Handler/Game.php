@@ -1277,7 +1277,7 @@ class GameEdit extends Handler
 
 	function generateForm ( )
 	{
-		global $lr_session, $dbh, $BASE_URL;
+		global $lr_session, $dbh;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;
@@ -1425,7 +1425,7 @@ class GameEdit extends Handler
 			$stats_group .= form_item("Chance to win", table(null, array(
 				array($game->home_name, sprintf("%0.1f%%", (100 * $homePct))),
 				array($game->away_name, sprintf("%0.1f%%", (100 * $awayPct))),
-				array("View the <a href='$BASE_URL/game/ratings/" . $game->game_id . "'>Ratings Table</a> for this game." ))
+				array("View the " . l('Ratings Table', "game/ratings/$game->game_id") . " for this game." ))
 				));
 			$output .= form_group("Statistics", $stats_group);
 

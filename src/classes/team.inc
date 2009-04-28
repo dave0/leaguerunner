@@ -407,7 +407,7 @@ class Team extends LeaguerunnerObject
 
 function team_query( $array = array() )
 {
-	global $TZ_ADJUST, $dbh;
+	global $CONFIG, $dbh;
 
 	$order = '';
 	$query = array();
@@ -432,6 +432,8 @@ function team_query( $array = array() )
 		}
 	}
 
+	$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
+
 	$sth = $dbh->prepare("SELECT 
 		t.*,
 		1 AS _in_database,
@@ -442,7 +444,7 @@ function team_query( $array = array() )
 		l.season AS league_season, 
 		l.year AS league_year, 
 		l.league_id,
-		(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + ($TZ_ADJUST * 60)) AS roster_deadline
+		(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + $local_adjust_secs) AS roster_deadline
 		FROM team t
 		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
 		INNER JOIN league l ON (s.league_id = l.league_id)

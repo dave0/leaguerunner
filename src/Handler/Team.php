@@ -1453,7 +1453,7 @@ class TeamSchedule extends Handler
 
 	function process ()
 	{
-		global $lr_session, $FILE_URL;
+		global $lr_session, $CONFIG;
 		$this->title = "Schedule";
 		$this->setLocation(array(
 			$this->team->name => "team/view/" . $this->team->team_id,
@@ -1549,10 +1549,10 @@ class TeamSchedule extends Handler
 
 		// add iCal link
 		$ical_url = url("team/ical/".$this->team->team_id);
-
+		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
 		  . para("Get your team schedule in "
-		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$FILE_URL/image/icons/ical.gif\" alt=\"iCal\" /></a>"
+		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$icon_url/ical.gif\" alt=\"iCal\" /></a>"
 		  . " format or <a href=\"http://www.google.com/calendar/render?cid=$ical_url\" target=\"_blank\"><img style=\"display: inline; vertical-align: middle\" src=\"http://www.google.com/calendar/images/ext/gc_button6.gif\" alt=\"Add to Google Calendar\"></a>");
 	}
 }
@@ -1567,7 +1567,7 @@ class TeamSpirit extends Handler
 
 	function process ()
 	{
-		global $lr_session, $dbh, $FILE_URL;
+		global $lr_session, $dbh, $CONFIG;
 		$this->title = "Team Spirit";
 
 		$this->setLocation(array(
@@ -1606,6 +1606,7 @@ class TeamSpirit extends Handler
 		$num_games = 0;
 		$no_spirit_questions = 0;
 		$sotg_scores = array();
+		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
 
 		foreach($games as $game) {
 
@@ -1689,13 +1690,13 @@ class TeamSpirit extends Handler
 					switch( $answer_values[$answer] ) {
 						case -3:
 						case -2:
-							$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
+							$thisrow[] = "<img src='$icon_url/not_ok.png' />";
 							break;
 						case -1:
-							$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
+							$thisrow[] = "<img src='$icon_url/ok.png' />";
 							break;
 						case 0:
-							$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
+							$thisrow[] = "<img src='$icon_url/perfect.png' />";
 							break;
 						default:
 							$thisrow[] = "?";
@@ -1734,11 +1735,11 @@ class TeamSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
+				$thisrow[] = "<img src='$icon_url/not_ok.png' />";
 			} else if ( $avg < -0.5 ) {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
+				$thisrow[] = "<img src='$icon_url/ok.png' />";
 			} else {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
+				$thisrow[] = "<img src='$icon_url/perfect.png' />";
 			}
 		}
 		$thisrow[] = '';
@@ -1981,8 +1982,8 @@ class TeamICALSchedule extends Handler
 	// Will output in target format (ical)
 	function process ()
 	{
-		global $LOCAL_TZ;
-		$timezone = str_replace ('TZ=', 'TZID=', $LOCAL_TZ);
+		global $CONFIG;
+		$timezone = 'TZID=' .  $CONFIG['localization']['local_tz'];
 
 		$my_team = $this->team->name;
 

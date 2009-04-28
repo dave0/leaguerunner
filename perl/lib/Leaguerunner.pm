@@ -5,29 +5,36 @@ package Leaguerunner;
 use strict;
 use warnings;
 use PHPUnserialize;
+use Config::Tiny;
 
-
-sub parseConfigFile($) 
+sub parseConfigFile($)
 {
-	my $inputFilename = shift;
+	my ($filename) = @_;
 
-	our($DB_DSN, $DB_USER, $DB_PASS, $APP_ADMIN_EMAIL);
-	require $inputFilename;
-	
-	## Evil hack.  URI module can't parse mysql: urls correctly,
-	## so we force parsing as http.
-	my($method,$rest) = split(/:/,$DB_DSN,2);
+	my $config = Config::Tiny->read( $filename );
+	if( ! $config ) {
+		die("Couldn't read config file $filename: " . Config::Tiny->errstr);
+	}
 
+	# Strip leading/trailing quotes
+	for my $section (keys %$config) {
+		for my $key (keys %{$config->{$section}}) {
+			$config->{$section}{$key} =~ s/^['"]//;
+			$config->{$section}{$key} =~ s/['"]$//;
+		}
+	}
+
+	# Clean up DSN
+	my($method,$rest) = split(/:/,$config->{database}{dsn},2);
 	my %dsn_data = map { split(/=/, $_) } split(';', $rest);
+	$config->{database}{dsn} = join(':',
+		'DBI',
+		$method,
+		'database=' . $dsn_data{dbname},
+		'host=' . $dsn_data{host});
 
-	
-	return {
-		'db_scheme' => $method,
-		'db_user' => $DB_USER,
-		'db_password'   => $DB_PASS,
-		'db_host' => $dsn_data{host},
-		'db_name' => $dsn_data{dbname},
-	};
+
+	return $config;
 }
 
 sub loadVariables($)

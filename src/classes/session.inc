@@ -1,14 +1,14 @@
 <?php
 
-/** 
- * Session functions.  
+/**
+ * Session functions.
  */
-function sess_open($save_path, $session_name) 
+function sess_open($save_path, $session_name)
 {
 	return TRUE;
 }
 
-function sess_close() 
+function sess_close()
 {
 	return TRUE;
 }
@@ -41,15 +41,15 @@ function sess_gc($lifetime)
 
 function lr_configure_sessions ()
 {
-	global $BASE_URL,$SESSION_NAME;
-	
-	if ($SESSION_NAME) {
-		$session_name = $SESSION_NAME;
+	global $CONFIG;
+
+	if ($CONFIG['session']['session_name']) {
+		$session_name = $CONFIG['session']['session_name'];
 	}
 	else {
 		// Otherwise use $base_url as session name, without the protocol
 		// to use the same session identifiers across http and https.
-		list( , $session_name) = explode('://', $BASE_URL, 2);
+		list( , $session_name) = explode('://', $CONFIG['paths']['base_url'], 2);
 	}
 	session_name('SESS'. md5($session_name));
 	session_set_save_handler("sess_open","sess_close","sess_read","sess_write","sess_destroy","sess_gc");
@@ -105,7 +105,7 @@ class UserSession
 			return false;
 		}
 
-		/* Ok, the user is good.  Now we need to save the user 
+		/* Ok, the user is good.  Now we need to save the user
 		 * and generate a session key.
 		 */
 		$this->user = $user;
@@ -225,7 +225,7 @@ class UserSession
 
 	/**
 	 * Check to see if the current user session is valid.
-	 * 
+	 *
 	 * @return boolean valid or not
 	 */
 	function is_valid ()
@@ -237,7 +237,7 @@ class UserSession
 		return ($this->attr_get('status') == 'active');
 	}
 
-	/** 
+	/**
 	 * See if this session user has a completed record
 	 */
 	function is_complete()
@@ -250,8 +250,8 @@ class UserSession
 		return true;
 	}
 
-	/** 
-	 * See if this session user is a player 
+	/**
+	 * See if this session user is a player
 	 */
 	function is_player()
 	{
@@ -267,7 +267,7 @@ class UserSession
 		return module_invoke($module, 'permissions', $this->user, $action, $a1, $a2);
 	}
 
-	/** 
+	/**
 	 * See if this session user is an administrator
 	 */
 	function is_admin ()
@@ -275,24 +275,24 @@ class UserSession
 		return ($this->user && $this->user->is_admin());
 	}
 
-	/** 
+	/**
 	 * See if this session user is captain of given team
 	 *
 	 * @param team_id Team identifier.
 	 *
-	 * @return boolean 
+	 * @return boolean
 	 */
 	function is_captain_of ($team_id)
 	{
 		return ($this->user && $this->user->is_captain_of($team_id));
 	}
 
-	/** 
+	/**
 	 * See if this session user is coordinator of a given league
 	 *
 	 * @param team_id League identifier.
 	 *
-	 * @return boolean 
+	 * @return boolean
 	 */
 	function is_coordinator_of ($league_id)
 	{

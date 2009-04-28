@@ -9,13 +9,8 @@ use Spreadsheet::WriteExcel;
 my $config = Leaguerunner::parseConfigFile("../src/leaguerunner.conf");
 
 ## Initialise database handle.
-my $dsn = join("",
-	"DBI:mysql:database=", $config->{db_name}, 
-	":host=", $config->{db_host});
+my $DB = DBI->connect( $config->{database}{dsn}, $config->{database}{username}, $config->{database}{password}, { RaiseError => 1, }) || die("Error establishing database connect; $DBI::errstr\n");
 
-my $DB = DBI->connect($dsn, $config->{db_user}, $config->{db_password}) || die("Error establishing database connect; $DBI::errstr\n");
-
-$DB->{RaiseError} = 1;
 sub END { $DB->disconnect() if defined($DB); }
 
 my $sth = $DB->prepare(

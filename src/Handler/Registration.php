@@ -530,8 +530,8 @@ class RegistrationRegister extends RegistrationForm
 
 	function generateForm ()
 	{
-		global $FILE_URL;
-		$FILE_PATH = trim ($FILE_URL, '/');
+		global $CONFIG;
+		$FILE_PATH = trim ($CONFIG['paths']['file_url'], '/');
 
 		$this->title = 'Preferences';
 
@@ -798,8 +798,10 @@ class RegistrationOnlinePaymentResponse extends Handler
 
 	function process ()
 	{
-		global $BASE_URL, $FILE_URL;
+		global $CONFIG;
 
+		$file_url = $CONFIG['paths']['file_url'];
+		$base_url = $CONFIG['paths']['base_url'];
 		$org = variable_get('app_org_name','league');
 		print <<<HTML_HEADER
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
@@ -807,7 +809,7 @@ class RegistrationOnlinePaymentResponse extends Handler
 <head>
 <title>$org - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$FILE_URL/style.css">
+<link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$file_url/style.css">
 <script type="text/javascript">
 <!--
 function close_and_redirect(url)
@@ -823,7 +825,7 @@ HTML_HEADER;
 
 		handlePaymentResponse();
 
-		print para("Click <a href=\"/\" onClick=\"close_and_redirect('http://{$_SERVER["SERVER_NAME"]}$BASE_URL/event/list')\">here</a> to close this window.");
+		print para("Click <a href=\"/\" onClick=\"close_and_redirect('http://{$_SERVER["SERVER_NAME"]}$base_url/event/list')\">here</a> to close this window.");
 
 		// Returning would cause the Leaguerunner menus to be added
 		exit;
@@ -980,7 +982,7 @@ function registration_statistics($args)
 {
 	global $dbh;
 	$level = arg(2);
-	global $TZ_ADJUST;
+	global $CONFIG;
 
 	if (!$level || $level == 'past')
 	{
@@ -1175,7 +1177,7 @@ function registration_statistics($args)
 					WHERE r.registration_id = ?
 					ORDER BY payment, order_id
 					LIMIT $from, $items");
-				$sth->execute( array(-$TZ_ADJUST, $id) );
+				$sth->execute( array(-$CONFIG['localization']['tz_adjust'], $id) );
 
 				$rows = array();
 				while($row = $sth->fetch() ) {
@@ -1267,7 +1269,7 @@ function registration_statistics($args)
 				LEFT JOIN person p ON r.user_id = p.user_id
 			WHERE r.registration_id = ?
 			ORDER BY payment, order_id');
-			$sth->execute( array( -$TZ_ADJUST, -$TZ_ADJUST, $id) );
+			$sth->execute( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], $id) );
 
 			while($row = $sth->fetch() ) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);

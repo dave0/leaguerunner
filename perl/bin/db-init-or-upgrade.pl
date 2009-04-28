@@ -134,7 +134,7 @@ my $config = Leaguerunner::parseConfigFile($config_path);
 
 ## Initialise database handle.
 
-my $dbh = DBI->connect("DBI:mysql:database=$config->{db_name}:host=$config->{db_host}", $config->{db_user}, $config->{db_password}, { RaiseError => 1, });
+my $dbh = DBI->connect( $config->{database}{dsn}, $config->{database}{username}, $config->{database}{password}, { RaiseError => 1, });
 
 die("Error establishing database connect; $DBI::errstr\n") unless $dbh;
 

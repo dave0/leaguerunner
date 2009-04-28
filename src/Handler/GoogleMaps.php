@@ -30,7 +30,7 @@ class GoogleMapsHTMLPage extends Handler
 	function process ()
 	{
 		$gmaps_key = variable_get('gmaps_key', 'No google maps key found');
-		global $BASE_URL;
+		global $CONFIG;
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -54,7 +54,7 @@ function load() {
     map.addControl(new GSmallMapControl());
     map.addControl(new GMapTypeControl());
 
-    GDownloadUrl("<?php echo $BASE_URL ?>/gmaps/allfields", function(data, responseCode) { 
+    GDownloadUrl("<?php echo $CONFIG['paths']['base_url'] ?>/gmaps/allfields", function(data, responseCode) {
 
         var bounds = new GLatLngBounds;
 

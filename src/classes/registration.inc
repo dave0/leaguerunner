@@ -140,7 +140,7 @@ class Registration extends LeaguerunnerObject
 
 function registration_query ( $array = array() )
 {
-	global $TZ_ADJUST, $dbh;
+	global $CONFIG, $dbh;
 
 	$query = array();
 	$query[] = '1 = 1';
@@ -161,7 +161,7 @@ function registration_query ( $array = array() )
 	}
 
 	// Yes, do it twice.
-	$params = array_merge( array( -$TZ_ADJUST, -$TZ_ADJUST), $params );
+	$params = array_merge( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust']), $params );
 
 	$sth = $dbh->prepare("SELECT 
 		1 as _in_database,

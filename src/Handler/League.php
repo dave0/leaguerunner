@@ -1127,14 +1127,16 @@ class LeagueApproveScores extends Handler
 
 	function process ()
 	{
-		global $TZ_ADJUST, $dbh;
+		global $CONFIG, $dbh;
 
 		$this->title = "Approve Scores";
+
+		$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
 
 		/* Fetch games in need of verification */
 		$game_sth = $dbh->prepare( "SELECT DISTINCT
 			se.game_id,
-			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($TZ_ADJUST * 60) as timestamp,
+			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($local_adjust_secs) as timestamp,
 			s.home_team,
 			h.name AS home_name,
 			s.away_team,
@@ -1375,7 +1377,7 @@ class LeagueSpirit extends Handler
 
 	function process ()
 	{
-		global $dbh, $FILE_URL;
+		global $dbh, $CONFIG;
 		$this->title = "League Spirit";
 
 		$this->setLocation(array(
@@ -1409,6 +1411,8 @@ class LeagueSpirit extends Handler
 		$num_games = 0;
 		$no_spirit_questions = 0;
 		$sotg_scores = array();
+
+		$icon_url = $CONFIG['paths']['file_url'] .  '/image/icons';
 
 		while(list(,$game) = each($games)) {
 
@@ -1490,13 +1494,13 @@ class LeagueSpirit extends Handler
 						switch( $answer_values[$answer] ) {
 							case -3:
 							case -2:
-								$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
+								$thisrow[] = "<img src='$icon_url/not_ok.png' />";
 								break;
 							case -1:
-								$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
+								$thisrow[] = "<img src='$icon_url/ok.png' />";
 								break;
 							case 0:
-								$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
+								$thisrow[] = "<img src='$icon_url/perfect.png' />";
 								break;
 							default:
 								$thisrow[] = "?";
@@ -1528,11 +1532,11 @@ class LeagueSpirit extends Handler
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
 			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
+				$thisrow[] = "<img src='$icon_url/not_ok.png' />";
 			} else if ( $avg < -0.5 ) {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
+				$thisrow[] = "<img src='$icon_url/ok.png' />";
 			} else {
-				$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
+				$thisrow[] = "<img src='$icon_url/perfect.png' />";
 			}
 		}
 		$rows[] = $thisrow;
@@ -1550,7 +1554,7 @@ class LeagueSpirit extends Handler
 	// RK 30 Apr 2008 - generate average spirit report for league
 	function generateAverages ()
 	{
-		global $dbh, $FILE_URL;
+		global $dbh, $CONFIG;
 
 		// make sure the teams are loaded
 		$this->league->load_teams();
@@ -1562,6 +1566,7 @@ class LeagueSpirit extends Handler
                 );
 		$headers_done = 0;
 		$totalteams = 0;
+		$icon_url = $CONFIG['paths']['file_url'] .  '/image/icons';
 
 		// load all point values for answers into array
 		$answer_values = array();
@@ -1673,11 +1678,11 @@ class LeagueSpirit extends Handler
 					$avg = ($answer / ($num_games - $no_spirit_questions));
 					$thesescores[] = $avg;
 					if( $avg < -1.5 ) {
-							$thisrow[] = "<img src='$FILE_URL/image/icons/not_ok.png' />";
+							$thisrow[] = "<img src='$icon_url/not_ok.png' />";
 					} else if ( $avg < -0.5 ) {
-							$thisrow[] = "<img src='$FILE_URL/image/icons/ok.png' />";
+							$thisrow[] = "<img src='$icon_url/ok.png' />";
 					} else {
-							$thisrow[] = "<img src='$FILE_URL/image/icons/perfect.png' />";
+							$thisrow[] = "<img src='$icon_url/perfect.png' />";
 					}
 				}
 			}
@@ -1831,22 +1836,6 @@ class LeagueSpiritDownload extends Handler
 						$thisrow[] = "?";
 					} else {
 						$thisrow[] = $answer_values[$answer];
-					/*
-					switch( $answer_values[$answer] ) {
-						case -3:
-						case -2:
-							$thisrow[] = "<img src='$BASE_URL/misc/x.png' />";
-							break;
-						case -1:
-							$thisrow[] = "-";
-							break;
-						case 0:
-							$thisrow[] = "<img src='$BASE_URL/misc/check.png' />";
-							break;
-						default:
-							$thisrow[] = "?";
-					}
-					*/
 					}
 				}
 				if ($still_need_header) {

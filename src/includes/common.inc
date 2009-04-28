@@ -337,10 +337,10 @@ function l($text, $query = NULL, $attributes = array())
 
 
 function url($url = NULL, $query = NULL) {
-  global $BASE_URL;
+  global $CONFIG;
   static $script;
 
-  $base_url = 'http://' . $_SERVER["HTTP_HOST"] . $BASE_URL;
+  $base_url = 'http://' . $_SERVER["HTTP_HOST"] . $CONFIG['paths']['base_url'];
   $cleanURL = variable_get('clean_url', 0);
 
   if (empty($script)) {
