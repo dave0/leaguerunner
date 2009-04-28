@@ -64,9 +64,9 @@ function global_settings()
 
 	$group .= form_textfield('Latitude', 'edit[location_latitude]', variable_get('location_latitude', ''), 10, 10, 'Latitude in decimal degrees for game location (center of city).  Used for calculating sunset times.');
 	$group .= form_textfield('Longitude', 'edit[location_longitude]', variable_get('location_longitude', ''), 10, 10, 'Longitude in decimal degrees for game location (center of city).  Used for calculating sunset times.');
-	$group .= form_textfield('Timezone offset', 'edit[tz_offset]', variable_get('tz_offset', '-4'), 10, 10, 'Timezone offset from GMT, in hours.  Used for calculating sunset times.');
 
-	$output = form_group('Organization Details', $group);
+	$output = form_group('Location Details', $group);
+
 
 	$group = form_textfield('Name of application', 'edit[app_name]', variable_get('app_name', 'Leaguerunner'), 60, 120, 'The name this application will be known as to your users.');
 
