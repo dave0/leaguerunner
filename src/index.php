@@ -21,7 +21,6 @@
  *          Mackenzie King <mackking@canada.com>
  * 
  */
-require_once("includes/compatibility.inc");
 
 /* 
  * First, read in the configuration data.
