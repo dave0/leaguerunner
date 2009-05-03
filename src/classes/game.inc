@@ -888,6 +888,7 @@ class Game extends LeaguerunnerObject
 
 		// Start with 10 spirit, subtract down
 		$spirit = 10;
+		// TODO: stupid!  Why don't we cache this?!
 		$sth = $dbh->prepare('SELECT value from multiplechoice_answers WHERE qkey = ? AND akey = ?');
 		while( list($qkey, $answer) = each($entry) ) {
 			// if any of the answers are blank, they'll all be blank, so just return -1 to indicate it
@@ -1789,40 +1790,6 @@ function assign_fields_by_preferences( $games, $teams, $datestamp ) {
 	}
 
 	return array(true, "");
-}
-
-/**
- * Generates the javascript, input textarea, and button for the SOTG suggestion
- * box.
- */
-function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
-	$use = "";
-	if ($name != null && $name != "") {
-		$use = "_" . $name;
-	}
-	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
-	$sotgjs .= "var sotg=10;\n";
-	$sotgjs .= "var form = document.getElementById('score_form');\n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "return sotg;\n";
-	$sotgjs .= "}\n";
-	$sotgjs .= "</script>\n";
-
-    return para( $sotgjs . "<div class=\"form-item\"><label>$label</label>" .
-    	"<br> <input type=\"text\" maxlength=\"2\" class=\"form-text\" name=\"edit[sotg$use]\" size=\"2\" value=\"$default\" /> ".
-		" <input type='button' name='suggest' value='Suggest' " .
-		" onclick=\"document.getElementById('score_form').elements['edit[sotg$use]'].value=sotg$use();\"></div>");
 }
 
 ?>

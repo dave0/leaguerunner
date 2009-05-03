@@ -652,11 +652,17 @@ class GameSubmit extends Handler
 	// any possible data errors.
 	function isDataInvalid ($edit, $questions = null, $incident = null, $allstars = null) {
 		$ret = $this->isScoreDataInvalid ($edit);
+		if( $edit['sotg'] ) {
+			$msg = $this->isSOTGDataInvalid ($edit);
+			if( $msg ) {
+				$ret .= $msg;
+			}
+		}
 		if ($ret === false && $questions != null) {
 			$msg = $questions->answers_invalid();
-			$msg .= $this->isSOTGDataInvalid ($edit);
-			if ($msg)
-				$ret = $msg;
+			if ($msg) {
+				$ret .= $msg;
+			}
 		}
 		if ($ret === false && $incident != null)
 			$ret = $this->isIncidentDataInvalid ($incident);
@@ -666,22 +672,12 @@ class GameSubmit extends Handler
 	}
 
 	function isSOTGDataInvalid ( $edit ) {
-		switch($edit['sotg']) {
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			case '10':
-				return false;
-			default:
-				return '<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.';
+
+		if( ! validate_numeric_sotg( $edit['sotg'] ) ) {
+			return '<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.';
 		}
+
+		return false;
 	}
 
 	function isScoreDataInvalid( $edit )
@@ -771,7 +767,7 @@ class GameSubmit extends Handler
 	{
 		global $lr_session, $dbh;
 
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $spirit );
 		} else {
@@ -783,10 +779,14 @@ class GameSubmit extends Handler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			// Save the spirit entry if non-default
 			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
 				error_exit("Error saving spirit entry for " . $this->team->team_id);
+			}
+			// If no numeric value set, create one from survey.  We may not need it, but do it for consistency's sake in the table.
+			if( ! $edit['sotg'] ) {
+				$edit['sotg'] = $this->game->get_spirit_numeric( $this->game->get_opponent_id( $this->team->team_id ) );
 			}
 		}
 
@@ -851,6 +851,7 @@ class GameSubmit extends Handler
 			// If it's a default, short-circuit the spirit-entry form and skip
 			// straight to the confirmation.  This skips incident reports and
 			// all-star nominations as well, but that's probably okay...
+			// TODO: should skip all-stars for a default, but perhaps allow incident reports.
 			return $this->generateConfirm($edit, $opponent);
 		} else {
 			// Force a non-default to display correctly
@@ -867,34 +868,48 @@ class GameSubmit extends Handler
 		}
 		$output .= $this->hidden_fields ('edit', $edit);
 
-		$output .= para("Now, you must rate your opponents using the following questions. These are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score.");
-
-		$questions = formbuilder_load('team_spirit');
-		$output .= $questions->render_editable(false);
-
-		//TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
-		// javascript to ask for comments if any of the "worst" answers are chosen...
-		$javascript = "var form = document.getElementById('score_form'); ";
-		$javascript .= "if (form.elements['team_spirit[RulesKnowledge]'][2].checked || form.elements['team_spirit[RulesKnowledge]'][3].checked || ";
-		$javascript .= "form.elements['team_spirit[Sportsmanship]'][2].checked || form.elements['team_spirit[Sportsmanship]'][3].checked || ";
-		$javascript .= "form.elements['team_spirit[Enjoyment]'][3].checked) { ";
-		$javascript .= "  if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
-		// javascript to ask for comments if the SOTG score will be 5 or less:
-		$javascript .= "if (form.elements['edit[sotg]'].value == '') { form.elements['edit[sotg]'].value = sotg(); } ";
-		$javascript .= "if (sotg() <= 5 || form.elements['edit[sotg]'].value <= 5) { if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-		$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
-
-		$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
-
-		$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
+		$output .= para("Now you must rate your opponent's Spirit of the Game.");
+		switch( $this->league->enter_sotg ) {
+			case 'numeric_only':
+				$output .= para("To do so, please enter a value from 1 to 10.");
+				$output .= para(
+					form_textfield('Opponent SOTG','edit[sotg]','',2,2)
+				);
+				$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
+				break;
+			case 'both':
+			default:
+				$output .= para("Leaguerunner will ask you a few questions.  These questions are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score, which you may modify.");
+				// Fall through
+			case 'survey_only':
+				$output .= para("Please fill out the questions below.");
+				$questions = formbuilder_load('team_spirit');
+				$output .= $questions->render_editable(false);
+				//TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
+				// javascript to ask for comments if any of the "worst" answers are chosen...
+				$javascript = "var form = document.getElementById('score_form'); ";
+				$javascript .= "if (form.elements['team_spirit[RulesKnowledge]'][2].checked || form.elements['team_spirit[RulesKnowledge]'][3].checked || ";
+				$javascript .= "form.elements['team_spirit[Sportsmanship]'][2].checked || form.elements['team_spirit[Sportsmanship]'][3].checked || ";
+				$javascript .= "form.elements['team_spirit[Enjoyment]'][3].checked) { ";
+				$javascript .= "  if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+				$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
+				// javascript to ask for comments if the SOTG score will be 5 or less:
+				$javascript .= "if (form.elements['edit[sotg]'].value == '') { form.elements['edit[sotg]'].value = sotg(); } ";
+				$javascript .= "if (sotg() <= 5 || form.elements['edit[sotg]'].value <= 5) { if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
+				$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
+				if( $this->league->enter_numeric_sotg() ) {
+					$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
+				}
+				$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
+				break;
+		}
 
 		return form($output, 'post', null, 'id="score_form"');
 	}
 
 	function generateIncidentForm ($edit, $opponent, $spirit = null )
 	{
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $spirit );
 		} else {
@@ -926,7 +941,7 @@ class GameSubmit extends Handler
 
 	function generateAllStarForm ($edit, $opponent, $spirit = null, $incident = null )
 	{
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $spirit );
 		} else {
@@ -976,7 +991,7 @@ class GameSubmit extends Handler
 
 	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null, $allstars = null )
 	{
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = formbuilder_load('team_spirit');
 			$questions->bulk_set_answers( $spirit );
 		} else {
@@ -996,12 +1011,16 @@ class GameSubmit extends Handler
 		$output .= $this->hidden_fields ('incident', $incident);
 		$output .= $this->hidden_fields ('allstars', $allstars);
 
-		if( $questions != null ) {
-			$output .= "<p>A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.</p>";
+		if( $this->league->enter_numeric_sotg() ) {
+			if( $edit['sotg'] ) {
+				$output .= "<p>A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.</p>";
+			} else {
+				$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
+			}
+		}
+		if( $this->league->enter_survey_sotg() ) {
 			$output .= para('The following answers will be tracked by your coordinator:');
 			$output .= $questions->render_viewable();
-		} else {
-			$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
 		}
 
 		if( $incident != null ) {
@@ -1199,38 +1218,15 @@ class GameEdit extends Handler
 	}
 
 	function isSOTGDataInvalid ( $edit ) {
-		switch($edit['sotg_home']) {
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			case '10':
-				break;
-			default:
-				return '<br>An invalid value was specified for HOME SOTG.  Please use a whole number between 1 and 10.';
+
+		if( ! validate_numeric_sotg( $edit['sotg_home'] ) ) {
+			return '<br>An invalid value was specified for home SOTG.  Please use a whole number between 1 and 10.';
 		}
-		switch($edit['sotg_away']) {
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			case '10':
-				break;
-			default:
-				return '<br>An invalid value was specified for AWAY SOTG.  Please use a whole number between 1 and 10.';
+
+		if( ! validate_numeric_sotg( $edit['sotg_away'] ) ) {
+			return '<br>An invalid value was specified for away SOTG.  Please use a whole number between 1 and 10.';
 		}
+
 		return false;
 	}
 
@@ -2314,6 +2310,40 @@ class GameRatings extends Handler
 		return $output . $ratings_table ;
 	}
 
+}
+
+/**
+ * Generates the javascript, input textarea, and button for the SOTG suggestion
+ * box.
+ */
+function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
+	$use = "";
+	if ($name != null && $name != "") {
+		$use = "_" . $name;
+	}
+	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
+	$sotgjs .= "var sotg=10;\n";
+	$sotgjs .= "var form = document.getElementById('score_form');\n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "return sotg;\n";
+	$sotgjs .= "}\n";
+	$sotgjs .= "</script>\n";
+
+    return para( $sotgjs . "<div class=\"form-item\"><label>$label</label>" .
+    	"<br> <input type=\"text\" maxlength=\"2\" class=\"form-text\" name=\"edit[sotg$use]\" size=\"2\" value=\"$default\" /> ".
+		" <input type='button' name='suggest' value='Suggest' " .
+		" onclick=\"document.getElementById('score_form').elements['edit[sotg$use]'].value=sotg$use();\"></div>");
 }
 
 ?>

@@ -976,6 +976,20 @@ function validate_nonblank( $string )
 	return true;
 }
 
+function validate_numeric_sotg ( $string ) {
+
+	$int = intval($string);
+	if( $int != $string ) {
+		return false;
+	}
+
+	if( $int < 0 || $int > 10) {
+		return false;
+	}
+
+	return true;
+}
+
 /*
  * Clean up a telephone number so that it's in a common format
  * Assumption: phone number has passed validate_telephone_input()
@@ -1373,6 +1387,37 @@ function calculateAverageSOTG ( $scores , $drop = false ) {
 	}
 
 	return $total / $size;
+}
+
+function full_spirit_symbol_html ( $score )
+{
+	global $CONFIG;
+	$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
+	if( $score >= 10 ) {
+		$html = "<img src='$icon_url/perfect.png' />";
+	} else if ($score >= 5 ) {
+		$html = "<img src='$icon_url/ok.png' />";
+	} else {
+		$html = "<img src='$icon_url/not_ok.png' />";
+	}
+
+	return $html;
+}
+
+function question_spirit_symbol_html ( $answer_value )
+{
+	global $CONFIG;
+	$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
+
+	if( $answer_value >= 0 ) {
+		$html = "<img src='$icon_url/perfect.png' />";
+	} else if ( $answer_value >= -1 ) {
+		$html = "<img src='$icon_url/ok.png' />";
+	} else {
+		$html = "<img src='$icon_url/not_ok.png' />";
+	}
+
+	return $html;
 }
 
 /* vim: set sw=4 ts=4 et: */

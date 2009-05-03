@@ -1574,19 +1574,33 @@ class TeamSpirit extends Handler
 			$this->team->name => "team/spirit/". $this->team->team_id,
 			$this->title => 0));
 
+		// load the league
+		$league = league_load( array('league_id' => $this->team->league_id) );
+
+		// if the person doesn't have permission to see this team's spirit, bail out
+		if( !$lr_session->has_permission('team', 'view', $this->team->team_id, 'spirit') ) {
+			error_exit("You do not have permission to view this team's spirit results");
+		}
+
+		if( $league->display_sotg == 'coordinator_only' && ! $lr_session->is_coordinator_of( $league->league_id ) ) {
+			error_exit("Spirit results are restricted to coordinator-only");
+		}
+		$display_numeric_sotg = $league->display_numeric_sotg();
+
 		/*
 		 * Grab schedule info
 		 */
 		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
 		if( !is_array($games) ) {
-			error_exit("There are no games scheduled for this team");
+			error_exit('There are no games scheduled for this team');
 		}
 
 		$header = array(
-			"ID",
-			"Date",
-			"Opponent"
+			'ID',
+			'Date',
+			'Opponent',
+			'Overall'
 		);
 
 		$rows = array();
@@ -1599,12 +1613,9 @@ class TeamSpirit extends Handler
 			$answer_values[ $ary['akey'] ] = $ary['value'];
 		}
 
-		// load the league
-		$league = league_load( array('league_id' => $this->team->league_id) );
-
 		$question_sums = array();
 		$num_games = 0;
-		$no_spirit_questions = 0;
+		$num_spirit_questions = 0;
 		$sotg_scores = array();
 		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
 
@@ -1641,10 +1652,6 @@ class TeamSpirit extends Handler
 				continue;
 			}
 
-			if( !$num_games ) {
-				$header[] = "Score";
-			}
-
 			// get_spirit_numeric looks at the SOTG answers to determine the score
 			$numeric = $game->get_spirit_numeric( $this->team->team_id );
 			// but, now we want to use the home/away assigned spirit...
@@ -1652,7 +1659,11 @@ class TeamSpirit extends Handler
 			if ($spirit == null || $spirit == "") {
 				$spirit = $numeric;
 			}
-			$thisrow[] = sprintf("%.2f",$spirit);
+			if( $display_numeric_sotg ) {
+				$thisrow[] = sprintf("%.2f",$spirit);
+			} else {
+				$thisrow[] = full_spirit_symbol_html( $spirit );
+			}
 			$score_total += $spirit;
 			$sotg_scores[] = $spirit;
 
@@ -1685,38 +1696,14 @@ class TeamSpirit extends Handler
 				}
 				if ($answer == null || $answer == "") {
 					$thisrow[] = "?";
-					$no_spirit_questions++;
+					$num_spirit_questions++;
 				} else {
-					switch( $answer_values[$answer] ) {
-						case -3:
-						case -2:
-							$thisrow[] = "<img src='$icon_url/not_ok.png' />";
-							break;
-						case -1:
-							$thisrow[] = "<img src='$icon_url/ok.png' />";
-							break;
-						case 0:
-							$thisrow[] = "<img src='$icon_url/perfect.png' />";
-							break;
-						default:
-							$thisrow[] = "?";
-					}
+					$thisrow[] = question_spirit_symbol_html( $answer_values[$answer] );
 					$question_sums[ $qkey ] += $answer_values[ $answer ];
 				}
 			}
 
 			$num_games++;
-
-			// if the person doesn't have permission to see this team's spirit, don't print this row.
-			if( !$lr_session->has_permission('team', 'view', $this->team->team_id, 'spirit') ) {
-				continue;
-			}
-
-			// if the league is not allowing spirit to be viewed, skip this row (unless this is a coordinator)
-			if ( !$lr_session->is_coordinator_of( $this->team->league_id ) && $league->see_sotg == "false" ) {
-				continue;
-			}
-
 			$rows[] = $thisrow;
 		}
 
@@ -1728,19 +1715,17 @@ class TeamSpirit extends Handler
 			"Average","-","-"
 		);
 
-		//$thisrow[] = sprintf("%.2f",$score_total / $num_games );
-		$thisrow[] = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
+		$spirit = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
+		if( $display_numeric_sotg ) {
+			$thisrow[] = sprintf("%.2f",$spirit);
+		} else {
+			$thisrow[] = full_spirit_symbol_html( $spirit );
+		}
 
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
-			$avg = ($answer / ($num_games - $no_spirit_questions));
-			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$icon_url/not_ok.png' />";
-			} else if ( $avg < -0.5 ) {
-				$thisrow[] = "<img src='$icon_url/ok.png' />";
-			} else {
-				$thisrow[] = "<img src='$icon_url/perfect.png' />";
-			}
+			$avg = ($answer / ($num_games - $num_spirit_questions));
+			$thisrow[] = question_spirit_symbol_html( $avg );
 		}
 		$thisrow[] = '';
 		$rows[] = $thisrow;

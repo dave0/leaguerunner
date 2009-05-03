@@ -320,9 +320,9 @@ class League extends LeaguerunnerObject
 
 			$sth->execute( $fields_data );
 
-			# Affecting zero rows is possible
-			if(1 < $sth->rowCount()) {
-				error_exit('Internal error: Strange number of rows affected');
+			if($sth->rowCount() < 1) {
+				$err = $sth->errorInfo();
+				error_exit("Error: database not updated: $err[2]");
 			}
 		}
 
@@ -1483,6 +1483,63 @@ class League extends LeaguerunnerObject
 		uasort($season, array($this, 'standings_sort_rating_ladder'));
 		return $season;
 	}
+
+	function enter_numeric_sotg ( ) {
+		$enter_numeric_sotg = true;
+		switch( $this->enter_sotg ) {
+			case 'survey_only':
+				$enter_numeric_sotg = false;
+				break;
+			case 'numeric_only':
+			case 'both':
+			default:
+				$enter_numeric_sotg = true;
+				break;
+		}
+
+		return $enter_numeric_sotg;
+	}
+
+	function enter_survey_sotg ( ) {
+		$enter_survey_sotg = true;
+		switch( $this->enter_sotg ) {
+			case 'numeric_only':
+				$enter_survey_sotg = false;
+				break;
+			case 'survey_only':
+			case 'both':
+			default:
+				$enter_survey_sotg = true;
+				break;
+		}
+
+		return $enter_survey_sotg;
+	}
+
+	function display_numeric_sotg ( ) {
+		global $lr_session;
+
+		$display_numeric_sotg = false;
+		switch( $this->display_sotg ) {
+			case 'symbols_only':
+				$display_numeric_sotg = $lr_session->is_coordinator_of( $this->league_id );
+				break;
+			case 'coordinator_only':
+				if( $lr_session->is_coordinator_of( $this->league_id ) ) {
+					$display_numeric_sotg = true;
+				} else {
+					$display_numeric_sotg = false;
+				}
+				break;
+			case 'all':
+			default:
+				$display_numeric_sotg = true;
+				break;
+		}
+
+		return $display_numeric_sotg;
+	}
+
 }
 
 function league_query( $array = array() )

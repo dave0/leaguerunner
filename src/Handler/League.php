@@ -383,9 +383,12 @@ class LeagueEdit extends Handler
 		$rows[] = array('Ratings - Games Before Repeat:',
 			form_select('', 'edit[games_before_repeat]', $formData['games_before_repeat'], getOptionsFromRange(0,9), 'The number of games before two teams can be scheduled to play each other again (FOR PYRAMID/RATINGS LADDER SCHEDULING ONLY).'));
 
-		$rows[] = array('Players see SOTG?', 
-			form_select('', 'edit[see_sotg]', $formData['see_sotg'], getOptionsFromEnum('league','see_sotg'), 'Allows players to see SOTG answers assigned by their opponents to their teams.'));
-		
+		$rows[] = array('How to enter SOTG?',
+			form_select('', 'edit[enter_sotg]', $formData['enter_sotg'], getOptionsFromEnum('league','enter_sotg'), 'Control SOTG entry.  "both" uses the survey and allows numeric input.  "numeric_only" turns off the survey for spirit.  "survey_only" uses only the survey questions to gather SOTG info.'));
+
+		$rows[] = array('How to display SOTG?',
+			form_select('', 'edit[display_sotg]', $formData['display_sotg'], getOptionsFromEnum('league','display_sotg'), 'Control SOTG display.  "all" shows numeric scores and survey answers to any player.  "symbols_only" shows only star, check, and X, with no numeric values attached.  "coordinator_only" restricts viewing of any per-game information to coordinators only.'));
+
 		$rows[] = array('League Coordinator Email List:', form_textfield('', 'edit[coord_list]', $formData['coord_list'], 35,200, 'An email alias for all coordinators of this league (can be a comma separated list of individual email addresses)'));
 
 		$rows[] = array('League Captain Email List:', form_textfield('', 'edit[capt_list]', $formData['capt_list'], 35,200, 'An email alias for all captains of this league'));
@@ -459,9 +462,11 @@ class LeagueEdit extends Handler
 			$rows[] = array("Ratings - Games Before Repeat:",
 				form_hidden('edit[games_before_repeat]', $edit['games_before_repeat']) . $edit['games_before_repeat']);
 		}
+		$rows[] = array("How to enter SOTG?",
+			form_hidden('edit[enter_sotg]', $edit['enter_sotg']) . $edit['enter_sotg']);
 
-		$rows[] = array("Players see SOTG?",
-			form_hidden('edit[see_sotg]', $edit['see_sotg']) . $edit['see_sotg']);
+		$rows[] = array("How to display SOTG?",
+			form_hidden('edit[display_sotg]', $edit['display_sotg']) . $edit['display_sotg']);
 
 		$rows[] = array("League Coordinator Email List:", 
 			form_hidden('edit[coord_list]', $edit['coord_list']) . $edit['coord_list']);
@@ -513,7 +518,8 @@ class LeagueEdit extends Handler
 			$this->league->set('games_before_repeat', $edit['games_before_repeat']);
 		}
 
-		$this->league->set('see_sotg', $edit['see_sotg']);
+		$this->league->set('enter_sotg', $edit['enter_sotg']);
+		$this->league->set('display_sotg', $edit['display_sotg']);
 		$this->league->set('coord_list', $edit['coord_list']);
 		$this->league->set('capt_list', $edit['capt_list']);
 		$this->league->set('excludeTeams', $edit['excludeTeams']);
@@ -794,7 +800,7 @@ class LeagueStandings extends Handler
 		// boolean for coloration of standings table
 		$colored = false;
 		$firsttimethrough = true;
-		
+
 		while(list($seed, $tid) = each($order)) {
 
 			if ($firsttimethrough) {
@@ -859,8 +865,11 @@ class LeagueStandings extends Handler
 				$row[] = array( 'data' => '-', 'class'=>"$rowstyle");
 			}
 
-			$sotg = sprintf("%.2f", calculateAverageSOTG($season[$tid]->spirit, true));
-			$row[] = array( 'data' => $sotg, 'class'=>"$rowstyle");
+
+			$avg = calculateAverageSOTG( $season[$tid]->spirit, false);
+			$row[] = array(
+				'data' => $this->league->display_numeric_sotg() ? sprintf("%.2f", $avg) : full_spirit_symbol_html( $avg ),
+				'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
 
@@ -1491,20 +1500,7 @@ class LeagueSpirit extends Handler
 						$thisrow[] = "?";
 						$no_spirit_questions++;
 					} else {
-						switch( $answer_values[$answer] ) {
-							case -3:
-							case -2:
-								$thisrow[] = "<img src='$icon_url/not_ok.png' />";
-								break;
-							case -1:
-								$thisrow[] = "<img src='$icon_url/ok.png' />";
-								break;
-							case 0:
-								$thisrow[] = "<img src='$icon_url/perfect.png' />";
-								break;
-							default:
-								$thisrow[] = "?";
-						}
+						$thisrow[] = question_spirit_symbol_html( $answer_values[ $answer ] );
 						$question_sums[ $qkey ] += $answer_values[ $answer ];
 					}
 				}
@@ -1531,13 +1527,7 @@ class LeagueSpirit extends Handler
 		reset($question_sums);
 		foreach( $question_sums as $qkey => $answer) {
 			$avg = ($answer / ($num_games - $no_spirit_questions));
-			if( $avg < -1.5 ) {
-				$thisrow[] = "<img src='$icon_url/not_ok.png' />";
-			} else if ( $avg < -0.5 ) {
-				$thisrow[] = "<img src='$icon_url/ok.png' />";
-			} else {
-				$thisrow[] = "<img src='$icon_url/perfect.png' />";
-			}
+			$thisrow[] = question_spirit_symbol_html( $avg );
 		}
 		$rows[] = $thisrow;
 
@@ -1677,13 +1667,7 @@ class LeagueSpirit extends Handler
 				foreach( $question_sums as $qkey => $answer) {
 					$avg = ($answer / ($num_games - $no_spirit_questions));
 					$thesescores[] = $avg;
-					if( $avg < -1.5 ) {
-							$thisrow[] = "<img src='$icon_url/not_ok.png' />";
-					} else if ( $avg < -0.5 ) {
-							$thisrow[] = "<img src='$icon_url/ok.png' />";
-					} else {
-							$thisrow[] = "<img src='$icon_url/perfect.png' />";
-					}
+					$thisrow[] = question_spirit_symbol_html( $avg );
 				}
 			}
 

@@ -2,6 +2,9 @@ package Leaguerunner::DBInit;
 use strict;
 use warnings;
 
+# This is the current schema value.
+# It should be increased after a release version (or major deployment from SVN
+# by one of the major contributors).
 my $LATEST_SCHEMA = 19;
 
 my @TABLES = (
@@ -99,7 +102,7 @@ my @TABLES = (
 			schedule_type       ENUM('none','roundrobin','ratings_ladder', 'ratings_wager_ladder') default 'roundrobin',
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
-			see_sotg            ENUM('true','false') default 'true',
+			display_sotg        ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all',
 			allstars            ENUM('true','false') default 'false',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
@@ -1348,6 +1351,19 @@ sub upgrade_18_to_19
 		unpublished_games => [q{
 			ALTER TABLE schedule
 				ADD COLUMN published BOOL default true
+		}],
+
+		# see_sotg now allows other values
+		fix_sotg => [q{
+			ALTER TABLE league
+				ADD COLUMN display_sotg ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all' AFTER see_sotg,
+				ADD COLUMN enter_sotg ENUM('both', 'numeric_only', 'survey_only') DEFAULT 'both' AFTER display_sotg
+		},
+		q{
+			UPDATE league SET display_sotg = 'coordinator_only' WHERE NOT see_sotg
+		}
+		q{
+			ALTER TABLE league DROP COLUMN see_sotg
 		}],
 	]);
 }
