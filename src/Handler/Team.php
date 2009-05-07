@@ -1019,6 +1019,9 @@ class TeamRosterStatus extends Handler
 	function generatePastRosterForm ( $edit )
 	{
 		$old_team = team_load( array('team_id' => $edit['team']) );
+		if (! $old_team) {
+			return error_exit('That team does not exist. Please select a valid team from the list.');
+		}
 		$old_team->get_roster();
 		$this->team->get_roster();
 
@@ -1141,7 +1144,7 @@ class TeamRosterStatus extends Handler
 	}
 
 	function sendInvitation ($status, $player) {
-		global $lr_session;
+		global $lr_session, $dbh;
 
 		if( variable_get( 'generate_roster_email', 0 ) ) {
 			if( $status == 'captain_request') {

@@ -435,7 +435,6 @@ class EventList extends Handler
 	function process ()
 	{
 		global $lr_session, $CONFIG;
-		$file_path = $CONFIG['paths']['file_url'];
 
 		$links = $lr_session->has_permission('event','view');
 
@@ -444,7 +443,7 @@ class EventList extends Handler
 
 		$output = '';
 		ob_start();
-		$retval = @readfile("$file_path/data/registration_notice.html");
+		$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}
@@ -717,6 +716,9 @@ class EventView extends Handler
 		// Make sure the user is allowed to register for anything!
 		if( ! $lr_session->user->is_active() ) {
 			return para('You may not register for an event until your account is activated');
+		}
+		if( ! $lr_session->user->is_player() ) {
+			return para('Your account is marked as a non-player account. Only players are allowed to register. Please ' . l('edit your account', "person/edit/{$lr_session->user->user_id}") . ' to enable this.');
 		}
 
 		$where  = '';

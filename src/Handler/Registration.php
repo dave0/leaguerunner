@@ -531,7 +531,6 @@ class RegistrationRegister extends RegistrationForm
 	function generateForm ()
 	{
 		global $CONFIG;
-		$FILE_PATH = trim ($CONFIG['paths']['file_url'], '/');
 
 		$this->title = 'Preferences';
 
@@ -542,7 +541,7 @@ class RegistrationRegister extends RegistrationForm
 		}
 
 		ob_start();
-		$retval = @readfile("$FILE_PATH/data/registration_notice.html");
+		$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}

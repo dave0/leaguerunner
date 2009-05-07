@@ -40,7 +40,7 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 {
 	$public_data = array();
 	$member_data = array( 'site_instructions' );
-	
+
 	switch( $action )
 	{
 		case 'create':
@@ -207,7 +207,7 @@ class FieldEdit extends Handler
 
 		if( ! $data['parent_fid'] )  {
 
-			$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 35, "Name of field (do not append number)");
+			$output .= form_textfield("Field Name", 'edit[name]', $data['name'], 35, 255, "Name of field (do not append number)");
 
 			$output .= form_textfield("Field Code", 'edit[code]', $data['code'], 3, 3, "Three-letter abbreviation for field site");
 
@@ -412,7 +412,7 @@ class FieldList extends Handler
 			$this->setLocation(array('List Fields' => 'field/list'));
 
 			ob_start();
-			$retval = @readfile($CONFIG['paths']['file_url']. "/data/field_caution.html");
+			$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/field_caution.html");
 			if (false !== $retval) {
 				$output .= ob_get_contents();
 			}
@@ -558,7 +558,9 @@ class FieldView extends Handler
 			}
 		}
 
-		$rows[] = array("Other fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
+		if( !empty( $fieldRows ) ) {
+			$rows[] = array("Other fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
+		}
 
 		$this->setLocation(array(
 			$this->field->fullname => "field/view/" .$this->field->fid,
@@ -625,7 +627,7 @@ class FieldBooking extends Handler
 					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
 				}
 			}
-			$rows[] = array($slot->game_date, $slot->game_start, $slot->display_game_end(), $booking, theme_links($actions));
+			$rows[] = array($slot->game_date, $slot->game_start, $game->display_game_end(), $booking, theme_links($actions));
 		}
 
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";

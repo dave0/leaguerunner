@@ -1013,7 +1013,7 @@ class GameSubmit extends Handler
 
 		if( $this->league->enter_numeric_sotg() ) {
 			if( $edit['sotg'] ) {
-				$output .= "<p>A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.</p>";
+				$output .= para("A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.");
 			} else {
 				$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
 			}
@@ -1202,7 +1202,7 @@ ENDSCRIPT;
 
 	function incident_types()
 	{
-		$types = array('Field condition', 'Injury', 'Rules disagreement', 'Escalated incident', 'Other');
+		$types = array('Field condition', 'Injury', 'Rules disagreement', 'Illegal Substitution', 'Escalated incident', 'Other');
 		return array_merge(array('' => 'Select one:'), array_combine ($types, $types));
 	}
 }

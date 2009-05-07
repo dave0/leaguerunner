@@ -111,7 +111,6 @@ if(isset($mod) && module_hook($mod, 'dispatch')) {
 
 if(is_null($handler)) {
 	error_exit("No handler exists for that operation in $mod");
-	return;
 }
 
 /* 
@@ -135,7 +134,8 @@ if($handler->initialize()) {
 			error_exit("Uncaught failure in $mod, performing " . arg(1));
 		}
 		header('Cache-control: max-age=600');
-		print theme_header($handler->title, $handler->breadcrumbs);
+		print theme_header($handler->title);
+		print theme_body($handler->breadcrumbs);
 		print "<h1>$handler->title</h1>";
 		print $result;
 		print theme_footer();
@@ -154,6 +154,7 @@ function error_exit($error = NULL)
 	$error = $error ? $error : "An unknown error has occurred.";
 
 	print theme_header($title);
+	print theme_body();
 	print "<h1>$title</h1>";
 	print theme_error( $error );
 	print theme_footer();

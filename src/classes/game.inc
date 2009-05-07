@@ -81,7 +81,7 @@ class Game extends LeaguerunnerObject
 			$lat      = variable_get('location_latitude', 45.42102);
 			$long     = variable_get('location_longitude', -75.69525);
 
-			$end_timestamp = date_sunset( $this->timestamp, SUNFUNCS_RET_TIMESTAMP, $lat, $long, $zenith, date('Z'));
+			$end_timestamp = date_sunset( $this->timestamp, SUNFUNCS_RET_TIMESTAMP, $lat, $long, $zenith, date('Z') / 3600);
 
 			# Round down to nearest 5 minutes
 			$end_timestamp = floor( $end_timestamp / 300 ) * 300;

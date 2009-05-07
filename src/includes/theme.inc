@@ -4,7 +4,7 @@
  * Look and feel for Leaguerunner 
  */
 
-function theme_header($title = "", $breadcrumbs = array())
+function theme_header($title = "", $extra = null)
 {
 	global $lr_session, $CONFIG;
 
@@ -15,18 +15,29 @@ function theme_header($title = "", $breadcrumbs = array())
 	} else {
 		$title = $app_name;
 	}
-?>
-<!-- start header -->
+
+	print <<<END_OF_HEADER
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-  <head>
-    <title><?php print $title ?></title>
-    <base href="<?php print 'http://' . $_SERVER["HTTP_HOST"] . $CONFIG['paths']['file_url'] ?>/" />
-    <link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
-    <link rel="stylesheet" type="text/css" href="style.css" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-  </head>
-  <body>
+<head>
+	<title>$title</title>
+	<base href="http://{$_SERVER["HTTP_HOST"]}{$CONFIG['paths']['file_url']}/" />
+	<link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
+	<link rel="stylesheet" type="text/css" href="style.css" />
+	<link rel="shortcut icon" href="/favicon.ico" />
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+$extra
+</head>
+
+END_OF_HEADER;
+}
+
+function theme_body($breadcrumbs = array())
+{
+	global $lr_session;
+
+	print <<<END_OF_BODY
+<body>
 <table id="primary-menu" border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr valign="bottom">
     <td rowspan="2" width="401" valign="bottom"><a href="/"><img src="/themes/ocua_2004/ocua-logo-top-half.png" width="399" height="37" border="0" alt="Ottawa-Carleton Ultimate Association"></a></td>
@@ -54,9 +65,10 @@ function theme_header($title = "", $breadcrumbs = array())
 	<td class="secondary-links" background="/themes/ocua_2004/menu-background.png" width="1" align="right" height="22"><img src="/themes/ocua_2004/rt_edge.png" width="1" height="22" border="0" alt="]"></td>
 	</tr>
 </table>
-<?php
+
+END_OF_BODY;
+
 	print theme_navbar($breadcrumbs);
-	print "\n<!-- end header -->\n";
 	print "<table width='100%'><tr>";
 	if ($lr_session->is_valid()) {
 		print "<td id='sidebar-left' width='160'><div class='menu'>" . menu_render('_root') . "</div></td>";
@@ -71,7 +83,6 @@ function theme_navbar($breadcrumbs = array())
 {
 	global $lr_session, $CONFIG;
 
-	print "\n<!-- start navbar -->\n";
     print "<div class='lr_topbar'><table border='0' cellpadding='0' cellspacing='0' width='99%' bgcolor='white'>\n";
 	$rightLink = l("help", "{$CONFIG['paths']['file_url']}/data/howto.html", array( 'class' => 'topbarlink' ));
 
@@ -95,7 +106,6 @@ function theme_navbar($breadcrumbs = array())
 	print "</tr>";
 	print "</table>";
 	print "</div>\n";
-	print "\n<!-- end navbar -->\n";
 }
 
 function theme_error( $message ) 
@@ -113,13 +123,11 @@ function theme_footer()
 ?>
 </div>
 </td></tr></table>
-<!-- start footer -->
 <p />
 <hr noshade="noshade" />
 <i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner</a>, version 2.6</i>
 </body>
 </html>
-<!-- end footer -->
 <?php
 }
 

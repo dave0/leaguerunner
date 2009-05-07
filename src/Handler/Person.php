@@ -115,7 +115,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			}
 			break;
 		case 'view':
-			if( ! $user->is_active() ) {
+			if( ! ($user && $user->is_active()) ) {
 				return false;
 			}
 			if( is_numeric( $arg1 )) {
@@ -202,7 +202,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			break;
 		case 'list':
 		case 'search':
-			if( ! $user->is_active() ) {
+			if( ! ($user && $user->is_active()) ) {
 				return false;
 			}
 			return($user->class != 'visitor');
@@ -1212,7 +1212,8 @@ END_TEXT;
 			 * will get logged out, so we need to warn them of this fact.
 			 */
 			if($status_changed) {
-			   print theme_header("Edit Account", $this->breadcrumbs);
+			   print theme_header("Edit Account");
+			   print theme_body($this->breadcrumbs);
 		       print "<h1>Edit Account</h1>";
 			   print para(
 				"You have requested to change your account status to 'Player'.  As such, your account is now being held for one of the administrators to approve.  "
@@ -1544,7 +1545,7 @@ class PersonSignWaiver extends Handler
 		$output .= form_hidden('edit[step]', 'perform');
 
 		ob_start();
-		$retval = @readfile( $CONFIG['paths']['file_url'] . "/data/{$this->formFile}");
+		$retval = @readfile( trim($CONFIG['paths']['file_url'], '/') . "/data/{$this->formFile}");
 		if (false !== $retval) {
 			$output .= ob_get_contents();
 		}
