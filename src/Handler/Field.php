@@ -38,7 +38,7 @@ function field_dispatch()
 
 function field_permissions ( &$user, $action, $fid, $data_field )
 {
-	$public_data = array();
+	$public_data = array( 'public_instructions' );
 	$member_data = array( 'site_instructions' );
 
 	switch( $action )
@@ -110,6 +110,7 @@ function field_add_to_menu( &$field )
 
 	if($lr_session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
+		menu_add_child($field->fullname, "$field->fullname/layout",'edit layout', array('weight' => 1, 'link' => "gmaps/edit/$field->fid"));
 	} 
 
 	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
@@ -218,8 +219,6 @@ class FieldEdit extends Handler
 			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city');
 
 			$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
-			$output .= form_textfield("Latitude", 'edit[latitude]', $data['latitude'], 12,12, "Latitude of field site");
-			$output .= form_textfield("Longitude", 'edit[longitude]', $data['longitude'], 12,12, "Longitude of field site");
 
 			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
@@ -235,7 +234,9 @@ class FieldEdit extends Handler
 
 			$output .= form_textarea("Public Washrooms", 'edit[washrooms]', $data['washrooms'], 60, 5, "");
 
-			$output .= form_textarea("Special Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Specific instructions for this site that don't fit any other category.");
+			$output .= form_textarea("Special Instructions", 'edit[public_instructions]', $data['public_instructions'], 60, 5, "Specific instructions for this site that don't fit any other category.");
+
+			$output .= form_textarea("Private Instructions", 'edit[site_instructions]', $data['site_instructions'], 60, 5, "Instructions for this site that should be shown only to logged-in members.");
 
 			$output .= form_textarea("Sponsorship", 'edit[sponsor]', $data['sponsor'], 60, 5, "");
 		}
@@ -275,8 +276,6 @@ class FieldEdit extends Handler
 			$rows[] = array( "Street:", form_hidden('edit[location_street]', $edit['location_street']) . check_form($edit['location_street']));
 			$rows[] = array( "City:", form_hidden('edit[location_city]', $edit['location_city']) . check_form($edit['location_city']));
 			$rows[] = array( "Province:", form_hidden('edit[location_province]', $edit['location_province']) . check_form($edit['location_province']));
-			$rows[] = array( "Latitude:", form_hidden('edit[latitude]', $edit['latitude']) . check_form($edit['latitude']));
-			$rows[] = array( "Longitude:", form_hidden('edit[longitude]', $edit['longitude']) . check_form($edit['longitude']));
 
 			$rows[] = array( "Location&nbsp;Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout&nbsp;Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
@@ -285,7 +284,8 @@ class FieldEdit extends Handler
 			$rows[] = array( "Transit Directions:", form_hidden('edit[transit_directions]', $edit['transit_directions']) . check_form($edit['transit_directions']));
 			$rows[] = array( "Biking Directions:", form_hidden('edit[biking_directions]', $edit['biking_directions']) . check_form($edit['biking_directions']));
 			$rows[] = array( "Public Washrooms:", form_hidden('edit[washrooms]', $edit['washrooms']) . check_form($edit['washrooms']));
-			$rows[] = array( "Special Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
+			$rows[] = array( "Special Instructions:", form_hidden('edit[public_instructions]', $edit['public_instructions']) . check_form($edit['public_instructions']));
+			$rows[] = array( "Private Instructions:", form_hidden('edit[site_instructions]', $edit['site_instructions']) . check_form($edit['site_instructions']));
 			$rows[] = array( "Sponsorship:", form_hidden('edit[sponsor]', $edit['sponsor']) . check_form($edit['sponsor']));
 		}
 
@@ -318,8 +318,6 @@ class FieldEdit extends Handler
 			$field->set('location_street', $edit['location_street']);
 			$field->set('location_city', $edit['location_city']);
 			$field->set('location_province', $edit['location_province']);
-			$field->set('latitude', $edit['latitude']);
-			$field->set('longitude', $edit['longitude']);
 
 			$field->set('region', $edit['region']);
 			$field->set('location_url', $edit['location_url']);
@@ -329,6 +327,7 @@ class FieldEdit extends Handler
 			$field->set('biking_directions', $edit['biking_directions']);
 			$field->set('parking_details', $edit['parking_details']);
 			$field->set('washrooms', $edit['washrooms']);
+			$field->set('public_instructions', $edit['public_instructions']);
 			$field->set('site_instructions', $edit['site_instructions']);
 			$field->set('sponsor', $edit['sponsor']);
 		}
@@ -478,7 +477,7 @@ class FieldView extends Handler
 
 	function process ()
 	{
-		global $lr_session, $dbh;
+		global $lr_session;
 		$this->title= "View Field";
 
 		$rows = array();
@@ -502,17 +501,21 @@ class FieldView extends Handler
 					''));
 		}
 
-		if( $this->field->latitude && $this->field->longitude) {
-			$rows[] = array("Latitude:",  $this->field->latitude);
-			$rows[] = array("Longitude:",  $this->field->longitude);
+		$mapurl = null;
+		if ($this->field->length) {
+			$mapurl = "gmaps/view/{$this->field->fid}";
+		} else if ($this->field->location_url) {
+			// Useful during transition period from old maps to new
+			$mapurl = $this->field->location_url;
 		}
-
-		$rows[] = array("Map:", 
-			$this->field->location_url ? l("Click for map in new window", $this->field->location_url, array('target' => '_new'))
+		$rows[] = array("Map:",
+			$mapurl ? l("Click for map in new window", $mapurl, array('target' => '_new'))
 				: "N/A");
-		$rows[] = array("Layout:", 
-			$this->field->layout_url ? l("Click for field layout diagram in new window", $this->field->layout_url, array('target' => '_new'))
-				: "N/A");
+		if ($this->field->layout_url) {
+			$rows[] = array("Layout:",
+				l("Click for field layout diagram in new window", $this->field->layout_url, array('target' => '_new'))
+			);
+		}
 
 		if( $this->field->permit_url ) {
 			$rows[] = array("Field&nbsp;Permit:", $this->field->permit_url);
@@ -530,22 +533,19 @@ class FieldView extends Handler
 		if( $this->field->washrooms ) {
 			$rows[] = array('Public Washrooms:', "<div class='washrooms'>{$this->field->washrooms}</div>");
 		}
+		if( $this->field->public_instructions ) {
+			$rows[] = array("Special Instructions:", $this->field->public_instructions);
+		}
 		if( $this->field->site_instructions ) {
 			if( $lr_session->has_permission('field','view', $this->field->fid, 'site_instructions') ) {
-				$rows[] = array("Special Instructions:", $this->field->site_instructions);
+				$rows[] = array("Private Instructions:", $this->field->site_instructions);
 			} else {
-				$rows[] = array("Special Instructions:", "You must be logged in to see the special instructions for this site.");
+				$rows[] = array("Private Instructions:", "You must be logged in to see the private instructions for this site.");
 			}
 		}
 
 		// list other fields at this site
-		$sth = $dbh->prepare('SELECT * FROM field WHERE parent_fid = :fid OR fid = :fid ORDER BY num');
-		if( $this->field->parent_fid ) {
-			$sth->execute(array( 'fid' => $this->field->parent_fid ) );
-		} else {
-			$sth->execute(array( 'fid' => $this->field->fid ) );
-		}
-
+		$sth = $this->field->find_others_at_site();
 		$fieldRows = array();
 		$header = array("Fields","&nbsp;");
 		while( $related = $sth->fetch(PDO::FETCH_OBJ)) {

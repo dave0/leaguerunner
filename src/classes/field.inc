@@ -1,7 +1,7 @@
 <?php
 class Field extends LeaguerunnerObject
 {
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
 		// If we have a parent, override the overridables.
 		if( $this->parent_fid ) {
@@ -9,23 +9,27 @@ class Field extends LeaguerunnerObject
 			$this->name = $parent->name;
 			$this->code = $parent->code;
 			$this->region = $parent->region;
-			
+
 			$this->location_street = $parent->location_street;
 			$this->location_city = $parent->location_city;
 			$this->location_province = $parent->location_province;
-			$this->latitude = $parent->latitude;
-			$this->longitude = $parent->longitude;
 
 			$this->driving_directions = $parent->driving_directions;
 			$this->transit_directions = $parent->transit_directions;
 			$this->biking_directions = $parent->biking_directions;
 			$this->parking_details = $parent->parking_details;
 			$this->washrooms = $parent->washrooms;
+			$this->public_instructions = $parent->public_instructions;
 			$this->site_instructions = $parent->site_instructions;
 			$this->sponsor = $parent->sponsor;
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
+
+			// Fields may have their own parking details, or inherit from the parent
+			if (! $this->parking ) {
+				$this->parking = $parent->parking;
+			}
 		}
 
 		if( $load_mode == LOAD_OBJECT_ONLY ) {
@@ -51,10 +55,10 @@ class Field extends LeaguerunnerObject
 			# If no rating, mark as unknown
 			$this->rating = '?';
 		}
-		
+
 		return true;
 	}
-	
+
 	function save ()
 	{
 		global $dbh;
@@ -88,7 +92,7 @@ class Field extends LeaguerunnerObject
 		}
 
 		$sql = "UPDATE field SET ";
-		$sql .= join(", ", $fields);	
+		$sql .= join(", ", $fields);
 		$sql .= " WHERE fid = ?";
 
 		$fields_data[] = $this->fid;
@@ -99,7 +103,7 @@ class Field extends LeaguerunnerObject
 			# Affecting zero rows is possible
 			error_exit("Internal error: Strange number of rows affected");
 		}
-		
+
 		unset($this->_modified_fields);
 		return true;
 	}
@@ -136,8 +140,21 @@ class Field extends LeaguerunnerObject
 		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM field');
 		$sth->execute();
 		$this->fid = $sth->fetchColumn();
-		
+
 		return true;
+	}
+
+	function find_others_at_site ()
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare('SELECT * FROM field WHERE parent_fid = :fid OR fid = :fid ORDER BY num');
+		if( $this->parent_fid ) {
+			$sth->execute(array( 'fid' => $this->parent_fid ) );
+		} else {
+			$sth->execute(array( 'fid' => $this->fid ) );
+		}
+		return $sth;
 	}
 }
 
@@ -163,7 +180,7 @@ function field_query ( $array = array() )
 		}
 	}
 
-	$sth = $dbh->prepare("SELECT 
+	$sth = $dbh->prepare("SELECT
 		f.*,
 		1 AS _in_database,
 		CONCAT_WS(' ',f.name,f.num) as fullname

@@ -239,29 +239,35 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE field (
-			fid               integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
-			num               tinyint,
-			status            enum('open','closed'),
-			rating            varchar(16),
-			notes             text,
-			parent_fid        integer,
-			name              varchar(255),
-			code              char(3),
-			location_street   varchar(50),
-			location_city     varchar(50),
-			location_province varchar(50),
-			latitude          double,
-			longitude         double,
-			region            enum('Central','East','South','West'),
-			driving_directions text,
-			parking_details    text,
-			transit_directions text,
-			biking_directions  text,
-			washrooms          text,
-			site_instructions  text,
-			sponsor            text,
-			location_url       varchar(255),
-			layout_url         varchar(255)
+			fid                 integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
+			num                 tinyint,
+			status              enum('open','closed'),
+			rating              varchar(16),
+			notes               text,
+			parent_fid          integer,
+			name                varchar(255),
+			code                char(3),
+			location_street     varchar(50),
+			location_city       varchar(50),
+			location_province   varchar(50),
+			latitude            double,
+			longitude           double,
+			angle               integer NOT NULL,
+			length              integer NOT NULL,
+			width               integer NOT NULL,
+			zoom                integer NOT NULL,
+			parking             text,
+			region              enum('Central','East','South','West'),
+			driving_directions  text,
+			parking_details     text,
+			transit_directions  text,
+			biking_directions   text,
+			washrooms           text,
+			public_instructions text,
+			site_instructions   text,
+			sponsor             text,
+			location_url        varchar(255),
+			layout_url          varchar(255)
 		);
 	}],
 
@@ -1364,6 +1370,22 @@ sub upgrade_18_to_19
 		}
 		q{
 			ALTER TABLE league DROP COLUMN see_sotg
+		}],
+
+		# Add field layout columns
+		field_layout => [q{
+			ALTER TABLE `field`
+				ADD `angle` INT NOT NULL AFTER `longitude`,
+				ADD `length` INT NOT NULL AFTER `angle`,
+				ADD `width` INT NOT NULL AFTER `length`,
+				ADD `zoom` INT NOT NULL AFTER `width`,
+				ADD `parking` TEXT AFTER `zoom`
+		}],
+
+		# Add public site instructions column
+		public_instructions => [q{
+			ALTER TABLE `field`
+				ADD `public_instructions` TEXT AFTER `washrooms`
 		}],
 	]);
 }
