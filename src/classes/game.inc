@@ -66,26 +66,7 @@ class Game extends LeaguerunnerObject
 
 		# Otherwise, guess based on date
 		if( $this->timestamp ) {
-
-			/*
-			 * value of 90 degrees 50 minutes is the angle at which
-			 * the sun is below the horizon.  This is the official
-			 * sunset time.  Do not use "civil twilight" zenith
-			 * value of 96 degrees. It's normally about 30 minutes
-			 * later in the evening than official sunset, and there
-			 * is some light until then, but it's too dark for safe
-			 * play.
-			 */
-			$zenith = 90 + (50/60);
-
-			$lat      = variable_get('location_latitude', 45.42102);
-			$long     = variable_get('location_longitude', -75.69525);
-
-			$end_timestamp = date_sunset( $this->timestamp, SUNFUNCS_RET_TIMESTAMP, $lat, $long, $zenith, date('Z') / 3600);
-
-			# Round down to nearest 5 minutes
-			$end_timestamp = floor( $end_timestamp / 300 ) * 300;
-			return strftime('%H:%M', $end_timestamp);
+			return local_sunset_for_date( $this->timestamp );
 		}
 
 		return '';

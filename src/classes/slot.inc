@@ -27,11 +27,11 @@ class GameSlot extends LeaguerunnerObject
 			$object->league_id = $thing;
 			$thing = &$object;
 		}
-	
+
 		if( array_key_exists( $thing->league_id, $this->leagues) ) {
 			return false;
 		}
-		
+
 		$this->leagues[$thing->league_id] = $thing;
 		$this->leagues[$thing->league_id]->league_status = 'add';
 	}
@@ -47,7 +47,7 @@ class GameSlot extends LeaguerunnerObject
 		}
 		return false;
 	}
-	
+
 	function save ()
 	{
 		global $dbh;
@@ -121,11 +121,11 @@ class GameSlot extends LeaguerunnerObject
 		if ( ! $this->fid ) {
 			return false;
 		}
-		
+
 		if ( ! $this->game_date ) {
 			return false;
 		}
-		
+
 		if ( ! $this->game_start ) {
 			return false;
 		}
@@ -159,6 +159,26 @@ class GameSlot extends LeaguerunnerObject
 		);
 
 		return $this->generic_delete( $queries, $this->slot_id );
+	}
+
+	/**
+	 * Game end time, for display purposes.
+	 *
+	 * If one is provided for this game, we use it.  Otherwise, we calculate based on sunset time.
+	 */
+	function display_game_end()
+	{
+		# Return our end time, if available
+		if( $this->game_end ) {
+			return $this->game_end;
+		}
+
+		# Otherwise, guess based on date
+		if( $this->date_timestamp ) {
+			return local_sunset_for_date( $this->date_timestamp );
+		}
+
+		return '';
 	}
 }
 
