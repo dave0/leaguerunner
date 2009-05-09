@@ -36,7 +36,7 @@ function theme_body($breadcrumbs = array())
 {
 	global $lr_session;
 
-	print <<<END_OF_BODY
+	print <<<END_1
 <body>
 <table id="primary-menu" border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr valign="bottom">
@@ -45,14 +45,14 @@ function theme_body($breadcrumbs = array())
 </tr>
 <tr>
    <td class="primary links" align="right" valign="bottom">
-   <?php
+END_1;
 	if($lr_session->is_valid()) {
 		print "You are logged in as <b>" . $lr_session->attr_get("fullname") . "</b> | ";
 		print l('Log Out', 'logout');
 	} else {
 		print l('Log In', 'login');
 	}
-  ?>
+print <<<END_2
    </td>
 </tr>
 </table>
@@ -66,7 +66,7 @@ function theme_body($breadcrumbs = array())
 	</tr>
 </table>
 
-END_OF_BODY;
+END_2;
 
 	print theme_navbar($breadcrumbs);
 	print "<table width='100%'><tr>";
