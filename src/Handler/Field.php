@@ -611,7 +611,7 @@ class FieldBooking extends Handler
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
 		$rows = array();
-		while($slot = $sth->fetch(PDO::FETCH_OBJ) ) {
+		while($slot = $sth->fetchObject('GameSlot') ) {
 			$booking = '';
 			$actions = array();
 			if( $lr_session->has_permission('gameslot','edit', $slot->slot_id)) {
@@ -627,7 +627,7 @@ class FieldBooking extends Handler
 					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
 				}
 			}
-			$rows[] = array($slot->game_date, $slot->game_start, $game->display_game_end(), $booking, theme_links($actions));
+			$rows[] = array($slot->game_date, $slot->game_start, $slot->display_game_end(), $booking, theme_links($actions));
 		}
 
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";
