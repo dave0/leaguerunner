@@ -22,7 +22,7 @@ function center_by_address(point)
 {
 	if (!point) {
 		point = new GLatLng(leaguelat, leaguelng);
-		alert('Address not found.');
+		alert('Please set default lat/long under "global settings".');
 	}
 	map.setCenter(point, zoom - 2, G_HYBRID_MAP);
 	createMarker(point, true);
