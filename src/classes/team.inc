@@ -12,6 +12,7 @@ class Team extends LeaguerunnerObject
 	var $league_name;
 	var $league_tier;
 	var $roster;
+	var $preferred_ratio;
 
 	function __construct( $array = array() ) 
 	{
@@ -35,6 +36,7 @@ class Team extends LeaguerunnerObject
 		$this->_player_count = null;
 		$this->home_games = -1;
 		$this->away_games = -1;
+		$this->preferred_ratio = -1;
 
 		return true;
 	}
@@ -309,28 +311,94 @@ class Team extends LeaguerunnerObject
 
 
 	/**
-	 * Home/away ratio.
-	 * If > 1, team has more home games.  if < 1, team has more away games
+	 * Home/away ratio
+	 *
+	 * Returns ratio (between 0 and 1) of games for which this team was the
+	 * home team.
 	 */
 	function home_away_ratio()
 	{
 		global $dbh;
 
-		if( $this->home_games == -1 ) {
-			$sth = $dbh->prepare('SELECT count(*) FROM schedule WHERE home_team = ?');
-			$sth->execute( array( $this->team_id ) );
-			$this->home_games = $sth->fetchColumn();
+		if( $this->home_games < 0 || $this->away_games < 0 ) {
+			$sth = $dbh->prepare('SELECT home_team = ? AS is_home, count(*) AS num_games FROM schedule WHERE home_team = ? or away_team = ? GROUP BY is_home ORDER BY is_home');
+			// Grr... if we were using a better database, we could pass one
+			// parameter and use it multiple times.  Alas, mysql doesn't
+			// allow this, so we have to pass team_id three times.
+			$sth->execute( array($this->team_id, $this->team_id, $this->team_id) );
+			while($row = $sth->fetch( PDO::FETCH_ASSOC ) ) {
+				if($row['is_home']) {
+					$this->home_games = $row['num_games'];
+				} else {
+					$this->away_games = $row['num_games'];
+				}
+			}
 
-			$sth = $dbh->prepare('SELECT count(*) FROM schedule WHERE away_team = ?');
-			$sth->execute( array( $this->team_id ) );
-			$this->away_games = $sth->fetchColumn();
+			// Make sure we have a value >= 0 for each, so we don't hit the db again
+			$this->home_games = ($this->home_games < 0 ? 0 : $this->home_games);
+			$this->away_games = ($this->away_games < 0 ? 0 : $this->away_games);
 		}
 
-		# avoid divide-by-zero
-		if( $this->away_games == 0) {
-			return 2;
+		if( $this->home_games + $this->away_games < 1 ) {
+			# Avoid divide-by-zero
+			return 0;
 		}
-		return ($this->home_games / $this->away_games);
+
+		return( $this->home_games / ($this->home_games + $this->away_games) );
+	}
+
+	function preferred_field_ratio()
+	{
+		global $dbh;
+
+		if( $this->preferred_ratio >= 0 ) {
+			return $this->preferred_ratio;
+		}
+
+		if( is_null($this->region_preference) || $home_team->region_preference == '---' ) {
+			// No preference means they're always happy
+			$this->preferred_ratio = 1;
+			return ($this->preferred_ratio);
+		}
+
+		// It's not the most evil SQL hack in Leaguerunner, but it's
+		// probably a runner-up.  The idea is to get a count of the
+		// games played in the preferred region and a count played
+		// outside.
+		// TODO: Currently, it's assumed that if a team has a home
+		// field, they also have a region preference for the region
+		// containing the home field, but this may not always be the
+		// case.  Accounting for this is likely to be a pain in the
+		// ass.
+		$sth = $dbh->prepare(
+			'SELECT IF(isnull(f.region), p.region, f.region) = t.region_preference AS is_preferred, COUNT(*) AS num_games
+				FROM schedule s
+				LEFT JOIN gameslot g USING (game_id)
+				LEFT JOIN field f USING (fid)
+				LEFT JOIN field p ON (f.parent_fid = p.fid),
+				team t
+				WHERE (s.home_team = t.team_id OR s.away_team = t.team_id)
+				AND t.team_id = ? GROUP BY is_preferred');
+		$sth->execute( array( $this->team_id) );
+
+		$preferred     = 0;
+		$not_preferred = 0;
+		while($row = $sth->fetch( PDO::FETCH_ASSOC ) ) {
+			if($row['is_preferred']) {
+				$preferred = $row['num_games'];
+			} else {
+				$not_preferred = $row['num_games'];
+			}
+		}
+
+		if( $preferred + $not_preferred < 1 ) {
+			# Avoid divide-by-zero
+			return 0;
+		}
+
+
+		$this->preferred_ratio = $preferred / ($preferred + $not_preferred);
+		return ($this->preferred_ratio);
 	}
 
 	/**
@@ -402,6 +470,20 @@ class Team extends LeaguerunnerObject
 		}
 
 		return true;
+	}
+
+	/**
+	 * Compare two teams by their home field ratio
+	 */
+	static function cmp_home_field_ratio ( $a, $b )
+	{
+		$a_ratio = $a->preferred_field_ratio();
+		$b_ratio = $b->preferred_field_ratio();
+		if( $a_ratio == $b_ratio ) {
+			return 0;
+		}
+
+		return ($a_ratio > $b_ratio) ? 1 : -1;
 	}
 }
 

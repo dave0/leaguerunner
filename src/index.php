@@ -29,7 +29,7 @@ if( ! $CONFIG ) {
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
-//error_reporting(E_ALL & ~E_NOTICE);
+error_reporting(E_ALL & ~E_NOTICE);
 
 
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
