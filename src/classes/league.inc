@@ -1081,59 +1081,6 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
-	 * Takes two matched arrays (team 1 and team 2) and a datestamp.  From
-	 * this:
-	 * 	- iterate over all pairs of teams, in random order, and add
-	 * 	  them, taking home/away balancing into account
-	 * 	- iterate over all newly-created games, and assign fields based
-	 * 	  on region preference.
-	 * All of this is performed in a transaction and rolled back if any game fails.
-	 * TODO: why do we pass this in as two arrays of teams, instead of an array of arrays, or a single array we iterate over pairwise?
-	 */
-	function schedule_one_set_ratings_ladder_commit ( $vt1, $vt2, $datestamp )
-	{
-		global $dbh;
-
-		$games_list = array();
-
-		$dbh->beginTransaction();
-
-		$indexes = array_keys($vt1);
-		foreach( $indexes as $i ) {
-			$team = $vt1[$i];
-			$opponent = $vt2[$i];
-
-			$g = new Game;
-			$g->set('league_id', $this->league_id);
-			$g->add_teams_balanced( $team, $opponent );
-			if ( ! $g->save() ) {
-				if( ! $dbh->rollback() ) {
-					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
-				}
-				return array(false, "Failed to create requested games, while adding teams.$extra_errors");
-			}
-			$games_list[] = $g;
-		}
-
-		list($rc, $message) = assign_fields_by_preferences($games_list, $datestamp);
-
-		if (!$rc) {
-			$extra_errors = $message;
-			if( ! $dbh->rollback() ) {
-				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
-			}
-			return array(false, "Failed to assign gameslots for requested games.$extra_errors");
-		}
-
-		$rc = $dbh->commit();
-
-		if( ! $rc ) {
-			return array( false, 'Transaction commit failed');
-		}
-		return array(true,'');
-	}
-
-	/**
 	 * Schedule one set of games using the ratings_ladder scheme!
 	 */
 	function schedule_one_set_ratings_ladder( $teams, $datestamp )
@@ -1162,8 +1109,7 @@ class League extends LeaguerunnerObject
 
 		echo "<p>Scheduling...";
 
-		$versus_team1 = array();
-		$versus_team2 = array();
+		$versus_teams = array();
 		$gbr_diff = array();
 		$seed_closeness = array();
 		$ratings_closeness = array();
@@ -1192,14 +1138,13 @@ class League extends LeaguerunnerObject
 			// The best possible schedule will first have the smallest games before repeat sum,
 			// then will have the smallest seed_closeness, and then will have the smallest ratings_closeness
 			
-			if (	( count($gbr_diff) == 0  ||  array_sum($gbr_diff) > array_sum($ret[3]) ) ||
-					( array_sum($gbr_diff) == array_sum($ret[3]) && array_sum($seed_closeness) > array_sum($ret[4]) ) ||
-					( array_sum($gbr_diff) == array_sum($ret[3]) && array_sum($seed_closeness) == array_sum($ret[4]) && array_sum($ratings_closeness) > array_sum($ret[5]) ) ) {
-				$versus_team1 = $ret[1];
-				$versus_team2 = $ret[2];
-				$gbr_diff = $ret[3];
-				$seed_closeness = $ret[4];
-				$ratings_closeness = $ret[5];
+			if (	( count($gbr_diff) == 0  ||  array_sum($gbr_diff) > array_sum($ret[2]) ) ||
+					( array_sum($gbr_diff) == array_sum($ret[2]) && array_sum($seed_closeness) > array_sum($ret[3]) ) ||
+					( array_sum($gbr_diff) == array_sum($ret[2]) && array_sum($seed_closeness) == array_sum($ret[3]) && array_sum($ratings_closeness) > array_sum($ret[4]) ) ) {
+				$versus_teams = $ret[1];
+				$gbr_diff = $ret[2];
+				$seed_closeness = $ret[3];
+				$ratings_closeness = $ret[4];
 				echo "! ";
 			}
 
@@ -1225,8 +1170,8 @@ class League extends LeaguerunnerObject
 		flush();
 		ob_flush();
 
-		// now, try to actually create the games
-		$ret = $this->schedule_one_set_ratings_ladder_commit( $versus_team1, $versus_team2, $datestamp );
+		// Now, call schedule_one_set() to actually create the games
+		$ret = $this->schedule_one_set( $versus_teams, $datestamp );
 		if ($ret[0] == false) {
 			return $ret;
 		}
@@ -1234,11 +1179,12 @@ class League extends LeaguerunnerObject
 		$stop_time = time();
 		$total_time = $stop_time - $start_time;
 		print "<p>Time elapsed: $total_time</p>";
-		
+
 		print "<div class='schedule'>";
 		print "<table align=center>";
 		print "<tr><td class='column-heading'>Team 1</td><td class='column-heading'>Team 2</td>";
 		print "<td class='column-heading'>Seed Diff<br>(". array_sum($seed_closeness) .")</td><td class='column-heading'>Played each other<br>X games ago...</td></tr>";
+		$team_idx = 0;
 		for ($i = 0; $i < count($gbr_diff); $i++)  {
 			$font = "black";
 			$played = $gbr_diff[$i];
@@ -1249,8 +1195,8 @@ class League extends LeaguerunnerObject
 				$played = "&nbsp;";
 			}
 			print "<tr>";
-			print "<td><font color=$font>" . $versus_team1[$i]->name . "</font></td>";
-			print "<td><font color=$font>" . $versus_team2[$i]->name . "</font></td>";
+			print "<td><font color=$font>" . $versus_teams[$team_idx++]->name . "</font></td>";
+			print "<td><font color=$font>" . $versus_teams[$team_idx++]->name . "</font></td>";
 			print "<td><font color=$font>" . $seed_closeness[$i] . "</font></td>";
 			print "<td align=center><font color=$font>" . $played . "</font></td>";
 			print "</tr>\n";
@@ -1285,8 +1231,7 @@ class League extends LeaguerunnerObject
 		$ratings_closeness = array();
 		$seed_closeness = array();
 		$gtr = array();
-		$versus_team1 = array();
-		$versus_team2 = array();
+		$versus_teams = array();
 
 		//TODO: make this maximum a per-league variable, and enforce it in the caller function?
 		// maximum standings difference of matched teams:
@@ -1379,8 +1324,7 @@ class League extends LeaguerunnerObject
 				$ratings_closeness = array();
 				$seed_closeness = array();
 				$gtr = array();
-				$versus_team1 = array();
-				$versus_team2 = array();
+				$versus_teams = array();
 
 				// start over:
 				continue;
@@ -1400,8 +1344,8 @@ class League extends LeaguerunnerObject
 			}
 
 			// Create the matchup
-			$versus_team1[] = $current_team;
-			$versus_team2[] = $opponent;
+			$versus_teams[] = $current_team;
+			$versus_teams[] = $opponent;
 			$gtr[] = $games_before_repeat - $gbr;
 
 			$counter = 0;
@@ -1426,41 +1370,42 @@ class League extends LeaguerunnerObject
 
 		} // main loop
 
-		return array(true, $versus_team1, $versus_team2, $gtr, $seed_closeness, $ratings_closeness);
+		return array(true, $versus_teams, $gtr, $seed_closeness, $ratings_closeness);
 	}
 
 	/**
-	* Schedule one set of games, using weighted field assignment
-	* TODO: Need to modify this to balance home/away assignment as well.
-	*
-	* To do this:
-	*   - modify to take array of team objects
-	*   - have team object know its home/away ratio
-	*/
+	 * Schedule one set of games, using weighted field assignment
+	 *
+	 * Takes an array of teams and a datestamp.  From this:
+	 * 	- iterate over teams array pairwise and call add_teams_balanced() to create a game with balanced home/away
+	 * 	- iterate over all newly-created games, and assign fields based on region preference.
+	 * All of this is performed in a transaction and rolled back if any game fails.
+	 */
 	function schedule_one_set( $teams, $datestamp )
 	{
 		global $dbh;
 		$dbh->beginTransaction();
-		while ($teams) {
+		$games_list = array();
+		for($team_idx = 0; $team_idx < count($teams); $team_idx += 2) {
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
-			$g->add_teams_balanced( array_shift($teams), array_shift($teams));
+			$g->add_teams_balanced( $teams[$team_idx], $teams[$team_idx + 1]);
 			if ( ! $g->save() ) {
 				if( ! $dbh->rollback() ) {
 					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 				}
 				return array(false, "Could not create the games you requested, during addition of opponents.$extra_errors");
 			}
+			$games_list[] = $g;
+		}
 
-			list($rc, $message) = $g->select_weighted_gameslot($datestamp);
-			if( ! $rc ) {
-				/* Argh, something failed, so roll back the whole pile of
-				* games */
-				if( ! $dbh->rollback() ) {
-					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
-				}
-				return array(false, "Could not create the games you requested, most likely due to an insufficient number of available fields: $message $extra_errors");
+		list($rc, $message) = $this->assign_fields_by_preferences($games_list, $datestamp);
+		if (!$rc) {
+			$extra_errors = $message;
+			if( ! $dbh->rollback() ) {
+				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
+			return array(false, "Failed to assign gameslots for requested games.$extra_errors");
 		}
 		$rc = $dbh->commit();
 
@@ -1539,6 +1484,76 @@ class League extends LeaguerunnerObject
 
 		return $display_numeric_sotg;
 	}
+
+	/**
+	 * Assign field based on home field or region preference.
+	 *
+	 * It uses the select_weighted_gameslot function, which first looks at home field
+	 * designation, then at field region preferences.
+	 *
+	 * We first sort teams in order of their allocation preference ratio.  Teams
+	 * with a low ratio get first crack at a desired location.
+	 *
+	 * Then, we allocate gameslots to games where the home team has a home field.
+	 * This is necessary to prevent another team with a lower ratio from scooping
+	 * another team's dedicated home field.
+	 *
+	 * Following this, we simply loop over all remaining games and call
+	 * select_weighted_gameslot(), which takes region preference into account.
+	 *
+	 * This function returns an array where the first element is true/false for SUCCESS/FAILURE,
+	 * and the in case of failure the remaining elements of the array are information about error.
+	 *
+	 * This is called from within a transaction and the caller is responsible for
+	 * rolling back if errors are returned.
+	 *
+	 * TODO: throw exceptions from select_weighted_gameslot and catch in the caller of this method to make the code cleaner?
+	 *
+	 */
+	function assign_fields_by_preferences( $games, $datestamp )
+	{
+
+		/*
+		 * We sort by ratio of getting their preference, from lowest to
+		 * highest, so that teams who received their field preference least
+		 * will have a better chance of it.
+		 */
+		usort( $games, array('Game', 'cmp_hometeam_field_ratio'));
+
+		// First pass:  Games where the home team has an assigned home field.
+		// TODO: if we can get cmp_hometeam_field_ratio to put all
+		// those teams needing a home field at the top of the list in
+		// order, we can avoid this first pass.
+		$second_pass = array();
+		while($game = array_pop($games)) {
+			$home_team = $game->get_home_team_object();
+			if( ! $home_team ) {
+				return array(false, "Weird error: Cached home team wasn't there!");
+			}
+
+			if( $home_team->home_field ) {
+				list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+				if( ! $rc ) {
+					return array($rc, $message);
+				}
+
+				$scheduled = true;
+			} else {
+				$second_pass[] = $game;
+			}
+		}
+
+		// Second pass: Remaining teams, in order of need.
+		while($game = array_pop($second_pass)) {
+			list($rc, $message) = $game->select_weighted_gameslot($datestamp);
+			if( ! $rc ) {
+				return array($rc, $message);
+			}
+		}
+
+		return array(true, "");
+	}
+
 
 }
 
