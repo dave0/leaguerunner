@@ -1878,6 +1878,7 @@ class LeagueStatusReport extends Handler
 		$header[] = array('data' => "Games", 'rowspan' => 2);
 		$header[] = array('data' => "Home/Away", 'rowspan' => 2);
 		$header[] = array('data' => "Region", 'colspan' => 4);
+		$header[] = array('data' => "Region Pct", 'rowspan' => 2);
 		$header[] = array('data' => "Opponents", 'rowspan' => 2);
 		$header[] = array('data' => "Repeat Opponents", 'rowspan' => 2);
 
@@ -1912,10 +1913,14 @@ class LeagueStatusReport extends Handler
 			$numgames = 0;
 			$homegames = 0;
 			$awaygames = 0;
-			$regionCentral = 0;
-			$regionEast = 0;
-			$regionSouth = 0;
-			$regionWest = 0;
+
+			$region = array(
+				'Central' => 0,
+				'East' => 0,
+				'South' => 0,
+				'West' => 0,
+			);
+
 			$opponents = array();
 
 			// parse the schedule
@@ -1933,40 +1938,30 @@ class LeagueStatusReport extends Handler
 				}
 				if ($game->home_team == $tid || $game->away_team == $tid) {
 					list($code, $num) = split(" ", $game->field_code);
-					$region = $fields[$code];
-					if ($region == "Central") {
-						$regionCentral++;
-					} else if ($region == "East") {
-						$regionEast++;
-					} else if ($region == "South") {
-						$regionSouth++;
-					} else if ($region == "West") {
-						$regionWest++;
-					}
+					$region[$fields[$code]]++;
 				}
 			}
 			//reset($games);
 
 			$row[] = array('data'=>$numgames, 'class'=>"$rowstyle", 'align'=>"center");
-			$row[] = array('data'=>"$homegames / $awaygames", 'class'=>"$rowstyle", 'align'=>"center");
+			$row[] = array('data'=> _ratio_helper( $homegames, $numgames), 'class'=>$rowstyle, 'align'=>"center");
 
 			// regions:
+			$pref = '---';
+			$region_count = 0;
 			if ($season[$tid]->region_preference != "---" && $season[$tid]->region_preference != "") {
 				$pref = $season[$tid]->region_preference;
-				if ($pref == "Central") {
-					$regionCentral = "<b><font color='blue'>$regionCentral</font></b>";
-				} else if ($pref == "East") {
-					$regionEast = "<b><font color='blue'>$regionEast</font></b>";
-				} else if ($pref == "South") {
-					$regionSouth = "<b><font color='blue'>$regionSouth</font></b>";
-				} else if ($pref == "West") {
-					$regionWest = "<b><font color='blue'>$regionWest</font></b>";
-				}
+				$region_count  = $region[$pref];
+				$region[$pref] = "<b><font color='blue'>$region_count</font></b>";
+			} else {
+				// No region preference means they're always happy :)
+				$region_count = $numgames;
 			}
-			$row[] = array('data'=>"$regionCentral", 'class'=>"$rowstyle");
-			$row[] = array('data'=>"$regionEast", 'class'=>"$rowstyle");
-			$row[] = array('data'=>"$regionSouth", 'class'=>"$rowstyle");
-			$row[] = array('data'=>"$regionWest", 'class'=>"$rowstyle");
+			$row[] = array('data'=>$region['Central'], 'class'=>"$rowstyle");
+			$row[] = array('data'=>$region['East'], 'class'=>"$rowstyle");
+			$row[] = array('data'=>$region['South'], 'class'=>"$rowstyle");
+			$row[] = array('data'=>$region['West'], 'class'=>"$rowstyle");
+			$row[] = array('data'=> _ratio_helper( $region_count, $numgames), 'class' => $rowstyle);
 
 			$row[] = array('data'=>count($opponents), 'class'=>"$rowstyle", 'align'=>"center");
 
@@ -2476,6 +2471,19 @@ class LeagueFieldAvailability extends Handler
 					 array('data' => 'League', 'class' => 'column-heading'),
 					 );
 	}
+}
+
+function _ratio_helper( $count, $total )
+{
+	$ratio = 0;
+	if( $total > 0 ) {
+		$ratio = $count / $total;
+	}
+	$output = sprintf("%.3f (%d/%d)", $ratio, $count, $total);
+	if( $ratio < 0.5 ) {
+		$output = "<font color='red'><b>$output</b></font>";
+	}
+	return $output;
 }
 
 // sorting function for slot availability list...
