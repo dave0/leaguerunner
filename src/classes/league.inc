@@ -1094,7 +1094,7 @@ class League extends LeaguerunnerObject
 		$ret = null;
 
 		$start_time = time();
-		
+
 		global $CONFIG;
 		print "<html>";
 		print "<head>";
@@ -1115,15 +1115,15 @@ class League extends LeaguerunnerObject
 		$ratings_closeness = array();
 
 		for ($j = 0; $j < $max_retries; $j++) {
-			
+
 			if (array_sum($seed_closeness) == sizeof($teams)/2) {
 				// that's enough - don't bother getting any more, you have a perfect schedule (ie: 1 vs 2, 3 vs 4, etc).
 				break;
 			}
-			
+
 			set_time_limit(45); // Give this one call 45 seconds to return
-			$ret = $this->schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $j%2);
-			
+			$ret = $this->schedule_one_set_ratings_ladder_try( $teams, $games_before_repeat, $j%2);
+
 			if ($ret[0] == false) {
 				echo ". ";
 				flush();
@@ -1134,10 +1134,10 @@ class League extends LeaguerunnerObject
 			// Keep the best schedule by checking how many times we had to decrement
 			// the games_before_repeat restriction in order to be able to generate
 			// this schedule...
-			
+
 			// The best possible schedule will first have the smallest games before repeat sum,
 			// then will have the smallest seed_closeness, and then will have the smallest ratings_closeness
-			
+
 			if (	( count($gbr_diff) == 0  ||  array_sum($gbr_diff) > array_sum($ret[2]) ) ||
 					( array_sum($gbr_diff) == array_sum($ret[2]) && array_sum($seed_closeness) > array_sum($ret[3]) ) ||
 					( array_sum($gbr_diff) == array_sum($ret[2]) && array_sum($seed_closeness) == array_sum($ret[3]) && array_sum($ratings_closeness) > array_sum($ret[4]) ) ) {
@@ -1154,14 +1154,7 @@ class League extends LeaguerunnerObject
 			ob_flush();
 			continue;
 		}
-		
-		//TONY
-		print "<br>";
-		foreach($seed_closeness as $sc) {
-			print "$sc ";
-		}
-		print "<br>";
-		
+
 		if ( array_sum($gbr_diff) == 0 ) {
 			echo "Complete!</p>";
 		} else {
@@ -1226,7 +1219,7 @@ class League extends LeaguerunnerObject
 	 * - remove those 2 teams from the ordered ladder and repeat
 	 *
 	 */
-	function schedule_one_set_ratings_ladder_try( $teams, $datestamp, $games_before_repeat, $down)
+	function schedule_one_set_ratings_ladder_try( $teams, $games_before_repeat, $down)
 	{
 		$ratings_closeness = array();
 		$seed_closeness = array();
@@ -1332,7 +1325,6 @@ class League extends LeaguerunnerObject
 			} // end if sizeof possible opponents
 
 			// now find them an opponent by randomly choosing one of the remaining possible opponents
-			srand(make_seed());
 			shuffle($new_possible_opponents);
 			$opponent = $new_possible_opponents[0];
 
@@ -1631,10 +1623,4 @@ function teams_sort_rating(&$a, &$b)
 	return 0;
 }
 
-// seed with microseconds
-function make_seed()
-{
-  list($usec, $sec) = explode(' ', microtime());
-  return (float) $sec + ((float) $usec * 100000);
-}
 ?>
