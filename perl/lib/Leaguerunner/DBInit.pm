@@ -1367,7 +1367,7 @@ sub upgrade_18_to_19
 		},
 		q{
 			UPDATE league SET display_sotg = 'coordinator_only' WHERE NOT see_sotg
-		}
+		},
 		q{
 			ALTER TABLE league DROP COLUMN see_sotg
 		}],

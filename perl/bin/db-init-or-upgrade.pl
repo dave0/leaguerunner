@@ -81,8 +81,6 @@ Full manpage
 
 =back
 
-=back
-
 =head1 FAQ
 
 =over 4
