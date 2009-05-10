@@ -780,9 +780,9 @@ class League extends LeaguerunnerObject
 
 
 	/*
-	* Create an empty set of games for this league
-	*/
-	function create_empty_set( $datestamp ) 
+	 * Create an empty set of games for this league
+	 */
+	function create_empty_set( $datestamp, $should_publish = true )
 	{
 		global $dbh;
 
@@ -810,6 +810,7 @@ class League extends LeaguerunnerObject
 		for($i = 0; $i < $num_games; $i++) {
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
+			$g->set('published', $should_publish);
 			if ( ! $g->save() ) {
 				if( ! $dbh->rollback() ) {
 					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
@@ -834,14 +835,14 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create a scheduled set of games for this league
 	 */
-	function create_scheduled_set_ratings_ladder( $datestamp, $excludeTeamsIDs = array() ) 
+	function create_scheduled_set_ratings_ladder( $datestamp, $excludeTeamsIDs = array(), $should_publish = true )
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
 		}
 
 		$num_teams = count($this->teams);
-		if (isset($excludeTeamsIDs)) { 
+		if (isset($excludeTeamsIDs)) {
 			$num_teams = $num_teams - count($excludeTeamsIDs);
 		}
 
@@ -866,13 +867,13 @@ class League extends LeaguerunnerObject
 			}
 		}
 
-		return $this->schedule_one_set_ratings_ladder( $teams, $datestamp );
+		return $this->schedule_one_set_ratings_ladder( $teams, $datestamp, $should_publish );
 	}
 
 	/*
 	 * Create a scheduled set of games for this league
 	 */
-	function create_scheduled_set( $datestamp ) 
+	function create_scheduled_set( $datestamp, $should_publish = true )
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
@@ -892,13 +893,13 @@ class League extends LeaguerunnerObject
 		$teams = array_values($this->teams);
 		shuffle($teams);
 
-		return $this->schedule_one_set( $teams, $datestamp );
+		return $this->schedule_one_set( $teams, $datestamp, $should_publish );
 	}
 
 	/*
-	* Create a half round-robin for this league.
-	*/
-	function create_half_roundrobin( $datestamp, $how_split ) 
+	 * Create a half round-robin for this league.
+	 */
+	function create_half_roundrobin( $datestamp, $how_split, $should_publish = true )
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
@@ -919,7 +920,7 @@ class League extends LeaguerunnerObject
 		switch($how_split) {
 			case 'rating':
 				$teams = array_values($this->teams);
-				uasort($teams, 'teams_sort_rating');	
+				uasort($teams, 'teams_sort_rating');
 				break;
 			case 'standings':
 			default:
@@ -935,13 +936,13 @@ class League extends LeaguerunnerObject
 		$bottom_half = array_slice($teams, ($n / 2));
 
 		# Schedule both halves.
-		list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half);
-		if( !$rc ) { 
-			return array($rc, $message); 
+		list($rc, $message) = $this->create_full_roundrobin($datestamp, $top_half, $should_publish);
+		if( !$rc ) {
+			return array($rc, $message);
 		}
-		list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half);
+		list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half, $should_publish);
 		if( !$rc ) { 
-			return array($rc, $message); 
+			return array($rc, $message);
 		}
 
 		return array(true,'');
@@ -975,9 +976,9 @@ class League extends LeaguerunnerObject
 	}
 
 	/*
-	* Create a full round-robin for this league.
-	*/
-	function create_full_roundrobin( $datestamp, $teams = null) 
+	 * Create a full round-robin for this league.
+	 */
+	function create_full_roundrobin( $datestamp, $teams = null, $should_publish = true)
 	{
 
 		if( is_null($teams) ) {
@@ -1019,7 +1020,7 @@ class League extends LeaguerunnerObject
 				$set_teams[] = $teams[($n - $k - 1)];
 			}
 			#   b.  schedule them
-			list($rc, $message) = $this->schedule_one_set( $set_teams, $datestamp );
+			list($rc, $message) = $this->schedule_one_set( $set_teams, $datestamp, $should_publish );
 			if( ! $rc ) {
 				return array( false, "Aieee... had to stop with $iterations_remaining sets left to schedule: $message");
 			}
@@ -1083,7 +1084,7 @@ class League extends LeaguerunnerObject
 	/**
 	 * Schedule one set of games using the ratings_ladder scheme!
 	 */
-	function schedule_one_set_ratings_ladder( $teams, $datestamp )
+	function schedule_one_set_ratings_ladder( $teams, $datestamp, $should_publish = true )
 	{
 		global $headers_sent;
 		$headers_sent= 1;
@@ -1164,7 +1165,7 @@ class League extends LeaguerunnerObject
 		ob_flush();
 
 		// Now, call schedule_one_set() to actually create the games
-		$ret = $this->schedule_one_set( $versus_teams, $datestamp );
+		$ret = $this->schedule_one_set( $versus_teams, $datestamp, $should_publish );
 		if ($ret[0] == false) {
 			return $ret;
 		}
@@ -1373,7 +1374,7 @@ class League extends LeaguerunnerObject
 	 * 	- iterate over all newly-created games, and assign fields based on region preference.
 	 * All of this is performed in a transaction and rolled back if any game fails.
 	 */
-	function schedule_one_set( $teams, $datestamp )
+	function schedule_one_set( $teams, $datestamp, $should_publish = true )
 	{
 		global $dbh;
 		$dbh->beginTransaction();
@@ -1382,6 +1383,7 @@ class League extends LeaguerunnerObject
 			$g = new Game;
 			$g->set('league_id', $this->league_id);
 			$g->add_teams_balanced( $teams[$team_idx], $teams[$team_idx + 1]);
+			$g->set('published', $should_publish);
 			if ( ! $g->save() ) {
 				if( ! $dbh->rollback() ) {
 					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";

@@ -368,6 +368,7 @@ class GameCreate extends Handler
 		$output .= form_hidden('edit[step]', 'selectdate');
 
 		$group .= form_radiogroup('', 'edit[type]', 'single', $this->types, "Select the type of game or games to add.  Note that for auto-generated round-robins, fields will be automatically allocated.");
+		$group .= form_checkbox("Publish created games for player viewing?", 'edit[publish]', 'yes', true, "If this is checked, players will be able to view games immediately after creation.  Uncheck it if you wish to make changes before players can view.");
 		$output .= form_group("Create a ... ", $group);
 
 		$output .= form_submit('Next step');
@@ -476,6 +477,7 @@ class GameCreate extends Handler
 
 		$output .= form_hidden('edit[step]','confirm');
 		$output .= form_hidden('edit[type]',$type);
+		$output .= form_hidden('edit[publish]', ($edit['publish'] == 'yes') ? 'yes' : 'no');
 		$output .= form_select('Start date','edit[startdate]', null, $possible_dates);
 		$output .= form_submit('Next step');
 		return form($output);
@@ -501,6 +503,7 @@ class GameCreate extends Handler
 		$output .= form_hidden('edit[step]','perform');
 		$output .= form_hidden('edit[type]',$edit['type']);
 		$output .= form_hidden('edit[startdate]',$edit['startdate']);
+		$output .= form_hidden('edit[publish]', ($edit['publish'] == 'yes') ? 'yes' : 'no');
 
 		$num_teams = count($this->league->teams) - count($edit['excludeTeamID']);
 		$this->loadTypes ($num_teams);
@@ -525,11 +528,13 @@ class GameCreate extends Handler
 	function perform ( &$edit )
 	{
 		# generate appropriate games, roll back on error
+		$should_publish = ($edit['publish'] == 'yes');
 		switch($edit['type']) {
 			case 'single':
 				# Create single game
 				$g = new Game;
 				$g->set('league_id', $this->league->league_id);
+				$g->set('published', $should_publish);
 				if( ! $g->save() ) {
 					$rc = false;
 					$message = "Could not create single game";
@@ -539,25 +544,25 @@ class GameCreate extends Handler
 				break;
 			case 'blankset':
 				# Create game for all teams in tier
-				list( $rc, $message) = $this->league->create_empty_set( $edit['startdate'] ) ;
+				list( $rc, $message) = $this->league->create_empty_set( $edit['startdate'], $should_publish ) ;
 				break;
 			case 'oneset':
 				# Create game for all teams in tier
-				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'] ) ;
+				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'], $should_publish ) ;
 				break;
 			case 'oneset_ratings_ladder':
 				# Create game for all teams in league
-				list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] , $edit['excludeTeamID']) ;
+				list( $rc, $message) = $this->league->create_scheduled_set_ratings_ladder( $edit['startdate'] , $edit['excludeTeamID'], $should_publish) ;
 				break;
 			case 'fullround':
 				# Create full roundrobin
-				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'] );
+				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'], $should_publish );
 				break;
 			case 'halfroundstandings':
-				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'standings' );
+				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'standings', $should_publish );
 				break;
 			case 'halfroundrating':
-				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'rating' );
+				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'rating', $should_publish );
 				break;
 			default:
 				error_exit("Please don't try to do that; it won't work, you fool... " + $edit['type']);
