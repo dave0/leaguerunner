@@ -624,7 +624,7 @@ sub detect_schema_version
 		return 18;
 	}
 
-	$sth = $dbh->table_info('%', '%', 'score_reminder', 'TABLE');
+	$sth = $dbh->table_info(undef, undef, 'score_reminder', 'TABLE');
 	if( $sth->fetch ) {
 		return 17;
 	}
@@ -634,7 +634,7 @@ sub detect_schema_version
 		return 16;
 	}
 
-	$sth = $dbh->table_info('%', '%', 'registrations', 'TABLE');
+	$sth = $dbh->table_info(undef, undef, 'registrations', 'TABLE');
 	if( $sth->fetch ) {
 		return 15;
 	}
