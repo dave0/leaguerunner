@@ -60,7 +60,6 @@ print <<<END_2
 	<tr height="22">
 		<td background="/themes/ocua_2004/menu-background.png" align="left" height="22" width="130" valign="top"><a href="/"><img src="/themes/ocua_2004/ocua-logo-bottom-half.png" width="130" height="22" border="0" alt="["></a></td>
 	<td class="secondary-links" background="/themes/ocua_2004/menu-background.png" align='left'>
-	    <a href="/node/14">About OCUA</a> | <a href="/node/1">About Ultimate</a> | <a href="/leagues">Leagues</a> | <a href="/node/40">Partners</a> | <a href="/article/">Articles</a> | <a href="/event/">Calendar</a> | <a href="/weblink/">Links</a> | <a href="/forum/">Forums</a> | <a href="/node/22">Contact</a> | <a href="/search">Search</a>
  	</td>
 	<td class="secondary-links" background="/themes/ocua_2004/menu-background.png" width="1" align="right" height="22"><img src="/themes/ocua_2004/rt_edge.png" width="1" height="22" border="0" alt="]"></td>
 	</tr>
@@ -125,7 +124,7 @@ function theme_footer()
 </td></tr></table>
 <p />
 <hr noshade="noshade" />
-<i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner</a>, version 2.6</i>
+<i>Powered by <a href="http://code.google.com/p/leaguerunner/">Leaguerunner</a></i>
 </body>
 </html>
 <?php
