@@ -27,11 +27,11 @@ sub parseConfigFile($)
 	# Clean up DSN
 	my($method,$rest) = split(/:/,$config->{database}{dsn},2);
 	my %dsn_data = map { split(/=/, $_) } split(';', $rest);
+	$dsn_data{database} = delete $dsn_data{dbname};
 	$config->{database}{dsn} = join(':',
 		'DBI',
 		$method,
-		'database=' . $dsn_data{dbname},
-		'host=' . $dsn_data{host});
+		map { "$_=$dsn_data{$_}" } keys %dsn_data);
 
 
 	return $config;
