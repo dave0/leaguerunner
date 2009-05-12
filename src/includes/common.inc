@@ -1449,6 +1449,25 @@ function local_sunset_for_date( $timestamp )
 	return strftime('%H:%M', $end_timestamp);
 }
 
+/**
+ * Helper for shortening long team names for display
+ */
+function display_short_name ($name, $length = -1)
+{
+	if( $length < 0 ) {
+		if( variable_get('narrow_display', '0') ) {
+			$length = 14;
+		} else {
+			$length = 20;
+		}
+	}
+	$format = '%.' . $length . 's';
+	$short = sprintf($format, $name);
+	if(strlen($short) != strlen($name) ) {
+		$short .= "...";
+	}
+	return $short;
+}
 
 /* vim: set sw=4 ts=4 et: */
 ?>

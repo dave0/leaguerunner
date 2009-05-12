@@ -26,35 +26,6 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
-	 * Return short name for display purposes
-	 */
-	function short_home_name()
-	{
-		if( variable_get('narrow_display', '0') ) {
-			$short = sprintf("%.14s", $this->home_name);
-		} else {
-			$short = sprintf("%.20s", $this->home_name);
-		}
-		if(strlen($short) != strlen($this->home_name) ) {
-			$short .= "...";
-		}
-		return $short;
-	}
-
-	function short_away_name()
-	{
-		if( variable_get('narrow_display', '0') ) {
-			$short = sprintf("%.14s", $this->away_name);
-		} else {
-			$short = sprintf("%.20s", $this->away_name);
-		}
-		if(strlen($short) != strlen($this->away_name) ) {
-			$short .= "...";
-		}
-		return $short;
-	}
-
-	/**
 	 * Game end time, for display purposes.
 	 *
 	 * If one is provided for this game, we use it.  Otherwise, we calculate based on sunset time.

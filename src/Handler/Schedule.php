@@ -494,7 +494,7 @@ function schedule_render_viewable( &$game )
 {
 	global $lr_session;
 	if($game->home_name) {
-		$short = $game->short_home_name();
+		$short = display_short_name($game->home_name);
 		$attr = array();
 		if ($short != $game->home_name)
 		{
@@ -506,7 +506,7 @@ function schedule_render_viewable( &$game )
 		$homeTeam = "Not yet scheduled.";
 	}
 	if($game->away_name) {
-		$short = $game->short_away_name();
+		$short = display_short_name($game->away_name);
 		$attr = array();
 		if ($short != $game->away_name)
 		{

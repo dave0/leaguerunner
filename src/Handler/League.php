@@ -826,7 +826,7 @@ class LeagueStandings extends Handler
 				}
 			}
 			$row = array( array('data'=>"$seed", 'class'=>"$rowstyle"));
-			$row[] = array( 'data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
+			$row[] = array( 'data'=>l(display_short_name($season[$tid]->name, 35), "team/view/$tid"), 'class'=>"$rowstyle");
 
 			// Don't need the current round for a ladder schedule.
 			if ($this->league->schedule_type == "roundrobin") {
@@ -990,7 +990,7 @@ class LeagueView extends Handler
 					$row[] = $counter;
 				}
 
-				$row[] = l($team->name, "team/view/$team->team_id");
+				$row[] = l(display_short_name($team->name, 35), "team/view/$team->team_id");
 				$row[] = $team->count_players();
 				$row[] = $team->rating;
 				$row[] = $team->avg_skill();
