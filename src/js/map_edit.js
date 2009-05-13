@@ -22,7 +22,7 @@ function center_by_address(point)
 {
 	if (!point) {
 		point = new GLatLng(leaguelat, leaguelng);
-		alert('Please set default lat/long under "global settings".');
+		alert('Field has no lat/long yet, and the street address was not found by Google.\nUsing default lat/long from "global settings" as a fallback.');
 	}
 	map.setCenter(point, zoom - 2, G_HYBRID_MAP);
 	createMarker(point, true);
