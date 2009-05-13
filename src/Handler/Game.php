@@ -821,8 +821,11 @@ class GameSubmit extends Handler
 			}
 		}
 
-		// Send the incident report, if required
+		// Save and send the incident report, if required
 		if( $incident ) {
+			$sth = $dbh->prepare('INSERT into incidents (game_id, team_id, type, details) VALUES(?,?,?,?)');
+			$sth->execute( array($this->game->game_id, $this->team->team_id, $incident['type'], $incident['details']) );
+
 			$addr = variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']);
 			$link = l($addr, "mailto:$addr");
 			$rc = send_mail($addr, 'Incident Manager',
@@ -839,10 +842,10 @@ class GameSubmit extends Handler
 
 		// Save the all-star nominations, if present
 		if( $allstars ) {
-			$sth = $dbh->prepare('INSERT into allstars (league_id, game_id, player_id) VALUES(?,?,?)');
+			$sth = $dbh->prepare('INSERT into allstars (game_id, player_id) VALUES(?,?)');
 			foreach ($allstars as $player_id) {
 				if ($player_id != 0) {
-					$sth->execute( array($this->league->league_id, $this->game->game_id, $player_id) );
+					$sth->execute( array($this->game->game_id, $player_id) );
 				}
 			}
 			$resultMessage .= para('Your all-star nominations have been saved.');

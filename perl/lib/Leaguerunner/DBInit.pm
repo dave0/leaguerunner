@@ -402,6 +402,32 @@ my @TABLES = (
 			KEY user_id (user_id,registration_id)
 		);
 	}],
+
+	'allstars' => [
+	q{
+		DROP TABLE IF EXISTS allstars;
+	},
+	q{
+		CREATE TABLE allstars (
+			game_id INTEGER NOT NULL default '0',
+			player_id INTEGER NOT NULL default '0',
+			PRIMARY KEY (game_id, player_id)
+		) ENGINE=INNODB;
+	}],
+
+	'incidents' => [
+	q{
+		DROP TABLE IF EXISTS incidents;
+	},
+	q{
+		CREATE TABLE incidents (
+			game_id INTEGER NOT NULL ,
+			team_id INTEGER NOT NULL ,
+			type VARCHAR( 128 ) NOT NULL ,
+			details TEXT NOT NULL ,
+			PRIMARY KEY ( game_id , team_id )
+		) ENGINE=INNODB;
+	}],
 );
 
 my @INITIAL_DATA = (
@@ -1389,13 +1415,22 @@ sub upgrade_18_to_19
 		}],
 
 		# Add allstar nominations table
-		public_instructions => [q{
+		allstar_table => [q{
 			CREATE TABLE allstars (
-				league_id INTEGER NOT NULL default '0',
 				game_id INTEGER NOT NULL default '0',
 				player_id INTEGER NOT NULL default '0',
-				PRIMARY KEY (league_id, game_id, player_id),
-				INDEX league_id (league_id)
+				PRIMARY KEY (game_id, player_id)
+			) ENGINE=INNODB;
+		}],
+
+		# Add incident reports table
+		incident_table => [q{
+			CREATE TABLE incidents (
+				game_id INTEGER NOT NULL ,
+				team_id INTEGER NOT NULL ,
+				type VARCHAR( 128 ) NOT NULL ,
+				details TEXT NOT NULL ,
+				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
 		}],
 	]);
