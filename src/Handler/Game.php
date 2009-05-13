@@ -756,7 +756,11 @@ class GameSubmit extends Handler
 			$errors .= '<br>You must select an option from the list of females ("none" if you don\'t want to nominate a female all-star).';
 		}
 
-		if (array_key_exists('male', $allstars) && $allstars['male'] == 0 &&
+		// If all-star nominations are optional, then the captain said they want to
+		// nominate someone, so don't let them forget to do so. If the nomination form
+		// is always shown, they don't have to pick someone.
+		if ($this->league->allstars == 'optional' &&
+			array_key_exists('male', $allstars) && $allstars['male'] == 0 &&
 			array_key_exists('female', $allstars) && $allstars['female'] == 0) {
 			$errors .= '<br>You must select at least one all-star.';
 		}
@@ -835,9 +839,11 @@ class GameSubmit extends Handler
 
 		// Save the all-star nominations, if present
 		if( $allstars ) {
-			$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
+			$sth = $dbh->prepare('INSERT into allstars (league_id, game_id, player_id) VALUES(?,?,?)');
 			foreach ($allstars as $player_id) {
-				$sth->execute( array('allstar_nomination', $this->game->game_id, $player_id) );
+				if ($player_id != 0) {
+					$sth->execute( array($this->league->league_id, $this->game->game_id, $player_id) );
+				}
 			}
 			$resultMessage .= para('Your all-star nominations have been saved.');
 		}
@@ -958,7 +964,11 @@ class GameSubmit extends Handler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$output = para('You have indicated that you want to nominate all-stars from this game. You may select one male and/or one female all-star from the list below.');
+		if ( $this->league->allstars == 'optional' ) {
+			$output = para('You have indicated that you want to nominate all-stars from this game. You may select one male and/or one female all-star from the list below.');
+		} else {
+			$output = para('You may select one male and/or one female all-star from the list below, if you think they deserve to be nominated as an all-star.');
+		}
 
 		$edit['step'] = 'confirm';
 		$output .= $this->hidden_fields ('edit', $edit);
@@ -1046,8 +1056,12 @@ class GameSubmit extends Handler
 				$players[] = "<b>{$player->fullname}</b>";
 			}
 
-			$output .= para('You are nominating ' . implode(' and ', $players) . ' as ' .
-				((count($players) == 1) ? 'an all-star.' : 'all-stars.'));
+			if (! empty ($players)) {
+				$output .= para('You are nominating ' . implode(' and ', $players) . ' as ' .
+					((count($players) == 1) ? 'an all-star.' : 'all-stars.'));
+			} else if ($this->league->allstars == 'always') {
+				$output .= para('You are not nominating any all-stars.');
+			}
 		}
 
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.");
@@ -1100,8 +1114,11 @@ class GameSubmit extends Handler
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		if (variable_get('incident_reports', false))
 			$output .= form_checkbox( 'I have an incident to report', "edit[incident]" );
-		if ($this->league->allstars)
+		if ($this->league->allstars == 'optional') {
 			$output .= form_checkbox( 'I want to nominate an all-star', "edit[allstar]" );
+		} else if ($this->league->allstars == 'always') {
+			$output .= form_hidden( "edit[allstar]", true );
+		}
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
 
 		$win = variable_get('default_winning_score', 6);

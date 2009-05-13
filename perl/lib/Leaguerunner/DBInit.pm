@@ -103,7 +103,7 @@ my @TABLES = (
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			display_sotg        ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all',
-			allstars            ENUM('true','false') default 'false',
+			allstars            ENUM('never','optional','always') default 'never',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
 			capt_list           varchar(100),
@@ -1350,7 +1350,7 @@ sub upgrade_18_to_19
 
 		# Selection of per-game allstars
 		allstars => [q{
-			ALTER TABLE league ADD allstars  ENUM('true','false') DEFAULT 'false' AFTER see_sotg
+			ALTER TABLE league ADD allstars  ENUM('never','optional','always') DEFAULT 'never' AFTER see_sotg
 		}],
 
 		# Allow unpublished games
@@ -1386,6 +1386,17 @@ sub upgrade_18_to_19
 		public_instructions => [q{
 			ALTER TABLE `field`
 				ADD `public_instructions` TEXT AFTER `washrooms`
+		}],
+
+		# Add allstar nominations table
+		public_instructions => [q{
+			CREATE TABLE allstars (
+				league_id INTEGER NOT NULL default '0',
+				game_id INTEGER NOT NULL default '0',
+				player_id INTEGER NOT NULL default '0',
+				PRIMARY KEY (league_id, game_id, player_id),
+				INDEX league_id (league_id)
+			) ENGINE=INNODB;
 		}],
 	]);
 }
