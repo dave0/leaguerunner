@@ -580,21 +580,22 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
-		// TODO: is there anything that should prevent removal of results??
-		// TODO: This should really be in a transaction...
+		$dbh->beginTransaction();
 
+		// TODO: is there anything that should prevent removal of results??
+
+		$errors = array();
 		// Remove the spirit answers
 		$sth = $dbh->prepare('DELETE FROM team_spirit_answers WHERE gid = ?');
-		$sth->execute( array($this->game_id) );
-		if($sth->rowCount() == 0) {
-			die("Uh-oh, problems removing results from the team_spirit_answers table... whew, you're still ok because this is the first thing I tried to do...");
+		if( ! $sth->execute( array($this->game_id) ) ) {
+			$errors[] = "Couldn't remove spirit answers: " . $sth->errorCode;
 		}
 
 		// Update SCHEDULE table to remove these results
 		$sth = $dbh->prepare("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = ?");
 		$sth->execute( array($this->game_id) );
-		if($sth->rowCount() == 0) {
-			die("Uh-oh, problems removing results from the schedule table... too bad cause the team_spirit_answers was already removed!");
+		if( ! $sth->execute( array($this->game_id) ) ) {
+			$errors[] = "Couldn't remove results from schedule: " . $sth->errorCode;
 		}
 
 		// put the rating points back...  and fix the rank...
@@ -604,38 +605,44 @@ class Game extends LeaguerunnerObject
 			// home win
 			$rating_sth->execute( array( $this->rating_points, $this->away_team ) );
 			if($rating_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+				$errors[] = "Couldn't fix the rating for team " + $this->away_team;
 			}
 
 			$rating_sth->execute( array( 0 - $this->rating_points, $this->home_team ) );
 			if($rating_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+				$errors[] = "Couldn't fix the rating for team " + $this->home_team;
 			}
 
 			$rank_sth->execute( array( $this->league_id, $this->home_team) );
 			if($rank_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rank for team " + $this->home_team);
+				$errors[] = "Uh-oh, problems fixing the rank score for team " + $this->away_team;
 			}
 
 		} else if($this->away_score > $this->home_score) {
 			// away win
 			$rating_sth->execute( array( $this->rating_points, $this->home_team ) );
 			if($rating_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rating score for team " + $this->away_team);
+				$errors[] = "Couldn't fix the rating for team " + $this->home_team;
 			}
 
 			$rating_sth->execute( array( 0 - $this->rating_points, $this->away_team ) );
 			if($rating_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rating score for team " + $this->home_team);
+				$errors[] = "Couldn't fix the rating for team " + $this->away_team;
 			}
 
 			$rank_sth->execute( array( $this->league_id, $this->away_team) );
 			if($rank_sth->rowCount() == 0) {
-				die("Uh-oh, problems fixing the rank for team " + $this->away_team);
+				$errors[] = "Uh-oh, problems fixing the rank score for team " + $this->away_team;
 			}
 
 		}
 
+		if( count($errors) ) {
+			$dbh->rollback();
+			error_exit(join("<br/>", $errors));
+		} else {
+			$dbh->commit();
+		}
 		return true;
 	}
 
