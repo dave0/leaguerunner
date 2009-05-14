@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 19;
+my $LATEST_SCHEMA = 20;
 
 my @TABLES = (
 	'person' => [q{
@@ -1376,7 +1376,7 @@ sub upgrade_18_to_19
 
 		# Selection of per-game allstars
 		allstars => [q{
-			ALTER TABLE league ADD allstars  ENUM('never','optional','always') DEFAULT 'never' AFTER see_sotg
+			ALTER TABLE league ADD allstars  ENUM('true','false') DEFAULT 'false' AFTER see_sotg
 		}],
 
 		# Allow unpublished games
@@ -1436,5 +1436,38 @@ sub upgrade_18_to_19
 	]);
 }
 
+
+sub upgrade_19_to_20
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+
+		# Fix allstar column
+		allstars => [q{
+			ALTER TABLE league MODIFY allstars ENUM('never','optional','always') DEFAULT 'never'
+		}],
+
+		# Add allstar nominations table
+		allstar_table => [q{
+			CREATE TABLE allstars (
+				game_id INTEGER NOT NULL default '0',
+				player_id INTEGER NOT NULL default '0',
+				PRIMARY KEY (game_id, player_id)
+			) ENGINE=INNODB;
+		}],
+
+		# Add incident reports table
+		incident_table => [q{
+			CREATE TABLE incidents (
+				game_id INTEGER NOT NULL ,
+				team_id INTEGER NOT NULL ,
+				type VARCHAR( 128 ) NOT NULL ,
+				details TEXT NOT NULL ,
+				PRIMARY KEY ( game_id , team_id )
+			) ENGINE=INNODB;
+		}],
+	]);
+}
 
 1;
