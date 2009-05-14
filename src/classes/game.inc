@@ -598,9 +598,8 @@ class Game extends LeaguerunnerObject
 			$errors[] = "Couldn't remove results from schedule: " . $sth->errorCode;
 		}
 
-		// put the rating points back...  and fix the rank...
+		// put the rating points back
 		$rating_sth = $dbh->prepare('UPDATE team SET rating = rating + ? WHERE team_id = ?');
-		$rank_sth = $dbh->prepare('UPDATE leagueteams set rank = rank + 1 where league_id = ? and team_id = ?');
 		if($this->home_score > $this->away_score) {
 			// home win
 			$rating_sth->execute( array( $this->rating_points, $this->away_team ) );
@@ -612,12 +611,6 @@ class Game extends LeaguerunnerObject
 			if($rating_sth->rowCount() == 0) {
 				$errors[] = "Couldn't fix the rating for team " + $this->home_team;
 			}
-
-			$rank_sth->execute( array( $this->league_id, $this->home_team) );
-			if($rank_sth->rowCount() == 0) {
-				$errors[] = "Uh-oh, problems fixing the rank score for team " + $this->away_team;
-			}
-
 		} else if($this->away_score > $this->home_score) {
 			// away win
 			$rating_sth->execute( array( $this->rating_points, $this->home_team ) );
@@ -629,12 +622,6 @@ class Game extends LeaguerunnerObject
 			if($rating_sth->rowCount() == 0) {
 				$errors[] = "Couldn't fix the rating for team " + $this->away_team;
 			}
-
-			$rank_sth->execute( array( $this->league_id, $this->away_team) );
-			if($rank_sth->rowCount() == 0) {
-				$errors[] = "Uh-oh, problems fixing the rank score for team " + $this->away_team;
-			}
-
 		}
 
 		if( count($errors) ) {

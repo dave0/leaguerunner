@@ -119,7 +119,6 @@ my @TABLES = (
 		CREATE TABLE leagueteams (
 			league_id   integer NOT NULL,
 			team_id     integer NOT NULL,
-			rank        integer NOT NULL DEFAULT 0,
 			PRIMARY KEY (team_id,league_id),
 			INDEX leagueteams_league (league_id)
 		);
@@ -1466,6 +1465,11 @@ sub upgrade_19_to_20
 				details TEXT NOT NULL ,
 				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
+		}],
+
+		# 'rank' in leagueteams table is useless
+		remove_rank => [q{
+			ALTER TABLE leagueteams DROP COLUMN rank
 		}],
 	]);
 }

@@ -404,19 +404,18 @@ class Team extends LeaguerunnerObject
 	/**
 	 * Move team to another league.
 	 */
-	function move_team_to( $league_id, $rank = 0 ) 
+	function move_team_to( $league_id )
 	{
 		global $dbh;
 
-		$sth = $dbh->prepare('UPDATE leagueteams SET league_id = ?, rank = ? WHERE team_id = ? AND league_id = ?');
-		$sth->execute( array($league_id, $rank, $this->team_id, $this->league_id) );
+		$sth = $dbh->prepare('UPDATE leagueteams SET league_id = ? WHERE team_id = ? AND league_id = ?');
+		$sth->execute( array($league_id, $this->team_id, $this->league_id) );
 
 		if( 1 != $sth->rowCount() ) {
 			error_exit("Couldn't move team between leagues");
 		}
 
 		$this->league_id = $league_id;
-		$this->rank = $rank;
 
 		return true;
 	}
@@ -431,10 +430,7 @@ class Team extends LeaguerunnerObject
 			return false;
 		}
 
-		# Get league ID and rank from $this and $other
-		$this_rank = $this->rank;
 		$this_league_id = $this->league_id;
-		$other_rank = $other->rank;
 		$other_league_id = $other->league_id;
 
 		// Moving to same league is silly
@@ -443,9 +439,9 @@ class Team extends LeaguerunnerObject
 		}
 
 		# Move team to other league
-		$this->move_team_to( $other_league_id, $other_rank);
+		$this->move_team_to( $other_league_id );
 
-		$other->move_team_to( $this_league_id, $this_rank);
+		$other->move_team_to( $this_league_id );
 
 		# Get future games for $this and $other
 		$this_games = game_load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
@@ -516,10 +512,9 @@ function team_query( $array = array() )
 
 	$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
 
-	$sth = $dbh->prepare("SELECT 
+	$sth = $dbh->prepare("SELECT
 		t.*,
 		1 AS _in_database,
-		s.rank,
 		l.name AS league_name,
 		l.tier AS league_tier,
 		l.day AS league_day, 

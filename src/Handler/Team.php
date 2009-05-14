@@ -586,8 +586,7 @@ class TeamMove extends Handler
 		if( $target_team ) {
 			$rc = $this->team->swap_team_with( $target_team );
 		} else {
-			$newrank = 0;
-			$rc = $this->team->move_team_to( $targetleague->league_id, $newrank );
+			$rc = $this->team->move_team_to( $targetleague->league_id );
 		}
 
 		if( !$rc  ) {
