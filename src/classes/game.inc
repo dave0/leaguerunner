@@ -267,7 +267,6 @@ class Game extends LeaguerunnerObject
 					$this->set_and_save_spirit( $this->home_id, 'home', 'perfect' );
 					$this->set('away_spirit',
 							max( $home_entry->spirit - variable_get('missing_score_spirit_penalty', 3), 0));
-					$this->set_and_save_spirit( $this->home_id, 'home', 'perfect' );
 			}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
