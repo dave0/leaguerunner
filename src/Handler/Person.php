@@ -771,7 +771,6 @@ class PersonApproveNewAccount extends PersonView
 				$existing->set('contact_for_feedback', $this->person->contact_for_feedback);
 				$existing->set('last_login', $this->person->last_login);
 				$existing->set('client_ip', $this->person->client_ip);
-				$existing->set('complete', $this->person->complete);
 
 				if( !$existing->member_id) {
 					$existing->generate_member_id();
