@@ -556,7 +556,7 @@ class GameCreate extends Handler
 				break;
 			case 'fullround':
 				# Create full roundrobin
-				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'], $should_publish );
+				list($rc, $message) = $this->league->create_full_roundrobin( $edit['startdate'], null, $should_publish );
 				break;
 			case 'halfroundstandings':
 				list($rc, $message) = $this->league->create_half_roundrobin( $edit['startdate'], 'standings', $should_publish );
