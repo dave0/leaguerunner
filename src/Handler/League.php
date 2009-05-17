@@ -89,10 +89,10 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 		case 'approve scores':
 		case 'edit schedule':
 		case 'manage teams':
+		case 'ratings':
 			return ($user && $user->is_coordinator_of($id));
 		case 'create':
 		case 'delete':
-		case 'ratings':
 		case 'download':
 			// admin only
 			break;
