@@ -65,7 +65,7 @@ class APIGamesToday extends Handler
 				}
 				$timecap_html .= '</span>';
 			}
-			$gamecount_html = "<b><a href=\"$day_url\">$game_count games today</a></b>";
+			$gamecount_html = "<b><a href=\"$day_url\" target=\"_top\">$game_count games today</a></b>";
 		}
 
 		print <<<END_HTML
