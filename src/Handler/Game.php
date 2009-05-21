@@ -1367,8 +1367,10 @@ class GameEdit extends Handler
 				}
 				$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
 				$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
-				$score_group .= form_item("SOTG score for $game->home_name" , $game->home_spirit);
-				$score_group .= form_item("SOTG score for $game->away_name" , $game->away_spirit);
+				if( $this->league->display_numeric_sotg() ) {
+					$score_group .= form_item("SOTG score for $game->home_name" , $game->home_spirit);
+					$score_group .= form_item("SOTG score for $game->away_name" , $game->away_spirit);
+				}
 			}
 
 			if ($game->home_score == $game->away_score && $game->rating_points == 0){
