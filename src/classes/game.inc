@@ -474,7 +474,7 @@ class Game extends LeaguerunnerObject
 			}
 
 			$fields[] = "$key = ?";
-			if( empty($this->{$key}) ) {
+			if( !isset($this->{$key}) ) {
 				$fields_data[] = null;
 			} else {
 				$fields_data[] = $this->{$key};

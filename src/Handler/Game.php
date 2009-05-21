@@ -1652,8 +1652,12 @@ class GameEdit extends Handler
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
-		$this->game->set('home_spirit', $edit['sotg_home']);
-		$this->game->set('away_spirit', $edit['sotg_away']);
+		if( $edit['sotg_home'] != '' ) {
+			$this->game->set('home_spirit', $edit['sotg_home']);
+		}
+		if( $edit['sotg_away'] != '' ) {
+			$this->game->set('away_spirit', $edit['sotg_away']);
+		}
 		$this->game->set('status', $edit['status']);
 		$this->game->set('approved_by', $lr_session->attr_get('user_id'));
 
