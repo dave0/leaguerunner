@@ -10,7 +10,7 @@
 ; Database configuration.
 [database]
 ; dsn should be a PDO-compatible DSN
-dsn = "mysql:hostname=localhost;dbname=leaguerunner"
+dsn = "mysql:host=localhost;dbname=leaguerunner"
 ; username and password of mysql user
 username = leaguerunner
 password = password
