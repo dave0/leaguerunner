@@ -44,9 +44,9 @@ class APIGamesToday extends Handler
 
 		$now = time();
 		$day_url = url('schedule/day/' . strftime("%Y/%m/%d", $now));
-		$sth = $dbh->prepare('SELECT COUNT(*) from gameslot WHERE game_date = ? AND NOT ISNULL(game_id)');
+		$sth = $dbh->prepare('SELECT COUNT(*), COUNT(DISTINCT(game_end)) from gameslot WHERE game_date = ? AND NOT ISNULL(game_id)');
 		$sth->execute( array( strftime('%Y-%m-%d', $now) ) );
-		$game_count = $sth->fetchColumn();
+		list($game_count, $distinct_end_times) = $sth->fetch();
 
 		if( ! $game_count ) {
 			$game_count = 'No';
@@ -57,10 +57,14 @@ class APIGamesToday extends Handler
 		 */
 		$season = strtolower(variable_get('current_season', "Summer"));
 		$timecap_html = '';
-		if( $season == 'summer' ) {
+		if( $season == 'summer' && ($game_count > 0) ) {
 			$timecap_html .= '<div id="timecap">Timecap is <b>';
 			$timecap_html .= local_sunset_for_date( $now );
-			$timecap_html .= '</b> (unless otherwise specified in Leaguerunner)</div>';
+			$timecap_html .= '</b>';
+			if( $distinct_end_times > 1 ) {
+				$timecap_html .= ' (unless otherwise specified in Leaguerunner)';
+			}
+			$timecap_html .= '</div>';
 		}
 		print <<<END_HTML
 <html>
