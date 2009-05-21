@@ -377,7 +377,7 @@ class Game extends LeaguerunnerObject
 				FROM teamroster r
 				LEFT JOIN person p ON r.player_id = p.user_id
 				WHERE team_id = ?
-				AND r.status = 'captain' OR r.status = 'assistant'");
+				AND (r.status = 'captain' OR r.status = 'assistant')");
 		}
 		$sth->execute( array($team_id) );
 
