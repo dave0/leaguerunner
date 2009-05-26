@@ -1553,9 +1553,7 @@ class TeamSchedule extends Handler
 		$ical_url = url("team/ical/".$this->team->team_id);
 		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
-		  . para("Get your team schedule in "
-		  . "<a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$icon_url/ical.gif\" alt=\"iCal\" /></a>"
-		  . " format or <a href=\"http://www.google.com/calendar/render?cid=$ical_url\" target=\"_blank\"><img style=\"display: inline; vertical-align: middle\" src=\"http://www.google.com/calendar/images/ext/gc_button6.gif\" alt=\"Add to Google Calendar\"></a>");
+		  . para("Get your team schedule in <a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$icon_url/ical.gif\" alt=\"iCal\" /></a> format");
 	}
 }
 
@@ -2043,6 +2041,12 @@ X-WR-CALNAME:$my_team schedule from $short_league_name
 
 			// output game
 			// TODO: need to track when games are created/modified
+			// TODO: possible bug; Google Calendar tries to
+			// generate a Google Maps link from the data in
+			// LOCATION, which will always be wrong.  Is this
+			// Google being stupid, or are we violating the spec by
+			// not using something address-ish in that field
+			// TODO: What's with the X- fields?
 			print utf8_encode("BEGIN:VEVENT
 UID:$game->game_id@$domain_url
 DTSTAMP:$now
