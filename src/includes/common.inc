@@ -1388,15 +1388,22 @@ function calculateAverageSOTG ( $scores , $drop = false ) {
 
 	return $total / $size;
 }
-
+/*
+ * 0-4 = X
+ * 4.01 - 6 = Caution
+ * 6.01 - 9 = Check
+ * 9.01+ = Star
+ */
 function full_spirit_symbol_html ( $score )
 {
 	global $CONFIG;
 	$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
-	if( $score >= 10 ) {
+	if( $score >= 9.01) {
 		$html = "<img src='$icon_url/perfect.png' />";
-	} else if ($score >= 5 ) {
+	} else if ($score >= 6.01 ) {
 		$html = "<img src='$icon_url/ok.png' />";
+	} else if ($score >= 4.01 ) {
+		$html = "<img src='$icon_url/caution.png' />";
 	} else {
 		$html = "<img src='$icon_url/not_ok.png' />";
 	}
@@ -1413,6 +1420,8 @@ function question_spirit_symbol_html ( $answer_value )
 		$html = "<img src='$icon_url/perfect.png' />";
 	} else if ( $answer_value >= -1 ) {
 		$html = "<img src='$icon_url/ok.png' />";
+	} else if ( $answer_value >= -2 ) {
+		$html = "<img src='$icon_url/caution.png' />";
 	} else {
 		$html = "<img src='$icon_url/not_ok.png' />";
 	}
