@@ -356,8 +356,11 @@ class Team extends LeaguerunnerObject
 		}
 
 		if( is_null($this->region_preference) || $home_team->region_preference == '---' ) {
-			// No preference means they're always happy
-			$this->preferred_ratio = 1;
+			// No preference means they're always happy.  We set
+			// this to over 100% to force them to sort last when
+			// ordering by ratio, so that teams with a preference
+			// always appear before them.
+			$this->preferred_ratio = 2;
 			return ($this->preferred_ratio);
 		}
 
@@ -371,7 +374,9 @@ class Team extends LeaguerunnerObject
 		// case.  Accounting for this is likely to be a pain in the
 		// ass.
 		$sth = $dbh->prepare(
-			'SELECT IF(isnull(f.region), p.region, f.region) = t.region_preference AS is_preferred, COUNT(*) AS num_games
+			'SELECT
+				COALESCE(f.region, p.region) = t.region_preference AS is_preferred,
+				COUNT(*) AS num_games
 				FROM schedule s
 				LEFT JOIN gameslot g USING (game_id)
 				LEFT JOIN field f USING (fid)
