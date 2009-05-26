@@ -366,16 +366,11 @@ class Team extends LeaguerunnerObject
 
 		// It's not the most evil SQL hack in Leaguerunner, but it's
 		// probably a runner-up.  The idea is to get a count of the
-		// games played in the preferred region and a count played
-		// outside.
-		// TODO: Currently, it's assumed that if a team has a home
-		// field, they also have a region preference for the region
-		// containing the home field, but this may not always be the
-		// case.  Accounting for this is likely to be a pain in the
-		// ass.
+		// games played in the preferred region or on a home field, and
+		// a count played outside.
 		$sth = $dbh->prepare(
 			'SELECT
-				COALESCE(f.region, p.region) = t.region_preference AS is_preferred,
+				IF(g.fid = t.home_field, 1, COALESCE(f.region,p.region) = t.region_preference) AS is_preferred,
 				COUNT(*) AS num_games
 				FROM schedule s
 				LEFT JOIN gameslot g USING (game_id)
