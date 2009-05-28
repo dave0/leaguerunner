@@ -185,7 +185,8 @@ class GameSlotCreate extends Handler
 		$sth = $dbh->prepare("SELECT 
 			l.league_id,
 			l.name,
-			l.tier
+			l.tier,
+			l.year
 			FROM league l
 			WHERE l.schedule_type != 'none'
 			AND (FIND_IN_SET(?, l.day) > 0)
@@ -199,6 +200,7 @@ class GameSlotCreate extends Handler
 			} else {
 				$league->fullname = $league->name;
 			}
+			$league->fullname .= ' ' . $league->year;
 			$chex .= form_checkbox($league->fullname, 'edit[availability][]', $league->league_id, $league->selected);
 		}
 		$output .= form_group('Make Gameslot Available To:', $chex);
