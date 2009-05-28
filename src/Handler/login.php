@@ -102,53 +102,9 @@ class login extends Handler
 			$error = 'You must log in to perform that operation';
 		}
 
-		$output = "<p />";
-		if($error) {
-			$output .= "<div style='padding-top: 2em; text-align: center'>";
-			$output .= theme_error($error);
-			$output .= "</div>";
-		}
-		$rows = array();
-		$rows[] = array("Username:", form_textfield("", "edit[username]", "", 25, 25));
-		$rows[] = array("Password:", form_password("", "edit[password]", "", 25, 25));
-
-		$rows[] = array(
-			array('data' => form_checkbox("Remember Me","edit[remember_me]"),
-				  "colspan" => 2, "align" => "center")
-		);
-		$rows[] = array(
-			array('data' => form_submit("Log In","submit")
-				  . "<br />" . theme_links(array(
-			l("Forgot your password", "person/forgotpassword"),
-			l("Create New Account", "person/create"))),
-				  "colspan" => 2, "align" => "center")
-		);
-
-		$rows[] = array(
-			array( 'colspan' => 2,
-				   'data' => "<p><b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you
-have an invalid session then cookies may be turned off in your browser.<br />
-<br />
-<i>
-If you cannot login after receiving your Account Activation notification, try getting a new
-password emailed to you (click on \"Forgot your password?\").</i>
-</p>
-<p>
-Do NOT create a new account if you already have one.  Use the 'Forgot your
-password' feature to have your login info emailed to the address on file.
-</p>
-"
-			)
-		);
-
-		$output .= table(null, $rows, array('align'=>'center', 'width' => '300' ));
-		$output .=<<<EOF
-<script language="JavaScript">
-document.lrlogin.elements[0].focus();
-</script>
-EOF;
-		$output .= form_hidden('edit[next]', $next);
-		return form($output, 'post', 0, " name='lrlogin'");
+		$this->smarty->assign('error', $error);
+		$this->template_name = 'pages/login.tpl';
+		return true;
 	}
 }
 

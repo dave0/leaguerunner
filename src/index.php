@@ -207,7 +207,7 @@ function error_exit($error = NULL)
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
-	$smarty->assign('error_message', $error);
+	$smarty->assign('error', $error);
 
 	$smarty->display('error.tpl');
 	exit;

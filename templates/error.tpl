@@ -1,3 +1,3 @@
-{include file=header.tpl title=Error}
-<span class="error">{$error_message | default: "Unknown error" }</span>
+{include file=header.tpl title=$title}
+{include file=components/errormessage.tpl message=$error}
 {include file=footer.tpl}
