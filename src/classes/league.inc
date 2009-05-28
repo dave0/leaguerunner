@@ -969,7 +969,7 @@ class League extends LeaguerunnerObject
 	function next_gameslot_day( $datestamp )
 	{
 		global $dbh;
-		$sth = $dbh->prepare('SELECT UNIX_TIMESTAMP(game_date) FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) >= ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY game_date LIMIT 1');
+		$sth = $dbh->prepare('SELECT UNIX_TIMESTAMP(game_date) FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) > ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY game_date LIMIT 1');
 		$sth->execute(array( $datestamp, $this->league_id) );
 
 		return $sth->fetchColumn();
@@ -1399,7 +1399,7 @@ class League extends LeaguerunnerObject
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
-			return array(false, "Failed to assign gameslots for requested games.$extra_errors");
+			return array(false, "Failed to assign gameslots for requested games on " . strftime('%c', $datestamp) . ": $extra_errors");
 		}
 		$rc = $dbh->commit();
 
@@ -1530,8 +1530,6 @@ class League extends LeaguerunnerObject
 				if( ! $rc ) {
 					return array($rc, $message);
 				}
-
-				$scheduled = true;
 			} else {
 				$second_pass[] = $game;
 			}
@@ -1541,7 +1539,7 @@ class League extends LeaguerunnerObject
 		while($game = array_pop($second_pass)) {
 			list($rc, $message) = $game->select_weighted_gameslot($datestamp);
 			if( ! $rc ) {
-				return array($rc, $message);
+				return array($rc, "game " . $game->game_id . " on second pass: $message");
 			}
 		}
 
