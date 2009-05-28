@@ -133,7 +133,6 @@ if($handler->initialize()) {
 		if($result === false) {
 			error_exit("Uncaught failure in $mod, performing " . arg(1));
 		}
-		header('Cache-control: max-age=600');
 		print theme_header($handler->title);
 		print theme_body($handler->breadcrumbs);
 		print "<h1>$handler->title</h1>";
