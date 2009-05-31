@@ -20,7 +20,6 @@ module_register("Handler/SportsML.php",'sportsml');
 module_register("Handler/GoogleMaps.php",'gmaps');
 module_register("Handler/Image.php",'image');
 module_register("Handler/API.php", 'api');
-#module_register("Handler/Graph.php",'graph');
 
 /**
  * This is the base class for all operation handlers used in the web UI.
