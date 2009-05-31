@@ -85,6 +85,9 @@ class ScheduleViewDay extends Handler
 			schedule_subheading( ),
 		);
 		while($g = $sth->fetchObject('Game') ) {
+			if( ! ($g->published || $lr_session->has_permission('league','edit schedule', $this->league->league_id) ) ) {
+				continue;
+			}
 			$rows[] = schedule_render_viewable($g);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
