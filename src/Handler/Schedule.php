@@ -527,6 +527,14 @@ function schedule_render_viewable( &$game )
 		l( $game->field_code, "field/view/$game->fid"),
 	);
 
+	// If game is unpublished, hack in a yellow background
+	if( ! $game->published ) {
+		$gameRow[0] = "(unpublished) $gameRow[0]";
+		for($i=0; $i < count($gameRow); $i++) {
+			$gameRow[$i] = array( 'data' => "$gameRow[$i]", 'style' => 'background-color: yellow' );
+		}
+	}
+
 	if($game->status == 'home_default') {
 		$gameRow[] = array('data' => $homeTeam, 'style' => 'background-color: red');
 		$gameRow[] = array('data' => $game->home_score . '(dfl)', 'style' => 'background-color: red');
