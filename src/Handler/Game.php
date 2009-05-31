@@ -885,7 +885,13 @@ class GameSubmit extends Handler
 				$output .= para("Please fill out the questions below.");
 				$spirit_type = variable_get('spirit_questions', 'team_spirit');
 				$questions = formbuilder_load($spirit_type);
-				$output .= $questions->render_editable(false);
+
+				$have_default_answers = false;
+				if( $spirit_type == 'ocua_team_spirit' ) {
+					$have_default_answers = true;
+					$questions->bulk_set_answers( $this->game->default_spirit('form_defaults') );
+				}
+				$output .= $questions->render_editable( $have_default_answers );
 				if( $this->league->enter_numeric_sotg() ) {
 					$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
 				}
@@ -1461,8 +1467,10 @@ class GameEdit extends Handler
 				$hs = $game->home_spirit;
 				$as = $game->away_spirit;
 			}
-			$score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
-			$score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
+			if( $this->league->enter_numeric_sotg() ) {
+				$score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
+				$score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
+			}
 		}
 
 		$output .= form_group("Scoring", $score_group);

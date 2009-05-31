@@ -925,7 +925,19 @@ class Game extends LeaguerunnerObject
 	 */
 	function default_spirit ( $type , $numeric = false, $default = "")
 	{
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+
+		if( $spirit_type == 'ocua_team_spirit') {
+			return $this->default_ocua_team_spirit_answers( $type, $numeric, $default );
+		}
+		return $this->default_team_spirit_answers( $type, $numeric, $default );
+	}
+
+
+	function default_team_spirit_answers ( $type, $numeric = false, $default = "" )
+	{
 		$comments = "Automatic spirit assigned: ";
+
 		switch( $type ) {
 			case 'penalized':
 				$spirit = 10 - variable_get('missing_score_spirit_penalty', 3);
@@ -991,6 +1003,85 @@ class Game extends LeaguerunnerObject
 					'RulesKnowledge' => 'ExcellentRules',
 					'Sportsmanship' => 'ExcellentSportsmanship',
 					'Enjoyment' => 'AllEnjoyed',
+					'CommentsToCoordinator' => $comments . "10",
+				);
+				break;
+			default:
+				die("Invalid type $type given to default_spirit()");
+		}
+	}
+
+	function default_ocua_team_spirit_answers ( $type, $numeric = false, $default = "" )
+	{
+		$comments = "Automatic spirit assigned: ";
+
+		switch( $type ) {
+			case 'form_defaults':
+				return array (
+					'OCUATimeliness' => 'OnTime',
+					'OCUARulesKnowledge' => 'GoodRules',
+					'OCUASportsmanship' => 'GoodSportsmanship',
+					'OCUAOverall' => 'Good',
+					'CommentsToCoordinator' => ''
+				);
+				break;
+			case 'penalized':
+				$spirit = 10 - variable_get('missing_score_spirit_penalty', 3);
+				if ($numeric) {
+					return $spirit;
+				}
+				return array (
+					'OCUATimeliness' => 'NotOnTime',
+					'OCUARulesKnowledge' => 'GoodRules',
+					'OCUASportsmanship' => 'GoodSportsmanship',
+					'OCUAOverall' => 'Good',
+					'CommentsToCoordinator' => "Score not submitted by required time",
+				);
+				break;
+			case 'loser':
+				// 4
+				if ($numeric) {
+					return 4;
+				}
+				if ($default != "") {
+					return array(
+						'OCUATimeliness' => 'NotOnTime',
+						'OCUARulesKnowledge' => 'BelowAverageRules',
+						'OCUASportsmanship' => 'BelowAverageSportsmanship',
+						'OCUAOverall' => 'BelowAverage',
+						'CommentsToCoordinator' => $comments . "4 ($default)",
+					);
+				}
+				return array (
+					'OCUATimeliness' => 'NotOnTime',
+					'OCUARulesKnowledge' => 'BelowAverageRules',
+					'OCUASportsmanship' => 'BelowAverageSportsmanship',
+					'OCUAOverall' => 'Good',
+					'CommentsToCoordinator' => $comments . "4",
+				);
+				break;
+			case 'winner':
+				// 7
+				if ($numeric) {
+					return 7;
+				}
+				return array (
+					'OCUATimeliness' => 'OnTime',
+					'OCUARulesKnowledge' => 'GoodRules',
+					'OCUASportsmanship' => 'GoodSportsmanship',
+					'OCUAOverall' => 'Good',
+					'CommentsToCoordinator' => $comments . "7",
+				);
+				break;
+			case 'perfect':
+				if ($numeric) {
+					return 10;
+				}
+				return array (
+					'OCUATimeliness' => 'OnTime',
+					'OCUARulesKnowledge' => 'ExceptionalRules',
+					'OCUASportsmanship' => 'ExceptionalSportsmanship',
+					'OCUAOverall' => 'Exceptional',
 					'CommentsToCoordinator' => $comments . "10",
 				);
 				break;
