@@ -355,7 +355,8 @@ class Team extends LeaguerunnerObject
 			return $this->preferred_ratio;
 		}
 
-		if( is_null($this->region_preference) || $home_team->region_preference == '---' ) {
+		if( ! $this->region_preference
+			|| $home_team->region_preference == '---' ) {
 			// No preference means they're always happy.  We set
 			// this to over 100% to force them to sort last when
 			// ordering by ratio, so that teams with a preference
