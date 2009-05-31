@@ -2415,58 +2415,76 @@ class LeagueFieldAvailability extends Handler
 		global $dbh;
 
 		menu_add_child($this->league->fullname."/slots", "$league->fullname/slots/$year/$month/$day","$year/$month/$day", array('weight' => 1, 'link' => "league/slots/".$this->league->league_id."/$year/$month/$day"));
+
+		$rows = array(
+			array(
+				array('data' => strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year)), 'colspan' => 7, 'class' => 'gamedate')
+			),
+        		array(
+				 array('data' => 'Slot', 'class' => 'column-heading'),
+				 array('data' => 'Field', 'class' => 'column-heading'),
+				 array('data' => 'Game', 'class' => 'column-heading'),
+				 array('data' => 'Home', 'class' => 'column-heading'),
+				 array('data' => 'Away', 'class' => 'column-heading'),
+				 array('data' => 'Field Region', 'class' => 'column-heading'),
+				 array('data' => 'Home Pref', 'class' => 'column-heading'),
+			 )
+		);
+
 		$sth = $dbh->prepare('SELECT
-                g.slot_id,
-                field.name AS field_name,
-                field.num AS field_num,
-                field.code AS field_code,
-                g.fid,
-                g.game_date,
-                UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
-                TIME_FORMAT(g.game_start,"%H:%i") AS game_start,
-                TIME_FORMAT(g.game_end,"%H:%i") AS game_end,
-                g.game_id
-        FROM
-                league_gameslot_availability l
-                INNER JOIN gameslot g ON (l.slot_id = g.slot_id)
-                INNER JOIN field ON (g.fid = field.fid)
-        WHERE l.league_id = ?
-		AND g.game_date = ?
-		ORDER BY g.game_start, field_code, field_num');
+			g.slot_id,
+			COALESCE(f.code, pf.code) AS field_code,
+			COALESCE(f.num, pf.num)   AS field_num,
+			COALESCE(f.region, pf.region) AS field_region,
+			g.fid,
+			t.region_preference AS home_region_preference,
+			IF(g.fid = t.home_field,
+				1,
+				COALESCE(f.region,pf.region) = t.region_preference) AS is_preferred,
+			g.game_id
+
+		FROM
+			league_gameslot_availability l,
+			gameslot g
+				LEFT JOIN schedule s ON (g.game_id = s.game_id)
+				LEFT JOIN team t ON (s.home_team = t.team_id),
+			field f LEFT JOIN field pf ON (f.parent_fid = pf.fid)
+		WHERE l.league_id = ?
+			AND g.game_date = ?
+			AND g.slot_id = l.slot_id
+			AND f.fid = g.fid
+			ORDER BY field_code, field_num');
 		$sth->execute( array ($this->league->league_id,
 				sprintf('%d-%d-%d', $year, $month, $day)) );
 
 		$num_open = 0;
 		while($g = $sth->fetch()) {
 
-			if ( ! $g['game_end'] ) {
-				$g['game_end'] = 'dark';
-			}
-			$row = array($g['slot_id'], 
-						 $g['game_start'].' - '.$g['game_end']);
-
-			// load field info
-			$field = field_load(array('fid' => $g['fid']));
-			$row[] = l("$field->code $field->num", "field/view/$field->fid",
-					   array('title' => $field->fullname));
+			$row = array(
+				$g['slot_id'],
+				l($g['field_code'] . $g['field_num'], "field/view/" . $g['fid'])
+			);
 
 			// load game info, if game scheduled
 			if ($g['game_id']) {
 				$game = game_load( array('game_id' => $g['game_id']) );
-				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
 				$sched = schedule_render_viewable($game);
+				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
 				$row[] = $sched[3];
 				$row[] = $sched[5];
-				if (!array_key_exists ($game->league_id, $leagues)) {
-					$leagues[$game->league_id] = league_load(array('league_id' => $game->league_id));
+
+				$color = 'white';
+				if( ! $g['is_preferred'] && ($g['home_region_preference'] && $g['home_region_preference'] != '---') ) {
+					/* Show in red if it's an unsatisfied preference */
+					$color = 'red';
 				}
-				$row[] = array('data' => l($game->league_id, 
-										   "league/view/$game->league_id",
-										   array('title'=>htmlspecialchars($leagues[$game->league_id]->fullname))),
-							   'align' => 'center');
+				$row[] = array( 'data' => $g['field_region'], 'style' => "background-color: $color");
+				$row[] = array( 'data' => $g['home_region_preference'], 'style' => "background-color: $color");
 			} else {
 				$row[] = array('data' => "<b>---- field open ----</b>",
-							   'colspan' => '5');
+							   'colspan' => '3');
+				$row[] = $g['field_region'];
+				$row[] = '&nbsp;';
 				$num_open++;
 			}
 
@@ -2475,32 +2493,13 @@ class LeagueFieldAvailability extends Handler
 		if( ! count( $rows ) ) {
 			error_exit("No gameslots available for this league on this day");
 		}
-
-		// now that we know the fields, sort the rows
-		usort($rows, 'slots_cmp');
 		$num_fields = count($rows);
 
-		$header = array( 
-			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
-			$this->subheading( ),
-		);
-		array_splice($rows, 0, 0, $header);
 		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>"
 			. para("There are $num_fields fields available for use this week, currently $num_open of these are unused.");
 		return $output;
 	}
 
-	function subheading( )
-	{
-        return array(
-					 array('data' => 'Slot', 'class' => 'column-heading'),
-					 array('data' => 'Time/Place', 'colspan' => 2, 'class' => 'column-heading'),
-					 array('data' => 'Game', 'class' => 'column-heading'),
-					 array('data' => 'Home', 'class' => 'column-heading'),
-					 array('data' => 'Away', 'class' => 'column-heading'),
-					 array('data' => 'League', 'class' => 'column-heading'),
-					 );
-	}
 }
 
 function _ratio_helper( $count, $total )
@@ -2522,22 +2521,6 @@ function _ratio_helper( $count, $total )
 		$output = "<font color='red'><b>$output</b></font>";
 	}
 	return $output;
-}
-
-// sorting function for slot availability list...
-// php ||, or functions won't maintain strcmp return values... ugh...
-// gotta resort to ugly if statements instead of pretty logical expr
-function slots_cmp($a, $b)
-{
-	// sort on start_time, field_code, slot_id
-	$res = strncmp($a[1], $b[1], 5);
-	if (! $res) {
-		$res = strcmp($a[2], $b[2]);
-	}
-	if (! $res) {
-		$res = strcmp($a[0], $b[0]);
-	}
-	return $res;
 }
 
 /**
