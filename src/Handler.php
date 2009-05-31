@@ -58,6 +58,7 @@ class Handler
 	 */
 	function initialize ()
 	{
+		$this->breadcrumbs = array();
 		return true;
 	}
 
