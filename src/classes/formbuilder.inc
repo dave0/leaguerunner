@@ -172,6 +172,15 @@ class FormBuilder
 	}
 
 	/**
+	 * Keys of active questions
+	 */
+	function question_keys ( )
+	{
+		return array_keys($this->_questions);
+	}
+
+
+	/**
 	 * Render as a form.  If want_results is false, we print the blank form
 	 * instead.
 	 * TODO: allow specifying an array of question keys that will be rendered

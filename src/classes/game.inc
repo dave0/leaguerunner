@@ -834,8 +834,10 @@ class Game extends LeaguerunnerObject
 		}
 
 		if( !is_array($this->_spirit_entries) ) {
-			// No entries
-			return false;
+			$this->load_spirit_entries();
+			if( !is_array($this->_spirit_entries) ) {
+				return false;
+			}
 		}
 
 		if( array_key_exists( $team_id, $this->_spirit_entries) ) {

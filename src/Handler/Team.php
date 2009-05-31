@@ -1596,16 +1596,29 @@ class TeamSpirit extends Handler
 			error_exit('There are no games scheduled for this team');
 		}
 
-		$header = array(
-			'ID',
-			'Date',
-			'Opponent',
-			'Overall'
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+		$questions = formbuilder_load($spirit_type);
+
+		$question_keys = array_diff(
+			$questions->question_keys(),
+			array( 'CommentsToCoordinator' )
 		);
+		$header = array_merge(
+			array(
+				'ID',
+				'Date',
+				'Opponent',
+				'Overall',
+			),
+			array_map('make_shorter_titles', $question_keys)
+		);
+
+		if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+			$header[] = 'CommentsToCoordinator';
+		}
 
 		$rows = array();
 
-		// TODO load all point values for answers into array
 		$answer_values = array();
 		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
 		$sth->execute();
@@ -1668,29 +1681,10 @@ class TeamSpirit extends Handler
 			$sotg_scores[] = $spirit;
 
 			while( list($qkey,$answer) = each($entry) ) {
-
-				if( !$num_games ) {
-					if( variable_get('narrow_display', '0') ) {
-						$h = preg_replace( '/([a-z])([A-Z])/', '$1 $2', $qkey );
-					} else {
-						$h = $qkey;
-					}
-					if( $qkey == 'CommentsToCoordinator') {
-						if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-							$header[] = $h;
-						} else {
-							$header[] = '&nbsp;';
-						}
-					} else {
-						$header[] = $h;
-					}
-				}
 				if( $qkey == 'CommentsToCoordinator' ) {
 					// can only see comments if you're a coordinator
 					if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
 						$thisrow[] = $answer;
-					} else {
-						$thisrow[] = '&nbsp;';
 					}
 					continue;
 				}
@@ -1722,8 +1716,8 @@ class TeamSpirit extends Handler
 			$thisrow[] = full_spirit_symbol_html( $spirit );
 		}
 
-		reset($question_sums);
-		foreach( $question_sums as $qkey => $answer) {
+		foreach( $question_keys as $qkey ) {
+			$answer = $question_sums[$qkey];
 			$avg = ($answer / ($num_games - $num_spirit_questions));
 			$thisrow[] = question_spirit_symbol_html( $avg );
 		}
@@ -2071,6 +2065,5 @@ END:VEVENT
 		exit; // don't return, as we don't want the HTML printed
 	}
 }
-
 
 ?>

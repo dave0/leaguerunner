@@ -95,6 +95,11 @@ function global_settings()
 
 	$group .= form_radios('Transfer ratings points for defaults', 'edit[default_transfer_ratings]', variable_get('default_transfer_ratings', 0), array('Disabled', 'Enabled'));
 
+	$group .= form_select('Spirit Questions', 'edit[spirit_questions]', variable_get('spirit_questions','team_spirit'), array(
+		'team_spirit' => 'team_spirit',
+		'ocua_team_spirit' => 'ocua_team_spirit',
+	), 'Type of spirit questions to use.');
+
 	$output .= form_group('Game Finalization', $group);
 
 	return settings_form($output);

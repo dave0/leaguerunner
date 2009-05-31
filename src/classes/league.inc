@@ -576,13 +576,13 @@ class League extends LeaguerunnerObject
 
 	function standings_record_game(&$season, &$game)
 	{
-	
+
 		// Make sure we have a numeric spirit value for each game.
-		if ($game->home_spirit == null || $game->home_spirit == "") {
+		if (!$this->enter_numeric_sotg() || $game->home_spirit == null || $game->home_spirit == "") {
 			$game->home_spirit = $game->get_spirit_numeric( $game->home_team );
 		}
 
-		if ($game->away_spirit == null || $game->away_spirit == "") {
+		if (!$this->enter_numeric_sotg() || $game->away_spirit == null || $game->away_spirit == "") {
 			$game->away_spirit = $game->get_spirit_numeric( $game->away_team );
 		}
 

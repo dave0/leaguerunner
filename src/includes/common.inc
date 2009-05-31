@@ -1478,5 +1478,16 @@ function display_short_name ($name, $length = -1)
 	return $short;
 }
 
+/**
+ * Used to strip off the OCUA prefix from ocua spirit questions
+ * This is a horrible, unpleasant evil hack
+ */
+function make_shorter_titles ( $string )
+{
+	return preg_replace('/OCUA/', '', $string);
+}
+
+
+
 /* vim: set sw=4 ts=4 et: */
 ?>

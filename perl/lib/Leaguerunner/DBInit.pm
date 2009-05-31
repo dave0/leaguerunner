@@ -1471,6 +1471,165 @@ sub upgrade_19_to_20
 		remove_rank => [q{
 			ALTER TABLE leagueteams DROP COLUMN rank
 		}],
+
+		# OCUA uses new spirit questions now
+		ocua_spirit_questions => [q{
+			INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
+				'OCUATimeliness',
+				'ocua_team_spirit',
+				'Our opponents\' timeliness',
+				'multiplechoice',
+				0);
+			},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'OnTime',
+				'OCUATimeliness',
+				'met expetations',
+				'0',
+				0);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'NotOntime',
+				'OCUATimeliness',
+				'did not meet expectations',
+				'-1',
+				1);
+		},
+
+
+		q{
+			INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
+				'OCUARulesKnowledge',
+				'ocua_team_spirit',
+				'Our opponents\' rules knowledge was',
+				'multiplechoice',
+				1);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'ExceptionalRules',
+				'OCUARulesKnowledge',
+				'exceptional',
+				'0',
+				0);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'GoodRules',
+				'OCUARulesKnowledge',
+				'good',
+				'-1',
+				1);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'BelowAverageRules',
+				'OCUARulesKnowledge',
+				'below average',
+				'-2',
+				2);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'BadRules',
+				'OCUARulesKnowledge',
+				'bad',
+				'-3',
+				3);
+		},
+
+		q{
+			INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
+				'OCUASportsmanship',
+				'ocua_team_spirit',
+				'Our opponents\' sportsmanship was',
+				'multiplechoice',
+				2);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'ExceptionalSportsmanship',
+				'OCUASportsmanship',
+				'exceptional',
+				'0',
+				0);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'GoodSportsmanship',
+				'OCUASportsmanship',
+				'good',
+				'-1',
+				1);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'BelowAverageSportsmanship',
+				'OCUASportsmanship',
+				'below average',
+				'-2',
+				2);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'PoorSportsmanship',
+				'OCUASportsmanship',
+				'poor',
+				'-3',
+				3);
+		},
+
+		q{
+			INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
+				'OCUAOverall',
+				'ocua_team_spirit',
+				'Ignoring the score and based on the opponents\' spirit of the game, what was your overall assessment of the game?',
+				'multiplechoice',
+				3);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'Exceptional',
+				'OCUAOverall',
+				'This was an exceptionally great game',
+				'0',
+				0);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'Good',
+				'OCUAOverall',
+				'This was an enjoyable game',
+				'-1',
+				1);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'Mediocre',
+				'OCUAOverall',
+				'This was a mediocre game',
+				'-2',
+				2);
+		},
+		q{
+			INSERT INTO multiplechoice_answers VALUES(
+				'Bad',
+				'OCUAOverall',
+				'This was a very bad game',
+				'-3',
+				3);
+		},
+		q{
+			INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
+				'CommentsToCoordinator',
+				'ocua_team_spirit',
+				'Do you have any comments on this game you would like to bring to the coordinator''s attention?',
+				'freetext',
+				'N',
+				'4');
+		}],
 	]);
 }
 

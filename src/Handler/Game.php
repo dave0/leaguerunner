@@ -611,8 +611,11 @@ class GameSubmit extends Handler
 
 		$edit = $_POST['edit'];
 		$spirit = $incident = $allstar = null;
-		if (array_key_exists ('team_spirit', $_POST))
-			$spirit = $_POST['team_spirit'];
+
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+
+		if (array_key_exists ($spirit_type, $_POST))
+			$spirit = $_POST[$spirit_type];
 		if (array_key_exists ('incident', $_POST))
 			$incident = $_POST['incident'];
 		if (array_key_exists ('allstars', $_POST))
@@ -766,8 +769,9 @@ class GameSubmit extends Handler
 	{
 		global $lr_session, $dbh;
 
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
 		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load('team_spirit');
+			$questions = formbuilder_load($spirit_type);
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -887,20 +891,9 @@ class GameSubmit extends Handler
 				// Fall through
 			case 'survey_only':
 				$output .= para("Please fill out the questions below.");
-				$questions = formbuilder_load('team_spirit');
+				$spirit_type = variable_get('spirit_questions', 'team_spirit');
+				$questions = formbuilder_load($spirit_type);
 				$output .= $questions->render_editable(false);
-				//TODO: This javascript has HARD CODED names of the elements and should probably be worked into the formbuilder...
-				// javascript to ask for comments if any of the "worst" answers are chosen...
-				$javascript = "var form = document.getElementById('score_form'); ";
-				$javascript .= "if (form.elements['team_spirit[RulesKnowledge]'][2].checked || form.elements['team_spirit[RulesKnowledge]'][3].checked || ";
-				$javascript .= "form.elements['team_spirit[Sportsmanship]'][2].checked || form.elements['team_spirit[Sportsmanship]'][3].checked || ";
-				$javascript .= "form.elements['team_spirit[Enjoyment]'][3].checked) { ";
-				$javascript .= "  if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-				$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you answered the Spirit questions the way you did.'); return false; } }";
-				// javascript to ask for comments if the SOTG score will be 5 or less:
-				$javascript .= "if (form.elements['edit[sotg]'].value == '') { form.elements['edit[sotg]'].value = sotg(); } ";
-				$javascript .= "if (sotg() <= 5 || form.elements['edit[sotg]'].value <= 5) { if (form.elements['team_spirit[CommentsToCoordinator]'].value == '') { ";
-				$javascript .= "    alert('Please enter a comment for the coordinators to help explain why you assigned an SOTG score the way you did.'); return false; } }";
 				if( $this->league->enter_numeric_sotg() ) {
 					$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
 				}
@@ -913,8 +906,9 @@ class GameSubmit extends Handler
 
 	function generateIncidentForm ($edit, $opponent, $spirit = null )
 	{
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
 		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load('team_spirit');
+			$questions = formbuilder_load($spirit_type);
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -933,7 +927,7 @@ class GameSubmit extends Handler
 			$edit['step'] = 'confirm';
 		}
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('team_spirit', $spirit);
+		$output .= $this->hidden_fields ($spirit_type, $spirit);
 
 		$output .= form_select('Incident type', 'incident[type]', '', $this->incident_types(), '');
 		$output .= form_textarea('Incident Details', 'incident[details]', '', 60, 5, '');
@@ -945,8 +939,9 @@ class GameSubmit extends Handler
 
 	function generateAllStarForm ($edit, $opponent, $spirit = null, $incident = null )
 	{
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
 		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load('team_spirit');
+			$questions = formbuilder_load($spirit_type);
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -965,7 +960,7 @@ class GameSubmit extends Handler
 
 		$edit['step'] = 'confirm';
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('team_spirit', $spirit);
+		$output .= $this->hidden_fields ($spirit_type, $spirit);
 		$output .= $this->hidden_fields ('incident', $incident);
 
 		$team = team_load( array('team_id' => $opponent->team_id) );
@@ -999,8 +994,9 @@ class GameSubmit extends Handler
 
 	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null, $allstars = null )
 	{
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
 		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load('team_spirit');
+			$questions = formbuilder_load($spirit_type);
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -1015,7 +1011,7 @@ class GameSubmit extends Handler
 
 		$edit['step'] = 'save';
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('team_spirit', $spirit);
+		$output .= $this->hidden_fields ($spirit_type, $spirit);
 		$output .= $this->hidden_fields ('incident', $incident);
 		$output .= $this->hidden_fields ('allstars', $allstars);
 
@@ -1480,16 +1476,17 @@ class GameEdit extends Handler
 		$output .= form_group("Scoring", $score_group);
 
 		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
-
-			$formbuilder = formbuilder_load('team_spirit');
 			$ary = $game->get_spirit_entry( $game->home_id );
-			// hack: if Timeliness is empty then it's because of an auto-finalize,
-			// so make the $ary null otherwise a later check for invalid answers will
-			// cause nothing to be displayed...
-			// TONY: when can I remove this hack?? if ever?? otherwise make it less of a hack
-			if ($ary["Timeliness"] == null || $ary["Timeliness"] == "") {
-				$ary = null;
+
+			$spirit_type = variable_get('spirit_questions', 'team_spirit');
+			// TODO FIXME HACK even if we changed to different
+			// spirit questions, we may have old ones in the
+			// database.
+			if( $ary && array_key_exists('Timeliness', $ary) ) {
+				$spirit_type = 'team_spirit';
 			}
+
+			$formbuilder = formbuilder_load($spirit_type);
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
@@ -1502,13 +1499,6 @@ class GameEdit extends Handler
 
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
-			// hack: if Timeliness is empty then it's because of an auto-finalize,
-			// so make the $ary null otherwise a later check for invalid answers will
-			// cause nothing to be displayed...
-			// TONY: when can I remove this hack?? if ever?? otherwise make it less of a hack
-			if ($ary["Timeliness"] == null || $ary["Timeliness"] == "") {
-				$ary = null;
-			}
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
 			}
@@ -1536,8 +1526,9 @@ class GameEdit extends Handler
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
-		$home_spirit = formbuilder_load('team_spirit');
-		$away_spirit = formbuilder_load('team_spirit');
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+		$home_spirit = formbuilder_load($spirit_type);
+		$away_spirit = formbuilder_load($spirit_type);
 
 		$win = variable_get('default_winning_score', 6);
 		$lose = variable_get('default_losing_score', 0);
@@ -1563,8 +1554,8 @@ class GameEdit extends Handler
 				break;
 			case 'normal':
 			default:
-				$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
-				$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
+				$home_spirit->bulk_set_answers( $_POST[$spirit_type . '_home'] );
+				$away_spirit->bulk_set_answers( $_POST[$spirit_type . '_away'] );
 				$dataInvalid .= $home_spirit->answers_invalid();
 				$dataInvalid .= $away_spirit->answers_invalid();
 				break;
@@ -1619,10 +1610,11 @@ class GameEdit extends Handler
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
-		$home_spirit = formbuilder_load('team_spirit');
-		$home_spirit->bulk_set_answers( $_POST['team_spirit_home'] );
-		$away_spirit = formbuilder_load('team_spirit');
-		$away_spirit->bulk_set_answers( $_POST['team_spirit_away'] );
+		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+		$home_spirit = formbuilder_load($spirit_type);
+		$home_spirit->bulk_set_answers( $_POST[ $spirit_type . '_home'] );
+		$away_spirit = formbuilder_load($spirit_type);
+		$away_spirit->bulk_set_answers( $_POST[ $spirit_type . '_away'] );
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
@@ -2144,21 +2136,22 @@ function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
 	if ($name != null && $name != "") {
 		$use = "_" . $name;
 	}
+	$spirit_type = variable_get('spirit_questions', 'team_spirit');
 	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
 	$sotgjs .= "var sotg=10;\n";
 	$sotgjs .= "var form = document.getElementById('score_form');\n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['team_spirit" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
+	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
 	$sotgjs .= "return sotg;\n";
 	$sotgjs .= "}\n";
 	$sotgjs .= "</script>\n";
