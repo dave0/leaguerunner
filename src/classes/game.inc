@@ -1256,37 +1256,16 @@ class Game extends LeaguerunnerObject
 			return array (false, "Game must have a league_id before calling select_random_gameslot()");
 		}
 
-
-		/*
-		 * To keep this safe amongst possible multiple writers, we lock.  To
-		 * keep the locks a bit more granular, we lock on the timestamp, so
-		 * that we only protect against people trying to add games on the same
-		 * day.
-		 * TODO: This needs transactions!  The locking stuff is stupid.
-		 */
-		$lockname = "schedule_lock_$timestamp";
-
-		$lock_sth = $dbh->prepare('SELECT GET_LOCK(?,10)');
-		$lock_sth->execute( array( $lockname ) );
-		$lock = $lock_sth->fetchColumn();
-		if(!isset($lock) || $lock == 0) {
-			// Couldn't obtain lock after 10 seconds, so bail.
-			return array(false, "Couldn't get lock");
-		}
-		$unlock_sth = $dbh->prepare('SELECT RELEASE_LOCK(?)');
-
 		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1');
 		$sth->execute( array( $timestamp, $this->league_id) );
 		$slot_id = $sth->fetchColumn();
 		if( ! $slot_id ) {
-			$unlock_sth->execute( array( $lockname ) );
 			return array(false, "Couldn't get slot ID");
 		}
 
 		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
 		$sth->execute( array( $this->game_id, $slot_id) );
 		$gameslot_affected_rows = $sth->rowCount();
-		$unlock_sth->execute( array( $lockname ) );
 		if(1 != $gameslot_affected_rows) {
 			return array(false, "Couldn't assign gameslot");
 		}
@@ -1323,25 +1302,6 @@ class Game extends LeaguerunnerObject
 		}
 
 		$satisfied = false;
-		/*
-		 * To keep this safe amongst possible multiple writers, we lock.  To
-		 * keep the locks a bit more granular, we lock on the timestamp, so
-		 * that we only protect against people trying to add games on the same
-		 * day.
-		 * TODO: This needs transactions!  The locking stuff is stupid.
-		 * TODO: Make sure this is only ever called from a transaction, and if so, nuke the lock
-		 */
-		$lockname = "schedule_lock_$timestamp";
-
-		$lock_sth = $dbh->prepare('SELECT GET_LOCK(?,10)');
-		$lock_sth->execute( array( $lockname ) );
-		$lock = $lock_sth->fetchColumn();
-		if(!isset($lock) || $lock == 0) {
-			// Couldn't obtain lock after 10 seconds, so bail.
-			return array(false, "Couldn't get lock");
-		}
-		$unlock_sth = $dbh->prepare('SELECT RELEASE_LOCK(?)');
-
 		// try to adhere to the home team's HOME FIELD DESIGNATION
 		$t = $this->get_home_team_object();
 		if ($t->home_field != null && $t->home_field != '') {
@@ -1372,14 +1332,12 @@ class Game extends LeaguerunnerObject
 		}
 
 		if( ! $slot_id ) {
-			$unlock_sth->execute( array( $lockname ) );
 			return array(false, "select_weighted_gameslot() couldn't get slot ID");
 		}
 
 		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
 		$sth->execute(array($this->game_id, $slot_id));
 		$gameslot_affected_rows = $sth->rowCount();
-		$unlock_sth->execute( array( $lockname ) );
 		if(1 != $gameslot_affected_rows) {
 			return array(false, "Couldn't assign gameslot");
 		}

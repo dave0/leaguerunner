@@ -522,15 +522,7 @@ class GameCreate extends Handler
 		switch($edit['type']) {
 			case 'single':
 				# Create single game
-				$g = new Game;
-				$g->set('league_id', $this->league->league_id);
-				$g->set('published', $should_publish);
-				if( ! $g->save() ) {
-					$rc = false;
-					$message = "Could not create single game";
-				} else {
-					list( $rc, $message) = $g->select_random_gameslot( $edit['startdate'] ) ;
-				}
+				list( $rc, $message) = $this->league->create_empty_game( $edit['startdate'], $should_publish ) ;
 				break;
 			case 'blankset':
 				# Create game for all teams in tier

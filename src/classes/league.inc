@@ -778,6 +778,52 @@ class League extends LeaguerunnerObject
 		return 0;
 	}
 
+	/**
+	 * Create a single game in this league
+	 */
+	function create_empty_game( $datestamp, $should_publish = true )
+	{
+		global $dbh;
+
+		if ( ! $this->load_teams() ) {
+			return(array(false, "Couldn't load team information"));
+		}
+
+		$num_teams = count($this->teams);
+
+		if($num_teams < 2) {
+			return array(false, "Must have two teams");
+		}
+
+		$dbh->beginTransaction();
+		$g = new Game;
+		$g->set('league_id', $this->league_id);
+		$g->set('published', $should_publish);
+		if ( ! $g->save() ) {
+			if( ! $dbh->rollback() ) {
+				$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
+			}
+			return array(false, "Failed to create a single blank game.$extra_errors");
+		}
+
+		list($rc, $message) = $g->select_random_gameslot($datestamp);
+		if( ! $rc ) {
+			/* Argh, something failed, so roll back the whole pile of
+			* games */
+			if( ! $dbh->rollback() ) {
+				$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
+			}
+			return array(false, "Failed to add gameslots to single blank game.$extra_errors");
+		}
+
+		$rc = $dbh->commit();
+
+		if( ! $rc ) {
+			return array( false, 'Transaction commit failed');
+		}
+
+		return array(true,'');
+	}
 
 	/*
 	 * Create an empty set of games for this league
@@ -827,6 +873,12 @@ class League extends LeaguerunnerObject
 				}
 				return array(false, "Failed to add gameslots to blank games.$extra_errors");
 			}
+		}
+
+		$rc = $dbh->commit();
+
+		if( ! $rc ) {
+			return array( false, 'Transaction commit failed');
 		}
 
 		return array(true,'');
