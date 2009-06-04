@@ -813,28 +813,46 @@ class GameSubmit extends Handler
 			$sth->execute( array($this->game->game_id, $this->team->team_id, $incident['type'], $incident['details']) );
 
 			$addr = variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']);
-			$link = l($addr, "mailto:$addr");
+			$field = field_load( array('fid' => $this->game->fid) );
+			$message = <<<END_OF_MESSAGE
+Game: {$this->game->game_id}
+Date: {$this->game->game_date}
+Time: {$this->game->game_start}
+Home Team: {$this->game->home_name}
+Away Team: {$this->game->away_name}
+Field: {$field->fullname}
+Submitted by: {$lr_session->user->fullname}
+
+{$incident['details']}
+
+END_OF_MESSAGE;
+
 			$rc = send_mail($addr, 'Incident Manager',
 				false, false, // from the administrator
 				false, false, // no Cc
 				"Incident report: {$incident['type']}",
-				$incident['details']);
+				$message);
 			if($rc) {
 				$resultMessage .= para('Your incident report details have been sent for handling.');
 			} else {
+				$link = l($addr, "mailto:$addr");
 				$resultMessage .= para(theme_error('There was an error sending your incident report details. Please send them to $link to ensure proper handling.'));
 			}
 		}
 
 		// Save the all-star nominations, if present
 		if( $allstars ) {
+			$count = 0;
 			$sth = $dbh->prepare('INSERT into allstars (game_id, player_id) VALUES(?,?)');
 			foreach ($allstars as $player_id) {
 				if ($player_id != 0) {
 					$sth->execute( array($this->game->game_id, $player_id) );
+					++ $count;
 				}
 			}
-			$resultMessage .= para('Your all-star nominations have been saved.');
+			if ($count) {
+				$resultMessage .= para('Your all-star nomination' . ($count == 1 ? ' has' : 's have') . ' been saved.');
+			}
 		}
 
 		return $resultMessage;
@@ -1020,7 +1038,7 @@ class GameSubmit extends Handler
 				$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
 			}
 		}
-		if( $this->league->enter_survey_sotg() ) {
+		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$output .= para('The following answers will be tracked by your coordinator:');
 			$output .= $questions->render_viewable();
 		}
