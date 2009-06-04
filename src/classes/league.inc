@@ -212,8 +212,8 @@ class League extends LeaguerunnerObject
 			{
 				$stat = 'DID NOT finalize';
 			}
-			$output .= "<p>$stat game " .
-				l($id, "game/edit/$id") .
+			$output .= "<p>$stat $game->game_date-$game->game_start game " .
+				l($game_id, "game/edit/$game_id") .
 				' between ' .
 				l($game->home_name, "team/view/$game->home_team") .
 				' and ' .
