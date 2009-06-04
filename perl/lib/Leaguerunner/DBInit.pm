@@ -1375,7 +1375,7 @@ sub upgrade_18_to_19
 
 		# Selection of per-game allstars
 		allstars => [q{
-			ALTER TABLE league ADD allstars  ENUM('true','false') DEFAULT 'false' AFTER see_sotg
+			ALTER TABLE league ADD allstars  ENUM('never','optional','always') DEFAULT 'never' AFTER see_sotg
 		}],
 
 		# Allow unpublished games
