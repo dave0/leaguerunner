@@ -1461,6 +1461,36 @@ class League extends LeaguerunnerObject
 		return array(true,'');
 	}
 
+	function reschedule_games_for_day( $olddate, $newdate )
+	{
+		global $dbh;
+		$dbh->beginTransaction();
+		$games_list = game_load_many(array(
+			'league_id' => $this->league_id,
+			'game_date' => strftime("%Y-%m-%d", $olddate)
+		));
+
+		$sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL where game_id = ?');
+		foreach($games_list as $game) {
+			$sth->execute( array( $game->game_id ) );
+			$game->slot_id = null;
+		}
+		list($rc, $message) = $this->assign_fields_by_preferences($games_list, $newdate);
+		if (!$rc) {
+			$extra_errors = $message;
+			if( ! $dbh->rollback() ) {
+				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
+			}
+			return array(false, "Failed to assign gameslots for requested games on " . strftime('%c', $datestamp) . ": $extra_errors");
+		}
+		$rc = $dbh->commit();
+
+		if( ! $rc ) {
+			return array( false, 'Transaction commit failed');
+		}
+		return array(true,'');
+	}
+
 	function sort_league_teams () {
 		$this->load_teams();
 		if ($this->schedule_type == 'ratings_ladder' || $this->schedule_type == 'ratings_wager_ladder' ) {
