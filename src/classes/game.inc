@@ -1367,14 +1367,20 @@ class Game extends LeaguerunnerObject
 	/**
 	 * Select an appropriate gameslot for this game.  "appropriate" takes
 	 * field quality, home field designation, and field preferences into account.
-	 * TODO: FIXME: currently, no field quality are checked!
 	 * Gameslot is to be selected from those available for the league in which
 	 * this game exists.
 	 * Single argument is to be the timestamp representing the date of the
 	 * game.
-	 * Changes are made directly in the database, no need to call save()
+	 * Changes are made directly in the database (no need to ->save() the
+	 * game) however this means that you should probably call this only
+	 * within a transaction if you want to roll back changes easily on
+	 * error.
 	 * Returns success or fail, depending on whether or not we could get a
 	 * gameslot.
+	 *
+	 * TODO: Take field quality into account when assigning.  Easiest way
+	 * to do this would be to order by field quality instead of RAND(),
+	 * keeping our best fields in use.
 	 */
 	function select_weighted_gameslot( $timestamp )
 	{
@@ -1396,23 +1402,50 @@ class Game extends LeaguerunnerObject
 		// try to adhere to the home team's HOME FIELD DESIGNATION
 		$t = $this->get_home_team_object();
 		if ($t->home_field != null && $t->home_field != '') {
-			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ? AND t.home_field = f.fid ORDER BY RAND() LIMIT 1');
+			$sth = $dbh->prepare('SELECT
+				s.slot_id
+			FROM
+				gameslot s,
+				league_gameslot_availability a,
+				team t
+			WHERE a.slot_id = s.slot_id
+				AND UNIX_TIMESTAMP(s.game_date) = ?
+				AND a.league_id = ?
+				AND ISNULL(s.game_id)
+				AND t.team_id = ?
+				AND t.home_field = s.fid
+			ORDER BY RAND() LIMIT 1');
 			$sth->execute( array($timestamp, $this->league_id, $this->home_team) );
 			$slot_id = $sth->fetchColumn();
 		}
 
+		$region_pref_sth = $dbh->prepare('SELECT
+				s.slot_id
+			FROM
+				gameslot s,
+				league_gameslot_availability a,
+				team t,
+				field f LEFT JOIN field pf ON (pf.fid = f.parent_fid)
+			WHERE
+				a.slot_id = s.slot_id
+				AND UNIX_TIMESTAMP(s.game_date) = ?
+				AND a.league_id = ?
+				AND ISNULL(s.game_id)
+				AND f.fid = s.fid
+				AND t.team_id = ?
+				AND (t.region_preference = f.region OR t.region_preference = pf.region)
+			ORDER BY RAND() LIMIT 1');
+
 		// if no home field, try to adhere to the home team's field preference
 		if( ! $slot_id ) {
-			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ?  AND t.region_preference = f.region ORDER BY RAND() LIMIT 1');
-			$sth->execute( array($timestamp, $this->league_id, $this->home_team) );
-			$slot_id = $sth->fetchColumn();
+			$region_pref_sth->execute( array($timestamp, $this->league_id, $this->home_team) );
+			$slot_id = $region_pref_sth->fetchColumn();
 		}
 
 		// if nothing can be found by home team preference, try the away team
 		if( ! $slot_id ) {
-			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a, field f, team t WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) AND f.fid = s.fid AND t.team_id = ? AND t.region_preference = f.region ORDER BY RAND() LIMIT 1');
-			$sth->execute( array($timestamp, $this->league_id, $this->away_team) );
-			$slot_id = $sth->fetchColumn();
+			$region_pref_sth->execute( array($timestamp, $this->league_id, $this->away_team) );
+			$slot_id = $region_pref_sth->fetchColumn();
 		}
 
 		// if still nothing can be found, last try is just random:
