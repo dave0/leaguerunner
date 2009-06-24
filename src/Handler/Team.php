@@ -957,9 +957,6 @@ class TeamRosterStatus extends Handler
 		if($this->player->status != 'active' && $edit['status'] && $edit['status'] != 'none') {
 			error_exit("Inactive players may only be removed from a team.  Please contact this player directly to have them activate their account.");
 		}
-		if(!$this->player->complete && $edit['status'] && $edit['status'] != 'none') {
-			error_exit("This player has not yet completed their profile, and may only be removed from a team.  Please contact this player directly to have them complete their profile.");
-		}
 		if(!$this->player->is_member() && !$lr_session->is_admin()) {
 			if(!$this->player->is_player() ) {
 				error_exit('Only registered players can be added to a team.');
