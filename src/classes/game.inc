@@ -347,9 +347,9 @@ class Game extends LeaguerunnerObject
 
 		if( $update_db )
 		{
-			$sth = $dbh->prepare('SELECT COUNT(*) FROM activity_log
-				WHERE type = "email_score_reminder"
-				AND primary_id = ? AND secondary_id = ?');
+			$sth = $dbh->prepare("SELECT COUNT(*) FROM activity_log
+				WHERE type = 'email_$reason'
+				AND primary_id = ? AND secondary_id = ?");
 			$sth->execute( array( $this->game_id, $team_id) );
 			$sent = $sth->fetchColumn();
 			if( $sent ) {
@@ -401,12 +401,12 @@ class Game extends LeaguerunnerObject
 			'%scoreurl' => url("game/submitscore/{$this->game_id}/$team_id"),
 			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 			'%site' => variable_get('app_name','Leaguerunner'));
-		$message = _person_mail_text('score_reminder_body', $variables);
+		$message = _person_mail_text("{$reason}_body", $variables);
 
 		if (!send_mail($to_addr, $to_name,
 			false, false, // from the administrator
 			$cc_addr, $cc_name,
-			_person_mail_text('score_reminder_subject', $variables),
+			_person_mail_text("{$reason}_subject", $variables),
 			$message))
 		{
 			return false;
@@ -415,7 +415,7 @@ class Game extends LeaguerunnerObject
 		if( $update_db )
 		{
 			$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
-			$sth->execute( array("email_score_reminder", $this->game_id, $team_id) );
+			$sth->execute( array("email_$reason", $this->game_id, $team_id) );
 		}
 
 		return true;
