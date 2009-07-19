@@ -875,6 +875,11 @@ class Game extends LeaguerunnerObject
 			$spirit += $sth->fetchColumn();
 		}
 
+		if( ($team_id == $this->home_id && $this->approved_by == APPROVAL_AUTOMATIC_AWAY)
+		    || ($team_id == $this->away_id && $this->approved_by == APPROVAL_AUTOMATIC_HOME) ) {
+			$spirit -= variable_get('missing_score_spirit_penalty', 3);
+		}
+
 		return $spirit;
 	}
 
