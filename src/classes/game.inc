@@ -598,28 +598,30 @@ class Game extends LeaguerunnerObject
 		}
 
 		// put the rating points back
-		$rating_sth = $dbh->prepare('UPDATE team SET rating = rating + ? WHERE team_id = ?');
-		if($this->home_score > $this->away_score) {
-			// home win
-			$rating_sth->execute( array( $this->rating_points, $this->away_team ) );
-			if($rating_sth->rowCount() == 0) {
-				$errors[] = "Couldn't fix the rating for team " + $this->away_team;
-			}
+		if( $this->rating_points != 0 ) {
+			$rating_sth = $dbh->prepare('UPDATE team SET rating = rating + ? WHERE team_id = ?');
+			if($this->home_score > $this->away_score) {
+				// home win
+				$rating_sth->execute( array( $this->rating_points, $this->away_team ) );
+				if($rating_sth->rowCount() == 0) {
+					$errors[] = "Couldn't fix the rating for team " . $this->away_team;
+				}
 
-			$rating_sth->execute( array( 0 - $this->rating_points, $this->home_team ) );
-			if($rating_sth->rowCount() == 0) {
-				$errors[] = "Couldn't fix the rating for team " + $this->home_team;
-			}
-		} else if($this->away_score > $this->home_score) {
-			// away win
-			$rating_sth->execute( array( $this->rating_points, $this->home_team ) );
-			if($rating_sth->rowCount() == 0) {
-				$errors[] = "Couldn't fix the rating for team " + $this->home_team;
-			}
+				$rating_sth->execute( array( 0 - $this->rating_points, $this->home_team ) );
+				if($rating_sth->rowCount() == 0) {
+					$errors[] = "Couldn't fix the rating for team " . $this->home_team;
+				}
+			} else if($this->away_score > $this->home_score) {
+				// away win
+				$rating_sth->execute( array( $this->rating_points, $this->home_team ) );
+				if($rating_sth->rowCount() == 0) {
+					$errors[] = "Couldn't fix the rating for team " . $this->home_team;
+				}
 
-			$rating_sth->execute( array( 0 - $this->rating_points, $this->away_team ) );
-			if($rating_sth->rowCount() == 0) {
-				$errors[] = "Couldn't fix the rating for team " + $this->away_team;
+				$rating_sth->execute( array( 0 - $this->rating_points, $this->away_team ) );
+				if($rating_sth->rowCount() == 0) {
+					$errors[] = "Couldn't fix the rating for team " . $this->away_team;
+				}
 			}
 		}
 
