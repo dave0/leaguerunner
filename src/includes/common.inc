@@ -1389,20 +1389,20 @@ function calculateAverageSOTG ( $scores , $drop = false ) {
 	return $total / $size;
 }
 /*
- * 0-4 = X
- * 4.01 - 6 = Caution
- * 6.01 - 9 = Check
- * 9.01+ = Star
+ * 0-3.99 = X
+ * 4.00 - 5.99 = Caution
+ * 6.00 - 8.99 = Check
+ * 9.00+ = Star
  */
 function full_spirit_symbol_html ( $score )
 {
 	global $CONFIG;
 	$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
-	if( $score >= 9.01) {
+	if( $score >= 9) {
 		$html = "<img src='$icon_url/perfect.png' />";
-	} else if ($score >= 6.01 ) {
+	} else if ($score >= 6 ) {
 		$html = "<img src='$icon_url/ok.png' />";
-	} else if ($score >= 4.01 ) {
+	} else if ($score >= 4 ) {
 		$html = "<img src='$icon_url/caution.png' />";
 	} else {
 		$html = "<img src='$icon_url/not_ok.png' />";
