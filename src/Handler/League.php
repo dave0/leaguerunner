@@ -2514,7 +2514,7 @@ function _ratio_helper( $count, $total )
 	// impossible-to-reach 50%.
 	$check_ratio = $ratio;
 	if( $total % 2 ) {
-		$check_ratio = ($count+1/$total+1);
+		$check_ratio = ($count+1)/($total+1);
 	}
 
 	if( $check_ratio < 0.5 ) {
