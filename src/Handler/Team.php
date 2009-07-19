@@ -1605,7 +1605,7 @@ class TeamSpirit extends Handler
 				'ID',
 				'Date',
 				'Opponent',
-				'Overall',
+				'Game Avg',
 			),
 			array_map('make_shorter_titles', $question_keys)
 		);
