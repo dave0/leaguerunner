@@ -1685,7 +1685,7 @@ class LeagueSpirit extends Handler
 					$avgSOTG = $row['avgspirit'];
 				} else {
 					// compute average spirit question scores for this team
-					$avgSOTG = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
+					$avgSOTG = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
 				}
 				$thisrow[] = $avgSOTG;
 				$spirit_count[round($avgSOTG-0.5)]++;

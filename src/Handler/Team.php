@@ -1706,7 +1706,7 @@ class TeamSpirit extends Handler
 			"Average","-","-"
 		);
 
-		$spirit = sprintf("%.2f", calculateAverageSOTG($sotg_scores, true) );
+		$spirit = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
 		if( $display_numeric_sotg ) {
 			$thisrow[] = sprintf("%.2f",$spirit);
 		} else {
