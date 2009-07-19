@@ -1536,7 +1536,7 @@ class GameEdit extends Handler
 							WHERE
 								r.team_id IN (?,?)
 							AND
-								r.status = 'captain'
+								r.status IN ( 'captain', 'assistant', 'coach')
 							AND
 								p.user_id != ?");
 				$sth->execute( array( $game->home_id, $game->away_id, $lr_session->user->user_id) );

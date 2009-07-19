@@ -1181,7 +1181,7 @@ class LeagueApproveScores extends Handler
 		$se_sth = $dbh->prepare('SELECT score_for, score_against FROM score_entry WHERE team_id = ? AND game_id = ?');
 		$captains_sth = $dbh->prepare("SELECT user_id FROM person p
 						LEFT JOIN teamroster r ON p.user_id = r.player_id
-						WHERE r.team_id IN (?,?) AND r.status = 'captain'");
+						WHERE r.team_id IN (?,?) AND r.status IN( 'captain','coach', 'assistant')");
 
 		if( variable_get('narrow_display', '0') )
 			$time_format = '%a %b %d %Y, %H%Mh';
