@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 20;
+my $LATEST_SCHEMA = 21;
 
 my @TABLES = (
 	'person' => [q{
@@ -103,6 +103,7 @@ my @TABLES = (
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			display_sotg        ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all',
+			enter_sotg          ENUM('numeric_only', 'survey_only') DEFAULT 'survey_only',
 			allstars            ENUM('never','optional','always') default 'never',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
@@ -150,8 +151,6 @@ my @TABLES = (
 			away_team           integer,
 			home_score          tinyint,
 			away_score          tinyint,
-			home_spirit         tinyint,
-			away_spirit         tinyint,
 			rating_home         integer,
 			rating_away         integer,
 			rating_points       integer,
@@ -172,10 +171,32 @@ my @TABLES = (
 			entered_by    integer NOT NULL,
 			score_for     tinyint NOT NULL,
 			score_against tinyint NOT NULL,
-			spirit        tinyint NOT NULL,
 			defaulted     enum('no','us','them') DEFAULT 'no',
 			entry_time    datetime,
 			PRIMARY KEY (team_id,game_id)
+		);
+	},
+	q{
+		DROP TABLE IF EXISTS score_entry;
+	},
+	q{
+		CREATE TABLE spirit_entry (
+			tid_created INTEGER NOT NULL,
+			tid         INTEGER NOT NULL,
+			gid         INTEGER NOT NULL,
+			entered_by  INTEGER NOT NULL,
+
+			entered_sotg     INTEGER,
+
+			score_entry_penalty INTEGER NOT NULL DEFAULT 0,
+			timeliness       INTEGER NOT NULL DEFAULT 0,
+			rules_knowledge  INTEGER NOT NULL DEFAULT 0,
+			sportsmanship    INTEGER NOT NULL DEFAULT 0,
+			rating_overall   INTEGER NOT NULL DEFAULT 0,
+
+			comments         TEXT,
+
+			PRIMARY KEY (tid_created,gid)
 		);
 	},
 	q{
@@ -219,19 +240,7 @@ my @TABLES = (
 			PRIMARY KEY (akey,qkey)
 		);
 	},
-	q{
-		DROP TABLE IF EXISTS team_spirit_answers;
-	},
-	q{
-		CREATE TABLE team_spirit_answers (
-			tid_created integer NOT NULL,
-			tid         integer NOT NULL,
-			gid         integer NOT NULL,
-			qkey        varchar(255) NOT NULL,
-			akey        blob,
-			PRIMARY KEY (tid_created,gid,qkey)
-		);
-	}],
+	],
 
 	'field' => [q{
 		DROP TABLE IF EXISTS field;
@@ -442,176 +451,6 @@ my @INITIAL_DATA = (
 	q{
 		INSERT INTO leaguemembers (league_id, player_id, status)
 			VALUES (1,1,'coordinator');
-	}],
-
-	spirit_questions => [q{
-		INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
-			'Timeliness',
-			'team_spirit',
-			'Our opponents had a full line and were ready to play',
-			'multiplechoice',
-			0);
-		},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'OnTime',
-			'Timeliness',
-			'early, or at the official start time',
-			'0',
-			0);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'FiveOrLess',
-			'Timeliness',
-			'less than five minutes late',
-			'-1',
-			1);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'LessThanTen',
-			'Timeliness',
-			'less than ten minutes late',
-			'-2',
-			2);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'MoreThanTen',
-			'Timeliness',
-			'more than ten minutes late',
-			'-3',
-			3);
-	},
-	q{
-		INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
-			'RulesKnowledge',
-			'team_spirit',
-			'Our opponents\' rules knowledge was',
-			'multiplechoice',
-			1);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'ExcellentRules',
-			'RulesKnowledge',
-			'excellent',
-			'0',
-			0);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'AcceptableRules',
-			'RulesKnowledge',
-			'acceptable',
-			'-1',
-			1);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'PoorRules',
-			'RulesKnowledge',
-			'poor',
-			'-2',
-			2);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'NonexistantRules',
-			'RulesKnowledge',
-			'nonexistant',
-			'-3',
-			3);
-	},
-	q{
-		INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
-			'Sportsmanship',
-			'team_spirit',
-			'Our opponents\' sportsmanship was',
-			'multiplechoice',
-			2);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'ExcellentSportsmanship',
-			'Sportsmanship',
-			'excellent',
-			'0',
-			0);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'AcceptableSportsmanship',
-			'Sportsmanship',
-			'acceptable',
-			'-1',
-			1);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'PoorSportsmanship',
-			'Sportsmanship',
-			'poor',
-			'-2',
-			2);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'NonexistantSportsmanship',
-			'Sportsmanship',
-			'nonexistant',
-			'-3',
-			3);
-	},
-	q{
-		INSERT INTO question (qkey, genre, question, qtype, sorder) VALUES (
-			'Enjoyment',
-			'team_spirit',
-			'Ignoring the score and based on the opponents\' spirit of the game, did your team enjoy this game?',
-			'multiplechoice',
-			3);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'AllEnjoyed',
-			'Enjoyment',
-			'all of my players did',
-			'0',
-			0);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'MostEnjoyed',
-			'Enjoyment',
-			'most of my players did',
-			'-1',
-			1);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'SomeEnjoyed',
-			'Enjoyment',
-			'some of my players did',
-			'-1',
-			2);
-	},
-	q{
-		INSERT INTO multiplechoice_answers VALUES(
-			'NoneEnjoyed',
-			'Enjoyment',
-			'none of my players did',
-			'-1',
-			3);
-	},
-	q{
-		INSERT INTO question (qkey,genre,question,qtype,required,sorder) VALUES (
-			'CommentsToCoordinator',
-			'team_spirit',
-			'Do you have any comments on this game you would like to bring to the coordinator''s attention?',
-			'freetext',
-			'N',
-			'4');
 	}],
 );
 
@@ -1630,6 +1469,175 @@ sub upgrade_19_to_20
 				'N',
 				'4');
 		}],
+	]);
+}
+
+sub upgrade_20_to_21
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+
+		# create new spirit table
+		spirit_entries => [q{
+			CREATE TABLE spirit_entry (
+				tid_created INTEGER NOT NULL,
+				tid         INTEGER NOT NULL,
+				gid         INTEGER NOT NULL,
+				entered_by  INTEGER NOT NULL,
+
+				entered_sotg     INTEGER,
+
+				score_entry_penalty INTEGER NOT NULL DEFAULT 0,
+				timeliness       INTEGER NOT NULL DEFAULT 0,
+				rules_knowledge  INTEGER NOT NULL DEFAULT 0,
+				sportsmanship    INTEGER NOT NULL DEFAULT 0,
+				rating_overall   INTEGER NOT NULL DEFAULT 0,
+
+				comments         TEXT,
+
+				PRIMARY KEY (tid_created,gid)
+			);
+		},
+
+		# Convert timeliness scores
+		q{
+			INSERT INTO spirit_entry ( tid_created, tid, gid, entered_by, timeliness)
+				SELECT tid_created, tid, gid, -1,
+					CASE akey
+						WHEN 'OnTime'      THEN 1
+						WHEN 'FiveOrLess'  THEN 1
+						WHEN 'LessThanTen' THEN 1
+						WHEN 'MoreThanTen' THEN 0
+						WHEN 'NotOntime' THEN 0
+					END
+				FROM team_spirit_answers
+				WHERE qkey IN ('Timeliness', 'OCUATimeliness')
+		},
+
+		# Convert manually-entered values from 'schedule' table
+		q{
+			UPDATE spirit_entry, schedule SET
+				spirit_entry.entered_sotg = schedule.away_spirit
+				WHERE spirit_entry.tid_created = schedule.home_team
+				      AND spirit_entry.tid = schedule.away_team
+				      AND spirit_entry.gid = schedule.game_id
+				      AND schedule.away_spirit is not null
+		},
+		q{
+			UPDATE spirit_entry, schedule SET
+				spirit_entry.entered_sotg = schedule.home_spirit
+				WHERE spirit_entry.tid_created = schedule.away_team
+				      AND spirit_entry.tid = schedule.home_team
+				      AND spirit_entry.gid = schedule.game_id
+				      AND schedule.home_spirit is not null
+		},
+		q{
+			ALTER TABLE schedule DROP COLUMN home_spirit
+		},
+		q{
+			ALTER TABLE schedule DROP COLUMN away_spirit
+		},
+		q{
+			ALTER TABLE score_entry DROP COLUMN spirit
+		},
+
+		# convert RulesKnowledge/OCUARulesKnowledge
+		q{
+			UPDATE spirit_entry, team_spirit_answers, multiplechoice_answers SET
+				spirit_entry.rules_knowledge = (3 + multiplechoice_answers.value)
+				WHERE spirit_entry.tid_created = team_spirit_answers.tid_created
+				      AND spirit_entry.gid = team_spirit_answers.gid
+				      AND team_spirit_answers.qkey = multiplechoice_answers.qkey
+				      AND team_spirit_answers.akey = multiplechoice_answers.akey
+				      AND team_spirit_answers.qkey IN ('RulesKnowledge', 'OCUARulesKnowledge')
+		},
+		# convert Sportsmanship/OCUASportsmanship
+		q{
+			UPDATE spirit_entry, team_spirit_answers, multiplechoice_answers SET
+				spirit_entry.sportsmanship = (3 + multiplechoice_answers.value)
+				WHERE spirit_entry.tid_created = team_spirit_answers.tid_created
+				      AND spirit_entry.gid = team_spirit_answers.gid
+				      AND team_spirit_answers.qkey = multiplechoice_answers.qkey
+				      AND team_spirit_answers.akey = multiplechoice_answers.akey
+				      AND team_spirit_answers.qkey IN ('Sportsmanship', 'OCUASportsmanship')
+		},
+		# convert Enjoyment/OCUAOverall
+		q{
+			UPDATE spirit_entry, team_spirit_answers, multiplechoice_answers SET
+				spirit_entry.rating_overall = (3 + multiplechoice_answers.value)
+				WHERE spirit_entry.tid_created = team_spirit_answers.tid_created
+				      AND spirit_entry.gid = team_spirit_answers.gid
+				      AND team_spirit_answers.qkey = multiplechoice_answers.qkey
+				      AND team_spirit_answers.akey = multiplechoice_answers.akey
+				      AND team_spirit_answers.qkey IN ('Enjoyment', 'OCUAOverall')
+		},
+		# Convert comments
+		q{
+			UPDATE spirit_entry, team_spirit_answers SET
+				spirit_entry.comments = team_spirit_answers.akey
+				WHERE spirit_entry.tid_created = team_spirit_answers.tid_created
+				      AND spirit_entry.gid = team_spirit_answers.gid
+				      AND team_spirit_answers.qkey IN ('CommentsToCoordinator')
+				      AND team_spirit_answers.akey != ''
+		},
+		# delete 'automatic spirit assigned: 10' entries
+		q{
+			DELETE FROM spirit_entry WHERE comments = 'Automatic spirit assigned: 10'
+		},
+
+		# delete numeric spirit entries where unwarranted
+		q{
+			UPDATE spirit_entry, schedule, league SET
+				spirit_entry.entered_sotg = NULL
+				WHERE spirit_entry.gid = schedule.game_id
+					AND schedule.league_id = league.league_id
+					AND league.enter_sotg = 'survey_only'
+		},
+
+		# Remove 'both' as an option for sotg_entry (after purging
+		# unwanted numeric entries so that the 'both' behaviour for old
+		# submissions is preserved.
+		q{
+			UPDATE league SET enter_sotg = 'survey_only' WHERE enter_sotg = 'both'
+		},
+		q{
+			ALTER TABLE league MODIFY enter_sotg ENUM('numeric_only', 'survey_only')
+		},
+
+		# Fill in the spirit penalty for unentered games
+		# -3 means we used the away team's submission because no home submission exists.
+		q{
+			UPDATE spirit_entry, schedule SET
+				spirit_entry.score_entry_penalty = -3
+			WHERE spirit_entry.gid = schedule.game_id
+				AND spirit_entry.tid = schedule.home_team
+				AND schedule.approved_by = -3
+		},
+		# -2 means we used the home team's submission because no away submission exists.
+		q{
+			UPDATE spirit_entry, schedule SET
+				spirit_entry.score_entry_penalty = -3
+			WHERE spirit_entry.gid = schedule.game_id
+				AND spirit_entry.tid = schedule.away_team
+				AND schedule.approved_by = -2
+		},
+
+		# Clean up now-unused tables and questionnaires
+		q{
+			DROP TABLE team_spirit_answers
+		},
+		q{
+			DELETE from multiplechoice_answers
+				USING multiplechoice_answers, question
+				WHERE multiplechoice_answers.qkey = question.qkey
+					AND question.genre IN('team_spirit', 'ocua_team_spirit')
+		},
+		q{
+			DELETE FROM question WHERE genre IN('team_spirit', 'ocua_team_spirit')
+		},
+
+		],
 	]);
 }
 

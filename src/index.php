@@ -71,6 +71,8 @@ require_once("classes/event.inc");
 require_once("classes/registration.inc");
 require_once("classes/formbuilder.inc");
 require_once("classes/session.inc");
+require_once("classes/spirit.php");
+
 
 // Maybe include registration payment module
 if( variable_get('registration', 0) &&

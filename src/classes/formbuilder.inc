@@ -289,9 +289,9 @@ class FormBuilder
 	 */
 	function set_answer ( $qkey, $answer )
 	{
-		// Check that the question exists, die if not
+		// Ignore invalid keys
 		if( !array_key_exists( $qkey, $this->_questions ) ) {
-			die("Answer provided for invalid question $qkey");
+			return;
 		}
 
 		// Set the answer
@@ -591,6 +591,9 @@ function question_render_editable( &$q, $editgroup, $value = '', $formtype = 'au
 		case 'textfield':
 			$output .= question_render_editable_textfield( $q, $editgroup, $value);
 			break;
+		case 'hidden':
+			$output .= question_render_editable_hidden( $q, $editgroup, $value );
+			break;
 		case 'label':
 			$output .= question_render_editable_label( $q );
 			break;
@@ -623,6 +626,9 @@ function question_render_viewable( &$q, $value = '' )
 			break;
 		case 'textfield':
 			$output .= question_render_viewable_textfield( $q, $value);
+			break;
+		case 'hidden':
+			$output .= question_render_viewable_hidden( $q, $value);
 			break;
 		case 'label':
 			$output .= question_render_viewable_label( $q );
@@ -906,6 +912,16 @@ function question_render_maintenance_description( &$q )
 	$group .= form_checkbox( 'Delete this description', "data[{$q->qkey}][delete]", 1, false );
 
 	return form_group( "Element name: $q->qkey", $group );
+}
+
+function question_render_editable_hidden( &$q, $editgroup, $value = '')
+{
+	return form_hidden( $editgroup."[$q->qkey]", $value);
+}
+
+function question_render_viewable_hidden( &$q, $value = '')
+{
+	return '';
 }
 
 ?>

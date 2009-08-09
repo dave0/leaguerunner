@@ -679,6 +679,10 @@ class LeagueStandings extends Handler
 			error_exit("This league does not have a schedule or standings.");
 		}
 
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$s->display_numeric_sotg = $this->league->display_numeric_sotg();
+
 		$round = $_GET['round'];
 		if(! isset($round) ) {
 			$round = $this->league->current_round;
@@ -867,10 +871,10 @@ class LeagueStandings extends Handler
 			}
 
 
-			$avg = calculateAverageSOTG( $season[$tid]->spirit, false);
-			$symbol = full_spirit_symbol_html( $avg );
+			$avg = $s->average_sotg( $season[$tid]->spirit, false);
+			$symbol = $s->full_spirit_symbol_html( $avg );
 			$row[] = array(
-				'data' => $symbol . ($this->league->display_numeric_sotg() ? sprintf("(%.2f)", $avg) : ''),
+				'data' => $symbol,
 				'class'=>"$rowstyle");
 			$rows[] = $row;
 		}
@@ -1152,20 +1156,25 @@ class LeagueApproveScores extends Handler
 			h.name AS home_name,
 			s.away_team,
 			a.name AS away_name
-			FROM 
-				schedule s, 
+			FROM
+				schedule s,
 				score_entry se,
 				gameslot g,
 				team h,
 				team a
 			WHERE
 				s.league_id = ?
-				AND g.game_date < CURDATE()
+				AND (g.game_date < CURDATE()
+					OR (
+						g.game_date = CURDATE()
+						AND g.game_start < CURTIME()
+					)
+				)
 				AND se.game_id = s.game_id
 				AND g.game_id = s.game_id
 				AND h.team_id = s.home_team
 				AND a.team_id = s.away_team
-			ORDER BY 
+			ORDER BY
 				timestamp
 		");
 		$game_sth->execute( array($this->league->league_id) );
@@ -1404,119 +1413,91 @@ class LeagueSpirit extends Handler
 			error_exit("There are no games scheduled for this league");
 		}
 
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$s->display_numeric_sotg = $this->league->display_numeric_sotg();
 
-		// Used later to rewrite old OCUA values to new ones
-		if( $spirit_type != 'team_spirit' ) {
-			$this->rewrite_keys = array(
-				'Timeliness'     => 'OCUATimeliness',
-				'RulesKnowledge' => 'OCUARulesKnowledge',
-				'Sportsmanship'  => 'OCUASportsmanship',
-				'Enjoyment'      => 'OCUAOverall',
+		/*
+		 * Show overall league spirit
+		 */
+		$rows   = $s->league_sotg( $this->league );
+		$rows[] = $s->league_sotg_averages( $this->league );
+		$rows[] = $s->league_sotg_std_dev( $this->league );
+		$output = h2('Team spirit summary')
+			. table(
+				array_merge(
+					array(
+						'Team',
+						'Average',
+					),
+					(array)$s->question_headings()
+				),
+				$rows,
+				array('alternate-colours' => true)
 			);
-		} else {
-			$this->rewrite_keys = array();
-		}
 
-		// RK - show avg spirit report first
-		$output .= $this->generateAverages();
-		$output .="\n";
-
-		$questions = formbuilder_load($spirit_type);
-		$question_keys = array_diff(
-			$questions->question_keys(),
-			array( 'CommentsToCoordinator' )
-		);
+		$output .= h2('Distribution of team average spirit scores')
+			. table(
+				array(
+					'Spirit score',
+					'Number of teams',
+					'Percentage of league'
+				),
+				$s->league_sotg_distribution( $this->league )
+			)
+			. "\n";
 
 		$header = array_merge(
 			array(
 				'Game',
 				'Entry By',
 				'Given To',
-				'Score'
+				'Score',
 			),
-			array_map('make_shorter_titles', $question_keys)
-                );
+			(array)$s->question_headings()
+		);
+
+
+		/*
+		 * Show every game
+		 */
 		$rows = array();
-
-		$answer_values = array();
-		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
-		$sth->execute();
-		while( $ary = $sth->fetch() ) {
-			$answer_values[ $ary['akey'] ] = $ary['value'];
-		}
-
-		$question_sums = array();
-		$num_games = 0;
-		$no_spirit_questions = 0;
-		$sotg_scores = array();
-
-		$icon_url = $CONFIG['paths']['file_url'] .  '/image/icons';
-
+		$question_column_count = count($s->question_headings());
 		while(list(,$game) = each($games)) {
 
 			$teams = array(
 				$game->home_team => $game->home_name,
 				$game->away_team => $game->away_name
 			);
-			$counter = 0;
 			while( list($giver,$giver_name) = each ($teams)) {
 
-				$spirit = 10;
-				// giver starts out as home team, so the value they gave is in the away spirit... then, vice-versa
-				if ($counter == 0) {
-					$spirit = $game->away_spirit;
-				} else {
-					$spirit = $game->home_spirit;
-				}
-
 				$recipient = $game->get_opponent_id ($giver);
-				$recipient_name = $teams[$recipient];
-
-				# Fetch spirit answers for games
-				$entry = $game->get_spirit_entry( $recipient );
-				if( !$entry ) {
-					continue;
-				}
 
 				$thisrow = array(
 					l($game->game_id, "game/view/$game->game_id")
 						. " " .  strftime('%a %b %d %Y', $game->timestamp),
 					l($giver_name, "team/view/$giver"),
-					l($recipient_name, "team/view/$recipient")
+					l($teams[$recipient], "team/view/$recipient")
 				);
 
-				/* If we're not allowed to enter numeric sotg for this league, use the one calculated */
-				$numeric_entry = $game->get_spirit_numeric( $recipient );
-				if( !$this->league->enter_numeric_sotg() || !$spirit ) {
-					$spirit = $numeric_entry;
+				# Fetch spirit answers for games
+				$entry = $game->get_spirit_entry( $recipient );
+				if( !$entry ) {
+					$thisrow[] = array(
+						'data'    => 'Team did not submit a spirit rating',
+						'colspan' => $question_column_count + 1,
+					);
+					$rows[] = $thisrow;
+					continue;
 				}
 
-				$thisrow[] = "<b>" . sprintf("%.2f",$spirit) . "</b>";
-				$sotg_scores[] = $spirit;
+				$thisrow = array_merge(
+					$thisrow,
+					(array)$s->render_game_spirit( $entry )
+				);
 
-				/* Assumption: all games have the same number
-				 * of spirit questions, with the same (or at
-				 * least similar...) meanings to the columns.
-				 * This means changing spirit wholesale in the
-				 * middle of the season is bad. */
-				while( list($qkey, $answer) = each ($entry) ) {
-					if( $qkey == 'CommentsToCoordinator' ) {
-						continue;
-					}
-					if ($answer == null || $answer == "") {
-						$thisrow[] = "?";
-						$no_spirit_questions++;
-					} else {
-						$thisrow[] = question_spirit_symbol_html( $answer_values[ $answer ] );
-						if( array_key_exists( $qkey, $this->rewrite_keys ) ) {
-							$qkey = $this->rewrite_keys[$qkey];
-						}
-						$question_sums[ $qkey ] += $answer_values[ $answer ];
-					}
-				}
 				$rows[] = $thisrow;
-				if( array_key_exists('CommentsToCoordinator', $entry) && $entry['CommentsToCoordinator'] != '' ) {
+				if( $entry['comments'] != '' ) {
 					$rows[] = array(
 						array(
 							'colspan' => 2,
@@ -1524,34 +1505,12 @@ class LeagueSpirit extends Handler
 						),
 						array(
 							'colspan' => count($header) - 2,
-							'data'    => $entry['CommentsToCoordinator'],
+							'data'    => $entry['comments'],
 						)
 					);
 				}
-
-				$num_games++;
-
-				$counter++;
 			}
 		}
-
-		if( !$num_games ) {
-			error_exit("No games played, cannot display spirit");
-		}
-
-		$thisrow = array(
-			"Tier Avg","-","-"
-		);
-
-		// for the league, use the average SOTG scores without dropping the highest and lowest
-		$thisrow[] = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
-
-		reset($question_sums);
-		foreach( $question_sums as $qkey => $answer) {
-			$avg = ($answer / ($num_games - $no_spirit_questions));
-			$thisrow[] = question_spirit_symbol_html( $avg );
-		}
-		$rows[] = $thisrow;
 
 		$style = '#main table td { font-size: 80% }';
 		if( variable_get('narrow_display', '0') ) {
@@ -1562,208 +1521,11 @@ class LeagueSpirit extends Handler
 
 		return $output;
 	}
-
-	// RK 30 Apr 2008 - generate average spirit report for league
-	function generateAverages ()
-	{
-		global $dbh, $CONFIG;
-
-		// make sure the teams are loaded
-		$this->league->load_teams();
-
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		$questions = formbuilder_load($spirit_type);
-		$question_keys = array_diff(
-			$questions->question_keys(),
-			array( 'CommentsToCoordinator' )
-		);
-
-		$header = array_merge(
-			array(
-				"Team",
-				"Avg Spirit",
-			),
-			array_map('make_shorter_titles', $question_keys)
-                );
-		$totalteams = 0;
-		$icon_url = $CONFIG['paths']['file_url'] .  '/image/icons';
-
-		// load all point values for answers into array
-		$answer_values = array();
-		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
-		$sth->execute();
-		while( $ary = $sth->fetch() ) {
-			$answer_values[ $ary['akey'] ] = $ary['value'];
-		}
-
-		$rows = array();
-
-		/*
-		 * Get the team IDs, and the average numeric spirit (which we may ignore, depending on settings)
-		 */
-		$sth = $dbh->prepare('SELECT
-			AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ) AS avgspirit,
-			lt.team_id AS team_id
-			FROM leagueteams lt, schedule s
-			WHERE
-				lt.league_id = ?
-				AND s.league_id = lt.league_id
-				AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
-				AND s.approved_by
-			GROUP BY team_id'
-		);
-		$sth->execute ( array($this->league->league_id) );
-
-
-		while( $row = $sth->fetch() ) {
-			$team = team_load( array('team_id' => $row['team_id']) );
-
-			$thisrow = array(
-				l($team->name,"team/view/" . $row['team_id'])
-			);
-			// remember this spirit score for summary table
-			$totalteams++;
-
-			/*
-			* Grab schedule info
-			*/
-			$games = game_load_many( array( 'either_team' => $team->team_id, '_order' => 'g.game_date') );
-			if( !is_array($games) ) {
-				// TODO: NO GAMES SCHEDULED!
-			}
-
-			$question_sums = array();
-			$num_games = 0;
-			$no_spirit_questions = 0;
-			$sotg_scores = array();
-
-			while(list(,$game) = each($games)) {
-
-				if( ! $game->is_finalized() ) {
-					continue;
-				}
-
-				# Fetch spirit answers for games
-				$entry = $game->get_spirit_entry( $team->team_id );
-				if( !$entry ) {
-					continue;
-				}
-
-				// get_spirit_numeric looks at the SOTG answers to determine the score
-				$spirit = $game->get_spirit_numeric( $team->team_id );
-				$sotg_scores[] = $spirit;
-
-				while( list($qkey,$answer) = each($entry) ) {
-
-					if( $qkey == 'CommentsToCoordinator' ) {
-						// omit since we can't average comments
-						continue;
-					}
-
-					// EVIL HACK: OCUA spirit questions changed mid-season, so this rewrites them so
-					// they're classified in the correct column.  There is no nicer way to do this
-					// without a rewrite :(
-					if( array_key_exists( $qkey, $this->rewrite_keys ) ) {
-						$qkey = $this->rewrite_keys[$qkey];
-					}
-
-					if ($answer == null || $answer == "") {
-						$no_spirit_questions++;
-					} else {
-						$question_sums[ $qkey ] += $answer_values[ $answer ];
-					}
-				} #end for each spirit answer
-				$num_games++;
-
-			} #end for each game
-
-			if( !$num_games ) {
-				$thisrow[] = "No games played";
-			} else {
-				/* If we're allowed to enter numeric sotg for this league, it overrides the calculated one */
-				if( $this->league->enter_numeric_sotg() ) {
-					$avgSOTG = $row['avgspirit'];
-				} else {
-					// compute average spirit question scores for this team
-					$avgSOTG = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
-				}
-				$thisrow[] = $avgSOTG;
-				$spirit_count[round($avgSOTG-0.5)]++;
-				$thesescores[] = $avgSOTG;
-
-
-				reset($question_sums);
-				foreach( $question_sums as $answer) {
-					$avg = ($answer / ($num_games - $no_spirit_questions));
-					$thesescores[] = $avg;
-					$thisrow[] = question_spirit_symbol_html( $avg );
-				}
-			}
-
-			$rows[] = $thisrow;
-			$scores[] = $thesescores;
-		}
-
-		/* Now, sort the rows by the numeric spirit value (whether it's calculated from scores, or manual entry) */
-		usort($rows, 'team_sotg_cmp');
-
-		/*
-		 * print league means and std dev
-		 */
-		$thisrow = array('League avg');
-		$mean = array();
-		for ($question = 0; $question < count($scores[0]); $question++) {
-			$numteams = 0;
-			$total = 0;
-			for ($team = 0; $team < count($scores); $team++) {
-				//if ($scores[$team][$question]) {
-					$numteams++;
-					$total += $scores[$team][$question];
-				//}
-			}
-			$mean[] = $total / $numteams;
-			$thisrow[] = sprintf('%.2f', $total / $numteams);
-		}
-		$rows[] = $thisrow;
-
-		$thisrow = array('League stddev');
-		for ($question = 0; $question < count($scores[0]); $question++) {
-			$numteams = 0;
-			$sumsqrs = 0;
-			for ($team = 0; $team < count($scores); $team++) {
-				$numteams++;
-				$sumsqrs += pow($scores[$team][$question] - $mean[$question], 2);
-			}
-			$thisrow[] = sprintf('%.2f', sqrt($sumsqrs / $numteams));
-		}
-		$rows[] = $thisrow;
-
-		$output = h2('Team spirit summary')
-			. table($header,$rows, array('alternate-colours' => true) );
-
-		/*
-		 * show summary table of spirit score distribution
-		 */
-		$header = array('Spirit score',
-				'Number of teams',
-				'Percentage of league');
-		$rows = array();
-		for ($spirit = 10; $spirit >= 0; $spirit--) {
-			$percentage = round($spirit_count[$spirit] / $totalteams * 100);
-			$rows[] = array( $spirit == 10 ? '10' : $spirit .' - '. ($spirit+1),
-							$spirit_count[$spirit],
-							$percentage > 0 ? "$percentage%" : "&nbsp;");
-		}
-
-		$output .= h2('Distribution of team average spirit scores')
-			. table($header,$rows);
-
-		return $output;
-	}
 }
 
 /**
  * Download a CSV spirit report of all active teams
+ * TODO: totally broken.
  */
 class LeagueSpiritDownload extends Handler
 {
@@ -1797,7 +1559,6 @@ class LeagueSpiritDownload extends Handler
 
 		$question_sums = array();
 		$num_games = 0;
-		$no_spirit_questions = 0;
 		$sotg_scores = array();
 
 		// produce one line per team

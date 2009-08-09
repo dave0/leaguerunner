@@ -154,6 +154,7 @@ class Game extends LeaguerunnerObject
 	 *  3) two scores entered, agreeing
 	 *  	- scores are entered as provided, as are spirit values.
 	 */
+	// TODO: DMO needs to test this
 	function finalize()
 	{
 		global $dbh;
@@ -161,13 +162,6 @@ class Game extends LeaguerunnerObject
 		if( $this->is_finalized() ) {
 			return false;
 		}
-
-		// some strings that I will use later:
-		$def = "default";
-		$defsnr = "default, score not reported";
-		$opdef = "opponent default";
-		$opdefsnr = "opponent default, score not reported";
-		$snr = "score not reported";
 
 		$home_entry = $this->get_score_entry( $this->home_id );
 		$away_entry = $this->get_score_entry( $this->away_id );
@@ -177,22 +171,16 @@ class Game extends LeaguerunnerObject
 					case 'us':
 						// HOME default
 						$this->set('status', 'home_default');
-						$this->set_and_save_spirit( $this->home_id, 'home', 'loser', $def );
-						$this->set_and_save_spirit( $this->away_id, 'away', 'winner', $opdef );
 						break;
 					case 'them':
 						// AWAY default
 						$this->set('status', 'away_default');
-						$this->set_and_save_spirit( $this->home_id, 'home', 'winner', $opdef );
-						$this->set_and_save_spirit( $this->away_id, 'away', 'loser', $def );
 						break;
 					case 'no':
 					default:
 						// No default.  Just finalize score.
 						$this->set('home_score', $home_entry->score_for);
 						$this->set('away_score', $home_entry->score_against);
-						$this->set('home_spirit', $away_entry->spirit);
-						$this->set('away_spirit', $home_entry->spirit);
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
 			} else {
@@ -253,20 +241,14 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					// HOME default with no entry by AWAY
 					$this->set('status', 'home_default');
-					$this->set_and_save_spirit( $this->home_id, 'home', 'loser', $def );
-					$this->set_and_save_spirit( $this->away_id, 'away', 'penalized', $opdefsnr );
 					break;
 				case 'them':
 					// AWAY default with no entry by AWAY
 					$this->set('status', 'away_default');
-					$this->set_and_save_spirit( $this->home_id, 'home', 'perfect', $opdef );
-					$this->set_and_save_spirit( $this->away_id, 'away', 'loser', $defsnr );
 					break;
 				default:
 					// no default, no entry by AWAY
-					$this->set_and_save_spirit( $this->home_id, 'home', 'perfect' );
-					$this->set('away_spirit',
-							max( $home_entry->spirit - variable_get('missing_score_spirit_penalty', 3), 0));
+					$this->penalize_team_for_non_entry( $this->away_id );
 			}
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
@@ -277,32 +259,22 @@ class Game extends LeaguerunnerObject
 				case 'us':
 					// AWAY default with no entry by HOME
 					$this->set('status', 'away_default');
-					$this->set_and_save_spirit( $this->home_id, 'home', 'penalized', $opdefsnr );
-					$this->set_and_save_spirit( $this->away_id, 'away', 'loser', $def );
 					break;
 				case 'them':
 					// HOME default with no entry by HOME
 					$this->set('status', 'home_default');
-					$this->set_and_save_spirit( $this->home_id, 'home', 'loser', $defsnr );
-					$this->set_and_save_spirit( $this->away_id, 'away', 'perfect', $opdef );
 					break;
 				default:
 					// no default, no entry by HOME
-					$this->set('home_spirit',
-							max( $away_entry->spirit - variable_get('missing_score_spirit_penalty', 3), 0));
-					$this->set_and_save_spirit( $this->away_id, 'away', 'perfect' );
+					$this->penalize_team_for_non_entry( $this->home_id );
 			}
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
 			$this->remind_team( $this->home_team, $this->home_name, $this->away_name, 'approval_notice', false );
 		} else if ( !$home_entry && !$away_entry ) {
-# TODO: don't do automatic forfeit yet.  Make it per-league configurable
+			// TODO: don't do automatic forfeit yet.  Make it per-league configurable
 			return false;
-#			$this->set('status', 'forfeit');
-#			$this->save_spirit_entry( $this->home_id, $this->default_spirit('loser'));
-#			$this->save_spirit_entry( $this->away_id, $this->default_spirit('loser'));
-#			$this->set('approved_by', APPROVAL_AUTOMATIC_FORFEIT);
 		} else {
 			die("Unreachable code hit in Game::finalize()");
 		}
@@ -560,7 +532,7 @@ class Game extends LeaguerunnerObject
 
 		$queries = array(
 			'UPDATE gameslot SET game_id = NULL where game_id = ?',
-			'DELETE FROM team_spirit_answers WHERE gid = ?',
+			'DELETE FROM spirit_entry WHERE gid = ?',
 			'DELETE FROM score_entry WHERE game_id = ?',
 			'DELETE FROM activity_log WHERE primary_id = ? AND
 				(type = "email_score_mismatch" OR type = "email_score_reminder")',
@@ -585,13 +557,13 @@ class Game extends LeaguerunnerObject
 
 		$errors = array();
 		// Remove the spirit answers
-		$sth = $dbh->prepare('DELETE FROM team_spirit_answers WHERE gid = ?');
+		$sth = $dbh->prepare('DELETE FROM spirit_entry WHERE gid = ?');
 		if( ! $sth->execute( array($this->game_id) ) ) {
 			$errors[] = "Couldn't remove spirit answers: " . $sth->errorCode;
 		}
 
 		// Update SCHEDULE table to remove these results
-		$sth = $dbh->prepare("UPDATE schedule SET home_score = NULL, away_score = NULL, home_spirit = NULL, away_spirit = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = ?");
+		$sth = $dbh->prepare("UPDATE schedule SET home_score = NULL, away_score = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = ?");
 		$sth->execute( array($this->game_id) );
 		if( ! $sth->execute( array($this->game_id) ) ) {
 			$errors[] = "Couldn't remove results from schedule: " . $sth->errorCode;
@@ -729,22 +701,20 @@ class Game extends LeaguerunnerObject
 		if( ! $this->_in_database ) {
 			die( "Cannot load entered scores for game not in database: ". $this->game_id);
 		}
-		$sth = $dbh->prepare('SELECT a.tid,a.qkey,a.akey FROM team_spirit_answers a, question q WHERE q.qkey = a.qkey AND a.gid = ? ORDER BY a.tid,q.sorder');
+		$sth = $dbh->prepare('SELECT * FROM spirit_entry WHERE gid = ? ORDER BY tid');
 		$sth->execute(array( $this->game_id));
 
 		while( $row = $sth->fetch() ) {
-			$got[$row['tid']] = 1;
-			$this->_spirit_entries[ $row['tid'] ][ $row['qkey'] ] = $row['akey'] ;
-		}
-
-		// Evil hack.  Previous release didn't properly fill in this
-		// field, so here we append an empty string to it so that it
-		// exists if not populated.
-		if( $got[$this->home_id]) {
-			$this->_spirit_entries[ $this->home_id ]['CommentsToCoordinator'] .= '';
-		}
-		if( $got[$this->away_id] ) {
-			$this->_spirit_entries[ $this->away_id ]['CommentsToCoordinator'] .= '';
+			$this->_spirit_entries[ $row['tid'] ] = array(
+				'timeliness'      => $row['timeliness'],
+				'rules_knowledge' => $row['rules_knowledge'],
+				'sportsmanship'   => $row['sportsmanship'],
+				'rating_overall'  => $row['rating_overall'],
+				'score_entry_penalty'  => $row['score_entry_penalty'],
+				'comments'        => $row['comments'] ? $row['comments'] : '',
+				'entered_by'      => $row['entered_by'],
+				'entered_sotg'    => $row['entered_sotg'],
+			);
 		}
 
 		return true;
@@ -776,7 +746,7 @@ class Game extends LeaguerunnerObject
 	 * Save a score entry for a given team
 	 * This writes directly to the database
 	 */
-	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted, $spirit )
+	function save_score_entry ( $team_id, $user_id, $score_for, $score_against, $defaulted )
 	{
 		global $dbh;
 
@@ -789,18 +759,15 @@ class Game extends LeaguerunnerObject
 			case 'us':
 				$entry->score_for = variable_get('default_losing_score', 0);
 				$entry->score_against = variable_get('default_winning_score', 6);
-				$entry->spirit = $this->default_spirit('winner', true);
 				break;
 			case 'them':
 				$entry->score_against = variable_get('default_losing_score', 0);
 				$entry->score_for = variable_get('default_winning_score', 6);
-				$entry->spirit = $this->default_spirit('loser', true);
 				break;
 			case 'no':
 			default:
 				$entry->score_for = $score_for;
 				$entry->score_against = $score_against;
-				$entry->spirit = $spirit;
 				break;
 		}
 
@@ -808,14 +775,13 @@ class Game extends LeaguerunnerObject
 
 		// Save entry object in DB.  Use 'replace into' to handle the case
 		// where one might already exist.
-		$sth = $dbh->prepare('REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,spirit,defaulted,entry_time) VALUES(?,?,?,?,?,?,?,NOW())');
+		$sth = $dbh->prepare('REPLACE INTO score_entry (game_id,team_id,entered_by,score_for,score_against,defaulted,entry_time) VALUES(?,?,?,?,?,?,NOW())');
 		$sth->execute( array(
 			$this->game_id,
 			$entry->team_id,
 			$entry->entered_by,
 			$entry->score_for,
 			$entry->score_against,
-			$entry->spirit,
 			$entry->defaulted));
 
 		if( 1 != $sth->rowCount() ) {
@@ -849,252 +815,24 @@ class Game extends LeaguerunnerObject
 		return false;
 	}
 
-	/**
-	 * Calculates a numeric value for the spirit associated with the
-	 * given entry
-	 */
-	function get_spirit_numeric( $team_id )
-	{
-		global $dbh;
-		$entry = $this->get_spirit_entry($team_id);
-		if( !$entry ) {
-			return null;
-		}
-
-		// Start with 10 spirit, subtract down
-		$spirit = 10;
-		// TODO: stupid!  Why don't we cache this?!
-		$sth = $dbh->prepare('SELECT value from multiplechoice_answers WHERE qkey = ? AND akey = ?');
-		while( list($qkey, $answer) = each($entry) ) {
-			// if any of the answers are blank, they'll all be blank, so just return -1 to indicate it
-			if ($qkey != "CommentsToCoordinator" && ($answer == null || $answer == "")) {
-				return -1;
-			}
-
-			$sth->execute( array( $qkey, $answer) );
-			$spirit += $sth->fetchColumn();
-		}
-
-		if( ($team_id == $this->home_id && $this->approved_by == APPROVAL_AUTOMATIC_AWAY)
-		    || ($team_id == $this->away_id && $this->approved_by == APPROVAL_AUTOMATIC_HOME) ) {
-			$spirit -= variable_get('missing_score_spirit_penalty', 3);
-		}
-
-		return $spirit;
-	}
-
-	/**
-	 * Do everything related to setting a spirit score, in one place
-	 */
-	function set_and_save_spirit ( $team_id, $which, $status, $default = '' )
-	{
-		$this->save_spirit_entry( $team_id, $this->default_spirit($status, false, $default));
-		$this->set("{$which}_spirit", $this->default_spirit($status, true));
-	}
-
-	/**
-	 * Save a spirit entry for the given team
-	 */
-	function save_spirit_entry ( $team_id, $spirit )
+	function penalize_team_for_non_entry ( $team_id )
 	{
 		global $dbh;
 
-		if( !is_array($spirit) ) {
-			die("Spirit argument to save_spirit_entry() must be an array");
-		}
+		$this->_spirit_entries[$team_id]['score_entry_penalty'] = 0 - variable_get('missing_score_spirit_penalty', 3);
 
-		// Store in object
-		$this->_spirit_entries[$team_id] = $spirit;
-
-		$opponent_id = $this->get_opponent_id( $team_id );
-
-		// save in DB
-		$sth = $dbh->prepare('REPLACE INTO team_spirit_answers (tid_created,tid,gid,qkey,akey) VALUES (?,?,?,?,?)');
-		while( list($qkey, $answer) = each($spirit) ) {
-			$sth->execute( array(
-				$opponent_id,
-				$team_id,
-				$this->game_id,
-				$qkey,
-				$answer
-			));
-			if( $sth->rowCount() < 1) {
-				return false;
-			}
+		$sth = $dbh->prepare('UPDATE spirit_entry
+			SET
+				score_entry_penalty = ?
+			WHERE
+				gid = ?
+				AND tid = ?');
+		$sth->execute( array( $this->_spirit_entries[$team_id]['score_entry_penalty'], $team_id, $this->game_id) );
+		if( $sth->rowCount() < 1) {
+			return false;
 		}
 
 		return true;
-	}
-
-	/**
-	 * Return values to be used for winner/loser of a default
-	 * game.
-	 */
-	function default_spirit ( $type , $numeric = false, $default = "")
-	{
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-
-		if( $spirit_type == 'ocua_team_spirit') {
-			return $this->default_ocua_team_spirit_answers( $type, $numeric, $default );
-		}
-		return $this->default_team_spirit_answers( $type, $numeric, $default );
-	}
-
-
-	function default_team_spirit_answers ( $type, $numeric = false, $default = "" )
-	{
-		$comments = "Automatic spirit assigned: ";
-
-		switch( $type ) {
-			case 'penalized':
-				$spirit = 10 - variable_get('missing_score_spirit_penalty', 3);
-				if ($numeric) {
-					return $spirit;
-				}
-				if ($default != "") {
-					return array(
-						'Timeliness' => null,
-						'RulesKnowledge' => null,
-						'Sportsmanship' => null,
-						'Enjoyment' => null,
-						'CommentsToCoordinator' => "$comments $spirit ($default)",
-					);
-				}
-				return array(
-					'Timeliness' => 'OnTime',
-					'RulesKnowledge' => 'AcceptableRules',
-					'Sportsmanship' => 'AcceptableSportsmanship',
-					'Enjoyment' => 'MostEnjoyed',
-					'CommentsToCoordinator' => "$comments $spirit",
-				);
-				break;
-			case 'loser':
-				// 4
-				if ($numeric) {
-					return 4;
-				}
-				if ($default != "") {
-					return array(
-						'Timeliness' => null,
-						'RulesKnowledge' => null,
-						'Sportsmanship' => null,
-						'Enjoyment' => null,
-						'CommentsToCoordinator' => $comments . "4 ($default)",
-					);
-				}
-				return array(
-					'Timeliness' => 'FiveOrLess',
-					'RulesKnowledge' => 'PoorRules',
-					'Sportsmanship' => 'PoorSportsmanship',
-					'Enjoyment' => 'SomeEnjoyed',
-					'CommentsToCoordinator' => $comments . "4",
-				);
-				break;
-			case 'winner':
-			case 'perfect':
-				// 10
-				if ($numeric) {
-					return 10;
-				}
-				if ($default != "") {
-					return array(
-						'Timeliness' => null,
-						'RulesKnowledge' => null,
-						'Sportsmanship' => null,
-						'Enjoyment' => null,
-						'CommentsToCoordinator' => $comments . "10 ($default)",
-					);
-				}
-				return array(
-					'Timeliness' => 'OnTime',
-					'RulesKnowledge' => 'ExcellentRules',
-					'Sportsmanship' => 'ExcellentSportsmanship',
-					'Enjoyment' => 'AllEnjoyed',
-					'CommentsToCoordinator' => $comments . "10",
-				);
-				break;
-			default:
-				die("Invalid type $type given to default_spirit()");
-		}
-	}
-
-	function default_ocua_team_spirit_answers ( $type, $numeric = false, $default = "" )
-	{
-		$comments = "Automatic spirit assigned: ";
-
-		switch( $type ) {
-			case 'form_defaults':
-				return array (
-					'OCUATimeliness' => 'OnTime',
-					'OCUARulesKnowledge' => 'GoodRules',
-					'OCUASportsmanship' => 'GoodSportsmanship',
-					'OCUAOverall' => 'Good',
-					'CommentsToCoordinator' => ''
-				);
-				break;
-			case 'penalized':
-				$spirit = 10 - variable_get('missing_score_spirit_penalty', 3);
-				if ($numeric) {
-					return $spirit;
-				}
-				return array (
-					'OCUATimeliness' => 'NotOnTime',
-					'OCUARulesKnowledge' => 'GoodRules',
-					'OCUASportsmanship' => 'GoodSportsmanship',
-					'OCUAOverall' => 'Good',
-					'CommentsToCoordinator' => "Score not submitted by required time",
-				);
-				break;
-			case 'loser':
-				// 4
-				if ($numeric) {
-					return 4;
-				}
-				if ($default != "") {
-					return array(
-						'OCUATimeliness' => 'NotOnTime',
-						'OCUARulesKnowledge' => 'BelowAverageRules',
-						'OCUASportsmanship' => 'BelowAverageSportsmanship',
-						'OCUAOverall' => 'BelowAverage',
-						'CommentsToCoordinator' => $comments . "4 ($default)",
-					);
-				}
-				return array (
-					'OCUATimeliness' => 'NotOnTime',
-					'OCUARulesKnowledge' => 'BelowAverageRules',
-					'OCUASportsmanship' => 'BelowAverageSportsmanship',
-					'OCUAOverall' => 'Good',
-					'CommentsToCoordinator' => $comments . "4",
-				);
-				break;
-			case 'winner':
-				// 7
-				if ($numeric) {
-					return 7;
-				}
-				return array (
-					'OCUATimeliness' => 'OnTime',
-					'OCUARulesKnowledge' => 'GoodRules',
-					'OCUASportsmanship' => 'GoodSportsmanship',
-					'OCUAOverall' => 'Good',
-					'CommentsToCoordinator' => $comments . "7",
-				);
-				break;
-			case 'perfect':
-				if ($numeric) {
-					return 10;
-				}
-				return array (
-					'OCUATimeliness' => 'OnTime',
-					'OCUARulesKnowledge' => 'ExceptionalRules',
-					'OCUASportsmanship' => 'ExceptionalSportsmanship',
-					'OCUAOverall' => 'Exceptional',
-					'CommentsToCoordinator' => $comments . "10",
-				);
-				break;
-			default:
-				die("Invalid type $type given to default_spirit()");
-		}
 	}
 
 	/**

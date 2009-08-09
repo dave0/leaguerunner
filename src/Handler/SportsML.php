@@ -84,6 +84,8 @@ xml version="1.0" encoding="ISO-8859-1"?>
 
 	function render_standings()
 	{
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
 
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
@@ -114,7 +116,7 @@ xml version="1.0" encoding="ISO-8859-1"?>
             <outcome-totals wins="<?php print $team->win ?>" losses="<?php print $team->loss ?>" ties="<?php print $team->tie ?>" points-scored-for="<?php print $team->points_for ?>" points-scored-against="<?php print $team->points_against ?>" />
             <team-stats-ultimate>
 <?php if( $this->league->display_numeric_sotg() ) { ?>
-                <stats-ultimate-spirit value="<?php if( $team->games > 3 ) { printf("%.2f", calculateAverageSOTG($team->spirit)); } ?>" />
+                <stats-ultimate-spirit value="<?php if( $team->games > 3 ) { printf("%.2f", $s->average_sotg($team->spirit)); } ?>" />
 <?php } ?>
                 <stats-ultimate-miscellaneous defaults="<?php print $team->defaults_against ?>" plusminus="<?php print $team->points_for - $team->points_against ?>" />
             </team-stats-ultimate>

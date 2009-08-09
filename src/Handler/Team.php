@@ -1582,7 +1582,10 @@ class TeamSpirit extends Handler
 		if( $league->display_sotg == 'coordinator_only' && ! $lr_session->is_coordinator_of( $league->league_id ) ) {
 			error_exit("Spirit results are restricted to coordinator-only");
 		}
-		$display_numeric_sotg = $league->display_numeric_sotg();
+
+		$s = new Spirit;
+		$s->display_numeric_sotg = $league->display_numeric_sotg();
+		$s->entry_type = $league->enter_sotg;
 
 		/*
 		 * Grab schedule info
@@ -1593,13 +1596,7 @@ class TeamSpirit extends Handler
 			error_exit('There are no games scheduled for this team');
 		}
 
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		$questions = formbuilder_load($spirit_type);
-
-		$question_keys = array_diff(
-			$questions->question_keys(),
-			array( 'CommentsToCoordinator' )
-		);
+		$questions = $s->question_headings();
 		$header = array_merge(
 			array(
 				'ID',
@@ -1607,27 +1604,16 @@ class TeamSpirit extends Handler
 				'Opponent',
 				'Game Avg',
 			),
-			array_map('make_shorter_titles', $question_keys)
+			(array)$questions
 		);
 
+		$question_column_count = count($questions);
 		if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-			$header[] = 'CommentsToCoordinator';
+			$header[] = 'Comments';
+			$question_column_count++;
 		}
 
 		$rows = array();
-
-		$answer_values = array();
-		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
-		$sth->execute();
-		while( $ary = $sth->fetch() ) {
-			$answer_values[ $ary['akey'] ] = $ary['value'];
-		}
-
-		$question_sums = array();
-		$num_games = 0;
-		$num_spirit_questions = 0;
-		$sotg_scores = array();
-		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
 
 		foreach($games as $game) {
 
@@ -1635,18 +1621,14 @@ class TeamSpirit extends Handler
 				continue;
 			}
 
-			$spirit = 10;
-
 			if($game->home_id == $this->team->team_id) {
 				$opponent_id = $game->away_id;
 				$opponent_name = $game->away_name;
 				$home_away = '(home)';
-				$spirit = $game->home_spirit;
 			} else {
 				$opponent_id = $game->home_id;
 				$opponent_name = $game->home_name;
 				$home_away = '(away)';
-				$spirit = $game->away_spirit;
 			}
 
 			$thisrow = array(
@@ -1655,71 +1637,39 @@ class TeamSpirit extends Handler
 				l($opponent_name, "team/view/$opponent_id")
 			);
 
-
 			# Fetch spirit answers for games
 			$entry = $game->get_spirit_entry( $this->team->team_id );
 			if( !$entry ) {
+				$thisrow[] = array(
+					'data'    => 'Opponent did not submit a spirit rating',
+					'colspan' => $question_column_count + 1,
+				);
+				$rows[] = $thisrow;
 				continue;
 			}
 
-			// get_spirit_numeric looks at the SOTG answers to determine the score
-			$numeric = $game->get_spirit_numeric( $this->team->team_id );
-			// but, now we want to use the home/away assigned spirit...
-			// so, see if there is a value in $spirit, otherwise, use $numeric:
-			if ($spirit == null || $spirit == "") {
-				$spirit = $numeric;
-			}
-			if( $display_numeric_sotg ) {
-				$thisrow[] = sprintf("%.2f",$spirit);
-			} else {
-				$thisrow[] = full_spirit_symbol_html( $spirit );
-			}
-			$score_total += $spirit;
-			$sotg_scores[] = $spirit;
+			$thisrow = array_merge(
+				$thisrow,
+				(array)$s->render_game_spirit( $entry )
+			);
 
-			while( list($qkey,$answer) = each($entry) ) {
-				if( $qkey == 'CommentsToCoordinator' ) {
-					// can only see comments if you're a coordinator
-					if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-						$thisrow[] = $answer;
-					}
-					continue;
-				}
-				if ($answer == null || $answer == "") {
-					$thisrow[] = "?";
-					$num_spirit_questions++;
-				} else {
-					$thisrow[] = question_spirit_symbol_html( $answer_values[$answer] );
-					$question_sums[ $qkey ] += $answer_values[ $answer ];
-				}
+			// can only see comments if you're a coordinator
+			if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+				$thisrow[] = $entry['comments'];
 			}
 
-			$num_games++;
 			$rows[] = $thisrow;
 		}
 
-		if( !$num_games ) {
-			error_exit("No games played, cannot display spirit");
-		}
-
-		$thisrow = array(
-			"Average","-","-"
+		$rows[] = array_merge(
+			array(
+				"Average","-","-"
+			),
+			(array)$s->team_sotg_averages( $this->team ),
+			array(
+				'-'
+			)
 		);
-
-		$spirit = sprintf("%.2f", calculateAverageSOTG($sotg_scores, false) );
-		if( $display_numeric_sotg ) {
-			$thisrow[] = sprintf("%.2f",$spirit);
-		} else {
-			$thisrow[] = full_spirit_symbol_html( $spirit );
-		}
-
-		foreach( $question_keys as $qkey ) {
-			$answer = $question_sums[$qkey];
-			$avg = ($answer / ($num_games - $num_spirit_questions));
-			$thisrow[] = question_spirit_symbol_html( $avg );
-		}
-		$thisrow[] = '';
-		$rows[] = $thisrow;
 
 		$style = '#main table td { font-size: 80% }';
 		if( variable_get('narrow_display', '0') ) {
@@ -1890,21 +1840,21 @@ function team_statistics ( )
 	}
 	$rows[] = array("Top non-score-submitting $current_season teams:", table(null, $sub_table));
 
-	$sth = $dbh->prepare("SELECT
-		ROUND( AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ), 2) AS avgspirit,
-			lt.team_id AS team_id
-		FROM league l, leagueteams lt, schedule s
+	$sotg_query = "SELECT
+			ROUND( AVG( COALESCE(
+				s.entered_sotg,
+				s.score_entry_penalty + s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall )
+			), 2) AS avgspirit,
+			s.tid AS team_id
+		FROM league l, leagueteams lt, spirit_entry s
 		WHERE
 			lt.league_id = l.league_id
-			AND l.league_id = s.league_id
-			AND s.league_id = lt.league_id
+			AND lt.team_id = s.tid
 			AND l.status = 'open'
 			AND l.season = ?
-			AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
-			AND s.approved_by
-		GROUP BY team_id
-		ORDER BY avgspirit DESC
-		LIMIT 10");
+		GROUP BY team_id";
+
+	$sth = $dbh->prepare( $sotg_query . " ORDER BY avgspirit DESC LIMIT 10");
 	$sth->execute ( array ($current_season) );
 	$sub_table = array();
 	while($row = $sth->fetch() ) {
@@ -1913,22 +1863,7 @@ function team_statistics ( )
 	}
 	$rows[] = array("Best spirited $current_season teams:", table(null, $sub_table));
 
-	$sth = $dbh->prepare("SELECT
-		ROUND( AVG( IF( lt.team_id = s.home_team, s.home_spirit, s.away_spirit ) ), 2) AS avgspirit,
-			lt.team_id AS team_id
-		FROM league l, leagueteams lt, schedule s
-		WHERE
-			lt.league_id = l.league_id
-			AND l.league_id = s.league_id
-			AND s.league_id = lt.league_id
-			AND l.status = 'open'
-			AND l.season = '%s'
-			AND (lt.team_id = s.home_team OR lt.team_id = s.away_team)
-			AND s.approved_by
-		GROUP BY team_id
-		HAVING avgspirit < 10
-		ORDER BY avgspirit ASC
-		LIMIT 10");
+	$sth = $dbh->prepare( $sotg_query . " ORDER BY avgspirit ASC LIMIT 10");
 	$sth->execute ( array ($current_season) );
 	$sub_table = array();
 	while($row = $sth->fetch() ) {

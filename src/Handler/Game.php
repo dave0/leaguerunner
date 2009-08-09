@@ -717,10 +717,8 @@ class GameSubmit extends Handler
 		$edit = $_POST['edit'];
 		$spirit = $incident = $allstar = null;
 
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-
-		if (array_key_exists ($spirit_type, $_POST))
-			$spirit = $_POST[$spirit_type];
+		if (array_key_exists ('spirit', $_POST))
+			$spirit = $_POST['spirit'];
 		if (array_key_exists ('incident', $_POST))
 			$incident = $_POST['incident'];
 		if (array_key_exists ('allstars', $_POST))
@@ -755,12 +753,6 @@ class GameSubmit extends Handler
 	// any possible data errors.
 	function isDataInvalid ($edit, $questions = null, $incident = null, $allstars = null) {
 		$ret = $this->isScoreDataInvalid ($edit);
-		if( $edit['sotg'] ) {
-			$msg = $this->isSOTGDataInvalid ($edit);
-			if( $msg ) {
-				$ret .= $msg;
-			}
-		}
 		if ($ret === false && $questions != null) {
 			$msg = $questions->answers_invalid();
 			if ($msg) {
@@ -772,15 +764,6 @@ class GameSubmit extends Handler
 		if ($ret === false && $allstars != null)
 			$ret = $this->isAllStarDataInvalid ($allstars);
 		return $ret;
-	}
-
-	function isSOTGDataInvalid ( $edit ) {
-
-		if( ! validate_numeric_sotg( $edit['sotg'] ) ) {
-			return '<br>An invalid value was specified for SOTG.  Please use a whole number between 1 and 10.';
-		}
-
-		return false;
 	}
 
 	function isScoreDataInvalid( $edit )
@@ -874,9 +857,11 @@ class GameSubmit extends Handler
 	{
 		global $lr_session, $dbh;
 
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load($spirit_type);
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$questions = $s->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -887,14 +872,10 @@ class GameSubmit extends Handler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			// Save the spirit entry if non-default
-			if( !$this->game->save_spirit_entry( $opponent->team_id, $questions->bulk_get_answers()) ) {
+			if( !$s->store_spirit_entry( $this->game, $opponent->team_id, $lr_session->attr_get('user_id'), $questions->bulk_get_answers()) ) {
 				error_exit("Error saving spirit entry for " . $this->team->team_id);
-			}
-			// If no numeric value set, create one from survey.  We may not need it, but do it for consistency's sake in the table.
-			if( ! $edit['sotg'] ) {
-				$edit['sotg'] = $this->game->get_spirit_numeric( $this->game->get_opponent_id( $this->team->team_id ) );
 			}
 		}
 
@@ -1000,44 +981,23 @@ END_OF_MESSAGE;
 		$output .= $this->hidden_fields ('edit', $edit);
 
 		$output .= para("Now you must rate your opponent's Spirit of the Game.");
-		switch( $this->league->enter_sotg ) {
-			case 'numeric_only':
-				$output .= para("To do so, please enter a value from 1 to 10.");
-				$output .= para(
-					form_textfield('Opponent SOTG','edit[sotg]','',2,2)
-				);
-				$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
-				break;
-			case 'both':
-			default:
-				$output .= para("Leaguerunner will ask you a few questions.  These questions are used to indicate to the league what areas might be problematic, and to generate a suggested spirit score, which you may modify.");
-				// Fall through
-			case 'survey_only':
-				$output .= para("Please fill out the questions below.");
-				$spirit_type = variable_get('spirit_questions', 'team_spirit');
-				$questions = formbuilder_load($spirit_type);
-
-				$have_default_answers = false;
-				if( $spirit_type == 'ocua_team_spirit' ) {
-					$have_default_answers = true;
-					$questions->bulk_set_answers( $this->game->default_spirit('form_defaults') );
-				}
-				$output .= $questions->render_editable( $have_default_answers );
-				if( $this->league->enter_numeric_sotg() ) {
-					$output .= generateSOTGButtonAndJavascript("", "Click the Suggest button to calculate a SOTG score based on your responses above, or manually enter a score (out of 10).");
-				}
-				$output .= para(form_submit("Next Step", "submit", "onclick=\"$javascript\"") . form_reset("reset"));
-				break;
-		}
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$output .= para("Please fill out the questions below.");
+		$questions = $s->as_formbuilder();
+		$questions->bulk_set_answers( $s->default_spirit_answers() );
+		$output .= $questions->render_editable( true );
+		$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
 
 		return form($output, 'post', null, 'id="score_form"');
 	}
 
 	function generateIncidentForm ($edit, $opponent, $spirit = null )
 	{
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load($spirit_type);
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$s = new Spirit;
+			$s->entry_type = $this->league->enter_sotg;
+			$questions = $s->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -1056,7 +1016,7 @@ END_OF_MESSAGE;
 			$edit['step'] = 'confirm';
 		}
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ($spirit_type, $spirit);
+		$output .= $this->hidden_fields ('spirit', $spirit);
 
 		$output .= form_select('Incident type', 'incident[type]', '', $this->incident_types(), '');
 		$output .= form_textarea('Incident Details', 'incident[details]', '', 60, 5, '');
@@ -1068,9 +1028,10 @@ END_OF_MESSAGE;
 
 	function generateAllStarForm ($edit, $opponent, $spirit = null, $incident = null )
 	{
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load($spirit_type);
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$s = new Spirit;
+			$s->entry_type = $this->league->enter_sotg;
+			$questions = $s->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -1089,7 +1050,7 @@ END_OF_MESSAGE;
 
 		$edit['step'] = 'confirm';
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ($spirit_type, $spirit);
+		$output .= $this->hidden_fields ('spirit', $spirit);
 		$output .= $this->hidden_fields ('incident', $incident);
 
 		$team = team_load( array('team_id' => $opponent->team_id) );
@@ -1123,9 +1084,10 @@ END_OF_MESSAGE;
 
 	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null, $allstars = null )
 	{
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = formbuilder_load($spirit_type);
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$s = new Spirit;
+			$s->entry_type = $this->league->enter_sotg;
+			$questions = $s->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -1140,19 +1102,12 @@ END_OF_MESSAGE;
 
 		$edit['step'] = 'save';
 		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ($spirit_type, $spirit);
+		$output .= $this->hidden_fields ('spirit', $spirit);
 		$output .= $this->hidden_fields ('incident', $incident);
 		$output .= $this->hidden_fields ('allstars', $allstars);
 
-		if( $this->league->enter_numeric_sotg() ) {
-			if( $edit['sotg'] ) {
-				$output .= para("A <b>Spirit Of The Game</b> score of <b>{$edit['sotg']}</b> will be assigned.");
-			} else {
-				$output .= para('A <b>Spirit Of The Game</b> score will be automatically generated for your opponents.');
-			}
-		}
-		if( $this->league->enter_survey_sotg() && $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$output .= para('The following answers will be tracked by your coordinator:');
+		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
+			$output .= para('The following answers will be shown to your coordinator:');
 			$output .= $questions->render_viewable();
 		}
 
@@ -1357,18 +1312,6 @@ class GameEdit extends Handler
 		return $lr_session->has_permission('game','view', $this->game);
 	}
 
-	function isSOTGDataInvalid ( $edit ) {
-
-		if( ! validate_numeric_sotg( $edit['sotg_home'] ) ) {
-			return '<br>An invalid value was specified for home SOTG.  Please use a whole number between 1 and 10.';
-		}
-
-		if( ! validate_numeric_sotg( $edit['sotg_away'] ) ) {
-			return '<br>An invalid value was specified for away SOTG.  Please use a whole number between 1 and 10.';
-		}
-
-		return false;
-	}
 
 	function process ()
 	{
@@ -1422,8 +1365,6 @@ class GameEdit extends Handler
 
 		$output = form_hidden('edit[step]', 'confirm');
 
-		$output .= form_item("Game ID", $game->game_id);
-
 		$teams = $league->teams_as_array();
 		/* Now, since teams may not be in league any longer, we need to force
 		 * them to appear in the pulldown
@@ -1444,7 +1385,9 @@ class GameEdit extends Handler
 
 		$output .= form_item("Game Status", $game->status);
 
-		$output .= form_item("Round", $game->round);
+		if( isset( $game->round ) ) {
+			$output .= form_item("Round", $game->round);
+		}
 
 		$spirit_group = '';
 		$score_group = '';
@@ -1479,10 +1422,6 @@ class GameEdit extends Handler
 				}
 				$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score", "$game->home_score $home_status");
 				$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", "$game->away_score $away_status");
-				if( $this->league->display_numeric_sotg() ) {
-					$score_group .= form_item("SOTG score for $game->home_name" , $game->home_spirit);
-					$score_group .= form_item("SOTG score for $game->away_name" , $game->away_spirit);
-				}
 			}
 
 			if ($game->home_score == $game->away_score && $game->rating_points == 0){
@@ -1578,30 +1517,6 @@ class GameEdit extends Handler
 			$score_group .= form_select('Game Status','edit[status]', $game->status, getOptionsFromEnum('schedule','status'), "To mark a game as defaulted, select the appropriate option here.  Appropriate scores will automatically be entered.");
 			$score_group .= form_textfield( "Home ($game->home_name [rated: $game->rating_home]) score", 'edit[home_score]',$game->home_score,2,2);
 			$score_group .= form_textfield( "Away ($game->away_name [rated: $game->rating_away]) score",'edit[away_score]',$game->away_score,2,2);
-
-			// TODO: horribly inefficient to run this query again
-			// from here, when it was just run from the
-			// "game_score_entry_display" call a few lines above
-			// here...
-
-			$sth = $dbh->prepare('SELECT * FROM score_entry WHERE team_id = ? AND game_id = ?');
-			$sth->execute(array($game->home_team, $game->game_id));
-			$home = $sth->fetch();
-			$sth->execute(array($game->away_team, $game->game_id));
-			$away = $sth->fetch();
-
-			// if the game has not yet been finalized, spirit for home team was reported by away team (and vice-versa)
-			$hs = $away['spirit'];
-			$as = $home['spirit'];
-			if ($game->is_finalized()) {
-				// if the game was finalized, the home/away assigned spirit is already saved in place
-				$hs = $game->home_spirit;
-				$as = $game->away_spirit;
-			}
-			if( $this->league->enter_numeric_sotg() ) {
-				$score_group .= generateSOTGButtonAndJavascript("home", "SOTG score for $game->home_name", $hs);
-				$score_group .= generateSOTGButtonAndJavascript("away", "SOTG score for $game->away_name", $as);
-			}
 		}
 
 		$output .= form_group("Scoring", $score_group);
@@ -1609,34 +1524,35 @@ class GameEdit extends Handler
 		if( $lr_session->has_permission('game','view',$game,'spirit') ) {
 			$ary = $game->get_spirit_entry( $game->home_id );
 
-			$spirit_type = variable_get('spirit_questions', 'team_spirit');
-			// TODO FIXME HACK even if we changed to different
-			// spirit questions, we may have old ones in the
-			// database.
-			if( $ary && array_key_exists('Timeliness', $ary) ) {
-				$spirit_type = 'team_spirit';
-			}
-
-			$formbuilder = formbuilder_load($spirit_type);
+			$s = new Spirit;
+			$s->entry_type = $this->league->enter_sotg;
+			$formbuilder = $s->as_formbuilder();
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
-			}
 
-			if($this->can_edit) {
-				$home_spirit_group = $formbuilder->render_editable( $ary, 'home' );
+				// TODO: when not editable, display viewable tabular format with symbols
+				$home_spirit_group = $this->can_edit
+					?  $formbuilder->render_editable( true, 'home' )
+					:  $formbuilder->render_viewable( true, 'home' );
 			} else {
-				$home_spirit_group = $formbuilder->render_viewable( $ary );
+				$formbuilder->bulk_set_answers( $s->default_spirit_answers() );
+				$home_spirit_group = $this->can_edit
+					?  $formbuilder->render_editable( true, 'home' )
+					:  'Not entered';
 			}
 
 			$formbuilder->clear_answers();
 			$ary = $game->get_spirit_entry( $game->away_id );
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
-			}
-			if($this->can_edit) {
-				$away_spirit_group = $formbuilder->render_editable( $ary , 'away');
+				$away_spirit_group = $this->can_edit
+					?  $formbuilder->render_editable( true, 'away' )
+					:  $formbuilder->render_viewable( true, 'away' );
 			} else {
-				$away_spirit_group = $formbuilder->render_viewable( $ary );
+				$formbuilder->bulk_set_answers( $s->default_spirit_answers() );
+				$away_spirit_group = $this->can_edit
+					?  $formbuilder->render_editable( true, 'away' )
+					:  'Not entered';
 			}
 
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
@@ -1657,36 +1573,31 @@ class GameEdit extends Handler
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		$home_spirit = formbuilder_load($spirit_type);
-		$away_spirit = formbuilder_load($spirit_type);
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$home_spirit = $s->as_formbuilder();
+		$away_spirit = $s->as_formbuilder();
 
 		$win = variable_get('default_winning_score', 6);
 		$lose = variable_get('default_losing_score', 0);
 
 		switch($edit['status']) {
 			case 'home_default':
-				$home_spirit->bulk_set_answers($this->game->default_spirit('loser'));
-				$away_spirit->bulk_set_answers($this->game->default_spirit('winner'));
 				$edit['home_score'] = "$lose (defaulted)";
 				$edit['away_score'] = $win;
 				break;
 			case 'away_default':
-				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
-				$home_spirit->bulk_set_answers($this->game->default_spirit('winner'));
 				$edit['home_score'] = $win;
 				$edit['away_score'] = "$lose (defaulted)";
 				break;
 			case 'forfeit':
-				$away_spirit->bulk_set_answers($this->game->default_spirit('loser'));
-				$home_spirit->bulk_set_answers($this->game->default_spirit('loser'));
 				$edit['home_score'] = '0 (forfeit)';
 				$edit['away_score'] = '0 (forfeit)';
 				break;
 			case 'normal':
 			default:
-				$home_spirit->bulk_set_answers( $_POST[$spirit_type . '_home'] );
-				$away_spirit->bulk_set_answers( $_POST[$spirit_type . '_away'] );
+				$home_spirit->bulk_set_answers( $_POST['spirit_home'] );
+				$away_spirit->bulk_set_answers( $_POST['spirit_away'] );
 				$dataInvalid .= $home_spirit->answers_invalid();
 				$dataInvalid .= $away_spirit->answers_invalid();
 				break;
@@ -1703,29 +1614,16 @@ class GameEdit extends Handler
 		$output .= form_hidden('edit[status]', $edit['status']);
 		$output .= form_hidden('edit[home_score]', $edit['home_score']);
 		$output .= form_hidden('edit[away_score]', $edit['away_score']);
-		$output .= form_hidden('edit[sotg_home]', $edit['sotg_home']);
-		$output .= form_hidden('edit[sotg_away]', $edit['sotg_away']);
-		$output .= $home_spirit->render_hidden('home');
-		$output .= $away_spirit->render_hidden('away');
-
 		$score_group .= form_item("Home ($game->home_name [rated: $game->rating_home]) Score",$edit['home_score']);
 		$score_group .= form_item("Away ($game->away_name [rated: $game->rating_away]) Score", $edit['away_score']);
 
-		if ($edit['status'] != 'home_default' && $edit['status'] != 'away_default') {
-			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->home_name:</label><br>" . $edit['sotg_home'];
-			$score_group .= "<div class=\"form-item\"><label>SOTG score assigned to $game->away_name:</label><br>" . $edit['sotg_away'];
-		} else {
-			$score_group .= "Due to the game default, the SOTG scores for this game will be automatically assigned.";
-		}
 		$output .= form_group("Scoring", $score_group);
-
-		// only show SOTG of the home team if they didn't default!
-		if ($edit['status'] != 'home_default') {
+		if( $edit['status'] == 'normal' ) {
 			$output .= form_group("Spirit assigned to home ($game->home_name)", $home_spirit->render_viewable());
-		}
-		// only show SOTG of the away team if they didn't default!
-		if ($edit['status'] != 'away_default') {
+			$output .= $home_spirit->render_hidden('home');
+
 			$output .= form_group("Spirit assigned to away ($game->away_name)", $away_spirit->render_viewable());
+			$output .= $away_spirit->render_hidden('away');
 		}
 
 		$output .= para(form_submit('submit'));
@@ -1741,11 +1639,17 @@ class GameEdit extends Handler
 		if( ! $this->can_edit ) {
 			error_exit("You do not have permission to edit this game");
 		}
-		$spirit_type = variable_get('spirit_questions', 'team_spirit');
-		$home_spirit = formbuilder_load($spirit_type);
-		$home_spirit->bulk_set_answers( $_POST[ $spirit_type . '_home'] );
-		$away_spirit = formbuilder_load($spirit_type);
-		$away_spirit->bulk_set_answers( $_POST[ $spirit_type . '_away'] );
+
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$home_spirit = $s->as_formbuilder();
+		$away_spirit = $s->as_formbuilder();
+		if( $_POST['spirit_home'] ) {
+			$home_spirit->bulk_set_answers( $_POST[ 'spirit_home'] );
+		}
+		if( $_POST['spirit_away'] ) {
+			$away_spirit->bulk_set_answers( $_POST[ 'spirit_away'] );
+		}
 
 		$dataInvalid = $this->isDataInvalid( $edit );
 
@@ -1764,45 +1668,24 @@ class GameEdit extends Handler
 		// Now, finalize score.
 		$this->game->set('home_score', $edit['home_score']);
 		$this->game->set('away_score', $edit['away_score']);
-		if( $edit['sotg_home'] != '' ) {
-			$this->game->set('home_spirit', $edit['sotg_home']);
-		}
-		if( $edit['sotg_away'] != '' ) {
-			$this->game->set('away_spirit', $edit['sotg_away']);
-		}
 		$this->game->set('status', $edit['status']);
 		$this->game->set('approved_by', $lr_session->attr_get('user_id'));
 
+		// For a normal game, save spirit entries.
+		if( $edit['status'] == 'normal' ) {
+			# TODO: don't need to do this unless there are changes.
+			if( ! $s->store_spirit_entry( $this->game, $this->game->home_id, $lr_session->attr_get('user_id'), $home_spirit->bulk_get_answers() ) ) {
+				error_exit("Error saving spirit entry for " . $this->game->home_name);
+			}
+			if( ! $s->store_spirit_entry( $this->game, $this->game->away_id, $lr_session->attr_get('user_id'), $away_spirit->bulk_get_answers() ) ) {
+				error_exit("Error saving spirit entry for " . $this->game->away_name);
+			}
+		}
 		switch( $edit['status'] ) {
 			// for defaults, have to prepare both home and away spirit scores!
-			case 'home_default':
-				$home_spirit_values = $this->game->default_spirit('loser'); // penalize home for default
-				$away_spirit_values = $this->game->default_spirit('winner');
-				$this->game->set('home_spirit', $this->game->default_spirit('loser', true));
-				$this->game->set('away_spirit', $this->game->default_spirit('winner', true));
-				break;
-			case 'away_default':
-				$home_spirit_values = $this->game->default_spirit('winner');
-				$away_spirit_values = $this->game->default_spirit('loser'); // penalize away for default
-				$this->game->set('home_spirit', $this->game->default_spirit('winner', true));
-				$this->game->set('away_spirit', $this->game->default_spirit('loser', true));
-				break;
-			case 'forfeit':
-				$away_spirit_values = $this->game->default_spirit('loser');
-				$home_spirit_values = $this->game->default_spirit('loser');
-				break;
 			case 'normal':
 			default:
-				$home_spirit_values = $home_spirit->bulk_get_answers();
-				$away_spirit_values = $away_spirit->bulk_get_answers();
 				break;
-		}
-
-		if( $edit['status'] != 'home_default' && !$this->game->save_spirit_entry( $this->game->home_id, $home_spirit_values) ) {
-			error_exit("Error saving spirit entry for " . $this->game->home_name);
-		}
-		if( $edit['status'] != 'away_default' && !$this->game->save_spirit_entry( $this->game->away_id, $away_spirit_values) ) {
-			error_exit("Error saving spirit entry for " . $this->game->away_name);
 		}
 
 		// load the teams in order to be able to save their current rating
@@ -1835,9 +1718,6 @@ class GameEdit extends Handler
 			if( !validate_positive_number($edit['away_score']) ) {
 				$errors .= '<br>You must enter a valid number for the away score.';
 			}
-
-			$errors .= $this->isSOTGDataInvalid( $edit );
-
 		}
 
 		if(strlen($errors) > 0) {
@@ -1894,7 +1774,6 @@ function game_score_entry_display( $game )
 	$rows[] = array( "Defaulted?", $home['defaulted'], $away['defaulted'],);
 	$rows[] = array( "Entered By:", $home['entered_by'], $away['entered_by'],);
 	$rows[] = array( "Entry time:", $home['entry_time'], $away['entry_time'],);
-	$rows[] = array( "SOTG Assigned:", $away['spirit'], $home['spirit'],);
 	return'<div class="listtable">' . table($header, $rows) . "</div>";
 }
 
@@ -2256,41 +2135,6 @@ class GameRatings extends Handler
 		return $output . $ratings_table ;
 	}
 
-}
-
-/**
- * Generates the javascript, input textarea, and button for the SOTG suggestion
- * box.
- */
-function generateSOTGButtonAndJavascript ($name, $label, $default = "") {
-	$use = "";
-	if ($name != null && $name != "") {
-		$use = "_" . $name;
-	}
-	$spirit_type = variable_get('spirit_questions', 'team_spirit');
-	$sotgjs = "<script language='javascript'> \nfunction sotg$use() {\n";
-	$sotgjs .= "var sotg=10;\n";
-	$sotgjs .= "var form = document.getElementById('score_form');\n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Timeliness]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[RulesKnowledge]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][2].checked){sotg=sotg-2;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Sportsmanship]'][3].checked){sotg=sotg-3;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][1].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][2].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "if (form.elements['$spirit_type" . $use . "[Enjoyment]'][3].checked){sotg=sotg-1;}; \n";
-	$sotgjs .= "return sotg;\n";
-	$sotgjs .= "}\n";
-	$sotgjs .= "</script>\n";
-
-    return para( $sotgjs . "<div class=\"form-item\"><label>$label</label>" .
-    	"<br> <input type=\"text\" maxlength=\"2\" class=\"form-text\" name=\"edit[sotg$use]\" size=\"2\" value=\"$default\" /> ".
-		" <input type='button' name='suggest' value='Suggest' " .
-		" onclick=\"document.getElementById('score_form').elements['edit[sotg$use]'].value=sotg$use();\"></div>");
 }
 
 ?>

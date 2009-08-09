@@ -388,7 +388,7 @@ class League extends LeaguerunnerObject
 			'DELETE FROM leaguemembers WHERE league_id = ?',
 			'DELETE FROM score_entry USING score_entry, schedule WHERE score_entry.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM activity_log USING activity_log,schedule WHERE activity_log.primary_id = schedule.game_id AND (type = "email_score_mismatch" OR type = "email_score_reminder") AND schedule.league_id = ?',
-			'DELETE FROM team_spirit_answers USING team_spirit_answers,schedule WHERE team_spirit_answers.gid = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM spirit_entry USING spirit_entry,schedule WHERE spirit-entry.gid = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM gameslot USING gameslot, schedule WHERE gameslot.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM league_gameslot_availability WHERE league_id = ?',
 			'DELETE FROM schedule WHERE league_id = ?',
@@ -576,14 +576,20 @@ class League extends LeaguerunnerObject
 
 	function standings_record_game(&$season, &$game)
 	{
-
-		// Make sure we have a numeric spirit value for each game.
-		if (!$this->enter_numeric_sotg() || $game->home_spirit == null || $game->home_spirit == "") {
-			$game->home_spirit = $game->get_spirit_numeric( $game->home_team );
+		// populate numeric spirit for sorting purposes.
+		// TODO: we should probably do all of this in the SQL query...
+		$s = new Spirit;
+		$s->entry_type = $this->enter_sotg;
+		$sum = $s->question_total();
+		$home_sotg_entry = $game->get_spirit_entry( $game->home_team );
+		$away_sotg_entry = $game->get_spirit_entry( $game->away_team );
+		if( $home_sotg_entry ) {
+			// Make sure it's out of 10, even if the individual questions are not.
+			$game->home_spirit = (array_sum($home_sotg_entry) / $sum) * 10;
 		}
-
-		if (!$this->enter_numeric_sotg() || $game->away_spirit == null || $game->away_spirit == "") {
-			$game->away_spirit = $game->get_spirit_numeric( $game->away_team );
+		if( $away_sotg_entry ) {
+			// Make sure it's out of 10, even if the individual questions are not.
+			$game->away_spirit = (array_sum($away_sotg_entry) / $sum) * 10;
 		}
 
 		if(isset($season[$game->home_team])) {
@@ -593,9 +599,7 @@ class League extends LeaguerunnerObject
 			$team->points_for += $game->home_score;
 			$team->points_against += $game->away_score;
 
-			if ( is_numeric($game->home_spirit) ) {
-				$team->spirit[] = $game->home_spirit;
-			}
+			$team->spirit[] = $game->home_spirit;
 
 			/* Need to initialize if not set */
 			if(!isset($team->vs[$game->away_team])) {
@@ -641,9 +645,7 @@ class League extends LeaguerunnerObject
 			$team->points_for += $game->away_score;
 			$team->points_against += $game->home_score;
 
-			if ( is_numeric($game->away_spirit) ) {
-				$team->spirit[] = $game->away_spirit;
-			}
+			$team->spirit[] = $game->away_spirit;
 
 			/* Need to initialize if not set */
 			if(!isset($team->vs[$game->home_team])) {
@@ -700,10 +702,12 @@ class League extends LeaguerunnerObject
 			return ($a->rating > $b->rating) ? -1 : 1;
 		}
 
+		$s = new Spirit;
+
 		/* Check SOTG */
-		if ( calculateAverageSOTG($a->spirit, true) > calculateAverageSOTG($b->spirit, true) ) {
+		if ( $s->average_sotg($a->spirit, true) > $s->average_sotg($b->spirit, true) ) {
 			return -1;
-		} elseif ( calculateAverageSOTG($a->spirit, true) < calculateAverageSOTG($b->spirit, true) ) {
+		} elseif ( $s->average_sotg($a->spirit, true) < $s->average_sotg($b->spirit, true) ) {
 			return 1;
 		}
 
@@ -752,10 +756,12 @@ class League extends LeaguerunnerObject
 			}
 		}
 
+		$s = new Spirit;
+
 		/* Check SOTG */
-		if ( calculateAverageSOTG($a->spirit, true) > calculateAverageSOTG($b->spirit, true) ) {
+		if ( $s->average_sotg($a->spirit, true) > $s->average_sotg($b->spirit, true) ) {
 			return -1;
-		} elseif ( calculateAverageSOTG($a->spirit, true) < calculateAverageSOTG($b->spirit, true) ) {
+		} elseif ( $s->average_sotg($a->spirit, true) < $s->average_sotg($b->spirit, true) ) {
 			return 1;
 		}
 
@@ -1505,38 +1511,6 @@ class League extends LeaguerunnerObject
 		return $season;
 	}
 
-	function enter_numeric_sotg ( ) {
-		$enter_numeric_sotg = true;
-		switch( $this->enter_sotg ) {
-			case 'survey_only':
-				$enter_numeric_sotg = false;
-				break;
-			case 'numeric_only':
-			case 'both':
-			default:
-				$enter_numeric_sotg = true;
-				break;
-		}
-
-		return $enter_numeric_sotg;
-	}
-
-	function enter_survey_sotg ( ) {
-		$enter_survey_sotg = true;
-		switch( $this->enter_sotg ) {
-			case 'numeric_only':
-				$enter_survey_sotg = false;
-				break;
-			case 'survey_only':
-			case 'both':
-			default:
-				$enter_survey_sotg = true;
-				break;
-		}
-
-		return $enter_survey_sotg;
-	}
-
 	function display_numeric_sotg ( ) {
 		global $lr_session;
 
@@ -1627,7 +1601,6 @@ class League extends LeaguerunnerObject
 
 		return array(true, "");
 	}
-
 
 }
 
