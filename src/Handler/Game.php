@@ -798,11 +798,11 @@ class GameSubmit extends Handler
 			}
 		}
 
-		if( !validate_number($edit['score_for']) ) {
+		if( !validate_positive_number($edit['score_for']) ) {
 			$errors .= '<br>You must enter a valid number for your score.';
 		}
 
-		if( !validate_number($edit['score_against']) ) {
+		if( !validate_positive_number($edit['score_against']) ) {
 			$errors .= '<br>You must enter a valid number for your opponent\'s score.';
 		}
 
@@ -1829,10 +1829,10 @@ class GameEdit extends Handler
 		$errors = "";
 
 		if($edit['status'] == 'normal') {
-			if( !validate_number($edit['home_score']) ) {
+			if( !validate_positive_number($edit['home_score']) ) {
 				$errors .= '<br>You must enter a valid number for the home score.';
 			}
-			if( !validate_number($edit['away_score']) ) {
+			if( !validate_positive_number($edit['away_score']) ) {
 				$errors .= '<br>You must enter a valid number for the away score.';
 			}
 

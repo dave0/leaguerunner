@@ -652,6 +652,15 @@ function validate_number ( $string )
 	return is_numeric($string);
 }
 
+function validate_positive_number ( $string )
+{
+	if( ! validate_number( $string ) ) {
+		return false;
+	}
+
+	return $string > 0;
+}
+
 function validate_name_input ( $string )
 {
 	if( !validate_nonblank($string) ) {
