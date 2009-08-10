@@ -31,7 +31,7 @@ file_url = "/leaguerunner"
 [localization]
 ; Set up time zone information.
 ; See http://ca3.php.net/timezones for a list of valid timezone names
-local_tz = "TZ=US/Eastern"
+local_tz = "US/Eastern"
 
 ; Difference, in minutes, from the local timezone to the server timezone.
 ; Value is negative if server is to your west, positive if it's east.
