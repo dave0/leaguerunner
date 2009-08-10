@@ -1447,6 +1447,10 @@ class LeagueSpirit extends Handler
 			)
 			. "\n";
 
+
+		/*
+		 * Show every game
+		 */
 		$header = array_merge(
 			array(
 				'Game',
@@ -1456,11 +1460,6 @@ class LeagueSpirit extends Handler
 			),
 			(array)$s->question_headings()
 		);
-
-
-		/*
-		 * Show every game
-		 */
 		$rows = array();
 		$question_column_count = count($s->question_headings());
 		while(list(,$game) = each($games)) {
@@ -1524,8 +1523,7 @@ class LeagueSpirit extends Handler
 }
 
 /**
- * Download a CSV spirit report of all active teams
- * TODO: totally broken.
+ * Download a CSV spirit report for all games played
  */
 class LeagueSpiritDownload extends Handler
 {
@@ -1539,90 +1537,81 @@ class LeagueSpiritDownload extends Handler
 	{
 		global $dbh;
 
-		$this->league->load_teams();
+		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
+
+		if( !is_array($games) ) {
+			error_exit("There are no games scheduled for this league");
+		}
+
+		$s = new Spirit;
+		$s->entry_type = $this->league->enter_sotg;
+		$s->display_numeric_sotg = $this->league->display_numeric_sotg();
 
 		// Start the output, let the browser know what type it is
 		header('Content-type: text/x-csv');
 		header("Content-Disposition: attachment; filename=\"spirit{$this->league_id}.csv\"");
 		$out = fopen('php://output', 'w');
 
-		$still_need_header = 1;
-		$header = array('Team', 'TeamID', 'Opponent', 'Team Score', 'Opp Score', 'Spirit', 'Calc Spirit'); // +questions
+		$header = array_merge(
+			array(
+				'Game #',
+				'Date',
+				'Giver Name',
+				'Giver ID',
+				'Given To',
+				'Given To ID',
+				'SOTG Total',
+			),
+			(array)$s->question_headings(),
+			array(
+				'Comments',
+			)
+		);
+		fputcsv($out, $header);
 
-		// get spirit questions headers
-		$answer_values = array();
-		$sth = $dbh->prepare('SELECT akey, value FROM multiplechoice_answers');
-		$sth->execute();
-		while( $ary = $sth->fetch() ) {
-			$answer_values[ $ary['akey'] ] = $ary['value'];
-		}
+		while(list(,$game) = each($games)) {
 
-		$question_sums = array();
-		$num_games = 0;
-		$sotg_scores = array();
+			$teams = array(
+				$game->home_team => $game->home_name,
+				$game->away_team => $game->away_name
+			);
+			while( list($giver,$giver_name) = each ($teams)) {
 
-		// produce one line per team
-		foreach($this->league->teams as $team) {
-			$thisrow = array($team->name, $team->team_id);
-			// Grab schedule info for this team
-			$games = game_load_many( array( 'either_team' => $team->team_id,
-							'_order' => 'g.game_date') );
+				$recipient = $game->get_opponent_id ($giver);
 
-			// process each game for this team
-			foreach($games as $game) {
-				if($game->home_id == $team->team_id) {
-					$opponent_id = $game->away_id;
-					$opponent_name = $game->away_name;
-					$opponent_score = $game->away_score;
-					$my_score = $game->home_score;
-					$home_away = '(home)';
-					$spirit = $game->home_spirit;
-				} else {
-					$opponent_id = $game->home_id;
-					$opponent_name = $game->home_name;
-					$opponent_score = $game->home_score;
-					$my_score = $game->away_score;
-					$home_away = '(away)';
-					$spirit = $game->away_spirit;
-				}
-
-				$thisrow[] = $opponent_name;
-				$thisrow[] = $my_score;
-				$thisrow[] = $opponent_score;
-				$thisrow[] = $spirit;
-
-				// Fetch spirit answers for games
-				$entry = $game->get_spirit_entry( $team->team_id );
+				# Fetch spirit answers for games
+				$entry = $game->get_spirit_entry( $recipient );
 				if( !$entry ) {
-					array_push($thisrow, '','','','','','');
-					continue;
+					$entry = array(
+						comments => 'Team did not submit a spirit rating',
+					);
+				} else {
+					if( ! $entry['entered_sotg'] ) {
+						$entry['entered_sotg'] = (
+							$entry['timeliness'] + $entry['rules_knowledge'] + $entry['sportsmanship'] + $entry['rating_overall'] + $entry['score_entry_penalty']
+						);
+					}
 				}
-				$numeric = $game->get_spirit_numeric( $team->team_id );
-				$thisrow[] = sprintf("%.2f",$numeric);
 
-				while( list($qkey,$answer) = each($entry) ) {
-					if ( $still_need_header ) {
-						$header[] = $qkey;
-					}
-					if( $qkey == 'CommentsToCoordinator' ) {
-						$thisrow[] = $answer;
-				  	      continue;
-					} else if ($answer == null || $answer == "") {
-						$thisrow[] = "?";
-					} else {
-						$thisrow[] = $answer_values[$answer];
-					}
-				}
-				if ($still_need_header) {
-					fputcsv($out, $header);
-					$still_need_header = 0;
-				}
+				$thisrow = array(
+					$game->game_id,
+					strftime('%a %b %d %Y', $game->timestamp),
+					$giver_name,
+					$giver,
+					$teams[$recipient],
+					$recipient,
+					$entry['entered_sotg'],
+					$entry['timeliness'],
+					$entry['rules_knowledge'],
+					$entry['sportsmanship'],
+					$entry['rating_overall'],
+					$entry['score_entry_penalty'],
+					$entry['comments'],
+				);
+
+				fputcsv($out, $thisrow);
 			}
-
-			// Output the data row
-			fputcsv($out, $thisrow);
 		}
-
 		fclose($out);
 
 		// Returning would cause the Leaguerunner menus to be added
