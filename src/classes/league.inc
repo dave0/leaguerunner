@@ -515,16 +515,26 @@ class League extends LeaguerunnerObject
 		 */
 		// TODO: I'd like to use game_load_many here, but it's too slow.
 		$sth = $dbh->prepare('SELECT DISTINCT 
-			s.*, 
+			s.*,
 			1 as _in_database,
-			s.home_team AS home_id, 
+			s.home_team AS home_id,
 			h.name AS home_name, 
 			s.away_team AS away_id,
-			a.name AS away_name
+			a.name AS away_name,
+			COALESCE(
+				asotg.entered_sotg,
+				hsotg.timeliness + hsotg.rules_knowledge + hsotg.sportsmanship + hsotg.rating_overall + hsotg.score_entry_penalty
+			) AS home_spirit,
+			COALESCE(
+				hsotg.entered_sotg,
+				asotg.timeliness + asotg.rules_knowledge + asotg.sportsmanship + asotg.rating_overall + asotg.score_entry_penalty
+			) AS away_spirit
 			FROM leagueteams t, schedule s
 				LEFT JOIN team h ON (h.team_id = s.home_team) 
 				LEFT JOIN team a ON (a.team_id = s.away_team)
 				LEFT JOIN gameslot g ON (g.game_id = s.game_id)
+				LEFT JOIN spirit_entry hsotg ON (hsotg.tid = s.home_team AND g.game_id = hsotg.gid)
+				LEFT JOIN spirit_entry asotg ON (asotg.tid = s.away_team AND g.game_id = asotg.gid)
 			WHERE t.league_id = ?
 				AND NOT ISNULL(s.home_score) 
 				AND NOT ISNULL(s.away_score) 
@@ -576,22 +586,6 @@ class League extends LeaguerunnerObject
 
 	function standings_record_game(&$season, &$game)
 	{
-		// populate numeric spirit for sorting purposes.
-		// TODO: we should probably do all of this in the SQL query...
-		$s = new Spirit;
-		$s->entry_type = $this->enter_sotg;
-		$sum = $s->question_total();
-		$home_sotg_entry = $game->get_spirit_entry( $game->home_team );
-		$away_sotg_entry = $game->get_spirit_entry( $game->away_team );
-		if( $home_sotg_entry ) {
-			// Make sure it's out of 10, even if the individual questions are not.
-			$game->home_spirit = (array_sum($home_sotg_entry) / $sum) * 10;
-		}
-		if( $away_sotg_entry ) {
-			// Make sure it's out of 10, even if the individual questions are not.
-			$game->away_spirit = (array_sum($away_sotg_entry) / $sum) * 10;
-		}
-
 		if(isset($season[$game->home_team])) {
 			$team = &$season[$game->home_team];
 

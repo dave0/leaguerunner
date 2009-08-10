@@ -178,14 +178,19 @@ class Spirit
 	 */
 	function average_sotg ( $scores , $drop = false ) {
 		// $scores is an array of SOTG scores
-		$size = sizeof($scores);
-		if ($size == 0) {
+		if (sizeof( $scores ) == 0) {
 			return 0;
 		}
-		$high = 0;
-		$low = 10;
+		$high  = 0;
+		$low   = 10;
 		$total = 0;
+		$count = 0;
+
 		foreach ($scores as $value) {
+			if( is_null($value) ) {
+				continue;
+			}
+
 			if ($value > $high) {
 				$high = $value;
 			}
@@ -193,14 +198,15 @@ class Spirit
 				$low = $value;
 			}
 			$total += $value;
+			$count++;
 		}
-		// can only drop highest and lowest if the size is 3 or more
-		if ($size >= 3 && $drop) {
+		// can only drop highest and lowest if the count is 3 or more
+		if ($count >= 3 && $drop) {
 			$total = $total - $high - $low;
-			$size = $size - 2;
+			$count = $count - 2;
 		}
 
-		return $total / $size;
+		return $total / $count;
 	}
 
 	/*
