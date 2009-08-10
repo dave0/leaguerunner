@@ -116,6 +116,7 @@ function game_splash ()
 	$rows = array();
 	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
 		$game = game_load(array('game_id' => $row->game_id));
+		$score = 'not entered';
 		if( $game->is_finalized() ) {
 			$score = "$game->home_score - $game->away_score"	;
 		} else {
