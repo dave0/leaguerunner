@@ -407,18 +407,6 @@ function _leaguerunner_next_games ( )
 }
 
 /**
- * Queries the Leaguerunner Database to determine the number of games on a
- * given day
- */
-function leaguerunner_count_games_for_date ( $year, $month, $day )
-{
-	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-	$result = db_query("select COUNT(*) from $lr_dbname.gameslot WHERE game_date = '%d-%d-%d' AND NOT ISNULL(game_id)", $year, $month, $day);
-	$numGames = db_result($result);
-	return $numGames;
-}
-
-/**
  * Creates a 'My Games' block for upcoming games. Uses the Leaguerunner
  * configuration setting to get the number of games to display
  */
