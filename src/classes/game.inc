@@ -154,7 +154,6 @@ class Game extends LeaguerunnerObject
 	 *  3) two scores entered, agreeing
 	 *  	- scores are entered as provided, as are spirit values.
 	 */
-	// TODO: DMO needs to test this
 	function finalize()
 	{
 		global $dbh;
