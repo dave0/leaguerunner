@@ -450,9 +450,9 @@ class EventList extends Handler
 		ob_end_clean();
 
 		if( $lr_session->is_admin() ) {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		} else {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 30 DAY) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		}
 
 		$type_desc = array('membership' => 'Membership Registrations',
