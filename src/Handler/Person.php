@@ -356,10 +356,6 @@ class PersonView extends Handler
 			}
 		}
 
-		if($lr_session->has_permission('person','view',$person->user_id, 'user_id') ) {
-			$rows[] = array('Website User ID:', $person->user_id);
-		}
-
 		if($person->allow_publish_email == 'Y') {
 			$rows[] = array("Email Address:", l($person->email, "mailto:$person->email") . " (published)");
 		} else {
