@@ -70,8 +70,8 @@ class Event extends LeaguerunnerObject
 		$fields_data[] = $this->registration_id;
 
 		$sth->execute($fields_data);
-		if(1 < $sth->rowCount()) {
-			# Affecting zero rows is possible
+		if(1 != $sth->rowCount()) {
+			# Affecting zero rows is possible but usually unwanted
 			error_exit("Internal error: Strange number of rows affected");
 		}
 
