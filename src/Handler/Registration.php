@@ -1259,10 +1259,11 @@ function registration_statistics($args)
 			fputcsv($out, $data);
 
 			$sth = $dbh->prepare('SELECT
-				order_id,
-				DATE_ADD(time, INTERVAL ? MINUTE) as time,
-				DATE_ADD(modified, INTERVAL ? MINUTE) as modified,
-				payment,
+				r.order_id,
+				DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
+				DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified,
+				r.payment,
+				r.notes,
 				p.*
 			FROM registrations r
 				LEFT JOIN person p ON r.user_id = p.user_id
