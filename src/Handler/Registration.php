@@ -706,7 +706,9 @@ class RegistrationRegister extends RegistrationForm
 
 			$output .= para('Alternately, if you choose not to complete the payment process at this time, you will be able to start the registration process again at a later time and it will pick up where you have left off.');
 		} else {
-			$output = para( 'No text provided yet for all offline payments.' );
+			$output .= h2 ('Payment Details');
+			$output .= strtr( variable_get('offline_payment_text', ''),
+						array( '%order_num' => $order_num ) );
 		}
 		$output .= RefundPolicyText();
 
