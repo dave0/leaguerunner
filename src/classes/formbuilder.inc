@@ -128,8 +128,10 @@ class FormBuilder
 			$all_questions[] = array( $q->qkey, $q->genre, $q->question, $q->qtype, $q->restrictions, ($q->required ? 'Y' : 'N'), $q->sorder );
 			$qkeys[] = $q->qkey;
 
-			foreach( $q->answers as $a ) {
-				$all_avalues[] = array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder );
+			if( $q->answers ) {
+				foreach( $q->answers as $a ) {
+					$all_avalues[] = array( $a->akey, $a->qkey, $a->answer, $a->value, $a->sorder );
+				}
 			}
 		}
 
