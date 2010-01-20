@@ -1,13 +1,8 @@
 <?php
-
-/*
- * TODO: Currently, prerequisites are handled with manual database manipulation.
- */
-
 /*
  * Handlers for dealing with registration events
  */
-function event_dispatch() 
+function event_dispatch()
 {
 	$op = arg(1);
 	$id = arg(2);
@@ -19,12 +14,12 @@ function event_dispatch()
 			$obj = new EventEdit;
 			$obj->event = event_load( array('registration_id' => $id) );
 			break;
-		case 'survey':
-			$obj = new EventSurvey;
+		case 'copy':
+			$obj = new EventCopy;
 			$obj->event = event_load( array('registration_id' => $id) );
 			break;
-		case 'prereq':
-			$obj = new EventPrereq;
+		case 'survey':
+			$obj = new EventSurvey;
 			$obj->event = event_load( array('registration_id' => $id) );
 			break;
 		case 'view':
@@ -38,30 +33,12 @@ function event_dispatch()
 		case 'list':
 			return new EventList;
 			break;
-		case 'preregister':
-			$obj = new EventPreregister;
-			$obj->event = event_load( array('registration_id' => $id) );
-			$player_id = arg(3);
-			if( $player_id ) {
-				$obj->player = person_load( array('user_id' => $player_id) );
-			}
-			$obj->op = arg(4);
-			break;
-		case 'preregisterlist':
-			return new EventPreregisterList;
-			break;
 		default:
 			$obj = null;
 	}
 
 	if( $obj ) {
-		$obj->event_types = array(
-			'membership' => 'Individual membership',
-			'individual_league' => 'Individual for league',
-			'team_league' => 'Team for league',
-			'individual_event' => 'Individual for tournament or other one-time event',
-			'team_event' => 'Team for tournament or other one-time event'
-		);
+		$obj->event_types = event_types();
 	}
 
 	if( $obj->event ) {
@@ -86,15 +63,9 @@ function event_permissions ( &$user, $action, $id, $data_field )
 			// Only admin can delete
 			break;
 		case 'view':
-			// Only players with completed and activated profiles can view details
-			return ( $lr_session->is_complete() && $lr_session->user->is_active() );
 		case 'list':
-			// Everyone can list
-			return true;
-		case 'preregister':
-		case 'preregisterlist':
-			// Only admin can preregister individuals
-			break;
+			// Valid players can list
+			return $lr_session->is_valid();
 	}
 
 	return false;
@@ -113,16 +84,13 @@ function event_menu()
 		if( $lr_session->has_permission('event','create') ) {
 			menu_add_child('event','event/create','create event', array('weight' => 5, 'link' => 'event/create') );
 		}
-		if( $lr_session->has_permission('event','preregisterlist') ) {
-			menu_add_child('event','event/preregisterlist','list preregistrations', array('link' => 'event/preregisterlist') );
-		}
 	}
 }
 
 /**
  * Add view/edit/delete links to the menu for the given event
  */
-function event_add_to_menu( &$event ) 
+function event_add_to_menu( &$event )
 {
 	global $lr_session;
 
@@ -136,8 +104,8 @@ function event_add_to_menu( &$event )
 		if($lr_session->has_permission('event','delete', $event->registration_id) ) {
 			menu_add_child($event->name, "$event->name/delete",'delete event', array('weight' => 1, 'link' => "event/delete/$event->registration_id"));
 		}
-		if($lr_session->has_permission('event','preregister', $event->registration_id) ) {
-			menu_add_child($event->name, "$event->name/preregister",'create preregistration', array('weight' => 2, 'link' => "event/preregister/$event->registration_id"));
+		if( $lr_session->has_permission('event','create') ) {
+			menu_add_child($event->name, "$event->name/copy",'copy event', array('weight' => 1, 'link' => "event/copy/$event->registration_id"));
 		}
 
 		if( $lr_session->is_admin() ) {
@@ -179,6 +147,44 @@ class EventCreate extends EventEdit
 	}
 }
 
+class EventCopy extends EventEdit
+{
+	var $event;
+
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('event','create');
+	}
+
+	function process ()
+	{
+		$edit = $_POST['edit'];
+		$this->title = 'Copy Event';
+		$this->setLocation(array(
+			$this->event->name => "event/view/" .$this->event->registration_id,
+			$this->title => 0
+		));
+
+		switch($edit['step']) {
+			case 'confirm':
+				$rc = $this->generateConfirm($edit);
+				break;
+			case 'perform':
+				$new_event = new Event;
+				$this->perform($new_event, $edit);
+				$new_event->copy_survey_from( $this->event );
+				local_redirect(url("event/view/" . $new_event->registration_id));
+				break;
+			default:
+				$edit = object2array($this->event);
+				$rc = $this->generateForm($edit);
+		}
+		$this->setLocation(array($this->title => 0));
+		return $rc;
+	}
+}
+
 class EventSurvey extends Handler
 {
 	var $event;
@@ -192,8 +198,7 @@ class EventSurvey extends Handler
 	function process ()
 	{
 		$this->title = 'Maintain Event Survey';
-		$formkey = 'registration_' . $this->event->registration_id;
-		$rc = formbuilder_maintain( $formkey );
+		$rc = formbuilder_maintain( $this->event->formkey() );
 		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
@@ -445,7 +450,7 @@ class EventList extends Handler
 	{
 		global $lr_session, $CONFIG;
 
-		$links = $lr_session->has_permission('event','view');
+		$links = $lr_session->has_permission('event','list');
 
 		$this->title = 'Registration Event List';
 		$this->setLocation(array($this->title => 0));
@@ -461,14 +466,10 @@ class EventList extends Handler
 		if( $lr_session->is_admin() ) {
 			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR) AND e.close > DATE_ADD(NOW(), INTERVAL -30 DAY)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		} else {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
+			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		}
 
-		$type_desc = array('membership' => 'Membership Registrations',
-							'individual_event' => 'One-time Individual Event Registrations',
-							'team_event' => 'One-time Team Event Registrations',
-							'individual_league' => 'Individual Registrations (for players without a team)',
-							'team_league' => 'Team Registrations');
+		$type_desc = event_types();
 		$last_type = '';
 		$rows = array();
 
@@ -485,142 +486,13 @@ class EventList extends Handler
 				$name = $event->name;
 			}
 			$rows[] = array($name,
-							'$' . ($event->cost + $event->gst + $event->pst),
+							'$' . $event->total_cost(),
 							$event->open,
 							$event->close);
 		}
 
 		$header = array( 'Registration', 'Cost', 'Opens on', 'Closes on');
 		$output .= table ($header, $rows, array('alternate-colours' => true));
-
-		return $output;
-	}
-}
-
-/**
- * Event preregistration handler.  Admins can create a preregistration that
- * will allow a user to register for an event even if the event is not open.
- * This can be used for allowing early registrations, or late (e.g. people
- * from a waiting list, when others who were registered drop out).
- */
-class EventPreregister extends Handler
-{
-	var $event;
-
-	function has_permission()
-	{
-		global $lr_session;
-		if (!$this->event) {
-			error_exit('That event does not exist');
-		}
-		return $lr_session->has_permission('event','preregister', $this->event->registration_id);
-	}
-
-	function process ()
-	{
-		global $lr_session, $dbh;
-		$this->title = 'Create Preregistration';
-
-		if( !$this->player ) {
-			$new_handler = new PersonSearch;
-			$new_handler->initialize();
-			$new_handler->ops['Preregister for ' . $this->event->name] = 'event/preregister/' . $this->event->registration_id . '/%d/add';
-			$output = $new_handler->process();
-		}
-
-		else if ($this->op == 'add')
-		{
-			// TODO: need a preregistration class to handle create/delete
-			$sth = $dbh->prepare('INSERT INTO preregistrations VALUES (?,?)');
-			$sth->execute( array(
-				$this->player->user_id,
-				$this->event->registration_id)
-			);
-			if( 1 != $sth->rowCount() ) {
-				return false;
-			}
-			$output = para('Successfully created preregistration. ' . $this->player->fullname . ' is now permitted to proceed with registration for ' . $this->event->name . ', subject to the normal prerequisite checks.');
-		}
-
-		else if ($this->op == 'delete')
-		{
-			$this->title = 'Delete Preregistration';
-			$sth = $dbh->prepare('DELETE FROM preregistrations WHERE user_id = ?  AND registration_id = ?');
-			$sth->execute( array(
-				$this->player->user_id,
-				$this->event->registration_id)
-			);
-			if( 1 != $sth->rowCount() ) {
-				return false;
-			}
-			$output = para('Successfully removed preregistration record.');
-		}
-		else
-		{
-			$output = para(theme_error('Error: unrecognized preregistration operation!'));
-		}
-
-		$this->setLocation(array(
-			$this->event->name => "event/view/" .$this->event->registration_id,
-			$this->title => 0
-		));
-
-		return $output;
-	}
-}
-
-/**
- * Event preregistration listing handler
- */
-class EventPreregisterList extends Handler
-{
-	function has_permission()
-	{
-		global $lr_session;
-		return $lr_session->has_permission('event','preregisterlist');
-	}
-
-	function process ()
-	{
-		global $lr_session, $dbh;
-
-		$this->title = 'Preregistration List';
-		$this->setLocation(array($this->title => 0));
-
-		$sth = $dbh->prepare('SELECT
-				r.user_id,
-				r.registration_id,
-				p.firstname,
-				p.lastname,
-				e.name as eventname
-			FROM
-				preregistrations r
-			LEFT JOIN
-				person p ON p.user_id = r.user_id
-			LEFT JOIN
-				registration_events e ON e.registration_id = r.registration_id');
-		$sth->execute();
-
-		$rows = array();
-
-		while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$rows[] = array(
-				l($row->firstname . ' ' . $row->lastname, "person/view/$row->user_id"),
-				l($row->eventname, "event/view/$row->registration_id"),
-				l('delete', "event/preregister/$row->registration_id/$row->user_id/delete")
-			);
-		}
-
-		$output = '';
-		if (count ($rows))
-		{
-			$header = array( 'User', 'Event');
-			$output .= table ($header, $rows, array('alternate-colours' => true));
-		}
-		else
-		{
-			$output .= para ('No preregistrations found.');
-		}
 
 		return $output;
 	}
@@ -651,7 +523,7 @@ class EventView extends Handler
 		$rows[] = array('Event&nbsp;Name:', $this->event->name);
 		$rows[] = array('Description:', $this->event->description);
 		$rows[] = array('Event type:', $this->event_types[$this->event->type]);
-		$rows[] = array('Cost:', '$' . ($this->event->cost + $this->event->gst + $this->event->pst));
+		$rows[] = array('Cost:', '$' . $this->event->total_cost());
 		$rows[] = array('Opens on:', $this->event->open);
 		$rows[] = array('Closes on:', $this->event->close);
 		if ($this->event->cap_female == -2)
@@ -676,40 +548,12 @@ class EventView extends Handler
 
 		$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
 
-		// list prerequisites of this event
-		$sth = $dbh->prepare('SELECT
-				p.prereq_id as id,
-				p.is_prereq as pre,
-				e.name as name
-			FROM registration_prereq p
-			LEFT JOIN registration_events e ON p.prereq_id = e.registration_id
-			WHERE p.registration_id = ? ORDER BY e.name');
-		$sth->execute( array( $this->event->registration_id ));
-
-		while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
-			if ($prereq->pre) {
-				$preRows .= li(l($prereq->name, "event/view/$prereq->id",
-								array('title' => 'View event details')));
-			}
-			else {
-				$antiRows .= li(l($prereq->name, "event/view/$prereq->id",
-								array('title' => 'View event details')));
-			}
-		}
-
 		$this->setLocation(array(
 			$this->event->name => "event/view/" .$this->event->registration_id,
 			$this->title => 0
 		));
 
 		$output .= para('');
-
-		if ($preRows) {
-			$output .= h2('Prerequisites') . ul($preRows);
-		}
-		if ($antiRows) {
-			$output .= h2('Antirequisites') . ul($antiRows);
-		}
 
 		$output .= $this->check_prereq();
 
@@ -720,7 +564,6 @@ class EventView extends Handler
 	{
 		global $lr_session, $dbh;
 		$output = $payment = '';
-		$can_register = false;
 
 		// Make sure the user is allowed to register for anything!
 		if( ! $lr_session->user->is_active() ) {
@@ -821,35 +664,19 @@ class EventView extends Handler
 			}
 		}
 
-		// If there is a preregistration record, we ignore open and close times
-		$sth = $dbh->prepare('SELECT COUNT(*)
-			FROM preregistrations
-			WHERE user_id = ?
-			AND registration_id = ?');
-		$sth->execute( array(
-			$lr_session->user->user_id,
-			$this->event->registration_id
-		));
-		$prereg = $sth->fetchColumn();
-		if ($prereg == 0)
-		{
-			$currentTime = date ('Y-m-d H:i:s', time());
+		$currentTime = date ('Y-m-d H:i:s', time());
 
-			// Admins can test registration before it opens...
-			if (! $lr_session->is_admin())
-			{
-				if ($this->event->open_timestamp > time()) {
-					// Preregistrations might allow that there is a payment-
-					// pending registration already done, so we allow for
-					// payment to be made anyway.
-					return para('This event is not yet open for registration.') . $payment;
-				}
+		// Admins can test registration before it opens...
+		if (! $lr_session->is_admin())
+		{
+			if ($this->event->open_timestamp > time()) {
+				return para('This event is not yet open for registration.');
 			}
-			if (time() > $this->event->close_timestamp) {
-				// There may be a payment-pending registration already done,
-				// so we allow for payment to be made.
-				return para('Registration for this event has closed.') . $payment;
-			}
+		}
+		if (time() > $this->event->close_timestamp) {
+			// There may be a payment-pending registration already done,
+			// so we allow for payment to be made.
+			return para('Registration for this event has closed.') . $payment;
 		}
 
 		// 0 means that nobody of this gender is allowed
@@ -875,75 +702,10 @@ class EventView extends Handler
 			}
 		}
 
-		// Check if the user has already registered for an antirequisite event
-		$sth = $this->query_prereqs(0);
-		while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$output .= para("You may not register for this because you have previously registered for $prereq->name.", array('class' => 'closed'));
-			// No way for a payment-pending registration to have been done.
-			return $output;
-		}
-
-		// Check if this event has any prerequisites to satisfy
-		$sth = $dbh->prepare('SELECT COUNT(prereq_id)
-			FROM registration_prereq
-			WHERE registration_id = ?
-			AND is_prereq = 1');
-		$sth->execute( array( $this->event->registration_id ) );
-		$prereq_count = $sth->fetchColumn();
-		if (! $prereq_count )
-		{
-			$output .= para("You may " . l('register for this', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)) . " because there are no prerequisites.", array('class' => 'open'));
-			$can_register = true;
-		}
-		else
-		{
-			// Check if the user has registered for any prerequisite event
-			$sth = $this->query_prereqs(1);
-			while( $prereq = $sth->fetch(PDO::FETCH_OBJ) ) {
-				if( is_paid ($prereq) )
-				{
-					$output .= para("You may " . l('register for this', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name)) . " because you have previously registered for $prereq->name.", array('class' => 'open'));
-					$can_register = true;
-				}
-			}
-		}
-
-		if ($can_register)
-		{
-			$output .= h2(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name, 'style' => 'text-decoration: underline;')));
-			// There may be a payment-pending registration already done,
-			// if multiples are allowed, so we allow for payment to be made.
-			return $output . $payment;
-		}
-
-		// If we get here, they are missing something...
-		// No way for a payment-pending registration to have been done.
-		return para('You may not register for this event until you have registered and paid for one of the prerequisites listed above.', array('class' => 'closed'));
-	}
-
-	function query_prereqs($is_prereq)
-	{
-		global $lr_session, $dbh;
-
-		$sth = $dbh->prepare('SELECT time, payment, name
-			FROM registrations r
-			LEFT JOIN registration_events e ON r.registration_id = e.registration_id
-			WHERE user_id = ?
-			AND r.registration_id IN (
-				SELECT prereq_id
-				FROM registration_prereq
-				WHERE registration_id = ?
-				AND is_prereq = ?
-			)
-			AND payment != ?');
-		$sth->execute(array(
-			$lr_session->user->user_id,
-			$this->event->registration_id,
-			$is_prereq,
-			'Refunded'
-		));
-
-		return $sth;
+		$output .= h2(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name, 'style' => 'text-decoration: underline;')));
+		// There may be a payment-pending registration already done,
+		// if multiples are allowed, so we allow for payment to be made.
+		return $output . $payment;
 	}
 }
 

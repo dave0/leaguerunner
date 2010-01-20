@@ -125,7 +125,7 @@ class FormBuilder
 		$qkeys = array();
 
 		foreach( $this->_questions as $q ) {
-			$all_questions[] = array( $q->qkey, $q->genre, $q->question, $q->qtype, $q->restrictions, ($q->required ? 'Y' : 'N'), $q->sorder );
+			$all_questions[] = array( $q->qkey, $this->_name, $q->question, $q->qtype, $q->restrictions, ($q->required ? 'Y' : 'N'), $q->sorder );
 			$qkeys[] = $q->qkey;
 
 			if( $q->answers ) {
@@ -218,8 +218,9 @@ class FormBuilder
 	 */
 	function render_viewable ()
 	{
-		if( $this->answers_invalid() ) {
-			return false;
+		$invalid = $this->answers_invalid();
+		if( $invalid ) {
+			return $invalid;
 		}
 
 		while( list(,$q) = each($this->_questions) ) {
@@ -311,6 +312,20 @@ class FormBuilder
 	{
 		while(list($key, $value) = each($answers)) {
 			$this->set_answer( $key, $value );
+		}
+	}
+
+	/**
+	 * Load answers with SQL. Stores answer for validation.  Query must return (key,value)
+	 */
+	function bulk_set_answers_sql ( $sql, $params )
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare( $sql );
+		$sth->execute( $params );
+		while($row = $sth->fetch() ) {
+			$this->set_answer( $row[0], $row[1] );
 		}
 	}
 

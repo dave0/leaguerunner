@@ -11,12 +11,20 @@ function registration_dispatch()
 		case 'view':
 			$obj = new RegistrationView;
 			$obj->registration = registration_load( array('order_id' => $id ) );
+			if( ! $obj->registration ) {
+				error_exit( 'That is not a valid registration ');
+			}
+			$obj->event = event_load( array('registration_id' => $obj->registration->registration_id) );
+			$obj->registration_form_load();
 			break;
 		case 'edit':
 			$obj = new RegistrationEdit;
 			$obj->registration = registration_load( array('order_id' => $id) );
+			if( ! $obj->registration ) {
+				error_exit( 'That is not a valid registration ');
+			}
 			$obj->event = event_load( array('registration_id' => $obj->registration->registration_id) );
-			$obj->registration_form_load($obj->registration->registration_id, true);
+			$obj->registration_form_load();
 			break;
 		case 'history':
 			$obj = new RegistrationHistory;
@@ -28,7 +36,7 @@ function registration_dispatch()
 		case 'register':
 			$obj = new RegistrationRegister;
 			$obj->event = event_load( array('registration_id' => $id) );
-			$obj->registration_form_load($id, true);
+			$obj->registration_form_load();
 			break;
 		case 'unregister':
 			$obj = new RegistrationUnregister;
@@ -46,7 +54,7 @@ function registration_dispatch()
 	return $obj;
 }
 
-function registration_permissions ( &$user, $action, $id, $data_field )
+function registration_permissions ( &$user, $action, $id, $registration )
 {
 	global $lr_session;
 
@@ -65,7 +73,7 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 		case 'unregister':
 			// Players may only unregister themselves from events before paying.
 			// TODO: should be $registration->user_can_unregister()
-			if($lr_session->user->is_active() && $lr_session->is_complete() && $data_field->user_id == $lr_session->user->user_id) {
+			if($lr_session->user->is_active() && $lr_session->is_complete() && $registration->user_id == $lr_session->user->user_id) {
 				if($registration->payment != 'Unpaid' && $registration->payment != 'Pending') {
 					// Don't allow user to unregister from paid events themselves -- admin must do it
 					return 0;
@@ -137,15 +145,16 @@ function registration_add_to_menu( &$registration )
  */
 class RegistrationForm extends Handler
 {
-	function registration_form_load ($id, $add_extra)
+	function registration_form_load ()
 	{
-		$this->formkey = 'registration_' . $id;
-		$this->formbuilder = new FormBuilder;
-		$this->formbuilder->load($this->formkey);
+		global $lr_session;
 
-		if( $add_extra && isset($this->event) ) {
-			AddAutoQuestions( $this->formbuilder, $this->event->type );
+		$user = $lr_session->user;
+		if( $this->registration ) {
+			$user = $this->registration->user();
 		}
+
+		$this->formbuilder = $this->event->load_survey( true, $user);
 
 		// Other code relies on the formbuilder variable not being set if there
 		// are no questions.
@@ -158,7 +167,7 @@ class RegistrationForm extends Handler
 /**
  * Registration viewing handler
  */
-class RegistrationView extends Handler
+class RegistrationView extends RegistrationForm
 {
 	var $registration;
 
@@ -176,39 +185,30 @@ class RegistrationView extends Handler
 		global $dbh;
 		$this->title= 'View Registration';
 
-		$person = person_load( array( 'user_id' => $this->registration->user_id ) );
-
-		$sth = $dbh->prepare('SELECT name, anonymous FROM registration_events WHERE registration_id = ?');
-		$sth->execute( array( $this->registration->registration_id ) );
-		$event_reg = $sth->fetch(PDO::FETCH_OBJ);
+		$person = $this->registration->user();
 
 		$userrows = array();
-		$userrows[] = array ('Name', $person->fullname );
-		$userrows[] = array ('User&nbsp;ID', $this->registration->user_id);
-		$userrows[] = array ('Event', l($event_reg->name, "event/view/{$this->registration->registration_id}"));
-		$userrows[] = array ('Payment', $this->registration->payment);
+		$userrows[] = array ('Name', l($person->fullname, url("person/view/{$person->id}")) );
+		$userrows[] = array ('Member&nbsp;ID', $person->member_id);
+		$userrows[] = array ('Event', l($this->event->name, url("event/view/{$this->event->registration_id}")));
+		$userrows[] = array ('Registered Price', $this->registration->total_amount);
+		$userrows[] = array ('Payment Status', $this->registration->payment);
+		$userrows[] = array ('Payment Amount', $this->registration->paid_amount);
+		$userrows[] = array ('Payment Method', $this->registration->payment_method);
+		$userrows[] = array ('Payment Date', $this->registration->date_paid);
+		$userrows[] = array ('Paid By (if different)', $this->registration->paid_by);
 		$userrows[] = array ('Created', $this->registration->time);
-		$userrows[] = array ('Modified', $this->registration->modified);
+		$userrows[] = array ('Last Modified', $this->registration->modified);
 		$userrows[] = array ('Notes', $this->registration->notes);
 		$output = form_group('Registration details', '<div class="pairtable">' . table(NULL, $userrows) . '</div>');
 
-		if( ! $event_reg->anonymous )
-		{
-			// Get registration answers/preferences
-			$sth = $dbh->prepare('SELECT qkey, akey
-					FROM registration_answers
-					WHERE order_id = ?');
-			$sth->execute( array(
-				$this->registration->order_id
-			));
+		if( ! $this->event->anonymous && $this->formbuilder ) {
+			$this->formbuilder->bulk_set_answers_sql(
+				'SELECT qkey, akey FROM registration_answers WHERE order_id = ?',
+				array( $this->registration->order_id)
+			);
 
-			$prefrows = array();
-			while($row = $sth->fetch(PDO::FETCH_ASSOC)) {
-				$prefrows[] = $row;
-			}
-			if( count($prefrows) ) {
-				$output .= form_group('Registration answers', '<div class="pairtable">' . table(NULL, $prefrows) . '</div>');
-			}
+			$output .= form_group('Registration answers', $this->formbuilder->render_viewable() );
 		}
 
 		// Get payment audit information, if available
@@ -277,42 +277,36 @@ class RegistrationEdit extends RegistrationForm
 
 		$output = form_hidden('edit[step]', 'confirm');
 
-		// Get user information
-		$sth = $dbh->prepare('SELECT firstname, lastname
-					FROM person
-					WHERE person.user_id = ?');
-		$sth->execute( array($this->registration->user_id) );
-
-		$item = $sth->fetch();
-
-		if( ! $item ) {
+		$player = $this->registration->user();
+		if( ! $player ) {
 			return false;
 		}
 
-		$userrows = array();
-		$userrows[] = array ('Name', $item['firstname'] . ' ' . $item['lastname']);
-		$userrows[] = array ('User&nbsp;ID', $this->registration->user_id);
-		$userrows[] = array ('Event&nbsp;ID', $this->registration->registration_id);
-		$form = '<div class="pairtable">' . table(NULL, $userrows) . '</div>';
-		$pay_opts = array('Unpaid'=>'Unpaid', 'Pending'=>'Pending', 'Paid'=>'Paid', 'Refunded'=>'Refunded');
-		$form .= form_radios('Payment', 'edit[payment]', $this->registration->payment, $pay_opts);
+		$noneditable = array();
+		$noneditable[] = array ('Name', l($player->fullname, url("person/view/{$player->id}")) );
+		$noneditable[] = array ('Member&nbsp;ID', $player->member_id);
+		$noneditable[] = array ('Event', l($this->event->name, url("event/view/{$this->event->registration_id}")));
+		$noneditable[] = array ('Registered Price', $this->registration->total_amount);
+		$form = '<div class="pairtable">' . table(NULL, $noneditable) . '</div>';
+		$pay_opts = getOptionsFromEnum('registrations', 'payment');
+		array_shift($pay_opts);
+		$form .= form_select('Payment Status', 'edit[payment]', $this->registration->payment, $pay_opts);
+		$form .= form_textfield('Paid Amount', 'edit[paid_amount]', $this->registration->paid_amount, 10,10, "Amount paid to-date for this registration");
+		$form .= form_textfield('Payment Method', 'edit[payment_method]', $this->registration->payment_method, 40,255, "Method of payment (cheque, email money xfer, etc).  Provide cheque or transfer number in 'notes' field.");
+		$thisYear = strftime('%Y', time());
+		$form .= form_select_date('Payment Date', 'edit[date_paid]', $this->registration->date_paid, ($thisYear - 1), ($thisYear + 1), 'Date payment was received');
+		$form .= form_textfield('Paid By', 'edit[paid_by]', $this->registration->paid_by, 40,255, "Name of payee, if different from registrant");
 		$form .= form_textarea('Notes', 'edit[notes]', $this->registration->notes, 45, 5);
 		$output .= form_group('Registration details', $form);
 
 		if ( $this->formbuilder )
 		{
-			// Get registration answers/preferences
-			$sth = $dbh->prepare('SELECT qkey, akey FROM registration_answers
-					WHERE order_id = ?');
-			$sth->execute( array( $this->registration->order_id) );
+			$this->formbuilder->bulk_set_answers_sql(
+				'SELECT qkey, akey FROM registration_answers WHERE order_id = ?',
+				array( $this->registration->order_id)
+			);
 
-			$prefrows = array();
-			while($row = $sth->fetch() ) {
-				$prefrows[$row['qkey']] = $row['akey'];
-			}
-
-			if( count($prefrows) > 0 ) {
-				$this->formbuilder->bulk_set_answers ($prefrows);
+			if( count($this->formbuilder->_answers) > 0 ) {
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (true));
 			} else {
 				$output .= form_group('Registration answers', $this->formbuilder->render_editable (false));
@@ -332,19 +326,34 @@ class RegistrationEdit extends RegistrationForm
 
 		if( $this->formbuilder )
 		{
-			$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+			$this->formbuilder->bulk_set_answers( $_POST[$this->event->formkey()] );
 			$dataInvalid .= $this->formbuilder->answers_invalid();
 		}
 
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
+		// Force date into single field after validation
+		$edit['date_paid'] = sprintf('%04d-%02d-%02d',
+			$edit['date_paid']['year'],
+			$edit['date_paid']['month'],
+			$edit['date_paid']['day']);
 
 		$output = form_hidden('edit[step]', 'submit');
+		$fields = array(
+			'Payment Status' => 'payment',
+			'Paid Amount' => 'paid_amount',
+			'Payment Method' => 'payment_method',
+			'Paid By' => 'paid_by',
+			'Date Paid' => 'date_paid',
+			'Notes' => 'notes',
+		);
 
 		$rows = array();
-		$rows[] = array( 'Payment', form_hidden('edit[payment]', $edit['payment']) . check_form($edit['payment']) );
-		$rows[] = array( 'Notes', form_hidden('edit[notes]', $edit['notes']) . check_form($edit['notes']) );
+		foreach ($fields as $display => $column) {
+			array_push( $rows,
+				array( $display, form_hidden("edit[$column]", $edit[$column]) . check_form($edit[$column])));
+		}
 		$output .= form_group('Registration details', "<div class='pairtable'>" . table(null, $rows) . '</div>');
 
 		if( $this->formbuilder )
@@ -354,7 +363,7 @@ class RegistrationEdit extends RegistrationForm
 			$output .= form_group('Registration answers', $form);
 		}
 
-		$output .= para('Please confirm that this data is correct and then proceed to arrange payment.');
+		$output .= para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
 		$output .= para(form_submit('submit'));
 
 		return form($output);
@@ -366,7 +375,7 @@ class RegistrationEdit extends RegistrationForm
 
 		if( $this->formbuilder )
 		{
-			$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+			$this->formbuilder->bulk_set_answers( $_POST[$this->event->formkey()] );
 			$dataInvalid .= $this->formbuilder->answers_invalid();
 		}
 
@@ -374,8 +383,17 @@ class RegistrationEdit extends RegistrationForm
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$this->registration->set('payment', $edit['payment']);
-		$this->registration->set('notes', $edit['notes']);
+		$fields = array(
+			'payment',
+			'notes',
+			'paid_amount',
+			'payment_method',
+			'paid_by',
+			'date_paid',
+		);
+		foreach ($fields as $field) {
+			$this->registration->set($field, $edit[$field]);
+		}
 
 		if( !$this->registration->save() ) {
 			error_exit("Internal error: couldn't save changes to the registration details");
@@ -383,7 +401,7 @@ class RegistrationEdit extends RegistrationForm
 
 		if( $this->formbuilder )
 		{
-			if( !$this->registration->save_answers( $this->formbuilder, $_POST[$this->formkey] ) ) {
+			if( !$this->registration->save_answers( $this->formbuilder, $_POST[$this->event->formkey()] ) ) {
 				error_exit('Error saving registration question answers.');
 			}
 		}
@@ -423,8 +441,9 @@ class RegistrationDownload extends Handler
 	function process ()
 	{
 		global $dbh;
+		global $CONFIG;
 
-		$data = array('Date', 'Order ID', 'Event', 'User ID', 'First name', 'Last name', 'Total');
+		$data = array('Date', 'Order ID', 'Event', 'User ID', 'First name', 'Last name', 'Email', 'Payment Status', 'Payment Date', 'Payment From', 'Amt Paid', 'Total Cost');
 
 		// Start the output, let the browser know what type it is
 		header('Content-type: text/x-csv');
@@ -432,39 +451,41 @@ class RegistrationDownload extends Handler
 		$out = fopen('php://output', 'w');
 		fputcsv($out, $data);
 
-		$sth = $dbh->prepare('SELECT
-								a.date,
-								r.order_id,
-								e.name,
-								p.user_id,
-								p.firstname,
-								p.lastname,
-								a.charge_total
-							FROM
-								registration_audit a
-							LEFT JOIN
-								registrations r
-							ON a.order_id = r.order_id 
-							LEFT JOIN
-								registration_events e
-							ON r.registration_id = e.registration_id 
-							LEFT JOIN
-								person p
-							ON r.user_id = p.user_id
-							ORDER BY
-								a.date');
-		$sth->execute ();
+		$sth = $dbh->prepare("SELECT
+					r.time,
+					r.order_id,
+					e.name,
+					p.user_id,
+					p.firstname,
+					p.lastname,
+					p.email,
+					r.payment,
+					DATE_ADD(r.date_paid, INTERVAL ? MINUTE) as date_paid,
+					r.paid_by,
+					r.paid_amount,
+					r.total_amount
+				FROM
+					registrations r
+					LEFT JOIN registration_events e ON r.registration_id = e.registration_id
+					LEFT JOIN person p ON r.user_id = p.user_id
+				ORDER BY r.time");
+		$sth->execute ( array(-$CONFIG['localization']['tz_adjust']) );
 
 		while($row = $sth->fetch()) {
 			$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
-			$data = array( $row['date'],
-							$order_id,
-							$row['name'],
-							$row['user_id'],
-							$row['firstname'],
-							$row['lastname'],
-							$row['charge_total'] );
+			$data = array( $row['time'],
+					$order_id,
+					$row['name'],
+					$row['user_id'],
+					$row['firstname'],
+					$row['lastname'],
+					$row['email'],
+					$row['payment'],
+					$row['date_paid'],
+					$row['paid_by'],
+					$row['paid_amount'],
+					$row['total_amount'] );
 
 			// Output the data row
 			fputcsv($out, $data);
@@ -493,11 +514,6 @@ class RegistrationRegister extends RegistrationForm
 
 	function process ()
 	{
-		if (!$this->check_prereqs())
-		{
-			return para(theme_error('Pre-requisite check failed'));
-		}
-
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {
@@ -506,7 +522,6 @@ class RegistrationRegister extends RegistrationForm
 				break;
 
 			case 'submit':
-				$this->removePreregistration();
 				$rc = $this->save();
 				$rc .= $this->generatePay();
 				break;
@@ -532,7 +547,7 @@ class RegistrationRegister extends RegistrationForm
 	{
 		global $CONFIG;
 
-		$this->title = 'Preferences';
+		$this->title = 'Registration';
 
 		// This shouldn't happen...
 		if (! $this->formbuilder )
@@ -574,7 +589,7 @@ class RegistrationRegister extends RegistrationForm
 			$dataInvalid .= $this->$process_func();
 		}
 
-		$this->formbuilder->bulk_set_answers( $_POST[$this->formkey] );
+		$this->formbuilder->bulk_set_answers( $_POST[$this->event->formkey()] );
 		$dataInvalid .= $this->formbuilder->answers_invalid();
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
@@ -583,9 +598,9 @@ class RegistrationRegister extends RegistrationForm
 		$form = form_hidden('edit[step]', 'submit');
 		$form .= $this->formbuilder->render_viewable();
 		$form .= $this->formbuilder->render_hidden();
-		$output = form_group('Preferences', $form);
+		$output = form_group('Registration', $form);
 
-		$output .= para('Please confirm that this data is correct and then proceed to arrange payment.');
+		$output .= para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
 		$output .= para(form_submit('submit'));
 
 		return form($output);
@@ -605,21 +620,17 @@ class RegistrationRegister extends RegistrationForm
 		$this->registration = new Registration;
 		$this->registration->set('user_id', $lr_session->user->user_id);
 		$this->registration->set('registration_id', $this->event->registration_id);
+		$this->registration->set('total_amount', $this->event->total_cost());
 
 		if (! $this->registration->save() ) {
 			error_exit('Could not create registration record.');
 		}
 
-		if( ! $this->formbuilder ) {
-			return $output . para(theme_error('Your registration for this event has been confirmed.'));
-		}
-
-		if( !$this->registration->save_answers( $this->formbuilder, $_POST[$this->formkey] ) ) {
+		if( $this->formbuilder && !$this->registration->save_answers( $this->formbuilder, $_POST[$this->event->formkey()] ) ) {
 			error_exit('Error saving registration question answers.');
 		}
-		$output .= para(theme_error('Your preferences for this registration have been saved.'));
 
-		return $output;
+		return $output . para(theme_error('Your registration has been recorded.  See Payment Details below.'));
 	}
 
 	/**
@@ -628,18 +639,15 @@ class RegistrationRegister extends RegistrationForm
 	 */
 	function confirm_team_league()
 	{
-		$auto_data = array();
-		foreach( $_POST[$this->formkey] as $q => $a ) {
-			if( substr( $q, 0, 8 ) == '__auto__' ) {
-				$auto_data[substr( $q, 8 )] = $a;
-			}
-		}
-		$auto_data['status'] = 'closed';
 
-		$team = new TeamCreate;
-		$team->team = new Team;	// need a team record for unique name checking
-		$team->team->league_id = 1;	// inactive teams
-		return $team->isDataInvalid( $auto_data );
+		global $lr_session;
+
+		$team_id = $_POST[$this->event->formkey()]['__auto__team_id'];
+
+		if( $lr_session->user->has_position_on( $team_id, array('captain') ) ) {
+			return false;
+		}
+		return "<ul><li>You do not captain team $team_id</li></ul>";
 	}
 
 	function confirm_team_event()
@@ -649,17 +657,12 @@ class RegistrationRegister extends RegistrationForm
 
 	function save_team_league()
 	{
-		$auto_data = array();
-		foreach( $_POST[$this->formkey] as $q => $a ) {
-			if( substr( $q, 0, 8 ) == '__auto__' ) {
-				$auto_data[substr( $q, 8 )] = $a;
-			}
-		}
-		$auto_data['status'] = 'closed';
+		global $lr_session;
 
-		$team = new TeamCreate;
-		$team->team = new Team;	// need a team record for unique name checking
-		$team->team->league_id = 1;	// inactive teams
+		$team_id = $_POST[$this->event->formkey()]['__auto__team_id'];
+		if( $lr_session->user->has_position_on( $team_id, array('captain') ) ) {
+			return false;
+		}
 		if( $team->perform( $auto_data ) ) {
 			return para( theme_error( 'A team record has been created with you as captain.' ) );
 		}
@@ -713,21 +716,6 @@ class RegistrationRegister extends RegistrationForm
 		$output .= RefundPolicyText();
 
 		return $output;
-	}
-
-	function check_prereqs()
-	{
-		// TODO check again for prereq/antireq to keep people from feeding a manual URL
-		return true;
-	}
-
-	function removePreregistration()
-	{
-		global $lr_session, $dbh;
-		$sth = $dbh->prepare('DELETE FROM preregistrations
-					WHERE user_id = ?
-					AND registration_id = ?');
-		$sth->execute( array( $lr_session->user->user_id, $this->event->registration_id) );
 	}
 }
 
@@ -874,19 +862,6 @@ class RegistrationHistory extends Handler
 			$rows[] = array( $name, $order, substr($row['time'], 0, 10), $row['payment'] );
 		}
 
-		/* Add in any preregistrations */
-		$sth = $dbh->prepare('SELECT e.registration_id, e.name
-			FROM preregistrations r
-				LEFT JOIN registration_events e ON r.registration_id = e.registration_id
-			WHERE r.user_id = ?
-			ORDER BY r.registration_id');
-		$sth->execute( array( $this->user) );
-		while($row = $sth->fetch() ) {
-			$name = l($row['name'], 'event/view/' . $row['registration_id']);
-			$order = 'Prereg';
-			$rows[] = array( $name, $order, '', 'No' );
-		}
-
 		$header = array('Event', 'Order ID', 'Date', 'Payment');
 		$output = table($header, $rows);
 
@@ -898,7 +873,7 @@ class RegistrationHistory extends Handler
 
 function OfflinePaymentText($order_num)
 {
-	$output = para("If you prefer to pay offline via cheque, the online portion of your registration process is now complete, but you must do the following to make payment:");
+	$output = para("The online portion of your registration process is now complete, but you must do the following to make payment:");
 	$output .= strtr( variable_get('offline_payment_text', ''),
 						array( '%order_num' => $order_num ) );
 
@@ -911,29 +886,6 @@ function RefundPolicyText()
 	$output .= variable_get('refund_policy_text', '');
 
 	return $output;
-}
-
-function AddAutoQuestions( &$formbuilder, $type )
-{
-	switch ($type) {
-		// Individual registrations have no extra questions at this time
-		case 'membership':
-		case 'individual_event':
-		case 'individual_league':
-			break;
-
-		// League team registrations have these additional questions
-		case 'team_league':
-			$formbuilder->add_question('__auto__region_preference', 'Region Preference', 'Area of city where you would prefer to play', 'multiplechoice', true, -49, getOptionsFromEnum('field', 'region'));
-			//$formbuilder->add_question('__auto__status', 'Team Status', 'Is your team open (others can join) or closed (only captain can add players)', 'multiplechoice', true, -48, getOptionsFromEnum('team', 'status'));
-			// Note: intentionally fall through to the next case
-
-		// All team registrations have these additional questions
-		case 'team_event':
-			$formbuilder->add_question('__auto__name', 'Team Name', 'The full name of your team. Text only, no HTML', 'textfield', false, -99);
-			$formbuilder->add_question('__auto__shirt_colour', 'Shirt Colour', "Shirt colour of your team. If you don't have team shirts, pick 'light' or 'dark'", 'textfield', false, -98);
-			break;
-	}
 }
 
 function registration_settings ( )
@@ -1004,11 +956,7 @@ function registration_statistics($args)
 			ORDER BY e.type, e.open DESC, e.close DESC, r.registration_id');
 		$sth->execute( array( 'year' => $year ) );
 
-		$type_desc = array('membership' => 'Membership Registrations',
-							'individual_event' => 'One-time Individual Event Registrations',
-							'team_event' => 'One-time Team Event Registrations',
-							'individual_league' => 'Individual Registrations (for players without a team)',
-							'team_league' => 'Team Registrations');
+		$type_desc = event_types();
 		$last_type = '';
 		$rows = array();
 
@@ -1081,8 +1029,7 @@ function registration_statistics($args)
 			}
 			$rows[] = array("By payment:", table(null, $sub_table));
 
-			$formkey = 'registration_' . $id;
-			$formbuilder = formbuilder_load($formkey);
+			$formbuilder = formbuilder_load($event->formkey());
 			if( $formbuilder )
 			{
 				foreach ($formbuilder->_questions as $question)
@@ -1215,39 +1162,37 @@ function registration_statistics($args)
 				return para( "Unknown event ID $id" );
 			}
 			if( ! $event->anonymous ) {
-				$formkey = 'registration_' . $id;
-				$formbuilder = new FormBuilder;
-				$formbuilder->load($formkey);
-				AddAutoQuestions( $formbuilder, $event->type );
+				$formbuilder = $event->load_survey( true, null );
 			}
 
-			$data = array( 'User ID',
-							'Member ID',
-							'First Name',
-							'Last Name',
-							'Email Address',
-							'Address',
-							'City',
-							'Province',
-							'Postal Code',
-							'Home Phone',
-							'Work Phone',
-							'Mobile Phone',
-							'Gender',
-							'Birthdate',
-							'Height',
-							'Skill Level',
-							'Shirt Size',
-							'Order ID',
-							'Created Date',
-							'Modified Date',
-							'Payment' );
+			$data = array(
+				'User ID',
+				'Member ID',
+				'First Name',
+				'Last Name',
+				'Email',
+				'Gender',
+				'Skill Level',
+				'Order ID',
+				'Date Registered',
+				'Date Modified',
+				'Date Paid',
+				'Payment Status',
+				'Amount Owed',
+				'Amount Paid'
+			);
 
 			if( $formbuilder )
 			{
 				foreach ($formbuilder->_questions as $question)
 				{
-					$data[] = $question->qkey;
+					if( $question->qkey == '__auto__team_id' ) {
+						$data[] = 'Team Name';
+						$data[] = 'Team Rating';
+						$data[] = 'Team ID';
+					} else {
+						$data[] = $question->qkey;
+					}
 				}
 			}
 
@@ -1264,38 +1209,37 @@ function registration_statistics($args)
 				DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
 				DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified,
 				r.payment,
+				r.total_amount,
+				r.paid_amount,
+				r.paid_by,
+				DATE_ADD(r.date_paid, INTERVAL ? MINUTE) as date_paid,
+				r.payment_method,
 				r.notes,
 				p.*
 			FROM registrations r
 				LEFT JOIN person p ON r.user_id = p.user_id
 			WHERE r.registration_id = ?
 			ORDER BY payment, order_id');
-			$sth->execute( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], $id) );
+			$sth->execute( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], $id) );
 
 			while($row = $sth->fetch() ) {
 				$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
 				$data = array( $row['user_id'],
-								$row['member_id'],
-								$row['firstname'],
-								$row['lastname'],
-								$row['email'],
-								$row['addr_street'],
-								$row['addr_city'],
-								$row['addr_prov'],
-								$row['addr_postalcode'],
-								$row['home_phone'],
-								$row['work_phone'],
-								$row['mobile_phone'],
-								$row['gender'],
-								$row['birthdate'],
-								$row['height'],
-								$row['skill_level'],
-								$row['shirtsize'],
-								$order_id,
-								$row['time'],
-								$row['modified'],
-								$row['payment'] );
+					$row['member_id'],
+					$row['firstname'],
+					$row['lastname'],
+					$row['email'],
+					$row['gender'],
+					$row['skill_level'],
+					$order_id,
+					$row['time'],
+					$row['modified'],
+					$row['date_paid'],
+					$row['payment'],
+					$row['total_amount'],
+					$row['paid_amount'],
+				);
 
 				// Add all of the answers
 				if( $formbuilder )
@@ -1304,7 +1248,17 @@ function registration_statistics($args)
 					foreach ($formbuilder->_questions as $question)
 					{
 						$fsth->execute( array( $row['order_id'], $question->qkey));
-						$data[] = $fsth->fetchColumn();
+						$item = $fsth->fetchColumn();
+						// HACK! this lets us output team names as well as ID
+						if( $question->qkey == '__auto__team_id' ) {
+							$usth = $dbh->prepare('SELECT name, rating FROM team WHERE team_id = ?');
+							$usth->execute( array( $item ) );
+							$team_info = $usth->fetch();
+							$data[] = $team_info['name'];
+							$data[] = $team_info['rating'];
+						}
+
+						$data[] = $item;
 					}
 				}
 
@@ -1329,19 +1283,12 @@ function registration_statistics($args)
 			{
 				return para( "Unknown event ID $id" );
 			}
-			$formkey = 'registration_' . $id;
-			$formbuilder = new FormBuilder;
-			$formbuilder->load($formkey);
-			AddAutoQuestions( $formbuilder, $event->type );
+			$formbuilder = $event->load_survey( true, null );
 
 			$data = array();
 
-			if( $formbuilder )
-			{
-				foreach ($formbuilder->_questions as $question)
-				{
-					$data[] = $question->qkey;
-				}
+			foreach ($formbuilder->_questions as $question) {
+				$data[] = $question->qkey;
 			}
 
 			if( empty( $data ) ) {

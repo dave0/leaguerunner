@@ -8,6 +8,14 @@ class Registration extends LeaguerunnerObject
 		return true;
 	}
 
+	function user ()
+	{
+		if( ! $this->user_id ) {
+			return null;
+		}
+		return person_load( array( 'user_id' => $this->user_id ) );
+	}
+
 	function save ()
 	{
 		global $dbh;

@@ -360,7 +360,7 @@ class Person extends LeaguerunnerObject
 		return false;
 	}
 
-	function is_captain_of ($team_id)
+	function has_position_on( $team_id, $wanted_positions )
 	{
 		// We intentionally don't want to check $this->historical_teams;
 		// this is an easy way to make sure that nobody but admins has
@@ -369,31 +369,20 @@ class Person extends LeaguerunnerObject
 		if( ! array_key_exists($team_id, $this->teams) ) {
 			return false;
 		}
-		$status = $this->teams[$team_id]->position;
 
-		if( $status == 'captain' || $status == 'assistant' || $status == 'coach') {
-			return true;
-		}
+		// !== identity comparison is necessary -- array_search()
+		// returns array index, which may frequently be zero.
+		return (array_search($this->teams[$team_id]->position, $wanted_positions) !== FALSE);
+	}
 
-		return false;
+	function is_captain_of ($team_id)
+	{
+		return $this->has_position_on($team_id, array('captain', 'assistant', 'coach'));
 	}
 
 	function is_player_on ($team_id)
 	{
-		// We intentionally don't want to check $this->historical_teams;
-		// this is an easy way to make sure that nobody but admins has
-		// permission to edit or view anything personal about historical
-		// teams.
-		if( ! array_key_exists($team_id, $this->teams) ) {
-			return false;
-		}
-		$status = $this->teams[$team_id]->position;
-
-		if( $status == 'coach' || $status == 'captain' || $status == 'assistant' || $status == 'player') {
-			return true;
-		}
-
-		return false;
+		return $this->has_position_on($team_id, array('coach','captain', 'assistant', 'player'));
 	}
 
 	function is_coordinator_of($league_id)
@@ -506,6 +495,19 @@ class Person extends LeaguerunnerObject
 		$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
 		$sth->execute( array("email_membership_letter", $year, $this->user_id) );
 		return( 1 == $sth->rowCount() );
+	}
+
+	function teams_for_pulldown ( $position = 'captain' )
+	{
+		$teams = array();
+
+		foreach ($this->teams as $key => $team) {
+			if( $this->has_position_on( $key, array($position) ) ) {
+				$teams[$key] = $team->name;
+			}
+		}
+
+		return $teams;
 	}
 
 }

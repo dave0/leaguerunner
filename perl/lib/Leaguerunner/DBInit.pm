@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 21;
+my $LATEST_SCHEMA = 22;
 
 my @TABLES = (
 	'person' => [q{
@@ -323,7 +323,7 @@ my @TABLES = (
 			registration_id int(10) unsigned NOT NULL auto_increment,
 			name varchar(100) default NULL,
 			description blob,
-			type enum('membership', 'individual_event','team_event','individual_league','team_league') NOT NULL default 'individual_event',
+			type enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
 			cost decimal(7,2) default NULL,
 			gst decimal(7,2) default NULL,
 			pst decimal(7,2) default NULL,
@@ -338,17 +338,6 @@ my @TABLES = (
 		);
 	},
 	q{
-		DROP TABLE IF EXISTS registration_prereq;
-	},
-	q{
-		CREATE TABLE registration_prereq (
-			registration_id int(11) NOT NULL default '0',
-			prereq_id int(11) NOT NULL default '0',
-			is_prereq tinyint(1) NOT NULL default '0',
-			PRIMARY KEY  (registration_id,prereq_id)
-		);
-	},
-	q{
 		DROP TABLE IF EXISTS registrations;
 	},
 	q{
@@ -358,7 +347,12 @@ my @TABLES = (
 			registration_id int(10) unsigned NOT NULL default '0',
 			`time` timestamp NULL default 0,
 			modified timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			payment enum('Unpaid', 'Pending', 'Paid', 'Refunded') NOT NULL default 'Unpaid',
+			payment enum('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded') NOT NULL default 'Unpaid',
+			total_amount decimal(7,2) default 0.0,
+			paid_amount  decimal(7,2) default 0.0,
+			paid_by  varchar(255),
+			date_paid timestamp default 0,
+			payment_method varchar(255),
 			notes blob,
 			PRIMARY KEY  (order_id),
 			KEY user_id (user_id,registration_id)
@@ -398,16 +392,6 @@ my @TABLES = (
 			issuer_invoice varchar(20) default NULL,
 			issuer_confirmation varchar(15) default NULL,
 			PRIMARY KEY  (order_id)
-		);
-	},
-	q{
-		DROP TABLE IF EXISTS preregistrations;
-	},
-	q{
-		CREATE TABLE preregistrations (
-			user_id int(11) NOT NULL default '0',
-			registration_id int(10) unsigned NOT NULL default '0',
-			KEY user_id (user_id,registration_id)
 		);
 	}],
 
@@ -1692,6 +1676,48 @@ sub upgrade_21_to_22
 			ALTER TABLE team DROP INDEX name, ADD UNIQUE (name);
 		}],
 
+		# Kill off preregistrations
+		preregistration_removal => [q{
+			DROP TABLE IF EXISTS preregistrations;
+		}],
+
+		# Kill off prerequisites
+		prerequisite_removal => [q{
+			DROP TABLE IF EXISTS registration_prereq;
+		}],
+
+		more_registration_details => [
+		q{
+			ALTER TABLE registrations
+				MODIFY payment ENUM('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded') NOT NULL DEFAULT 'Unpaid';
+		},
+		q{
+			ALTER TABLE registrations
+				ADD total_amount DECIMAL(7,2) DEFAULT 0.0 AFTER payment;
+		},
+		q{
+			ALTER TABLE registrations
+				ADD paid_amount DECIMAL(7,2) DEFAULT 0.0 AFTER total_amount;
+		},
+		q{
+			ALTER TABLE registrations
+				ADD paid_by VARCHAR(255) AFTER paid_amount;
+		},
+		q{
+			ALTER TABLE registrations
+				ADD date_paid timestamp AFTER paid_by;
+		},
+		q{
+			ALTER TABLE registrations
+				ADD payment_method VARCHAR(255) AFTER date_paid;
+		},
+		],
+
+		youth_category => [
+		q{
+			ALTER TABLE registration_events MODIFY type ENUM('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL DEFAULT 'individual_event';
+		}
+		],
 	]);
 }
 

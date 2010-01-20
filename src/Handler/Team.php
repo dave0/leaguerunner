@@ -256,15 +256,8 @@ class TeamCreate extends TeamEdit
 				local_redirect(url("team/view/" . $this->team->team_id));
 				break;
 			default:
-				if( variable_get('registration', 0) && ! $lr_session->is_admin() ) {
-					$mail = l(variable_get('app_admin_name', 'Leaguerunner Administrator'),
-								'mailto:' . variable_get('app_admin_email','webmaster@localhost'));
-					$rc = para(theme_error("Team creation is currently suspended, as this is integrated with team registration. If you need a team created for some other reason (e.g. a touring team), please email $mail with the details, or call the office."));
-				}
-				else {
-					$edit = array();
-					$rc = $this->generateForm( $edit );
-				}
+				$edit = array();
+				$rc = $this->generateForm( $edit );
 		}
 		$this->setLocation(array($this->title => 0));
 		return $rc;

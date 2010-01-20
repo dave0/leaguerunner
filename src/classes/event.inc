@@ -115,8 +115,6 @@ class Event extends LeaguerunnerObject
 
 		$queries = array(
 			'DELETE FROM registration_events WHERE registration_id = ?',
-			'DELETE FROM preregistrations WHERE registration_id = ?',
-			'DELETE FROM registration_prereq WHERE registration_id = ?',
 			'DELETE FROM registration_answers USING registration_answers, registrations WHERE registration_answers.order_id = registrations.order_id AND registrations.registration_id = ?',
 			'DELETE FROM registration_audit USING registration_audit, registrations WHERE registration_audit.order_id = registrations.order_id AND registrations.registration_id = ?',
 			'DELETE FROM registrations WHERE registration_id = ?'
@@ -125,7 +123,57 @@ class Event extends LeaguerunnerObject
 
 		return $this->generic_delete( $queries, $this->registration_id );
 	}
+
+	function load_survey ( $extra = false, $user = null )
+	{
+		$formbuilder = new FormBuilder;
+		$formbuilder->load( $this->formkey() );
+		if( $extra ) {
+			$this->add_auto_questions( $formbuilder, $user );
+		}
+		return $formbuilder;
+	}
+
+	function copy_survey_from ( $other_event )
+	{
+		$formbuilder = $other_event->load_survey( false );
+		$formbuilder->_name = $this->formkey();
+		$formbuilder->save(true);
+	}
+
+	function formkey ( )
+	{
+		return 'registration_' . $this->registration_id;
+	}
+
+	function total_cost ( )
+	{
+		return sprintf('%.2f',
+			$this->cost + $this->gst + $this->pst);
+	}
+
+	function add_auto_questions ( &$formbuilder, $user = null )
+	{
+		switch ($this->type) {
+			// Individual registrations have no extra questions at this time
+			case 'membership':
+			case 'individual_event':
+			case 'individual_league':
+				break;
+
+			// Team registrations have these additional questions
+			case 'team_league':
+			case 'team_event':
+				$teams = array();
+				if( $user ) {
+					$teams = $user->teams_for_pulldown('captain');
+				}
+				$formbuilder->add_question('__auto__team_id', 'Team', 'Select the team you wish to register. If your team is not listed, please create a new team before continuing', 'multiplechoice', true, -99, $teams);
+				break;
+		}
+	}
 }
+
 
 function event_query ( $array = array() )
 {
@@ -173,5 +221,17 @@ function event_load( $array = array() )
 {
 	$sth = event_query( $array );
 	return $sth->fetchObject('Event');
+}
+
+function event_types ()
+{
+	return array(
+		'membership'        => 'Individual Membership',
+		'individual_event'  => 'Individual Event Registration',
+		'team_event'        => 'Team Event Registration',
+		'individual_youth'  => 'Individual Youth and Junior League Registration',
+		'individual_league' => 'Individual League Registration (for players without a team)',
+		'team_league'       => 'Team League Registration'
+	);
 }
 ?>
