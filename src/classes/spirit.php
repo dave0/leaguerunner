@@ -504,10 +504,10 @@ class Spirit
 			$game->game_id,
 			$enterer_id,
 			$spirit['entered_sotg'],
-			$spirit['timeliness']      || 0,
-			$spirit['rules_knowledge'] || 0,
-			$spirit['sportsmanship']   || 0,
-			$spirit['rating_overall']  || 0,
+			$spirit['timeliness'],
+			$spirit['rules_knowledge'],
+			$spirit['sportsmanship'],
+			$spirit['rating_overall'],
 			$spirit['comments'],
 		));
 		if( $sth->rowCount() < 1) {
