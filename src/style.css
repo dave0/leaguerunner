@@ -204,3 +204,13 @@ li.active a {
 	font-weight: bold;
 }
 
+.scoretable td {
+	border: 1px solid gray;
+}
+
+.scoretable td.winning {
+   background-color: #99ff99;
+}
+.scoretable td.losing {
+   background-color: #ffcccc;
+}
