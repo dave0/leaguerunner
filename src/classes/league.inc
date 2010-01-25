@@ -388,7 +388,7 @@ class League extends LeaguerunnerObject
 			'DELETE FROM leaguemembers WHERE league_id = ?',
 			'DELETE FROM score_entry USING score_entry, schedule WHERE score_entry.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM activity_log USING activity_log,schedule WHERE activity_log.primary_id = schedule.game_id AND (type = "email_score_mismatch" OR type = "email_score_reminder") AND schedule.league_id = ?',
-			'DELETE FROM spirit_entry USING spirit_entry,schedule WHERE spirit-entry.gid = schedule.game_id AND schedule.league_id = ?',
+			'DELETE FROM spirit_entry USING spirit_entry,schedule WHERE spirit_entry.gid = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM gameslot USING gameslot, schedule WHERE gameslot.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM league_gameslot_availability WHERE league_id = ?',
 			'DELETE FROM schedule WHERE league_id = ?',
