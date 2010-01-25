@@ -2024,6 +2024,12 @@ class LeagueScoresTable extends Handler
 					$row[] = array('data'=>'&nbsp;', 'bgcolor'=>'gray');
 					continue;
 				}
+				if( ! array_key_exists($opponent_id, $gameentry) ) {
+					// no games against this team
+					$row[] = array('data'=>'&nbsp;');
+					continue;
+				}
+
 				$results = array();
 				$wins = $losses = 0;
 				foreach ($gameentry[$opponent_id] as &$game) {
