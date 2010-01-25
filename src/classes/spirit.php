@@ -206,6 +206,11 @@ class Spirit
 			$count = $count - 2;
 		}
 
+		// Avoid divide-by-zero
+		if( $count == 0 ) {
+			return 0;
+		}
+
 		return $total / $count;
 	}
 
