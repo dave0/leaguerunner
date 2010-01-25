@@ -105,6 +105,26 @@ class Event extends LeaguerunnerObject
 
 		return true;
 	}
+
+	function delete()
+	{
+		global $dbh;
+		if ( ! $this->_in_database ) {
+			return false;
+		}
+
+		$queries = array(
+			'DELETE FROM registration_events WHERE registration_id = ?',
+			'DELETE FROM preregistrations WHERE registration_id = ?',
+			'DELETE FROM registration_prereq WHERE registration_id = ?',
+			'DELETE FROM registration_answers USING registration_answers, registrations WHERE registration_answers.order_id = registrations.order_id AND registrations.registration_id = ?',
+			'DELETE FROM registration_audit USING registration_audit, registrations WHERE registration_audit.order_id = registrations.order_id AND registrations.registration_id = ?',
+			'DELETE FROM registrations WHERE registration_id = ?'
+
+		);
+
+		return $this->generic_delete( $queries, $this->registration_id );
+	}
 }
 
 function event_query ( $array = array() )

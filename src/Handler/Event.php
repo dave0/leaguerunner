@@ -29,8 +29,11 @@ function event_dispatch()
 			break;
 		case 'view':
 			$obj = new EventView;
-			$obj->event = event_load( array('registration_id' => $id,
-											'_fields' => 'NOW() as now') );
+			$obj->event = event_load( array('registration_id' => $id, '_fields' => 'NOW() as now') );
+			break;
+		case 'delete':
+			$obj = new EventDelete;
+			$obj->event = event_load( array('registration_id' => $id ) );
 			break;
 		case 'list':
 			return new EventList;
@@ -79,6 +82,9 @@ function event_permissions ( &$user, $action, $id, $data_field )
 		case 'edit':
 			// Only admin can edit
 			break;
+		case 'delete':
+			// Only admin can delete
+			break;
 		case 'view':
 			// Only players with completed and activated profiles can view details
 			return ( $lr_session->is_complete() && $lr_session->user->is_active() );
@@ -126,10 +132,13 @@ function event_add_to_menu( &$event )
 		if($lr_session->has_permission('event','edit', $event->registration_id) ) {
 			menu_add_child($event->name, "$event->name/edit",'edit event', array('weight' => 1, 'link' => "event/edit/$event->registration_id"));
 			menu_add_child($event->name, "$event->name/survey",'edit survey', array('weight' => 1, 'link' => "event/survey/$event->registration_id"));
-		} 
+		}
+		if($lr_session->has_permission('event','delete', $event->registration_id) ) {
+			menu_add_child($event->name, "$event->name/delete",'delete event', array('weight' => 1, 'link' => "event/delete/$event->registration_id"));
+		}
 		if($lr_session->has_permission('event','preregister', $event->registration_id) ) {
 			menu_add_child($event->name, "$event->name/preregister",'create preregistration', array('weight' => 2, 'link' => "event/preregister/$event->registration_id"));
-		} 
+		}
 
 		if( $lr_session->is_admin() ) {
 			menu_add_child($event->name, "$event->name/registrations", 'registration summary', array('weight' => 2, 'link' => "statistics/registration/summary/$event->registration_id"));
@@ -463,7 +472,7 @@ class EventList extends Handler
 		$last_type = '';
 		$rows = array();
 
-		while( $event = $sth->fetch(PDO::FETCH_OBJ) ) {
+		while( $event = $sth->fetchObject('Event') ) {
 			if ($event->type != $last_type) {
 				$rows[] = array( array('colspan' => 4, 'data' => h2($type_desc[$event->type])));
 				$last_type = $event->type;
@@ -935,6 +944,77 @@ class EventView extends Handler
 		));
 
 		return $sth;
+	}
+}
+
+class EventDelete extends Handler
+{
+	function has_permission ()
+	{
+		global $lr_session;
+		return $lr_session->has_permission('event','delete',$this->event->registration_id);
+	}
+
+	function process ()
+	{
+		$this->title = "Delete Event";
+
+		$this->setLocation(array(
+			$this->team->name => "event/view/" . $this->event->registration_id,
+			$this->title => 0
+		));
+
+		switch($_POST['edit']['step']) {
+			case 'perform':
+				if ( $this->event->delete() ) {
+					local_redirect(url("event/list"));
+				} else {
+					error_exit("Failure deleting event");
+				}
+				break;
+			case 'confirm':
+			default:
+				return $this->generateConfirm();
+				break;
+		}
+		error_exit("Error: This code should never be reached.");
+	}
+
+	function generateConfirm ()
+	{
+		$rows = array();
+		$rows[] = array('Event&nbsp;Name:', $this->event->name);
+		$rows[] = array('Description:', $this->event->description);
+		$rows[] = array('Event type:', $this->event_types[$this->event->type]);
+		$rows[] = array('Cost:', '$' . $this->event->total_cost());
+		$rows[] = array('Opens on:', $this->event->open);
+		$rows[] = array('Closes on:', $this->event->close);
+		if ($this->event->cap_female == -2)
+		{
+			$rows[] = array('Registration cap:', $this->event->cap_male);
+		}
+		else
+		{
+			if ($this->event->cap_male > 0)
+			{
+				$rows[] = array('Male cap:', $this->event->cap_male);
+			}
+			if ($this->event->cap_female > 0)
+			{
+				$rows[] = array('Female cap:', $this->event->cap_female);
+			}
+		}
+		$rows[] = array('Multiples:', $this->event->multiple ? 'Allowed' : 'Not allowed');
+		if( $this->event->anonymous ) {
+			$rows[] = array('Survey:', 'Results of this event\'s survey will be anonymous.');
+		}
+
+		$output = form_hidden('edit[step]', 'perform');
+		$output .= "<p>Do you really wish to delete this event?</p>";
+		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
+		$output .= form_submit('submit');
+
+		return form($output);
 	}
 }
 
