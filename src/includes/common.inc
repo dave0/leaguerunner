@@ -652,13 +652,13 @@ function validate_number ( $string )
 	return is_numeric($string);
 }
 
-function validate_positive_number ( $string )
+function validate_score_value ( $string )
 {
 	if( ! validate_number( $string ) ) {
 		return false;
 	}
 
-	return $string > 0;
+	return $string >= 0;
 }
 
 function validate_name_input ( $string )
