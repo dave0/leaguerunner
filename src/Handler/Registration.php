@@ -66,7 +66,7 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 			// Players may only unregister themselves from events before paying.
 			// TODO: should be $registration->user_can_unregister()
 			if($lr_session->user->is_active() && $lr_session->is_complete() && $data_field->user_id == $lr_session->user->user_id) {
-				if($registration->payment != 'Unpaid' || $registration->payment != 'Pending') {
+				if($registration->payment != 'Unpaid' && $registration->payment != 'Pending') {
 					// Don't allow user to unregister from paid events themselves -- admin must do it
 					return 0;
 				}
