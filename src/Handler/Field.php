@@ -606,7 +606,7 @@ class FieldBooking extends Handler
 		));
 
 		$sth = slot_query( array('fid' => $this->field->fid,
-				'_extra' => 'YEAR(g.game_date) = YEAR(NOW())',
+				'_extra' => 'DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND DATE_ADD(CURDATE(), INTERVAL 1 YEAR)',
 				'_order' => 'g.game_date, g.game_start'));
 
 		$header = array("Date","Start Time","End Time","Booking", "Actions");
