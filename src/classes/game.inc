@@ -825,7 +825,7 @@ class Game extends LeaguerunnerObject
 			WHERE
 				gid = ?
 				AND tid = ?');
-		$sth->execute( array( $this->_spirit_entries[$team_id]['score_entry_penalty'], $team_id, $this->game_id) );
+		$sth->execute( array( $this->_spirit_entries[$team_id]['score_entry_penalty'], $this->game_id, $team_id) );
 		if( $sth->rowCount() < 1) {
 			return false;
 		}
