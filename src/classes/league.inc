@@ -828,7 +828,7 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create an empty set of games for this league
 	 */
-	function create_empty_set( $datestamp, $should_publish = true )
+	function create_empty_set( $datestamp, $excludeTeamsIDs = array(), $should_publish = true )
 	{
 		global $dbh;
 
@@ -836,7 +836,7 @@ class League extends LeaguerunnerObject
 			return(array(false, "Couldn't load team information"));
 		}
 
-		$num_teams = count($this->teams);
+		$num_teams = count($this->teams) - count($excludeTeamsIDs);
 
 		if($num_teams < 2) {
 			return array(false, "Must have two teams");
@@ -925,13 +925,16 @@ class League extends LeaguerunnerObject
 	/*
 	 * Create a scheduled set of games for this league
 	 */
-	function create_scheduled_set( $datestamp, $should_publish = true )
+	function create_scheduled_set( $datestamp, $excludeTeamsIDs = array(), $should_publish = true )
 	{
 		if ( ! $this->load_teams() ) {
 			return(array(false, "Couldn't load team information"));
 		}
 
 		$num_teams = count($this->teams);
+		if (isset($excludeTeamsIDs)) {
+			$num_teams = $num_teams - count($excludeTeamsIDs);
+		}
 
 		if($num_teams < 2) {
 			return array(false, "Must have two teams");
@@ -940,9 +943,18 @@ class League extends LeaguerunnerObject
 		if($num_teams % 2) {
 			return array(false, "Must have even number of teams");
 		}
+		$teams = array();
+		foreach(array_keys($this->teams) as $id) {
+			if (isset($excludeTeamsIDs)) {
+				if ( ! in_array($id, $excludeTeamsIDs) ) {
+					array_push($teams, $this->teams[$id]);
+				}
+			} else {
+				array_push($teams, $this->teams[$id]);
+			}
+		}
 
 		# randomize team IDs
-		$teams = array_values($this->teams);
 		shuffle($teams);
 
 		return $this->schedule_one_set( $teams, $datestamp, $should_publish );

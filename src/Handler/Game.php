@@ -640,11 +640,11 @@ class GameCreate extends Handler
 				break;
 			case 'blankset':
 				# Create game for all teams in tier
-				list( $rc, $message) = $this->league->create_empty_set( $edit['startdate'], $should_publish ) ;
+				list( $rc, $message) = $this->league->create_empty_set( $edit['startdate'], $edit['excludeTeamID'], $should_publish ) ;
 				break;
 			case 'oneset':
 				# Create game for all teams in tier
-				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'], $should_publish ) ;
+				list( $rc, $message) = $this->league->create_scheduled_set( $edit['startdate'], $edit['excludeTeamID'], $should_publish ) ;
 				break;
 			case 'oneset_ratings_ladder':
 				# Create game for all teams in league
