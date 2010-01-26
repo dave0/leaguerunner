@@ -139,7 +139,10 @@ class Team extends LeaguerunnerObject
 
 		if( ! $this->_in_database ) {
 			if( ! $this->create() ) {
-				error_exit("Couldn't create team record");
+				# not entirely correct to guess this, but it's
+				# the only plausible answer for ->create()
+				# failure at this point.
+				error_exit("A team with that name already exists");
 			}
 		}
 

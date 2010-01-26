@@ -66,7 +66,7 @@ my @TABLES = (
 			status            ENUM('open','closed'),
 			rating            int DEFAULT 1500,
 			PRIMARY KEY (team_id),
-			INDEX name (name)
+			UNIQUE KEY name (name)
 		);
 	},
 	q{
@@ -1638,6 +1638,60 @@ sub upgrade_20_to_21
 		},
 
 		],
+	]);
+}
+
+sub upgrade_21_to_22
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+
+		# Team name uniqueness will once again be enforced by the database
+		team_name_constraint => [
+		q{
+			CREATE TEMPORARY TABLE duplicate_teams AS (
+				SELECT team.team_id, team.name AS team_name, league.league_id, league.name AS league_name
+				FROM team, leagueteams, league
+				WHERE team.team_id = leagueteams.team_id
+					AND leagueteams.league_id = league.league_id
+					AND team.name IN (
+						SELECT name FROM team GROUP BY name HAVING count(*) > 1
+					)
+			);
+		},
+		q{
+			DELETE FROM teamroster WHERE team_id IN (
+				SELECT team_id FROM duplicate_teams WHERE league_id = 1
+			);
+		},
+		q{
+			DELETE FROM leagueteams WHERE team_id IN (
+				SELECT team_id FROM duplicate_teams WHERE league_id = 1
+			);
+		},
+		q{
+			DELETE FROM schedule WHERE home_team IN (
+				SELECT team_id FROM duplicate_teams WHERE league_id = 1
+			);
+		},
+		q{
+			DELETE FROM schedule WHERE away_team IN (
+				SELECT team_id FROM duplicate_teams WHERE league_id = 1
+			);
+		},
+		q{
+			DELETE FROM team WHERE team_id IN (
+				SELECT team_id FROM duplicate_teams WHERE league_id = 1
+			);
+		},
+		q{
+			DELETE FROM duplicate_teams WHERE league_id = 1;
+		},
+		q{
+			ALTER TABLE team DROP INDEX name, ADD UNIQUE (name);
+		}],
+
 	]);
 }
 
