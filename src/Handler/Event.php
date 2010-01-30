@@ -247,7 +247,7 @@ class EventEdit extends Handler
 
 		$output .= form_textarea('Description', 'edit[description]', $data['description'], 60, 5, 'Complete description of the event, HTML is allowed.');
 
-		$output .= form_radios('Event type', 'edit[type]', $data['type'], $this->event_types, 'Note that any team type will result in a team record being created. If you don\'t want this, then use the appropriate individual type.' );
+		$output .= form_radios('Event type', 'edit[type]', $data['type'], $this->event_types, 'Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration' );
 
 		$output .= form_textfield('Cost', 'edit[cost]', $data['cost'], 10, 10, 'Cost of this event, may be 0, ' . theme_error('not including GST'));
 		$output .= form_textfield('GST', 'edit[gst]', $data['gst'], 10, 10, 'GST');
