@@ -183,4 +183,17 @@ function registration_load( $array = array() )
 	$sth = registration_query( $array );
 	return $sth->fetchObject('Registration');
 }
+
+function registration_load_many ( $array = array() )
+{
+	$sth = registration_query( $array );
+
+	$results = array();
+	while( $r = $sth->fetchObject('Registration', array(LOAD_RELATED_DATA))) {
+		array_push( $results, $r);
+	}
+
+	return $results;
+}
+
 ?>
