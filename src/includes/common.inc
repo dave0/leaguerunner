@@ -1427,6 +1427,12 @@ function make_shorter_titles ( $string )
 }
 
 
+function fatal_sql_error ( $sth )
+{
+	list($sqlstate, $driver_err, $driver_str) = $sth->errorInfo();
+	error_exit("Database error: $sqlstate $driver_str");
+}
+
 
 /* vim: set sw=4 ts=4 et: */
 ?>
