@@ -311,34 +311,6 @@ class Person extends LeaguerunnerObject
 			return false;
 		}
 
-		if( variable_get('registration', 0) ) {
-			// Defaulting the value here to 0 matches no real events while preventing SQL errors.
-			$registration_ids = variable_get('membership_ids', '0');
-
-			if( variable_get('allow_tentative', 0) )
-			{
-				$paid_check = '(payment = "Pending" OR payment = "Paid")';
-			}
-			else
-			{
-				$paid_check = 'payment = "Paid"';
-			}
-
-			$sth = $dbh->prepare("
-					SELECT
-						COUNT(registration_id)
-					FROM
-						registrations
-					WHERE
-						user_id = ?
-					AND
-						$paid_check
-					AND
-						registration_id in ($registration_ids)");
-			$sth->execute( array($this->user_id) );
-			return ($sth->fetchColumn() > 0);
-		}
-
 		return true;
 	}
 

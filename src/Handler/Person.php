@@ -264,49 +264,6 @@ function person_menu()
 }
 
 /**
- * Periodic tasks to perform.  This should handle any internal checkpointing
- * necessary, as the cron task may be called more or less frequently than we
- * expect.
- */
-function person_cron()
-{
-	global $dbh;
-
-	$output = '';
-
-	if( variable_get('registration', 0) ) {
-		$output .= h2('Membership welcome letters');
-
-		// Defaulting the value here to 0 matches no real events while preventing SQL errors.
-		$registration_ids = variable_get('membership_ids', '0');
-		// TODO: Make the rollover date configurable; this starts the new year's letters in April
-		$year = date('Y');
-		if (date('n') < 4)
-			-- $year;
-
-		$sth = $dbh->prepare("SELECT user_id FROM person
-								WHERE user_id IN 
-									(SELECT DISTINCT user_id FROM registrations
-									WHERE registration_id IN ($registration_ids)
-									AND payment = 'Paid')
-								AND user_id NOT IN
-									(SELECT secondary_id FROM activity_log
-									WHERE type = ? AND primary_id = ?)");
-		$sth->execute( array("email_membership_letter", $year) );
-
-		$emailed = 0;
-		while( $id = $sth->fetchColumn() ) {
-			$person = person_load( array('user_id' => $id) );
-			if ($person->send_membership_letter())
-				++ $emailed;
-		}
-		$output .= para("Emailed $emailed membership letters.");
-	}
-
-	return "$output<pre>Completed person_cron run</pre>";
-}
-
-/**
  * Player viewing handler
  */
 class PersonView extends Handler
