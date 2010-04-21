@@ -1,13 +1,6 @@
 <?php
-/**
- * Handle running periodic tasks
- */
-function cron_dispatch()
-{
-	return new CronHandler;
-}
 
-class CronHandler extends Handler
+class cron extends Handler
 {
 	function has_permission ()
 	{
