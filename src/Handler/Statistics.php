@@ -12,13 +12,6 @@ function statistics_dispatch()
 	return null;
 }
 
-function statistics_menu()
-{
-	global $lr_session;
-	if($lr_session->is_admin()) {
-		menu_add_child('_root','statistics','Statistics');
-	}
-}
 
 function statistics_permissions( &$user, $action )
 {

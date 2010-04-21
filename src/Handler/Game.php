@@ -203,21 +203,6 @@ function game_splash ()
 	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 3)), $rows, array('alternate-colours' => true) ) . "</div>";
 }
 
-/**
- * Add game information to menu
- */
-function game_add_to_menu( &$league, &$game )
-{
-	global $lr_session;
-	menu_add_child("$league->fullname/schedule", "$league->fullname/schedule/$game->game_id", "Game $game->game_id", array('link' => "game/view/$game->game_id"));
-
-	if( $lr_session->has_permission('league','edit game', $game->league_id) ) {
-		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
-		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/delete", "delete game", array('link' => "game/delete/$game->game_id"));
-		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/removeresults", "remove results", array('link' => "game/removeresults/$game->game_id"));
-	}
-}
-
 class GameReschedule extends Handler
 {
 	var $league;

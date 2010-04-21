@@ -89,52 +89,6 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 	return false;
 }
 
-function field_menu()
-{
-	global $lr_session;
-	menu_add_child('_root','field','Fields');
-	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
-
-	if( $lr_session->has_permission('field','list','closed') ) {
-		menu_add_child('field','field/list/closed','list closed fields', array('weight' => 3, 'link' => 'field/list/closed') );
-	}
-
-	if( $lr_session->has_permission('field','create') ) {
-		menu_add_child('field','field/create','create field', array('weight' => 6, 'link' => 'field/create') );
-	}
-
-	if( $lr_session->has_permission('field','view reports') ) {
-		menu_add_child('field','fieldreport/day','field reports', array('weight' => 5, 'link' => 'fieldreport/day') );
-	}
-}
-
-/**
- * Add view/edit/delete links to the menu for the given field
- */
-function field_add_to_menu( &$field ) 
-{
-	global $lr_session;
-
-	menu_add_child('field', $field->fullname, $field->fullname, array('weight' => -10, 'link' => "field/view/$field->fid"));
-
-	if($lr_session->has_permission('field','view bookings', $field->fid) ) {
-		menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
-	}
-
-	if($lr_session->has_permission('field','edit', $field->fid) ) {
-		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
-		menu_add_child($field->fullname, "$field->fullname/layout",'edit layout', array('weight' => 1, 'link' => "gmaps/edit/$field->fid"));
-	}
-
-	if( $lr_session->has_permission('field','view reports') ) {
-		menu_add_child($field->fullname,"$field->fullname reports" ,'view reports', array('weight' => 2, 'link' => "field/reports/$field->fid") );
-	}
-
-	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
-		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
-	}
-}
-
 class FieldCreate extends FieldEdit
 {
 	var $field;

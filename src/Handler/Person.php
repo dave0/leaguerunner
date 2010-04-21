@@ -221,49 +221,6 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 
 
 /**
- * Generate the menu items for the "Players" and "My Account" sections.
- */
-function person_menu() 
-{
-	global $lr_session;
-
-	$id = $lr_session->attr_get('user_id');
-
-	menu_add_child('_root', 'myaccount','My Account', array('weight' => -10, 'link' => "person/view/$id"));
-	menu_add_child('myaccount', 'myaccount/edit','edit account', array('weight' => -10, 'link' => "person/edit/$id"));
-	menu_add_child('myaccount', 'myaccount/pass', 'change password', array( 'link' => "person/changepassword/$id"));
-	menu_add_child('myaccount', 'myaccount/signwaiver', 'view/sign player waiver', array( 'link' => "person/signwaiver", 'weight' => 3));
-
-	if (variable_get('dog_questions', 1) && $lr_session->attr_get('has_dog') == 'Y') {
-		menu_add_child('myaccount', 'myaccount/signdogwaiver', 'view/sign dog waiver', array( 'link' => "person/signdogwaiver", 'weight' => 4));
-	}
-
-    # Don't show "Players" menu for non-players.
-	if( ! $lr_session->is_player() ) {
-	    return;
-	}
-
-	menu_add_child('_root','person',"Players", array('weight' => -9));
-	if($lr_session->has_permission('person','list') ) {
-		menu_add_child('person','person/search',"search players", array('link' => 'person/search'));
-	}
-
-	if($lr_session->is_admin()) {
-	
-		$newUsers = person_count(array( 'status' => 'new' ));
-		if($newUsers) {
-			menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
-		}
-
-		menu_add_child('person', 'person/create', "create account", array('link' => "person/create", 'weight' => 1));
-
-		# Admin menu
-		menu_add_child('settings', 'settings/person', 'user settings', array('link' => 'settings/person'));
-		menu_add_child('statistics', 'statistics/person', 'player statistics', array('link' => 'statistics/person'));
-	}
-}
-
-/**
  * Player viewing handler
  */
 class PersonView extends Handler
@@ -1954,31 +1911,6 @@ class PersonHistorical extends Handler
 		}
 
 		return table(null, $rows);
-	}
-}
-
-function person_add_to_menu( &$person ) 
-{
-	global $lr_session;
-	if( ! ($lr_session->attr_get('user_id') == $person->user_id) ) {
-		// These links already exist in the 'My Account' section if we're
-		// looking at ourself
-		menu_add_child('person', $person->fullname, $person->fullname, array('weight' => -10, 'link' => "person/view/$person->user_id"));
-		if($lr_session->has_permission('person', 'edit', $person->user_id) ) {
-			menu_add_child($person->fullname, "$person->fullname/edit",'edit account', array('weight' => -10, 'link' => "person/edit/$person->user_id"));
-		}
-
-		if($lr_session->has_permission('person', 'delete', $person->user_id) ) {
-			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$person->user_id"));
-		}
-
-		if($lr_session->has_permission('person', 'password_change', $person->user_id) ) {
-			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
-		}
-
-		if($lr_session->has_permission('person', 'password_reset') ) {
-			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
-		}
 	}
 }
 

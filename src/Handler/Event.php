@@ -71,49 +71,6 @@ function event_permissions ( &$user, $action, $id, $data_field )
 	return false;
 }
 
-function event_menu()
-{
-	global $lr_session;
-
-	if( variable_get('registration', 0) ) {
-		if( $lr_session->has_permission('event','list') ) {
-			menu_add_child('_root','event','Registration');
-			menu_add_child('event','event/list','list events', array('link' => 'event/list') );
-		}
-
-		if( $lr_session->has_permission('event','create') ) {
-			menu_add_child('event','event/create','create event', array('weight' => 5, 'link' => 'event/create') );
-		}
-	}
-}
-
-/**
- * Add view/edit/delete links to the menu for the given event
- */
-function event_add_to_menu( &$event )
-{
-	global $lr_session;
-
-	if( variable_get('registration', 0) ) {
-		menu_add_child('event', $event->name, $event->name, array('weight' => -10, 'link' => "event/view/$event->registration_id"));
-
-		if($lr_session->has_permission('event','edit', $event->registration_id) ) {
-			menu_add_child($event->name, "$event->name/edit",'edit event', array('weight' => 1, 'link' => "event/edit/$event->registration_id"));
-			menu_add_child($event->name, "$event->name/survey",'edit survey', array('weight' => 1, 'link' => "event/survey/$event->registration_id"));
-		}
-		if($lr_session->has_permission('event','delete', $event->registration_id) ) {
-			menu_add_child($event->name, "$event->name/delete",'delete event', array('weight' => 1, 'link' => "event/delete/$event->registration_id"));
-		}
-		if( $lr_session->has_permission('event','create') ) {
-			menu_add_child($event->name, "$event->name/copy",'copy event', array('weight' => 1, 'link' => "event/copy/$event->registration_id"));
-		}
-
-		if( $lr_session->is_admin() ) {
-			menu_add_child($event->name, "$event->name/registrations", 'registration summary', array('weight' => 2, 'link' => "statistics/registration/summary/$event->registration_id"));
-		}
-	}
-}
-
 class EventCreate extends EventEdit
 {
 	var $event;

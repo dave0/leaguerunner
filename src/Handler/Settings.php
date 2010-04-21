@@ -13,17 +13,6 @@ function settings_dispatch()
 	return null;
 }
 
-function settings_menu()
-{
-	global $lr_session;
-	if($lr_session->is_admin()) {
-		menu_add_child('_root','settings','Settings');
-		menu_add_child('settings','settings/global','global settings', array('link' => 'settings/global'));
-		menu_add_child('settings','settings/feature','feature settings', array('link' => 'settings/feature'));
-		menu_add_child('settings','settings/rss','rss settings', array('link' => 'settings/rss'));
-	}
-}
-
 function settings_save( $newsettings = array() )
 {
 	foreach ( $newsettings as $name => $value ) {

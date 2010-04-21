@@ -99,47 +99,6 @@ function registration_permissions ( &$user, $action, $id, $registration )
 	return false;
 }
 
-function registration_menu()
-{
-	global $lr_session;
-
-	if( variable_get('registration', 0) ) {
-		if( $lr_session->has_permission('registration','history') ) {
-			menu_add_child('event', 'registration/history/'.$lr_session->user->user_id, 'view history', array('link' => 'registration/history/' . $lr_session->user->user_id) );
-		}
-
-		if( $lr_session->is_admin() ) {
-			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
-			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
-			menu_add_child('event','registration/registrations','download registrations', array('link' => 'registration/download') );
-			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'statistics/registration/unpaid') );
-		}
-	}
-}
-
-/**
- * Add view/edit links to the menu for the given registration
- */
-function registration_add_to_menu( &$registration )
-{
-	global $lr_session;
-
-	if( variable_get('registration', 0) ) {
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $registration->order_id);
-
-		menu_add_child('event', $order_num, $order_num, array('weight' => -10, 'link' => "registration/view/$registration->order_id"));
-
-		if($lr_session->has_permission('registration','edit', $registration->order_id) ) {
-			menu_add_child($order_num, "$order_num/edit",'edit registration', array('weight' => 1, 'link' => "registration/edit/$registration->order_id"));
-		}
-		if($registration->payment == 'Unpaid' || $registration->payment == 'Pending') {
-			if ($lr_session->has_permission('registration','unregister', null, $registration) ) {
-				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id"));
-			}
-		}
-	}
-}
-
 /**
  * Base class for registration form functionality
  */
