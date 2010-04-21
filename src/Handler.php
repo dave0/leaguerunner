@@ -1,8 +1,8 @@
 <?php
 
 # do not resort this list or things will break
-module_register("Handler/Login.php", 'login'); // TODO: also contains logout handler!
-module_register("Handler/Menu.php", 'home'); // TODO: make this go away
+module_register("Handler/login.php", 'login'); // TODO: also contains logout handler!
+module_register("Handler/home.php", 'home'); // TODO: make this go away
 
 module_register("Handler/Settings.php", 'settings');
 module_register("Handler/Statistics.php", 'statistics');
@@ -52,6 +52,10 @@ class Handler
 	 * users can backtrack.
 	 */
 	var $breadcrumbs;
+
+	function __construct ( )
+	{
+	}
 
 	/**
 	 * Initialize our data

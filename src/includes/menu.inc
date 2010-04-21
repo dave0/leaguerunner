@@ -173,6 +173,14 @@ function menu_build( ) {
   	 * Build a sequential list of all menus items.
   	 */
 	menu_add_child('','_root','Root of Menus');
+
+	# Handler/login.php
+	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => 20));
+
+	# Handler/home.php
+	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
+
+	# TODO: the module_invoke_all hack will go away eventually
 	module_invoke_all('menu');
 }
 

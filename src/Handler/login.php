@@ -1,30 +1,13 @@
 <?php
-function login_dispatch() 
-{
-	return new Login;
-}
 
-function logout_dispatch() 
-{
-	return new Logout;
-}
-
-function login_menu()
-{
-	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => 20));
-}
-
-/**
- * Login handler 
- */
-class Login extends Handler 
+class login extends Handler
 {
 	function has_permission ()
 	{
 		return true;
 	}
 
-	function checkPrereqs( $op ) 
+	function checkPrereqs( $op )
 	{
 		return false;
 	}
@@ -56,7 +39,7 @@ class Login extends Handler
 			return $this->login_form("Incorrect username or password");
 		}
 
-		/* 
+		/*
 		 * Now that we know their username/password is valid, check to see if
 		 * there are restrictions on their account.
 		 */
@@ -143,16 +126,16 @@ class Login extends Handler
 
 		$rows[] = array(
 			array( 'colspan' => 2,
-				   'data' => "<p><b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you 
+				   'data' => "<p><b>Notes:</b> Cookies are required for use of the system.  If you receive an error indicating you
 have an invalid session then cookies may be turned off in your browser.<br />
 <br />
 <i>
-If you cannot login after receiving your Account Activation notification, try getting a new 
+If you cannot login after receiving your Account Activation notification, try getting a new
 password emailed to you (click on \"Forgot your password?\").</i>
 </p>
 <p>
 Do NOT create a new account if you already have one.  Use the 'Forgot your
-password' feature to have your login info emailed to the address on file. 
+password' feature to have your login info emailed to the address on file.
 </p>
 "
 			)
@@ -166,30 +149,6 @@ document.lrlogin.elements[0].focus();
 EOF;
 		$output .= form_hidden('edit[next]', $next);
 		return form($output, 'post', 0, " name='lrlogin'");
-	}
-}
-
-/**
- * Logout handler. 
- */
-class Logout extends Handler 
-{
-	function has_permission ()
-	{
-		return true;
-	}
-
-	function checkPrereqs( $op ) 
-	{
-		return false;
-	}
-
-	function process ()
-	{
-		global $lr_session;
-		$lr_session->expire();
-		local_redirect(url("login"));
-		return true;
 	}
 }
 

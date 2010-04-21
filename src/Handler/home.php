@@ -1,16 +1,6 @@
 <?php
 
-function home_dispatch() 
-{
-	return new MainMenu;
-}
-
-function home_menu() 
-{
-	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
-}
-
-class MainMenu extends Handler
+class home extends Handler
 {
 	function has_permission()
 	{

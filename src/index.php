@@ -102,21 +102,48 @@ $headers_sent = 0;
 /* Build menus */
 menu_build();
 
-/* Instantiate a handler of the appropriate class to handle this 
- * operation 
- */
-$mod = arg(0);
-if(isset($mod) && module_hook($mod, 'dispatch')) {
-	$handler = module_invoke($mod, 'dispatch');
+if( array_key_exists('q', $_GET) ) {
+	$q = $_GET['q'];
 } else {
-	$handler = new Login;
+	$q = 'login';
 }
 
-if(is_null($handler)) {
-	error_exit("No handler exists for that operation in $mod");
+$dispatch_path = explode('/', $q);
+
+$handler_dir   = 'Handler';
+$handler_class = null;
+$handler_args  = array();
+
+while( count( $dispatch_path ) > 0 ) {
+	$possible      = join('/', $dispatch_path );
+
+	# Skip it if path contains anything other than lowercase alpha characters and /
+	if( ! preg_match('/[^a-z\/]/', $possible ) ) {
+		$handler_file  = "$handler_dir/${possible}.php";
+		if( file_exists( $handler_file ) ) {
+			$handler_class = preg_replace('|/|', '_', $possible);
+			break;
+		}
+	}
+
+	array_unshift( $handler_args, array_pop( $dispatch_path ) );
 }
 
-/* 
+if( ! $handler_class ) {
+	# TODO: should 404
+	error_exit("Not found");
+}
+require_once($handler_file);
+
+try {
+	$reflector = new ReflectionClass( $handler_class );
+	$handler   = $reflector->newInstanceArgs( $handler_args );
+} catch (ReflectionException $e) {
+	# Internal error
+	error_exit("Couldn't construct $handler_class");
+}
+
+/*
  * See if something else needs to be processed before this handler
  * (Account revalidation, etc)
  */
@@ -134,7 +161,7 @@ if($handler->initialize()) {
 		/* Process the action */
 		$result = $handler->process();
 		if($result === false) {
-			error_exit("Uncaught failure in $mod, performing " . arg(1));
+			error_exit("Uncaught failure in $handler_class");
 		}
 		print theme_header($handler->title);
 		print theme_body($handler->breadcrumbs);
@@ -150,7 +177,7 @@ if($handler->initialize()) {
 		}
 	}
 } else {
-	error_exit("Failed to initialize handler for $op");
+	error_exit("Failed to initialize handler for $handler_class");
 }
 
 function error_exit($error = NULL)
