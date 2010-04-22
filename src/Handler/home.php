@@ -50,4 +50,38 @@ function home_splash ()
 	}
 }
 
+/**
+ * Generate view of teams for initial login splash page.
+ */
+function team_splash ()
+{
+	global $lr_session;
+	$rows = array();
+	$rows[] = array('','', array( 'data' => '','width' => 90), '');
+
+	$rosterPositions = getRosterPositions();
+	$rows = array();
+	foreach($lr_session->user->teams as $team) {
+		$position = $rosterPositions[$team->position];
+
+		$rows[] =
+			array(
+				l($team->name, "team/view/$team->id") . " ($team->position)",
+				array('data' => theme_links(array(
+						l("schedule", "team/schedule/$team->id"),
+                  l("standings", "league/standings/$team->league_id/$team->team_id"))),
+					  'align' => 'right')
+		);
+
+	}
+	reset($lr_session->user->teams);
+	if( count($lr_session->user->teams) < 1) {
+		$rows[] = array( array('colspan' => 2, 'data' => 'You are not yet on any teams'));
+	}
+	if( count($lr_session->user->historical_teams) ) {
+		$rows[] = array( array('colspan' => 2, 'data' => 'You have ' . l('historical team data', "person/historical/{$lr_session->user->user_id}") . ' saved'));
+	}
+	return table( array( array('data' => 'My Teams', 'colspan' => 2),), $rows);
+}
+
 ?>

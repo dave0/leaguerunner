@@ -6,7 +6,6 @@ module_register("Handler/home.php", 'home'); // TODO: make this go away
 
 module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
-module_register("Handler/Team.php", 'team');
 module_register("Handler/League.php", 'league');
 module_register("Handler/Schedule.php", 'schedule');
 module_register("Handler/Field.php", 'field');
