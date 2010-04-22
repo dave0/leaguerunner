@@ -1,39 +1,49 @@
 <?php
 
-function sportsml_dispatch()
+class sportsml extends Handler
 {
-	$op = arg(1);
-	$id = arg(2);
+	private $league;
 
-	switch($op) {
-		case 'standings':
-			$obj = new SportsMLStandings;
-			break;
-		case 'schedule':
-			$obj = new SportsMLSchedule;
-			break;
-		case 'combined':
-			$obj = new SportsMLCombined;
-			break;
-		default:
-			return null;
+	private $need_schedule;
+	private $need_standings;
+
+	function __construct ( $what, $id )
+	{
+		$this->league = league_load( array('league_id' => $id) );
+		if( ! $this->league ){
+			error_exit("That league does not exist");
+		}
+
+		if( $what == 'schedule' || $what == 'combined' ) {
+			$this->need_schedule = true;
+		}
+
+		if( $what == 'standings' || $what == 'combined' ) {
+			$this->need_standings = true;
+		}
 	}
-
-	$obj->league = league_load( array('league_id' => $id) );
-	if( ! $obj->league ){
-		error_exit("That league does not exist");
-	}
-
-	return $obj;
-}
-
-class SportsMLExporter extends Handler
-{
-	var $league;
 
 	function has_permission()
 	{
 		return true;
+	}
+
+	function process()
+	{
+		$type = $_GET['type'];
+		if ($type != 'text') {
+			$type = 'html';
+		}
+		$this->render_header($type);
+		$this->render_metadata();
+		if( $this->need_standings ) {
+			$this->render_standings();
+		}
+		if( $this->need_schedule ) {
+			$this->render_schedule();
+		}
+		$this->render_footer();
+		exit(); // To prevent header/footer being displayed.
 	}
 
 	function render_header( $type = 'html' )
@@ -167,77 +177,4 @@ xml version="1.0" encoding="ISO-8859-1"?>
 <?php
 	}
 }
-
-
-class SportsMLStandings extends SportsMLExporter
-{
-	var $league;
-
-	function has_permission()
-	{
-		return true;
-	}
-
-	function process()
-	{
-		$type = $_GET['type'];
-		if ($type != 'text') {
-			$type = 'html';
-		}
-		$this->render_header($type);
-		$this->render_metadata();
-		$this->render_standings();
-		$this->render_footer();
-		exit(); // To prevent header/footer being displayed.
-	}
-}
-
-class SportsMLSchedule extends SportsMLExporter
-{
-	var $league;
-
-	function has_permission()
-	{
-		return true;
-	}
-
-	function process()
-	{
-		$type = $_GET['type'];
-		if ($type != 'text') {
-			$type = 'html';
-		}
-		$this->render_header($type);
-		$this->render_metadata();
-		$this->render_schedule();
-		$this->render_footer();
-		exit(); // To prevent header/footer being displayed.
-	}
-
-}
-
-class SportsMLCombined extends SportsMLExporter
-{
-	var $league;
-
-	function has_permission()
-	{
-		return true;
-	}
-
-	function process()
-	{
-		$type = $_GET['type'];
-		if ($type != 'text') {
-			$type = 'html';
-		}
-		$this->render_header($type);
-		$this->render_metadata();
-		$this->render_standings();
-		$this->render_schedule();
-		$this->render_footer();
-		exit(); // To prevent header/footer being displayed.
-	}
-}
-
 ?>

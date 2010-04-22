@@ -12,7 +12,6 @@ module_register("Handler/Schedule.php", 'schedule');
 module_register("Handler/Field.php", 'field');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
-module_register("Handler/SportsML.php",'sportsml');
 module_register("Handler/GoogleMaps.php",'gmaps');
 module_register("Handler/API.php", 'api');
 module_register("Handler/FieldReport.php", 'fieldreport');
