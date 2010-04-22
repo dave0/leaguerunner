@@ -84,4 +84,48 @@ function team_splash ()
 	return table( array( array('data' => 'My Teams', 'colspan' => 2),), $rows);
 }
 
+/**
+ * Generate view of leagues for initial login splash page.
+ */
+function league_splash ()
+{
+	global $lr_session;
+	if( ! $lr_session->user->is_a_coordinator ) {
+		return;
+	}
+
+	$header = array(
+		array( 'data' => "Leagues Coordinated", 'colspan' => 4)
+	);
+	$rows = array();
+
+	// TODO: For each league, need to display # of missing scores,
+	// pending scores, etc.
+	while(list(,$league) = each($lr_session->user->leagues)) {
+		$links = array(
+			l("edit", "league/edit/$league->league_id")
+		);
+		if($league->schedule_type != 'none') {
+			$links[] = l("schedule", "schedule/view/$league->league_id");
+			$links[] = l("standings", "league/standings/$league->league_id");
+			$links[] = l("approve scores", "league/approvescores/$league->league_id");
+		}
+
+		$rows[] = array(
+			array(
+				'data' => l($league->fullname, "league/view/$league->league_id"),
+				'colspan' => 3
+			),
+			array(
+				'data' => theme_links($links),
+				'align' => 'right'
+			)
+		);
+	}
+	reset($lr_session->user->leagues);
+
+	return table( $header, $rows );
+}
+
+
 ?>
