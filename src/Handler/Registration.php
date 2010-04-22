@@ -54,51 +54,6 @@ function registration_dispatch()
 	return $obj;
 }
 
-function registration_permissions ( &$user, $action, $id, $registration )
-{
-	global $lr_session;
-
-	if (!$lr_session || !$lr_session->user)
-		return false;
-
-	switch( $action )
-	{
-		case 'view':
-		case 'edit':
-			// Only admin can view details or edit
-			break;
-		case 'register':
-			// Only players with completed profiles can register
-			return ($lr_session->user->is_active() && $lr_session->is_complete());
-		case 'unregister':
-			// Players may only unregister themselves from events before paying.
-			// TODO: should be $registration->user_can_unregister()
-			if($lr_session->user->is_active() && $lr_session->is_complete() && $registration->user_id == $lr_session->user->user_id) {
-				if($registration->payment != 'Unpaid' && $registration->payment != 'Pending') {
-					// Don't allow user to unregister from paid events themselves -- admin must do it
-					return 0;
-				}
-				return 1;
-			}
-			return 0;
-
-		case 'history':
-			// Players with completed profiles can view their own history
-			if ($id) {
-				return ($lr_session->is_complete() && $lr_session->user->user_id == $id);
-			}
-			else {
-				return ($lr_session->is_complete());
-			}
-		case 'statistics':
-		case 'download':
-			// admin only
-			break;
-	}
-
-	return false;
-}
-
 /**
  * Base class for registration form functionality
  */

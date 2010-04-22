@@ -23,11 +23,6 @@ function gmaps_dispatch()
 	return $obj;
 }
 
-function gmaps_permissions()
-{
-	return true;
-}
-
 class GoogleMapsHTMLPage extends Handler
 {
 	function has_permission()

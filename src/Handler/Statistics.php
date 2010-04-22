@@ -12,15 +12,6 @@ function statistics_dispatch()
 	return null;
 }
 
-
-function statistics_permissions( &$user, $action )
-{
-	if( $user->is_admin() ) {
-		return true;
-	}
-	return false;
-}
-
 class StatisticsHandler extends Handler
 {
 	function has_permission()

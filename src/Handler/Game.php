@@ -62,46 +62,6 @@ function game_dispatch()
 	return $obj;
 }
 
-function game_permissions ( &$user, $action, &$game, $extra )
-{
-	switch($action)
-	{
-		case 'submit score':
-			if($extra) {
-				if( $user && $user->is_captain_of($extra->team_id)) {
-					// If we have a specific team in mind, this user must be a
-					// captain to submit
-					return true;
-				} else {
-					return false;
-				}
-			}
-			if( $user && $user->is_captain_of( $game->home_team )
-				|| $user->is_captain_of($game->away_team )) {
-				// Otherwise, check that user is captain of one of the teams
-				return true;
-			}
-			if($user && $user->is_coordinator_of($game->league_id)) {
-				return true;
-			}
-			break;
-		case 'edit':
-			return ($user && $user->is_coordinator_of($game->league_id));
-			break; // unreached
-		case 'view':
-			if( $extra == 'spirit' ) {
-				return ($user && $user->is_coordinator_of($game->league_id));
-			}
-			if( $extra == 'submission' ) {
-				return ($user && $user->is_coordinator_of($game->league_id));
-			}
-			return ($user && $user->is_active());
-			break; // unreached
-
-	}
-	return false;
-}
-
 /**
  * Generate view of games for initial login splash page.
  */

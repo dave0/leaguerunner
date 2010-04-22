@@ -66,40 +66,6 @@ function league_dispatch()
 	return $obj;
 }
 
-function league_permissions( $user, $action, $id, $data_field = '' )
-{
-	// TODO: finish this!
-	switch($action)
-	{
-		case 'view':
-			switch($data_field) {
-				case 'spirit':
-				case 'captain emails':
-				case 'delays':
-					return ($user && $user->is_coordinator_of($id));
-				default:
-					return true;
-			}
-			break;
-		case 'list':
-			return true;
-		case 'edit':
-		case 'edit game':
-		case 'add game':
-		case 'approve scores':
-		case 'edit schedule':
-		case 'manage teams':
-		case 'ratings':
-			return ($user && $user->is_coordinator_of($id));
-		case 'create':
-		case 'delete':
-		case 'download':
-			// admin only
-			break;
-	}
-	return false;
-}
-
 /**
  * Generate view of leagues for initial login splash page.
  */

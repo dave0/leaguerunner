@@ -36,20 +36,6 @@ function slot_dispatch()
 	return $obj;
 }
 
-function slot_permissions ( &$user, $action, $sid )
-{
-	switch($action)
-	{
-		case 'create':
-		case 'edit':
-		case 'delete':
-		case 'availability':
-			// admin-only
-			break;
-	}
-	return false;
-}
-
 class GameSlotCreate extends Handler
 {
 	function has_permission()

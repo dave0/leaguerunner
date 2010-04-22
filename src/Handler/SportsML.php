@@ -27,11 +27,6 @@ function sportsml_dispatch()
 	return $obj;
 }
 
-function sportsml_permissions()
-{
-	return true;
-}
-
 function sportsml_cron()
 {
 	// TODO: possibly auto-generate some export data here

@@ -15,11 +15,6 @@ function image_dispatch()
 	return $obj;
 }
 
-function image_permissions()
-{
-	return true;
-}
-
 class ImageGeneratePin extends Handler
 {
 	function has_permission()

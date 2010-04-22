@@ -63,66 +63,6 @@ function team_dispatch()
 	return $obj;
 }
 
-function team_permissions ( &$user, $action, $id, $data_field )
-{
-	switch( $action )
-	{
-		case 'create':
-			// Players can create teams at-will
-			return ($user && $user->is_active());
-		case 'list':
-		case 'view':
-			// Everyone can list and view if they're a player
-			return ($user && $user->is_active());
-		case 'view schedule':
-			return true;
-		case 'edit':
-		    if( $data_field == 'home_field' ) {
-				return ($user && $user->is_admin());
-			}
-			return ($user && $user->is_captain_of( $id ) );
-		case 'player shirts':
-			if( $user && $user->coordinates_league_containing( $id ) ) {
-				return true;
-			}
-			break;
-		case 'email':
-			if( $user && $user->is_captain_of( $id ) ) {
-				return true;
-			}
-			if( $user && $user->coordinates_league_containing( $id ) ) {
-				return true;
-			}
-			break;
-		case 'player status':
-			if( $user && $user->is_captain_of( $id ) ) {
-				// Captain can adjust status of other players
-				return true;
-			}
-			if( $user && $user->user_id == $data_field ) {
-				// Player can adjust status of self
-				return true;
-			}
-			break;
-		case 'delete':
-			if( $user && $user->is_captain_of( $id ) ) {
-				return true;
-			}
-			break;
-		case 'move':
-			if( $user && $user->coordinates_league_containing( $id ) ) {
-				return true;
-			}
-			break;
-		case 'statistics':
-			// admin-only
-			break;
-		case 'spirit':
-			return ($user && $user->is_player_on( $id ));
-	}
-	return false;
-}
-
 /**
  * Generate view of teams for initial login splash page.
  */

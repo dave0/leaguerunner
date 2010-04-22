@@ -47,30 +47,6 @@ function event_dispatch()
 	return $obj;
 }
 
-function event_permissions ( &$user, $action, $id, $data_field )
-{
-	global $lr_session;
-
-	switch( $action )
-	{
-		case 'create':
-			// Only admin can create
-			break;
-		case 'edit':
-			// Only admin can edit
-			break;
-		case 'delete':
-			// Only admin can delete
-			break;
-		case 'view':
-		case 'list':
-			// Valid players can list
-			return $lr_session->is_valid();
-	}
-
-	return false;
-}
-
 class EventCreate extends EventEdit
 {
 	var $event;

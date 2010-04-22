@@ -513,7 +513,7 @@ function field_add_to_menu( &$field )
 		menu_add_child($field->fullname,"$field->fullname reports" ,'view reports', array('weight' => 2, 'link' => "field/reports/$field->fid") );
 	}
 
-	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
+	if($lr_session->has_permission('slot','create', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
 	}
 }

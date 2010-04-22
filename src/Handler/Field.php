@@ -40,55 +40,6 @@ function field_dispatch()
 	return $obj;
 }
 
-function field_permissions ( &$user, $action, $fid, $data_field )
-{
-	$public_data = array( 'public_instructions' );
-	$member_data = array( 'site_instructions' );
-
-	switch( $action )
-	{
-		case 'create':
-			// Only admin can create
-			break;
-		case 'edit':
-			// Admin and "volunteer" can edit
-			if($user && $user->class == 'volunteer') {
-				return true;
-			}
-			break;
-		case 'view':
-			// Everyone can view, but valid users get extra info
-			if($user && $user->is_active()) {
-				$viewable_data = array_merge($public_data, $member_data);
-			} else {
-				$viewable_data = $public_data;
-			}
-			if( $data_field ) {
-				return in_array( $data_field, $viewable_data );
-			} else {
-				return true;
-			}
-		case 'list':
-			// Everyone can list open fields, only admins can list closed; $fid here is the "closed" bool
-			if (!$fid) {
-				return true;
-			}
-			break;
-		case 'view bookings':
-			// Only valid users can view bookings
-			if($user && $user->is_active()) {
-				return true;
-			}
-		case 'view reports':
-			// Admin and "volunteer" can edit
-			if($user && $user->class == 'volunteer') {
-				return true;
-			}
-	}
-
-	return false;
-}
-
 class FieldCreate extends FieldEdit
 {
 	var $field;
