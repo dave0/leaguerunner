@@ -1,22 +1,14 @@
 <?php
 
-function image_dispatch()
+class image_pins extends Handler
 {
-	$op = arg(1);
+	private $file;
 
-	switch($op) {
-		case 'pins':
-			$obj = new ImageGeneratePin;
-			break;
-		default:
-			error_exit('Invalid operation');
+	function __construct ( $file )
+	{
+		$this->file = $file;
 	}
 
-	return $obj;
-}
-
-class ImageGeneratePin extends Handler
-{
 	function has_permission()
 	{
 		return true;
@@ -26,12 +18,11 @@ class ImageGeneratePin extends Handler
 	{
 		global $CONFIG;
 
-		$file = arg(2);
-		if( ! preg_match ("/^[0-9a-zA-Z]+\.png$/", $file) ) {
-			error_exit("Invalid image request");
+		if( ! preg_match ("/^[0-9a-zA-Z]+\.png$/", $this->file) ) {
+			error_exit("Invalid image request for $this->file");
 		}
 
-		$code = substr($file, 0, 3);
+		$code = substr($this->file, 0, 3);
 		$basepath = trim($CONFIG['paths']['file_path'], '/') . '/image/pins';
 		$default = "$basepath/blank-marker.png";
 		$file = "$basepath/$code.png";
