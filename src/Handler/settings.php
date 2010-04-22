@@ -154,4 +154,50 @@ class settings extends Handler
 	}
 }
 
+function person_settings ( )
+{
+	$group = form_textfield('Subject of account approval e-mail', 'edit[person_mail_approved_subject]', _person_mail_text('approved_subject'), 70, 180, 'Customize the subject of your approval e-mail, which is sent after account is approved. Available variables are: %username, %site, %url.');
+ 
+	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
+
+	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
+
+	$group .= form_textfield('Subject of membership letter e-mail', 'edit[person_mail_member_letter_subject]', _person_mail_text('member_letter_subject'), 70, 180, 'Customize the subject of your membership letter e-mail, which is sent annually after membership is paid for. Available variables are: %fullname, %firstname, %lastname, %site, %year.');
+ 
+	$group .= form_textarea('Body of membership letter e-mail (player)', 'edit[person_mail_member_letter_body]', _person_mail_text('member_letter_body'), 70, 10, 'Customize the body of your membership letter e-mail, which is sent annually after membership is paid for. If registrations are disabled, or this field is empty, no letters will be sent. Available variables are: %fullname, %firstname, %lastname, %adminname, %site, %year.');
+
+	$group .= form_textfield('Subject of password reset e-mail', 'edit[person_mail_password_reset_subject]', _person_mail_text('password_reset_subject'), 70, 180, 'Customize the subject of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %site.');
+ 
+	$group .= form_textarea('Body of password reset e-mail', 'edit[person_mail_password_reset_body]', _person_mail_text('password_reset_body'), 70, 10, 'Customize the body of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %fullname, %adminname, %username, %password, %site, %url.');
+
+	$group .= form_textfield('Subject of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_subject]', _person_mail_text('dup_delete_subject'), 70, 180, 'Customize the subject of your account deletion mail, sent to a user who has created a duplicate account. Available variables are: %site.');
+ 
+	$group .= form_textarea('Body of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_body]', _person_mail_text('dup_delete_body'), 70, 10, 'Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
+
+	$group .= form_textfield('Subject of duplicate account merge e-mail', 'edit[person_mail_dup_merge_subject]', _person_mail_text('dup_merge_subject'), 70, 180, 'Customize the subject of your account merge mail, sent to a user who has created a duplicate account. Available variables are: %site.');
+ 
+	$group .= form_textarea('Body of duplicate account merge e-mail', 'edit[person_mail_dup_merge_body]', _person_mail_text('dup_merge_body'), 70, 10, 'Customize the body of your account merge e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
+
+	$group .= form_textfield('Subject of captain request e-mail', 'edit[person_mail_captain_request_subject]', _person_mail_text('captain_request_subject'), 70, 180, 'Customize the subject of your captain request mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %league, %day, %adminname.');
+ 
+	$group .= form_textarea('Body of captain request e-mail', 'edit[person_mail_captain_request_body]', _person_mail_text('captain_request_body'), 70, 10, 'Customize the body of your captain request e-mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %teamurl, %league, %day, %adminname.');
+
+	$group .= form_textfield('Subject of player request e-mail', 'edit[person_mail_player_request_subject]', _person_mail_text('player_request_subject'), 70, 180, 'Customize the subject of your player request mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %team, %league, %day, %adminname.');
+ 
+	$group .= form_textarea('Body of player request e-mail', 'edit[person_mail_player_request_body]', _person_mail_text('player_request_body'), 70, 10, 'Customize the body of your player request e-mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %captains, %team, %teamurl, %league, %day, %adminname.');
+
+	$group .= form_textfield('Subject of score reminder e-mail', 'edit[person_mail_score_reminder_subject]', _person_mail_text('score_reminder_subject'), 70, 180, 'Customize the subject of your score reminder mail, sent to captains when they have not submitted a score in a timely fashion. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+ 
+	$group .= form_textarea('Body of score reminder e-mail', 'edit[person_mail_score_reminder_body]', _person_mail_text('score_reminder_body'), 70, 10, 'Customize the body of your score reminder e-mail, sent to captains when they have not submitted a score in a timely fashion. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+
+	$group .= form_textfield('Subject of approval notice e-mail', 'edit[person_mail_approval_notice_subject]', _person_mail_text('approval_notice_subject'), 70, 180, 'Customize the subject of your approval notice mail, sent to captains when a game has been approved without a score submission from them. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+ 
+	$group .= form_textarea('Body of approval notice e-mail', 'edit[person_mail_approval_notice_body]', _person_mail_text('approval_notice_body'), 70, 10, 'Customize the body of your approval notice e-mail, sent to captains when a game has been approved without a score submission from them. Available variables are: %site, %fullname, %team, %opponent, %league, %gamedate, %scoreurl, %adminname.');
+
+	$output = form_group('User email settings', $group);
+
+	return settings_form($output);
+}
+
+
 ?>

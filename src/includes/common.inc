@@ -1426,6 +1426,59 @@ function make_shorter_titles ( $string )
 	return preg_replace('/OCUA/', '', $string);
 }
 
+/**
+ * Message text for account-related emails
+ */
+function _person_mail_text($messagetype, $variables = array() ) 
+{
+	// Check if the default has been overridden by the DB
+	if( $override = variable_get('person_mail_' . $messagetype, false) ) {
+		return strtr($override, $variables);
+	} else {
+		switch($messagetype) {
+			case 'approved_subject':
+				return strtr("%site Account Activation for %username", $variables);
+			case 'approved_body_player':
+				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYour new permanent member number is\n\t%memberid\nThis number will identify you for member services, discounts, etc, so please write it down in a safe place so you'll remember it.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
+			case 'approved_body_visitor':
+				return strtr("Dear %fullname,\n\nYour %site account has been approved.\n\nYou may now log in to the system at\n\t%url\nwith the username\n\t%username\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\n\nThanks,\n%adminname", $variables);
+			case 'member_letter_subject':
+				return strtr("%site %year Membership",$variables);
+			case 'member_letter_body':
+				return strtr("Dear %fullname,\n\nThank you for confirming your membership in the %site for %year. You are now eligible to be added to team rosters and enjoy all the other benefits of membership in the %site.\n\nThanks,\n%adminname", $variables);
+			case 'password_reset_subject':
+				return strtr("%site Password Reset",$variables);
+			case 'password_reset_body':
+				return strtr("Dear %fullname,\n\nSomeone, probably you, just requested that your password for the account\n\t%username\nbe reset.  Your new password is\n\t%password\nSince this password has been sent via unencrypted email, you should change it as soon as possible.\n\nIf you didn't request this change, don't worry.  Your account password can only ever be mailed to the email address specified in your %site system account.  However, if you think someone may be attempting to gain unauthorized access to your account, please contact the system administrator.", $variables);
+			case 'dup_delete_subject':
+				return strtr("%site Account Update", $variables);
+			case 'dup_delete_body':
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already have an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the 'Forgot your password?' feature at\n\t%passwordurl\nand a new password will be emailed to you.\n\nIf the above email address is no longer correct, please reply to this message and request an address change.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'dup_merge_subject':
+				return strtr("%site Account Update", $variables);
+			case 'dup_merge_body':
+				return strtr("Dear %fullname,\n\nYou seem to have created a duplicate %site account.  You already had an account with the username\n\t%existingusername\ncreated using the email address\n\t%existingemail\nTo preserve historical information (registrations, team records, etc.) this old account has been merged with your new information.  You will be able to access this account with your newly chosen user name and password.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'captain_request_subject':
+			case 'player_request_subject':
+				return strtr("%site Request to Join Team", $variables);
+			case 'captain_request_body':
+				return strtr("Dear %fullname,\n\nYou have been invited to join the roster of the %site team %team playing on %day in the '%league' league.  We ask that you please accept or decline this invitation at your earliest convenience.  More details about %team may be found at\n%teamurl\n\nIf you accept the invitation, you will be added to the team's roster and your contact information will be made available to the team captain.  If you decline the invitation you will be removed from this team's roster and your contact information will not be made available to the captain.  This protocol is in accordance with the %site Privacy Policy.\n\nPlease be advised that players are NOT considered a part of a team roster until they have accepted a captain's request to join.  Your team's roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a 'regular player' (accepted the captain request).\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'player_request_body':
+				return strtr("Dear %captains,\n\n%fullname has requested to join the roster of the %site team %team playing on %day in the '%league' league.  We ask that you please accept or decline this request at your earliest convenience.  Your team roster may be accessed at\n%teamurl\n\nIf you accept the invitation, %fullname will be added to the team's roster in whatever capacity you assign.  If you decline the invitation they will be removed from this team's roster.\n\nPlease be advised that players are NOT considered a part of a team roster until their request to join has been accepted by a captain.  Your team's roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a 'regular player' (accepted by the captain).\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'score_reminder_subject':
+				return strtr("%site Reminder to Submit Score", $variables);
+			case 'score_reminder_body':
+				return strtr("Dear %fullname,\n\nYou have not yet submitted a score for the game between your team %team and %opponent, which was scheduled for %gamedate in %league. Scores need to be submitted in a timely fashion by both captains to substantiate results and for optimal scheduling of future games.  We ask you to please update the score as soon as possible.  You can submit the score for this game at\n%scoreurl\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+			case 'approval_notice_subject':
+				return strtr("%site Notification of Score Approval", $variables);
+			case 'approval_notice_body':
+				return strtr("Dear %fullname,\n\nYou have not submitted a score for the game between your team %team and %opponent, which was scheduled for %gamedate in %league. Scores need to be submitted in a timely fashion by both captains to substantiate results and for optimal scheduling of future games.  Your opponent's submission for this game has been accepted, they have been given a perfect spirit score, and your spirit score has been penalized.\n\nIf there is some reason why you were unable to submit your score in time, you may contact your convener who will consider reversing the penalty. To avoid such penalties in the future, please be sure to submit your scores promptly.\n\nThanks,\n%adminname\n" . variable_get('app_org_short_name', 'League') . " Webteam", $variables);
+
+			default:
+				return "Unknown message type '$messagetype'!";
+		}
+	}
+}
 
 function fatal_sql_error ( $sth )
 {

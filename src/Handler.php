@@ -6,14 +6,12 @@ module_register("Handler/home.php", 'home'); // TODO: make this go away
 
 module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
-module_register("Handler/Person.php", 'person');
 module_register("Handler/Team.php", 'team');
 module_register("Handler/League.php", 'league');
 module_register("Handler/Schedule.php", 'schedule');
 module_register("Handler/Field.php", 'field');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
-module_register("Handler/cron.php",'cron');
 module_register("Handler/SportsML.php",'sportsml');
 module_register("Handler/GoogleMaps.php",'gmaps');
 module_register("Handler/API.php", 'api');
@@ -36,19 +34,19 @@ class Handler
 	 * @access private
 	 * @var string
 	 */
-	var $title;
+	public $title;
 
 	/**
 	 * The operation this handler deals with.  Used for generating
 	 * self-referential links, form submission targets, etc.
 	 */
-	var $op;
+	protected $op;
 
 	/**
 	 * Breadcrumbs.  Used for creating a trail of actions so that
 	 * users can backtrack.
 	 */
-	var $breadcrumbs;
+	public $breadcrumbs;
 
 	function __construct ( )
 	{
