@@ -8,7 +8,6 @@ module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
 module_register("Handler/League.php", 'league');
 module_register("Handler/Schedule.php", 'schedule');
-module_register("Handler/Field.php", 'field');
 module_register("Handler/Game.php",'game');
 module_register("Handler/GameSlot.php",'slot');
 module_register("Handler/GoogleMaps.php",'gmaps');

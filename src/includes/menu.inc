@@ -226,7 +226,7 @@ function menu_build( )
 		menu_add_child('field','field/list/closed','list closed fields', array('weight' => 3, 'link' => 'field/list/closed') );
 	}
 	if( $lr_session->has_permission('field','create') ) {
-		menu_add_child('field','field/create','create field', array('weight' => 5, 'link' => 'field/create') );
+		menu_add_child('field','field/create','create field', array('weight' => 6, 'link' => 'field/create') );
 	}
 
 	if( $lr_session->has_permission('field','view reports') ) {
