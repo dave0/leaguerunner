@@ -564,7 +564,7 @@ function form_select($title, $name, $value, $options, $description = 0, $extra =
 
 function form_select_date($title,$prefix,$value, $startYear, $endYear, $description)
 {
-	list($value_year, $value_month, $value_day) = split("-", $value);
+	list($value_year, $value_month, $value_day) = explode("-", $value);
 	$allSelect = __form_select($prefix . '[year]', $value_year,
 		getOptionsFromRange($startYear, $endYear, 'reverse'));
 	$allSelect .= __form_select($prefix . '[month]', $value_month,
@@ -1193,7 +1193,7 @@ function getOptionsFromEnum( $table, $col_name )
 	$str = preg_replace("/^(enum|set)\(/","",$row['Type']);
 	$str = preg_replace("/\)$/","",$str);
 	$str = str_replace("'","",$str);
-	$ary = preg_split("/,/",$str);
+	$ary = explode(',',$str);
 
 	$options = array();
 	$options["---"] = "---";

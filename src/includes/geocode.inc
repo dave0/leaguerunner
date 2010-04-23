@@ -23,7 +23,7 @@
 			'accuracy' => 0,
 		);
 		foreach ($lines as $line) {
-			list($status, $accuracy, $lat, $long) = preg_split('/,/', $line);
+			list($status, $accuracy, $lat, $long) = explode(',', $line);
 			if( $accuracy > $best['accuracy'] ) {
 				$best['accuracy'] = $accuracy;
 				$best['lat'] = $lat;

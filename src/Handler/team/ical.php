@@ -37,7 +37,7 @@ class team_ical extends TeamHandler
 		$short_league_name = variable_get('app_org_short_name', 'League');
 
 		// get domain URL for signing games
-		$arr = split('@',variable_get('app_admin_email',"@$short_league_name"));
+		$arr = explode('@',variable_get('app_admin_email',"@$short_league_name"));
 		$domain_url = $arr[1];
 
 		// ical header

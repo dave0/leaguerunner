@@ -116,7 +116,7 @@ class league_fields extends LeagueHandler
 			while(list(,$game) = each($schedule)) {
 				if ($game->home_team == $tid || $game->away_team == $tid) {
 					$numgames++;
-					list($code, $num) = split(" ", $game->field_code);
+					list($code, $num) = explode(' ', $game->field_code);
 					$count["$code $game->game_start"]++;
 				}
 			}

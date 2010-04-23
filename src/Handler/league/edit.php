@@ -35,7 +35,7 @@ class league_edit extends LeagueHandler
 	{
 		/* Deal with multiple days and start times */
 		if(strpos($league->day, ",")) {
-			$league->day = split(",",$league->day);
+			$league->day = explode(',',$league->day);
 		}
 		return object2array($league);
 	}

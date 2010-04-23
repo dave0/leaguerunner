@@ -76,7 +76,7 @@ class person_approve extends person_view
 			error_exit("You must select a disposition for this account");
 		}
 
-		list($disposition,$dup_id) = split(':',$disposition);
+		list($disposition,$dup_id) = explode(':',$disposition);
 
 		switch($disposition) {
 			case 'approve_player':

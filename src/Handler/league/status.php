@@ -98,7 +98,7 @@ class league_status extends LeagueHandler
 					$opponents[$game->home_team]++;
 				}
 				if ($game->home_team == $tid || $game->away_team == $tid) {
-					list($code, $num) = split(" ", $game->field_code);
+					list($code, $num) = explode(' ', $game->field_code);
 					$region[$fields[$code]]++;
 				}
 			}
