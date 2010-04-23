@@ -1,0 +1,71 @@
+<?php
+class schedule_day extends Handler
+{
+	private $yyyy;
+	private $mm;
+	private $dd;
+
+	function __construct( $year = null, $month = null, $day = null)
+	{
+		parent::__construct();
+		$today = getdate();
+
+		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$this->mm   = is_numeric($month) ? $month : $today['mon'];
+		$this->dd   = is_numeric($day)   ? $day   : null;
+
+
+	}
+
+	function has_permission ()
+	{
+		// Everyone gets to see the schedule
+		return true;
+	}
+
+	function process ()
+	{
+		$this->title = "View Day";
+
+		if( $this->dd ) {
+			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
+				return 'That date is not valid';
+			}
+			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
+			$this->setLocation(array(
+				"$this->title &raquo; $formattedDay" => 0));
+			return $this->displayGamesForDay( $this->yyyy, $this->mm, $this->dd );
+		} else {
+			$this->setLocation(array( $this->title => 0));
+			$output = para('Select a date below on which to view all scheduled games');
+			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'schedule/day', 'schedule/day');
+			return $output;
+		}
+	}
+
+	/**
+	 * List all games on a given day.
+	 */
+	function displayGamesForDay ( $year, $month, $day )
+	{
+		$sth = game_query ( array(
+			'game_date' => sprintf('%d-%d-%d', $year, $month, $day),
+			'published' => true,
+			'_order' => 'g.game_start, field_code') );
+
+		$rows = array(
+			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
+			schedule_subheading( ),
+		);
+		while($g = $sth->fetchObject('Game') ) {
+			if( ! ($g->published || $lr_session->has_permission('league','edit schedule', $this->league->league_id) ) ) {
+				continue;
+			}
+			$rows[] = schedule_render_viewable($g);
+		}
+		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
+		return $output;
+	}
+}
+
+?>
