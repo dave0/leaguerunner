@@ -1,22 +1,13 @@
 <?php
 
-# do not resort this list or things will break
-module_register("Handler/Registration.php",'registration');
-
 /**
  * This is the base class for all operation handlers used in the web UI.
- * 
- * It exports a method, get_page_handler() that is used as a factory to create
- * appropriate handler instances for the given operation.
- *
- * It also provides the Handler base class, which implements an API that
- * must be followed by each page handler subclass.
  */
-class Handler 
+class Handler
 {
 	/**
 	 * The page title, for display
-	 * 
+	 *
 	 * @access private
 	 * @var string
 	 */

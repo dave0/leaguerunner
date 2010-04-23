@@ -304,7 +304,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	return false;
 }
 
-function registration_permissions ( &$user, $action, $id, $data_field )
+function registration_permissions ( &$user, $action, $id, $registration )
 {
 	global $lr_session;
 
@@ -323,7 +323,7 @@ function registration_permissions ( &$user, $action, $id, $data_field )
 		case 'unregister':
 			// Players may only unregister themselves from events before paying.
 			// TODO: should be $registration->user_can_unregister()
-			if($lr_session->user->is_active() && $lr_session->is_complete() && $data_field->user_id == $lr_session->user->user_id) {
+			if($lr_session->user->is_active() && $lr_session->is_complete() && $registration->user_id == $lr_session->user->user_id) {
 				if($registration->payment != 'Unpaid' && $registration->payment != 'Pending') {
 					// Don't allow user to unregister from paid events themselves -- admin must do it
 					return 0;
