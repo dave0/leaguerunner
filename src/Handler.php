@@ -1,7 +1,6 @@
 <?php
 
 # do not resort this list or things will break
-module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
 
 /**
