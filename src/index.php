@@ -52,7 +52,6 @@ try {
 }
 
 require_once("includes/common.inc");
-require_once("includes/module.inc");
 require_once("includes/menu.inc");
 require_once("includes/permissions.inc");
 require_once("includes/theme.inc");

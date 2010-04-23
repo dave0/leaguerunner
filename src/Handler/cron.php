@@ -16,7 +16,10 @@ class cron extends Handler
 
 	function process ()
 	{
-		return join("", module_invoke_all('cron'));
+		return join("", array(
+			person_cron(),
+			league_cron()
+		));
 	}
 }
 

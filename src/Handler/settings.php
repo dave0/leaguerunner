@@ -1,21 +1,58 @@
 <?php
 
-/*
- * Handlers for leaguerunner settings
- */
-function settings_save( $newsettings = array() )
+class settings extends Handler
 {
-	foreach ( $newsettings as $name => $value ) {
-		variable_set($name, $value);
+	function __construct ( $type )
+	{
+		if( ! preg_match('/^[a-z]+$/', $type)) {
+			error_exit('invalid type');
+		}
+
+		$function = $type . '_settings';
+		if(! function_exists( $function ) ) {
+			error_exit('invalid type');
+		}
+		$this->type = $type;
 	}
+
+	function has_permission()
+	{
+		global $lr_session;
+		return $lr_session->is_admin();
+	}
+
+	function process ()
+	{
+		$this->title = 'Settings';
+		$op = $_POST['op'];
+
+		switch($op) {
+			case 'save':
+				foreach ( $_POST['edit'] as $name => $value ) {
+					variable_set($name, $value);
+				}
+				$output = para('Settings saved');
+				$output .= $this->get_settings_form('Settings saved');
+				return $output;
+			default:
+				$output = para('Make your changes below');
+				$output .= $this->get_settings_form();
+				return $output;
+		}
+	}
+
+	function get_settings_form ($message = null )
+	{
+		$function = $this->type . '_settings';
+
+		$form = $function( $message );
+		$form .= form_hidden('op', 'save');
+		$form .= form_submit("Save configuration");
+		return form($form);
+	}
+
 }
 
-function settings_form( &$form )
-{
-	$form .= form_hidden('op', 'save');
-	$form .= form_submit("Save configuration");
-	return form($form);
-}
 
 function global_settings()
 {
@@ -82,7 +119,7 @@ function global_settings()
 
 	$output .= form_group('Game Finalization', $group);
 
-	return settings_form($output);
+	return $output;
 }
 
 function feature_settings()
@@ -116,42 +153,7 @@ function rss_settings()
 
 	$output = form_group('RSS configuration', $group);
 
-	return settings_form($output);
-}
-
-class settings extends Handler
-{
-	function __construct ( $type )
-	{
-		if ( ! module_hook($type,'settings') ) {
-			error_exit('Operation not found');
-		}
-		$this->type = $type;
-	}
-
-	function has_permission()
-	{
-		global $lr_session;
-		return $lr_session->is_admin();
-	}
-
-	function process ()
-	{
-		$this->title = 'Settings';
-		$op = $_POST['op'];
-
-		switch($op) {
-			case 'save':
-				settings_save($_POST['edit']);
-				$output = para('Settings saved');
-				$output .= module_invoke($this->type, 'settings', "Settings saved");
-				return $output;
-			default:
-				$output = para('Make your changes below');
-				$output .= module_invoke($this->type, 'settings');
-				return $output;
-		}
-	}
+	return $output;
 }
 
 function person_settings ( )
@@ -196,7 +198,7 @@ function person_settings ( )
 
 	$output = form_group('User email settings', $group);
 
-	return settings_form($output);
+	return $output;
 }
 
 function registration_settings ( )
@@ -236,7 +238,7 @@ function registration_settings ( )
 
 	$output = form_group('Registration configuration', $group);
 
-	return settings_form($output);
+	return $output;
 }
 
 

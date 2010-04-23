@@ -264,7 +264,9 @@ class UserSession
 		if( $this->is_valid() && $this->is_admin()) {
 			return true;
 		}
-		return module_invoke($module, 'permissions', $this->user, $action, $a1, $a2);
+		// TODO: this definitely needs a cleanup
+		$function = $module . '_permissions';
+		return $function( $this->user, $action, $a1, $a2);
 	}
 
 	/**

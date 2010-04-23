@@ -3,8 +3,13 @@ class statistics extends Handler
 {
 	function __construct ( $type )
 	{
-		if ( ! module_hook($type,'statistics') ) {
-			error_exit('Operation not found');
+		if( ! preg_match('/^[a-z]+$/', $type)) {
+			error_exit('invalid type');
+		}
+
+		$function = $type . '_statistics';
+		if(! function_exists( $function ) ) {
+			error_exit('invalid type');
 		}
 		$this->type = $type;
 	}
@@ -19,7 +24,9 @@ class statistics extends Handler
 	{
 		$this->title = ucfirst($this->type) . ' Statistics';
 		$this->setLocation(array($this->title => 0));
-		return module_invoke($this->type, 'statistics');
+
+		$function = $this->type . '_statistics';
+		return $function( $message );
 	}
 }
 
