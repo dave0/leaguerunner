@@ -127,5 +127,105 @@ function league_splash ()
 	return table( $header, $rows );
 }
 
+/**
+ * Generate view of games for initial login splash page.
+ */
+function game_splash ()
+{
+	global $lr_session, $dbh;
+
+	$sth = game_load(array());
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE s.published AND ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date < CURDATE() ORDER BY g.game_date desc, g.game_start desc LIMIT 4');
+	$sth->execute( array($lr_session->user->user_id) );
+
+	$rows = array();
+	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
+		$game = game_load(array('game_id' => $row->game_id));
+		$score = 'not entered';
+		if( $game->is_finalized() ) {
+			$score = "$game->home_score - $game->away_score"	;
+		} else {
+			/* Not finalized yet, so we will either:
+			 *   - display entered score if present
+			 *   - display score entry link if game date has passed
+			 *   - display a blank otherwise
+			 */
+			$entered = $game->get_score_entry( $row->team_id );
+			if($entered) {
+				// need to match entered score order to displayed team order!
+				if ($entered->team_id == $game->home_id) {
+					$score = "$entered->score_for - $entered->score_against";
+				} else {
+					$score = "$entered->score_against - $entered->score_for";
+				}
+				$score .= " (unofficial, waiting for opponent)";
+			} else if($lr_session->has_permission('game','submit score', $game)
+				&& ($game->timestamp < time()) ) {
+					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
+			}
+		}
+		$field = field_load(array('fid' => $game->fid));
+		array_unshift($rows, array(
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-" . $game->display_game_end(),"game/view/$game->game_id"),
+			array('data' =>
+				l($game->home_name, "team/view/$game->home_id") .
+				" (home) vs. " .
+				l($game->away_name, "team/view/$game->away_id") .
+				" (away) at " .
+				l($game->field_code, "field/view/$game->fid",
+				  array('title' => $field->fullname))),
+			$score
+		));
+	}
+
+	$sth = $dbh->prepare('SELECT s.game_id, t.team_id, t.status FROM schedule s, gameslot g, teamroster t WHERE s.published AND ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = ?) AND g.game_id = s.game_id AND g.game_date >= CURDATE() ORDER BY g.game_date asc, g.game_start asc LIMIT 4');
+	$sth->execute( array($lr_session->user->user_id) );
+
+	while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
+		$game = game_load(array('game_id' => $row->game_id));
+		$score = '';
+		if( $game->is_finalized() ) {
+			$score = "$game->home_score - $game->away_score"	;
+		} else {
+			/* Not finalized yet, so we will either:
+			 *   - display entered score if present
+			 *   - display score entry link if game date has passed
+			 *   - display a blank otherwise
+			 */
+			$entered = $game->get_score_entry( $row->team_id );
+			if($entered) {
+				// need to match entered score order to displayed team order!
+				if ($entered->team_id == $game->home_id) {
+					$score = "$entered->score_for - $entered->score_against";
+				} else {
+					$score = "$entered->score_against - $entered->score_for";
+				}
+				$score .= " (unofficial, waiting for opponent)";
+			} else if($lr_session->has_permission('game','submit score', $game)
+				&& ($game->timestamp < time()) ) {
+					$score = l("submit score", "game/submitscore/$game->game_id/" . $row->team_id);
+			}
+		}
+		$field = field_load(array('fid' => $game->fid));
+		$rows[] = array(
+			l( strftime('%a %b %d', $game->timestamp) . ", $game->game_start-" . $game->display_game_end(),"game/view/$game->game_id"),
+			array('data' =>
+				l($game->home_name, "team/view/$game->home_id") .
+				" (home) vs. " .
+				l($game->away_name, "team/view/$game->away_id") .
+				" (away) at " .
+				l($game->field_code, "field/view/$game->fid",
+				  array('title' => $field->fullname))),
+			$score
+		);
+	}
+
+	# If no recent games, don't display the table
+	if( count($rows) < 1)  {
+		return;
+	}
+
+	return "<div class='schedule'>" . table(array( array( 'data' => "Recent and Upcoming Games", 'colspan' => 3)), $rows, array('alternate-colours' => true) ) . "</div>";
+}
 
 ?>
