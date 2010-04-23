@@ -4,6 +4,15 @@ require_once('Handler/LeagueHandler.php');
 # TODO: this probabably should be moved to league_reschedulegames
 class game_reschedule extends LeagueHandler
 {
+	private $day_id;
+
+	function __construct ( $id, $dayid )
+	{
+		parent::__construct( $id );
+
+		$this->day_id = $dayid;
+	}
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -17,8 +26,6 @@ class game_reschedule extends LeagueHandler
 		if(! $this->league ) {
 			error_exit("That league does not exist");
 		}
-
-		$dayId = arg(3);
 
 		$edit = &$_POST['edit'];
 		$this->setLocation(array(
@@ -34,13 +41,13 @@ class game_reschedule extends LeagueHandler
 				return $this->confirm($edit);
 				break;
 			default:
-				return $this->selectDate( $dayId );
+				return $this->selectDate();
 				break;
 		}
 		error_exit("Error: This code should never be reached.");
 	}
 
-	function selectDate ( $dayId )
+	function selectDate ()
 	{
 		global $dbh;
 
@@ -76,7 +83,7 @@ class game_reschedule extends LeagueHandler
 
 		$output .= form_hidden('edit[step]','confirm');
 		$output .= form_hidden('edit[type]', $type);
-		$output .= form_hidden('edit[olddate]', $dayId);
+		$output .= form_hidden('edit[olddate]', $this->day_id);
 		$output .= form_select('Start date','edit[newdate]', null, $possible_dates);
 		$output .= form_submit('Next step');
 		return form($output);

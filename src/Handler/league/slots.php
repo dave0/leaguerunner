@@ -5,6 +5,22 @@ require_once('Handler/LeagueHandler.php');
  */
 class league_slots extends LeagueHandler
 {
+	private $yyyy;
+	private $mm;
+	private $dd;
+
+	function __construct ( $id, $year, $month, $day )
+	{
+		parent::__construct( $id );
+
+		$today = getdate();
+
+		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$this->mm   = is_numeric($month) ? $month : $today['mon'];
+		$this->dd   = is_numeric($day)   ? $day   : null;
+
+	}
+
 	function has_permission()
 	{
 		global $lr_session;
@@ -20,33 +36,20 @@ class league_slots extends LeagueHandler
 			$this->title => 0,
 		));
 
-		$today = getdate();
-
-		$year  = arg(3);
-		$month = arg(4);
-		$day   = arg(5);
-
-		if(! validate_number($month)) {
-			$month = $today['mon'];
-		}
-
-		if(! validate_number($year)) {
-			$year = $today['year'];
-		}
-		if( $day ) {
-			if( !validate_date_input($year, $month, $day) ) {
+		if( $this->dd ) {
+			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
 				return 'That date is not valid';
 			}
-			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$month,$day,$year));
+			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
 			$this->setLocation(array(
 				"$this->title &raquo; $formattedDay" => 0));
-			return $this->displaySlotsForDay( $year, $month, $day );
+			return $this->displaySlotsForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
 			$this->setLocation(array( "$this->title" => 0));
 			$output = para('Select a date below on which to view all available gameslots');
-			$output .= generateCalendar( $year, $month, $day,
-										 'league/slots/'.$this->league->league_id,
-										 'league/slots/'.$this->league->league_id);
+			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd,
+							 'league/slots/'.$this->league->league_id,
+							 'league/slots/'.$this->league->league_id);
 			return $output;
 		}
 	}

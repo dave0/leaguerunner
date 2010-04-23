@@ -2,6 +2,19 @@
 
 class team_list extends Handler
 {
+	private $letter;
+
+	function __construct ( $letter = 'A' )
+	{
+		parent::__construct();
+
+		if( preg_match('/^[A-Z]$/', $letter) ) {
+			$this->letter = $letter;
+		} else {
+			$this->letter = 'A';
+		}
+	}
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -26,7 +39,6 @@ class team_list extends Handler
 
 		$this->setLocation(array("List Teams" => 'team/list'));
 
-		$letter = arg(2);
 		$sth = $dbh->prepare("SELECT DISTINCT UPPER(SUBSTRING(t.name,1,1)) as letter
 			FROM team t
 			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id
@@ -35,20 +47,16 @@ class team_list extends Handler
 			ORDER BY letter asc");
 		$sth->execute();
 		$letters = $sth->fetchAll(PDO::FETCH_COLUMN);
-		if(!isset($letter)) {
-			$letter = 'A';
-		}
 
 		$letterLinks = array();
 		foreach($letters as $curLetter) {
-			if($curLetter == $letter) {
+			if($curLetter == $this->letter) {
 				$letterLinks[] = "<b>$curLetter</b>";
 			} else {
 				$letterLinks[] = l($curLetter, url("team/list/$curLetter"));
 			}
 		}
 		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
-		$dbParams[] = $letter;
 		$query = "SELECT
 				t.name AS value,
 				t.team_id AS id
@@ -59,7 +67,7 @@ class team_list extends Handler
 			AND
 				t.name LIKE ?
 			ORDER BY t.name";
-		$output .= $this->generateSingleList($query, $ops, array("$letter%"));
+		$output .= $this->generateSingleList($query, $ops, array("$this->letter%"));
 		return $output;
 	}
 }

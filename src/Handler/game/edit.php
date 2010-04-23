@@ -32,18 +32,6 @@ class game_edit extends GameHandler
 	{
 		global $lr_session;
 
-		if( arg(1) == 'edit' || arg(1) == 'approve' ) {
-			if( $lr_session->is_admin() ) {
-				$this->can_edit = true;
-			}
-
-			if( $lr_session->is_coordinator_of($this->game->league_id)) {
-				$this->can_edit = true;
-			}
-		} else {
-			$this->can_edit = false;
-		}
-
 		$this->title = "Game";
 
 		$this->setLocation(array(

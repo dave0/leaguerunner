@@ -1,6 +1,20 @@
 <?php
 class league_list extends Handler
 {
+	private $season;
+
+	function __construct ( $season = null)
+	{
+		parent::__construct( );
+
+		if( ! $season ) {
+			$season = strtolower(variable_get('current_season', "Summer"));
+		}
+
+		$this->season = $season;
+
+	}
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -11,11 +25,6 @@ class league_list extends Handler
 	{
 		global $lr_session;
 
-		$season = arg(2);
-		if( ! $season ) {
-			$season = strtolower(variable_get('current_season', "Summer"));
-		}
-
 		/* Fetch league names */
 		$seasons = getOptionsFromEnum('league', 'season');
 
@@ -25,7 +34,7 @@ class league_list extends Handler
 			if($curSeason == '---') {
 				continue;
 			}
-			if($curSeason == $season) {
+			if($curSeason == $this->season) {
 				$seasonLinks[] = $curSeason;
 			} else {
 				$seasonLinks[] = l($curSeason, "league/list/$curSeason");
@@ -33,7 +42,7 @@ class league_list extends Handler
 		}
 
 		$this->setLocation(array(
-			$season => "league/list/$season"
+			$this->season => "league/list/$this->season"
 		));
 
 		$output = para(theme_links($seasonLinks));
@@ -41,7 +50,7 @@ class league_list extends Handler
 		$header = array( "Name", "&nbsp;") ;
 		$rows = array();
 
-		$leagues = league_load_many( array( 'season' => $season, 'status' => 'open', '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
+		$leagues = league_load_many( array( 'season' => $this->season, 'status' => 'open', '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
 
 		if ( $leagues ) {
 			foreach ( $leagues as $league ) {

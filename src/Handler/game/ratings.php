@@ -2,6 +2,21 @@
 require_once('Handler/GameHandler.php');
 class game_ratings extends GameHandler
 {
+
+	private $rating_home;
+	private $rating_away;
+
+	function __construct ( $id, $hr, $ar )
+	{
+		parent::__construct( $id );
+		if( is_int( $hr ) ) {
+			$this->rating_home = $hr;
+		}
+		if( is_int( $ar ) ) {
+			$this->rating_away = $ar;
+		}
+	}
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -26,8 +41,6 @@ class game_ratings extends GameHandler
 	{
 		global $lr_session;
 
-		$rating_home = arg(3);
-		$rating_away = arg(4);
 		$whatifratings = true;
 
 		# Alias, to avoid typing.  Bleh.
@@ -49,9 +62,9 @@ class game_ratings extends GameHandler
 			}
 		}
 
-		if ($rating_home == null || $rating_away == null) {
-			$rating_home = $home_team->rating;
-			$rating_away = $away_team->rating;
+		if ($this->rating_home == null || $this->rating_away == null) {
+			$this->rating_home = $home_team->rating;
+			$this->rating_away = $away_team->rating;
 			$whatifratings = false;
 		}
 
@@ -77,11 +90,11 @@ class game_ratings extends GameHandler
 		$away = $game->away_name;
 
 		if ($whatifratings) {
-      	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$rating_home</b> ".
-      			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$rating_away</b>");
+      	$output .= para("HOME: <b>$home</b>, 'what if' rating of <b>$this->rating_home</b> ".
+      			"<br>AWAY: <b>$away</b>, 'what if' rating of <b>$this->rating_away</b>");
 		} else {
-      	$output .= para("HOME: <b>$home</b>, current rating of <b>$rating_home</b> ".
-      			"<br>AWAY: <b>$away</b>, current rating of <b>$rating_away</b>");
+      	$output .= para("HOME: <b>$home</b>, current rating of <b>$this->rating_home</b> ".
+      			"<br>AWAY: <b>$away</b>, current rating of <b>$this->rating_away</b>");
 		}
 
 		$ratings_table = $game->get_ratings_table( $rating_home, $rating_away, true );
