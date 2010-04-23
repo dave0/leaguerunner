@@ -1,12 +1,8 @@
 <?php
 
 # do not resort this list or things will break
-module_register("Handler/login.php", 'login'); // TODO: also contains logout handler!
-module_register("Handler/home.php", 'home'); // TODO: make this go away
-
 module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
-module_register("Handler/GoogleMaps.php",'gmaps');
 module_register("Handler/API.php", 'api');
 
 /**
