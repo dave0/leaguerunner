@@ -1,36 +1,6 @@
 <?php
-function api_dispatch()
-{
-	$version = arg(1);
-	$op      = arg(2);
 
-	/* Currently, version for API is 1.0 */
-	if( $version != '1.0' ) {
-		return null;
-	}
-
-	switch($op) {
-		case 'schedule':
-			$subop = arg(3);
-			switch($subop) {
-				case 'gamestoday':
-					$obj = new APIGamesToday;
-					break;
-				default:
-					$obj = null;
-			}
-			break;
-		default:
-			$obj = null;
-	}
-
-	return $obj;
-}
-
-/**
- * return HTML suitable for the "Games Today" box
- */
-class APIGamesToday extends Handler
+class api_schedule_gamestoday extends Handler
 {
 	function has_permission ()
 	{

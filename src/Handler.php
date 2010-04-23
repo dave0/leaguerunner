@@ -3,7 +3,6 @@
 # do not resort this list or things will break
 module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
-module_register("Handler/API.php", 'api');
 
 /**
  * This is the base class for all operation handlers used in the web UI.
