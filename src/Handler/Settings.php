@@ -20,6 +20,7 @@ function settings_menu()
 		menu_add_child('_root','settings','Settings');
 		menu_add_child('settings','settings/global','global settings', array('link' => 'settings/global'));
 		menu_add_child('settings','settings/feature','feature settings', array('link' => 'settings/feature'));
+		menu_add_child('settings','settings/rss','rss settings', array('link' => 'settings/rss'));
 	}
 }
 
@@ -130,6 +131,17 @@ function feature_settings()
 	$group .= form_radios('Allow all-star submissions', 'edit[allstars]', variable_get('allstars', 0), array('Disabled', 'Enabled'), 'If this is enabled, all-star submissions will be a per-league option; otherwise, they will be disabled entirely.');
 
 	$output = form_group('Feature configuration', $group);
+
+	return settings_form($output);
+}
+
+function rss_settings()
+{
+	$group = form_textfield('RSS feed title', 'edit[rss_feed_title]', variable_get('rss_feed_title', 'OCUA Volunteer Opportunities'), 60, 120, 'Title to use for RSS display.');
+	$group .= form_textfield('RSS feed URL', 'edit[rss_feed_url]', variable_get('rss_feed_url', 'http://www.ocua.ca/taxonomy/term/140/all/feed'), 60, 120, 'The full URL from which we pull RSS items.');
+	$group .= form_textfield('RSS feed item limit', 'edit[rss_feed_items]', variable_get('rss_feed_items', 2), 4, 4, 'Number of feed items to display');
+
+	$output = form_group('RSS configuration', $group);
 
 	return settings_form($output);
 }
