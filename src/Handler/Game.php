@@ -716,25 +716,20 @@ class GameSubmit extends Handler
 		}
 
 		$edit = $_POST['edit'];
-		$spirit = $incident = null;
+		$spirit = null;
 
 		if (array_key_exists ('spirit', $_POST))
 			$spirit = $_POST['spirit'];
-		if (array_key_exists ('incident', $_POST))
-			$incident = $_POST['incident'];
 
 		switch($edit['step']) {
 			case 'spirit':
 				$rc = $this->generateSpiritForm($edit, $opponent);
 				break;
-			case 'incident':
-				$rc = $this->generateIncidentForm($edit, $opponent, $spirit);
-				break;
 			case 'confirm':
-				$rc = $this->generateConfirm($edit, $opponent, $spirit, $incident);
+				$rc = $this->generateConfirm($edit, $opponent, $spirit);
 				break;
 			case 'save':
-				$rc = $this->perform($edit, $opponent, $spirit, $incident);
+				$rc = $this->perform($edit, $opponent, $spirit);
 				break;
 			default:
 				$rc = $this->generateForm( $opponent );
@@ -747,21 +742,7 @@ class GameSubmit extends Handler
 	// We don't know what path we may take through the submission, so we don't
 	// know what data may be present at any particular step. This checks for
 	// any possible data errors.
-	function isDataInvalid ($edit, $questions = null, $incident = null) {
-		$ret = $this->isScoreDataInvalid ($edit);
-		if ($ret === false && $questions != null) {
-			$msg = $questions->answers_invalid();
-			if ($msg) {
-				$ret .= $msg;
-			}
-		}
-		if ($ret === false && $incident != null)
-			$ret = $this->isIncidentDataInvalid ($incident);
-		return $ret;
-	}
-
-	function isScoreDataInvalid( $edit )
-	{
+	function isDataInvalid ($edit, $questions = null) {
 		$errors = '';
 
 		if( $edit['defaulted'] ) {
@@ -783,33 +764,11 @@ class GameSubmit extends Handler
 			$errors .= '<br>You must enter a valid number for your opponent\'s score.';
 		}
 
-		if(strlen($errors) > 0) {
-			return $errors;
-		} else {
-			return false;
-		}
-	}
-
-	function isIncidentDataInvalid( $invalid )
-	{
-		$errors = '';
-
-		$types = $this->incident_types();
-		if (!array_key_exists('type', $invalid) ||
-			empty ($invalid['type']) ||
-			!array_key_exists ($invalid['type'], $types))
-		{
-			$errors .= '<br>You must select a valid incident type.';
-		}
-
-		if (!array_key_exists('details', $invalid) ||
-			empty ($invalid['details']))
-		{
-			$errors .= '<br>You must enter the details of the incident.';
-		}
-		if (!validate_nonhtml($invalid['details']))
-		{
-			$errors .= '<br>HTML is not allowed in the incident details.';
+		if ($questions != null) {
+			$invalid_answers = $questions->answers_invalid();
+			if ($invalid_answers) {
+				$errors .= $invalid_answers;
+			}
 		}
 
 		if(strlen($errors) > 0) {
@@ -819,7 +778,7 @@ class GameSubmit extends Handler
 		}
 	}
 
-	function perform ($edit, $opponent, $spirit, $incident)
+	function perform ($edit, $opponent, $spirit)
 	{
 		global $lr_session, $dbh;
 
@@ -833,7 +792,7 @@ class GameSubmit extends Handler
 			$questions = null;
 		}
 
-		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident);
+		$dataInvalid = $this->isDataInvalid( $edit, $questions);
 		if($dataInvalid) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
@@ -867,39 +826,6 @@ class GameSubmit extends Handler
 			}
 		}
 
-		// Save and send the incident report, if required
-		if( $incident ) {
-			$sth = $dbh->prepare('INSERT into incidents (game_id, team_id, type, details) VALUES(?,?,?,?)');
-			$sth->execute( array($this->game->game_id, $this->team->team_id, $incident['type'], $incident['details']) );
-
-			$addr = variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']);
-			$field = field_load( array('fid' => $this->game->fid) );
-			$message = <<<END_OF_MESSAGE
-Game: {$this->game->game_id}
-Date: {$this->game->game_date}
-Time: {$this->game->game_start}
-Home Team: {$this->game->home_name}
-Away Team: {$this->game->away_name}
-Field: {$field->fullname}
-Submitted by: {$lr_session->user->fullname}
-
-{$incident['details']}
-
-END_OF_MESSAGE;
-
-			$rc = send_mail($addr, 'Incident Manager',
-				false, false, // from the administrator
-				false, false, // no Cc
-				"Incident report: {$incident['type']}",
-				$message);
-			if($rc) {
-				$resultMessage .= para('Your incident report details have been sent for handling.');
-			} else {
-				$link = l($addr, "mailto:$addr");
-				$resultMessage .= para(theme_error('There was an error sending your incident report details. Please send them to $link to ensure proper handling.'));
-			}
-		}
-
 		return $resultMessage;
 	}
 
@@ -912,9 +838,7 @@ END_OF_MESSAGE;
 
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
 			// If it's a default, short-circuit the spirit-entry form and skip
-			// straight to the confirmation.  This skips incident reports and
-			// all-star nominations as well, but that's probably okay...
-			// TODO: should skip all-stars for a default, but perhaps allow incident reports.
+			// straight to the confirmation.
 			return $this->generateConfirm($edit, $opponent);
 		} else {
 			// Force a non-default to display correctly
@@ -922,11 +846,7 @@ END_OF_MESSAGE;
 		}
 
 		$output = $this->interim_game_result($edit, $opponent);
-		if (array_key_exists ('incident', $edit) && $edit['incident']) {
-			$edit['step'] = 'incident';
-		} else {
-			$edit['step'] = 'confirm';
-		}
+		$edit['step'] = 'confirm';
 		$output .= $this->hidden_fields ('edit', $edit);
 
 		$output .= para("Now you must rate your opponent's Spirit of the Game.");
@@ -941,7 +861,7 @@ END_OF_MESSAGE;
 		return form($output, 'post', null, 'id="score_form"');
 	}
 
-	function generateIncidentForm ($edit, $opponent, $spirit = null )
+	function generateConfirm ($edit, $opponent, $spirit = null )
 	{
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$s = new Spirit;
@@ -952,37 +872,7 @@ END_OF_MESSAGE;
 			$questions = null;
 		}
 
-		$dataInvalid = $this->isDataInvalid( $edit, $questions );
-		if($dataInvalid) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
-		}
-
-		$output = para('You have indicated that you want to report an incident that occurred during this game. Please enter the details of the incident below.');
-
-		$edit['step'] = 'confirm';
-		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('spirit', $spirit);
-
-		$output .= form_select('Incident type', 'incident[type]', '', $this->incident_types(), '');
-		$output .= form_textarea('Incident Details', 'incident[details]', '', 60, 5, '');
-
-		$output .= para(form_submit('Next Step'));
-
-		return form($output);
-	}
-
-	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null )
-	{
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$s = new Spirit;
-			$s->entry_type = $this->league->enter_sotg;
-			$questions = $s->as_formbuilder();
-			$questions->bulk_set_answers( $spirit );
-		} else {
-			$questions = null;
-		}
-
-		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident );
+		$dataInvalid = $this->isDataInvalid( $edit, $questions);
 		if($dataInvalid) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
@@ -992,16 +882,10 @@ END_OF_MESSAGE;
 		$edit['step'] = 'save';
 		$output .= $this->hidden_fields ('edit', $edit);
 		$output .= $this->hidden_fields ('spirit', $spirit);
-		$output .= $this->hidden_fields ('incident', $incident);
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$output .= para('The following answers will be shown to your coordinator:');
 			$output .= $questions->render_viewable();
-		}
-
-		if( $incident != null ) {
-			$output .= para("You are reporting an incident of type <b>{$incident['type']}</b> with the following details:");
-			$output .= para($incident['details']);
 		}
 
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.");
@@ -1052,8 +936,6 @@ END_OF_MESSAGE;
 		);
 
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
-		if (variable_get('incident_reports', false))
-			$output .= form_checkbox( 'I have an incident to report', "edit[incident]" );
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
 
 		$win = variable_get('default_winning_score', 6);
@@ -1069,22 +951,17 @@ END_OF_MESSAGE;
         form.elements['edit[score_against]'].value = "$win";
         form.elements['edit[score_against]'].disabled = true;
         form.elements['edit[defaulted]'][1].disabled = true;
-        form.elements['edit[incident]'].checked = false;
-        form.elements['edit[incident]'].disabled = true;
     } else if (form.elements['edit[defaulted]'][1].checked == true) {
         form.elements['edit[score_for]'].value = "$win";
         form.elements['edit[score_for]'].disabled = true;
         form.elements['edit[score_against]'].value = "$lose";
         form.elements['edit[score_against]'].disabled = true;
         form.elements['edit[defaulted]'][0].disabled = true;
-        form.elements['edit[incident]'].checked = false;
-        form.elements['edit[incident]'].disabled = true;
     } else {
         form.elements['edit[score_for]'].disabled = false;
         form.elements['edit[score_against]'].disabled = false;
         form.elements['edit[defaulted]'][0].disabled = false;
         form.elements['edit[defaulted]'][1].disabled = false;
-        form.elements['edit[incident]'].disabled = false;
     }
   }
 // -->
@@ -1150,12 +1027,6 @@ ENDSCRIPT;
 				$output .= form_hidden("{$group}[$name]", $value);
 		}
 		return $output;
-	}
-
-	function incident_types()
-	{
-		$types = array('Field condition', 'Injury', 'Rules disagreement', 'Illegal Substitution', 'Escalated incident', 'Other');
-		return array_merge(array('' => 'Select one:'), array_combine ($types, $types));
 	}
 }
 

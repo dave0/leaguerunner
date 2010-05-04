@@ -124,10 +124,6 @@ function feature_settings()
 
 	$group .= form_radios('Generate roster request emails', 'edit[generate_roster_email]', variable_get('generate_roster_email', 0), array('Disabled', 'Enabled'), 'Should emails be sent to players invited to join rosters, and captains who have players request to join their teams?');
 
-	$group .= form_radios('Allow incident reports', 'edit[incident_reports]', variable_get('incident_reports', 0), array('Disabled', 'Enabled'), 'Allow captains to file incident reports when submitting scores?');
-
-	$group .= form_textfield('Incident report e-mail address', 'edit[incident_report_email]', variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']), 60, 120, 'The e-mail address to send incident reports to, if enabled.');
-
 	$output = form_group('Feature configuration', $group);
 
 	return settings_form($output);

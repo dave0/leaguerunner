@@ -393,20 +393,6 @@ my @TABLES = (
 			PRIMARY KEY  (order_id)
 		);
 	}],
-
-	'incidents' => [
-	q{
-		DROP TABLE IF EXISTS incidents;
-	},
-	q{
-		CREATE TABLE incidents (
-			game_id INTEGER NOT NULL ,
-			team_id INTEGER NOT NULL ,
-			type VARCHAR( 128 ) NOT NULL ,
-			details TEXT NOT NULL ,
-			PRIMARY KEY ( game_id , team_id )
-		) ENGINE=INNODB;
-	}],
 );
 
 my @INITIAL_DATA = (
@@ -1722,6 +1708,10 @@ sub upgrade_22_to_23
 			ALTER TABLE league DROP COLUMN allstars
 		}
 		],
+
+		incident_removal => [q{
+			DROP TABLE IF EXISTS incidents
+		}],
 	]);
 }
 
