@@ -400,10 +400,6 @@ class LeagueEdit extends Handler
 
 		$rows[] = array('Game finalization delay:', form_textfield('', 'edit[finalize_after]', $formData['finalize_after'], 5, 5, 'Games which haven\'t been scored will be automatically finalized after this many hours, no finalization if 0'));
 
-		if (variable_get('allstars', false))
-			$rows[] = array('All-star nominations:',
-				form_select('', 'edit[allstars]', $formData['allstars'], getOptionsFromEnum('league','allstars'), 'When to ask captains for all-star nominations.'));
-
 		$output .= '<div class="pairtable">' . table(null, $rows) . '</div>';
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
@@ -484,9 +480,6 @@ class LeagueEdit extends Handler
 		$rows[] = array('Game finalization delay:',
 			form_hidden('edit[finalize_after]', $edit['finalize_after']) . $edit['finalize_after']);
 
-		$rows[] = array('All-star nominations:',
-			form_hidden('edit[allstars]', $edit['allstars']) . $edit['allstars']);
-
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 		$output .= para(form_submit("submit"));
 
@@ -527,7 +520,6 @@ class LeagueEdit extends Handler
 
 		$this->league->set('email_after', $edit['email_after']);
 		$this->league->set('finalize_after', $edit['finalize_after']);
-		$this->league->set('allstars', $edit['allstars']);
 
 		if( !$this->league->save() ) {
 			error_exit("Internal error: couldn't save changes");
@@ -959,7 +951,6 @@ class LeagueView extends Handler
 			if( $this->league->finalize_after )
 				$rows[] = array('Game finalization delay:', $this->league->finalize_after . ' hours');
 		}
-		$rows[] = array('All-star nominations:', $this->league->allstars);
 
 		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
 

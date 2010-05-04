@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 22;
+my $LATEST_SCHEMA = 23;
 
 my @TABLES = (
 	'person' => [q{
@@ -104,7 +104,6 @@ my @TABLES = (
 			schedule_attempts   integer default 100,
 			display_sotg        ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all',
 			enter_sotg          ENUM('numeric_only', 'survey_only') DEFAULT 'survey_only',
-			allstars            ENUM('never','optional','always') default 'never',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
 			capt_list           varchar(100),
@@ -393,18 +392,6 @@ my @TABLES = (
 			issuer_confirmation varchar(15) default NULL,
 			PRIMARY KEY  (order_id)
 		);
-	}],
-
-	'allstars' => [
-	q{
-		DROP TABLE IF EXISTS allstars;
-	},
-	q{
-		CREATE TABLE allstars (
-			game_id INTEGER NOT NULL default '0',
-			player_id INTEGER NOT NULL default '0',
-			PRIMARY KEY (game_id, player_id)
-		) ENGINE=INNODB;
 	}],
 
 	'incidents' => [
@@ -1716,6 +1703,23 @@ sub upgrade_21_to_22
 		youth_category => [
 		q{
 			ALTER TABLE registration_events MODIFY type ENUM('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL DEFAULT 'individual_event';
+		}
+		],
+	]);
+}
+
+sub upgrade_22_to_23
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+
+		# Kill off allstars
+		allstar_removal => [q{
+			DROP TABLE IF EXISTS allstars
+		},
+		q{
+			ALTER TABLE league DROP COLUMN allstars
 		}
 		],
 	]);

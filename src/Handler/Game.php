@@ -716,14 +716,12 @@ class GameSubmit extends Handler
 		}
 
 		$edit = $_POST['edit'];
-		$spirit = $incident = $allstar = null;
+		$spirit = $incident = null;
 
 		if (array_key_exists ('spirit', $_POST))
 			$spirit = $_POST['spirit'];
 		if (array_key_exists ('incident', $_POST))
 			$incident = $_POST['incident'];
-		if (array_key_exists ('allstars', $_POST))
-			$allstars = $_POST['allstars'];
 
 		switch($edit['step']) {
 			case 'spirit':
@@ -732,14 +730,11 @@ class GameSubmit extends Handler
 			case 'incident':
 				$rc = $this->generateIncidentForm($edit, $opponent, $spirit);
 				break;
-			case 'allstar':
-				$rc = $this->generateAllStarForm($edit, $opponent, $spirit, $incident);
-				break;
 			case 'confirm':
-				$rc = $this->generateConfirm($edit, $opponent, $spirit, $incident, $allstars);
+				$rc = $this->generateConfirm($edit, $opponent, $spirit, $incident);
 				break;
 			case 'save':
-				$rc = $this->perform($edit, $opponent, $spirit, $incident, $allstars);
+				$rc = $this->perform($edit, $opponent, $spirit, $incident);
 				break;
 			default:
 				$rc = $this->generateForm( $opponent );
@@ -752,7 +747,7 @@ class GameSubmit extends Handler
 	// We don't know what path we may take through the submission, so we don't
 	// know what data may be present at any particular step. This checks for
 	// any possible data errors.
-	function isDataInvalid ($edit, $questions = null, $incident = null, $allstars = null) {
+	function isDataInvalid ($edit, $questions = null, $incident = null) {
 		$ret = $this->isScoreDataInvalid ($edit);
 		if ($ret === false && $questions != null) {
 			$msg = $questions->answers_invalid();
@@ -762,8 +757,6 @@ class GameSubmit extends Handler
 		}
 		if ($ret === false && $incident != null)
 			$ret = $this->isIncidentDataInvalid ($incident);
-		if ($ret === false && $allstars != null)
-			$ret = $this->isAllStarDataInvalid ($allstars);
 		return $ret;
 	}
 
@@ -826,35 +819,7 @@ class GameSubmit extends Handler
 		}
 	}
 
-	function isAllStarDataInvalid( $allstars )
-	{
-		$errors = '';
-
-		if (!array_key_exists('male', $allstars)) {
-			$errors .= '<br>You must select an option from the list of males ("none" if you don\'t want to nominate a male all-star).';
-		}
-
-		if (!array_key_exists('female', $allstars)) {
-			$errors .= '<br>You must select an option from the list of females ("none" if you don\'t want to nominate a female all-star).';
-		}
-
-		// If all-star nominations are optional, then the captain said they want to
-		// nominate someone, so don't let them forget to do so. If the nomination form
-		// is always shown, they don't have to pick someone.
-		if ($this->league->allstars == 'optional' &&
-			array_key_exists('male', $allstars) && $allstars['male'] == 0 &&
-			array_key_exists('female', $allstars) && $allstars['female'] == 0) {
-			$errors .= '<br>You must select at least one all-star.';
-		}
-
-		if(strlen($errors) > 0) {
-			return $errors;
-		} else {
-			return false;
-		}
-	}
-
-	function perform ($edit, $opponent, $spirit, $incident, $allstars)
+	function perform ($edit, $opponent, $spirit, $incident)
 	{
 		global $lr_session, $dbh;
 
@@ -868,7 +833,7 @@ class GameSubmit extends Handler
 			$questions = null;
 		}
 
-		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident, $allstars );
+		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident);
 		if($dataInvalid) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
@@ -935,21 +900,6 @@ END_OF_MESSAGE;
 			}
 		}
 
-		// Save the all-star nominations, if present
-		if( $allstars ) {
-			$count = 0;
-			$sth = $dbh->prepare('INSERT into allstars (game_id, player_id) VALUES(?,?)');
-			foreach ($allstars as $player_id) {
-				if ($player_id != 0) {
-					$sth->execute( array($this->game->game_id, $player_id) );
-					++ $count;
-				}
-			}
-			if ($count) {
-				$resultMessage .= para('Your all-star nomination' . ($count == 1 ? ' has' : 's have') . ' been saved.');
-			}
-		}
-
 		return $resultMessage;
 	}
 
@@ -974,8 +924,6 @@ END_OF_MESSAGE;
 		$output = $this->interim_game_result($edit, $opponent);
 		if (array_key_exists ('incident', $edit) && $edit['incident']) {
 			$edit['step'] = 'incident';
-		} else if (array_key_exists ('allstar', $edit) && $edit['allstar']) {
-			$edit['step'] = 'allstar';
 		} else {
 			$edit['step'] = 'confirm';
 		}
@@ -1011,11 +959,7 @@ END_OF_MESSAGE;
 
 		$output = para('You have indicated that you want to report an incident that occurred during this game. Please enter the details of the incident below.');
 
-		if (array_key_exists ('allstar', $edit) && $edit['allstar']) {
-			$edit['step'] = 'allstar';
-		} else {
-			$edit['step'] = 'confirm';
-		}
+		$edit['step'] = 'confirm';
 		$output .= $this->hidden_fields ('edit', $edit);
 		$output .= $this->hidden_fields ('spirit', $spirit);
 
@@ -1027,7 +971,7 @@ END_OF_MESSAGE;
 		return form($output);
 	}
 
-	function generateAllStarForm ($edit, $opponent, $spirit = null, $incident = null )
+	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null )
 	{
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$s = new Spirit;
@@ -1043,69 +987,12 @@ END_OF_MESSAGE;
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		if ( $this->league->allstars == 'optional' ) {
-			$output = para('You have indicated that you want to nominate all-stars from this game. You may select one male and/or one female all-star from the list below.');
-		} else {
-			$output = para('You may select one male and/or one female all-star from the list below, if you think they deserve to be nominated as an all-star.');
-		}
-
-		$edit['step'] = 'confirm';
-		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('spirit', $spirit);
-		$output .= $this->hidden_fields ('incident', $incident);
-
-		$team = team_load( array('team_id' => $opponent->team_id) );
-		$team->get_roster();
-		$males = $females = array();
-		$valid_status = array('captain', 'assistant', 'player', 'substitute');
-		foreach ($team->roster as $player) {
-			if (in_array($player->status, $valid_status)) {
-				if ($player->gender == 'Male')
-					$males[$player->id] = $player->fullname;
-				else
-					$females[$player->id] = $player->fullname;
-			}
-		}
-		$males[0] = 'none';
-		$females[0] = 'none';
-		$output .= h2('Males');
-		$output .= form_radiogroup('', 'allstars[male]', 'none', $males, '');
-		$output .= h2('Females');
-		$output .= form_radiogroup('', 'allstars[female]', 'none', $females, '');
-		$convener = 'league convener';
-		if (! empty ($this->league->coord_list)) {
-			$convener = l($convener, "mailto:{$this->league->coord_list}");
-		}
-		$output .= para("If you feel strongly about nominating a second male or female please contact your $convener.");
-
-		$output .= para(form_submit('Next Step'));
-
-		return form($output);
-	}
-
-	function generateConfirm ($edit, $opponent, $spirit = null, $incident = null, $allstars = null )
-	{
-		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$s = new Spirit;
-			$s->entry_type = $this->league->enter_sotg;
-			$questions = $s->as_formbuilder();
-			$questions->bulk_set_answers( $spirit );
-		} else {
-			$questions = null;
-		}
-
-		$dataInvalid = $this->isDataInvalid( $edit, $questions, $incident, $allstars );
-		if($dataInvalid) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
-		}
-
 		$output = $this->interim_game_result($edit, $opponent);
 
 		$edit['step'] = 'save';
 		$output .= $this->hidden_fields ('edit', $edit);
 		$output .= $this->hidden_fields ('spirit', $spirit);
 		$output .= $this->hidden_fields ('incident', $incident);
-		$output .= $this->hidden_fields ('allstars', $allstars);
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$output .= para('The following answers will be shown to your coordinator:');
@@ -1115,27 +1002,6 @@ END_OF_MESSAGE;
 		if( $incident != null ) {
 			$output .= para("You are reporting an incident of type <b>{$incident['type']}</b> with the following details:");
 			$output .= para($incident['details']);
-		}
-
-		if( $allstars != null ) {
-			$players = array();
-
-			if ($allstars['male'] != 0) {
-				$player = person_load( array('user_id' => $allstars['male']));
-				$players[] = "<b>{$player->fullname}</b>";
-			}
-
-			if ($allstars['female'] != 0) {
-				$player = person_load( array('user_id' => $allstars['female']));
-				$players[] = "<b>{$player->fullname}</b>";
-			}
-
-			if (! empty ($players)) {
-				$output .= para('You are nominating ' . implode(' and ', $players) . ' as ' .
-					((count($players) == 1) ? 'an all-star.' : 'all-stars.'));
-			} else if ($this->league->allstars == 'always') {
-				$output .= para('You are not nominating any all-stars.');
-			}
 		}
 
 		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.");
@@ -1188,11 +1054,6 @@ END_OF_MESSAGE;
 		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
 		if (variable_get('incident_reports', false))
 			$output .= form_checkbox( 'I have an incident to report', "edit[incident]" );
-		if ($this->league->allstars == 'optional') {
-			$output .= form_checkbox( 'I want to nominate an all-star', "edit[allstar]" );
-		} else if ($this->league->allstars == 'always') {
-			$output .= form_hidden( "edit[allstar]", true );
-		}
 		$output .= para(form_submit("Next Step") . form_reset("reset"));
 
 		$win = variable_get('default_winning_score', 6);
@@ -1210,8 +1071,6 @@ END_OF_MESSAGE;
         form.elements['edit[defaulted]'][1].disabled = true;
         form.elements['edit[incident]'].checked = false;
         form.elements['edit[incident]'].disabled = true;
-        form.elements['edit[allstar]'].checked = false;
-        form.elements['edit[allstar]'].disabled = true;
     } else if (form.elements['edit[defaulted]'][1].checked == true) {
         form.elements['edit[score_for]'].value = "$win";
         form.elements['edit[score_for]'].disabled = true;
@@ -1220,15 +1079,12 @@ END_OF_MESSAGE;
         form.elements['edit[defaulted]'][0].disabled = true;
         form.elements['edit[incident]'].checked = false;
         form.elements['edit[incident]'].disabled = true;
-        form.elements['edit[allstar]'].checked = false;
-        form.elements['edit[allstar]'].disabled = true;
     } else {
         form.elements['edit[score_for]'].disabled = false;
         form.elements['edit[score_against]'].disabled = false;
         form.elements['edit[defaulted]'][0].disabled = false;
         form.elements['edit[defaulted]'][1].disabled = false;
         form.elements['edit[incident]'].disabled = false;
-        form.elements['edit[allstar]'].disabled = false;
     }
   }
 // -->

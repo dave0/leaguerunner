@@ -128,8 +128,6 @@ function feature_settings()
 
 	$group .= form_textfield('Incident report e-mail address', 'edit[incident_report_email]', variable_get('incident_report_email', $_SERVER['SERVER_ADMIN']), 60, 120, 'The e-mail address to send incident reports to, if enabled.');
 
-	$group .= form_radios('Allow all-star submissions', 'edit[allstars]', variable_get('allstars', 0), array('Disabled', 'Enabled'), 'If this is enabled, all-star submissions will be a per-league option; otherwise, they will be disabled entirely.');
-
 	$output = form_group('Feature configuration', $group);
 
 	return settings_form($output);
