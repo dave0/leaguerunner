@@ -722,14 +722,17 @@ class GameSubmit extends Handler
 			$spirit = $_POST['spirit'];
 
 		switch($edit['step']) {
-			case 'spirit':
-				$rc = $this->generateSpiritForm($edit, $opponent);
+			case 'save':
+				$rc = $this->perform($edit, $opponent, $spirit);
 				break;
 			case 'confirm':
 				$rc = $this->generateConfirm($edit, $opponent, $spirit);
 				break;
-			case 'save':
-				$rc = $this->perform($edit, $opponent, $spirit);
+			case 'spirit':
+				$rc = $this->generateSpiritForm($edit, $opponent);
+				break;
+			case 'fieldreport';
+				$rc = $this->generateFieldReportForm($edit, $opponent);
 				break;
 			default:
 				$rc = $this->generateForm( $opponent );
@@ -771,6 +774,12 @@ class GameSubmit extends Handler
 			}
 		}
 
+		if( $edit['field_report'] ) {
+			if( preg_match("/</", $edit['field_report'] ) ) {
+				$errors .= '<br>Please do not use the &gt; or &lt; characters in your comment';
+			}
+		}
+
 		if(strlen($errors) > 0) {
 			return $errors;
 		} else {
@@ -804,6 +813,18 @@ class GameSubmit extends Handler
 			}
 		}
 
+		if( $edit['field_report'] ) {
+			$fr = new FieldReport;
+			$fr->set('field_id', $this->game->fid);
+			$fr->set('game_id', $this->game->game_id);
+			$fr->set('reporting_user_id', $lr_session->attr_get('user_id'));
+			$fr->set('report_text', $edit['field_report']);
+
+			if( ! $fr->save() ) {
+				error_exit('Error saving field report for game ' . $this->game->game_id);
+			}
+		}
+
 		// Now, we know we haven't finalized the game, so we first
 		// save this team's score entry, as there isn't one already.
 		if( !$this->game->save_score_entry( $this->team->team_id, $lr_session->attr_get('user_id'), $edit['score_for'],$edit['score_against'],$edit['defaulted'], $edit['sotg'] ) ) {
@@ -827,6 +848,35 @@ class GameSubmit extends Handler
 		}
 
 		return $resultMessage;
+	}
+
+	function generateFieldReportForm ($edit, $opponent )
+	{
+		$dataInvalid = $this->isDataInvalid( $edit );
+		if($dataInvalid) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+		}
+
+		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
+			// If it's a default, short-circuit the spirit-entry form and skip
+			// straight to the confirmation.
+			return $this->generateConfirm($edit, $opponent);
+		} else {
+			// Force a non-default to display correctly
+			$edit['defaulted'] = 'no';
+		}
+
+		$output = $this->interim_game_result($edit, $opponent);
+		$edit['step'] = 'spirit';
+		$output .= $this->hidden_fields ('edit', $edit);
+
+		$output .= para("Since OCUA is unable to do daily inspections of all of the fields it uses, we need your feedback.  Does there appear to be any changes to the field (damage, water etc) that the league should be aware of?");
+
+		$output .= form_textarea('','edit[field_report]', '', 70, 5, 'Please enter a description of any issues, or leave blank if there is nothing to report');
+
+		$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
+
+		return form($output, 'post');
 	}
 
 	function generateSpiritForm ($edit, $opponent )
@@ -902,7 +952,7 @@ class GameSubmit extends Handler
 			. " between " . $this->team->name . " and $opponent->name.");
 		$output .= para("If your opponent has already entered a score, it will be displayed below.  If the score you enter does not agree with this score, posting of the score will be delayed until your coordinator can confirm the correct score.");
 
-		$output .= form_hidden('edit[step]', 'spirit');
+		$output .= form_hidden('edit[step]', 'fieldreport');
 
 		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
 
@@ -1015,6 +1065,10 @@ ENDSCRIPT;
 			$what = 'tie game';
 		}
 		$output .= para("If confirmed, this would be recorded as a <b>$what</b>.");
+
+		if( $edit['field_report'] ) {
+			$output .= para("You have also submitted the following field report:<blockquote>" . $edit['field_report'] . "</blockquote>");
+		}
 
 		return $output;
 	}
@@ -1285,6 +1339,22 @@ class GameEdit extends Handler
 
 			$output .= form_group("Spirit assigned TO home ($game->home_name)", $home_spirit_group);
 			$output .= form_group("Spirit assigned TO away ($game->away_name)", $away_spirit_group);
+		}
+
+		if( $lr_session->has_permission('field', 'view reports')) {
+
+			$sth = field_report_query(array('game_id' => $this->game->game_id ));
+			$header = array("Date Reported","Reported By","Report");
+			while( $r = $sth->fetchObject('FieldReport') ) {
+				$rows[] = array(
+					$r->created,
+					l( $r->reporting_user_fullname,  url("person/view/" . $r->reporting_user_id)),
+					$r->report_text,
+				);
+			}
+			$output .= form_group("This game's field reports for ". $field->fullname,
+				"<div class='listtable'>" . table($header, $rows ) . "</div>\n"
+			);
 		}
 
 		if( $this->can_edit ) {

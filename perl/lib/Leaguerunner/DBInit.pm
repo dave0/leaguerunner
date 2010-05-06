@@ -393,6 +393,20 @@ my @TABLES = (
 			PRIMARY KEY  (order_id)
 		);
 	}],
+
+	'field_report' => [
+	q{
+		DROP TABLE IF EXISTS field_report;
+	},
+	q{
+		CREATE TABLE field_report (
+			id                integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
+			field_id          integer,
+			game_id           integer,
+			reporting_user_id integer,
+			report_text       TEXT
+		);
+	}],
 );
 
 my @INITIAL_DATA = (
@@ -1711,6 +1725,17 @@ sub upgrade_22_to_23
 
 		incident_removal => [q{
 			DROP TABLE IF EXISTS incidents
+		}],
+
+		field_reporting => [q{
+			CREATE TABLE field_report (
+				id                integer NOT NULL PRIMARY KEY AUTO_INCREMENT,
+				field_id          integer,
+				game_id           integer,
+				reporting_user_id integer,
+				created           timestamp NOT NULL DEFAULT NOW(),
+				report_text       TEXT
+			);
 		}],
 	]);
 }

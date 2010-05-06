@@ -1,8 +1,8 @@
 <?php
 class LeaguerunnerObject
 {
-	var $_modified_fields;
-	var $_in_database;
+	protected $_modified_fields;
+	protected $_in_database;
 
 	function LeaguerunnerObject ( $array = null )
 	{

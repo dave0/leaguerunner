@@ -27,6 +27,10 @@ function field_dispatch()
 			$obj = new FieldBooking;
 			$obj->field = field_load( array('fid' => $id) );
 			break;
+		case 'reports':
+			$obj = new FieldReports;
+			$obj->field = field_load( array('fid' => $id) );
+			break;
 		default:
 			$obj = null;
 	}
@@ -75,6 +79,11 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 			if($user && $user->is_active()) {
 				return true;
 			}
+		case 'view reports':
+			// Admin and "volunteer" can edit
+			if($user && $user->class == 'volunteer') {
+				return true;
+			}
 	}
 
 	return false;
@@ -91,7 +100,11 @@ function field_menu()
 	}
 
 	if( $lr_session->has_permission('field','create') ) {
-		menu_add_child('field','field/create','create field', array('weight' => 5, 'link' => 'field/create') );
+		menu_add_child('field','field/create','create field', array('weight' => 6, 'link' => 'field/create') );
+	}
+
+	if( $lr_session->has_permission('field','view reports') ) {
+		menu_add_child('field','fieldreport/day','field reports', array('weight' => 5, 'link' => 'fieldreport/day') );
 	}
 }
 
@@ -111,7 +124,11 @@ function field_add_to_menu( &$field )
 	if($lr_session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
 		menu_add_child($field->fullname, "$field->fullname/layout",'edit layout', array('weight' => 1, 'link' => "gmaps/edit/$field->fid"));
-	} 
+	}
+
+	if( $lr_session->has_permission('field','view reports') ) {
+		menu_add_child($field->fullname,"$field->fullname reports" ,'view reports', array('weight' => 2, 'link' => "field/reports/$field->fid") );
+	}
 
 	if($lr_session->has_permission('gameslot','create', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname gameslot", 'new gameslot', array('link' => "slot/create/$field->fid"));
@@ -628,6 +645,46 @@ class FieldBooking extends Handler
 				}
 			}
 			$rows[] = array($slot->game_date, $slot->game_start, $slot->display_game_end(), $booking, theme_links($actions));
+		}
+
+		return "<div class='listtable'>" . table($header, $rows) . "</div>";
+	}
+}
+
+class FieldReports extends Handler
+{
+	var $field;
+
+	function has_permission()
+	{
+		global $lr_session;
+		if (!$this->field) {
+			error_exit("That field does not exist");
+		}
+		return $lr_session->has_permission('field','view reports', $this->field->fid);
+	}
+
+	function process ()
+	{
+		global $lr_session;
+
+		$this->setLocation(array(
+			'Reports' => "field/view/" . $this->field->fid,
+			$this->field->fullname => 0
+		));
+
+		$sth = field_report_query(array('field_id' => $this->field->fid, '_order' => 'created DESC' ));
+
+		$header = array("Date Played","Time Reported", "Game","Reported By","Report");
+		$rows = array();
+		while($r = $sth->fetchObject('FieldReport') ) {
+			$rows[] = array(
+				$r->date_played,
+				$r->created,
+				l( $r->game_id,  url("game/view/" . $r->game_id)),
+				l( $r->reporting_user_fullname,  url("person/view/" . $r->reporting_user_id)),
+				$r->report_text,
+			);
 		}
 
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";

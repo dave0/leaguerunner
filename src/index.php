@@ -72,6 +72,7 @@ require_once("classes/registration.inc");
 require_once("classes/formbuilder.inc");
 require_once("classes/session.inc");
 require_once("classes/spirit.php");
+require_once("classes/field_report.php");
 
 
 // Maybe include registration payment module
