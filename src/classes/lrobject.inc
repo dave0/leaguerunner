@@ -1,5 +1,5 @@
 <?php
-class LeaguerunnerObject 
+class LeaguerunnerObject
 {
 	var $_modified_fields;
 	var $_in_database;
@@ -27,7 +27,7 @@ class LeaguerunnerObject
 		die("Load implemented by subclass");
 	}
 
-	/** 
+	/**
 	 * Set a particular field for later insertion/update into database.
 	 */
 	function set ( $key, $value )
@@ -46,12 +46,12 @@ class LeaguerunnerObject
 		return true;
 	}
 
-	/** 
+	/**
 	 * Sets a particular field as modified so it will be inserted/updated into database.
 	 */
 	function touch ( $key )
 	{
-		$this->_modified_fields[$key] = true;	
+		$this->_modified_fields[$key] = true;
 	}
 
 	/**
