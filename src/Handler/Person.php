@@ -1901,7 +1901,7 @@ END_TEXT;
 			}
 
 			/* And fire off an email */
-			$rc = send_mail($user->email, "$user->firstname user->lastname",
+			$rc = send_mail($user->email, "$user->firstname $user->lastname",
 				false, false, // from the administrator
 				false, false, // no Cc
 				_person_mail_text('password_reset_subject', array('%site' => variable_get('app_name','Leaguerunner'))),
