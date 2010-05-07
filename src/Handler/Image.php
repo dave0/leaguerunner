@@ -37,7 +37,7 @@ class ImageGeneratePin extends Handler
 		}
 
 		$code = substr($file, 0, 3);
-		$basepath = trim($CONFIG['paths']['base_url'], '/') . '/image/pins';
+		$basepath = trim($CONFIG['paths']['file_path'], '/') . '/image/pins';
 		$default = "$basepath/blank-marker.png";
 		$file = "$basepath/$code.png";
 
