@@ -21,7 +21,7 @@ function theme_header($title = "", $extra = null)
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<title>$title</title>
-	<base href="http://{$_SERVER["HTTP_HOST"]}{$CONFIG['paths']['file_url']}/" />
+	<base href="http://{$_SERVER["HTTP_HOST"]}{$CONFIG['paths']['base_url']}/" />
 	<link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
 	<link rel="stylesheet" type="text/css" href="style.css" />
 	<link rel="shortcut icon" href="/favicon.ico" />
@@ -83,7 +83,7 @@ function theme_navbar($breadcrumbs = array())
 	global $lr_session, $CONFIG;
 
     print "<div class='lr_topbar'><table border='0' cellpadding='0' cellspacing='0' width='99%' bgcolor='white'>\n";
-	$rightLink = l("help", "{$CONFIG['paths']['file_url']}/data/howto.html", array( 'class' => 'topbarlink' ));
+	$rightLink = l("help", "{$CONFIG['paths']['base_url']}/data/howto.html", array( 'class' => 'topbarlink' ));
 
 	$trail = menu_get_trail();
 	$section = $trail[1]['title'];
