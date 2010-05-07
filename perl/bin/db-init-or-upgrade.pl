@@ -66,10 +66,8 @@ accept the risk of an unusable database.
 
 =item --clobber
 
-Allow new installation over an existing database.  This may currently wipe your
-previous data, or just simply render your database unusable by Leaguerunner.
-In a future release, it will drop tables before recreating them to avoid this
-problem.
+Allow new installation over an existing database.  This will drop tables before
+recreating them.  DO NOT RUN IF YOU WISH TO KEEP YOUR DATA.
 
 =item --help
 
