@@ -540,7 +540,7 @@ function team_load( $array = array() )
 
 function team_load_many( $array = array() )
 {
-	$sth = team_query( &$array );
+	$sth = team_query( $array );
 
 	$teams = array();
 	while( $t = $sth->fetchObject('Team', array(LOAD_RELATED_DATA))) {
