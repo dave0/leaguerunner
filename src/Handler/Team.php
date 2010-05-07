@@ -1548,7 +1548,7 @@ class TeamSchedule extends Handler
 
 		// add iCal link
 		$ical_url = url("team/ical/".$this->team->team_id);
-		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
+		$icon_url = $CONFIG['paths']['base_url'] . '/image/icons';
 		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
 		  . para("Get your team schedule in <a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$icon_url/ical.gif\" alt=\"iCal\" /></a> format");
 	}

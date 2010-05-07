@@ -411,7 +411,7 @@ class FieldList extends Handler
 			$this->setLocation(array('List Fields' => 'field/list'));
 
 			ob_start();
-			$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/field_caution.html");
+			$retval = @readfile(trim ($CONFIG['paths']['file_path'], '/') . "/data/field_caution.html");
 			if (false !== $retval) {
 				$output .= ob_get_contents();
 			}

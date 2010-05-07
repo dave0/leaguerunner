@@ -1163,9 +1163,9 @@ class League extends LeaguerunnerObject
 		global $CONFIG;
 		print "<html>";
 		print "<head>";
-		print "<base href=\"{$CONFIG['paths']['file_url']}/\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"{$CONFIG['paths']['file_url']}/themes/pushbutton/style.css\" />";
-		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"{$CONFIG['paths']['file_url']}/style.css\" />";
+		print "<base href=\"{$CONFIG['paths']['base_url']}/\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"{$CONFIG['paths']['base_url']}/themes/pushbutton/style.css\" />";
+		print "<link rel=\"stylesheet\" type=\"text/css\" href=\"{$CONFIG['paths']['base_url']}/style.css\" />";
 		print "</head>";
 		print "<body><div id='main'><h1>Processing your request</h1>\n";
 		print "<h2>Scheduling games using the Ratings Ladder scheduler</h2>\n";

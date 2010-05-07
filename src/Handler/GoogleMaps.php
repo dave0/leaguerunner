@@ -45,7 +45,7 @@ class GoogleMapsHTMLPage extends Handler
 
 		$scripts = <<<END_OF_SCRIPTS
 	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=$gmaps_key" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_common.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_common.js" type="text/javascript"></script>
 	<script type="text/javascript">
 	//<![CDATA[
 
@@ -198,7 +198,7 @@ class GoogleMapsView extends Handler
 		// Build the list of variables to set for the JS.
 		// The blank line before END_OF_VARIABLES is required.
 		$variables = <<<END_OF_VARIABLES
-lr_path = "{$CONFIG['paths']['file_url']}";
+lr_path = "{$CONFIG['paths']['base_url']}";
 name = "$name";
 address = "$address";
 full_address = "$full_address";
@@ -230,8 +230,8 @@ END_OF_VARIABLES;
 
 		$scripts = <<<END_OF_SCRIPTS
 	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=$gmaps_key" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_common.js" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_view.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_common.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_view.js" type="text/javascript"></script>
 	<script type="text/javascript">
 		//<![CDATA[
 $variables
@@ -320,7 +320,7 @@ class GoogleMapsEdit extends GoogleMapsView
 		// The blank line before END_OF_VARIABLES is required.
 		$form = '';
 		$variables = <<<END_OF_VARIABLES
-lr_path = "{$CONFIG['paths']['file_url']}";
+lr_path = "{$CONFIG['paths']['base_url']}";
 leaguelat = $leaguelat;
 leaguelng = $leaguelng;
 drag = true;
@@ -351,9 +351,9 @@ END_OF_VARIABLES;
 
 		$scripts = <<<END_OF_SCRIPTS
 	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=$gmaps_key" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_common.js" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_view.js" type="text/javascript"></script>
-	<script src="{$CONFIG['paths']['file_url']}/js/map_edit.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_common.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_view.js" type="text/javascript"></script>
+	<script src="{$CONFIG['paths']['base_url']}/js/map_edit.js" type="text/javascript"></script>
 	<script type="text/javascript">
 		//<![CDATA[
 $variables

@@ -953,7 +953,7 @@ END_TEXT;
 
 		$group = form_select('Skill Level', 'edit[skill_level]', $formData['skill_level'], 
 				getOptionsFromRange(1, 10), 
-				"Please use the questionnaire to <a href=\"" . $CONFIG['paths']['file_url'] . "/data/rating.html\" target='_new'>calculate your rating</a>"
+				"Please use the questionnaire to <a href=\"" . $CONFIG['paths']['base_url'] . "/data/rating.html\" target='_new'>calculate your rating</a>"
 		);
 
 		$thisYear = strftime('%Y', time());
@@ -1540,7 +1540,7 @@ class PersonSignWaiver extends Handler
 		$output .= form_hidden('edit[step]', 'perform');
 
 		ob_start();
-		$retval = @readfile( trim($CONFIG['paths']['file_url'], '/') . "/data/{$this->formFile}");
+		$retval = @readfile( trim($CONFIG['paths']['file_path'], '/') . "/data/{$this->formFile}");
 		if (false !== $retval) {
 			$output .= ob_get_contents();
 		}

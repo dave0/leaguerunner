@@ -228,7 +228,7 @@ class Spirit
 	function question_spirit_symbol_html ( $answer_value, $max_value = 3 )
 	{
 		global $CONFIG;
-		$icon_url = $CONFIG['paths']['file_url'] . '/image/icons';
+		$icon_url = $CONFIG['paths']['base_url'] . '/image/icons';
 
 		$by_value = $this->icons_by_max_value[$max_value];
 

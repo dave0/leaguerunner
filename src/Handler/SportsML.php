@@ -58,9 +58,9 @@ xml version="1.0" encoding="ISO-8859-1"?>
 <?php
 		print '<?xml-stylesheet type="text/xsl" href="';
 		if( $type == 'text') {
-			print $CONFIG['paths']['file_url'] . "/data/ocuasportsml2text.xsl";
+			print $CONFIG['paths']['base_url'] . "/data/ocuasportsml2text.xsl";
 		} else {
-			print $CONFIG['paths']['file_url'] . "/data/ocuasportsml2html.xsl";
+			print $CONFIG['paths']['base_url'] . "/data/ocuasportsml2html.xsl";
 		}
 		print "\" ?>\n";
 ?>

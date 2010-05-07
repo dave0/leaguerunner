@@ -452,7 +452,7 @@ class EventList extends Handler
 
 		$output = '';
 		ob_start();
-		$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/registration_notice.html");
+		$retval = @readfile(trim ($CONFIG['paths']['file_path'], '/') . "/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}

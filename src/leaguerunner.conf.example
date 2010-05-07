@@ -18,10 +18,13 @@ password = password
 ; Various paths (system and URL) used by Leaguerunner
 [paths]
 ; This should be the directory containing Leaguerunner.  Don't add a trailing slash.
+; It's used to construct URLs, but please do not prefix it with http://hostname/
 base_url = "/leaguerunner"
-file_url = "/leaguerunner"
-;$BASE_URL = '/leaguerunner';
-;$FILE_URL = '/leaguerunner';
+
+; How to find files on the local system.  This should be the path to the ;
+directory containing Leaguerunner, so that files in data/ can be loaded, for
+example.
+file_path = "./"
 
 ; Session defaults
 [session]

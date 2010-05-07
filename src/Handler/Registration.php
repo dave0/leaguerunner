@@ -541,7 +541,7 @@ class RegistrationRegister extends RegistrationForm
 		}
 
 		ob_start();
-		$retval = @readfile(trim ($CONFIG['paths']['file_url'], '/') . "/data/registration_notice.html");
+		$retval = @readfile(trim ($CONFIG['paths']['file_path'], '/') . "/data/registration_notice.html");
 		if (false !== $retval) {
 			$output = ob_get_contents();
 		}
@@ -801,7 +801,6 @@ class RegistrationOnlinePaymentResponse extends Handler
 	{
 		global $CONFIG;
 
-		$file_url = $CONFIG['paths']['file_url'];
 		$base_url = $CONFIG['paths']['base_url'];
 		$org = variable_get('app_org_name','league');
 		print <<<HTML_HEADER
@@ -810,7 +809,7 @@ class RegistrationOnlinePaymentResponse extends Handler
 <head>
 <title>$org - Online Transaction Result</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$file_url/style.css">
+<link rel="stylesheet" type="text/css" href="http://{$_SERVER["SERVER_NAME"]}$base_url/style.css">
 <script type="text/javascript">
 <!--
 function close_and_redirect(url)
