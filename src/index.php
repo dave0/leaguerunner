@@ -119,7 +119,7 @@ if(is_null($handler)) {
  * See if something else needs to be processed before this handler
  * (Account revalidation, etc)
  */
-$pickledQuery = queryPickle($_SERVER['QUERY_STRING']);
+$pickledQuery = queryPickle($_GET['q']);
 $possibleRedirect = $handler->checkPrereqs( $pickledQuery );
 if($possibleRedirect) {
 	local_redirect($possibleRedirect);
@@ -142,7 +142,11 @@ if($handler->initialize()) {
 		print theme_footer();
 
 	} else {
-		error_exit('You do not have permission to perform that operation');
+		if( ! $lr_session || !$lr_session->user ) {
+			local_redirect( url('login', "next=$pickledQuery") );
+		} else {
+			error_exit("You do not have permission to perform that operation");
+		}
 	}
 } else {
 	error_exit("Failed to initialize handler for $op");

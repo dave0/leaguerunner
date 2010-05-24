@@ -36,7 +36,7 @@ class Login extends Handler
 	 * validate against the SQL database.
 	 *
 	 */
-	function process () 
+	function process ()
 	{
 		global $lr_session;
 
@@ -45,25 +45,25 @@ class Login extends Handler
 		if( !($edit['username'] && $edit['password']) ) {
 			/* Check if session is already valid */
 			if($lr_session->is_valid()) {
-				return $this->handle_valid($edit['remember_me']);
+				return $this->handle_valid($edit['remember_me'], $edit['next']);
 			}
-			return $this->login_form();
+			return $this->login_form( null, $_GET['next'] );
 		}
-		
+
 		/* Now, if we can, we will create a new user session */
 		$rc = $lr_session->create_from_login($edit['username'], $edit['password'], $_SERVER['REMOTE_ADDR']);
 		if($rc == false) {
 			return $this->login_form("Incorrect username or password");
 		}
-	
+
 		/* 
 		 * Now that we know their username/password is valid, check to see if
 		 * there are restrictions on their account.
 		 */
-		return $this->handle_valid( $edit['remember_me'] );
+		return $this->handle_valid( $edit['remember_me'], $edit['next'] );
 	}
 
-	function handle_valid( $remember_me = 0 )
+	function handle_valid( $remember_me = 0, $next = null )
 	{
 		global $lr_session;
 
@@ -94,23 +94,30 @@ class Login extends Handler
 				if( ! $path ) {
 					$path = '/';
 				}
-				
+
 				$domain = ini_get('session.cookie_domain');
 
 				if ($remember_me) {
 					setcookie(session_name(), session_id(), time() + 3600 * 24 * 365, $path, $domain);
-				} else {  
+				} else {
 					setcookie(session_name(), session_id(), FALSE, $path, $domain);
 				}
 
-				local_redirect(url("home"));
+				if( $next ) {
+					local_redirect(queryUnpickle($next));
+				} else {
+					local_redirect(url("home"));
+				}
 				break;
 		}
 		return true;
 	}
 
-	function login_form($error = "")
+	function login_form($error = "", $next = null)
 	{
+		if( $next && !$error ) {
+			$error = 'You must log in to perform that operation';
+		}
 
 		$output = "<p />";
 		if($error) {
@@ -157,6 +164,7 @@ password' feature to have your login info emailed to the address on file.
 document.lrlogin.elements[0].focus();
 </script>
 EOF;
+		$output .= form_hidden('edit[next]', $next);
 		return form($output, 'post', 0, " name='lrlogin'");
 	}
 }

@@ -1494,13 +1494,16 @@ class PersonSignWaiver extends Handler
 		$next = $_POST['next'];
 
 		if(is_null($next)) {
-			$next = queryPickle("menu");
+			$next = $_GET['next'];
+			if(is_null($next)) {
+				$next = queryPickle("menu");
+			}
 		}
 
 		switch($edit['step']) {
 			case 'perform':
 				$this->perform( $edit );
-				local_redirect( queryUnpickle($next));
+				local_redirect( queryUnpickle($next) );
 			default:
 				$rc = $this->generateForm( $next );
 		}
