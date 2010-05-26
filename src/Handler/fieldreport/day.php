@@ -1,21 +1,22 @@
 <?php
-function fieldreport_dispatch()
+class fieldreport_day extends Handler
 {
-	$op = arg(1);
-	$id = arg(2);
-	switch($op) {
-		case 'day':
-			$obj = new FieldReportViewDay;
-			break;
-		default:
-			$obj = null;
+	private $yyyy;
+	private $mm;
+	private $dd;
+
+	function __construct( $year = null, $month = null, $day = null)
+	{
+		parent::__construct();
+		$today = getdate();
+
+		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$this->mm   = is_numeric($month) ? $month : $today['mon'];
+		$this->dd   = is_numeric($day)   ? $day   : null;
+
+
 	}
 
-	return $obj;
-}
-
-class FieldReportViewDay extends Handler
-{
 	function has_permission ()
 	{
 		global $lr_session;
@@ -26,39 +27,22 @@ class FieldReportViewDay extends Handler
 	{
 		$this->title = "Field Reports";
 
-		$today = getdate();
-
-		$year  = arg(2);
-		$month = arg(3);
-		$day   = arg(4);
-
-		if(! validate_number($month)) {
-			$month = $today['mon'];
-		}
-
-		if(! validate_number($year)) {
-			$year = $today['year'];
-		}
-
-		if( $day ) {
-			if( !validate_date_input($year, $month, $day) ) {
-				return "That date is not valid";
+		if( $this->dd ) {
+			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
+				return 'That date is not valid';
 			}
-			$formattedDay = strftime("%A %B %d %Y", mktime (6,0,0,$month,$day,$year));
+			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
 			$this->setLocation(array(
 				"$this->title &raquo; $formattedDay" => 0));
-			return $this->displayReportsForDay( $year, $month, $day );
+			return $this->displayReportsForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
-			$this->setLocation(array( "$this->title" => 0));
-			$output = para("Select a date below on which to view all field reports");
-			$output .= generateCalendar( $year, $month, $day, 'fieldreport/day', 'fieldreport/day');
+			$this->setLocation(array( $this->title => 0));
+			$output = para('Select a date below on which to view all scheduled games');
+			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'schedule/day', 'schedule/day');
 			return $output;
 		}
 	}
 
-	/**
-	 * List all games on a given day.
-	 */
 	function displayReportsForDay ( $year, $month, $day )
 	{
 		$sth = field_report_query ( array(
@@ -83,4 +67,5 @@ class FieldReportViewDay extends Handler
 		return $output;
 	}
 }
+
 ?>
