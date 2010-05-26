@@ -3,16 +3,6 @@
 /*
  * Handlers for leaguerunner settings
  */
-function settings_dispatch() 
-{
-	$mod = arg(1);
-
-	if (module_hook($mod,'settings')) {
-		return new SettingsHandler;
-	}
-	return null;
-}
-
 function settings_save( $newsettings = array() )
 {
 	foreach ( $newsettings as $name => $value ) {
@@ -115,7 +105,7 @@ function feature_settings()
 
 	$output = form_group('Feature configuration', $group);
 
-	return settings_form($output);
+	return $output;
 }
 
 function rss_settings()
@@ -129,8 +119,16 @@ function rss_settings()
 	return settings_form($output);
 }
 
-class SettingsHandler extends Handler
+class settings extends Handler
 {
+	function __construct ( $type )
+	{
+		if ( ! module_hook($type,'settings') ) {
+			error_exit('Operation not found');
+		}
+		$this->type = $type;
+	}
+
 	function has_permission()
 	{
 		global $lr_session;
@@ -140,18 +138,17 @@ class SettingsHandler extends Handler
 	function process ()
 	{
 		$this->title = 'Settings';
-		$mod = arg(1);
 		$op = $_POST['op'];
 
 		switch($op) {
 			case 'save':
 				settings_save($_POST['edit']);
 				$output = para('Settings saved');
-				$output .= module_invoke($mod, 'settings', "Settings saved");
+				$output .= module_invoke($this->type, 'settings', "Settings saved");
 				return $output;
 			default:
 				$output = para('Make your changes below');
-				$output .= module_invoke($mod, 'settings');
+				$output .= module_invoke($this->type, 'settings');
 				return $output;
 		}
 	}
