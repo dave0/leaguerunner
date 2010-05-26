@@ -5,7 +5,6 @@ module_register("Handler/login.php", 'login'); // TODO: also contains logout han
 module_register("Handler/home.php", 'home'); // TODO: make this go away
 
 module_register("Handler/Settings.php", 'settings');
-module_register("Handler/Statistics.php", 'statistics');
 module_register("Handler/Event.php",'event');
 module_register("Handler/Registration.php",'registration');
 module_register("Handler/Person.php", 'person');
