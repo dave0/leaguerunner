@@ -119,20 +119,6 @@ function arg($index) {
   return isset($arguments[$index]) ? $arguments[$index] : null;
 }
 
-function array2object($ary) {
-
-  if (is_array($ary)) {
-    foreach ($ary as $key => $value) {
-      $object->$key = $value;
-    }
-  }
-  else {
-    $object = $ary;
-  }
-
-  return $object;
-}
-
 function object2array($obj) {
 
   if (is_object($obj)) {
