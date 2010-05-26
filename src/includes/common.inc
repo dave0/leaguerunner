@@ -1486,6 +1486,23 @@ function fatal_sql_error ( $sth )
 	error_exit("Database error: $sqlstate $driver_str");
 }
 
+function OfflinePaymentText($order_num)
+{
+	$output = para("The online portion of your registration process is now complete, but you must do the following to make payment:");
+	$output .= strtr( variable_get('offline_payment_text', ''),
+						array( '%order_num' => $order_num ) );
+
+	return $output;
+}
+
+function RefundPolicyText()
+{
+	$output = h2 ('Refund Policy');
+	$output .= variable_get('refund_policy_text', '');
+
+	return $output;
+}
+
 
 /* vim: set sw=4 ts=4 et: */
 ?>
