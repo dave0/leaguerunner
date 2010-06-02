@@ -108,17 +108,6 @@ function request_uri() {
   return check_url($uri);
 }
 
-function arg($index) {
-
-  static $arguments;
-
-  if (empty($arguments) && array_key_exists('q', $_GET) ) {
-    $arguments = explode("/", $_GET["q"]);
-  }
-
-  return isset($arguments[$index]) ? $arguments[$index] : null;
-}
-
 function object2array($obj) {
 
   if (is_object($obj)) {
