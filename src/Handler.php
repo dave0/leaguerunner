@@ -105,17 +105,6 @@ class Handler
 	}
 
 	/**
-	 * Set any perms flags needed for a particular handler
-	 * Should be overridden by subclass if needed.
-	 *
-	 * @param $type Type of flag to set.  Valid values are * 'administrator', 'coordinator', 'captain'
-	 */
-	function set_permission_flags($type = '')
-	{
-		return true;
-	}
-
-	/**
 	 * Process this operation
 	 *
 	 * This must be overridden by the subclass.
