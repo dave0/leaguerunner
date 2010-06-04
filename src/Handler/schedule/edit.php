@@ -1,5 +1,6 @@
 <?php
-require_once('Handler/LeagueHandler.php');
+require_once('Handler/schedule/view.php');
+
 class schedule_edit extends schedule_view
 {
 	private $day_id;
