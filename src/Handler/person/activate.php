@@ -9,6 +9,13 @@ require_once('Handler/person/edit.php');
  */
 class person_activate extends person_edit
 {
+
+	function __construct ( )
+	{
+		global $lr_session;
+		$this->person =& $lr_session->user;
+	}
+
 	function checkPrereqs ( $ignored )
 	{
 		return false;
@@ -28,7 +35,7 @@ class person_activate extends person_edit
 
 		if ($lr_session->attr_get('status') != 'inactive') {
 			error_exit("You do not have a valid session");
-		} 
+		}
 
 		return true;
 	}
