@@ -1,4 +1,5 @@
 <?php
+require_once('Handler/event/edit.php');
 class event_create extends event_edit
 {
 	function __construct ( )

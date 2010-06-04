@@ -1,6 +1,6 @@
 <?php
 require_once('Handler/LeagueHandler.php');
-class league_delete extends Handler
+class league_delete extends LeagueHandler
 {
 	function has_permission ()
 	{

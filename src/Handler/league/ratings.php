@@ -1,6 +1,6 @@
 <?php
 require_once('Handler/LeagueHandler.php');
-class league_ratings extends Handler
+class league_ratings extends LeagueHandler
 {
 	function has_permission()
 	{

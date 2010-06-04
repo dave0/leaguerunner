@@ -2,7 +2,7 @@
 
 require_once('Handler/FieldHandler.php');
 
-class field_reports extends Handler
+class field_reports extends FieldHandler
 {
 	function has_permission()
 	{

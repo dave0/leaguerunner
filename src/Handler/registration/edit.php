@@ -1,6 +1,6 @@
 <?php
 require_once('Handler/RegistrationHandler.php');
-class registration_edit extends RegistrationHandler;
+class registration_edit extends RegistrationHandler
 {
 	function __construct ( $id )
 	{
