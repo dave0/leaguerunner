@@ -39,12 +39,23 @@ class person_forgotpassword extends Handler
 		$output = <<<END_TEXT
 <p>
 	If you'd like to reset your password, please enter ONLY ONE OF:
-	<ul>
-		<li>Your username 
-		<li>Your email address
-	</ul>
-	in the form below. 
 </p>
+END_TEXT;
+
+		$output .= "<div class='pairtable'>";
+		$output .= form(
+			form_hidden('edit[step]', 'perform')
+			. table( null, array(
+			array('Username', form_textfield('', 'edit[username]', '', 25, 100), form_submit("Submit"))
+		)));
+		$output .= form(
+			form_hidden('edit[step]', 'perform')
+			. table( null, array(
+			array('Email Address', form_textfield('', 'edit[email]', '', 40, 100), form_submit("Submit"))
+		)));
+		$output .= "</div>";
+
+		$output .=<<<END_TEXT
 <p>
 	If the information you provide matches an account, an email will be sent
 	to the address on file, containing login information and a new password.
@@ -56,15 +67,6 @@ class person_forgotpassword extends Handler
   href="mailto:$admin_addr">$admin_addr</a> for support.  <b>DO NOT CREATE A NEW ACCOUNT!</b>
 </p>
 END_TEXT;
-
-		$output .= form_hidden('edit[step]', 'perform');
-		$output .= "<div class='pairtable'>";
-		$output .= table(null, array(
-			array("Username:", form_textfield('', 'edit[username]', '', 25, 100)),
-			array("Email Address:", form_textfield('', 'edit[email]', '', 40, 100, "(please enter only ONE email address in this box)"))
-		));
-		$output .= "</div>";
-		$output .= form_submit("Submit") . form_reset("Reset");
 
 		return form($output);
 	}
