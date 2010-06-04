@@ -1,5 +1,7 @@
 <?php
-class schedule_day extends Handler
+
+require_once('Handler/schedule/view.php');
+class schedule_day extends schedule_view
 {
 	private $yyyy;
 	private $mm;
@@ -7,7 +9,6 @@ class schedule_day extends Handler
 
 	function __construct( $year = null, $month = null, $day = null)
 	{
-		parent::__construct();
 		$today = getdate();
 
 		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
@@ -54,14 +55,14 @@ class schedule_day extends Handler
 			'_order' => 'g.game_start, field_code') );
 
 		$rows = array(
-			schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
-			schedule_subheading( ),
+			$this->schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
+			$this->schedule_subheading( ),
 		);
 		while($g = $sth->fetchObject('Game') ) {
 			if( ! ($g->published || $lr_session->has_permission('league','edit schedule', $this->league->league_id) ) ) {
 				continue;
 			}
-			$rows[] = schedule_render_viewable($g);
+			$rows[] = $this->schedule_render_viewable($g);
 		}
 		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
 		return $output;
