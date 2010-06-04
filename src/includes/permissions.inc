@@ -180,7 +180,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 					return true;
 				}
 			}
-			if( ! $user->is_active() ) {
+			if( ! $user || ! $user->is_active() ) {
 				return false;
 			}
 			if( $user->user_id == $arg1 ) {
