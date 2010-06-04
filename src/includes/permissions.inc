@@ -409,4 +409,10 @@ function team_permissions ( &$user, $action, $id, $data_field )
 	return false;
 }
 
+function gameslot_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
+{
+	// Admin-only
+	return false;
+}
+
 ?>

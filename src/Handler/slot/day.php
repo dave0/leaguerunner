@@ -19,7 +19,7 @@ class slot_day extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('slot', 'day');
+		return $lr_session->has_permission('gameslot', 'day');
 	}
 
 	function process ()

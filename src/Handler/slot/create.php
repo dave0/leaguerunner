@@ -19,7 +19,7 @@ class slot_create extends FieldHandler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('slot','create');
+		return $lr_session->has_permission('gameslot','create');
 	}
 
 	function process()

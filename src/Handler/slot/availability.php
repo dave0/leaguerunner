@@ -5,7 +5,7 @@ class slot_availability extends SlotHandler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('slot', 'availability', $this->slot->slot_id);
+		return $lr_session->has_permission('gameslot', 'availability', $this->slot->slot_id);
 	}
 
 	function process()

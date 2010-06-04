@@ -5,7 +5,7 @@ class slot_delete extends SlotHandler
 	function has_permission ()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('slot','delete', $this->slot->slot_id);
+		return $lr_session->has_permission('gameslot','delete', $this->slot->slot_id);
 	}
 
 	function process()
