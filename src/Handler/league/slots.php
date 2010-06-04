@@ -1,9 +1,9 @@
 <?php
-require_once('Handler/LeagueHandler.php');
+require_once('Handler/schedule/view.php');
 /*
  * RK: report of which fields are available for use
  */
-class league_slots extends LeagueHandler
+class league_slots extends schedule_view
 {
 	private $yyyy;
 	private $mm;
@@ -115,7 +115,7 @@ class league_slots extends LeagueHandler
 			// load game info, if game scheduled
 			if ($g['game_id']) {
 				$game = game_load( array('game_id' => $g['game_id']) );
-				$sched = schedule_render_viewable($game);
+				$sched = $this->schedule_render_viewable($game);
 				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
 				$row[] = $sched[3];
 				$row[] = $sched[5];
