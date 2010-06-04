@@ -52,11 +52,11 @@ class fieldreport_day extends Handler
 		$header = array("Date Played", "Time Reported", "Field","Game","Reported By","Report");
 		$rows = array();
 		while($r = $sth->fetchObject('FieldReport') ) {
-			$field    = field_load(array('field_id' => $r->field_id));
+			$field    = field_load(array('fid' => $r->field_id));
 			$rows[] = array(
 				$r->date_played,
 				$r->created,
-				l( $field->code, url('field/view/' . $r->field_id) ),
+				l( "$field->code$field->num", url('field/view/' . $r->field_id) ),
 				l( $r->game_id,  url("game/view/" . $r->game_id)),
 				l( $r->reporting_user_fullname,  url("person/view/" . $r->reporting_user_id)),
 				$r->report_text,
