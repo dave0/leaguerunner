@@ -118,7 +118,7 @@ while( count( $dispatch_path ) > 0 ) {
 	$possible      = join('/', $dispatch_path );
 
 	# Skip it if path contains anything other than lowercase alpha characters and /
-	if( ! preg_match('/[^a-z\/]/', $possible ) ) {
+	if( ! preg_match('/[^a-z0-9\/]/', $possible ) ) {
 		$handler_file  = "$handler_dir/${possible}.php";
 		if( file_exists( $handler_file ) ) {
 			$handler_class = preg_replace('|/|', '_', $possible);

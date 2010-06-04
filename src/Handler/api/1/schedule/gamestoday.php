@@ -1,6 +1,6 @@
 <?php
 
-class api_schedule_gamestoday extends Handler
+class api_1_schedule_gamestoday extends Handler
 {
 	function has_permission ()
 	{
