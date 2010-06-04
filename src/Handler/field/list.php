@@ -2,7 +2,7 @@
 
 class field_list extends Handler
 {
-	function __construct ( $type )
+	function __construct ( $type = null )
 	{
 		$this->closed = ( isset( $type ) && $type == 'closed' );
 	}
