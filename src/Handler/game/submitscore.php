@@ -207,7 +207,8 @@ class game_submitscore extends GameHandler
 		$edit['step'] = 'spirit';
 		$output .= $this->hidden_fields ('edit', $edit);
 
-		$output .= para("Since OCUA is unable to do daily inspections of all of the fields it uses, we need your feedback.  Does there appear to be any changes to the field (damage, water etc) that the league should be aware of?");
+		$short_name = variable_get('app_org_short_name', 'the league');
+		$output .= para("Since $short_name is unable to do daily inspections of all of the fields it uses, we need your feedback.  Do there appear to be any changes to the field (damage, water etc) that $short_name should be aware of?");
 
 		$output .= form_textarea('','edit[field_report]', '', 70, 5, 'Please enter a description of any issues, or leave blank if there is nothing to report');
 
