@@ -499,7 +499,8 @@ class Team extends LeaguerunnerObject
 	}
 
 	/**
-	 * Compare two teams by their home field ratio
+	 * Compare two teams by their home field ratio.  Returns teams ordered
+	 * lowest ratio to highest ratio.
 	 */
 	static function cmp_home_field_ratio ( $a, $b )
 	{
@@ -509,7 +510,7 @@ class Team extends LeaguerunnerObject
 			return 0;
 		}
 
-		return ($a_ratio > $b_ratio) ? 1 : -1;
+		return ($a_ratio < $b_ratio) ? 1 : -1;
 	}
 }
 

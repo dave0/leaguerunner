@@ -1063,7 +1063,24 @@ class Game extends LeaguerunnerObject
 
 		return $winner_gain - $winner_wager;
 	}
-	
+
+	function _gameslot_assign_sanity_check ()
+	{
+		if( $this->slot_id ) {
+			throw new Exception("Cannot select gameslot for a game with an existing gameslot value");
+		}
+
+		if( !$this->game_id ) {
+			throw new Exception("Cannot select gameslot for game without a game_id");
+		}
+
+		if( !$this->league_id ) {
+			throw new Exception("Cannot select gameslot for game without league_id");
+		}
+
+		return true;
+	}
+
 	/**
 	 * Select a random gameslot for this game.
 	 * Gameslot is to be selected from those available for the league in which
@@ -1071,96 +1088,43 @@ class Game extends LeaguerunnerObject
 	 * Single argument is to be the timestamp representing the date of the
 	 * game.
 	 * Changes are made directly in the database, no need to call save()
-	 * Returns success or fail, depending on whether or not we could get a
-	 * gameslot.
+	 *
+	 * Returns true on success, throws exception on failure
 	 */
 	function select_random_gameslot( $timestamp )
 	{
 		global $dbh;
 
-		if( $this->slot_id ) {
-			return array(false, "Cannot call select_random_gameslot() on a game with an existing gameslot value");
-		}
-
-		if( !$this->game_id ) {
-			return array(false, "Game must have a game_id before calling select_random_gameslot()");
-		}
-
-		if( !$this->league_id ) {
-			return array (false, "Game must have a league_id before calling select_random_gameslot()");
-		}
+		$this->_gameslot_assign_sanity_check();
 
 		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1');
 		$sth->execute( array( $timestamp, $this->league_id) );
 		$slot_id = $sth->fetchColumn();
 		if( ! $slot_id ) {
-			return array(false, "Couldn't get slot ID");
+			throw new Exception("Couldn't randomly assign a gameslot: no slot id found");
 		}
 
-		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
-		$sth->execute( array( $this->game_id, $slot_id) );
-		$gameslot_affected_rows = $sth->rowCount();
-		if(1 != $gameslot_affected_rows) {
-			return array(false, "Couldn't assign gameslot");
-		}
-		$this->slot_id = $slot_id;
-		return array(true,'');
+		return $this->assign_gameslot( $slot_id );
 	}
 
 	/**
-	 * Select an appropriate gameslot for this game.  "appropriate" takes
-	 * field quality, home field designation, and field preferences into account.
-	 * Gameslot is to be selected from those available for the league in which
-	 * this game exists.
-	 * Single argument is to be the timestamp representing the date of the
-	 * game.
+	 * Select a gameslot in the provided team's home region for this game.
 	 * Changes are made directly in the database (no need to ->save() the
 	 * game) however this means that you should probably call this only
 	 * within a transaction if you want to roll back changes easily on
 	 * error.
-	 * Returns success or fail, depending on whether or not we could get a
-	 * gameslot.
+	 *
+	 * Returns true on success, throws exception on failure.
 	 *
 	 * TODO: Take field quality into account when assigning.  Easiest way
 	 * to do this would be to order by field quality instead of RAND(),
 	 * keeping our best fields in use.
 	 */
-	function select_weighted_gameslot( $timestamp )
+	function select_home_region_gameslot( $team_id, $timestamp )
 	{
 		global $dbh;
 
-		if( $this->slot_id ) {
-			return array(false, "Cannot call select_weighted_gameslot() on a game with an existing gameslot value");
-		}
-
-		if( !$this->game_id ) {
-			return array(false, "Game must have a game_id before calling select_weighted_gameslot()");
-		}
-
-		if( !$this->league_id ) {
-			return array (false, "Game must have a league_id before calling select_weighted_gameslot()");
-		}
-
-		$satisfied = false;
-		// try to adhere to the home team's HOME FIELD DESIGNATION
-		$t = $this->get_home_team_object();
-		if ($t->home_field != null && $t->home_field != '') {
-			$sth = $dbh->prepare('SELECT
-				s.slot_id
-			FROM
-				gameslot s,
-				league_gameslot_availability a,
-				team t
-			WHERE a.slot_id = s.slot_id
-				AND UNIX_TIMESTAMP(s.game_date) = ?
-				AND a.league_id = ?
-				AND ISNULL(s.game_id)
-				AND t.team_id = ?
-				AND t.home_field = s.fid
-			ORDER BY RAND() LIMIT 1');
-			$sth->execute( array($timestamp, $this->league_id, $this->home_team) );
-			$slot_id = $sth->fetchColumn();
-		}
+		$this->_gameslot_assign_sanity_check();
 
 		$region_pref_sth = $dbh->prepare('SELECT
 				s.slot_id
@@ -1179,37 +1143,74 @@ class Game extends LeaguerunnerObject
 				AND (t.region_preference = f.region OR t.region_preference = pf.region)
 			ORDER BY RAND() LIMIT 1');
 
-		// if no home field, try to adhere to the home team's field preference
-		if( ! $slot_id ) {
-			$region_pref_sth->execute( array($timestamp, $this->league_id, $this->home_team) );
-			$slot_id = $region_pref_sth->fetchColumn();
-		}
-
-		// if nothing can be found by home team preference, try the away team
-		if( ! $slot_id ) {
-			$region_pref_sth->execute( array($timestamp, $this->league_id, $this->away_team) );
-			$slot_id = $region_pref_sth->fetchColumn();
-		}
-
-		// if still nothing can be found, last try is just random:
-		if( ! $slot_id ) {
-			$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1');
-			$sth->execute( array($timestamp, $this->league_id) );
-			$slot_id = $sth->fetchColumn();
-		}
+		$region_pref_sth->execute( array($timestamp, $this->league_id, $team_id) );
+		$slot_id = $region_pref_sth->fetchColumn();
 
 		if( ! $slot_id ) {
-			return array(false, "select_weighted_gameslot() couldn't get slot ID");
+			return false;
+		}
+		return $this->assign_gameslot( $slot_id );
+	}
+
+	function select_home_field_gameslot( $timestamp )
+	{
+		global $dbh;
+
+		$this->_gameslot_assign_sanity_check();
+
+		// try to adhere to the home team's HOME FIELD DESIGNATION
+		$t = $this->get_home_team_object();
+		if( ! $t ) {
+			throw new Exception("Cached home team wasn't there!");
+		}
+
+		if ( ! $t->home_field ) {
+			return false;
+		}
+
+		$sth = $dbh->prepare('SELECT
+			s.slot_id
+		FROM
+			gameslot s,
+			league_gameslot_availability a,
+			team t
+		WHERE a.slot_id = s.slot_id
+			AND UNIX_TIMESTAMP(s.game_date) = ?
+			AND a.league_id = ?
+			AND ISNULL(s.game_id)
+			AND t.team_id = ?
+			AND t.home_field = s.fid
+		LIMIT 1');
+		$sth->execute( array($timestamp, $this->league_id, $this->home_team) );
+		$slot_id = $sth->fetchColumn();
+		if( ! $slot_id ) {
+			return false;
+		}
+
+		return $this->assign_gameslot( $slot_id );
+	}
+
+	/*
+	 * Assign a gameslot to this game.
+	 *
+	 * Returns true on success, throws exception on error.
+	 */
+	function assign_gameslot ($slot_id)
+	{
+		global $dbh;
+
+		if( ! $slot_id ) {
+			throw new Exception('no slot id provided to assign_gameslot()');
 		}
 
 		$sth = $dbh->prepare('UPDATE gameslot SET game_id = ? WHERE ISNULL(game_id) AND slot_id = ?');
 		$sth->execute(array($this->game_id, $slot_id));
 		$gameslot_affected_rows = $sth->rowCount();
 		if(1 != $gameslot_affected_rows) {
-			return array(false, "Couldn't assign gameslot");
+			throw new Exception('Could not assign gameslot: failed to update table');
 		}
 		$this->slot_id = $slot_id;
-		return array(true,'');
+		return true;
 	}
 
 	// TODO: this belongs in Handler/game/ratings.php
@@ -1274,6 +1275,14 @@ class Game extends LeaguerunnerObject
 		$b_home = $b->get_home_team_object();
 
 		return Team::cmp_home_field_ratio( $a_home, $b_home);
+	}
+
+	static function cmp_awayteam_field_ratio ( $a, $b )
+	{
+		$a_away = $a->get_away_team_object();
+		$b_away = $b->get_away_team_object();
+
+		return Team::cmp_home_field_ratio( $a_away, $b_away);
 	}
 }
 

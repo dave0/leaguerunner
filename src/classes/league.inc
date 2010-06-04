@@ -807,12 +807,12 @@ class League extends LeaguerunnerObject
 			return array(false, "Failed to create a single blank game.$extra_errors");
 		}
 
-		list($rc, $message) = $g->select_random_gameslot($datestamp);
-		if( ! $rc ) {
-			/* Argh, something failed, so roll back the whole pile of
-			* games */
+		try {
+			$g->select_random_gameslot($datestamp);
+		} catch (Exception $e) {
+			$extra_errors = $message;
 			if( ! $dbh->rollback() ) {
-				$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
+				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
 			return array(false, "Failed to add gameslots to single blank game.$extra_errors");
 		}
@@ -865,12 +865,12 @@ class League extends LeaguerunnerObject
 				return array(false, "Failed to create blank games.$extra_errors");
 			}
 
-			list($rc, $message) = $g->select_random_gameslot($datestamp);
-			if( ! $rc ) {
-				/* Argh, something failed, so roll back the whole pile of
-				* games */
+			try {
+				$g->select_random_gameslot($datestamp);
+			} catch (Exception $e) {
+				$extra_errors = $message;
 				if( ! $dbh->rollback() ) {
-					$extra_errors = "<br />Also, failed to roll back transaction.  Please contact the system administrator";
+					$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 				}
 				return array(false, "Failed to add gameslots to blank games.$extra_errors");
 			}
@@ -1458,14 +1458,16 @@ class League extends LeaguerunnerObject
 			$games_list[] = $g;
 		}
 
-		list($rc, $message) = $this->assign_fields_by_preferences($games_list, $datestamp);
-		if (!$rc) {
+		try {
+			$this->assign_fields_by_preferences($games_list, $datestamp);
+		} catch (Exception $e) {
 			$extra_errors = $message;
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
 			return array(false, "Failed to assign gameslots for requested games on " . strftime('%c', $datestamp) . ": $extra_errors");
 		}
+
 		$rc = $dbh->commit();
 
 		if( ! $rc ) {
@@ -1488,14 +1490,18 @@ class League extends LeaguerunnerObject
 			$sth->execute( array( $game->game_id ) );
 			$game->slot_id = null;
 		}
-		list($rc, $message) = $this->assign_fields_by_preferences($games_list, $newdate);
-		if (!$rc) {
+
+
+		try {
+			$this->assign_fields_by_preferences($games_list, $newdate);
+		} catch (Exception $e) {
 			$extra_errors = $message;
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
 			return array(false, "Failed to assign gameslots for requested games on " . strftime('%c', $datestamp) . ": $extra_errors");
 		}
+
 		$rc = $dbh->commit();
 
 		if( ! $rc ) {
@@ -1545,68 +1551,60 @@ class League extends LeaguerunnerObject
 	/**
 	 * Assign field based on home field or region preference.
 	 *
-	 * It uses the select_weighted_gameslot function, which first looks at home field
-	 * designation, then at field region preferences.
-	 *
-	 * We first sort teams in order of their allocation preference ratio.  Teams
-	 * with a low ratio get first crack at a desired location.
-	 *
-	 * Then, we allocate gameslots to games where the home team has a home field.
-	 * This is necessary to prevent another team with a lower ratio from scooping
-	 * another team's dedicated home field.
-	 *
-	 * Following this, we simply loop over all remaining games and call
-	 * select_weighted_gameslot(), which takes region preference into account.
-	 *
-	 * This function returns an array where the first element is true/false for SUCCESS/FAILURE,
-	 * and the in case of failure the remaining elements of the array are information about error.
-	 *
 	 * This is called from within a transaction and the caller is responsible for
 	 * rolling back if errors are returned.
 	 *
-	 * TODO: throw exceptions from select_weighted_gameslot and catch in the caller of this method to make the code cleaner?
+	 * Returns true on success, throws on failure.
 	 *
 	 */
-	function assign_fields_by_preferences( $games, $datestamp )
+	function assign_fields_by_preferences( $games, $timestamp )
 	{
 
-		/*
-		 * We sort by ratio of getting their preference, from lowest to
-		 * highest, so that teams who received their field preference least
-		 * will have a better chance of it.
-		 */
-		usort( $games, array('Game', 'cmp_hometeam_field_ratio'));
-
-		// First pass:  Games where the home team has an assigned home field.
-		// TODO: if we can get cmp_hometeam_field_ratio to put all
-		// those teams needing a home field at the top of the list in
-		// order, we can avoid this first pass.
-		$second_pass = array();
+		// First pass - cherry-pick anyone with a home field
+		$by_home_region = array();
 		while($game = array_pop($games)) {
-			$home_team = $game->get_home_team_object();
-			if( ! $home_team ) {
-				return array(false, "Weird error: Cached home team wasn't there!");
-			}
-
-			if( $home_team->home_field ) {
-				list($rc, $message) = $game->select_weighted_gameslot($datestamp);
-				if( ! $rc ) {
-					return array($rc, $message);
-				}
-			} else {
-				$second_pass[] = $game;
+			if( ! $game->select_home_field_gameslot( $timestamp ) ) {
+				$by_home_region[] = $game;
 			}
 		}
 
-		// Second pass: Remaining teams, in order of need.
-		while($game = array_pop($second_pass)) {
-			list($rc, $message) = $game->select_weighted_gameslot($datestamp);
-			if( ! $rc ) {
-				return array($rc, "game " . $game->game_id . " on second pass: $message");
+		if( ! count($by_home_region) ) {
+			return true;
+		}
+
+		// Second pass: by home region.  We sort by preference ratio (ascending) so that
+		// teams who received their field preference least get first crack.
+		usort( $by_home_region, array('Game', 'cmp_hometeam_field_ratio'));
+		$by_away_region = array();
+		while($game = array_pop($by_home_region)) {
+			if( ! $game->select_home_region_gameslot( $game->home_team,  $timestamp ) ) {
+				$by_away_region[] = $game;
 			}
 		}
 
-		return array(true, "");
+		if( ! count($by_away_region) ) {
+			return true;
+		}
+
+		// Third pass: by away region, again sorting first
+		usort( $by_away_region, array('Game', 'cmp_awayteam_field_ratio'));
+		$by_random = array();
+		while($game = array_pop($by_away_region)) {
+			if( ! $game->select_home_region_gameslot( $game->away_team, $timestamp ) ) {
+				$by_random[] = $game;
+			}
+		}
+
+		if( ! count($by_random) ) {
+			return true;
+		}
+
+		// Fourth pass: randomly,  If nothing found, select_random_gameslot() will throw exception
+		while($game = array_pop($by_random)) {
+			$game->select_random_gameslot( $timestamp );
+		}
+
+		return true;
 	}
 
 }
