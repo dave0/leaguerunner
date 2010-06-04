@@ -21,8 +21,8 @@ class team_schedule extends TeamHandler
 		 */
 		$games = game_load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date,g.game_start,g.game_id') );
 
-		if( !is_array($games) ) {
-			error_exit("There are no games scheduled for this team");
+		if( !count($games) ) {
+			error_exit('This team does not yet have any games scheduled');
 		}
 
 		$header = array(
