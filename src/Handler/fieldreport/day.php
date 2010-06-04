@@ -37,8 +37,8 @@ class fieldreport_day extends Handler
 			return $this->displayReportsForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
 			$this->setLocation(array( $this->title => 0));
-			$output = para('Select a date below on which to view all scheduled games');
-			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'schedule/day', 'schedule/day');
+			$output = para('Select a date below on which to view field reports');
+			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'fieldreport/day', 'fieldreport/day');
 			return $output;
 		}
 	}
