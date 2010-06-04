@@ -58,8 +58,8 @@ class GameHandler extends Handler
 
 		$header = array(
 			"&nbsp;",
-			"$this->game->home_name (home)",
-			"$this->game->away_name (away)"
+			$this->game->home_name . ' (home)',
+			$this->game->away_name . ' (away)'
 		);
 
 		$rows = array();

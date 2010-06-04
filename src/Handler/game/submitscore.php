@@ -1,7 +1,7 @@
 <?php
 require_once('Handler/GameHandler.php');
 
-class game_submit extends GameHandler
+class game_submitscore extends GameHandler
 {
 	private $team;
 
@@ -24,7 +24,7 @@ class game_submit extends GameHandler
 	{
 		$this->title = "Submit Game Results";
 
-		$this->get_league()
+		$this->get_league();
 
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");
