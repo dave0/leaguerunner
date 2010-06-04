@@ -42,10 +42,9 @@ class field_list extends Handler
 		$fieldsByRegion = array();
 		while($field = $sth->fetch(PDO::FETCH_OBJ) ) {
 			if(! array_key_exists( $field->region, $fieldsByRegion) ) {
-				$fieldsByRegion[$field->region] = "";
+				$fieldsByRegion[$field->region] = array();
 			}
-			$fieldsByRegion[$field->region]
-				.= li( l($field->name, "field/view/$field->fid") );
+			array_push( $fieldsByRegion[$field->region], array( l($field->name, "field/view/$field->fid") ));
 		}
 
 		$fieldColumns = array();
@@ -59,13 +58,13 @@ class field_list extends Handler
 
 			$i = 0;
 			while(list($region,$fields) = each($fieldsByRegion)) {
-				$fieldColumns[$i] .= table( array( ucfirst( $region ) ), array( array( ul($fields) ) ) );
+				$fieldColumns[$i] .= table( array( ucfirst( $region ) ), array( array( table(null, $fields) ) ) );
 				$i = ( $i + 1 ) % $cols;
 			}
 		}
 		else {
 			while(list($region,$fields) = each($fieldsByRegion)) {
-				$fieldColumns[] = ul( $fields );
+				$fieldColumns[] = table( null, $fields) ;
 				$header[] = ucfirst($region);
 			}
 		}
