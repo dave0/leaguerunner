@@ -140,7 +140,7 @@ try {
 	$handler   = $reflector->newInstanceArgs( $handler_args );
 } catch (ReflectionException $e) {
 	# Internal error
-	error_exit("Couldn't construct $handler_class");
+	error_exit("Couldn't construct $handler_class:" . $e->getMessage());
 }
 
 /*
