@@ -195,7 +195,7 @@ class event_view extends EventHandler
 			}
 		}
 
-		$output .= h2(l('Register now!', 'registration/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name, 'style' => 'text-decoration: underline;')));
+		$output .= h2(l('Register now!', 'event/register/' . $this->event->registration_id, array('title' => 'Register for ' . $this->event->name, 'style' => 'text-decoration: underline;')));
 		// There may be a payment-pending registration already done,
 		// if multiples are allowed, so we allow for payment to be made.
 		return $output . $payment;

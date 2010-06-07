@@ -20,6 +20,14 @@ class EventHandler extends Handler
 			error_exit("That event does not exist");
 		}
 
+		$this->formbuilder = $this->event->load_survey( true, $user);
+
+		// Other code relies on the formbuilder variable not being set if there
+		// are no questions.
+		if( ! count( $this->formbuilder->_questions ) ) {
+			unset( $this->formbuilder );
+		}
+
 		event_add_to_menu( $this->event );
 	}
 }

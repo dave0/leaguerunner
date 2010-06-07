@@ -1,13 +1,7 @@
 <?php
-require_once('Handler/RegistrationHandler.php');
-class registration_register extends RegistrationHandler
+require_once('Handler/EventHandler.php');
+class event_register extends EventHandler
 {
-	function __construct ( $id )
-	{
-		parent::__construct($id);
-		$this->form_load(true);
-	}
-
 	function has_permission()
 	{
 		global $lr_session;
