@@ -17,7 +17,6 @@ class cron extends Handler
 	function process ()
 	{
 		return join("", array(
-			person_cron(),
 			league_cron()
 		));
 	}
