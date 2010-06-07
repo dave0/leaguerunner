@@ -2,6 +2,8 @@
 require_once('Handler/gmaps/view.php');
 class gmaps_edit extends gmaps_view
 {
+	private $map_vars = array('fid', 'latitude', 'longitude', 'angle', 'width', 'length', 'zoom');
+
 	function has_permission()
 	{
 		global $lr_session;
