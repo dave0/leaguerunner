@@ -1212,9 +1212,10 @@ class Game extends LeaguerunnerObject
 		return array(true,'');
 	}
 
+	// TODO: this belongs in Handler/game/ratings.php
 	function get_ratings_table ( $rating_home, $rating_away, $whatif )
 	{
-		global $dbh, $BASE_URL;
+		global $dbh, $CONFIG;
 
 		$header = array( array('data' => '&nbsp') );
 		$rows = array( );
@@ -1260,7 +1261,7 @@ class Game extends LeaguerunnerObject
 			$output2 .= para("What if the teams had different ratings?  Check it here:");
 			$output2 .= para("<form name='whatif'>$home <input type='text' size=5 name='rating_home' value='$rating_home'><br>" .
 					"$away <input type='text' size=5 name='rating_away' value='$rating_away'><br>" .
-					"<input type=button value='What If?' onclick='window.location=\"$BASE_URL/game/ratings/" . $this->game_id .
+					"<input type=button value='What If?' onclick='window.location=\"{$CONFIG['paths']['base_url']}/game/ratings/" . $this->game_id .
 					"/\"+document.whatif.rating_home.value+\"/\"+document.whatif.rating_away.value'");
 
 		}
