@@ -1,36 +1,7 @@
 <?php
 /*
- * $Id$
  * Look and feel for Leaguerunner 
  */
-
-function theme_header($title = "", $extra = null)
-{
-	global $lr_session, $CONFIG;
-
-	$app_name = variable_get('app_name','Leaguerunner');
-
-	if ($title) {
-		$title = "$title - $app_name";
-	} else {
-		$title = $app_name;
-	}
-
-	print <<<END_OF_HEADER
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-	<title>$title</title>
-	<base href="http://{$_SERVER["HTTP_HOST"]}{$CONFIG['paths']['base_url']}/" />
-	<link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
-	<link rel="stylesheet" type="text/css" href="style.css" />
-	<link rel="shortcut icon" href="/favicon.ico" />
-	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-$extra
-</head>
-
-END_OF_HEADER;
-}
 
 function theme_navbar($breadcrumbs = array()) 
 {
