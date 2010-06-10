@@ -27,20 +27,9 @@
 </table>
 <table id="secondary-menu" border="0" cellpadding="0" cellspacing="0" width="100%">
 	<tr height="22">
-		<td background="/themes/ocua_2004/menu-background.png" align="left" height="22" width="130" valign="top"><a href="/"><img src="/themes/ocua_2004/ocua-logo-bottom-half.png" width="130" height="22" border="0" alt="["></a></td>
-	<td class="secondary-links" background="/themes/ocua_2004/menu-background.png" align='left'>
- 	</td>
-	<td class="secondary-links" background="/themes/ocua_2004/menu-background.png" width="1" align="right" height="22"><img src="/themes/ocua_2004/rt_edge.png" width="1" height="22" border="0" alt="]"></td>
+		<td align="left" height="22" width="130" valign="top"><a href="/"><img src="/themes/ocua_2004/ocua-logo-bottom-half.png" width="130" height="22" border="0" alt=""></a></td>
 	</tr>
 </table>
-<!-- start navbar -->
-<div class='lr_topbar'><table border='0' cellpadding='0' cellspacing='0' width='99%' bgcolor='white'>
-<tr>
-{$navbar}
-</tr>
-</table>
-</div>
-<!-- end navbar -->
 <!-- end header -->
 <table width='100%'><tr>
 {if $hide_sidebar}

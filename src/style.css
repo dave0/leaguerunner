@@ -98,18 +98,6 @@ tr.dark {
 .calendar .highlighted-day { background-color: #CC0; }
 .calendar .current-day     { background-color: #C00; }
 
-.lr_topbar td    { color: black; font-size: 9pt; border: 0; 
-	padding: 0;
-	margin: 0;
-}
-.lr_topbar table { border-collapse: collapse; width: 100%; 
-	padding: 0;
-	margin: 0;
-}
-.lr_topbar a:active  { color: red; }
-.lr_topbar .nav  { background-color: lightgray; 
-                   padding-left: 0.25em; padding-right: 1em; }
-
 .error { color: red }
 
 /* Menu styles */

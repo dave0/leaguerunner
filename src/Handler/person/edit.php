@@ -407,7 +407,6 @@ END_TEXT;
 					. 'Once your account is approved, you will receive an email informing you of your new ' . variable_get('app_org_short_name', 'League') . ' member number. '
 					. 'You will then be able to log in once again with your username and password.');
 				$this->smarty->assign('title', 'Edit Account');
-				$this->smarty->assign('navbar', theme_navbar( $this->breadcrumbs) );
 				$this->smarty->assign('menu', menu_render('_root') );
 				$this->smarty->assign('content', $result);
 				$this->smarty->display( 'backwards_compatible.tpl' );

@@ -177,7 +177,6 @@ if($handler->initialize()) {
 		}
 		/* TODO: This is evil, needs cleanup */
 		$smarty->assign('title', $handler->title);
-		$smarty->assign('navbar', theme_navbar( $handler->breadcrumbs) );
 		$smarty->assign('menu', menu_render('_root') );
 		$smarty->assign('request_uri', request_uri() );
 		if( $handler->template_name ) {
@@ -203,7 +202,6 @@ function error_exit($error = NULL)
 {
 	global $smarty;
 	$smarty->assign('title', 'Error' );
-	$smarty->assign('navbar', theme_navbar( array() ) );
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";

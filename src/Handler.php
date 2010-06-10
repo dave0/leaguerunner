@@ -23,12 +23,6 @@ class Handler
 	 */
 	public $template_name;
 
-	/**
-	 * Breadcrumbs.  Used for creating a trail of actions so that
-	 * users can backtrack.
-	 */
-	public $breadcrumbs;
-
 	function __construct ( )
 	{
 	}
@@ -39,7 +33,6 @@ class Handler
 	 */
 	function initialize ()
 	{
-		$this->breadcrumbs = array();
 		return true;
 	}
 
@@ -123,20 +116,14 @@ class Handler
 	}
 
 	/** 
-	 * Set both page title and breadcrumbs
+	 * Set page title
 	 * Array consists of several key-value pairs.  If there's a nonzero value,
 	 * it should be a link component that can be passed to l().
 	 */
 	function setLocation( $ary ) 
 	{
 		$titleComponents = array();
-		$this->breadcrumbs = array();
 		while(list($key,$val) = each($ary)) {
-			if($val) {
-				$this->breadcrumbs[] = l($key,$val);
-			} else {
-				$this->breadcrumbs[] = $key;
-			}
 			array_unshift($titleComponents, $key);
 		}
 		$this->title = join(' &raquo; ', $titleComponents);
