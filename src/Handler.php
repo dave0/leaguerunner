@@ -14,6 +14,16 @@ class Handler
 	public $title;
 
 	/**
+	 * Smarty instance
+	 */
+	public $smarty;
+
+	/**
+	 * Template name.  Should be a relative path to the template to use.
+	 */
+	public $template_name;
+
+	/**
 	 * Breadcrumbs.  Used for creating a trail of actions so that
 	 * users can backtrack.
 	 */

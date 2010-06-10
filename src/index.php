@@ -51,6 +51,15 @@ try {
 	die();
 }
 
+require_once( $CONFIG['smarty']['smarty_path'] . '/Smarty.class.php');
+
+$smarty = new Smarty();
+
+$smarty->template_dir = $CONFIG['smarty']['template_dir'];
+$smarty->compile_dir = $CONFIG['smarty']['compile_dir'];
+$smarty->cache_dir = $CONFIG['smarty']['cache_dir'];
+#$smarty->config_dir = $CONFIG['smarty']['config_dir'];
+
 require_once("includes/common.inc");
 require_once("includes/menu.inc");
 require_once("includes/permissions.inc");
@@ -59,6 +68,12 @@ require_once("includes/mail/php.inc");
 
 // Initialise configuration variables
 $conf = variable_init();
+
+// Set some template defaults
+$smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
+$smarty->assign('app_version', '2.7');
+$smarty->assign('base_url', $CONFIG['paths']['base_url']);
+
 
 require_once("classes/lrobject.inc");
 require_once("classes/field.inc");
@@ -94,6 +109,9 @@ require_once "Handler.php";
 
 // configure sessions
 lr_configure_sessions();
+/* TODO Hack! */
+$smarty->assign('session_valid', $lr_session->is_valid() );
+$smarty->assign('session_fullname', $lr_session->attr_get('fullname') );
 
 // Headers have not been sent yet
 global $headers_sent;
@@ -154,6 +172,7 @@ if($possibleRedirect) {
 }
 
 /* Set any necessary options for the handler */
+$handler->smarty = &$smarty;
 if($handler->initialize()) {
 	/* Ensure we have permission */
 	if($handler->has_permission()) {
@@ -163,12 +182,18 @@ if($handler->initialize()) {
 		if($result === false) {
 			error_exit("Uncaught failure in $handler_class");
 		}
-		print theme_header($handler->title);
-		print theme_body($handler->breadcrumbs);
-		print "<h1>$handler->title</h1>";
-		print $result;
-		print theme_footer();
-
+		/* TODO: This is evil, needs cleanup */
+		$smarty->assign('title', $handler->title);
+		$smarty->assign('navbar', theme_navbar( $handler->breadcrumbs) );
+		$smarty->assign('menu', menu_render('_root') );
+		if( $handler->template_name ) {
+			// This handler is using templates correctly.  No need for backwards-compat
+			$smarty->display( $handler->template_name );
+		} else {
+			// Backwards-compatibility until everything is fully templated
+			$smarty->assign('content', $result);
+			$smarty->display('backwards_compatible.tpl');
+		}
 	} else {
 		if( ! $lr_session || !$lr_session->user ) {
 			local_redirect( url('login', "next=$pickledQuery") );
@@ -182,15 +207,15 @@ if($handler->initialize()) {
 
 function error_exit($error = NULL)
 {
-	$title = "Error";
+	global $smarty;
+	$smarty->assign('title', 'Error' );
+	$smarty->assign('navbar', theme_navbar( array() ) );
+	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
+	$smarty->assign('error_message', $error);
 
-	print theme_header($title);
-	print theme_body();
-	print "<h1>$title</h1>";
-	print theme_error( $error );
-	print theme_footer();
+	$smarty->display('error.tpl');
 	exit;
 }
 

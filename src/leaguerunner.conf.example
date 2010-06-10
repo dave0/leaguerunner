@@ -26,10 +26,26 @@ directory containing Leaguerunner, so that files in data/ can be loaded, for
 example.
 file_path = "./"
 
+[smarty]
+; Path to Smarty templating engine directory
+smarty_path      = "/usr/share/php/smarty/libs"
+
+; template_dir is where your templates live.  Should not be web-accessible
+template_dir = "/web/www.example.com/templates"
+; compile_dir is where your compiled templates live.  Should not be web
+; accessible, and must be writable by the webserver user.
+compile_dir = "/web/www.example.com/leaguerunner/templates_c"
+; cache_dir is where cached output will live.  Should not be web
+; accessible, and must be writable by the webserver user.
+cache_dir = "/web/www.example.com/leaguerunner/cache"
+; config_dir is where Smarty configuration files would live.  We do not use
+; this feature, but a directory is required.
+config_dir = "/web/www.example.com/leaguerunner/config"
+
 ; Session defaults
 [session]
 ; Session name. Set if necessary.
-;session_name = "www.ocua.ca"
+;session_name = "www.example.com"
 
 [localization]
 ; Set up time zone information.
