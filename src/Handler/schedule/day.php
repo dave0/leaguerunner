@@ -33,11 +33,9 @@ class schedule_day extends schedule_view
 				return 'That date is not valid';
 			}
 			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->setLocation(array(
-				"$this->title &raquo; $formattedDay" => 0));
+			$this->title .= " &raquo; $formattedDay";
 			return $this->displayGamesForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
-			$this->setLocation(array( $this->title => 0));
 			$output = para('Select a date below on which to view all scheduled games');
 			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'schedule/day', 'schedule/day');
 			return $output;

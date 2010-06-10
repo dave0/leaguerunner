@@ -48,8 +48,6 @@ class person_signwaiver extends Handler
 				$rc = $this->generateForm( $next );
 		}
 
-		$this->setLocation( array($this->title => 0 ));
-
 		return $rc;
 	}
 

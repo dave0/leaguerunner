@@ -165,7 +165,6 @@ class team_roster extends TeamHandler
 	{
 		global $lr_session;
 
-		$this->title = "Roster Status";
 
 		if( $this->team->roster_deadline > 0 &&
 			!$lr_session->is_admin() &&
@@ -179,11 +178,11 @@ class team_roster extends TeamHandler
 		$edit = &$_POST['edit'];
 
 		if( !$this->player ) {
+			$this->title = "{$this->team->name} &raquo; Add Player";
+
 			if( !($lr_session->is_admin() || $lr_session->is_captain_of($this->team->team_id))) {
 				error_exit("You cannot add a person to that team!");
 			}
-
-			$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, "Add Player" => 0));
 
 			// Handle bulk player adds from previous rosters
 			if( array_key_exists ('add', $edit)) {
@@ -262,7 +261,7 @@ class team_roster extends TeamHandler
 
 	function generateForm ()
 	{
-		$this->setLocation(array( $this->team->name => "team/view/" . $this->team->team_id, $this->title => 0));
+		$this->title = "{$this->team->name} &raquo; Roster Status";
 
 		$output .= form_hidden('edit[step]', 'perform');
 

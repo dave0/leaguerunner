@@ -14,7 +14,7 @@ class league_captemail extends LeagueHandler
 	{
 		global $dbh;
 
-		$this->title = 'Captain Emails';
+		$this->title = "{$this->league->fullname} &raquo; Captain Emails";
 		global $lr_session;
 
 		$sth = $dbh->prepare(
@@ -46,11 +46,6 @@ class league_captemail extends LeagueHandler
 		if( ! count( $emails ) ) {
 			error_exit("That league contains no teams.");
 		}
-
-		$this->setLocation(array(
-			$this->league->fullname => "league/view/" . $this->league->league_id,
-			$this->title => 0
-		));
 
 		$list = create_rfc2822_address_list($emails, $names, true);
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', "mailto:$list") . " right away.");

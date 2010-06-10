@@ -29,23 +29,16 @@ class league_slots extends schedule_view
 
 	function process ()
 	{
-		$this->title = 'League Field Availability Report';
-
-		$this->setLocation(array(
-			$this->league->fullname => 'league/slots/'.$this->league->league_id,
-			$this->title => 0,
-		));
+		$this->title = "{$this->league->fullname} &raquo; Field Availability Report";
 
 		if( $this->dd ) {
 			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
 				return 'That date is not valid';
 			}
 			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->setLocation(array(
-				"$this->title &raquo; $formattedDay" => 0));
+			$this->title .= " &raquo; $formattedDay";
 			return $this->displaySlotsForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
-			$this->setLocation(array( "$this->title" => 0));
 			$output = para('Select a date below on which to view all available gameslots');
 			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd,
 							 'league/slots/'.$this->league->league_id,

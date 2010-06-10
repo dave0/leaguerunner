@@ -12,11 +12,7 @@ class event_copy extends event_edit
 	function process ()
 	{
 		$edit = $_POST['edit'];
-		$this->title = 'Copy Event';
-		$this->setLocation(array(
-			$this->event->name => "event/view/" .$this->event->registration_id,
-			$this->title => 0
-		));
+		$this->title = "Copy Event: {$this->event->name}";
 
 		switch($edit['step']) {
 			case 'confirm':
@@ -32,7 +28,6 @@ class event_copy extends event_edit
 				$edit = object2array($this->event);
 				$rc = $this->generateForm($edit);
 		}
-		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 }

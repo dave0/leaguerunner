@@ -21,10 +21,9 @@ class league_member extends LeagueHandler
 	function process ()
 	{
 		global $lr_session;
-		$this->title = "League Member Status";
+		$this->title = "{$this->league->fullname} &raquo; Member Status";
 
 		if( !$this->player_id ) {
-			$this->setLocation(array( $this->league->fullname => "league/view/" . $this->league->league_id, $this->title => 0));
 			$new_handler = new person_search;
 			$new_handler->initialize();
 			$new_handler->ops['Add to ' . $this->league->fullname] = 'league/member/' .$this->league->league_id . '/%d';

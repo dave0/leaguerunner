@@ -10,15 +10,8 @@ class schedule_view extends LeagueHandler
 	function process ()
 	{
 		global $lr_session;
-		$this->title = "View Schedule";
+		$this->title = "{$this->league->fullname} &raquo; View Schedule";
 
-		$this->setLocation(array(
-			$this->league->fullname => "league/view/".$this->league->league_id,
-			$this->title => 0));
-
-		/*
-		 * Now, grab the schedule
-		 */
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$prevDayId = -1;

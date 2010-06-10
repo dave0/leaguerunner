@@ -24,7 +24,7 @@ class league_standings extends LeagueHandler
 
 		$id = $this->league->league_id;
 
-		$this->title = "Standings";
+		$this->title = "{$this->league->fullname} &raquo; Standings";
 
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
@@ -43,11 +43,6 @@ class league_standings extends LeagueHandler
 		if ($round > 1) {
 			$current_round = $round;
 		}
-
-		$this->setLocation(array(
-			$this->league->fullname => "league/view/$id",
-			$this->title => 0,
-		));
 
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 

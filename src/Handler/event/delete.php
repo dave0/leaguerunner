@@ -10,12 +10,7 @@ class event_delete extends EventHandler
 
 	function process ()
 	{
-		$this->title = "Delete Event";
-
-		$this->setLocation(array(
-			$this->team->name => "event/view/" . $this->event->registration_id,
-			$this->title => 0
-		));
+		$this->title = "Delete Event: {$this->event->name}";
 
 		switch($_POST['edit']['step']) {
 			case 'perform':

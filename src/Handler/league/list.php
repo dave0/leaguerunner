@@ -41,9 +41,7 @@ class league_list extends Handler
 			}
 		}
 
-		$this->setLocation(array(
-			$this->season => "league/list/$this->season"
-		));
+		$this->title = "Leagues &raquo; {$this->season}";
 
 		$output = para(theme_links($seasonLinks));
 

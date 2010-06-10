@@ -12,7 +12,6 @@ class event_survey extends EventHandler
 	{
 		$this->title = 'Maintain Event Survey';
 		$rc = formbuilder_maintain( $this->event->formkey() );
-		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 }

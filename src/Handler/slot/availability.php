@@ -12,6 +12,7 @@ class slot_availability extends SlotHandler
 	{
 		$edit = &$_POST['edit'];
 
+		$this->title = "{$this->slot->field->fullname} &raquo; Gameslot {$this->slot->slot_id} Availability";
 		switch($edit['step']) {
 			case 'perform':
 				foreach( $this->slot->leagues as $league) {
@@ -30,10 +31,6 @@ class slot_availability extends SlotHandler
 				local_redirect(url("slot/availability/" . $this->slot->slot_id));
 				break;
 			default:
-				$this->setLocation(array(
-					$this->slot->field->fullname => "field/view/" . $this->slot->fid,
-					$this->title => 0
-				));
 				return $this->generateForm( $this->slot );
 		}
 	}

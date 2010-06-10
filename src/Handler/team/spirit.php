@@ -12,11 +12,7 @@ class team_spirit extends TeamHandler
 	function process ()
 	{
 		global $lr_session, $dbh, $CONFIG;
-		$this->title = "Team Spirit";
-
-		$this->setLocation(array(
-			$this->team->name => "team/spirit/". $this->team->team_id,
-			$this->title => 0));
+		$this->title = "{$this->team->name} &raquo; Spirit";
 
 		// load the league
 		$league = league_load( array('league_id' => $this->team->league_id) );

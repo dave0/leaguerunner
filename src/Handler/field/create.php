@@ -31,7 +31,6 @@ class field_create extends field_edit
 				$edit = array();
 				$rc = $this->generateForm($edit);
 		}
-		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 }

@@ -7,7 +7,6 @@ class statistics_person extends StatisticsHandler
 		global $dbh;
 
 		$this->title = 'Player Statistics';
-		$this->setLocation(array($this->title => 0));
 
 		$rows = array();
 

@@ -11,8 +11,7 @@ class field_edit extends FieldHandler
 
 	function process ()
 	{
-		$this->title = "Edit Field";
-		$this->setLocation(array($this->field->fullname  => "field/view/".$this->field->fid, $this->title => 0));
+		$this->title = "Edit Field: {$this->field->fullname}";
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {

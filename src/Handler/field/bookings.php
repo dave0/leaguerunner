@@ -18,10 +18,7 @@ class field_bookings extends FieldHandler
 	{
 		global $lr_session;
 
-		$this->setLocation(array(
-			'Availability and Bookings' => "field/view/" . $this->field->fid,
-			$this->field->fullname => 0
-		));
+		$this->title = "Bookings: {$this->field->fullname}";
 
 		$sth = slot_query( array('fid' => $this->field->fid,
 				'_extra' => 'DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND DATE_ADD(CURDATE(), INTERVAL 1 YEAR)',

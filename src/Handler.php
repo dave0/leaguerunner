@@ -115,20 +115,6 @@ class Handler
 		return false;
 	}
 
-	/** 
-	 * Set page title
-	 * Array consists of several key-value pairs.  If there's a nonzero value,
-	 * it should be a link component that can be passed to l().
-	 */
-	function setLocation( $ary ) 
-	{
-		$titleComponents = array();
-		while(list($key,$val) = each($ary)) {
-			array_unshift($titleComponents, $key);
-		}
-		$this->title = join(' &raquo; ', $titleComponents);
-	}
-
 	/**
 	 * Generates list output.  Query should generate rows with two
 	 * fields; one named 'id' containing the ID of the object listed,

@@ -37,7 +37,7 @@ class team_list extends Handler
 			);
 		}
 
-		$this->setLocation(array("List Teams" => 'team/list'));
+		$this->title = 'List Teams';
 
 		$sth = $dbh->prepare("SELECT DISTINCT UPPER(SUBSTRING(t.name,1,1)) as letter
 			FROM team t

@@ -11,7 +11,7 @@ class team_edit extends TeamHandler
 
 	function process ()
 	{
-		$this->title = "Edit Team";
+		$this->title = "{$this->team->name} &raquo; Edit";
 		$edit = &$_POST['edit'];
 
 		switch($edit['step']) {
@@ -26,7 +26,6 @@ class team_edit extends TeamHandler
 				$edit = object2array($this->team);
 				$rc = $this->generateForm($edit);
 		}
-		$this->setLocation(array($edit['name']  => "team/view/" . $this->team->team_id, $this->title => 0));
 		return $rc;
 	}
 

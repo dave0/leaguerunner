@@ -12,7 +12,7 @@ class team_emails extends TeamHandler
 	function process ()
 	{
 		global $lr_session, $dbh;
-		$this->title = 'Player Emails';
+		$this->title = "{$this->team->name} &raquo; Emails";
 		$sth = $dbh->prepare('SELECT
 				p.firstname, p.lastname, p.email
 			FROM
@@ -35,12 +35,6 @@ class team_emails extends TeamHandler
 		if( count($names) <= 0 ) {
 			return false;
 		}
-
-		$team = team_load( array('team_id' => $this->team->team_id) );
-
-		$this->setLocation(array(
-			$team->name => "team/view/" . $this->team->team_id,
-			$this->title => 0));
 
 		$list = create_rfc2822_address_list($emails, $names, true);
 		$output = para("You can cut and paste the emails below into your addressbook, or click " . l('here to send an email', "mailto:$list") . " right away.");

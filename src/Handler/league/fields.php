@@ -12,11 +12,9 @@ class league_fields extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "League Field Distribution Report";
+		$this->title = "{$this->league->fullname} &raquo; Field Distribution Report";
 
 		$rc = $this->generateStatusPage();
-
-		$this->setLocation(array( $this->league->name => "league/fields/" . $this->league->league_id, $this->title => 0));
 
 		return $rc;
 	}

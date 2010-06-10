@@ -32,11 +32,9 @@ class fieldreport_day extends Handler
 				return 'That date is not valid';
 			}
 			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->setLocation(array(
-				"$this->title &raquo; $formattedDay" => 0));
+			$this->title = "$this->title &raquo; $formattedDay";
 			return $this->displayReportsForDay( $this->yyyy, $this->mm, $this->dd );
 		} else {
-			$this->setLocation(array( $this->title => 0));
 			$output = para('Select a date below on which to view field reports');
 			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'fieldreport/day', 'fieldreport/day');
 			return $output;

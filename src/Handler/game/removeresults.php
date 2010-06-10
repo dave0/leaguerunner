@@ -20,10 +20,7 @@ class game_removeresults extends GameHandler
 
 		$this->get_league();
 
-		$this->title = "Game Remove Results";
-
-		$this->setLocation(array(
-			"$this->title &raquo; Remove Results for Game " . $this->game->game_id => 0));
+		$this->title = "Game {$this->game->game_id} &raquo; Remove Results";
 
 		$edit = $_POST['edit'];
 

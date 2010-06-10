@@ -15,12 +15,7 @@ class field_reports extends FieldHandler
 
 	function process ()
 	{
-		global $lr_session;
-
-		$this->setLocation(array(
-			'Reports' => "field/view/" . $this->field->fid,
-			$this->field->fullname => 0
-		));
+		$this->title = "Reports: {$this->field->fullname}";
 
 		$sth = field_report_query(array('field_id' => $this->field->fid, '_order' => 'created DESC' ));
 

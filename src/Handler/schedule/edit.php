@@ -22,7 +22,7 @@ class schedule_edit extends schedule_view
 	function process ()
 	{
 		$edit = $_POST['edit'];
-		$this->title = "Edit Schedule";
+		$this->title = "{$this->league->fullname} &raquo; Edit Schedule";
 
 		switch($edit['step']) {
 			case 'perform':
@@ -36,9 +36,6 @@ class schedule_edit extends schedule_view
 				$rc = $this->generateForm();
 				break;
 		}
-		$this->setLocation(array(
-			$this->league->fullname => "league/view/" .$this->league->league_id,
-			$this->title => 0));
 		return $rc;
 	}
 

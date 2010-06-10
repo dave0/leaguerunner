@@ -11,10 +11,9 @@ class event_view extends EventHandler
 	function process ()
 	{
 		global $dbh;
-		$this->title= 'View Event';
+		$this->title = "Event: {$this->event->name}";
 
 		$rows = array();
-		$rows[] = array('Event&nbsp;Name:', $this->event->name);
 		$rows[] = array('Description:', $this->event->description);
 		$rows[] = array('Event type:', $this->event_types[$this->event->type]);
 		$rows[] = array('Cost:', '$' . $this->event->total_cost());
@@ -41,11 +40,6 @@ class event_view extends EventHandler
 		}
 
 		$output = "<div class='pairtable'>" . table(null, $rows) . "</div>";
-
-		$this->setLocation(array(
-			$this->event->name => "event/view/" .$this->event->registration_id,
-			$this->title => 0
-		));
 
 		$output .= para('');
 

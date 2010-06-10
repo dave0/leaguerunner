@@ -40,7 +40,7 @@ class league_ratings extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "League Ratings Adjustment";
+		$this->title = "{$this->league->fullname} &raquo; Ratings Adjustment";
 
 		$edit = &$_POST['edit'];
 
@@ -52,7 +52,6 @@ class league_ratings extends LeagueHandler
 			default:
 				$rc = $this->generateForm();
 		}
-		$this->setLocation(array( $this->league->name => "league/view/" . $this->league->league_id, $this->title => 0));
 
 		return $rc;
 

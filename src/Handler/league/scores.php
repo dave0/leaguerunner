@@ -15,18 +15,13 @@ class league_scores extends LeagueHandler
 	{
 		$id = $this->league->league_id;
 
-		$this->title = "Scores";
+		$this->title = "{$this->league->fullname} &raquo; Scores";
 
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
 		}
 
 		// TODO: do we need to handle multiple rounds differently?
-
-		$this->setLocation(array(
-			$this->league->fullname => "league/scores/$id",
-			$this->title => 0,
-		));
 
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
 

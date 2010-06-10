@@ -16,10 +16,7 @@ class person_historical extends PersonHandler
 
 	function process ()
 	{
-		$this->title = 'View Historical Teams';
-		$this->setLocation(array(
-			$this->person->fullname => 'person/view/' . $this->person->user_id,
-			$this->title => 0));
+		$this->title = "{$this->person->fullname} Historical Teams";
 
 		return $this->generateView($this->person);
 	}

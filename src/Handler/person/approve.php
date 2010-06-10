@@ -14,7 +14,7 @@ class person_approve extends person_view
 	function process ()
 	{
 		$edit = $_POST['edit'];
-		$this->title = 'Approve Account';
+		$this->title = "{$this->person->fullname} &raquo; Approve";
 
 		if($edit['step'] == 'perform') {
 			/* Actually do the approval on the 'perform' step */
@@ -49,10 +49,6 @@ class person_approve extends person_view
 			. form_select('This user should be', 'edit[disposition]', '---', $dispositions)
 			. form_submit("Submit");
 
-
-		$this->setLocation(array(
-			$this->person->fullname => "person/view/" . $this->person->user_id,
-			$this->title => 0));
 
 		if( strlen($duplicates) > 0 ) {
 			$duplicates = para("<div class='warning'><br>The following users may be duplicates of this account:<ul>\n"

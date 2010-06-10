@@ -42,9 +42,6 @@ class person_listnew extends Handler
 		}
 		$output .= "</table>";
 
-
-		$this->setLocation(array( $this->title => 'person/listnew' ));
-
 		return $output;
 	}
 }

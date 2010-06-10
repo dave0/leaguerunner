@@ -47,10 +47,7 @@ class person_changepassword extends Handler
 
 	function generateForm( )
 	{
-		$this->setLocation(array(
-			$user->fullname => "person/view/" . $this->person->user_id,
-			'Change Password' => 0
-		));
+		$this->title = "{$this->person->fullname} &raquo; Change Password";
 
 		$output = para("You are changing the password for '" . $this->person->fullname . "' (username '" . $this->person->username . "').");
 

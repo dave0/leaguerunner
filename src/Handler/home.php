@@ -11,7 +11,7 @@ class home extends Handler
 	function process ()
 	{
 		global $lr_session;
-		$this->setLocation(array( $lr_session->attr_get('fullname') => 0 ));
+		$this->title =  $lr_session->attr_get('fullname');
 		return "<div class='splash'>"
 			. home_splash()
 			. team_splash()

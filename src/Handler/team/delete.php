@@ -11,12 +11,7 @@ class team_delete extends TeamHandler
 
 	function process ()
 	{
-		$this->title = "Delete Team";
-
-		$this->setLocation(array(
-			$this->team->name => "team/view/" . $this->team->team_id,
-			$this->title => 0
-		));
+		$this->title = "{$this->team->name} &raquo; Delete";
 
 		switch($_POST['edit']['step']) {
 			case 'perform':

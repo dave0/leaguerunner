@@ -6,7 +6,7 @@ class slot_create extends FieldHandler
 	private $mm;
 	private $dd;
 
-	function __construct( $field_id, $year, $month, $day )
+	function __construct( $field_id, $year = null, $month = null, $day = null )
 	{
 		parent::__construct( $field_id );
 		$today = getdate();
@@ -24,7 +24,7 @@ class slot_create extends FieldHandler
 
 	function process()
 	{
-		$this->title = "Create Game Slot";
+		$this->title = "{$this->field->fullname} Create Game Slot";
 
 		if($this->field->status != 'open') {
 			error_exit("That field is closed");
@@ -54,17 +54,9 @@ class slot_create extends FieldHandler
 				}
 				break;
 			case 'confirm':
-				$this->setLocation(array(
-					$this->field->fullname => "field/view/{$this->field->fid}",
-					$this->title => 0
-				));
 				return $this->generateConfirm($this->field, $edit, $datestamp);
 				break;
 			default:
-				$this->setLocation(array(
-					$this->field->fullname => "field/view/{$this->field->fid}",
-					$this->title => 0
-				));
 				return $this->generateForm($this->field, $datestamp);
 				break;
 		}

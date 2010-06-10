@@ -11,10 +11,7 @@ class team_schedule extends TeamHandler
 	function process ()
 	{
 		global $lr_session, $CONFIG;
-		$this->title = "Schedule";
-		$this->setLocation(array(
-			$this->team->name => "team/view/" . $this->team->team_id,
-			$this->title => 0));
+		$this->title = "{$this->team->name} &raquo; Schedule";
 
 		/*
 		 * Grab schedule info

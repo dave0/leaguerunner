@@ -75,7 +75,6 @@ class game_submitscore extends GameHandler
 				$rc = $this->generateForm( $opponent );
 		}
 
-		$this->setLocation(array($this->title => 0));
 		return $rc;
 	}
 

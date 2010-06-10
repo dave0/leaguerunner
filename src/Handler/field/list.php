@@ -19,9 +19,9 @@ class field_list extends Handler
 
 		$output = '';
 		if( $this->closed ) {
-			$this->setLocation(array('List Closed Fields' => 'field/list'));
+			$this->title = 'List Closed Fields';
 		} else {
-			$this->setLocation(array('List Fields' => 'field/list'));
+			$this->title = 'List Fields';
 
 			ob_start();
 			$retval = @readfile(trim ($CONFIG['paths']['file_path'], '/') . "/data/field_caution.html");

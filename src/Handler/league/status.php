@@ -10,11 +10,9 @@ class league_status extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "League Status Report";
+		$this->title = "{$this->league->fullname} &raquo; Status Report";
 
 		$rc = $this->generateStatusPage();
-
-		$this->setLocation(array( $this->league->name => "league/status/" . $this->league->league_id, $this->title => 0));
 
 		return $rc;
 	}

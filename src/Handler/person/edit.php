@@ -14,7 +14,6 @@ class person_edit extends PersonHandler
 	{
 		global $lr_session;
 		$edit = $_POST['edit'];
-		$this->title = 'Edit';
 
 		switch($edit['step']) {
 			case 'confirm':
@@ -33,6 +32,8 @@ class person_edit extends PersonHandler
 				$edit = object2array($this->person);
 				$rc = $this->generateForm($this->person->user_id, $edit, "Edit any of the following fields and click 'Submit' when done.");
 		}
+
+		$this->title = "{$this->person->fullname} &raquo; Edit";
 
 		return $rc;
 	}
@@ -180,10 +181,6 @@ END_TEXT;
 
 		$output .= form_group('Player and Skill Information', $group);
 
-		$this->setLocation(array(
-			$formData['fullname'] => "person/view/$id",
-			$this->title => 0));
-
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
 		return form($output, 'post', null, 'id="player_form"');
@@ -299,10 +296,6 @@ END_TEXT;
 
 		$output .= para(form_submit('submit') . form_reset('reset'));
 
-		$this->setLocation(array(
-			$edit['firstname'] . " " . $edit['lastname'] => "person/view/$id",
-			$this->title => 0));
-
 		return form($output);
 	}
 
@@ -406,7 +399,7 @@ END_TEXT;
 					"You have requested to change your account status to 'Player'.  As such, your account is now being held for one of the administrators to approve.  "
 					. 'Once your account is approved, you will receive an email informing you of your new ' . variable_get('app_org_short_name', 'League') . ' member number. '
 					. 'You will then be able to log in once again with your username and password.');
-				$this->smarty->assign('title', 'Edit Account');
+				$this->smarty->assign('title', $this->title);
 				$this->smarty->assign('menu', menu_render('_root') );
 				$this->smarty->assign('content', $result);
 				$this->smarty->display( 'backwards_compatible.tpl' );

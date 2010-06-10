@@ -28,10 +28,7 @@ class game_ratings extends GameHandler
 	{
 		global $lr_session;
 
-		$this->title = "Game Ratings Table";
-
-		$this->setLocation(array(
-			"$this->title &raquo; Game " . $this->game->game_id => 0));
+		$this->title = "Game Ratings Table &raquo; Game {$this->game->game_id}";
 
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;

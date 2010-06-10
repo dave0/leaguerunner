@@ -12,8 +12,8 @@ class registration_unregister extends RegistrationHandler
 	{
 		global $dbh;
 		$edit = $_POST['edit'];
-		$this->title = 'Unregistering';
 		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
+		$this->title = "Order $order_num &raquo; Unregister";
 
 		switch($edit['step']) {
 			case 'submit':
@@ -28,11 +28,6 @@ class registration_unregister extends RegistrationHandler
 			default:
 				$rc = $this->generateConfirm();
 		}
-
-		$this->setLocation(array(
-			$order_num => 'registration/view/' .$this->order_id,
-			$this->title => 0
-		));
 
 		return $rc;
 	}

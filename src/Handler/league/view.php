@@ -12,7 +12,7 @@ class league_view extends LeagueHandler
 	{
 		global $lr_session;
 
-		$this->title = 'View League';
+		$this->title = "{$this->league->fullname} &raquo; View";
 
 		foreach( $this->league->coordinators as $c ) {
 			$coordinator = l($c->fullname, "person/view/$c->user_id");
@@ -118,9 +118,6 @@ class league_view extends LeagueHandler
 			$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
 		}
 
-		$this->setLocation(array(
-			$this->league->fullname => 'league/view/' . $this->league->league_id,
-			$this->title => 0));
 		return $output;
 	}
 }

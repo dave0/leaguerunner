@@ -15,12 +15,7 @@ class league_delete extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "Delete League";
-
-		$this->setLocation(array(
-			$this->team->name => "league/view/" . $this->league->team_id,
-			$this->title => 0
-		));
+		$this->title = "{$this->league->fullname} &raquo; Delete League";
 
 		switch($_POST['edit']['step']) {
 			case 'perform':

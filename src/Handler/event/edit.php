@@ -10,11 +10,7 @@ class event_edit extends EventHandler
 
 	function process ()
 	{
-		$this->title = 'Edit Event';
-		$this->setLocation(array(
-			$this->event->name => "event/view/" .$this->event->registration_id,
-			$this->title => 0
-		));
+		$this->title = "Edit Event: {$this->event->name}";
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {

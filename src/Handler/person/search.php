@@ -36,7 +36,6 @@ class person_search extends Handler
 			default:
 				$rc = $this->form();
 		}
-		$this->setLocation( array($this->title => 0 ));
 		return $rc;
 	}
 

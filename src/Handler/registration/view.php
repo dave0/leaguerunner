@@ -56,7 +56,6 @@ class registration_view extends RegistrationHandler
 			$output .= form_group('Payment details', '<div class="pairtable">' . table(NULL, $payrows) . '</div>');
 		}
 
-		$this->setLocation(array($this->title => 0));
 		return $output;
 	}
 }

@@ -14,7 +14,6 @@ class event_list extends Handler
 		$links = $lr_session->has_permission('event','list');
 
 		$this->title = 'Registration Event List';
-		$this->setLocation(array($this->title => 0));
 
 		$output = '';
 		ob_start();

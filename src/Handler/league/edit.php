@@ -10,7 +10,6 @@ class league_edit extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "Edit League";
 
 		$edit = &$_POST['edit'];
 
@@ -26,7 +25,8 @@ class league_edit extends LeagueHandler
 				$edit = $this->getFormData( $this->league );
 				$rc = $this->generateForm( $edit );
 		}
-		$this->setLocation(array( $edit['name'] => "league/view/" . $this->league->league_id, $this->title => 0));
+
+		$this->title = "{$edit['name']} &raquo; Edit";
 
 		return $rc;
 	}

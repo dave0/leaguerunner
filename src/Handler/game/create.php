@@ -42,7 +42,7 @@ class game_create extends LeagueHandler
 
 	function process ()
 	{
-		$this->title = "Add Game";
+		$this->title = "{$this->league->fullname} &raquo; Add Game";
 
 		if(! $this->league ) {
 			error_exit("That league does not exist");
@@ -66,10 +66,6 @@ class game_create extends LeagueHandler
 		}
 
 		$edit = &$_POST['edit'];
-		$this->setLocation(array(
-			$this->league->fullname => "league/view/" . $this->league->league_id,
-			$this->title => 0
-		));
 
 		switch($edit['step']) {
 			case 'perform':

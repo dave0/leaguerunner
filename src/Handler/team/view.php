@@ -15,9 +15,7 @@ class team_view extends TeamHandler
 
 		// Team names might have HTML in them, so we need to nuke it.
 		$team_name = check_form($this->team->name, ENT_NOQUOTES);
-		$this->setLocation(array(
-			$team_name => "team/view/" . $this->team->team_id,
-			"View Team" => 0));
+		$this->title = $team_name;
 
 		// Now build up team data
 		$rows = array();

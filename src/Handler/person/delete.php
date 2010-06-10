@@ -14,7 +14,7 @@ class person_delete extends person_view
 	function process ()
 	{
 		global $lr_session;
-		$this->title = 'Delete';
+		$this->title = "{$this->person->fullname} &raquo; Delete";
 		$edit = $_POST['edit'];
 
 		/* Safety check: Don't allow us to delete ourselves */
@@ -28,11 +28,7 @@ class person_delete extends person_view
 			return $rc;
 		}
 
-		$this->setLocation(array(
-			$this->person->fullname => "person/view/" . $this->person->user_id,
-			$this->title => 0));
-
-		return 
+		return
 			para("Confirm that you wish to delete this user from the system.")
 			. $this->generateView($this->person)
 			. form( 

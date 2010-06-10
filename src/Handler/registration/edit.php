@@ -16,11 +16,7 @@ class registration_edit extends RegistrationHandler
 
 	function process ()
 	{
-		$this->title = 'Edit Registration';
-		$this->setLocation(array(
-			$this->registration->name => "registration/view/" .$this->registration->order_id,
-			$this->title => 0
-		));
+		$this->title = "{$this->registration->name} &raquo; Registration";
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {

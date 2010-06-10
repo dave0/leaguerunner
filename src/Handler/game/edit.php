@@ -32,10 +32,7 @@ class game_edit extends GameHandler
 	{
 		global $lr_session;
 
-		$this->title = "Game";
-
-		$this->setLocation(array(
-			"$this->title &raquo; Game " . $this->game->game_id => 0));
+		$this->title = "Game {$this->game->game_id}";
 
 		$edit = $_POST['edit'];
 

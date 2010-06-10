@@ -45,8 +45,6 @@ class person_activate extends person_edit
 		global $lr_session;
 
 		$edit = $_POST['edit'];
-		$this->title = "Activate Account";
-
 		$this->person = $lr_session->user;
 		if( ! $this->person ) {
 			error_exit("That account does not exist");
@@ -72,6 +70,9 @@ class person_activate extends person_edit
 				$edit = object2array($this->person);
 				$rc = $this->generateForm( $this->person->user_id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
+
+		$this->title = "{$this->person->fullname} &raquo; Activate";
+
 
 		return $rc;
 	}

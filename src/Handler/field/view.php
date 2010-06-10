@@ -12,7 +12,7 @@ class field_view extends FieldHandler
 	function process ()
 	{
 		global $lr_session;
-		$this->title= "View Field";
+		$this->title = "Field: " . $this->field->fullname;
 
 		$rows = array();
 		$rows[] = array("Field&nbsp;Name:", $this->field->name);
@@ -95,11 +95,6 @@ class field_view extends FieldHandler
 		if( !empty( $fieldRows ) ) {
 			$rows[] = array("Other fields at this site:", "<div class='listtable'>" . table($header,$fieldRows) . "</div>");
 		}
-
-		$this->setLocation(array(
-			$this->field->fullname => "field/view/" .$this->field->fid,
-			$this->title => 0
-		));
 
 		// Add sponsorship details
 		$sponsor = '';

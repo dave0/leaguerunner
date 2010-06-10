@@ -31,11 +31,9 @@ class slot_day extends Handler
 				error_exit("That date is not valid");
 			}
 			$formattedDay = strftime("%A %B %d %Y", mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->setLocation(array(
-				"$this->title &raquo; $formattedDay" => 0));
+			$this->title .= " &raquo; $formattedDay";
 			return $this->display_for_day( $this->yyyy, $this->mm, $this->dd );
 		} else {
-			$this->setLocation(array( "$this->title" => 0));
 			$output = para("Select a date below on which to view all available fields");
 			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'slot/day', 'slot/day');
 			return $output;

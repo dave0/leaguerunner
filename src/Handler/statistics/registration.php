@@ -19,7 +19,6 @@ class statistics_registration extends StatisticsHandler
 		global $CONFIG;
 
 		$this->title = 'Registration Statistics';
-		$this->setLocation(array($this->title => 0));
 
 		switch( $this->level ) {
 			case 'summary':

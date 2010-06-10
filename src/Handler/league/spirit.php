@@ -11,11 +11,7 @@ class league_spirit extends LeagueHandler
 	function process ()
 	{
 		global $dbh, $CONFIG;
-		$this->title = "League Spirit";
-
-		$this->setLocation(array(
-			$this->league->fullname => "league/spirit/". $this->league->league_id,
-			$this->title => 0));
+		$this->title = "{$this->league->fullname} Spirit";
 
 		/*
 		 * Grab schedule info

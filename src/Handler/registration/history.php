@@ -49,8 +49,6 @@ class registration_history extends PersonHandler
 		$header = array('Event', 'Order ID', 'Date', 'Payment');
 		$output = table($header, $rows);
 
-		$this->setLocation(array($this->title => 0));
-
 		return $output;
 	}
 }

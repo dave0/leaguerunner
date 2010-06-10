@@ -21,10 +21,7 @@ class game_delete extends GameHandler
 			error_exit("That game does not exist");
 		}
 
-		$this->title = "Game Delete";
-
-		$this->setLocation(array(
-			"$this->title &raquo; Delete Game " . $this->game->game_id => 0));
+		$this->title = "{$this->league->fullname} &raquo; Delete Game";
 
 		$edit = $_POST['edit'];
 

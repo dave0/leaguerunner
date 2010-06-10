@@ -23,8 +23,6 @@ class person_create extends person_edit
 	{
 		$edit = $_POST['edit'];
 
-		$this->title = 'Create Account';
-
 		$id = 'new';
 		switch($edit['step']) {
 			case 'confirm':
@@ -39,7 +37,9 @@ class person_create extends person_edit
 				$edit = array();
 				$rc = $this->generateForm( $id, $edit, "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . variable_get('password_reset', url('person/forgotpassword')) . "\">follow these instructions</a> to gain access to your account.");
 		}
-		$this->setLocation(array( $this->title => 0));
+
+		$this->title = 'Create Account';
+
 		return $rc;
 	}
 

@@ -17,9 +17,7 @@ class team_move extends TeamHandler
 
 		# Nuke HTML just in case
 		$team_name = check_form($this->team->name, ENT_NOQUOTES);
-		$this->setLocation(array(
-			$team_name => "team/view/" . $this->team->team_id,
-			"Move Team" => 0));
+		$this->title = "{$team_name} &raquo; Move";
 
 		$edit = $_POST['edit'];
 		if( $edit['step'] ) {

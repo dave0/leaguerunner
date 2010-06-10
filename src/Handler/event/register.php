@@ -35,10 +35,6 @@ class event_register extends EventHandler
 				}
 		}
 
-		$this->setLocation(array(
-			$this->event->name => "event/view/" .$this->event->registration_id,
-			$this->title => 0
-		));
 		return $rc;
 	}
 
@@ -46,7 +42,7 @@ class event_register extends EventHandler
 	{
 		global $CONFIG;
 
-		$this->title = 'Registration';
+		$this->title = "Registration &raquo; {$this->event->name}";
 
 		// This shouldn't happen...
 		if (! $this->formbuilder )

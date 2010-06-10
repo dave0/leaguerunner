@@ -10,12 +10,7 @@ class slot_delete extends SlotHandler
 
 	function process()
 	{
-		$this->title = "Delete Game Slot";
-
-		$this->setLocation(array( 
-			$slot->field->fullname => "field/view/" . $slot->field->fid,
-			$this->title => 0
-		));
+		$this->title = "{$this->slot->field->fullname} &raquo; Delete Gameslot {$this->slot->slot_id}";
 
 		switch($_POST['edit']['step']) {
 			case 'perform':
