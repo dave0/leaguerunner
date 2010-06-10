@@ -198,15 +198,19 @@ function menu_get_trail( $path = 0 )
 function menu_build( )
 {
 
-	global $lr_session;
+	global $lr_session, $CONFIG;
 
 	menu_add_child('','_root','Root of Menus');
 
-	# Handler/home.php
-	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
+	menu_add_child('_root', 'help', 'Help', array('link' => "{$CONFIG['paths']['base_url']}/data/howto.html", 'weight' => -25 ));
 
-	# Handler/login.php
-	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => 20));
+	if(! $lr_session->is_valid()) {
+		menu_add_child('_root','login','Log In', array('link' => 'logout', 'weight' => '20'));
+		return;
+	}
+
+	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => '20'));
+	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
 
 	if($lr_session->is_admin()) {
 		# Handler/settings.php
