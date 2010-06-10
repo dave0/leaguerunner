@@ -103,6 +103,7 @@ class login extends Handler
 		}
 
 		$this->smarty->assign('error', $error);
+		$this->smarty->assign('hide_sidebar', 1);
 		$this->template_name = 'pages/login.tpl';
 		return true;
 	}

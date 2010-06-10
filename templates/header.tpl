@@ -43,9 +43,9 @@
 <!-- end navbar -->
 <!-- end header -->
 <table width='100%'><tr>
-{if $session_valid}
-<td id='sidebar-left' width='160'><div class='menu'>{ $menu }</div></td>
-{else}
+{if $hide_sidebar}
 <td></td>
+{else}
+<td id='sidebar-left' width='160'><div class='menu'>{ $menu }</div></td>
 {/if}
 <td valign='top'><div id='main'>
