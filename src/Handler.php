@@ -14,12 +14,6 @@ class Handler
 	public $title;
 
 	/**
-	 * The operation this handler deals with.  Used for generating
-	 * self-referential links, form submission targets, etc.
-	 */
-	protected $op;
-
-	/**
 	 * Breadcrumbs.  Used for creating a trail of actions so that
 	 * users can backtrack.
 	 */
