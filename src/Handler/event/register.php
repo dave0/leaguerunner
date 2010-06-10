@@ -129,7 +129,7 @@ class event_register extends EventHandler
 			error_exit('Error saving registration question answers.');
 		}
 
-		return $output . para(theme_error('Your registration has been recorded.  See Payment Details below.'));
+		return $output . para('<b>Your registration has been recorded.  See Payment Details below.</b>');
 	}
 
 	/**
@@ -163,10 +163,10 @@ class event_register extends EventHandler
 			return false;
 		}
 		if( $team->perform( $auto_data ) ) {
-			return para( theme_error( 'A team record has been created with you as captain.' ) );
+			return para('A team record has been created with you as captain.');
 		}
 		else {
-			return para( theme_error( 'Failed to create the team record. Contact ' . variable_get('app_admin_email', 'webmaster@localhost') . ' to ensure that this situation is resolved.' ) );
+			return para('Failed to create the team record. Contact ' . variable_get('app_admin_email', 'webmaster@localhost') . ' to ensure that this situation is resolved.');
 		}
 	}
 
@@ -190,7 +190,7 @@ class event_register extends EventHandler
 					WHERE order_id = ?");
 			$sth->execute( array( $this->registration->order_id) );
 			if ( 1 != $sth->rowCount() ) {
-				$errors .= para( theme_error( "Your registration was received, but there was an error updating the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc." ) );
+				$errors .= para("Your registration was received, but there was an error updating the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc.");
 			}
 
 			$this->title = 'Registration complete';

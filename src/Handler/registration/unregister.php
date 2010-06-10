@@ -19,7 +19,7 @@ class registration_unregister extends RegistrationHandler
 			case 'submit':
 				$ok = $this->registration->delete();
 				if ( ! $ok ) {
-					error_exit ( para( theme_error( "There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved." ) ) );
+					error_exit ("There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved.") ;
 				}
 
 				$rc = para( 'You have been successfully unregistered for this event.' );

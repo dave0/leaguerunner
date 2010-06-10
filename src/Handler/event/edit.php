@@ -45,7 +45,7 @@ class event_edit extends EventHandler
 
 		$output .= form_radios('Event type', 'edit[type]', $data['type'], $this->event_types, 'Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration' );
 
-		$output .= form_textfield('Cost', 'edit[cost]', $data['cost'], 10, 10, 'Cost of this event, may be 0, ' . theme_error('not including GST'));
+		$output .= form_textfield('Cost', 'edit[cost]', $data['cost'], 10, 10, 'Cost of this event, may be 0, <b>not including GST</b>'));
 		$output .= form_textfield('GST', 'edit[gst]', $data['gst'], 10, 10, 'GST');
 		$output .= form_textfield('PST', 'edit[pst]', $data['pst'], 10, 10, 'PST');
 
