@@ -197,7 +197,7 @@ function handlePaymentResponse()
 				WHERE order_id = ?");
 		$sth->execute( array($short_order_id) );
 		if ( 1 != $sth->rowCount() ) {
-			$errors .= para( theme_error( "Your payment was approved, but there was an error updating your payment status in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
+			$errors .= para( "Your payment was approved, but there was an error updating your payment status in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc.");
 		}
 
 		// TODO: Specify explicit column names
@@ -220,7 +220,7 @@ function handlePaymentResponse()
 				$issuer, $issuer_invoice, $issuer_confirmation)
 		);
 		if ( 1 != $sth->rowCount() ) {
-			$errors .= para( theme_error( "There was an error updating the audit record in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc." ) );
+			$errors .= para("There was an error updating the audit record in the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_id</b>, or you may not be allowed to be added to rosters, etc.");
 		}
 
 		$file = variable_get('invoice_implementation', 'invoice');
@@ -229,8 +229,8 @@ function handlePaymentResponse()
 	}
 
 	else {
-		print para(theme_error('Your payment was declined. The reason given was:'));
-		print para(theme_error($message));
+		print para('Your payment was declined. The reason given was:');
+		print para($message);
 
 		print OfflinePaymentText($order_id);
 

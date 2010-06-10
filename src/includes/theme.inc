@@ -28,11 +28,6 @@ function theme_navbar($breadcrumbs = array())
 
 }
 
-function theme_error( $message ) 
-{
-	return "<span class=\"error\">$message</span>";
-}
-
 function theme_links($links, $delimiter = " | ")
 {
 	return implode($delimiter, $links);
