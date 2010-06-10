@@ -179,6 +179,7 @@ if($handler->initialize()) {
 		$smarty->assign('title', $handler->title);
 		$smarty->assign('navbar', theme_navbar( $handler->breadcrumbs) );
 		$smarty->assign('menu', menu_render('_root') );
+		$smarty->assign('request_uri', request_uri() );
 		if( $handler->template_name ) {
 			// This handler is using templates correctly.  No need for backwards-compat
 			$smarty->display( $handler->template_name );
