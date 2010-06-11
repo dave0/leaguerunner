@@ -26,7 +26,7 @@ class slot_create extends FieldHandler
 	{
 		$this->title = "Create Game Slot";
 
-		if($field->status != 'open') {
+		if($this->field->status != 'open') {
 			error_exit("That field is closed");
 		}
 
@@ -36,7 +36,7 @@ class slot_create extends FieldHandler
 			}
 			$datestamp = mktime(6,0,0,$this->mm,$this->dd,$this->yyyy);
 		} else {
-			return $this->datePick($field, $this->yyyy, $this->mm, $this->dd);
+			return $this->datePick($this->field, $this->yyyy, $this->mm, $this->dd);
 		}
 
 		$edit = &$_POST['edit'];
@@ -47,25 +47,25 @@ class slot_create extends FieldHandler
 			#   - insert into gameslot table
 			#   - insert availability for gameslot into availability table.
 			# the overlap-checking probably belongs in slot.inc
-				if ( $this->perform( $field, $edit, $datestamp) ) {
-					local_redirect(url("field/view/$field->fid"));
+				if ( $this->perform( $this->field, $edit, $datestamp) ) {
+					local_redirect(url("field/view/{$this->field->fid}"));
 				} else {
 					error_exit("Aieee!  Bad things happened in gameslot create");
 				}
 				break;
 			case 'confirm':
 				$this->setLocation(array(
-					"$field->fullname $field_num" => "field/view/$field->fid",
+					$this->field->fullname => "field/view/{$this->field->fid}",
 					$this->title => 0
 				));
-				return $this->generateConfirm($field, $edit, $datestamp);
+				return $this->generateConfirm($this->field, $edit, $datestamp);
 				break;
 			default:
 				$this->setLocation(array(
-					$field->fullname => "field/view/$field->fid",
+					$this->field->fullname => "field/view/{$this->field->fid}",
 					$this->title => 0
 				));
-				return $this->generateForm($field, $datestamp);
+				return $this->generateForm($this->field, $datestamp);
 				break;
 		}
 		error_exit("Error: This code should never be reached.");

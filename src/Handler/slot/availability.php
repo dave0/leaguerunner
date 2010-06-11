@@ -31,10 +31,10 @@ class slot_availability extends SlotHandler
 				break;
 			default:
 				$this->setLocation(array(
-					$slot->field->fullname => "field/view/" . $this->slot->fid,
+					$this->slot->field->fullname => "field/view/" . $this->slot->fid,
 					$this->title => 0
 				));
-				return $this->generateForm( $slot );
+				return $this->generateForm( $this->slot );
 		}
 	}
 
