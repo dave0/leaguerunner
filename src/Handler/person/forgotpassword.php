@@ -23,52 +23,15 @@ class person_forgotpassword extends Handler
 		}
 		switch($edit['step']) {
 			case 'perform':
-				$rc = $this->perform( $edit );
+				$this->template_name = 'pages/person/forgotpassword/result.tpl';
+				$this->perform( $edit );
 				break;
 			default:
-				$rc = $this->generateForm();
+				$this->template_name = 'pages/person/forgotpassword/form.tpl';
+				$this->smarty->assign('admin_addr', variable_get('app_admin_email', ''));
 		}
 
-		return $rc;
-	}
-
-	function generateForm()
-	{
-		$admin_addr = variable_get('app_admin_email', '');
-		$org = variable_get('app_org_short_name', 'league');
-		$output = <<<END_TEXT
-<p>
-	If you'd like to reset your password, please enter ONLY ONE OF:
-</p>
-END_TEXT;
-
-		$output .= "<div class='pairtable'>";
-		$output .= form(
-			form_hidden('edit[step]', 'perform')
-			. table( null, array(
-			array('Username', form_textfield('', 'edit[username]', '', 25, 100), form_submit("Submit"))
-		)));
-		$output .= form(
-			form_hidden('edit[step]', 'perform')
-			. table( null, array(
-			array('Email Address', form_textfield('', 'edit[email]', '', 40, 100), form_submit("Submit"))
-		)));
-		$output .= "</div>";
-
-		$output .=<<<END_TEXT
-<p>
-	If the information you provide matches an account, an email will be sent
-	to the address on file, containing login information and a new password.
-	If you don't receive an email within a few hours, you may not have
-	remembered your information correctly.
-</p>
-<p>
-  If you really can't remember any of these, you can mail <a
-  href="mailto:$admin_addr">$admin_addr</a> for support.  <b>DO NOT CREATE A NEW ACCOUNT!</b>
-</p>
-END_TEXT;
-
-		return form($output);
+		return true;
 	}
 
 	function perform ( $edit = array() )
@@ -118,20 +81,6 @@ END_TEXT;
 				error_exit("System was unable to send email to that user.  Please contact system administrator.");
 			}
 		}
-
-		$output = <<<END_TEXT
-<p>
-	The password for the user matching the criteria you've entered has been
-	reset to a randomly generated password.  The new password has been mailed
-	to that user's email address.  No, we won't tell you what that email 
-	address or user's name are -- if it's you, you'll know soon enough.
-</p><p>
-	If you don't receive an email within a few hours, you may not have
-	remembered your information correctly, or the system may be encountering
-	problems.
-</p>
-END_TEXT;
-		return $output;
 	}
 }
 
