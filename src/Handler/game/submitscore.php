@@ -72,7 +72,14 @@ class game_submitscore extends GameHandler
 				$rc = $this->generateFieldReportForm($edit, $opponent);
 				break;
 			default:
-				$rc = $this->generateForm( $opponent );
+				$this->template_name = 'pages/game/submitscore/step1.tpl';
+				$this->smarty->assign('game', $this->game);
+				$this->smarty->assign('default_winning_score', variable_get('default_winning_score', 6));
+				$this->smarty->assign('default_losing_score', variable_get('default_losing_score', 6));
+				$this->smarty->assign('team', $this->team);
+				$this->smarty->assign('opponent', $opponent);
+				$this->smarty->assign('opponent_entry', $opponent_entry = $this->game->get_score_entry( $opponent->team_id ) );
+				$rc = true;
 		}
 
 		return $rc;
@@ -280,82 +287,6 @@ class game_submitscore extends GameHandler
 		$output .= para(form_submit('Submit'));
 
 		return form($output);
-	}
-
-	function generateForm ( $opponent )
-	{
-		$output = para( "Submit the score for the "
-			. $this->game->sprintf('short')
-			. " between " . $this->team->name . " and $opponent->name.");
-		$output .= para("If your opponent has already entered a score, it will be displayed below.  If the score you enter does not agree with this score, posting of the score will be delayed until your coordinator can confirm the correct score.");
-
-		$output .= form_hidden('edit[step]', 'fieldreport');
-
-		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
-
-		if($opponent_entry) {
-			if($opponent_entry->defaulted == 'us') {
-				$opponent_entry->score_for .= " (defaulted)";
-			} else if ($opponent_entry->defaulted == 'them') {
-				$opponent_entry->score_against .= " (defaulted)";
-			}
-
-		} else {
-			$opponent_entry->score_for = "not yet entered";
-			$opponent_entry->score_against = "not yet entered";
-		}
-
-		$rows = array();
-		$header = array( "Team Name", "Defaulted?", "Your Score Entry", "Opponent's Score Entry");
-
-		$rows[] = array(
-			$this->team->name,
-			"<input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'>",
-			form_textfield("","edit[score_for]","",2,2),
-			$opponent_entry->score_against
-		);
-
-		$rows[] = array(
-			$opponent->name,
-			"<input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'>",
-			form_textfield("","edit[score_against]","",2,2),
-			$opponent_entry->score_for
-		);
-
-		$output .= '<div class="listtable">' . table($header, $rows) . "</div>";
-		$output .= para(form_submit("Next Step") . form_reset("reset"));
-
-		$win = variable_get('default_winning_score', 6);
-		$lose = variable_get('default_losing_score', 0);
-
-		$script = <<<ENDSCRIPT
-<script type="text/javascript"> <!--
-  function defaultCheckboxChanged() {
-	form = document.getElementById('score_form');
-    if (form.elements['edit[defaulted]'][0].checked == true) {
-        form.elements['edit[score_for]'].value = "$lose";
-        form.elements['edit[score_for]'].disabled = true;
-        form.elements['edit[score_against]'].value = "$win";
-        form.elements['edit[score_against]'].disabled = true;
-        form.elements['edit[defaulted]'][1].disabled = true;
-    } else if (form.elements['edit[defaulted]'][1].checked == true) {
-        form.elements['edit[score_for]'].value = "$win";
-        form.elements['edit[score_for]'].disabled = true;
-        form.elements['edit[score_against]'].value = "$lose";
-        form.elements['edit[score_against]'].disabled = true;
-        form.elements['edit[defaulted]'][0].disabled = true;
-    } else {
-        form.elements['edit[score_for]'].disabled = false;
-        form.elements['edit[score_against]'].disabled = false;
-        form.elements['edit[defaulted]'][0].disabled = false;
-        form.elements['edit[defaulted]'][1].disabled = false;
-    }
-  }
-// -->
-</script>
-ENDSCRIPT;
-
-		return $script . form($output, 'post', null, 'id="score_form"');
 	}
 
 	function interim_game_result( $edit, $opponent )
