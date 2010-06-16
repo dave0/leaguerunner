@@ -26,6 +26,9 @@ class game_submitscore extends GameHandler
 
 		$this->get_league();
 
+		$this->spirit = new Spirit;
+		$this->spirit->entry_type = $this->league->enter_sotg;
+
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");
 		}
@@ -60,15 +63,19 @@ class game_submitscore extends GameHandler
 
 		switch($edit['step']) {
 			case 'save':
+				$this->template_name = 'pages/game/submitscore/result.tpl';
 				$rc = $this->perform($edit, $opponent, $spirit);
 				break;
 			case 'confirm':
+				$this->template_name = 'pages/game/submitscore/step4.tpl';
 				$rc = $this->generateConfirm($edit, $opponent, $spirit);
 				break;
 			case 'spirit':
+				$this->template_name = 'pages/game/submitscore/step3.tpl';
 				$rc = $this->generateSpiritForm($edit, $opponent);
 				break;
 			case 'fieldreport';
+				$this->template_name = 'pages/game/submitscore/step2.tpl';
 				$rc = $this->generateFieldReportForm($edit, $opponent);
 				break;
 			default:
@@ -134,11 +141,8 @@ class game_submitscore extends GameHandler
 	{
 		global $lr_session, $dbh;
 
-		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
-
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$questions = $s->as_formbuilder();
+			$questions = $this->spirit->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -151,7 +155,7 @@ class game_submitscore extends GameHandler
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			// Save the spirit entry if non-default
-			if( !$s->store_spirit_entry( $this->game, $opponent->team_id, $lr_session->attr_get('user_id'), $questions->bulk_get_answers()) ) {
+			if( !$this->spirit->store_spirit_entry( $this->game, $opponent->team_id, $lr_session->attr_get('user_id'), $questions->bulk_get_answers()) ) {
 				error_exit("Error saving spirit entry for " . $this->team->team_id);
 			}
 		}
@@ -177,17 +181,10 @@ class game_submitscore extends GameHandler
 		// now, check if the opponent has an entry
 		if( ! $this->game->get_score_entry( $opponent->team_id ) ) {
 			// No, so we just mention that it's been saved and move on
-			$resultMessage = para('This score has been saved.  Once your opponent has entered their score, it will be officially posted.');
+			$this->smarty->assign('have_opponent_entry', false);
 		} else {
-			// Otherwise, both teams have an entry.  So, attempt to finalize using
-			// this information.
-			if( $this->game->finalize() ) {
-				$resultMessage = para('This score agrees with the score submitted by your opponent.  It will now be posted as an official game result.');
-			} else {
-				// Or, we have a disagreement.  Since we've already saved the
-				// score, just say so, and continue.
-				$resultMessage = para('This score doesn\'t agree with the one your opponent submitted.  Because of this, the score will not be posted until your coordinator approves it.');
-			}
+			$this->smarty->assign('have_opponent_entry', true);
+			$this->smarty->assign('finalized', $this->game->finalize());
 		}
 
 		return $resultMessage;
@@ -209,18 +206,13 @@ class game_submitscore extends GameHandler
 			$edit['defaulted'] = 'no';
 		}
 
-		$output = $this->interim_game_result($edit, $opponent);
-		$edit['step'] = 'spirit';
-		$output .= $this->hidden_fields ('edit', $edit);
+		# TODO: smartyification
+		$this->smarty->assign('interim_game_result', $this->interim_game_result($edit, $opponent));
+		$this->smarty->assign('league_name', variable_get('app_org_short_name', 'the league'));
+		$this->smarty->assign('hidden_fields', $edit);
 
-		$short_name = variable_get('app_org_short_name', 'the league');
-		$output .= para("Since $short_name is unable to do daily inspections of all of the fields it uses, we need your feedback.  Do there appear to be any changes to the field (damage, water etc) that $short_name should be aware of?");
+		return true;
 
-		$output .= form_textarea('','edit[field_report]', '', 70, 5, 'Please enter a description of any issues, or leave blank if there is nothing to report');
-
-		$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
-
-		return form($output, 'post');
 	}
 
 	function generateSpiritForm ($edit, $opponent )
@@ -239,28 +231,21 @@ class game_submitscore extends GameHandler
 			$edit['defaulted'] = 'no';
 		}
 
-		$output = $this->interim_game_result($edit, $opponent);
-		$edit['step'] = 'confirm';
-		$output .= $this->hidden_fields ('edit', $edit);
+		$this->smarty->assign('interim_game_result', $this->interim_game_result($edit, $opponent));
+		$this->smarty->assign('hidden_fields', $edit);
 
-		$output .= para("Now you must rate your opponent's Spirit of the Game.");
-		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
-		$output .= para("Please fill out the questions below.");
-		$questions = $s->as_formbuilder();
-		$questions->bulk_set_answers( $s->default_spirit_answers() );
-		$output .= $questions->render_editable( true );
-		$output .= para(form_submit("Next Step", "submit") . form_reset("reset"));
+		# TODO smartyification?
+		$questions = $this->spirit->as_formbuilder();
+		$questions->bulk_set_answers( $this->spirit->default_spirit_answers() );
+		$this->smarty->assign('spirit_form_questions', $questions->render_editable( true ));
 
-		return form($output, 'post', null, 'id="score_form"');
+		return true;
 	}
 
 	function generateConfirm ($edit, $opponent, $spirit = null )
 	{
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$s = new Spirit;
-			$s->entry_type = $this->league->enter_sotg;
-			$questions = $s->as_formbuilder();
+			$questions = $this->spirit->as_formbuilder();
 			$questions->bulk_set_answers( $spirit );
 		} else {
 			$questions = null;
@@ -271,22 +256,15 @@ class game_submitscore extends GameHandler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$output = $this->interim_game_result($edit, $opponent);
-
-		$edit['step'] = 'save';
-		$output .= $this->hidden_fields ('edit', $edit);
-		$output .= $this->hidden_fields ('spirit', $spirit);
+		$this->smarty->assign('interim_game_result', $this->interim_game_result($edit, $opponent));
+		$this->smarty->assign('edit_hidden_fields', $edit);
+		$this->smarty->assign('spirit_hidden_fields', $spirit);
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
-			$output .= para('The following answers will be shown to your coordinator:');
-			$output .= $questions->render_viewable();
+			$this->smarty->assign('spirit_answers', $questions->render_viewable());
 		}
 
-		$output .= para("If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.");
-
-		$output .= para(form_submit('Submit'));
-
-		return form($output);
+		return true;
 	}
 
 	function interim_game_result( $edit, $opponent )
@@ -338,16 +316,6 @@ class game_submitscore extends GameHandler
 			$output .= para("You have also submitted the following field report:<blockquote>" . $edit['field_report'] . "</blockquote>");
 		}
 
-		return $output;
-	}
-
-	function hidden_fields ($group, $fields)
-	{
-		$output = '';
-		if (is_array($fields) && !empty ($fields)) {
-			foreach ($fields as $name => $value)
-				$output .= form_hidden("{$group}[$name]", $value);
-		}
 		return $output;
 	}
 }
