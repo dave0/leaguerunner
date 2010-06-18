@@ -219,3 +219,29 @@ li.active a {
 	padding: 3px;
 	margin: 3px;
 }
+
+th {
+	text-align: left;
+}
+
+/* Datatables jquery plugin */
+.sorting_asc {
+        background: url('image/datatables/sort_asc.png') no-repeat center right;
+}
+
+.sorting_desc {
+        background: url('image/datatables/sort_desc.png') no-repeat center right;
+}
+
+.sorting {
+        background: url('image/datatables/sort_both.png') no-repeat center right;
+}
+
+/* Zebra */
+tbody tr.even td {
+	background-color: #eee;
+}
+tbody tr.odd td {
+	background-color: #fff;
+}
+
