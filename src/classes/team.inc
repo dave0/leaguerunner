@@ -111,10 +111,36 @@ class Team extends LeaguerunnerObject
 		}
 	}
 
+	function check_roster_conflict()
+	{
+		global $dbh;
+
+		foreach($this->roster as $player) {
+			$sth = $dbh->prepare("SELECT COUNT(*) from
+					league l, leagueteams t, teamroster r
+				WHERE
+					l.year = ? AND l.season = ? AND l.day = ?
+					AND r.status != 'substitute'
+					AND l.schedule_type != 'none'
+					AND l.league_id = t.league_id
+					AND l.status = 'open'
+					AND t.team_id = r.team_id
+					AND r.player_id = ?");
+			$sth->execute(array(
+				$this->league_year,
+				$this->league_season,
+				$this->league_day,
+				$player->id
+			));
+
+			$player->roster_conflict = ($sth->fetchColumn() > 1);
+		}
+	}
+
 	function count_players()
 	{
 		global $dbh;
-		
+
 		if( is_null($this->_player_count) ) {
 			$sth = $dbh->prepare("SELECT COUNT(r.player_id)
 				FROM teamroster r

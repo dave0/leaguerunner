@@ -1100,8 +1100,8 @@ function getRosterPositions()
 		'captain_request'   => "request to join by captain",
 		'player_request'    => "request to join by player",
 		'coach'	            => "coach",
-		'captain'	        => "captain",
-		'assistant'	        => "assistant captain",
+		'captain'	    => "captain",
+		'assistant'	    => "assistant captain",
 		'none'              => "not on team",
 	);
 }
