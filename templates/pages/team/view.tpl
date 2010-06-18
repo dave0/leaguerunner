@@ -36,7 +36,7 @@
        {/foreach}
 	</tbody>
 	<tfoot>
-	<tr><th colspan="3">Average Skill Rating</th><th></th></tr>
+	<tr><th colspan="3">Average Skill Rating</th><th></th>{if $display_shirts}<th></th>{/if}<th></th></tr>
 	</tfoot>
 </table>
 </td></tr>
@@ -51,7 +51,7 @@ var positionSort = {
 	'{$roster_positions.substitute}'      : 4,
 	'{$roster_positions.player_request}'  : 5,
 	'{$roster_positions.captain_request}' : 6,
-	'{$roster_positions.coach}'           : 0,
+	'{$roster_positions.coach}'           : 0
 {literal}
 };
 jQuery.fn.dataTableExt.oSort['roster-position-desc']  = function(a,b) {
@@ -73,13 +73,13 @@ $(document).ready(function() {
 		aaSorting: [[ 1, "desc" ],[2,"desc"], [0, "asc"] ],
 		aoColumns: [
 			{ "sType" : "html" },
-			{ "sType" : "roster-position",  },
+			{ "sType" : "roster-position"  },
 			null,
 			null,
 {/literal}{if $display_shirts}
 			null,
 {/if}{literal}
-			{ "sType" : "string" },
+			{ "sType" : "string" }
 		],
 		"fnFooterCallback": function ( nRow, aaData, iStart, iEnd, aiDisplay ) {
 			var totalskill = 0;
