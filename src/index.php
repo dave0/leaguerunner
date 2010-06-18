@@ -105,6 +105,7 @@ lr_configure_sessions();
 /* TODO Hack! */
 $smarty->assign('session_valid', $lr_session->is_valid() );
 $smarty->assign('session_fullname', $lr_session->attr_get('fullname') );
+$smarty->assign('session_userid', $lr_session->attr_get('user_id'));
 
 // Headers have not been sent yet
 global $headers_sent;
