@@ -14,17 +14,17 @@ $smarty->cache_dir    = $CONFIG['smarty']['cache_dir'];
 $smarty->register_function('lr_url', 'smarty_lr_url');
 function smarty_lr_url($params, &$smarty)
 {
-  if(empty($params['path'])) {
-    $path = NULL;
-  } else {
-    $path = $params['path'];
-  }
-  if(empty($params['query'])) {
-    $query = NULL;
-  } else {
-    $query = $params['query'];
-  }
-  return url( $path, $query);
+        if(empty($params['path'])) {
+                $path = NULL;
+        } else {
+                $path = $params['path'];
+        }
+        if(empty($params['query'])) {
+                $query = NULL;
+        } else {
+                $query = $params['query'];
+        }
+        return url( $path, $query);
 }
 
 $smarty->register_function('hidden_fields', 'smarty_hidden_fields');
@@ -40,6 +40,20 @@ function smarty_hidden_fields($params, &$smarty)
 		}
 	}
 	return $output;
+}
+
+$smarty->register_block('if_session_permission', 'smarty_if_session_permission');
+function smarty_if_session_permission($params, $content, &$smarty, &$repeat)
+{
+        global $lr_session;
+
+        // Do nothing on opening tag
+        if( $repeat ) { return; }
+
+        list($module, $action, $a1, $a2) = preg_split("/\//", $params['path']);
+        if( $lr_session->has_permission( $module, $action, $a1, $a2 ) ) {
+                return $content;
+        }
 }
 
 $smarty->register_modifier('utf8', 'smarty_modifier_utf8');
