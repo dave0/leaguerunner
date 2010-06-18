@@ -51,14 +51,7 @@ try {
 	die();
 }
 
-require_once( $CONFIG['smarty']['smarty_path'] . '/Smarty.class.php');
-
-$smarty = new Smarty();
-
-$smarty->template_dir = $CONFIG['smarty']['template_dir'];
-$smarty->compile_dir = $CONFIG['smarty']['compile_dir'];
-$smarty->cache_dir = $CONFIG['smarty']['cache_dir'];
-#$smarty->config_dir = $CONFIG['smarty']['config_dir'];
+require_once("includes/smarty.php");
 
 require_once("includes/common.inc");
 require_once("includes/menu.inc");
@@ -70,10 +63,10 @@ require_once("includes/mail/php.inc");
 $conf = variable_init();
 
 // Set some template defaults
+global $smarty;
 $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_version', '2.7');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
-
 
 require_once("classes/lrobject.inc");
 require_once("classes/field.inc");

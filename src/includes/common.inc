@@ -365,7 +365,6 @@ function url($url = NULL, $query = NULL) {
   }
 }
 
-
 function format_street_address( $street, $city, $province, $country, $postalcode)
 {
 	$arr = array ($city, $province);
