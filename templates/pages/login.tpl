@@ -1,11 +1,11 @@
-{include file=header.tpl}
+{include file=header.tpl title=Login}
 <div id="loginbox">
 	{if $error}
 	<div style='padding-top: 2em;'>
 	{include file=components/errormessage.tpl message=$error}
 	</div>
 	{/if}
-	<form name="login" action="{$request_uri}"  method="post">
+	<form name="login" action="{lr_url path="login"}" method="post">
 	<div id="form_login" style="display: block;">
 		<label for="username">Username:</label>
 			<input type="text" name="edit[username]" id="username" style="width: 170px;" maxlength="50" value=""  /><br />
