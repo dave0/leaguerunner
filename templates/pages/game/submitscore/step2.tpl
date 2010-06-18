@@ -6,11 +6,42 @@ Since {$league_name} is unable to do daily inspections of all of the fields it
 uses, we need your feedback.  Do there appear to be any changes to the field
 (damage, water etc) that {$league_name} should be aware of?
 </p>
-<form method="post">
-<div class="form-item"><textarea wrap="virtual" cols="70" rows="5" name="edit[field_report]" id="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
+<form method="post" id="field_report_form">
+
+<div class="form-item">
+	<div class="description">Were there any issues to report?</div>
+	<input type="radio" class="form-radio" name="enable_textarea" value="Yes" /> Yes
+	<input type="radio" class="form-radio" name="enable_textarea" value="No" /> No
+</div>
+<div id="fieldreport" class="form-item"><textarea id="fieldreport_text" wrap="virtual" cols="70" rows="5" name="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
 <p>
+
 {hidden_fields fields=$hidden_fields}
 <input type="hidden" name="edit[step]" value="spirit" />
 <input type="submit" class="form-submit" name="submit" value="Next Step" />
 <input type="reset" class="form-reset" name="reset" value="reset" />
+<script language="javascript">
+{literal}
+$(document).ready(function(){
+	$("#fieldreport").hide();
+});
+
+$('input[type=radio][name=enable_textarea]').click(function(){
+	if($(this).val() == 'Yes') {
+		$("#fieldreport").show();
+	} else {
+		$("#fieldreport").hide();
+	}
+});
+
+$('#field_report_form').submit(function(){
+	var want_report = $('input[type=radio][name=enable_textarea]:checked').val();
+	if(want_report == 'No') {
+		$('textarea#fieldreport_text').val("");
+	}
+	return true;
+});
+
+{/literal}
+</script>
 {include file=footer.tpl}
