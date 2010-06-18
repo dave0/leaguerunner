@@ -13,7 +13,7 @@ class team_view extends TeamHandler
 	{
 		global $lr_session, $dbh;
 
-		$this->title = $team_name;
+		$this->title = $this->team->name;
 
 		$this->template_name = 'pages/team/view.tpl';
 		$this->smarty->assign('team', $this->team);
