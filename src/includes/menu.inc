@@ -226,9 +226,6 @@ function menu_build( )
 	# Handler/field.php
 	menu_add_child('_root','field','Fields');
 	menu_add_child('field','field/list','list fields', array('link' => 'field/list') );
-	if( $lr_session->has_permission('field','list','closed') ) {
-		menu_add_child('field','field/list/closed','list closed fields', array('weight' => 3, 'link' => 'field/list/closed') );
-	}
 	if( $lr_session->has_permission('field','create') ) {
 		menu_add_child('field','field/create','create field', array('weight' => 6, 'link' => 'field/create') );
 	}
