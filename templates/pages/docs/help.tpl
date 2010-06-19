@@ -1,16 +1,14 @@
-<html>
-<head>
-	<title>Leaguerunner Online System How To Guide</title>
-	<link rel='stylesheet' href="/leaguerunner/css/style.css" type="text/css">
-	<style>
-		h2 { text-decoration: underline; }
-		h3 { margin-left: 10pt; }
-		p { margin-left: 20pt; }
-	</style>
-</head>
-<body>
-
-<h1>Leaguerunner Online System How To Guide</h1>
+{include file="header.tpl"}
+<script type="text/javascript" src="{$base_url}/js/table-of-contents.js"></script>
+{literal}
+<style type="text/css">
+	#toc { background-color: #F0F0F0; padding: 1em; }
+        #toc a { display:block;}
+        #toc a[title=H2] { font-size:14px;}
+        #toc a[title=H3] { font-size:12px;}
+</style>
+{/literal}
+<h1>{$title}</h1>
 
 <p>
 This document outlines the way the <b>OCUA Leaguerunner</b> system works.  
@@ -21,54 +19,17 @@ things you're trying to do that aren't covered here.  If you have any questions,
 hesitate to contact <a href="mailto:webmaster@ocua.ca">the webmasters</a></i></p>
 
 <p>If there are specific questions you're looking for the answers to, check out
-the <a href="faq.html">Leaguerunner FAQ</a>.</p>
+the <a href="{lr_url path="docs/faq"}">Leaguerunner FAQ</a>.</p>
 
 <!--  Table Of Contents -->
-<table border="0" cellpadding="15"><tr bgcolor="#f0f0f0"><td>
-<a name="toc"><b>Table Of Contents</b></a>
-	<ol type="A">
-	<li><a href="#A">General</a></li>
-		<ol type="1">
-			<li><a href="#A.1">Create a new account</a></li>
-			<li><a href="#A.2">Login</a></li>
-			<li><a href="#A.3">Forgot your login information</a></li>
-			<li><a href="#A.4">Edit your information</a></li>
-			<li><a href="#A.5">Change your password</a></li>
-			<li><a href="#A.6">What can people see?</a></li>
-		</ol>
-	<li><a href="#B">Player</a></li>
-		<ol type="1">
-			<li><a href="#B.1">Join a team</a></li>
-			<li><a href="#B.2">Leave a team</a></li>
-		</ol>
-	<li><a href="#C">Captain</a></li>
-		<ol type="1">
-			<li><a href="#C.1">Create a new team</a></li>
-			<li><a href="#C.2">Add a co-captain</a></li>
-			<li><a href="#C.3">Add a player to your team</a></li>
-			<li><a href="#C.4">Accept a player on your team</a></li>
-			<li><a href="#C.5">Submit game score</a></li>
-			<li><a href="#C.6">Open / close your team to new members</a></li>
-		</ol>
-	<li><a href="#D">Coordinator</a></li>
-		<ol type="1">
-			<li><a href="#D.1">Move teams between tiers</a></li>
-			<li><a href="#D.2">Edit a tier's configuration</a></li>
-			<li><a href="#D.3">Add a week to a schedule</a></li>
-			<li><a href="#D.4">Edit an existing week in a schedule</a></li>
-			<li><a href="#D.5">Fix mismatched scores</a></li>
-			<li><a href="#D.6">Start a new round</a></li>
-		</ol>
-	</ol>
-	
-</td></tr></table>
-
-<hr align="center" width="75%" />
+<div id="toc">
+<b>Table Of Contents</b>
+</div>
 
 <!-- Start General Section -->
-<h2><a name="A">A. General</a></h2>
+<h2>General</h2>
 
-<h3><a name="A.1">A.1. Create a new account</a></h3>
+<h3>Create a new account</h3>
 
 <p>In order to do anything in the system, you have to have an account.  To start the process, 
 go to the <a href="/leaguerunner/">login page</a> and click on <b>Create new account</b>.  You 
@@ -87,8 +48,8 @@ password emailed to you.</p>
 be asked to:</p>
 
 <ol type="a" style="margin-left: 20pt;">
-	<li>Sign the <a href="/leaguerunner/index.php?op=system_viewfile&file=player_waiver">waiver form</a></li>
-	<li>Optionally sign the <a href="/leaguerunner/index.php?op=system_viewfile&file=dog_waiver">Dog owner waiver form</a> if you intend to bring your dog(s) to games.</li>
+	<li>Sign the <a href="{lr_url path="person/signwaiver"}">waiver form</a></li>
+	<li>Optionally sign the <a href="{lr_url path="person/signdogwaiver"}">dog owner waiver form</a> if you intend to bring your dog(s) to games.</li>
 </ol>
 
 <p>If you do not sign either of the waver forms your account will not become active, and you can't register with 
@@ -96,13 +57,13 @@ your team(s).</p>
 
 <p>Once you're done all that, you can start using the rest of the system.</p>
 
-<h3><a name="A.2">A.2. Login</a></h3>
+<h3>Login</h3>
 
 <p>Simply go to the <a href="/leaguerunner/">login page</a> and enter your username and password.  If you've 
 forgotten your username and / or password then get you can <a href="#A.3">get a reminder emailed to you</a>.  
 If you don't have an account yet, you have to <a href="#A.1">create one first</a>.</p>
 
-<h3><a name="A.3">A.3. Forgot your login information</a></h3>
+<h3>Forgot your login information</h3>
 
 <p>If you've forgotten your username and / or your password, then you can get a reminder emailed to you.  Go to 
 the <a href="/leaguerunner/">login page</a> and click on <b>Forgot your password?</b>.  You will be brought to 
@@ -112,18 +73,18 @@ membership number or your username and you don't have access to your email addre
 will need to contact <a href="mailto:leaguerunner@ocua.ca">the leaguerunner administrator</a> and provide your full name, street address, 
 and date of birth so that we can confirm that you are in fact you.</p>
 
-<h3><a name="A.4">A.4. Edit Your Information</a></h3>
+<h3>Edit Your Information</h3>
 
 <p>If any of your contact information has changed from when you first created your account, then you'll need to 
 update it.  First of all, <a href="/leaguerunner/">login to the system</a>.
 Then, from the sidebar menu, click on <b>My Account</b>, and then <b>edit</b>.
 Once you've updated all the appropriate info, hit <b>submit</b>.  You will see a confirmation page, so check that all your information is correct, then submit again and you're done.</p>
 
-<h3><a name="A.5">A.5. Change your password</a></h3>
+<h3>Change your password</h3>
 
 <p>Login, click on <b>My Account</b> from the left menu, then click "change password" and follow the directions.</p>
 
-<h3><a name="A.6">A.6. What can people see?</a></h3>
+<h3>What can people see?</h3>
 
 <p>When you are entering / editing your personal information, there are check
 boxes next to your email address and phone numbers.  If you check one of those
@@ -148,9 +109,9 @@ webmaster</a>.</p>
 <hr align="center" width="75%" />
 
 <!-- Start Player's Section -->
-<h2><a name="B">B. Players</a></h2>
+<h2>Players</h2>
 
-<h3><a name="B.1">B.1. Join a team</a></h3>
+<h3>Join a team</h3>
 
 <p>There are two ways to become part of a team:</p>
 <ol type="a"  style="margin-left: 20pt;">
@@ -166,7 +127,7 @@ webmaster</a>.</p>
 	regular, a substitute, or removing yourself from the team.</li>
 </ol>
 
-<h3><a name="B.2">B.2. Leave a team</a></h3>
+<h3>Leave a team</h3>
 
 <p>To leave a team you are currently on, first view the team, and then click on
 the position next to your name in the roster list.  Select <b>remove from
@@ -177,9 +138,9 @@ team</b> and you're done.</p>
 <hr align="center" width="75%" />
 
 <!-- Start Captain's Section -->
-<h2><a name="C">C. Captains</a></h2>
+<h2>Captains</h2>
 
-<h3><a name="C.1">C.1. Create a new team</a></h3>
+<h3>Create a new team</h3>
 
 <p>If you are captaining a brand new team then you need to create the team in
 the system.  To do so, click on the <b>create team</b> item in the side menu.
@@ -193,7 +154,7 @@ teams.  In order to make it easy to differentiate between the teams, please
 append something that indicates which night the team is for (<i>eg:</i> Fuzzy
 Pickles - Monday)</p>
 
-<h3><a name="C.2">C.2. Add a co-captain</a></h3>
+<h3>Add a co-captain</h3>
 
 <p>All teams in the system should have two captains on the team.  To mark
 someone as a team captain or assistant captain, go to the info page for the
@@ -202,7 +163,7 @@ Select captain or assistant from the list and you're done.</p>
 
 <p><b>Please note:</b> Each team must have at least one captain and one assistant (or two captains, if you so choose).</p>
 
-<h3><a name="C.3">C.3. Add a player to your team</a></h3>
+<h3>Add a player to your team</h3>
 
 <p>Rather then waiting for your players to add themselves to your team's
 roster, you can go out and add them instead.  You do this by going to the team
@@ -213,7 +174,7 @@ you're looking for.  Click on <b>add player</b> and you're done.</p>
 <p><b>Please note:</b> The person you added to your team still has to log in
 and confirm that they are on your team before the addition is official.</p>
 
-<h3><a name="C.4">C.4. Accept a player on your team</a></h3>
+<h3>Accept a player on your team</h3>
 
 <p>Your players can go onto the system and add themselves to your team.
 However, you still have to accept them onto your team before they are official
@@ -232,7 +193,7 @@ game, and the SOTG score for your opponents, and hit submit.</p>
 <p>Standings aren't updated until both captains have submitted matching scores.  If your score entry and your opponent's don't 
 match, then the coordinator will need to resolve the discrepancy before the final results are reflected in the standings.</p>
 
-<h3><a name="C.6">C.6. Open / close your team to new members</a></h3>
+<h3>Open / close your team to new members</h3>
 
 <p>Team rosters can have one of two states: open or closed.  If a team is closed, then only the team captain(s) can add 
 new players to their team (still requires player to accept).  If a team is open, individuals can add themselves to your 
@@ -247,9 +208,9 @@ the appropriate new state.</p>
 <hr align="center" width="75%" />
 
 <!-- Start Coordinator's Section -->
-<h2><a name="D">D. Coordinator</a></h2>
+<h2>Coordinator</h2>
 
-<h3><a name="D.1">D.1. Move teams between tiers</a></h3>
+<h3>Move teams between tiers</h3>
 
 <p>Once your tiers are created, you'll need to move teams into them.  The first
 step is to find the team(s) you are looking to move.  Unassigned teams can be
@@ -258,9 +219,9 @@ season, and then <b>view</b>.  Next to the team you want click on <b>move
 team</b>.  You will be presented with a list of the tiers you control.  Select
 the tier in which the team should be placed, and hit submit.</p>
 
-<h3><a name="D.2">D.2. Edit a tier's configuration</a></h3>
+<h3>Edit a tier's configuration</h3>
 
-<h3><a name="D.3">D.3. Add a week to a schedule</a></h3>
+<h3>Add a week to a schedule</h3>
 
 <p>Start by accessing the schedule page for the tier you want to work on.  Click on the <b>Add a week</b> 
 link at the bottom of the schedule page.  You'll be presented with a calendar.  Click on the date you want to 
@@ -269,32 +230,21 @@ add games for.  Now, fill in the matchups and field assignments for the games an
 <p>If you need to create a double header on a particular date, simply repeat the above steps for the date 
 of the double header.</p>
 
-<h3><a name="D.4">D.4. Edit an existing week in a schedule</a></h3>
+<h3>Edit an existing week in a schedule</h3>
 
 <p>So, you've already entered you schedule into the system but you've gotta fix something.  Here's what you do.
 Go and view the schedule for the tier you want to edit, and click on the <b>edit week</b> link in the week's 
 title box.  Once you've made your changes, hit submit.</p>
 
-<h3><a name="D.5">D.4. Fix mismatched scores</a></h3>
+<h3>Fix mismatched scores</h3>
 
 <p>
 
-<h3><a name="D.6">D.5. Start a new round</a></h3>
+<h3>Start a new round</h3>
 
 <p>When one Round Robin has come to an end and it's time to start the 2nd, the first thing you should do is to 
 <a href="D.2">edit your tier's info</a> to indicate the new round.  This will set the default value for <b>round</b> 
 to be the new round when adding weeks to the schedule, and will also start a new set of standings on the standings grid.</p>
 
 <p><font size="-2"><a href="#toc">Back to top</a></font></p>
-
-<hr align="center" width="75%" />
-
-<font size ="-2">
-<i>
-<!--#config timefmt="%R %Z, %B %d, %Y"-->
-Last updated <!--#echo var="LAST_MODIFIED"-->
-<br />
-Maintained by the <A HREF="mailto:webmaster@ocua.ca">OCUA Webteam</A>
-</i></font>
-</body>
-</html>
+{include file="footer.tpl"}

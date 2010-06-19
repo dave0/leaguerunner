@@ -202,7 +202,7 @@ function menu_build( )
 
 	menu_add_child('','_root','Root of Menus');
 
-	menu_add_child('_root', 'help', 'Help', array('link' => "{$CONFIG['paths']['base_url']}/data/howto.html", 'weight' => -25 ));
+	menu_add_child('_root', 'help', 'Help', array('link' => "docs/help", 'weight' => -25 ));
 
 	if(! $lr_session->is_valid()) {
 		menu_add_child('_root','login','Log In', array('link' => 'logout', 'weight' => '20'));

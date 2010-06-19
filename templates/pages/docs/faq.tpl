@@ -1,16 +1,15 @@
-<html>
-  <head>
-    <title>Leaguerunner Online System FAQ</title>
-    <link rel='stylesheet' href="/leaguerunner/css/style.css" type="text/css">
-    <style>
-      h2 { text-decoration: underline; }
-      h3 { margin-left: 10pt; }
-      p { margin-left: 20pt; }
-    </style>
-  </head>
-  <body>
-  <h1>Leaguerunner Online System FAQ</h1>
+{include file="header.tpl"}
+<script type="text/javascript" src="{$base_url}/js/table-of-contents.js"></script>
+{literal}
+<style type="text/css">
+	#toc { background-color: #F0F0F0; padding: 1em; }
+        #toc a { display:block;}
+        #toc a[title=H2] { font-size:14px;}
+        #toc a[title=H3] { font-size:12px;}
+</style>
+{/literal}
 
+<h1>{$title}</h1>
   <p>
   This document is intended to answer frequently asked questions about OCUA's
   Leaguerunner implementation.
@@ -20,7 +19,12 @@ are questions you'd like answered, please don't hesitate to contact <a
 href="mailto:webmaster@ocua.ca">the webmasters</a></i>
   </p>
 
-  <h2><a name='sbf'>What's the SBF?</a></h2>
+  <!--  Table Of Contents -->
+  <div id="toc">
+  <b>Table Of Contents</b>
+  </div>
+
+  <h2>What's the SBF?</h2>
   <p>
     The SBF is the "Spence Balance Factor".  It was suggested during
     discussions about Thursday Indoor 2003 as a way to see how balanced a
@@ -42,7 +46,7 @@ href="mailto:webmaster@ocua.ca">the webmasters</a></i>
     tier.
   </p>
 
-  <h2><a name='rating'>What's the 'rating'?</a></h2>
+  <h2>What's the 'rating'?</h2>
   <p>
     The rating, as shown on the team view page and on the standings, is a
     measure of the team's past performance.  Higher ratings indicate that a
@@ -72,5 +76,4 @@ href="mailto:webmaster@ocua.ca">the webmasters</a></i>
     Further details, as well as the mathematical formulas used to calculate the
     rating, will be posted here later.
   </p>
-  </body>
-</html>
+{include file="footer.tpl"}
