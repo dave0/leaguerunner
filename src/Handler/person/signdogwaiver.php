@@ -7,7 +7,7 @@ class person_signdogwaiver extends person_signwaiver
 	function initialize ()
 	{
 		$this->title = 'Consent Form For Dog Owners';
-		$this->formFile = 'dog_waiver_form.html';
+		$this->waiver_text = 'pages/person/dog_waiver.tpl';
 		$this->querystring = 'UPDATE person SET dog_waiver_signed=NOW() where user_id = ?';
 		return true;
 	}

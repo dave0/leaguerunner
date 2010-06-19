@@ -81,7 +81,3 @@ participation in the game of ultimate and my use of any facility of OCUA.
 I agree to play fairly and by the rules, having regard to the safety and the
 enjoyment of other members.
 </p>
-<p>
-    <div class="form-item"><input type="radio" class="form-radio" name="edit[signed]" value="yes" /> I agree to the above conditions</div>
-    <div class="form-item"><input type="radio" class="form-radio" name="edit[signed]" value="no" /> I DO NOT agree to the above conditions</div>
-</p>

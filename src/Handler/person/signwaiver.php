@@ -12,7 +12,7 @@ class person_signwaiver extends Handler
 	function initialize ()
 	{
 		$this->title = 'Consent Form for League Play';
-		$this->formFile = 'waiver_form.html';
+		$this->waiver_text = 'pages/person/consent_waiver.tpl';
 		$this->querystring = 'UPDATE person SET waiver_signed=NOW() where user_id = ?';
 
 		return true;
@@ -36,7 +36,7 @@ class person_signwaiver extends Handler
 		if(is_null($next)) {
 			$next = $_GET['next'];
 			if(is_null($next)) {
-				$next = queryPickle("menu");
+				$next = queryPickle('home');
 			}
 		}
 
@@ -45,7 +45,10 @@ class person_signwaiver extends Handler
 				$this->perform( $edit );
 				local_redirect( queryUnpickle($next) );
 			default:
-				$rc = $this->generateForm( $next );
+				$this->template_name = 'pages/person/waiver.tpl';
+				$this->smarty->assign('next_page', $next);
+				$this->smarty->assign('waiver_text', $this->waiver_text);
+				$rc = true;
 		}
 
 		return $rc;
@@ -71,25 +74,6 @@ class person_signwaiver extends Handler
 		$sth = $dbh->prepare( $this->querystring );
 		$sth->execute(array($lr_session->attr_get('user_id')));
 		return (1 == $sth->rowCount() );
-	}
-
-	function generateForm( $next )
-	{
-		global $CONFIG;
-
-		$output = form_hidden('next', $next);
-		$output .= form_hidden('edit[step]', 'perform');
-
-		ob_start();
-		$retval = @readfile( trim($CONFIG['paths']['file_path'], '/') . "/data/{$this->formFile}");
-		if (false !== $retval) {
-			$output .= ob_get_contents();
-		}
-		ob_end_clean();
-
-		$output .= para(form_submit('submit') . form_reset('reset'));
-
-		return form($output);
 	}
 }
 
