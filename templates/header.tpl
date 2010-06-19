@@ -3,10 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title>{ $title | escape | default:$app_name }</title>
+    {include file="components/css.tpl"}
     <script type="text/javascript" src="{$base_url}/js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.dataTables.1.6.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
-    <link rel="stylesheet" type="text/css" href="{$base_url}/style.css" />
     <link rel="shortcut icon" href="/favicon.ico" />
   </head>
   <body>

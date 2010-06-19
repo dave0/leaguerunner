@@ -2,9 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <title>{ $title | default:$app_name }</title>
-    <base href="{$base_url}/" />
-    <link rel="stylesheet" type="text/css" href="/themes/ocua_2004/style.css" />
-    <link rel="stylesheet" type="text/css" href="{$base_url}/style.css" />
+    {include file="components/css.tpl"}
     <link rel="shortcut icon" href="/favicon.ico" />
     <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key={$gmaps_key}" type="text/javascript"></script>
     <script src="{$base_url}/js/map_common.js" type="text/javascript"></script>
