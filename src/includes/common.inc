@@ -365,6 +365,7 @@ function url($url = NULL, $query = NULL) {
   }
 }
 
+// TODO: replaced by components/street_address.tpl
 function format_street_address( $street, $city, $province, $country, $postalcode)
 {
 	$arr = array ($city, $province);
