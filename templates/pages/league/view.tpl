@@ -71,6 +71,7 @@
                 {/if_session_permission}
             </tr>
         {/foreach}
+	</tbody>
     </table>
 <script type="text/javascript">
 {literal}
