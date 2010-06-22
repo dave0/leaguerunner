@@ -1,8 +1,4 @@
-.row_title      { color: black; font-weight: bold; }
 .warning        { background-color: red; border: 1px solid black; }
-
-.toprow         { color: white; background-color: black; border: 1px solid black;
-                  padding-left: 7px; padding-right: 7px; }
 
 /* Defaults for tables */
 table           { margin: 0; padding: 0; border-collapse: collapse; }

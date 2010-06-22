@@ -6,6 +6,7 @@
     {include file="components/css.tpl"}
     <script type="text/javascript" src="{$base_url}/js/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.dataTables.1.6.min.js"></script>
+    <script type="text/javascript" src="{$base_url}/js/jquery-ui-1.8.2.custom.min.js"></script>
     <link rel="shortcut icon" href="/favicon.ico" />
   </head>
   <body>
