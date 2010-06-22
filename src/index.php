@@ -24,7 +24,10 @@
 
 $CONFIG = parse_ini_file('./leaguerunner.conf', true);
 if( ! $CONFIG ) {
-	error_exit("Could not read leaguerunner.conf file");
+	print <<<"END"
+<html><head><title>Leaguerunner Error</title></head><body>Couldn't find a leaguerunner.conf file anywhere.  Please check your configuration.</body></html>
+END;
+	exit;
 }
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
