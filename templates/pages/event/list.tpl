@@ -3,16 +3,13 @@
 <p>Please be sure to read all information carefully and complete all
 preferences when registering.</p>
 <table>
-<tr>
-  <th>Registration</th>
-  <th>Cost</th>
-  <th>Opens on</th>
-  <th>Closes on</th>
-</tr>
 {assign var='last_type' value=''}
 {foreach from=$events item=e}
 {if $e->type != $last_type}
 <tr><td colspan="4"><h2>{$e->full_type}</h2></td></tr>
+<tr>
+  <th></th> <th>Cost</th> <th>Opens on</th> <th>Closes on</th>
+</tr>
 {assign var='last_type' value=$e->type}
 {/if}
 <tr>
