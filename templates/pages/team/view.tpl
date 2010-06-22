@@ -70,6 +70,7 @@ $(document).ready(function() {
 		bPaginate: false,
 		bFilter: false,
 		bInfo: false,
+		bJQueryUI: true,
 		aaSorting: [[ 1, "desc" ],[2,"desc"], [0, "asc"] ],
 		aoColumns: [
 			{ "sType" : "html" },
@@ -94,7 +95,6 @@ $(document).ready(function() {
 			nCells[1].innerHTML = (totalskill/numplayers).toFixed(2);
 		}
 	} );
-	$('#roster tr:even').addClass('even');
 })
 {/literal}
 </script>

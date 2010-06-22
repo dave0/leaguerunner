@@ -3,7 +3,7 @@
 <script type="text/javascript">
 	var page_date = {$date};
 {literal}
-	$(function(){
+	$(document).ready(function() {
 		$('#datepicker').datepicker({
 			changeMonth: true,
 			dateFormat: 'yy/mm/dd',

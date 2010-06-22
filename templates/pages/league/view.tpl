@@ -42,10 +42,10 @@
                 <th>Players</th>
                 <th>Rating</th>
                 <th>Avg. Skill</th>
-                <th>&nbsp;</th>
                 {if_session_permission path="league/manage teams/`$league->league_id`"}
                 <th>Region</th>
                 {/if_session_permission}
+                <th>&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -56,6 +56,9 @@
                 <td>{$t->count_players()}</td>
                 <td>{$t->rating}</td>
                 <td>{$t->avg_skill()}</td>
+                {if_session_permission path="league/manage teams/`$league->league_id`"}
+                <td>{$t->region_preference}</td>
+                {/if_session_permission}
                 <td>{if $t->status == 'open'}
                         <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`}">join</a> &nbsp;
                     {/if}
@@ -66,9 +69,6 @@
                         <a href="{lr_url path="team/delete/`$t->team_id`}">delete</a> &nbsp;
                     {/if_session_permission}
                 </td>
-                {if_session_permission path="league/manage teams/`$league->league_id`"}
-                <td>{$t->region_preference}</td>
-                {/if_session_permission}
             </tr>
         {/foreach}
 	</tbody>
@@ -78,11 +78,26 @@
 $(document).ready(function() {
 	$('#teams').dataTable( {
 		bPaginate: false,
+		bAutoWidth: false,
+		sDom: 'lfrtip',
 		bFilter: false,
 		bInfo: false,
+		bJQueryUI: true,
 		aaSorting: [[ 0, "asc" ]],
+		aoColumns: [
+			null,
+			null,
+			null,
+			null,
+			null,
+{/literal}
+                {if_session_permission path="league/manage teams/`$league->league_id`"}
+			null,
+		{/if_session_permission}
+{literal}
+			{ bSortable : false },
+		]
 	} );
-	$('#teams tr:even').addClass('even');
 })
 {/literal}
 </script>
