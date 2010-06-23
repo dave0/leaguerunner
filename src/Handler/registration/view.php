@@ -16,7 +16,7 @@ class registration_view extends RegistrationHandler
 		$person = $this->registration->user();
 
 		$userrows = array();
-		$userrows[] = array ('Name', l($person->fullname, url("person/view/{$person->id}")) );
+		$userrows[] = array ('Name', l($person->fullname, url("person/view/{$person->user_id}")) );
 		$userrows[] = array ('Member&nbsp;ID', $person->member_id);
 		$userrows[] = array ('Event', l($this->event->name, url("event/view/{$this->event->registration_id}")));
 		$userrows[] = array ('Registered Price', $this->registration->total_amount);
