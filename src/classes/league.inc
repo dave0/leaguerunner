@@ -1153,7 +1153,6 @@ class League extends LeaguerunnerObject
 	{
 		global $headers_sent;
 		$headers_sent= 1;
-		ob_start();
 		$games_before_repeat = $this->games_before_repeat;
 		$min_games_before_repeat = 0;
 		$max_retries = $this->schedule_attempts;
@@ -1193,7 +1192,6 @@ class League extends LeaguerunnerObject
 			if ($ret[0] == false) {
 				echo ". ";
 				flush();
-				ob_flush();
 				continue;
 			}
 
@@ -1217,7 +1215,6 @@ class League extends LeaguerunnerObject
 			// keep browser alive...
 			echo ". ";
 			flush();
-			ob_flush();
 			continue;
 		}
 
@@ -1227,7 +1224,6 @@ class League extends LeaguerunnerObject
 			echo "Complete...</p>";
 		}
 		flush();
-		ob_flush();
 
 		// Now, call schedule_one_set() to actually create the games
 		$ret = $this->schedule_one_set( $versus_teams, $datestamp, $should_publish );
@@ -1266,7 +1262,6 @@ class League extends LeaguerunnerObject
 
 		print "</p><hr></div></body></html>";
 		flush();
-		ob_flush();
 
 		return $ret;
 	}
