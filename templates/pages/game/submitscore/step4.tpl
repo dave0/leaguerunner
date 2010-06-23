@@ -1,10 +1,12 @@
 {include file=header.tpl title=$title}
 <h1>{$title}</h1>
 {$interim_game_result}
+{if $spirit_answers}
 <p>
 The following spirit answers will be shown to your coordinator:
 </p>
 {$spirit_answers}
+{/if}
 <p>
 If this is correct, please click 'Submit' to continue.  If not, use your back button to return to the previous page and correct the problems.
 </p>

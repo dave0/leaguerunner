@@ -17,7 +17,7 @@ uses, we need your feedback.  Do there appear to be any changes to the field
 <p>
 
 {hidden_fields fields=$hidden_fields}
-<input type="hidden" name="edit[step]" value="spirit" />
+<input type="hidden" name="edit[step]" value="{$next_step}" />
 <input type="submit" class="form-submit" name="submit" value="Next Step" />
 <input type="reset" class="form-reset" name="reset" value="reset" />
 <script language="javascript">

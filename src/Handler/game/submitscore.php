@@ -61,7 +61,10 @@ class game_submitscore extends GameHandler
 		if (array_key_exists ('spirit', $_POST))
 			$spirit = $_POST['spirit'];
 
-		switch($edit['step']) {
+		$step = $edit['step'];
+		unset($edit['step']);
+
+		switch($step) {
 			case 'save':
 				$this->template_name = 'pages/game/submitscore/result.tpl';
 				$rc = $this->perform($edit, $opponent, $spirit);
@@ -200,10 +203,11 @@ class game_submitscore extends GameHandler
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
 			// If it's a default, short-circuit the spirit-entry form and skip
 			// straight to the confirmation.
-			return $this->generateConfirm($edit, $opponent);
+			$this->smarty->assign('next_step', 'confirm');
 		} else {
 			// Force a non-default to display correctly
 			$edit['defaulted'] = 'no';
+			$this->smarty->assign('next_step', 'spirit');
 		}
 
 		# TODO: smartyification
