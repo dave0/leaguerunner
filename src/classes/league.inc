@@ -810,7 +810,7 @@ class League extends LeaguerunnerObject
 		try {
 			$g->select_random_gameslot($datestamp);
 		} catch (Exception $e) {
-			$extra_errors = $message;
+			$extra_errors = $e->getMessage();
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
@@ -868,7 +868,7 @@ class League extends LeaguerunnerObject
 			try {
 				$g->select_random_gameslot($datestamp);
 			} catch (Exception $e) {
-				$extra_errors = $message;
+				$extra_errors = $e->getMessage();
 				if( ! $dbh->rollback() ) {
 					$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 				}
@@ -1461,7 +1461,7 @@ class League extends LeaguerunnerObject
 		try {
 			$this->assign_fields_by_preferences($games_list, $datestamp);
 		} catch (Exception $e) {
-			$extra_errors = $message;
+			$extra_errors = $e->getMessage();
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
@@ -1495,7 +1495,7 @@ class League extends LeaguerunnerObject
 		try {
 			$this->assign_fields_by_preferences($games_list, $newdate);
 		} catch (Exception $e) {
-			$extra_errors = $message;
+			$extra_errors = $e->getMessage();
 			if( ! $dbh->rollback() ) {
 				$extra_errors .= "<br />Also, failed to roll back transaction.  Please contact the system administrator";
 			}
