@@ -1,26 +1,8 @@
 <?php
 require_once('Handler/schedule/view.php');
-/*
- * RK: report of which fields are available for use
- */
+
 class league_slots extends schedule_view
 {
-	private $yyyy;
-	private $mm;
-	private $dd;
-
-	function __construct ( $id, $year, $month, $day )
-	{
-		parent::__construct( $id );
-
-		$today = getdate();
-
-		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
-		$this->mm   = is_numeric($month) ? $month : $today['mon'];
-		$this->dd   = is_numeric($day)   ? $day   : null;
-
-	}
-
 	function has_permission()
 	{
 		global $lr_session;
@@ -29,47 +11,25 @@ class league_slots extends schedule_view
 
 	function process ()
 	{
-		$this->title = "{$this->league->fullname} &raquo; Field Availability Report";
-
-		if( $this->dd ) {
-			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
-				return 'That date is not valid';
-			}
-			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->title .= " &raquo; $formattedDay";
-			return $this->displaySlotsForDay( $this->yyyy, $this->mm, $this->dd );
-		} else {
-			$output = para('Select a date below on which to view all available gameslots');
-			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd,
-							 'league/slots/'.$this->league->league_id,
-							 'league/slots/'.$this->league->league_id);
-			return $output;
-		}
-	}
-
-	/**
-	 * List all games on a given day.
-	 */
-	function displaySlotsForDay ( $year, $month, $day )
-	{
 		global $dbh;
 
-		menu_add_child($this->league->fullname."/slots", "$league->fullname/slots/$year/$month/$day","$year/$month/$day", array('weight' => 1, 'link' => "league/slots/".$this->league->league_id."/$year/$month/$day"));
+		$this->template_name = 'pages/league/slots.tpl';
 
-		$rows = array(
-			array(
-				array('data' => strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year)), 'colspan' => 7, 'class' => 'gamedate')
-			),
-        		array(
-				 array('data' => 'Slot', 'class' => 'column-heading'),
-				 array('data' => 'Field', 'class' => 'column-heading'),
-				 array('data' => 'Game', 'class' => 'column-heading'),
-				 array('data' => 'Home', 'class' => 'column-heading'),
-				 array('data' => 'Away', 'class' => 'column-heading'),
-				 array('data' => 'Field Region', 'class' => 'column-heading'),
-				 array('data' => 'Home Pref', 'class' => 'column-heading'),
-			 )
-		);
+		list( $year, $month, $day) = preg_split("/[\/-]/", $_POST['edit']['date']);
+		$today = getdate();
+
+		$yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$mm   = is_numeric($month) ? $month : $today['mon'];
+		$dd   = is_numeric($day)   ? $day   : $today['mday'];
+
+		if( !validate_date_input($yyyy, $mm, $dd) ) {
+			error_exit( 'That date is not valid' );
+		}
+
+		$this->smarty->assign('date', sprintf("%4d/%02d/%02d", $yyyy, $mm, $dd));
+
+		$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$mm,$dd,$yyyy));
+		$this->title = "Field Availability Report &raquo; {$this->league->fullname} &raquo; $formattedDay";
 
 		$sth = $dbh->prepare('SELECT
 			g.slot_id,
@@ -98,48 +58,35 @@ class league_slots extends schedule_view
 				sprintf('%d-%d-%d', $year, $month, $day)) );
 
 		$num_open = 0;
+		$slots = array();
 		while($g = $sth->fetch()) {
-
-			$row = array(
-				$g['slot_id'],
-				l($g['field_code'] . $g['field_num'], "field/view/" . $g['fid'])
-			);
-
 			// load game info, if game scheduled
 			if ($g['game_id']) {
 				$game = game_load( array('game_id' => $g['game_id']) );
+				// TODO: template this!
 				$sched = $this->schedule_render_viewable($game);
-				$row[] = l($g['game_id'], "game/view/".$g['game_id']);
-				$row[] = $sched[3];
-				$row[] = $sched[5];
-
-				$color = 'white';
-				if( ! $g['is_preferred'] && ($g['home_region_preference'] && $g['home_region_preference'] != '---') ) {
-					/* Show in red if it's an unsatisfied preference */
-					$color = 'red';
-				}
-				$row[] = array( 'data' => $g['field_region'], 'style' => "background-color: $color");
-				$row[] = array( 'data' => $g['home_region_preference'], 'style' => "background-color: $color");
+				$g['home_info'] = $sched[3];
+				$g['away_info'] = $sched[5];
 			} else {
-				$row[] = array('data' => "<b>---- field open ----</b>",
-							   'colspan' => '3');
-				$row[] = $g['field_region'];
-				$row[] = '&nbsp;';
 				$num_open++;
 			}
-
-			$rows[] = $row;
+			$slots[] = $g;
 		}
-		if( ! count( $rows ) ) {
-			error_exit("No gameslots available for this league on this day");
-		}
-		$num_fields = count($rows);
 
-		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>"
-			. para("There are $num_fields fields available for use this week, currently $num_open of these are unused.");
-		return $output;
+		$allDays = array('sunday' => 0, 'monday' => 1, 'tuesday' => 2,'wednesday'=>3,'thursday'=>4,'friday'=>5,'saturday'=>6);
+		$day_indexes = array();
+		$league_days = explode(',',$this->league->day);
+		foreach($league_days as $day) {
+			$day_indexes[] = $allDays[strtolower($day)];
+		}
+
+		$this->smarty->assign('league_days', implode(',', $day_indexes));
+
+		$this->smarty->assign('slots', $slots);
+		$this->smarty->assign('num_fields', count($slots));
+		$this->smarty->assign('num_open', $num_open);
+		return true;
 	}
-
 }
 
 ?>
