@@ -11,7 +11,7 @@ class fieldreport_day extends Handler
 	{
 		$this->template_name = 'pages/fieldreport/day.tpl';
 
-		list( $year, $month, $day) = preg_split("/[\/-]/", $_POST['edit']['date']);
+		list( $year, $month, $day) = preg_split("/[\/-]/", $_GET['date']);
 		$today = getdate();
 
 		$yyyy = is_numeric($year)  ? $year  : $today['year'];
