@@ -1,23 +1,7 @@
 <?php
 
-require_once('Handler/schedule/view.php');
-class schedule_day extends schedule_view
+class schedule_day extends Handler
 {
-	private $yyyy;
-	private $mm;
-	private $dd;
-
-	function __construct( $year = null, $month = null, $day = null)
-	{
-		$today = getdate();
-
-		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
-		$this->mm   = is_numeric($month) ? $month : $today['mon'];
-		$this->dd   = is_numeric($day)   ? $day   : null;
-
-
-	}
-
 	function has_permission ()
 	{
 		// Everyone gets to see the schedule
@@ -26,44 +10,37 @@ class schedule_day extends schedule_view
 
 	function process ()
 	{
-		$this->title = "View Day";
+		$this->title = "Daily Schedule";
 
-		if( $this->dd ) {
-			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
-				return 'That date is not valid';
-			}
-			$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->title .= " &raquo; $formattedDay";
-			return $this->displayGamesForDay( $this->yyyy, $this->mm, $this->dd );
-		} else {
-			$output = para('Select a date below on which to view all scheduled games');
-			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'schedule/day', 'schedule/day');
-			return $output;
+		list( $year, $month, $day) = preg_split("/[\/-]/", $_POST['edit']['date']);
+		$today = getdate();
+
+		$yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$mm   = is_numeric($month) ? $month : $today['mon'];
+		$dd   = is_numeric($day)   ? $day   : $today['mday'];
+
+		if( !validate_date_input($yyyy, $mm, $dd) ) {
+			error_exit( 'That date is not valid' );
 		}
-	}
 
-	/**
-	 * List all games on a given day.
-	 */
-	function displayGamesForDay ( $year, $month, $day )
-	{
+		$this->smarty->assign('date', sprintf("%4d/%02d/%02d", $yyyy, $mm, $dd));
+
+		$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$mm,$dd,$yyyy));
+		$this->title .= " &raquo; $formattedDay";
+		$this->template_name = 'pages/schedule/day.tpl';
+
 		$sth = game_query ( array(
-			'game_date' => sprintf('%d-%d-%d', $year, $month, $day),
+			'game_date' => sprintf('%d-%d-%d', $yyyy, $mm, $dd),
 			'published' => true,
 			'_order' => 'g.game_start, field_code') );
 
-		$rows = array(
-			$this->schedule_heading(strftime('%a %b %d %Y',mktime(6,0,0,$month,$day,$year))),
-			$this->schedule_subheading( ),
-		);
 		while($g = $sth->fetchObject('Game') ) {
 			if( ! ($g->published || $lr_session->has_permission('league','edit schedule', $this->league->league_id) ) ) {
 				continue;
 			}
-			$rows[] = $this->schedule_render_viewable($g);
+			$games[] = $g;
 		}
-		$output .= "<div class='schedule'>" . table($header, $rows) . "</div>";
-		return $output;
+		$this->smarty->assign('games', $games);
 	}
 }
 

@@ -66,8 +66,8 @@ Games where home team was not assigned a field in their home region are highligh
 	<td><a href="{lr_url path="field/view/`$s.fid`"}">{$s.field_code}{$s.field_num}</a></td>
 	{if $s.game_id}
 	<td><a href="{lr_url path="game/view/`$s.game_id`"}">{$s.game_id}</a></td>
-	<td>{$s.home_info}</td>
-	<td>{$s.away_info}</td>
+	<td><a href="{lr_url path="team/view/`$s.game->home_id`"}">{$s.game->home_name|truncate:20}</a></td>
+	<td><a href="{lr_url path="team/view/`$s.game->away_id`"}">{$s.game->away_name|truncate:20}</a></td>
 	<td>{$s.home_region_preference}</td>
 	<td>{$s.field_region}</td>
 	{else}

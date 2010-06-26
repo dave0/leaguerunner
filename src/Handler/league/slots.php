@@ -62,11 +62,7 @@ class league_slots extends schedule_view
 		while($g = $sth->fetch()) {
 			// load game info, if game scheduled
 			if ($g['game_id']) {
-				$game = game_load( array('game_id' => $g['game_id']) );
-				// TODO: template this!
-				$sched = $this->schedule_render_viewable($game);
-				$g['home_info'] = $sched[3];
-				$g['away_info'] = $sched[5];
+				$g['game'] = game_load( array('game_id' => $g['game_id']) );
 			} else {
 				$num_open++;
 			}

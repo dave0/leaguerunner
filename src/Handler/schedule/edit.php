@@ -48,72 +48,31 @@ class schedule_edit extends schedule_view
 		}
 		$teams[0] = "---";
 
-		$this->league->teams = $teams;
+		$this->template_name = 'pages/schedule/view.tpl';
 
 		// get the game slots for this league and this day
 		$gameslots = $this->league->get_gameslots($this->day_id);
 		if( count($gameslots) <= 1 ) {
 			error_exit("There are no fields assigned to this league");
 		}
-		$this->league->gameslots = $gameslots;
-
-		$this->league->rounds = $this->league->rounds_as_array();
 
 		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
-
-		$prevDayId = -1;
-		$rows = array();
-		$should_publish = 1;
-		/* For each game in the schedule for this league */
-		while($game = $sth->fetchObject('Game') ) {
-			if( $game->day_id != $prevDayId ) {
-				if( $this->day_id == $prevDayId) {
-					/* ensure we add the submit buttons for schedule editing */
-					$rows[] = array(
-						array('data' => para( form_checkbox("Set as published for player viewing?", 'edit[published]', 'yes', $should_publish, '') ), 'colspan' => 9)
-					);
-					$rows[] = array(
-						array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
-					);
-				}
-
-				$rows[] = $this->schedule_heading( 
-					strftime('%a %b %d %Y', $game->timestamp),
-					false,
-					$game->day_id, $this->league->league_id );
-
-				if($this->day_id == $game->day_id) {
-					$rows[] = $this->schedule_edit_subheading();
-				} else {
-					$rows[] = $this->schedule_subheading( );
-				}
-			}
-
-			if($this->day_id == $game->day_id) {
-				$rows[] = $this->schedule_render_editable($game, $this->league);
-			} else {
-				$rows[] = $this->schedule_render_viewable($game);
-			}
-			$prevDayId = $game->day_id;
-
-			$should_publish = $game->published;
-		}
-		if( $this->day_id == $prevDayId ) {
-			/* ensure we add the submit buttons for schedule editing */
-			$rows[] = array(
-				array('data' => para( form_checkbox("Set as published for player viewing?", 'edit[published]', 'yes', $should_publish, '') ), 'colspan' => 9)
-			);
-			$rows[] = array(
-				array('data' => para( form_hidden('edit[step]', 'confirm') . form_submit('submit') . form_reset('reset')), 'colspan' => 9)
-			);
+		while( $game = $sth->fetchObject('Game') ) {
+			$games[] = $game;
 		}
 
-		$output .= "<div class='schedule'>" . table(null, $rows) . "</div>";
+		$this->smarty->assign('league', $this->league);
+		$this->smarty->assign('teams', $teams);
+		$this->smarty->assign('can_edit', 1);
+		$this->smarty->assign('edit_week', $this->day_id);
+		$this->smarty->assign('gameslots', $gameslots);
+		$this->smarty->assign('rounds', $this->league->rounds_as_array() );
+		$this->smarty->assign('games', $games);
 
-		return form($output);
+		return true;
 	}
 
-	function isDataInvalid ($games) 
+	function isDataInvalid ($games)
 	{
 		if(!is_array($games) ) {
 			return "Invalid data supplied for games";
@@ -266,51 +225,6 @@ class schedule_edit extends schedule_view
 		}
 
 		return true;
-	}
-
-	function schedule_render_editable( &$game, &$league )
-	{
-
-		// Ensure the given teams are listed in pulldown
-		$league->teams[$game->home_id] = $game->home_name;
-		$league->teams[$game->away_id] = $game->away_name;
-
-		if ($league->schedule_type == "roundrobin") {
-			$form_round = form_select('',"edit[games][$game->game_id][round]", $game->round, $league->rounds);
-		} else {
-			$form_round = '';
-		}
-		$form_gameslot = 
-			array( 
-				'data' => form_select('',"edit[games][$game->game_id][slot_id]", $game->slot_id, $league->gameslots), 
-				'colspan' => 2
-			);
-		$form_home = form_select('',"edit[games][$game->game_id][home_id]", $game->home_id, $league->teams);
-		$form_away = form_select('',"edit[games][$game->game_id][away_id]", $game->away_id, $league->teams);
-
-		return array(
-			form_hidden("edit[games][$game->game_id][game_id]", $game->game_id) . $form_round,
-			$form_gameslot,
-			array(
-				'data' => $form_home . form_hidden("edit[games][$game->game_id][home_text]", $form_home),
-				'colspan' => 2
-			),
-			array(
-				'data' => $form_away . form_hidden("edit[games][$game->game_id][away_text]", $form_away),
-				'colspan' => 2
-			),
-		);
-	}
-
-	function schedule_edit_subheading( )
-	{
-		return array(
-			array( 'data' => 'Round' , 'class' => 'column-heading'),
-			array( 'data' => 'Time/Place', 'colspan' => 2, 'class' => 'column-heading'),
-			array( 'data' => 'Home', 'colspan' => 2, 'class' => 'column-heading'),
-			array( 'data' => 'Away', 'colspan' => 2, 'class' => 'column-heading'),
-			''
-		);
 	}
 }
 
