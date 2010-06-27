@@ -44,8 +44,8 @@
 {/literal}
 </script>
 
-<form method="POST" id="dateform">
-    <label>Reports for date: <input type="text" maxlength="15" name="edit[date]" size="15" value="{$date}" id="datepicker"/></label>
+<form method="GET" id="dateform">
+    <label>Reports for date: <input type="text" maxlength="15" name="date" size="15" value="{$date}" id="datepicker"/></label>
 </form>
 <p></p>
 <p>

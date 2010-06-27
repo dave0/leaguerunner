@@ -15,7 +15,7 @@ class league_slots extends schedule_view
 
 		$this->template_name = 'pages/league/slots.tpl';
 
-		list( $year, $month, $day) = preg_split("/[\/-]/", $_POST['edit']['date']);
+		list( $year, $month, $day) = preg_split("/[\/-]/", $_GET['date']);
 		$today = getdate();
 
 		$yyyy = is_numeric($year)  ? $year  : $today['year'];
