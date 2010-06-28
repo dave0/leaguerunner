@@ -10,6 +10,7 @@ class league_slots extends schedule_view
 	}
 
 	function process ()
+
 	{
 		global $dbh;
 

@@ -2,21 +2,11 @@
 <h1>{$title}</h1>
 <script type="text/javascript">
 	var page_date   = {$date};
-	var league_days = [ {$league_days} ];
-
 {literal}
 	$(document).ready(function() {
 		$('#datepicker').datepicker({
 			changeMonth: true,
 			dateFormat: 'yy/mm/dd',
-			beforeShowDay: function(date) {
-				for(key in league_days) {
-					if (date.getDay() == league_days[key]) {
-						return [true,''];
-					}
-				}
-				return [false, ''];
-			}
 		});
 
 		$("#datepicker").change(function() {
@@ -57,7 +47,7 @@ Games where home team was not assigned a field in their home region are highligh
 
 <table id="slots">
 <thead>
-  <tr><th>Slot</th><th>Field</th><th>Game</th><th>Home</th><th>Away</th><th>Home Pref</th><th>Field Region</th></tr>
+  <tr><th>Slot</th><th>Field</th><th>Game</th><th>League</th><th>Home</th><th>Away</th><th>Actions</th></tr>
 </thead>
 <tbody>
    {foreach from=$slots item=s}
@@ -66,17 +56,20 @@ Games where home team was not assigned a field in their home region are highligh
 	<td><a href="{lr_url path="field/view/`$s.fid`"}">{$s.field_code}{$s.field_num}</a></td>
 	{if $s.game_id}
 	<td><a href="{lr_url path="game/view/`$s.game_id`"}">{$s.game_id}</a></td>
+	<td><a href="{lr_url path="league/view/`$s.game->league_id`"}">{$s.game->league_name}</a></td>
 	<td><a href="{lr_url path="team/view/`$s.game->home_id`"}">{$s.game->home_name|truncate:20}</a></td>
 	<td><a href="{lr_url path="team/view/`$s.game->away_id`"}">{$s.game->away_name|truncate:20}</a></td>
-	<td>{$s.home_region_preference}</td>
-	<td>{$s.field_region}</td>
 	{else}
 	<td>---</td>
 	<td>open</td>
 	<td>---</td>
 	<td>&nbsp;</td>
-	<td>{$s.field_region}</td>
 	{/if}
+	<td>
+		{if_session_permission path="gameslot/edit/`$s.slot_id`}<a href="{lr_url path="slot/availability/`$s.slot_id`"}">change avail</a>{/if_session_permission}
+		{if_session_permission path="gameslot/delete/`$s.slot_id`}<a href="{lr_url path="slot/delete/`$s.slot_id`"}">delete</a>{/if_session_permission}
+		{if_session_permission path="game/reschedule/`$s.game_id`}<a href="{lr_url path="game/reschedule/`$s.game_id`"}">reschedule/move</a>{/if_session_permission}
+	</td>
    </tr>
    {/foreach}
    <tfoot></tfoot>

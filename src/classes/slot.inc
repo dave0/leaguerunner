@@ -204,9 +204,9 @@ function slot_query ( $array = array() )
 
 	$sth = $dbh->prepare("SELECT
 		g.slot_id,
-		field.name AS field_name,
-		field.num AS field_num,
-		field.code AS field_code,
+		COALESCE(field.name, pf.name) AS field_name,
+		field.num  AS field_num,
+		COALESCE(field.code, pf.code) AS field_code,
 		g.fid,
 		g.game_date,
 		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
@@ -217,6 +217,7 @@ function slot_query ( $array = array() )
 	FROM
 		gameslot g
 		INNER JOIN field ON (g.fid = field.fid)
+		LEFT JOIN field pf ON (pf.fid = field.parent_fid)
 	WHERE " . implode(' AND ',$query) .  $order);
 
 	$sth->execute($params);

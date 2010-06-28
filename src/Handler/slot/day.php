@@ -2,20 +2,6 @@
 // TODO:  I don't think this feature is linked from anywhere?!
 class slot_day extends Handler
 {
-	private $yyyy;
-	private $mm;
-	private $dd;
-
-	function __construct( $year, $month, $day )
-	{
-		parent::__construct();
-		$today = getdate();
-
-		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
-		$this->mm   = is_numeric($month) ? $month : $today['mon'];
-		$this->dd   = is_numeric($day)   ? $day   : null;
-	}
-
 	function has_permission()
 	{
 		global $lr_session;
@@ -24,55 +10,43 @@ class slot_day extends Handler
 
 	function process ()
 	{
-		$this->title = "View Day";
+		global $dbh;
 
-		if( $this->dd ) {
-			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
-				error_exit("That date is not valid");
-			}
-			$formattedDay = strftime("%A %B %d %Y", mktime (6,0,0,$this->mm,$this->dd,$this->yyyy));
-			$this->title .= " &raquo; $formattedDay";
-			return $this->display_for_day( $this->yyyy, $this->mm, $this->dd );
-		} else {
-			$output = para("Select a date below on which to view all available fields");
-			$output .= generateCalendar( $this->yyyy, $this->mm, $this->dd, 'slot/day', 'slot/day');
-			return $output;
+		$this->template_name = 'pages/slot/day.tpl';
+
+		list( $year, $month, $day) = preg_split("/[\/-]/", $_GET['date']);
+		$today = getdate();
+
+		$yyyy = is_numeric($year)  ? $year  : $today['year'];
+		$mm   = is_numeric($month) ? $month : $today['mon'];
+		$dd   = is_numeric($day)   ? $day   : $today['mday'];
+
+		if( !validate_date_input($yyyy, $mm, $dd) ) {
+			error_exit( 'That date is not valid' );
 		}
-	}
 
-	function display_for_day ( $year, $month, $day )
-	{
-		global $lr_session;
+		$this->smarty->assign('date', sprintf("%4d/%02d/%02d", $yyyy, $mm, $dd));
+
+		$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$mm,$dd,$yyyy));
+		$this->title = "Field Availability Report &raquo; $formattedDay";
+
 		$sth = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
-
-		if( ! $sth ) {
-			error_exit("Nothing available on that day");
+		$num_open = 0;
+		$slots = array();
+		while($g = $sth->fetch()) {
+			// load game info, if game scheduled
+			if ($g['game_id']) {
+				$g['game'] = game_load( array('game_id' => $g['game_id']) );
+			} else {
+				$num_open++;
+			}
+			$slots[] = $g;
 		}
 
-		$header = array("Field","Start Time","End Time","Booking", "Actions");
-		$rows = array();
-		while($slot = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$booking = '';
-
-			$field = field_load( array('fid' => $slot->fid));
-
-			$actions = array();
-			if( $lr_session->has_permission('gameslot','edit', $slot->slot_id)) {
-				$actions[] = l('change avail', "slot/availability/$slot->slot_id");
-			}
-			if( $lr_session->has_permission('gameslot','delete', $slot->slot_id)) {
-				$actions[] = l('delete', "slot/delete/$slot->slot_id");
-			}
-			if($slot->game_id) {
-				$game = game_load( array('game_id' => $slot->game_id) );
-				$booking = l($game->league_name,"game/view/$slot->game_id");
-				if( $lr_session->has_permission('game','reschedule', $slot->game_id)) {
-					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
-				}
-			}
-			$rows[] = array(l("$field->code $field->num","field/view/$field->fid"), $slot->game_start, $slot->game_end, $booking, theme_links($actions));
-		}
-		return "<div class='listtable'>" . table($header, $rows) . "</div>";
+		$this->smarty->assign('slots', $slots);
+		$this->smarty->assign('num_fields', count($slots));
+		$this->smarty->assign('num_open', $num_open);
+		return true;
 	}
 }
 
