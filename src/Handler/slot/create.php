@@ -2,20 +2,6 @@
 require_once('Handler/FieldHandler.php');
 class slot_create extends FieldHandler
 {
-	private $yyyy;
-	private $mm;
-	private $dd;
-
-	function __construct( $field_id, $year = null, $month = null, $day = null )
-	{
-		parent::__construct( $field_id );
-		$today = getdate();
-
-		$this->yyyy = is_numeric($year)  ? $year  : $today['year'];
-		$this->mm   = is_numeric($month) ? $month : $today['mon'];
-		$this->dd   = is_numeric($day)   ? $day   : null;
-	}
-
 	function has_permission()
 	{
 		global $lr_session;
@@ -30,56 +16,42 @@ class slot_create extends FieldHandler
 			error_exit("That field is closed");
 		}
 
-		if ( $this->dd ) {
-			if( !validate_date_input($this->yyyy, $this->mm, $this->dd) ) {
-				error_exit("That date is not valid");
+		$edit = &$_POST['edit'];
+
+		if ( $edit['date'] ) {
+			list( $year, $month, $day) = preg_split("/[\/-]/", $edit['date']);
+			$today = getdate();
+
+			$yyyy = is_numeric($year)  ? $year  : $today['year'];
+			$mm   = is_numeric($month) ? $month : $today['mon'];
+			$dd   = is_numeric($day)   ? $day   : $today['mday'];
+
+			if( !validate_date_input($yyyy, $mm, $dd) ) {
+				error_exit( 'That date is not valid' );
 			}
-			$datestamp = mktime(6,0,0,$this->mm,$this->dd,$this->yyyy);
-		} else {
-			return $this->datePick($this->field, $this->yyyy, $this->mm, $this->dd);
+			$datestamp = mktime(6,0,0,$mm,$dd,$yyyy);
 		}
 
-		$edit = &$_POST['edit'];
 		switch($edit['step']) {
 			case 'perform':
-			# Processing should:
-			#   - check for overlaps with existing slots
-			#   - insert into gameslot table
-			#   - insert availability for gameslot into availability table.
-			# the overlap-checking probably belongs in slot.inc
-				if ( $this->perform( $this->field, $edit, $datestamp) ) {
-					local_redirect(url("field/view/{$this->field->fid}"));
-				} else {
+				if ( ! $this->perform( $edit, $datestamp) ) {
 					error_exit("Aieee!  Bad things happened in gameslot create");
 				}
+				local_redirect(url("field/view/{$this->field->fid}"));
 				break;
 			case 'confirm':
-				return $this->generateConfirm($this->field, $edit, $datestamp);
+				$this->template_name = 'pages/slot/create/confirm.tpl';
+				return $this->generateConfirm($edit, $datestamp);
+				break;
+			case 'details':
+				$this->template_name = 'pages/slot/create/step2.tpl';
+				return $this->generateForm($datestamp);
 				break;
 			default:
-				return $this->generateForm($this->field, $datestamp);
-				break;
+				$this->template_name = 'pages/slot/create/step1.tpl';
+				return true;
 		}
 		error_exit("Error: This code should never be reached.");
-	}
-
-	function datePick ( &$field, $year, $month, $day)
-	{
-		$output = para("Select a date below to start adding gameslots.");
-
-		$today = getdate();
-
-		if(! validate_number($month)) {
-			$month = $today['mon'];
-		}
-
-		if(! validate_number($year)) {
-			$year = $today['year'];
-		}
-
-		$output .= generateCalendar( $year, $month, $day, "slot/create/$field->fid", "slot/create/$field->fid");
-
-		return $output;
 	}
 
 	# TODO: Processing should:
@@ -87,7 +59,8 @@ class slot_create extends FieldHandler
 	#   - insert into gameslot table
 	#   - insert availability for gameslot into availability table.
 	# the overlap-checking probably belongs in slot.inc
-	function perform ( &$field, $edit, $datestamp )
+	# TODO: transaction!
+	function perform ( $edit, $datestamp )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
@@ -96,7 +69,7 @@ class slot_create extends FieldHandler
 
 		for( $i = 0; $i < $edit['repeat_for']; $i++) {
 			$slot = new GameSlot;
-			$slot->set('fid', $field->fid);
+			$slot->set('fid', $this->field->fid);
 			$slot->set('game_date', strftime("%Y-%m-%d",$datestamp));
 			$slot->set('game_start', $edit['start_time']);
 			if( $edit['end_time'] != '---' ) {
@@ -117,85 +90,61 @@ class slot_create extends FieldHandler
 		return true;
 	}
 
-	function generateForm ( &$field, $datestamp )
+	function generateForm ( $datestamp )
 	{
 		global $dbh;
-		$output = form_hidden('edit[step]', 'confirm');
+		$this->smarty->assign('field',      $this->field);
+		$this->smarty->assign('start_date', $datestamp);
 
-		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
-		$group .= form_select('Game Start Time','edit[start_time]', '18:30', getOptionsFromTimeRange(0000,2400,5), 'Time for games in this timeslot to start');
-		$group .= form_select('Game Timecap','edit[end_time]', '---', getOptionsFromTimeRange(0000,2400,5), 'Time for games in this timeslot to end.  Choose "---" to assign the default timecap (dark) for that week.');
-		$output .= form_group("Gameslot Information", $group);
+		// TODO: replace getOptionsFromTimeRange with smarty plugin
+		// TODO: implement for each field a usual_start_time to use as the start_time value
+		$this->smarty->assign('start_time', '18:30');
+		$this->smarty->assign('end_time', '---');
+		$this->smarty->assign('start_end_times', getOptionsFromTimeRange(0000,2400,5) );
 
 		$weekday = strftime("%A", $datestamp);
 		$leagues = array();
 		// TODO: Pull into get_league_checkbox();
 		$sth = $dbh->prepare("SELECT
-			l.league_id,
-			l.name,
-			l.tier,
-			l.year
+			l.league_id, l.name, l.tier, l.year
 			FROM league l
-			WHERE l.schedule_type != 'none'
-			AND (FIND_IN_SET(?, l.day) > 0)
-			AND l.status = 'open'
+			WHERE l.schedule_type != 'none' AND (FIND_IN_SET(?, l.day) > 0) AND l.status = 'open'
 			ORDER BY l.day,l.name,l.tier");
 		$sth->execute( array( $weekday) );
 
-		while($league = $sth->fetch(PDO::FETCH_OBJ) ) {
-			if( $league->tier ) {
-				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
-			} else {
-				$league->fullname = $league->name;
-			}
-			$league->fullname .= ' ' . $league->year;
-			$chex .= form_checkbox($league->fullname, 'edit[availability][]', $league->league_id, $league->selected);
+		$leagues = array();
+		while($league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY)) ) {
+			$leagues[$league->league_id] = $league->fullname;
 		}
-		$output .= form_group('Make Gameslot Available To:', $chex);
+		$this->smarty->assign('leagues', $leagues);
 
-		$group = form_select('Weeks to repeat', 'edit[repeat_for]', '1', getOptionsFromRange(1,24),'Number of weeks to repeat this gameslot');
-		$output .= form_group("Repetition", $group);
+		// TODO: perhaps have a repeat_until date instead?
+		$this->smarty->assign('repeat_options', getOptionsFromRange(1,24));
 
-		$output .= form_submit('submit') . form_reset('reset');
-
-		return form($output);
+		return true;
 	}
 
-	function generateConfirm ( &$field, &$edit, $datestamp )
+	function generateConfirm ( &$edit, $datestamp )
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
 			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
-		$output = form_hidden('edit[step]', 'perform');
-
-		$output .= para("Please confirm that this information is correct");
-
-		$group = form_item("Date", strftime("%A %B %d %Y", $datestamp));
-		$group .= form_item('Game Start Time',
-			form_hidden('edit[start_time]', $edit['start_time']) . $edit['start_time']);
-			$group .= form_item('Game Timecap',
-			form_hidden('edit[end_time]', $edit['end_time']) . $edit['end_time']);
-		$output .= form_group("Gameslot Information", $group);
-
-		$group = '';
+		$this->smarty->assign('start_date', $datestamp);
+		$this->smarty->assign('edit', $edit);
+		$leagues = array();
 		foreach( $edit['availability'] as $league_id ) {
 			$league = league_load( array('league_id' => $league_id) );
-			$group .= $league->fullname . form_hidden('edit[availability][]', $league_id) . "<br />";
+			$leagues[ $league_id] = $league->fullname;
 		}
-		$output .= form_group('Make Gameslot Available To:', $group);
+		$this->smarty->assign('leagues', $leagues);
 
-		$group = form_item('Weeks to repeat', form_hidden('edit[repeat_for]', $edit['repeat_for']) . $edit['repeat_for']);
-		$output .= form_group("Repetition", $group);
-
-		$output .= form_submit('submit');
-
-		return form($output);
+		return true;
 	}
 
 	function isDataInvalid ( $edit = array() )
-	{;
+	{
 		$errors = "";
 		if($edit['repeat_for'] > 52) {
 			$errors .= "\n<li>You cannot repeat a schedule for more than 52 weeks.";
