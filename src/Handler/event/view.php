@@ -125,8 +125,10 @@ class event_view extends EventHandler
 						$payment .= generatePayForm($this->event, $order_num);
 					}
 
-					$payment .= OfflinePaymentText($order_num);
-					$payment .= RefundPolicyText();
+					$payment .= para("The online portion of your registration process is now complete, but you must do the following to make payment:");
+					$payment .= strtr( variable_get('offline_payment_text', ''),
+								array( '%order_num' => $order_num ) );
+					$payment .= h2('Refund Policy') . variable_get('refund_policy_text', '');
 				}
 			}
 

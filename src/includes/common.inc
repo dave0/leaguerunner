@@ -184,11 +184,6 @@ function simple_tag($name, $content, $attributes = array())
 	return "<$name". (count($t) ? " " : "") . implode($t, " ") .">$content</$name>";
 }
 
-function h1($text, $attributes = array())
-{
-	return simple_tag("h1", $text, $attributes);
-}
-
 function h2($text, $attributes = array())
 {
 	return simple_tag("h2", $text, $attributes);
@@ -207,16 +202,6 @@ function pre($text, $attributes = array())
 function div($text, $attributes = array())
 {
 	return simple_tag("div", $text, $attributes);
-}
-
-function li($text, $attributes = array())
-{
-	return simple_tag("li", $text, $attributes);
-}
-
-function ul($text, $attributes = array())
-{
-	return simple_tag("ul", $text, $attributes);
 }
 
 function table_cell($cell, $header = 0) {
@@ -1288,15 +1273,6 @@ function display_short_name ($name, $length = -1)
 }
 
 /**
- * Used to strip off the OCUA prefix from ocua spirit questions
- * This is a horrible, unpleasant evil hack
- */
-function make_shorter_titles ( $string )
-{
-	return preg_replace('/OCUA/', '', $string);
-}
-
-/**
  * Message text for account-related emails
  */
 function _person_mail_text($messagetype, $variables = array() ) 
@@ -1364,15 +1340,6 @@ function OfflinePaymentText($order_num)
 
 	return $output;
 }
-
-function RefundPolicyText()
-{
-	$output = h2 ('Refund Policy');
-	$output .= variable_get('refund_policy_text', '');
-
-	return $output;
-}
-
 
 /* vim: set sw=4 ts=4 et: */
 ?>

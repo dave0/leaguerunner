@@ -227,13 +227,16 @@ function registration_settings ( )
  
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
 
-	$offline_steps = li('Mail (or personally deliver) a cheque for the appropriate amount to the league office');
-	$offline_steps .= li('Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.');
-	$offline_steps .= li('Also include a note indicating which registration the cheque is for, along with your full name.');
-	$offline_steps .= li('If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.');
-	$offline = ul($offline_steps);
-	$offline .= para('Please note that online payment registrations are \'live\' while offline payments are not.  You will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt).');
- 
+	$offline = <<<END
+<ul>
+	<li>Mail (or personally deliver) a cheque for the appropriate amount to the league office</li>
+	<li>Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.</li>
+	<li>Also include a note indicating which registration the cheque is for, along with your full name.</li>
+	<li>If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.</li>
+</ul>
+<p>Please note that online payment registrations are 'live' while offline payments are not.  You will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt)</p>
+END;
+
 	$group .= form_textarea('Text of offline payment directions', 'edit[offline_payment_text]', variable_get('offline_payment_text', $offline), 70, 10, 'Customize the text of your offline payment policy. Available variables are: %order_num');
 
 	$output = form_group('Registration configuration', $group);

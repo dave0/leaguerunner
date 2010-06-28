@@ -200,7 +200,9 @@ class event_register extends EventHandler
 		{
 			$output .= generatePayForm($this->event, $order_num);
 
-			$output .= OfflinePaymentText($order_num);
+			$output .= para("The online portion of your registration process is now complete, but you must do the following to make payment:");
+			$output .= strtr( variable_get('offline_payment_text', ''),
+						array( '%order_num' => $order_num ) );
 
 			$output .= para('Alternately, if you choose not to complete the payment process at this time, you will be able to start the registration process again at a later time and it will pick up where you have left off.');
 		} else {
@@ -208,7 +210,7 @@ class event_register extends EventHandler
 			$output .= strtr( variable_get('offline_payment_text', ''),
 						array( '%order_num' => $order_num ) );
 		}
-		$output .= RefundPolicyText();
+		$output .= h2('Refund Policy') . variable_get('refund_policy_text', '');
 
 		return $output;
 	}
