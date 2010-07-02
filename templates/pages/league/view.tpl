@@ -95,7 +95,7 @@ $(document).ready(function() {
 			null,
 		{/if_session_permission}
 {literal}
-			{ bSortable : false },
+			{ bSortable : false }
 		]
 	} );
 })
