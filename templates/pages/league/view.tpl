@@ -62,8 +62,8 @@
                 <td>{if $t->status == 'open'}
                         <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`}">join</a> &nbsp;
                     {/if}
-                    {if_session_permission path="league/edit/`$league->league_id`"}
-                        <a href="{lr_url path="league/edit/`$league->league_id`}">edit</a> &nbsp;
+                    {if_session_permission path="team/edit/`$t->team_id`"}
+                        <a href="{lr_url path="team/edit/`$t->team_id`}">edit</a> &nbsp;
                     {/if_session_permission}
                     {if_session_permission path="team/delete/`$t->team_id`"}
                         <a href="{lr_url path="team/delete/`$t->team_id`}">delete</a> &nbsp;
