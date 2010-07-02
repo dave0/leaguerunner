@@ -18,10 +18,9 @@
 <tr>
    <td class="primary links" align="right" valign="bottom">
    {if $session_valid}
-	You are logged in as <b>{$session_fullname}</b> | <a href="{$base_url}/logout">Log Out</a>
+	You are logged in as <b>{$session_fullname}</b> | <a href="{lr_url path="logout"}">Log Out</a>
    {else}
-   	{* TODO: create a [link 'login' "Log In"] plugin for smarty? *}
-	<a href="{$base_url}/login">Log In</a>
+	<a href="{lr_url path="login"}">Log In</a>
    {/if}
    </td>
 </tr>
