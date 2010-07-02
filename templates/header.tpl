@@ -12,7 +12,7 @@
   <body>
 <table id="primary-menu" border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr valign="bottom">
-    <td rowspan="2" width="401" valign="bottom"><a href="/"><img src="/themes/ocua_2004/ocua-logo-top-half.png" width="399" height="37" border="0" alt="Ottawa-Carleton Ultimate Association"></a></td>
+    <td rowspan="2" width="401" valign="bottom"><a href="/"><img src="/themes/ocua_2004/ocua-logo-top-half.png" width="399" height="37" border="0" alt="Ottawa-Carleton Ultimate Association" /></a></td>
 	<td></td>
 </tr>
 <tr>
@@ -27,7 +27,7 @@
 </table>
 <table id="secondary-menu" border="0" cellpadding="0" cellspacing="0" width="100%">
 	<tr height="22">
-		<td align="left" height="22" width="130" valign="top"><a href="/"><img src="/themes/ocua_2004/ocua-logo-bottom-half.png" width="130" height="22" border="0" alt=""></a></td>
+		<td align="left" height="22" width="130" valign="top"><a href="/"><img src="/themes/ocua_2004/ocua-logo-bottom-half.png" width="130" height="22" border="0" alt="" /></a></td>
 	</tr>
 </table>
 <!-- end header -->
