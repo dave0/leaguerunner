@@ -426,83 +426,8 @@ function leaguerunner_block($op = 'list', $delta = 0)
 
 			// Make sure they have access to the Leaguerunner module
 			if (user_access('access leaguerunner')) {
-
-				// Get the current Leaguerunner user
-				$lrUser = _leaguerunner_user_load( array( 'session_cookie' => session_id()));
-
-				// Check to see if the users email or name
-				// have been updated in Leaguerunner and do
-				// relevant updates in Drupal user table
-				if (($user->mail != $lrUser->email) || ($user->profile_fullname != ($lrUser->firstname . ' ' . $lrUser->lastname))) {
-#					$lrEmail =  $lrUser->email;
-#					$lrFullName = $lrUser->firstname . ' ' . $lrUser->lastname;
-#					$lrVariables = array('mail' => $lrEmail, 'profile_fullname' => $lrFullName);
-#					user_save($user, $lrVariables);
-				}
-
-				// Get the coming games for this user
-				$games = _leaguerunner_next_games();
-
-				// Start block contents output
-				$output = "<div class=\"next-games\" style=\"font-size: 8pt;\">\n";
-
-				// If user is inactive, set a Drupal Message
-				// and format the Leaguerunner Games block to
-				// show that user had not activated their
-				// LeagueRunner account
-				if ($lrUser->status == 'inactive') {
-
-					$lr_activate = variable_get("leaguerunner_activateaccount", "leaguerunner/person/activate");
-					$inactiveError1 = '<strong>Your Leaguerunner account has not been activated.</strong>';
-					$inactiveError2 = 'You cannot fully utilize the Leaguerunner system until you activate your account.<br><a href="/' . $lr_activate . '">Click here to activate</a>.';
-					$output .= '<p style="text-align: center;">' . $inactiveError1 . '</p><p>' . $inactiveError2. '</p>';
-					drupal_set_message(t($inactiveError1), 'error');
-					drupal_set_message(t($inactiveError2), 'error');
-
-					// If user has games then show a list of coming games.
-				} else if (count($games)) {
-
-					// Cycle through the games
-					foreach ($games as $game) {
-						$minutesleft = ( $game->date - time()) / 60;
-
-						// Format the minutes left text
-						if ( $minutesleft < 90 ) {
-							$timeleft = round($minutesleft) . " " . t('minutes');
-						} else if ( $minutesleft < (2*24*60) ) {
-							$timeleft = round($minutesleft/60) . " " . t('hours');
-						} else {
-							$timeleft = round($minutesleft/(24*60)) . " " . t('days');
-						}
-
-						// Figure out the field code for the game
-						$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-						$result = '';
-						$gameField = '';
-						if ($game->parent_fid) {
-							$result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->parent_fid", 0, 1);
-						} else {
-							$result = db_query_range("SELECT field.* FROM $lr_dbname.field WHERE field.fid = $game->fid", 0, 1);
-						}
-						$gameField = db_fetch_object($result);
-
-						$tmpDate = '';
-						$tmpDate = date("F dS: g:i a", $game->date) . "<br>(" . $timeleft . ")";
-						$items[] = "<b>$tmpDate</b><br><a href=\"/leaguerunner/game/view/$game->game_id\"><nobr>$game->homeTitle</nobr> vs. <nobr>$game->awayTitle</nobr></a> <nobr>at <a href=\"/leaguerunner/field/view/$game->fid\">$gameField->code $game->num</a></nobr>";
-					}
-
-					// Send the output to the theme to format as a list
-					$output .= theme("item_list", $items);
-
-					// If user has no games and is active simply indicate that they have no games
-				} else {
-					$output .= "No games scheduled";
-				}
-
-				// Finish the output and return the block
-				$output .= "</div>\n";
 				$block["subject"] = "Leaguerunner games";
-				$block["content"] = $output;
+				$block["content"] = '<iframe name="lr_block_iframe" id="lr_block_iframe" width="200" height="100" src="/leaguerunner/api/1/my/upcoming" align="top" frameborder="0" scrolling="no"></iframe>';
 				return $block;
 			}
 		}
