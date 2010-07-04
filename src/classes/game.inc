@@ -1296,8 +1296,14 @@ function game_query ( $array = array() )
 			case '_order':
 				$order = ' ORDER BY ' . $value;
 				break;
+			case '_limit':
+				$limit = ' LIMIT ' . $value;
+				break;
 			case '_extra_table':
-				array_push($tables, $value);
+				array_unshift($tables, $value);
+				break;
+			case '_extra_params':
+				$params = array_merge($params, $value);
 				break;
 			default:
 				$query[] = "s.$key = ?";
@@ -1331,7 +1337,7 @@ function game_query ( $array = array() )
 		LEFT JOIN field pf ON (pf.fid = f.parent_fid)
 		LEFT JOIN team h ON (h.team_id = s.home_team)
 		LEFT JOIN team a ON (a.team_id = s.away_team)
-	WHERE " . implode(' AND ',$query) .  $order);
+	WHERE " . implode(' AND ',$query) .  $order . $limit);
 
 	$sth->execute( $params );
 

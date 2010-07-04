@@ -460,6 +460,63 @@ class Person extends LeaguerunnerObject
 		return $teams;
 	}
 
+	function fetch_upcoming_games ( $want_num = 3 )
+	{
+		global $dbh;
+
+		// TODO: Find a way to make this work within game_query()
+		$sth = $dbh->prepare("SELECT
+			distinct s.*,
+			1 as _in_database,
+			IF(l.tier, CONCAT(l.name, ' ', l.tier), l.name) AS league_name,
+			s.home_team AS home_id,
+			h.name AS home_name,
+			h.rating AS rating_home,
+			s.away_team AS away_id,
+			a.name AS away_name,
+			a.rating AS rating_away,
+			g.slot_id,
+			g.game_date,
+			TIME_FORMAT(g.game_start, '%H:%i') AS game_start,
+			TIME_FORMAT(g.game_end, '%H:%i') AS game_end,
+			g.fid,
+			UNIX_TIMESTAMP(g.game_date) as day_id,
+			IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
+			UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + 0 as timestamp
+		FROM
+			teamroster hr,
+			teamroster ar,
+			team h,
+			team a,
+			league l,
+			schedule s,
+			gameslot g,
+			field f LEFT JOIN field pf ON (pf.fid = f.parent_fid)
+		WHERE
+			l.league_id = s.league_id
+			AND s.home_team = h.team_id
+			AND s.away_team = a.team_id
+			AND s.game_id = g.game_id
+			AND g.fid = f.fid
+			AND hr.team_id = h.team_id
+			AND ar.team_id = a.team_id
+				AND (hr.player_id = ? OR ar.player_id = ?)
+				AND g.game_date >= CURRENT_DATE()
+			ORDER BY g.game_date, g.game_start
+			LIMIT $want_num");
+
+		$sth->execute( array( $this->user_id, $this->user_id ) );
+
+		if( !$sth ) {
+			return array();
+		}
+
+		$games = array();
+		while( $row = $sth->fetchObject('Game') ) {
+			$games[] = $row;
+		}
+		return $games;
+	}
 }
 
 function person_query ( $array = array() )
