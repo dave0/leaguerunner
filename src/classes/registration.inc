@@ -71,8 +71,7 @@ class Registration extends LeaguerunnerObject
 			return false;
 		}
 
-		// TODO: If this is a team registration, delete the team record
-		// TOOD: Should we be keeping a record of unregisters instead of deleting?
+		// TODO: Should we be keeping a record of unregisters instead of deleting?
 		$queries = array(
 			'DELETE FROM registration_answers WHERE order_id = ?',
 			'DELETE FROM registrations WHERE order_id = ?',
