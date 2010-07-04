@@ -5,34 +5,30 @@ class event_register extends EventHandler
 	function has_permission()
 	{
 		global $lr_session;
-		if (!$this->event) {
-			error_exit('That event does not exist');
-		}
 		return $lr_session->has_permission('registration','register');
 	}
 
 	function process ()
 	{
+		$this->title = "Registration &raquo; {$this->event->name}";
+
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {
+			default:
+				// If we have a form, prompt user with it.
+				if( $this->formbuilder ) {
+					return $this->generateForm();
+				}
+
+				// Otherwise, fall through to register automatically.
+			case 'submit':
+				$this->save();  // dies on failure
+				$rc = $this->generatePay();
+				break;
 			case 'confirm':
 				$rc = $this->generateConfirm();
 				break;
-
-			case 'submit':
-				$rc = $this->save();
-				$rc .= $this->generatePay();
-				break;
-
-			default:
-				if( $this->formbuilder ) {
-					$rc = $this->generateForm();
-				}
-				else {
-					$rc = $this->save();
-					$rc .= $this->generatePay();
-				}
 		}
 
 		return $rc;
@@ -42,40 +38,18 @@ class event_register extends EventHandler
 	{
 		global $CONFIG;
 
-		$this->title = "Registration &raquo; {$this->event->name}";
+		$this->template_name = 'pages/event/register/form.tpl';
+		$this->smarty->assign('formbuilder_editable', $this->formbuilder->render_editable (false));
 
-		// This shouldn't happen...
-		if (! $this->formbuilder )
-		{
-			return para( 'Error: No event survey found!' );
-		}
-
-		ob_start();
-		$retval = @readfile(trim ($CONFIG['paths']['file_path'], '/') . "/data/registration_notice.html");
-		if (false !== $retval) {
-			$output = ob_get_contents();
-		}
-		ob_end_clean();
-
-		$output .= form_hidden('edit[step]', 'confirm');
-
-		$output .= $this->formbuilder->render_editable (false);
-		$output .= para(form_submit('submit', 'submit') . form_reset('reset'));
-
-		return form($output);
+		return true;
 	}
 
 	function generateConfirm()
 	{
 		global $lr_session;
 
-		$output = '';
-		$this->title = 'Confirm preferences';
-
-		// This shouldn't happen...
-		if (! $this->formbuilder )
-		{
-			return para( 'Error: No event survey found!' );
+		if (! $this->formbuilder ) {
+			error_exit( 'Error: No event survey found!' );
 		}
 
 		$dataInvalid = $this->isDataInvalid();
@@ -83,15 +57,11 @@ class event_register extends EventHandler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$form = form_hidden('edit[step]', 'submit');
-		$form .= $this->formbuilder->render_viewable();
-		$form .= $this->formbuilder->render_hidden();
-		$output = form_group('Registration', $form);
+		$this->template_name = 'pages/event/register/confirm.tpl';
+		$this->smarty->assign('formbuilder_viewable', $this->formbuilder->render_viewable() );
+		$this->smarty->assign('formbuilder_hidden', $this->formbuilder->render_hidden() );
 
-		$output .= para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
-		$output .= para(form_submit('submit'));
-
-		return form($output);
+		return true;
 	}
 
 	function save()
@@ -107,6 +77,9 @@ class event_register extends EventHandler
 		$this->registration->set('user_id', $lr_session->user->user_id);
 		$this->registration->set('registration_id', $this->event->registration_id);
 		$this->registration->set('total_amount', $this->event->total_cost());
+		if( $this->event->cost == 0 ) {
+			$this->registration->set('payment', 'Paid');
+		}
 
 		// TODO: transaction, so that we roll back the registration if we can't save_answers()
 
@@ -118,7 +91,7 @@ class event_register extends EventHandler
 			error_exit('Error saving registration question answers.');
 		}
 
-		return para('<b>Your registration has been recorded.  See Payment Details below.</b>');
+		return;
 	}
 
 	function isDataInvalid ( )
@@ -173,39 +146,25 @@ class event_register extends EventHandler
 		global $dbh;
 
 		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
+		$this->smarty->assign('order_number', $order_num);
 
 		if( $this->event->cost == 0 ) {
-			$sth = $dbh->prepare("UPDATE registrations SET payment = 'Paid' 
-					WHERE order_id = ?");
-			$sth->execute( array( $this->registration->order_id) );
-			if ( 1 != $sth->rowCount() ) {
-				$errors .= para("Your registration was received, but there was an error updating the database. Contact the office to ensure that your information is updated, quoting order #<b>$order_num</b>, or you may not be allowed to be added to rosters, etc.");
-			}
-
-			$this->title = 'Registration complete';
-
-			return para('Since there is no payment associated with this event, your registration is now complete.');
+			$this->template_name = 'pages/event/register/done_no_cost.tpl';
+			return true;
 		}
-
-		$this->title = 'Arrange for payment';
 
 		if( variable_get( 'online_payments', 1 ) )
 		{
-			$output .= generatePayForm($this->event, $order_num);
-
-			$output .= para("The online portion of your registration process is now complete, but you must do the following to make payment:");
-			$output .= strtr( variable_get('offline_payment_text', ''),
-						array( '%order_num' => $order_num ) );
-
-			$output .= para('Alternately, if you choose not to complete the payment process at this time, you will be able to start the registration process again at a later time and it will pick up where you have left off.');
+			$this->smarty->assign('online_payment_form', generatePayForm($this->event, $order_num));
+			$this->template_name = 'pages/event/register/online_payment.tpl';
 		} else {
-			$output .= h2 ('Payment Details');
-			$output .= strtr( variable_get('offline_payment_text', ''),
-						array( '%order_num' => $order_num ) );
+			$this->template_name = 'pages/event/register/offline_payment.tpl';
 		}
-		$output .= h2('Refund Policy') . variable_get('refund_policy_text', '');
 
-		return $output;
+		// TODO: should probably just be a sub-template
+		$this->smarty->assign('offline_payment_text', strtr( variable_get('offline_payment_text', '')));
+		$this->smarty->assign('refund_policy_text', variable_get('offline_payment_text', ''));
+		return true;
 	}
 }
 
