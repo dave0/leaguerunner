@@ -78,14 +78,7 @@ class event_register extends EventHandler
 			return para( 'Error: No event survey found!' );
 		}
 
-		$process_func = "confirm_{$this->event->type}";
-		$dataInvalid = '';
-		if( method_exists( $this, $process_func ) ) {
-			$dataInvalid .= $this->$process_func();
-		}
-
-		$this->formbuilder->bulk_set_answers( $_POST[$this->event->formkey()] );
-		$dataInvalid .= $this->formbuilder->answers_invalid();
+		$dataInvalid = $this->isDataInvalid();
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
@@ -105,17 +98,17 @@ class event_register extends EventHandler
 	{
 		global $lr_session;
 
-		$output = para('');
-
-		$process_func = "save_{$this->event->type}";
-		if( method_exists( $this, $process_func ) ) {
-			$output .= $this->$process_func();
+		$dataInvalid = $this->isDataInvalid();
+		if( $dataInvalid ) {
+			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->registration = new Registration;
 		$this->registration->set('user_id', $lr_session->user->user_id);
 		$this->registration->set('registration_id', $this->event->registration_id);
 		$this->registration->set('total_amount', $this->event->total_cost());
+
+		// TODO: transaction, so that we roll back the registration if we can't save_answers()
 
 		if (! $this->registration->save() ) {
 			error_exit('Could not create registration record.');
@@ -125,7 +118,28 @@ class event_register extends EventHandler
 			error_exit('Error saving registration question answers.');
 		}
 
-		return $output . para('<b>Your registration has been recorded.  See Payment Details below.</b>');
+		return para('<b>Your registration has been recorded.  See Payment Details below.</b>');
+	}
+
+	function isDataInvalid ( )
+	{
+
+		$errors = '';
+		$process_func = "confirm_{$this->event->type}";
+		if( method_exists( $this, $process_func ) ) {
+			$errors .= $this->$process_func();
+		}
+
+		if( $this->formbuilder ) {
+			$this->formbuilder->bulk_set_answers( $_POST[$this->event->formkey()] );
+			$errors .= $this->formbuilder->answers_invalid();
+		}
+
+		if(strlen($errors) > 0) {
+			return $errors;
+		} else {
+			return false;
+		}
 	}
 
 	/**
@@ -148,27 +162,6 @@ class event_register extends EventHandler
 	function confirm_team_event()
 	{
 		return $this->confirm_team_league();
-	}
-
-	function save_team_league()
-	{
-		global $lr_session;
-
-		$team_id = $_POST[$this->event->formkey()]['__auto__team_id'];
-		if( $lr_session->user->has_position_on( $team_id, array('captain') ) ) {
-			return false;
-		}
-		if( $team->perform( $auto_data ) ) {
-			return para('A team record has been created with you as captain.');
-		}
-		else {
-			return para('Failed to create the team record. Contact ' . variable_get('app_admin_email', 'webmaster@localhost') . ' to ensure that this situation is resolved.');
-		}
-	}
-
-	function save_team_event()
-	{
-		return $this->save_team_league();
 	}
 
 	/**
