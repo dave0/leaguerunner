@@ -6,7 +6,7 @@ class team_roster extends TeamHandler
 {
 	protected $player;
 
-	function __construct ( $id, $player_id )
+	function __construct ( $id, $player_id = null )
 	{
 		parent::__construct( $id );
 		if( $player_id ) {
@@ -184,40 +184,13 @@ class team_roster extends TeamHandler
 				error_exit("You cannot add a person to that team!");
 			}
 
-			// Handle bulk player adds from previous rosters
-			if( array_key_exists ('add', $edit)) {
-				$this->processBatch ($edit);
-				local_redirect(url("team/view/" . $this->team->team_id));
-			} else if( array_key_exists ('team', $edit)) {
-				return $this->generatePastRosterForm ($edit);
-			}
-
 			$new_handler = new person_search;
+			$new_handler->smarty = &$this->smarty;
 			$new_handler->initialize();
-			$new_handler->ops['Add to ' . $this->team->name] = 'team/roster/' .$this->team->team_id . '/%d';
-			$search = $new_handler->process();
-
-			$team = para('Or select a team from your history below to invite people from that roster.');
-			// The "home_team" part of the query is to include only teams that played
-			// games, not ones created for tracking playoffs, tournaments, etc.  Not
-			// sure if it's the best way to go.
-			$team .= form_select('', 'edit[team]', '', getOptionsFromQuery(
-				'SELECT t.team_id as theKey, CONCAT(t.name, " (", l.season, " ", l.year, ")") as theValue FROM team t
-					LEFT JOIN leagueteams lt ON t.team_id = lt.team_id
-					LEFT JOIN league l       ON lt.league_id = l.league_id
-					WHERE t.team_id IN
-						(SELECT team_id FROM teamroster WHERE player_id = ? AND team_id != ?)
-					AND t.team_id IN
-						(SELECT DISTINCT home_team FROM schedule)
-					AND l.status = "closed"
-					ORDER BY t.team_id DESC',
-				array($lr_session->user->user_id, $this->team->team_id)
-			));
-			$team .= form_hidden('edit[step]', 'team');
-
-			$team .= para(form_submit("show roster"));
-
-			return $search . form ($team);
+			$new_handler->ops['Add to ' . $this->team->name] = 'team/roster/' .$this->team->team_id;
+			$new_handler->process();
+			$this->template_name = $new_handler->template_name;
+			return true;
 		}
 
 		$this->loadPermittedStates($this->team->team_id, $this->player->user_id);
@@ -278,70 +251,6 @@ class team_roster extends TeamHandler
 		$output .= para( form_submit('submit') . form_reset('reset') );
 
 		return form($output);
-	}
-
-	function generatePastRosterForm ( $edit )
-	{
-		$old_team = team_load( array('team_id' => $edit['team']) );
-		if (! $old_team) {
-			return error_exit('That team does not exist. Please select a valid team from the list.');
-		}
-		$old_team->get_roster();
-		$this->team->get_roster();
-
-		$form = '';
-		$non_members = array();
-
-		foreach ($old_team->roster as $old_player) {
-			$present = false;
-			foreach ($this->team->roster as $player) {
-				if ($player->id == $old_player->id) {
-					$present = true;
-					break;
-				}
-			}
-			if (!$present) {
-				// This is really ugly, but the object returned as part of the roster
-				// is incomplete for these purposes.
-				$user = person_load (array('user_id' => $old_player->id));
-				if ($user->is_member()) {
-					$form .= form_checkbox($old_player->fullname, 'edit[add][]', $old_player->id);
-				} else {
-					$non_members[] = l($old_player->fullname, url("person/view/{$old_player->id}"));
-				}
-			}
-		}
-
-		if (!empty ($form)) {
-			$form = para("The following players were on the roster for {$old_team->name} in {$old_team->league_season}, {$old_team->league_year} but are not on your current roster:") .
-				form ($form . para( form_submit('invite') ) );
-		}
-
-		if (!empty ($non_members)) {
-			$form .= para('The following players are not yet registered members for this year and cannot be added to your roster:') . para (implode(', ', $non_members));
-		}
-
-		return $form;
-	}
-
-	// TODO: Merge common code from here and perform
-	function processBatch ( $edit )
-	{
-		global $dbh;
-
-		/* To have gotten here, the current user is the captain of the team,
-		 * so we assume that it's okay to send a captain request to the player.
-		 */
-		foreach ($edit['add'] as $id) {
-			$player = person_load (array('user_id' => $id));
-			if ($player->is_member() && !$player->is_player_on ($this->team->team_id)) {
-				$sth = $dbh->prepare('INSERT INTO teamroster VALUES(?,?,?,NOW())');
-				$sth->execute( array($this->team->team_id, $player->user_id, 'captain_request'));
-
-				// Send an email, if configured
-				$this->sendInvitation ('captain_request', $player);
-			}
-		}
 	}
 
 	function perform ( $edit )
