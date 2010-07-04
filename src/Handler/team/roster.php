@@ -344,52 +344,12 @@ class team_roster extends TeamHandler
 			}
 			else if( $status == 'player_request') {
 
-				// Find the list of captains and assistants for the team
-				if( variable_get('postnuke', 0) ) {
-					$sth = $dbh->prepare("SELECT
-								firstname,
-								lastname,
-								n.pn_email as email,
-								r.status
-							FROM
-								person p
-							LEFT JOIN
-								nuke_users n
-							ON
-								p.user_id = n.pn_uid
-							LEFT JOIN
-								teamroster r
-							ON
-								p.user_id = r.player_id
-							WHERE
-								team_id = ?
-							AND
-								(
-									r.status = 'captain'
-								OR
-									r.status = 'assistant'
-								)");
-				} else {
-					$sth = $dbh->prepare("SELECT
-								firstname,
-								lastname,
-								email,
-								r.status
-							FROM
-								person p
-							LEFT JOIN
-								teamroster r
-							ON
-								p.user_id = r.player_id
-							WHERE
-								team_id = ?
-							AND
-								(
-									r.status = 'captain'
-								OR
-									r.status = 'assistant'
-								)");
-				}
+				$sth = $dbh->prepare(
+					"SELECT firstname, lastname, email, r.status
+					 FROM   person p
+						LEFT JOIN teamroster r ON (p.user_id = r.player_id)
+					 WHERE  team_id = ?
+					        AND (r.status = 'captain' OR r.status = 'assistant')");
 				$sth->execute( array( $this->team->team_id) );
 
 				$captains = array();

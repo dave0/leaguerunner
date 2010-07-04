@@ -394,43 +394,21 @@ class Person extends LeaguerunnerObject
 	{
 		global $dbh;
 		/* Check to see if there are any duplicate users */
-		$query = '';
-		if( variable_get('postnuke', 0)) {
-			$query = 'SELECT
-				p.user_id,
-				p.firstname,
-				p.lastname
-				FROM person p, person q, nuke_users np, nuke_users nq
-				WHERE q.user_id = ?
-					AND p.user_id <> q.user_id
-					AND np.pn_uid = p.user_id
-					AND nq.pn_uid = q.user_id
-					AND (
-						np.pn_email = nq.pn_email
-						OR p.home_phone = q.home_phone
-						OR p.work_phone = q.work_phone
-						OR p.mobile_phone = q.mobile_phone
-						OR p.addr_street = q.addr_street
-						OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-					)';
-		} else {
-			$query = 'SELECT
-				p.user_id,
-				p.firstname,
-				p.lastname
-				FROM person p, person q 
-				WHERE q.user_id = ?
-					AND p.user_id <> q.user_id
-					AND (
-						p.email = q.email
-						OR p.home_phone = q.home_phone
-						OR p.work_phone = q.work_phone
-						OR p.mobile_phone = q.mobile_phone
-						OR p.addr_street = q.addr_street
-						OR (p.firstname = q.firstname AND p.lastname = q.lastname)
-					)';
-		}
-
+		$query = 'SELECT
+			p.user_id,
+			p.firstname,
+			p.lastname
+			FROM person p, person q
+			WHERE q.user_id = ?
+				AND p.user_id <> q.user_id
+				AND (
+					p.email = q.email
+					OR p.home_phone = q.home_phone
+					OR p.work_phone = q.work_phone
+					OR p.mobile_phone = q.mobile_phone
+					OR p.addr_street = q.addr_street
+					OR (p.firstname = q.firstname AND p.lastname = q.lastname)
+				)';
 		$sth = $dbh->prepare( $query );
 		if( ! $sth->execute (array($this->user_id)) ) {
 			return null;

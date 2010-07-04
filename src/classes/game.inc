@@ -194,26 +194,14 @@ class Game extends LeaguerunnerObject
 					return false;
 				}
 
-				if( variable_get('postnuke', 0)) {
-					$sth = $dbh->prepare("
-						SELECT
-							CONCAT(p.firstname, ' ', p.lastname) as fullname,
-							n.pn_email as email
-						FROM leaguemembers m
-						LEFT JOIN person p ON m.player_id = p.user_id
-						LEFT JOIN nuke_users n ON m.player_id = n.pn_uid
-						WHERE league_id = ?
-						AND (m.status = 'coordinator')");
-				} else {
-					$sth = $dbh->prepare("
-						SELECT
-							CONCAT(p.firstname, ' ', p.lastname) as fullname,
-							email
-						FROM leaguemembers m
-						LEFT JOIN person p ON m.player_id = p.user_id
-						WHERE league_id = ?
-						AND (m.status = 'coordinator')");
-				}
+				$sth = $dbh->prepare(
+					"SELECT
+						CONCAT(p.firstname, ' ', p.lastname) as fullname,
+						email
+					FROM leaguemembers m
+					LEFT JOIN person p ON m.player_id = p.user_id
+					WHERE league_id = ?
+					AND (m.status = 'coordinator')");
 				$sth->execute( array($this->league_id) );
 
 				$to_addr = $to_name = array();
@@ -328,28 +316,15 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		if( variable_get('postnuke', 0)) {
-			$sth = $dbh->prepare("
-				SELECT
-					CONCAT(p.firstname, ' ', p.lastname) as fullname,
-					n.pn_email as email,
-					r.status
-				FROM teamroster r
-				LEFT JOIN person p ON r.player_id = p.user_id
-				LEFT JOIN nuke_users n ON r.player_id = n.pn_uid
-				WHERE team_id = ?
-				AND (r.status = 'captain' OR r.status = 'assistant')");
-		} else {
-			$sth = $dbh->prepare("
-				SELECT
-					CONCAT(p.firstname, ' ', p.lastname) as fullname,
-					email,
-					r.status
-				FROM teamroster r
-				LEFT JOIN person p ON r.player_id = p.user_id
-				WHERE team_id = ?
-				AND (r.status = 'captain' OR r.status = 'assistant')");
-		}
+		$sth = $dbh->prepare("
+			SELECT
+				CONCAT(p.firstname, ' ', p.lastname) as fullname,
+				email,
+				r.status
+			FROM teamroster r
+			LEFT JOIN person p ON r.player_id = p.user_id
+			WHERE team_id = ?
+			AND (r.status = 'captain' OR r.status = 'assistant')");
 		$sth->execute( array($team_id) );
 
 		$to_addr = $to_name = $cc_addr = $cc_name = array();
