@@ -142,11 +142,13 @@ class Team extends LeaguerunnerObject
 		global $dbh;
 
 		if( is_null($this->_player_count) ) {
-			$sth = $dbh->prepare("SELECT COUNT(r.player_id)
-				FROM teamroster r
-				WHERE
-					r.status IN ('player', 'captain', 'assistant')
-					AND r.team_id = ?");
+			$sth = $dbh->prepare(
+			    "SELECT COUNT(p.user_id)
+			     FROM teamroster r LEFT JOIN person p ON (p.user_id = r.player_id)
+			     WHERE
+			        p.status = 'active'
+				AND r.status IN ('player', 'captain', 'assistant')
+				AND r.team_id = ?");
 			$sth->execute(array( $this->team_id));
 			$this->_player_count = $sth->fetchColumn();
 		}
