@@ -6,7 +6,7 @@ class league_member extends LeagueHandler
 {
 	private $player_id;
 
-	function __construct( $id, $player_id )
+	function __construct( $id, $player_id = null )
 	{
 		parent::__construct( $id );
 		$this->player_id = $player_id;
@@ -25,10 +25,13 @@ class league_member extends LeagueHandler
 
 		if( !$this->player_id ) {
 			$new_handler = new person_search;
+			$new_handler->smarty = &$this->smarty;
 			$new_handler->initialize();
-			$new_handler->ops['Add to ' . $this->league->fullname] = 'league/member/' .$this->league->league_id . '/%d';
+			$new_handler->ops['Add to ' . $this->league->fullname] = 'league/member/' .$this->league->league_id;
 			$new_handler->extra_where = "(class = 'administrator' OR class = 'volunteer')";
-			return $new_handler->process();
+			$new_handler->process();
+			$this->template_name = $new_handler->template_name;
+			return true;
 		}
 
 		if( !$lr_session->is_admin() && $this->player_id == $lr_session->attr_get('user_id') ) {
