@@ -5,7 +5,7 @@
 	$(document).ready(function() {
 		$('#datepicker').datepicker({
 			changeMonth: true,
-			dateFormat: 'yy/mm/dd',
+			dateFormat: 'yy/mm/dd'
 		});
 
 		$("#datepicker").change(function() {
