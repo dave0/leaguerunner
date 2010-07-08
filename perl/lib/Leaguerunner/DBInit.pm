@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 23;
+my $LATEST_SCHEMA = 24;
 
 my @TABLES = (
 	'person' => [q{
@@ -348,13 +348,24 @@ my @TABLES = (
 			modified timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			payment enum('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded') NOT NULL default 'Unpaid',
 			total_amount decimal(7,2) default 0.0,
-			paid_amount  decimal(7,2) default 0.0,
-			paid_by  varchar(255),
-			date_paid timestamp default 0,
-			payment_method varchar(255),
 			notes blob,
 			PRIMARY KEY  (order_id),
 			KEY user_id (user_id,registration_id)
+		);
+	},
+	q{
+		DROP TABLE IF EXISTS registration_payments;
+	},
+	q{
+		CREATE TABLE registration_payments (
+			order_id       int(10) UNSIGNED NOT NULL,
+			payment_type   ENUM('Full', 'Deposit', 'Remaining Balance'),
+			payment_amount decimal(7,2) default 0.0,
+			paid_by        varchar(255),
+			date_paid      date NOT NULL,
+			payment_method varchar(255),
+			entered_by     int(11) NOT NULL,
+			PRIMARY KEY(order_id, payment_type)
 		);
 	},
 	q{
@@ -1740,4 +1751,44 @@ sub upgrade_22_to_23
 	]);
 }
 
+sub upgrade_23_to_24
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+		payment_tracking => [
+		q{
+			CREATE TABLE registration_payments (
+				order_id       int(10) UNSIGNED NOT NULL,
+				payment_type   ENUM('Full', 'Deposit', 'Remaining Balance'),
+				payment_amount decimal(7,2) default 0.0,
+				paid_by        varchar(255),
+				date_paid      date NOT NULL,
+				payment_method varchar(255),
+				entered_by     int(11) NOT NULL,
+				PRIMARY KEY(order_id, payment_type)
+			);
+		},
+		q{
+			INSERT INTO registration_payments
+				(order_id, payment_type, payment_amount, paid_by, date_paid, payment_method, entered_by)
+				SELECT order_id, 'Deposit', paid_amount, paid_by, date_paid, payment_method, 1
+				FROM registrations WHERE payment = 'Deposit Paid';
+		},
+		q{
+			INSERT INTO registration_payments
+				(order_id, payment_type, payment_amount, paid_by, date_paid, payment_method, entered_by)
+				SELECT order_id, 'Full', paid_amount, paid_by, date_paid, payment_method, 1
+				FROM registrations WHERE payment = 'Paid';
+		},
+		q{
+			ALTER TABLE registrations
+				DROP COLUMN paid_amount,
+				DROP COLUMN paid_by,
+				DROP COLUMN date_paid,
+				DROP COLUMN payment_method
+		},
+		]
+	]);
+}
 1;
