@@ -101,6 +101,7 @@ function game_permissions ( &$user, $action, &$game, $extra )
 			}
 			break;
 		case 'edit':
+		case 'delete':
 			return ($user && $user->is_coordinator_of($game->league_id));
 			break; // unreached
 		case 'view':
