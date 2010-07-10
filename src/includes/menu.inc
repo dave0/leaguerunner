@@ -299,7 +299,7 @@ function menu_build( )
 		if( $lr_session->is_admin() ) {
 			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
 			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
-			menu_add_child('event','registration/registrations','download registrations', array('link' => 'registration/download') );
+			menu_add_child('event','registration/downloadall','download all registrations', array('link' => 'registration/downloadall') );
 			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'statistics/registration/unpaid') );
 		}
 	}

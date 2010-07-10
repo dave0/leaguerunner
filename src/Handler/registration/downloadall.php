@@ -1,5 +1,5 @@
 <?php
-class registration_download extends Handler
+class registration_downloadall extends Handler
 {
 	function has_permission()
 	{
@@ -12,13 +12,12 @@ class registration_download extends Handler
 		global $dbh;
 		global $CONFIG;
 
-		$data = array('Date', 'Order ID', 'Event', 'User ID', 'First name', 'Last name', 'Email', 'Payment Status', 'Payment Date', 'Payment From', 'Amt Paid', 'Total Cost');
-
-		// Start the output, let the browser know what type it is
 		header('Content-type: text/x-csv');
-		header("Content-Disposition: attachment; filename=\"registrations.csv\"");
+		header('Content-Disposition: attachment; filename="registrations.csv"');
 		$out = fopen('php://output', 'w');
-		fputcsv($out, $data);
+		fputcsv($out, array(
+			'Date', 'Order ID', 'Event', 'User ID', 'First name', 'Last name', 'Email', 'Payment Status', 'Payment Date', 'Payment From', 'Amt Paid', 'Total Cost'
+		));
 
 		$sth = $dbh->prepare("SELECT
 					r.time,
@@ -42,22 +41,20 @@ class registration_download extends Handler
 
 		while($row = $sth->fetch()) {
 			$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
-
-			$data = array( $row['time'],
-					$order_id,
-					$row['name'],
-					$row['user_id'],
-					$row['firstname'],
-					$row['lastname'],
-					$row['email'],
-					$row['payment'],
-					$row['date_paid'],
-					$row['paid_by'],
-					$row['paid_amount'],
-					$row['total_amount'] );
-
-			// Output the data row
-			fputcsv($out, $data);
+			fputcsv($out, array(
+				$row['time'],
+				$order_id,
+				$row['name'],
+				$row['user_id'],
+				$row['firstname'],
+				$row['lastname'],
+				$row['email'],
+				$row['payment'],
+				$row['date_paid'],
+				$row['paid_by'],
+				$row['paid_amount'],
+				$row['total_amount']
+			));
 		}
 
 		fclose($out);
