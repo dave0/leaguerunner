@@ -172,6 +172,66 @@ class Event extends LeaguerunnerObject
 				break;
 		}
 	}
+
+	function get_gender_stats ()
+	{
+		global $dbh;
+		$sth = $dbh->prepare('SELECT p.gender, COUNT(order_id)
+			FROM registrations r
+				LEFT JOIN person p ON r.user_id = p.user_id
+				WHERE r.registration_id = ?
+					AND r.payment != "Refunded"
+			GROUP BY p.gender
+			ORDER BY gender');
+		$sth->execute( array( $this->registration_id ) );
+
+		$results = array();
+		while($row = $sth->fetch(PDO::FETCH_NUM)) {
+			$results[ $row[0] ] = $row[1];
+		}
+
+		return $results;
+	}
+
+	function get_payment_stats ()
+	{
+		global $dbh;
+		$sth = $dbh->prepare('SELECT payment, COUNT(order_id) AS count
+			FROM registrations
+			WHERE registration_id = ?
+			GROUP BY payment
+			ORDER BY count DESC');
+		$sth->execute( array( $this->registration_id ) );
+
+		$results = array();
+		while($row = $sth->fetch(PDO::FETCH_NUM)) {
+			$results[ $row[0] ] = $row[1];
+		}
+
+		return $results;
+	}
+
+	function get_registrations ()
+	{
+		global $dbh, $CONFIG;
+
+		$sth = $dbh->prepare("SELECT
+				order_id,
+				DATE_ADD(time, INTERVAL ? MINUTE) as time,
+				payment,
+				p.user_id,
+				p.firstname,
+				p.lastname
+			FROM registrations r
+				LEFT JOIN person p ON r.user_id = p.user_id
+			WHERE r.registration_id = ?
+				ORDER BY payment, order_id
+		");
+		$sth->execute( array(-$CONFIG['localization']['tz_adjust'], $this->registration_id) );
+
+		return $sth->fetchAll(PDO::FETCH_ASSOC);
+	}
+
 }
 
 

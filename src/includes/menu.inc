@@ -298,9 +298,8 @@ function menu_build( )
 
 		if( $lr_session->is_admin() ) {
 			menu_add_child('settings', 'settings/registration', 'registration settings', array('link' => 'settings/registration'));
-			menu_add_child('statistics','statistics/registration','registration statistics', array('link' => 'statistics/registration') );
 			menu_add_child('event','registration/downloadall','download all registrations', array('link' => 'registration/downloadall') );
-			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'statistics/registration/unpaid') );
+			menu_add_child('event','registration/unpaid','unpaid registrations', array('link' => 'registration/unpaid') );
 		}
 	}
 
@@ -487,7 +486,7 @@ function event_add_to_menu( &$event )
 		}
 
 		if( $lr_session->is_admin() ) {
-			menu_add_child($event->name, "$event->name/registrations", 'registration summary', array('weight' => 2, 'link' => "statistics/registration/summary/$event->registration_id"));
+			menu_add_child($event->name, "$event->name/registrations", 'registration summary', array('weight' => 2, 'link' => "event/registrations/$event->registration_id"));
 		}
 	}
 }
