@@ -316,20 +316,7 @@ class Person extends LeaguerunnerObject
 
 	function is_active()
 	{
-		if( $this->status == 'active' ) {
-			return true;
-		}
-
-		// New users may be treated as active, if the right setting is on
-		if( $this->status == 'new' && variable_get('allow_tentative', 0) ) {
-
-			$sth = $this->find_duplicates();
-			if( ! $sth->fetch() ) {
-				return true;
-			}
-		}
-
-		return false;
+		return( $this->status == 'active' );
 	}
 
 	function has_position_on( $team_id, $wanted_positions )

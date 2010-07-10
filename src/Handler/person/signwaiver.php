@@ -21,11 +21,7 @@ class person_signwaiver extends Handler
 	function has_permission()
 	{
 		global $lr_session;
-		if (variable_get('registration', 0) && variable_get('allow_tentative', 0)) {
-			return ($lr_session->is_loaded());
-		} else {
-			return ($lr_session->is_valid());
-		}
+		return ($lr_session->is_valid());
 	}
 
 	function process ()

@@ -103,8 +103,7 @@ class event_view extends EventHandler
 			// If there's an unpaid registration, we may want to allow the
 			// option to pay it.  However, the option may be displayed after
 			// other text, so we'll build it here and save it for later.
-			if( is_unpaid ($row) )
-			{
+			if( $row->payment != 'Paid' ) {
 				$payment = para('You have already registered for this event, but not yet paid.');
 				$payment .= para('If you registered in error, or have changed your mind about participating, or want to change your previously selected preferences, you can ' . l('unregister', 'registration/unregister/' . $row->order_id) . '.');
 
@@ -134,7 +133,7 @@ class event_view extends EventHandler
 
 			// If the record is considered paid, and we allow multiple
 			// registrations, show that.
-			if( is_paid ($row) && $this->event->multiple )
+			if( $row->payment == 'Paid' && $this->event->multiple )
 			{
 				$output = para('You have already registered for this event. However, this event allows multiple registrations (e.g. the same person can register teams to play on different nights).');
 			}
@@ -197,22 +196,5 @@ class event_view extends EventHandler
 		return $output . $payment;
 	}
 }
-
-// These functions tell whether a registration record is considered to be paid,
-// and whether it can still be paid.  They are not necessarily exclusive; if
-// tentative registrations are allowed, then a record can be considered both
-// paid (for the purposes of allowing further registrations) but also unpaid
-// (for the purposes of deciding whether to allow the user to pay for it).
-function is_paid ($record)
-{
-	return( $record->payment == 'Paid' || 
-		( variable_get('allow_tentative', 0) && $record->payment == 'Pending' ) );
-}
-
-function is_unpaid ($record)
-{
-	return( $record->payment == 'Unpaid' || $record->payment == 'Pending' );
-}
-
 
 ?>
