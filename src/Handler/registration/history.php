@@ -33,19 +33,6 @@ class registration_history extends PersonHandler
 			$rows[] = array( $name, $order, substr($row['time'], 0, 10), $row['payment'] );
 		}
 
-		/* Add in any preregistrations */
-		$sth = $dbh->prepare('SELECT e.registration_id, e.name
-			FROM preregistrations r
-				LEFT JOIN registration_events e ON r.registration_id = e.registration_id
-			WHERE r.user_id = ?
-			ORDER BY r.registration_id');
-		$sth->execute( array( $this->person->user_id) );
-		while($row = $sth->fetch() ) {
-			$name = l($row['name'], 'event/view/' . $row['registration_id']);
-			$order = 'Prereg';
-			$rows[] = array( $name, $order, '', 'No' );
-		}
-
 		$header = array('Event', 'Order ID', 'Date', 'Payment');
 		$output = table($header, $rows);
 
