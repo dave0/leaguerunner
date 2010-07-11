@@ -173,6 +173,15 @@ class Event extends LeaguerunnerObject
 		}
 	}
 
+        /*
+         * Returns long name of the event type
+         */
+	function get_long_type ()
+	{
+		$types = event_types();
+		return $types[$this->type];
+	}
+
 	function get_gender_stats ()
 	{
 		global $dbh;
@@ -230,6 +239,45 @@ class Event extends LeaguerunnerObject
 		$sth->execute( array(-$CONFIG['localization']['tz_adjust'], $this->registration_id) );
 
 		return $sth->fetchAll(PDO::FETCH_ASSOC);
+	}
+
+	function get_registration_for( $user_id = null )
+	{
+		return registration_load(array(
+			'user_id'         => $user_id,
+			'registration_id' => $this->registration_id,
+		));
+	}
+
+	function get_applicable_cap ( $user )
+	{
+		global $dbh;
+
+		$where  = '';
+		$params = array( $this->registration_id );
+		// TODO FIXME magical values suck
+		if ($this->event->cap_female == -2) {
+			$applicable_cap = $this->cap_male;
+		} else {
+			if( $user->gender == 'Male' ) {
+				$applicable_cap = $this->cap_male;
+			} else {
+				$applicable_cap = $this->cap_female;
+			}
+			$where = ' AND p.gender = ?';
+			array_push( $params, $user->gender );
+		}
+
+		$sth = $dbh->prepare("SELECT COUNT(order_id)
+			FROM registrations r
+			LEFT JOIN person p ON r.user_id = p.user_id
+			WHERE registration_id = ?
+			AND (payment = 'Paid' OR payment = 'Pending')
+			$where");
+		$sth->execute( $params );
+		$registered_count = $sth->fetchColumn();
+
+		return array( $applicable_cap, $registered_count );
 	}
 
 }
