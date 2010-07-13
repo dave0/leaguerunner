@@ -21,8 +21,8 @@
                         <a href="{lr_url path="schedule/view/`$l->league_id`}">schedule</a> &nbsp;
                         <a href="{lr_url path="league/standings/`$l->league_id`}">standings</a> &nbsp;
                     {/if}
-                    {if_session_permission path="league/delete/`$league->league_id`"}
-                        <a href="{lr_url path="league/delete/`$league->league_id`}">delete</a> &nbsp;
+                    {if_session_permission path="league/delete/`$l->league_id`"}
+                        <a href="{lr_url path="league/delete/`$l->league_id`}">delete</a> &nbsp;
                     {/if_session_permission}
                 </td>
             </tr>
