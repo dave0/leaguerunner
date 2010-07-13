@@ -11,52 +11,36 @@ class registration_view extends RegistrationHandler
 	function process ()
 	{
 		global $dbh;
-		$this->title= 'View Registration';
+		$this->title = 'Registration ' . $this->registration->formatted_order_id();
 
-		$person = $this->registration->user();
+		$this->template_name = 'pages/registration/view.tpl';
 
-		$userrows = array();
-		$userrows[] = array ('Name', l($person->fullname, url("person/view/{$person->user_id}")) );
-		$userrows[] = array ('Member&nbsp;ID', $person->member_id);
-		$userrows[] = array ('Event', l($this->event->name, url("event/view/{$this->event->registration_id}")));
-		$userrows[] = array ('Registered Price', $this->registration->total_amount);
-		$userrows[] = array ('Payment Status', $this->registration->payment);
-		$userrows[] = array ('Payment Amount', $this->registration->paid_amount);
-		$userrows[] = array ('Payment Method', $this->registration->payment_method);
-		$userrows[] = array ('Payment Date', $this->registration->date_paid);
-		$userrows[] = array ('Paid By (if different)', $this->registration->paid_by);
-		$userrows[] = array ('Created', $this->registration->time);
-		$userrows[] = array ('Last Modified', $this->registration->modified);
-		$userrows[] = array ('Notes', $this->registration->notes);
-		$output = form_group('Registration details', '<div class="pairtable">' . table(NULL, $userrows) . '</div>');
+		$this->smarty->assign('reg', $this->registration);
+		$this->smarty->assign('event', $this->event);
 
+		// TODO: should be get_user() for consistency.
+		$this->smarty->assign('registrant', $this->registration->user() );
+
+		$this->form_load();
 		if( ! $this->event->anonymous && $this->formbuilder ) {
 			$this->formbuilder->bulk_set_answers_sql(
 				'SELECT qkey, akey FROM registration_answers WHERE order_id = ?',
 				array( $this->registration->order_id)
 			);
 
-			$output .= form_group('Registration answers', $this->formbuilder->render_viewable() );
+			$this->smarty->assign('formbuilder_render_viewable', $this->formbuilder->render_viewable() );
 		}
 
 		// Get payment audit information, if available
-		$sth = $dbh->prepare('SELECT *
-				FROM registration_audit
-				WHERE order_id = ?');
+		// TODO: should be a) a registration_payments class and b) loaded from ->registration->get_payments();
+		$sth = $dbh->prepare('SELECT * FROM registration_audit WHERE order_id = ?');
 		$sth->execute( array(
 			$this->registration->order_id
 		));
 
-		$payrows = array();
-		$row = $sth->fetch(PDO::FETCH_ASSOC);
-		if( $row ) {
-			foreach($row as $key => $value) {
-				$payrows[] = array($key, $value);
-			}
-			$output .= form_group('Payment details', '<div class="pairtable">' . table(NULL, $payrows) . '</div>');
-		}
+		$this->smarty->assign('payment_details',  $sth->fetchAll(PDO::FETCH_ASSOC));
 
-		return $output;
+		return true;
 	}
 }
 
