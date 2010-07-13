@@ -40,10 +40,9 @@ class registration_downloadall extends Handler
 		$sth->execute ( array(-$CONFIG['localization']['tz_adjust']) );
 
 		while($row = $sth->fetch()) {
-			$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 			fputcsv($out, array(
 				$row['time'],
-				$order_id,
+				sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 				$row['name'],
 				$row['user_id'],
 				$row['firstname'],

@@ -143,6 +143,18 @@ class Registration extends LeaguerunnerObject
 
 		return true;
 	}
+
+	function payments_on_file ()
+	{
+		return ($this->payment == 'Paid'
+			|| $this->payment == 'Deposit Paid'
+			|| $this->payment == 'Refunded');
+	}
+
+	function formatted_order_id ()
+	{
+		return sprintf(variable_get('order_id_format', '%d'), $this->order_id);
+	}
 }
 
 function registration_query ( $array = array() )

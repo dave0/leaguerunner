@@ -12,7 +12,7 @@ class registration_unregister extends RegistrationHandler
 	{
 		global $dbh;
 		$edit = $_POST['edit'];
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
+		$order_num = $this->registration->formatted_order_id();
 		$this->title = "Order $order_num &raquo; Unregister";
 
 		switch($edit['step']) {

@@ -408,14 +408,14 @@ function registration_add_to_menu( &$registration )
 	global $lr_session;
 
 	if( variable_get('registration', 0) ) {
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $registration->order_id);
+		$order_num = $registration->formatted_order_id();
 
 		menu_add_child('event', $order_num, $order_num, array('weight' => -10, 'link' => "registration/view/$registration->order_id"));
 
 		if($lr_session->has_permission('registration','edit', $registration->order_id) ) {
 			menu_add_child($order_num, "$order_num/edit",'edit registration', array('weight' => 1, 'link' => "registration/edit/$registration->order_id"));
 		}
-		if($registration->payment == 'Unpaid' || $registration->payment == 'Pending') {
+		if( !$registration->payments_on_file() ) {
 			if ($lr_session->has_permission('registration','unregister', null, $registration) ) {
 				menu_add_child($order_num, "$order_num/unregister",'unregister', array('weight' => 1, 'link' => "registration/unregister/$registration->order_id"));
 			}

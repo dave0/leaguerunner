@@ -145,8 +145,7 @@ class event_register extends EventHandler
 		global $lr_session;
 		global $dbh;
 
-		$order_num = sprintf(variable_get('order_id_format', '%d'), $this->registration->order_id);
-		$this->smarty->assign('order_number', $order_num);
+		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
 
 		if( $this->event->cost == 0 ) {
 			$this->template_name = 'pages/event/register/done_no_cost.tpl';
@@ -155,7 +154,7 @@ class event_register extends EventHandler
 
 		if( variable_get( 'online_payments', 1 ) )
 		{
-			$this->smarty->assign('online_payment_form', generatePayForm($this->event, $order_num));
+			$this->smarty->assign('online_payment_form', generatePayForm($this->event, $this->registration->formatted_order_id() ));
 			$this->template_name = 'pages/event/register/online_payment.tpl';
 		} else {
 			$this->template_name = 'pages/event/register/offline_payment.tpl';
