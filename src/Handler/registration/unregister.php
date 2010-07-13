@@ -10,37 +10,24 @@ class registration_unregister extends RegistrationHandler
 
 	function process()
 	{
-		global $dbh;
-		$edit = $_POST['edit'];
+		$this->template_name = 'pages/registration/unregister.tpl';
+
+		$this->smarty->assign('reg', $this->registration);
+		$this->smarty->assign('event', $this->event);
+
+		// TODO: should be get_user() for consistency.
+		$this->smarty->assign('registrant', $this->registration->user() );
+
 		$order_num = $this->registration->formatted_order_id();
-		$this->title = "Order $order_num &raquo; Unregister";
+		$this->title = "Unregister $order_num";
 
-		switch($edit['step']) {
-			case 'submit':
-				$ok = $this->registration->delete();
-				if ( ! $ok ) {
-					error_exit ("There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved.") ;
-				}
-
-				$rc = para( 'You have been successfully unregistered for this event.' );
-				break;
-
-			default:
-				$rc = $this->generateConfirm();
+		if( $_POST['submit'] == 'Unregister' ) {
+			if( ! $this->registration->delete() ) {
+				error_exit ("There was an error deleting your registration information. Contact the office, quoting order #<b>$order_num</b>, to have the problem resolved.") ;
+			}
+			$this->smarty->assign('successful', true);
 		}
-
-		return $rc;
-	}
-
-	function generateConfirm()
-	{
-		$this->title = 'Confirm unregister';
-
-		$output = form_hidden('edit[step]', 'submit');
-		$output .= para('Please confirm that you want to unregister from this event');
-		$output .= para(form_submit('submit'));
-
-		return form($output);
+		return true;
 	}
 }
 ?>
