@@ -73,6 +73,7 @@ class Registration extends LeaguerunnerObject
 
 		// TODO: Should we be keeping a record of unregisters instead of deleting?
 		$queries = array(
+			'DELETE FROM registration_payments WHERE order_id = ?',
 			'DELETE FROM registration_answers WHERE order_id = ?',
 			'DELETE FROM registrations WHERE order_id = ?',
 		);

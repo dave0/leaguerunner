@@ -79,6 +79,7 @@ require_once("classes/game.inc");
 require_once("classes/slot.inc");
 require_once("classes/event.inc");
 require_once("classes/registration.inc");
+require_once("classes/registration_payment.php");
 require_once("classes/formbuilder.inc");
 require_once("classes/session.inc");
 require_once("classes/spirit.php");
