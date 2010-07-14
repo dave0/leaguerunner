@@ -31,6 +31,9 @@ class registration_view extends RegistrationHandler
 			$this->smarty->assign('formbuilder_render_viewable', $this->formbuilder->render_viewable() );
 		}
 
+		$pay_opts = getOptionsFromEnum('registration_payments', 'payment_type');
+		array_shift($pay_opts);
+		$this->smarty->assign('payment_types', $pay_opts);
 		$this->smarty->assign('payment_details', $this->registration->get_payments());
 /*
 		// Get payment audit information, if available

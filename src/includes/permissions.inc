@@ -316,7 +316,8 @@ function registration_permissions ( &$user, $action, $id, $registration )
 	{
 		case 'view':
 		case 'edit':
-		case 'enterpayment':
+		case 'addpayment':
+		case 'delpayment':
 			// Only admin can view details or edit
 			break;
 		case 'register':

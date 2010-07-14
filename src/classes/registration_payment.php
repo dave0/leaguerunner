@@ -29,6 +29,10 @@ class RegistrationPayment extends LeaguerunnerObject
 		$fields_data = array();
 
 		foreach ( $this->_modified_fields as $key => $value) {
+			if( $key == 'order_id' || $key == 'payment_type' ) {
+				// Skip these two, they're our primary key
+				continue;
+			}
 			$fields[] = "$key = ?";
 			if( empty($this->{$key}) ) {
 				$fields_data[] = null;
@@ -62,6 +66,8 @@ class RegistrationPayment extends LeaguerunnerObject
 	function delete()
 	{
 		global $dbh;
+
+
 		if ( ! $this->_in_database ) {
 			return false;
 		}
@@ -70,7 +76,7 @@ class RegistrationPayment extends LeaguerunnerObject
 			'DELETE FROM registration_payments WHERE order_id = ? AND payment_type = ?'
 		);
 
-		return $this->generic_delete( $queries, $this->order_id, $this->payment_type );
+		return $this->generic_delete( $queries, array( $this->order_id, $this->payment_type) );
 	}
 
 	function create ()
@@ -93,6 +99,34 @@ class RegistrationPayment extends LeaguerunnerObject
 		}
 
 		return true;
+	}
+
+	function validate ()
+	{
+		$errors = "";
+
+		if( ! validate_nonblank($this->payment_type) ) {
+			$errors .= "\n<li>Payment Type must be nonblank";
+		}
+
+		if( ! validate_nonblank($this->payment_method) ) {
+			$errors .= "\n<li>Payment Method must be nonblank";
+		}
+
+		if( ! preg_match("/^\d+(?:\.\d\d)?$/", $this->payment_amount) ) {
+			$errors .= "\n<li>Amount must be nonblank and a valid dollar amount";
+		}
+
+		if( ! validate_nonblank($this->date_paid) ) {
+			$errors .= "\n<li>Payment date must be nonblank";
+		}
+
+		list( $yyyy, $mm, $dd) = preg_split("/[\/-]/", $this->date_paid);
+		if( !validate_date_input($yyyy, $mm, $dd) ) {
+			$errors .= "\n<li>Payment date must be valid";
+		}
+
+		return $errors;
 	}
 
 	function entered_by_name()

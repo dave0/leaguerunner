@@ -20,11 +20,15 @@
   </tr>
   <tr>
     <td>Registered Price:</td>
-    <td>{$reg->total_amount}</td>
+    <td>${$reg->total_amount|string_format:"%.2f"}</td>
   </tr>
   <tr>
     <td>Payment Status:</td>
     <td>{$reg->payment}</td>
+  </tr>
+  <tr>
+    <td>Balance Owed:</td>
+    <td>${$reg->balance_owed()|string_format:"%.2f"}</td>
   </tr>
   <tr>
     <td>Notes:</td>

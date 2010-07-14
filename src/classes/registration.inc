@@ -1,12 +1,8 @@
 <?php
 class Registration extends LeaguerunnerObject
 {
-	var $_answer_entries;
-
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
-	{
-		return true;
-	}
+	private $_answer_entries;
+	private $_payments;
 
 	function user ()
 	{
@@ -115,7 +111,7 @@ class Registration extends LeaguerunnerObject
 		global $dbh;
 
 		if( !is_array($answers) ) {
-			die("Answser argument to save_answers() must be an array");
+			die("Answer argument to save_answers() must be an array");
 		}
 
 		// Store in object
@@ -159,10 +155,23 @@ class Registration extends LeaguerunnerObject
 
 	function get_payments()
 	{
-		return registration_payment_load_many(array(
-			'order_id' => $this->order_id,
-			'_order'   => 'date_paid'
-		));
+		if( ! $this->_payments ) {
+			$this->_payments = registration_payment_load_many(array(
+				'order_id' => $this->order_id,
+				'_order'   => 'date_paid'
+			));
+		}
+		return $this->_payments;
+	}
+
+	function balance_owed()
+	{
+		$balance = $this->total_amount;
+		foreach($this->get_payments() as $payment) {
+			$balance -= $payment->payment_amount;
+		}
+
+		return $balance;
 	}
 }
 

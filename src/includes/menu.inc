@@ -49,7 +49,7 @@ function menu_add_child( $parentName, $name, $title, $args = array() )
 function _menu_get_parents( $path ) {
 	global $_menu;
 	static $parents;
-	
+
 	if( empty($parents) ) {
 		$parents = array();
 

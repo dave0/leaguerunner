@@ -16,7 +16,8 @@ class registration_edit extends RegistrationHandler
 
 	function process ()
 	{
-		$this->title = "{$this->registration->name} &raquo; Registration";
+		$this->title = 'Registration ' . $this->registration->formatted_order_id();
+
 		$edit = $_POST['edit'];
 
 		switch($edit['step']) {
@@ -37,7 +38,6 @@ class registration_edit extends RegistrationHandler
 	function generateForm()
 	{
 		global $dbh;
-		$this->title = 'Edit registration';
 
 		$output = form_hidden('edit[step]', 'confirm');
 
@@ -55,11 +55,6 @@ class registration_edit extends RegistrationHandler
 		$pay_opts = getOptionsFromEnum('registrations', 'payment');
 		array_shift($pay_opts);
 		$form .= form_select('Payment Status', 'edit[payment]', $this->registration->payment, $pay_opts);
-		$form .= form_textfield('Paid Amount', 'edit[paid_amount]', $this->registration->paid_amount, 10,10, "Amount paid to-date for this registration");
-		$form .= form_textfield('Payment Method', 'edit[payment_method]', $this->registration->payment_method, 40,255, "Method of payment (cheque, email money xfer, etc).  Provide cheque or transfer number in 'notes' field.");
-		$thisYear = strftime('%Y', time());
-		$form .= form_select_date('Payment Date', 'edit[date_paid]', $this->registration->date_paid, ($thisYear - 1), ($thisYear + 1), 'Date payment was received');
-		$form .= form_textfield('Paid By', 'edit[paid_by]', $this->registration->paid_by, 40,255, "Name of payee, if different from registrant");
 		$form .= form_textarea('Notes', 'edit[notes]', $this->registration->notes, 45, 5);
 		$output .= form_group('Registration details', $form);
 
@@ -84,8 +79,6 @@ class registration_edit extends RegistrationHandler
 
 	function generateConfirm ( $edit )
 	{
-		$this->title = 'Confirm updates';
-
 		$dataInvalid = $this->isDataInvalid( $edit );
 
 		if( $this->formbuilder )
@@ -97,20 +90,11 @@ class registration_edit extends RegistrationHandler
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
-		// Force date into single field after validation
-		$edit['date_paid'] = sprintf('%04d-%02d-%02d',
-			$edit['date_paid']['year'],
-			$edit['date_paid']['month'],
-			$edit['date_paid']['day']);
-
-		$output = form_hidden('edit[step]', 'submit');
+		$output = para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
+		$output .= form_hidden('edit[step]', 'submit');
 		$fields = array(
 			'Payment Status' => 'payment',
-			'Paid Amount' => 'paid_amount',
-			'Payment Method' => 'payment_method',
-			'Paid By' => 'paid_by',
-			'Date Paid' => 'date_paid',
-			'Notes' => 'notes',
+			'Notes' => 'notes'
 		);
 
 		$rows = array();
@@ -127,7 +111,6 @@ class registration_edit extends RegistrationHandler
 			$output .= form_group('Registration answers', $form);
 		}
 
-		$output .= para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
 		$output .= para(form_submit('submit'));
 
 		return form($output);
@@ -147,17 +130,8 @@ class registration_edit extends RegistrationHandler
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
-		$fields = array(
-			'payment',
-			'notes',
-			'paid_amount',
-			'payment_method',
-			'paid_by',
-			'date_paid',
-		);
-		foreach ($fields as $field) {
-			$this->registration->set($field, $edit[$field]);
-		}
+		$this->registration->set('payment', $edit['payment']);
+		$this->registration->set('notes', $edit['notes']);
 
 		if( !$this->registration->save() ) {
 			error_exit("Internal error: couldn't save changes to the registration details");
