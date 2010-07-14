@@ -156,6 +156,14 @@ class Registration extends LeaguerunnerObject
 	{
 		return sprintf(variable_get('order_id_format', '%d'), $this->order_id);
 	}
+
+	function get_payments()
+	{
+		return registration_payment_load_many(array(
+			'order_id' => $this->order_id,
+			'_order'   => 'date_paid'
+		));
+	}
 }
 
 function registration_query ( $array = array() )

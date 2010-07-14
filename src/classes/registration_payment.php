@@ -8,6 +8,7 @@ class RegistrationPayment extends LeaguerunnerObject
 	public $date_paid;
 	public $payment_method;
 	public $entered_by;
+	public $entered_by_user;
 
 	function save ()
 	{
@@ -93,6 +94,14 @@ class RegistrationPayment extends LeaguerunnerObject
 
 		return true;
 	}
+
+	function entered_by_name()
+	{
+		if( ! $this->entered_by_user ) {
+			$this->entered_by_user = person_load(array( 'user_id' => $this->entered_by ));
+		}
+		return $this->entered_by_user->fullname;
+	}
 }
 
 function registration_payment_query ( $array = array() )
@@ -119,7 +128,7 @@ function registration_payment_query ( $array = array() )
 
 	$sth = $dbh->prepare("SELECT
 		1 as _in_database,
-		p.*,
+		p.*
 		FROM registration_payments p
 		WHERE " . implode(' AND ',$query) .  $order
 	);
@@ -132,13 +141,13 @@ function registration_payment_query ( $array = array() )
  */
 function registration_payment_load( $array = array() )
 {
-	$sth = registration_query( $array );
+	$sth = registration_payment_query( $array );
 	return $sth->fetchObject('RegistrationPayment');
 }
 
 function registration_payment_load_many ( $array = array() )
 {
-	$sth = registration_query( $array );
+	$sth = registration_payment_query( $array );
 
 	$results = array();
 	while( $r = $sth->fetchObject('RegistrationPayment', array(LOAD_RELATED_DATA))) {

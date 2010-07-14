@@ -27,22 +27,6 @@
     <td>{$reg->payment}</td>
   </tr>
   <tr>
-    <td>Payment Amount:</td>
-    <td>{$reg->paid_amount}</td>
-  </tr>
-  <tr>
-    <td>Payment Method:</td>
-    <td>{$reg->payment_method}</td>
-  </tr>
-  <tr>
-    <td>Payment Date:</td>
-    <td>{$reg->date_paid}</td>
-  </tr>
-  <tr>
-    <td>Paid By (if different):</td>
-    <td>{$reg->paid_by}</td>
-  </tr>
-  <tr>
     <td>Notes:</td>
     <td>{$reg->notes}</td>
   </tr>

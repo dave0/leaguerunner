@@ -31,16 +31,18 @@ class registration_view extends RegistrationHandler
 			$this->smarty->assign('formbuilder_render_viewable', $this->formbuilder->render_viewable() );
 		}
 
+		$this->smarty->assign('payment_details', $this->registration->get_payments());
+/*
 		// Get payment audit information, if available
-		// TODO: should be a) a registration_payments class and b) loaded from ->registration->get_payments();
 		$sth = $dbh->prepare('SELECT * FROM registration_audit WHERE order_id = ?');
 		$sth->execute( array(
 			$this->registration->order_id
 		));
 
-		$this->smarty->assign('payment_details',  $sth->fetchAll(PDO::FETCH_ASSOC));
+		$this->smarty->assign('audit_details',  $sth->fetchAll(PDO::FETCH_ASSOC));
 
 		return true;
+*/
 	}
 }
 
