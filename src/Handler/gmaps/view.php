@@ -2,7 +2,7 @@
 require_once('Handler/FieldHandler.php');
 class gmaps_view extends FieldHandler
 {
-	private $map_vars = array('fid', 'latitude', 'longitude', 'angle', 'width', 'length', 'zoom');
+	private $map_vars = array('fid', 'latitude', 'longitude', 'angle', 'width', 'length', 'zoom', 'num');
 
 	function __construct ( $id )
 	{

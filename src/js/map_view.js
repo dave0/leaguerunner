@@ -3,6 +3,7 @@ var name = '';
 var address = '';
 var full_address = '';
 var fid = 0;
+var num = 1;
 var latitude = 0.0;
 var longitude = 0.0;
 
@@ -15,6 +16,7 @@ var length = 120;
 
 // Storage for other fields at the same site 
 var other_fid = Array();
+var other_num = Array();
 var other_latitude = Array();
 var other_longitude = Array();
 var other_zoom = Array();
@@ -54,7 +56,7 @@ function initialize_view()
 
 	var point = new GLatLng(latitude, longitude);
 	map.setCenter(point, zoom, G_HYBRID_MAP);
-	createMarker(point, false);
+	var marker = createMarker(point, num, false);
 	show();
 	show_others();
 
@@ -93,15 +95,17 @@ function initialize_view()
 	});
 }
 
-function createMarker(point, draggable)
+function createMarker(point, num, draggable)
 {
 	var ic = new GIcon(baseIcon);
-	ic.image = lr_path + "/image/pins/blank-marker.png";
-	marker = new GMarker(point, {'draggable':draggable, 'title':'field', 'icon':ic});
+	ic.image = lr_path + "/image/pins/" + num + ".png";
+	var marker = new GMarker(point, {'draggable':draggable, 'title':'field', 'icon':ic});
 	map.addOverlay(marker);
 	if (draggable) {
 		GEvent.addListener(marker, 'drag', function() { dragged(); });
 	}
+
+	return marker;
 }
 
 function getDirections()
@@ -169,6 +173,8 @@ function show_others()
 	for (var f in other_fid)
 	{
 		var point = new GLatLng(other_latitude[f], other_longitude[f]);
+
+		createMarker(point, other_num[f], false);
 
 		var bb = new Array;
 		for (i = 0; i < 8; i++) {
