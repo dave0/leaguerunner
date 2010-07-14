@@ -18,24 +18,26 @@ class image_pins extends Handler
 	{
 		global $CONFIG;
 
-		if( ! preg_match ("/^[0-9a-zA-Z]+\.png$/", $this->file) ) {
+		$matches = array();
+		if( ! preg_match ("/^([0-9a-zA-Z]+)\.png$/", $this->file, $matches) ) {
 			error_exit("Invalid image request for $this->file");
 		}
 
-		$code = substr($this->file, 0, 3);
-		$basepath = trim($CONFIG['paths']['base_url'], '/') . '/image/pins';
-		$default = "$basepath/blank-marker.png";
-		$file = "$basepath/$code.png";
+		$code     = $matches[1];
+		$basepath = trim($CONFIG['paths']['base_url'], '/')  . '/image/pins';
+		$basefile = trim($CONFIG['paths']['file_path'], '/') . '/image/pins';
 
-		if (file_exists ($file)) {
-			header("Location: http://{$_SERVER['HTTP_HOST']}/$file");
+		$localfile = "$basefile/$code.png";
+
+		if (file_exists ($localfile)) {
+			header("Location: http://{$_SERVER['HTTP_HOST']}/$basepath/$code.png");
 		} else if (!function_exists ('ImageCreateFromPNG')) {
-			header("Location: http://{$_SERVER['HTTP_HOST']}/$default");
+			header("Location: http://{$_SERVER['HTTP_HOST']}/$basepath/blank-marker.png");
 		} else {
 			$font = 'ttf-bitstream-vera/Vera';
 			$size = 6;
 
-			$im = ImageCreateFromPNG($default);
+			$im = ImageCreateFromPNG("$basefile/blank-marker.png");
 			imageSaveAlpha($im, true);
 
 			$tsize = ImageTTFBBox($size, 0, $font, $code);
@@ -52,7 +54,7 @@ class image_pins extends Handler
 
 			header('Content-Type: image/png');
 			ImagePNG($im);
-			ImagePNG($im, $file);
+			ImagePNG($im, $localfile);
 			ImageDestroy($im);
 		}
 
