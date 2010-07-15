@@ -2,15 +2,11 @@
 class LeaguerunnerObject
 {
 	protected $_modified_fields;
-	protected $_in_database;
+	protected $_in_database = false;
 
-	function LeaguerunnerObject ( $array = null )
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
-		$this->_in_database = false;
-
-		if( is_array($array) ) {
-			$this->load($array);
-		}
+		return true;
 	}
 
 	/**
@@ -85,16 +81,20 @@ class LeaguerunnerObject
 	/**
 	 * Delete an object from the db
 	 */
-	function generic_delete ( $queries, $id )
+	function generic_delete ( $queries, $args )
 	{
 		global $dbh;
 
 		$dbh->beginTransaction();
 
+		if( ! is_array( $args ) ) {
+			$args = array ( $args );
+		}
+
 		$all_ok = true;
 		foreach($queries as $query) {
 			$sth = $dbh->prepare($query);
-			if( ! $sth->execute( array( $id ) ) ) {
+			if( ! $sth->execute( $args ) ) {
 				$all_ok = false;
 			}
 		}
