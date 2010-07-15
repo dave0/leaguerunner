@@ -27,11 +27,20 @@ class event_download extends EventHandler
 			'Order ID',
 			'Date Registered',
 			'Date Modified',
-			'Date Paid',
+			'Total Amount',
 			'Payment Status',
-			'Amount Owed',
-			'Amount Paid'
+
+			'Deposit Date',
+			'Deposit Amount',
+			'Deposit By',
+			'Deposit Method',
+
+			'Balance Date',
+			'Balance Amount',
+			'Balance By',
+			'Balance Method',
 		);
+
 
 		if( $formbuilder )
 		{
@@ -55,23 +64,38 @@ class event_download extends EventHandler
 		$out = fopen('php://output', 'w');
 		fputcsv($out, $data);
 
-		$sth = $dbh->prepare('SELECT
+		$sth = $dbh->prepare("SELECT
 			r.order_id,
 			DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
 			DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified,
-			r.payment,
 			r.total_amount,
-			r.paid_amount,
-			r.paid_by,
-			DATE_ADD(r.date_paid, INTERVAL ? MINUTE) as date_paid,
-			r.payment_method,
+			r.payment,
+
+			dp.payment_amount AS deposit_paid_amount,
+			dp.paid_by        AS deposit_paid_by,
+			dp.date_paid      AS deposit_date_paid,
+			dp.payment_method AS deposit_payment_method,
+
+			bp.payment_amount AS balance_paid_amount,
+			bp.paid_by        AS balance_paid_by,
+			bp.date_paid      AS balance_date_paid,
+			bp.payment_method AS balance_payment_method,
+
 			r.notes,
-			p.*
+			p.user_id,
+			p.member_id,
+			p.firstname,
+			p.lastname,
+			p.email,
+			p.gender,
+			p.skill_level
 		FROM registrations r
 			LEFT JOIN person p ON r.user_id = p.user_id
+			LEFT JOIN registration_payments dp ON (dp.payment_type = 'Deposit' AND dp.order_id = r.order_id)
+			LEFT JOIN registration_payments bp ON (bp.payment_type IN ('Full', 'Remaining Balance') AND bp.order_id = r.order_id)
 		WHERE r.registration_id = ?
-		ORDER BY payment, order_id');
-		$sth->execute( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], $this->event->registration_id) );
+		ORDER BY payment, order_id");
+		$sth->execute( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust'], $this->event->registration_id) );
 
 		while($row = $sth->fetch() ) {
 			$order_id = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
@@ -86,10 +110,18 @@ class event_download extends EventHandler
 				$order_id,
 				$row['time'],
 				$row['modified'],
-				$row['date_paid'],
-				$row['payment'],
 				$row['total_amount'],
-				$row['paid_amount'],
+				$row['payment'],
+
+				$row['deposit_date_paid'],
+				$row['deposit_paid_amount'],
+				$row['deposit_paid_by'],
+				$row['deposit_payment_method'],
+
+				$row['balance_date_paid'],
+				$row['balance_paid_amount'],
+				$row['balance_paid_by'],
+				$row['balance_payment_method'],
 			);
 
 			// Add all of the answers
