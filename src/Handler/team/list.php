@@ -8,7 +8,7 @@ class team_list extends Handler
 	{
 		parent::__construct();
 
-		if( preg_match('/^[A-Z]$/', $letter) ) {
+		if( preg_match('/^[A-Z0-9\."]$/', $letter) ) {
 			$this->letter = $letter;
 		} else {
 			$this->letter = 'A';
@@ -24,17 +24,14 @@ class team_list extends Handler
 	function process ()
 	{
 		global $lr_session, $dbh;
+
+		$this->template_name = 'pages/team/list.tpl';
+
 		$ops = array(
-			array(
-				'name' => 'view',
-				'target' => 'team/view/'
-			),
+			'view' => 'team/view'
 		);
 		if($lr_session->has_permission('team','delete')) {
-			$ops[] = array(
-				'name' => 'delete',
-				'target' => 'team/delete/'
-			);
+			$ops['delete'] = 'team/delete';
 		}
 
 		$this->title = 'List Teams';
@@ -42,33 +39,31 @@ class team_list extends Handler
 		$sth = $dbh->prepare("SELECT DISTINCT UPPER(SUBSTRING(t.name,1,1)) as letter
 			FROM team t
 			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id
-			LEFT JOIN league l       ON lt.league_id = l.league_id
-			WHERE l.status = 'open'
 			ORDER BY letter asc");
 		$sth->execute();
 		$letters = $sth->fetchAll(PDO::FETCH_COLUMN);
 
-		$letterLinks = array();
-		foreach($letters as $curLetter) {
-			if($curLetter == $this->letter) {
-				$letterLinks[] = "<b>$curLetter</b>";
-			} else {
-				$letterLinks[] = l($curLetter, url("team/list/$curLetter"));
+		$this->smarty->assign('current_letter', $this->letter);
+		$this->smarty->assign('letters', $letters);
+
+		$query = "SELECT t.name, t.team_id FROM team t WHERE t.name LIKE ? ORDER BY t.name";
+
+		$sth = $dbh->prepare( $query );
+		$sth->execute( array( "$this->letter%" ) );
+		$sth->setFetchMode(PDO::FETCH_CLASS, 'Person', array(LOAD_OBJECT_ONLY));
+
+		$teams = array();
+		$hits = 0;
+		while($team = $sth->fetch() ) {
+			if( ++$hits > 1000 ) {
+				error_exit("Too many search results; query terminated");
 			}
+			$teams[] = $team;
 		}
-		$output = para(theme_links($letterLinks, "&nbsp;&nbsp;"));
-		$query = "SELECT
-				t.name AS value,
-				t.team_id AS id
-			FROM team t
-			LEFT JOIN leagueteams lt ON t.team_id = lt.team_id
-			LEFT JOIN league l       ON lt.league_id = l.league_id
-			WHERE l.status = 'open'
-			AND
-				t.name LIKE ?
-			ORDER BY t.name";
-		$output .= $this->generateSingleList($query, $ops, array("$this->letter%"));
-		return $output;
+
+		$this->smarty->assign('teams', $teams);
+		$this->smarty->assign('ops', $ops);
+		return true;
 	}
 }
 ?>

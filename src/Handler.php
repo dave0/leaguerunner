@@ -114,35 +114,5 @@ class Handler
 		trigger_error("Missing handler for process() in this class");
 		return false;
 	}
-
-	/**
-	 * Generates list output.  Query should generate rows with two
-	 * fields; one named 'id' containing the ID of the object listed,
-	 * and 'value', containing a name or descriptive text for each
-	 * object
-	 */
-	function generateSingleList($query, $ops, $dbParams = array())
-	{
-		global $dbh;
-		$sth = $dbh->prepare( $query );
-		$sth->execute( $dbParams );
-		$output = "<table>\n";
-		while($thisRow = $sth->fetch()) {
-			$output .= "<tr><td>" . $thisRow['value'] . "</td><td>";
-			$output .= theme_links( $this->generateOpsLinks($ops, $thisRow['id']));
-			$output .= "</td></tr>\n";
-		}
-		$output .= "</table>";
-		return $output;
-	}
-
-	function generateOpsLinks($opsList, $idValue)
-	{
-		$opsLinks = array();
-		foreach($opsList as $op) {
-			$opsLinks[] = l($op['name'], $op['target'] . $idValue);
-		}
-		return $opsLinks;
-	}
 }
 ?>
