@@ -199,11 +199,6 @@ function pre($text, $attributes = array())
 	return simple_tag("pre", $text, $attributes);
 }
 
-function div($text, $attributes = array())
-{
-	return simple_tag("div", $text, $attributes);
-}
-
 function table_cell($cell, $header = 0) {
   $attributes = '';
   if (is_array($cell)) {
@@ -379,56 +374,6 @@ function check_url($uri) {
 function check_form($input, $quotes = ENT_QUOTES)
 {
 	return htmlspecialchars($input, $quotes);
-}
-
-// TODO: Handle this and the user search result pagination in the same way
-function page_links ($prefix, $page, $total)
-{
-	$items = variable_get('items_per_page', 50);
-	if( $items == 0 ) {
-		$items = 1000000;
-	}
-
-	$links = array();
-
-	// First and previous links
-	if ($page != 1) {
-		$links[-2] = l('<<', $prefix . '1');
-		$links[-1] = l('<', $prefix . ($page - 1));
-	}
-
-	// Last and next links
-	$last = ceil ($total / $items);
-	if ($page < $last) {
-		$links[10000] = l('>', $prefix . ($page + 1));
-		$links[10001] = l('>>', $prefix . $last);
-	}
-
-	// Nearby page links
-	$first_count = max (1, $page - 5);
-	$last_count = min ($page + 5, $last);
-	for ($i = $first_count; $i <= $last_count; ++$i) {
-		$links[$i] = l($i, $prefix . $i);
-	}
-
-	// Bigger step page links
-	$first_count = max (10, $page - 50);
-	$last_count = min ($page + 50, $last);
-	for ($i = $first_count; $i <= $last_count; $i += 10) {
-		$links[$i] = l($i, $prefix . $i);
-	}
-
-	// Even bigger step page links
-	for ($i = 50; $i <= $last; $i += 50) {
-		$links[$i] = l($i, $prefix . $i);
-	}
-
-	// Current page shouldn't be a link, just displayed
-	$links[$page] = $page;
-
-	// Sort them and create output
-	ksort($links);
-	return para('Page: ' . join (' ', $links));
 }
 
 /*
@@ -975,33 +920,6 @@ function clean_telephone_number( $string )
 
 	return $clean;
 }
-
-/**
- * Convert a numeric number to an English ordinal number for ease of reading.
- * Rule of thumb is:  If the 'tens' digit is 1, then add 'th'.  Otherwise,
- * check the last digit to determine which suffix to use.  1 == 'st', 2 ==
- * 'nd', 3 == 'rd', 4 through 0 == 'th'
- */
-function numberToOrdinal ( $num )
-{
-	if( (floor( $num / 10 ) % 10) == 1 ) {
-		return $num . "th";
-	}
-
-	switch($num % 10) {
-		case 1:
-			return $num . "st";
-		case 2:
-			return $num . "nd";
-		case 3:
-			return $num . "rd";
-		default:
-			return $num . "th";
-	}
-}
-
-
-
 
 /**
  ** Miscellaneous stuff.
