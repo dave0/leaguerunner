@@ -42,7 +42,7 @@ class field_bookings extends FieldHandler
 					$actions[] = l('reschedule/move', "game/reschedule/$slot->game_id");
 				}
 			}
-			$rows[] = array($slot->game_date, $slot->game_start, $slot->display_game_end(), $booking, theme_links($actions));
+			$rows[] = array($slot->game_date, $slot->game_start, $slot->display_game_end(), $booking, implode(' | ', $actions));
 		}
 
 		return "<div class='listtable'>" . table($header, $rows) . "</div>";
