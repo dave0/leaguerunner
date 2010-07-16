@@ -15,7 +15,7 @@ CREATED:20090101T000000Z
 LAST-MODIFIED:20090101T000000Z
 {* TODO: do we need tzid in here? *}
 DTSTART;TZID={$timezone}:{$game->timestamp|date_format:"%Y%m%d"}T{$game->game_start|replace:':':''}00
-DTSTART;TZID={$timezone}:{$game->timestamp|date_format:"%Y%m%d"}T{$game->game_end|replace:':':''}00
+DTEND;TZID={$timezone}:{$game->timestamp|date_format:"%Y%m%d"}T{$game->display_game_end()|replace:':':''}00
 {*
 	TODO: possible bug; Google Calendar tries to generate a Google Maps
 	link from the data in LOCATION, which will always be wrong.  Is this
