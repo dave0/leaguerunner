@@ -1,7 +1,24 @@
 <?php
-/* List all new accounts */
-class person_listnew extends Handler
+require_once('Handler/person/search.php');
+class person_listnew extends person_search
 {
+
+	// TODO: why do we have an initialize() anyway?  Shouldn't we just override the constructor?
+	function initialize ( )
+	{
+		$this->title = 'New Accounts';
+
+		$this->ops = array(
+			'view'    => 'person/view',
+			'approve' => 'person/approve',
+			'delete'  => 'person/delete'
+		);
+
+		$this->extra_where = "p.status = 'new'";
+
+		return true;
+	}
+
 	function has_permission ()
 	{
 		global $lr_session;
@@ -10,39 +27,8 @@ class person_listnew extends Handler
 
 	function process ()
 	{
-		$this->title = "New Accounts";
-		$search = array(
-			'status' => 'new',
-			'_order' => 'p.lastname, p.firstname'
-		);
-		$ops = array(
-			'view' => 'person/view/%d',
-			'approve' => 'person/approve/%d',
-			'delete' => 'person/delete/%d'
-		);
-
-		$sth = person_query( $search );
-
-		$output = "<table>";
-		while( $person = $sth->fetchObject('Person', array(LOAD_OBJECT_ONLY)) ) {
-			$output .= '<tr><td>';
-			$dup_sth = $person->find_duplicates();
-			if( $dup_sth->fetch() ) {
-				$output .= "<span class='error'>$person->lastname, $person->firstname</span>";
-			} else {
-				$output .= "$person->lastname, $person->firstname";
-			}
-			$output .= '</td><td>';
-			while ( list($key, $value) = each($ops)) {
-				$output .= '[&nbsp;' .l($key,sprintf($value, $person->user_id)) . '&nbsp;]';
-				$output .= "&nbsp;";
-			}
-			reset($ops);
-			$output .= "</td></tr>";
-		}
-		$output .= "</table>";
-
-		return $output;
+		$_GET['search'] = '*';
+		return parent::process();
 	}
 }
 
