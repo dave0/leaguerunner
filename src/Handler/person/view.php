@@ -144,9 +144,6 @@ class person_view extends PersonHandler
 		}
 		reset($person->teams);
 		$rows[] = array("Teams:", table( null, $teams) );
-		if( count ($person->historical_teams) ) {
-			$rows[] = array( '', 'There is also ' . l('historical team data', "person/historical/$person->user_id") . ' saved');
-		}
 
 		if( $person->is_a_coordinator ) {
 			$leagues = array();

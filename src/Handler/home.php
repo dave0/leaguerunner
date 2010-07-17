@@ -58,12 +58,6 @@ class home extends Handler
 		}
 		reset($lr_session->user->teams);
 		$this->smarty->assign('teams', $teams);
-	/*
-	* 	TODO nuke historical_teams
-		if( count($lr_session->user->historical_teams) ) {
-			$rows[] = array( array('colspan' => 2, 'data' => 'You have ' . l('historical team data', "person/historical/{$lr_session->user->user_id}") . ' saved'));
-		}
-	*/
 
 		/* Display leagues */
 		// TODO: For each league, need to display # of missing scores,

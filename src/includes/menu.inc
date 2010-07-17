@@ -315,9 +315,6 @@ function menu_build( )
 			}
 			reset($lr_session->user->teams);
 		}
-		if( count($lr_session->user->historical_teams) ) {
-			menu_add_child('team','person/historical','my historical teams', array('link' => "person/historical/{$lr_session->user->user_id}", 'weight' => 5) );
-		}
 
 		if($lr_session->has_permission('team','statistics')) {
 			menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));

@@ -39,7 +39,6 @@ class Person extends LeaguerunnerObject
 	var $client_ip;
 
         var $is_a_coordinator;
-        var $historical_teams;
 
 	/*
 	 * Load related tables, and perform some post-load cleanups
@@ -95,13 +94,8 @@ class Person extends LeaguerunnerObject
 				# TODO: evil hack.
 				$this->is_a_captain = true;
 			}
-			if($team->league_status == 'closed') {
-				$this->historical_teams[ $team->team_id ] = $team;
-				$this->historical_teams[ $team->team_id ]->id = $team->team_id;
-			} else {
-				$this->teams[ $team->team_id ] = $team;
-				$this->teams[ $team->team_id ]->id = $team->team_id;
-			}
+			$this->teams[ $team->team_id ] = $team;
+			$this->teams[ $team->team_id ]->id = $team->team_id;
 		}
 
 		/* Fetch league info.  Can't use league_load as it calls person_load,
@@ -142,11 +136,7 @@ class Person extends LeaguerunnerObject
 			} else {
 				$league->fullname = "$league->name $year";
 			}
-			if($league->league_status == 'closed') {
-				$this->historical_leagues[ $league->league_id ] = $league;
-			} else {
-				$this->leagues[ $league->league_id ] = $league;
-			}
+			$this->leagues[ $league->league_id ] = $league;
 		}
 
 		/* Evil hack to get 'Inactive Teams' into menu */
@@ -321,10 +311,6 @@ class Person extends LeaguerunnerObject
 
 	function has_position_on( $team_id, $wanted_positions )
 	{
-		// We intentionally don't want to check $this->historical_teams;
-		// this is an easy way to make sure that nobody but admins has
-		// permission to edit or view anything personal about historical
-		// teams.
 		if( ! array_key_exists($team_id, $this->teams) ) {
 			return false;
 		}
@@ -355,9 +341,6 @@ class Person extends LeaguerunnerObject
 			return true;
 		}
 
-		// We intentionally don't want to check $this->historical_leagues;
-		// this is an easy way to make sure that nobody but admins has
-		// permission to edit anything about historical leagues.
 		if( array_key_exists($league_id, $this->leagues) ) {
 			return true;
 		}
