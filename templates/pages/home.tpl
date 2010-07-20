@@ -13,7 +13,7 @@
 <table>
 <tr><th colspan="2">My Teams</th></tr>
 {foreach item=t from=$teams}
-<tr><td><a href="{lr_url path="team/view/`$t->team_id`"}">{$t->name}</a> ({$t->position})</td><td align="right"><a href="{lr_url path="team/schedule/`$t->team_id`"}">schedule</a> | <a href="{lr_url path="league/standings/`$t->league_id`/`$t->team_id`"}">standings</a></td></tr>
+<tr><td><a href="{lr_url path="team/view/`$t->team_id`"}">{$t->name}</a> ({$t->rendered_position})</td><td align="right"><a href="{lr_url path="team/schedule/`$t->team_id`"}">schedule</a> | <a href="{lr_url path="league/standings/`$t->league_id`/`$t->team_id`"}">standings</a></td></tr>
 {foreachelse}
 <tr><td colspan="2">You are not yet on any teams</td></tr>
 {/foreach}

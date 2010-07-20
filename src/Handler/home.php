@@ -53,7 +53,7 @@ class home extends Handler
 		$rosterPositions = getRosterPositions();
 		$teams = array();
 		foreach($lr_session->user->teams as $team) {
-			$team->position = $rosterPositions[$team->position];
+			$team->rendered_position = $rosterPositions[$team->position];
 			$teams[] = $team;
 		}
 		reset($lr_session->user->teams);
@@ -79,7 +79,6 @@ class home extends Handler
 		while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$game = game_load(array('game_id' => $row->game_id));
 			$game->user_team_id = $row->team_id;
-
 			$games[] = $game;
 		}
 		$games = array_reverse($games);
@@ -103,7 +102,7 @@ class home extends Handler
 				*   - display score entry link if game date has passed
 				*   - display a blank otherwise
 				*/
-				$entered = $game->get_score_entry( $row->team_id );
+				$entered = $game->get_score_entry( $game->user_team_id );
 				if($entered) {
 					// need to match entered score order to displayed team order!
 					if ($entered->team_id == $game->home_id) {
