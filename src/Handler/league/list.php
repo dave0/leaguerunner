@@ -35,9 +35,6 @@ class league_list extends Handler
 		}
 		$this->smarty->assign('seasons', $seasons);
 
-
-		$output = para(implode(' | ', $seasonLinks));
-
 		$leagues = league_load_many( array( 'season' => $this->season, 'status' => 'open', '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
 		$this->smarty->assign('leagues', $leagues);
 
