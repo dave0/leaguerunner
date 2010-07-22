@@ -491,11 +491,6 @@ function form_radios($title, $name, $value, $options, $description = 0)
 	}
 }
 
-function form_file($title, $name, $size, $description = 0)
-{
-	return form_item($title, "<input type=\"file\" class=\"form-file\" name=\"$name\" size=\"$size\" />\n", $description);
-}
-
 function form_hidden($name, $value)
 {
 	return "<input type=\"hidden\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
@@ -681,32 +676,6 @@ function validate_us_address ( $street, $city, $state, $zip)
     }
 
 	return $errors;
-}
-
-/**
- * Validate Canadian provinces
- *
- * @param string $prov Province abbreviation
- */
-function validate_province_abbrev( $prov )
-{
-	switch (strtoupper($prov)) {
-		case 'AB':
-		case 'BC':
-		case 'MB':
-		case 'NB':
-		case 'NF':
-		case 'NT':
-		case 'NS':
-		case 'NU':
-		case 'ON':
-		case 'PE':
-		case 'QC':
-		case 'SK':
-		case 'YK':
-			return true;
-	}
-	return false;
 }
 
 /**
@@ -1154,22 +1123,6 @@ function local_sunset_for_date( $timestamp )
 	# Round down to nearest 5 minutes
 	$end_timestamp = floor( $end_timestamp / 300 ) * 300;
 	return strftime('%H:%M', $end_timestamp);
-}
-
-/**
- * Helper for shortening long team names for display
- */
-function display_short_name ($name, $length = -1)
-{
-	if( $length < 0 ) {
-		$length = 20;
-	}
-	$format = '%.' . $length . 's';
-	$short = sprintf($format, $name);
-	if(strlen($short) != strlen($name) ) {
-		$short .= "...";
-	}
-	return $short;
 }
 
 /**
