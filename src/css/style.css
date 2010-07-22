@@ -45,7 +45,7 @@ tr.dark {
 	background-color: lightblue;
 }
 
-.listtable .highlight { background-color: lightgreen; }
+.highlight { background-color: lightgreen; }
 
 .listtable .roster_conflict {
 	color: red;

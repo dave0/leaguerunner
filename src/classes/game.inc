@@ -1189,7 +1189,7 @@ class Game extends LeaguerunnerObject
 	}
 
 	// TODO: this belongs in Handler/game/ratings.php
-	function get_ratings_table ( $rating_home, $rating_away, $whatif )
+	function get_ratings_table ( $rating_home, $rating_away)
 	{
 		global $dbh, $CONFIG;
 
@@ -1230,18 +1230,7 @@ class Game extends LeaguerunnerObject
 			}
 			$rows[] = $current_row ;
 		}
-		$output2 = "";
-		if ($whatif) {
-			// what if teams had different ratings?
-			$output2 = para("&nbsp;");
-			$output2 .= para("What if the teams had different ratings?  Check it here:");
-			$output2 .= para("<form name='whatif'>$home <input type='text' size=5 name='rating_home' value='$rating_home'><br>" .
-					"$away <input type='text' size=5 name='rating_away' value='$rating_away'><br>" .
-					"<input type=button value='What If?' onclick='window.location=\"{$CONFIG['paths']['base_url']}/game/ratings/" . $this->game_id .
-					"/\"+document.whatif.rating_home.value+\"/\"+document.whatif.rating_away.value'");
-
-		}
-		return "<div class='listtable'>" . table($header, $rows, array('border'=>1)) . "</div>" . $output2;
+		return table($header, $rows, array('border'=>1));
 	}
 
 	static function cmp_hometeam_field_ratio ( $a, $b )
