@@ -996,20 +996,6 @@ function getOptionsForSkill()
 	);
 }
 
-function getRosterPositions()
-{
-	return array(
-		'player'            => "regular player",
-		'substitute'        => "substitute player",
-		'captain_request'   => "request to join by captain",
-		'player_request'    => "request to join by player",
-		'coach'	            => "coach",
-		'captain'	    => "captain",
-		'assistant'	    => "assistant captain",
-		'none'              => "not on team",
-	);
-}
-
 /**
  * Helper fn to set up allowed values for an option list.
  * Use in preference to get_numeric_options, as that fn is deprecated

@@ -1,4 +1,5 @@
 <?php
+
 class Team extends LeaguerunnerObject
 {
 	var $team_id;
@@ -13,6 +14,17 @@ class Team extends LeaguerunnerObject
 	var $league_tier;
 	var $roster;
 	var $preferred_ratio;
+
+	public static $roster_positions = array(
+		'player'            => "regular player",
+		'substitute'        => "substitute player",
+		'captain_request'   => "request to join by captain",
+		'player_request'    => "request to join by player",
+		'coach'	            => "coach",
+		'captain'	    => "captain",
+		'assistant'	    => "assistant captain",
+		'none'              => "not on team",
+	);
 
 	function __construct( $array = array() ) 
 	{
@@ -513,6 +525,11 @@ class Team extends LeaguerunnerObject
 		}
 
 		return ($a_ratio < $b_ratio) ? 1 : -1;
+	}
+
+	static function get_roster_positions()
+	{
+		return self::$roster_positions;
 	}
 }
 

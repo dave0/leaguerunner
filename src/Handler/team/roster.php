@@ -172,7 +172,7 @@ class team_roster extends TeamHandler
 		{
 			return para( 'The roster deadline has passed.' );
 		}
-		$this->positions = getRosterPositions();
+		$this->positions = Team::get_roster_positions();
 		$this->currentStatus = null;
 
 		$edit = &$_POST['edit'];

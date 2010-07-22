@@ -50,7 +50,7 @@ class home extends Handler
 		}
 
 		/* Display teams */
-		$rosterPositions = getRosterPositions();
+		$rosterPositions = Team::get_roster_positions();
 		$teams = array();
 		foreach($lr_session->user->teams as $team) {
 			$team->rendered_position = $rosterPositions[$team->position];

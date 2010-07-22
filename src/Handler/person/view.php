@@ -132,7 +132,7 @@ class person_view extends PersonHandler
 			}
 		}
 
-		$rosterPositions = getRosterPositions();
+		$rosterPositions = Team:;get_roster_positions();
 		$teams = array();
 		while(list(,$team) = each($person->teams)) {
 			$teams[] = array(
