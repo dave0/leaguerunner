@@ -57,12 +57,6 @@ class event_view extends EventHandler
 			if( $r->payment != 'Paid' ) {
 				$this->smarty->assign('message', 'You have already registered for this event, but not yet paid.  See below for payment information.');
 
-				if( variable_get( 'online_payments', 1 ) ) {
-					$this->smarty->assign('online_payment_text',
-						generatePayForm($this->event, $r->formatted_order_id())
-					);
-				}
-
 				$this->smarty->assign('offline_payment_text',
 					strtr(
 						variable_get('offline_payment_text', ''),

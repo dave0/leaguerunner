@@ -201,24 +201,6 @@ function registration_settings ( )
 {
 	$group = form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 60, 120, 'sprintf format string for the unique order ID.');
 
-	$group .= form_radios('Online payments', 'edit[online_payments]', variable_get('online_payments', 1), array('Disabled', 'Enabled'), 'Do we handle online payments?');
-
-	$group_online = form_textfield('Payment provider implementation file', 'edit[payment_implementation]', variable_get('payment_implementation', 'moneris'), 60, 120, 'File will have .inc added, and be looked for in the includes/payment folder.');
-
-	$group_online .= form_textfield('Invoice implementation file', 'edit[invoice_implementation]', variable_get('invoice_implementation', 'invoice'), 60, 120, 'File will have .inc added, and be looked for in the includes folder.');
-
-	$group_online .= form_textfield('Registration ID format string', 'edit[reg_id_format]', variable_get('reg_id_format', 'Reg%05d'), 60, 120, 'sprintf format string for the registration ID, sent to the payment processor as the item number.');
-
-	$group_online .= form_radios('Testing payments', 'edit[test_payments]', variable_get('test_payments', 0), array('Nobody', 'Everybody', 'Admins'), 'Who should get test instead of live payments?');
-
-	$group_online .= form_textfield('Live payment store ID', 'edit[live_store]', variable_get('live_store', ''), 60, 120);
-	$group_online .= form_textfield('Live payment password', 'edit[live_password]', variable_get('live_password', ''), 60, 120, 'For Moneris, this is the login password; for Chase it is the merchant transaction key');
-
-	$group_online .= form_textfield('Test payment store ID', 'edit[test_store]', variable_get('test_store', ''), 60, 120);
-	$group_online .= form_textfield('Test payment password', 'edit[test_password]', variable_get('test_password', ''), 60, 120, 'For Moneris, this is the login password; for Chase it is the merchant transaction key');
-
-	$group .= form_group('Online payment options', $group_online);
- 
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
 
 	$offline = <<<END
@@ -228,7 +210,7 @@ function registration_settings ( )
 	<li>Also include a note indicating which registration the cheque is for, along with your full name.</li>
 	<li>If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.</li>
 </ul>
-<p>Please note that online payment registrations are 'live' while offline payments are not.  You will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt)</p>
+<p>Please note that you will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt)</p>
 END;
 
 	$group .= form_textarea('Text of offline payment directions', 'edit[offline_payment_text]', variable_get('offline_payment_text', $offline), 70, 10, 'Customize the text of your offline payment policy. Available variables are: %order_num');

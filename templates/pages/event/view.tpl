@@ -46,9 +46,8 @@
 {elseif $allow_register}
 <h2 style="text-decoration: underline"><a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">Register now!</a></h2>
 {/if}
-{if $online_payment_text || $offline_payment_text}
+{if $offline_payment_text}
 <h2>Payment</h2>
-{$online_payment_text}
 {$offline_payment_text}
 {/if}
 {if $refund_policy_text}

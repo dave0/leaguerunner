@@ -85,18 +85,6 @@ require_once("classes/session.inc");
 require_once("classes/spirit.php");
 require_once("classes/field_report.php");
 
-
-// Maybe include registration payment module
-if( variable_get('registration', 0) &&
-	variable_get('online_payments', 1) )
-{
-	$file = variable_get('payment_implementation', NULL);
-	if ($file)
-	{
-		require_once("includes/payment/$file.inc");
-	}
-}
-
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
 }

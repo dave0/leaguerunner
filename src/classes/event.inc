@@ -116,7 +116,6 @@ class Event extends LeaguerunnerObject
 		$queries = array(
 			'DELETE FROM registration_events WHERE registration_id = ?',
 			'DELETE FROM registration_answers USING registration_answers, registrations WHERE registration_answers.order_id = registrations.order_id AND registrations.registration_id = ?',
-			'DELETE FROM registration_audit USING registration_audit, registrations WHERE registration_audit.order_id = registrations.order_id AND registrations.registration_id = ?',
 			'DELETE FROM registrations WHERE registration_id = ?'
 
 		);

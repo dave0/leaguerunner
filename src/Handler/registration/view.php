@@ -35,17 +35,6 @@ class registration_view extends RegistrationHandler
 		array_shift($pay_opts);
 		$this->smarty->assign('payment_types', $pay_opts);
 		$this->smarty->assign('payment_details', $this->registration->get_payments());
-/*
-		// Get payment audit information, if available
-		$sth = $dbh->prepare('SELECT * FROM registration_audit WHERE order_id = ?');
-		$sth->execute( array(
-			$this->registration->order_id
-		));
-
-		$this->smarty->assign('audit_details',  $sth->fetchAll(PDO::FETCH_ASSOC));
-
-		return true;
-*/
 	}
 }
 

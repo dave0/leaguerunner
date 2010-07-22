@@ -143,7 +143,6 @@ class event_register extends EventHandler
 	function generatePay()
 	{
 		global $lr_session;
-		global $dbh;
 
 		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
 
@@ -152,17 +151,11 @@ class event_register extends EventHandler
 			return true;
 		}
 
-		if( variable_get( 'online_payments', 1 ) )
-		{
-			$this->smarty->assign('online_payment_form', generatePayForm($this->event, $this->registration->formatted_order_id() ));
-			$this->template_name = 'pages/event/register/online_payment.tpl';
-		} else {
-			$this->template_name = 'pages/event/register/offline_payment.tpl';
-		}
+		$this->template_name = 'pages/event/register/offline_payment.tpl';
 
 		// TODO: should probably just be a sub-template
 		$this->smarty->assign('offline_payment_text', strtr( variable_get('offline_payment_text', '')));
-		$this->smarty->assign('refund_policy_text', variable_get('offline_payment_text', ''));
+		$this->smarty->assign('refund_policy_text', variable_get('refund_policy_text', ''));
 		return true;
 	}
 }

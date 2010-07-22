@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 24;
+my $LATEST_SCHEMA = 25;
 
 my @TABLES = (
 	'person' => [q{
@@ -377,31 +377,6 @@ my @TABLES = (
 			qkey varchar(255) NOT NULL default '',
 			akey varchar(255) default NULL,
 			PRIMARY KEY  (order_id,qkey)
-		);
-	},
-	q{
-		DROP TABLE IF EXISTS registration_audit;
-	},
-	q{
-		CREATE TABLE registration_audit (
-			order_id int(10) unsigned NOT NULL default '0',
-			response_code smallint(5) unsigned NOT NULL default '0',
-			iso_code smallint(5) unsigned NOT NULL default '0',
-			`date` text NOT NULL,
-			`time` text NOT NULL,
-			transaction_id bigint(18) NOT NULL default '0',
-			approval_code text NOT NULL,
-			transaction_name varchar(20) NOT NULL default '',
-			charge_total decimal(7,2) NOT NULL default '0.00',
-			cardholder varchar(40) NOT NULL default '',
-			expiry text NOT NULL,
-			f4l4 text NOT NULL,
-			card text NOT NULL,
-			message varchar(100) NOT NULL default '',
-			`issuer` varchar(30) default NULL,
-			issuer_invoice varchar(20) default NULL,
-			issuer_confirmation varchar(15) default NULL,
-			PRIMARY KEY  (order_id)
 		);
 	}],
 
@@ -1791,4 +1766,18 @@ sub upgrade_23_to_24
 		]
 	]);
 }
+
+sub upgrade_24_to_25
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+		online_payment_removal => [
+		q{
+			DROP TABLE registration_audit;
+		},
+		],
+	]);
+}
+
 1;
