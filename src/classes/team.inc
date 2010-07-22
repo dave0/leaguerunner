@@ -13,6 +13,7 @@ class Team extends LeaguerunnerObject
 	var $league_name;
 	var $league_tier;
 	var $roster;
+	var $roster_count;
 	var $preferred_ratio;
 
 	public static $roster_positions = array(
@@ -97,7 +98,7 @@ class Team extends LeaguerunnerObject
 
 	function get_roster()
 	{
-		global $dbh;
+		global $dbh, $lr_session;
 
 		$sth = $dbh->prepare(
 			"SELECT
@@ -118,7 +119,18 @@ class Team extends LeaguerunnerObject
 		$sth->execute(array($this->team_id));
 
 		$this->roster = array();
+		$this->roster_count = 0;
 		while($player = $sth->fetch(PDO::FETCH_OBJ) ) {
+
+			if($lr_session->has_permission('team','player status', $this->team_id, $player->id) ) {
+				$player->_modify_status = 1;
+			} else {
+				$player->_modify_status = 0;
+			}
+			if( $player->status == 'captain' || $player->status == 'assistant' || $player->status == 'player') {
+				$this->roster_count++;
+			}
+
 			$this->roster[] = $player;
 		}
 	}

@@ -1,8 +1,6 @@
 {include file=header.tpl}
 <h1>{$title}</h1>
-<table>
-  <tr><td>
-  <div class='pairtable'><table>
+<div class='pairtable'><table>
     {if $team->website}<tr><td>Website:</td><td><a href="{$team->website|escape}">{$team->website|escape}</a></td></tr>{/if}
     <tr><td>Shirt Colour:</td><td>{$team->shirt_colour|escape}</td></tr>
     <tr><td>League/Tier:</td><td><a href="{lr_url path="league/view/`$team->league_id`"}">{$team->league_name|escape}</a></td></tr>
@@ -14,32 +12,40 @@
 
     <tr><td>Team SBF:</td><td>{$team_sbf} {if $league_sbf}(league {$league_sbf}){/if}</td></tr>
     <tr><td>Rating:</td><td>{$team->rating}</td></tr>
-  </table></div>
-  </td><td>
-    <table id="roster">
-       <thead>
-	<tr><th>Name</th><th>Position</th><th>Gender</th><th>Rating</th>{if $display_shirts}<th>Shirt Size</th>{/if}<th>Date Joined</th></tr>
-       </thead>
-       <tbody>
-       {foreach from=$team->roster item=p}
-		<tr>
-		  <td><a href="{lr_url path="person/view/`$p->id`"}">{$p->fullname}</a>
-		    {if $p->roster_conflict}<div class='roster_conflict'>(roster conflict)</div>{/if}
-		    {if $p->player_status == "inactive"}<div class='roster_conflict'>(account inactive)</div>{/if}
-		  </td>
-		  <td>{if $p->_modify_status}<a href="{lr_url path="team/roster/`$team->team_id`/`$p->id`"}">{$p->status}</a>{else}{$p->status}{/if}</td>
-		  <td>{$p->gender}</td>
-		  <td>{$p->skill_level}</td>
-		  {if $display_shirts}<td>{$p->shirtsize}</td>{/if}
-		  <td>{$p->date_joined}</td>
-		</tr>
-       {/foreach}
-	</tbody>
-	<tfoot>
-	<tr><th colspan="3">Average Skill Rating</th><th></th>{if $display_shirts}<th></th>{/if}<th></th></tr>
-	</tfoot>
 </table>
-</td></tr>
+{if $display_roster_note}
+<p class='error'>
+Your team currently has only {$team->roster-count} full-time players listed.
+Your team roster must be completed (minimum of {$team->roster_requirement}
+rostered players) by the team roster deadline ({$this->team->roster_deadline|date_format:"%Y-%m-%d"})), and all team members
+must be listed as a 'regular player', 'assistant', or 'captain'.
+
+If an individual has not replied promptly to your request to join, we suggest
+that you contact them to remind them to respond.
+</p>
+{/if}
+<table id="roster">
+   <thead>
+      <tr><th>Name</th><th>Position</th><th>Gender</th><th>Rating</th>{if $display_shirts}<th>Shirt Size</th>{/if}<th>Date Joined</th></tr>
+    </thead>
+    <tbody>
+    {foreach from=$team->roster item=p}
+	<tr>
+	  <td><a href="{lr_url path="person/view/`$p->id`"}">{$p->fullname}</a>
+	    {if $p->roster_conflict}<div class='roster_conflict'>(roster conflict)</div>{/if}
+	    {if $p->player_status == "inactive"}<div class='roster_conflict'>(account inactive)</div>{/if}
+	  </td>
+	  <td>{if $p->_modify_status}<a href="{lr_url path="team/roster/`$team->team_id`/`$p->id`"}">{$p->status}</a>{else}{$p->status}{/if}</td>
+	  <td>{$p->gender}</td>
+	  <td>{$p->skill_level}</td>
+	  {if $display_shirts}<td>{$p->shirtsize}</td>{/if}
+	  <td>{$p->date_joined}</td>
+	</tr>
+    {/foreach}
+    </tbody>
+    <tfoot>
+        <tr><th colspan="3">Average Skill Rating</th><th></th>{if $display_shirts}<th></th>{/if}<th></th></tr>
+    </tfoot>
 </table>
 <script type="text/javascript">
 {literal}
@@ -68,6 +74,8 @@ jQuery.fn.dataTableExt.oSort['roster-position-asc']  = function(a,b) {
 $(document).ready(function() {
 	$('#roster').dataTable( {
 		bPaginate: false,
+		bAutoWidth: false,
+		sDom: 'lfrtip',
 		bFilter: false,
 		bInfo: false,
 		bJQueryUI: true,

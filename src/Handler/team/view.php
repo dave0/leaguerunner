@@ -33,30 +33,19 @@ class team_view extends TeamHandler
 		if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
 			$this->smarty->assign('display_shirts', true);
 		}
-		$rosterCount = 0;
 		$rosterPositions = Team::get_roster_positions();
 		$this->smarty->assign('roster_positions', $rosterPositions );
 
 		$this->team->get_roster();
 		$this->team->check_roster_conflict();
 		foreach ($this->team->roster as $player) {
-			if($lr_session->has_permission('team','player status', $this->team->team_id, $player->id) ) {
-				$player->_modify_status = 1;
-			} else {
-				$player->_modify_status = 0;
-			}
-			if( $player->status == 'captain' ||
-				$player->status == 'assistant' ||
-				$player->status == 'player'
-			) {
-				++$rosterCount;
-			}
 			$player->status = $rosterPositions[$player->status];
 		}
 
-		# TODO: this should be smartyfied
-		if( $rosterCount < 12 && $lr_session->is_captain_of($this->team->team_id) && $this->team->roster_deadline > 0 ) {
-			$rc .= "<p><p class='error'>Your team currently has only $rosterCount full-time players listed. Your team roster must be completed (minimum of 12 rostered players) by the team roster deadline (" . strftime ('%Y-%m-%d', $this->team->roster_deadline) . "), and all team members must be listed as a 'regular player'.  If an individual has not replied promptly to your request to join, we suggest that you contact them to remind them to respond.</p>";
+		# TODO: don't hardcode roster requirement number
+		if( $this->team->roster_count < 12 && $lr_session->is_captain_of($this->team->team_id) && $this->team->roster_deadline > 0 ) {
+			$this->smarty->assign('roster_requirement', 12);
+			$this->smarty->assign('display_roster_note', true);
 		}
 
 		return $rc;
