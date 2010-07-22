@@ -48,7 +48,7 @@
 	    <td>{$team->round_defaults_against}</td>
 	    <td>{$team->round_points_for}</td>
 	    <td>{$team->round_points_against}</td>
-	    <td>{$team->round_points_for - $team->round_points_against}</td>
+	    <td>{$team->round_points_for-$team->round_points_against}</td>
 	    {/if}
 	    <td>{$team->win}</td>
 	    <td>{$team->loss}</td>
@@ -56,7 +56,7 @@
 	    <td>{$team->defaults_against}</td>
 	    <td>{$team->points_for}</td>
 	    <td>{$team->points_against}</td>
-	    <td>{$team->points_for - $team->points_against}</td>
+	    <td>{$team->points_for-$team->points_against}</td>
 	    <td>{$team->display_streak}</td>
 	    <td>{$team->sotg_image}</td>
 	    {if $league->display_numeric_sotg()}
