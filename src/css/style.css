@@ -149,30 +149,6 @@ li.active a {
   margin: 0.5em 0;
 }
 
-/* Current Round / Season Standings */
-.standings {
-   background-color:#dddddd
-}
-.standings_light {
-   background-color:#bbbbbb
-}
-.standings_dark {
-   background-color:#dddddd
-}
-
-/* to highlight teams in the standings list */
-.teamhighlight {
-	font-weight: bold;
-}
-
-.tierhighlight {
-   background-color:lightgreen;
-}
-.tierhighlightteam {
-   background-color:lightgreen;
-	font-weight: bold;
-}
-
 .scoretable td {
 	border: 1px solid gray;
 }
