@@ -43,7 +43,7 @@ class team_view extends TeamHandler
 		}
 
 		# TODO: don't hardcode roster requirement number
-		if( $this->team->roster_count < 12 && $lr_session->is_captain_of($this->team->team_id) && $this->team->roster_deadline > 0 ) {
+		if( $this->team->roster_count < 12 && ($lr_session->is_captain_of($this->team->team_id) || $lr_session->is_admin()) && $this->team->roster_deadline > 0 ) {
 			$this->smarty->assign('roster_requirement', 12);
 			$this->smarty->assign('display_roster_note', true);
 		}

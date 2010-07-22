@@ -15,13 +15,11 @@
 </table>
 {if $display_roster_note}
 <p class='error'>
-Your team currently has only {$team->roster-count} full-time players listed.
-Your team roster must be completed (minimum of {$team->roster_requirement}
-rostered players) by the team roster deadline ({$this->team->roster_deadline|date_format:"%Y-%m-%d"})), and all team members
-must be listed as a 'regular player', 'assistant', or 'captain'.
-
-If an individual has not replied promptly to your request to join, we suggest
-that you contact them to remind them to respond.
+Your team currently has only {$team->roster_count} full-time players with active accounts listed.
+</p>
+<p>
+Your team roster must have a minimum of {$roster_requirement} <b>regular player</b>, <b>assistant</b>, or <b>captain</b> players with active accounts by the roster deadline of {$team->roster_deadline|date_format:"%Y-%m-%d"}.<br />
+If you have players showing <b>account inactive</b> or <b>request to join by captain</b>, you should contact them to update their status.
 </p>
 {/if}
 <table id="roster">

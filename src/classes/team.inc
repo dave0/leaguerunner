@@ -127,7 +127,7 @@ class Team extends LeaguerunnerObject
 			} else {
 				$player->_modify_status = 0;
 			}
-			if( $player->status == 'captain' || $player->status == 'assistant' || $player->status == 'player') {
+			if( $player->player_status == 'active' && ($player->status == 'captain' || $player->status == 'assistant' || $player->status == 'player') ) {
 				$this->roster_count++;
 			}
 
