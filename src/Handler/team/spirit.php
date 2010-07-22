@@ -115,9 +115,6 @@ class team_spirit extends TeamHandler
 		);
 
 		$style = '#main table td { font-size: 80% }';
-		if( variable_get('narrow_display', '0') ) {
-			$style .= ' th { font-size: 70%; }';
-		}
 		return "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
 	}
 }

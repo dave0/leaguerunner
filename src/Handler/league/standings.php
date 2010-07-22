@@ -100,21 +100,12 @@ class league_standings extends LeagueHandler
 
 		$subheader = array();
 
-		if( variable_get('narrow_display', '0') ) {
-			$win = 'W';
-			$loss = 'L';
-			$tie = 'T';
-			$default = 'D';
-			$for = 'PF';
-			$against = 'PA';
-		} else {
-			$win = 'Win';
-			$loss = 'Loss';
-			$tie = 'Tie';
-			$default = 'Dfl';
-			$for = 'PF';
-			$against = 'PA';
-		}
+		$win = 'Win';
+		$loss = 'Loss';
+		$tie = 'Tie';
+		$default = 'Dfl';
+		$for = 'PF';
+		$against = 'PA';
 
 		// Ladder leagues display standings differently.
 		// Eventually this should just be a brand new object.

@@ -1162,11 +1162,7 @@ function local_sunset_for_date( $timestamp )
 function display_short_name ($name, $length = -1)
 {
 	if( $length < 0 ) {
-		if( variable_get('narrow_display', '0') ) {
-			$length = 14;
-		} else {
-			$length = 20;
-		}
+		$length = 20;
 	}
 	$format = '%.' . $length . 's';
 	$short = sprintf($format, $name);

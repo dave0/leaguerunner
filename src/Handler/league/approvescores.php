@@ -60,10 +60,7 @@ class league_approvescores extends LeagueHandler
 						LEFT JOIN teamroster r ON p.user_id = r.player_id
 						WHERE r.team_id IN (?,?) AND r.status IN( 'captain','coach', 'assistant')");
 
-		if( variable_get('narrow_display', '0') )
-			$time_format = '%a %b %d %Y, %H%Mh';
-		else
-			$time_format = '%A %B %d %Y, %H%Mh';
+		$time_format = '%A %B %d %Y, %H%Mh';
 
 		while($game = $game_sth->fetchObject() ) {
 			$rows[] = array(

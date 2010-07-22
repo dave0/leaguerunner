@@ -121,9 +121,6 @@ class league_spirit extends LeagueHandler
 		}
 
 		$style = '#main table td { font-size: 80% }';
-		if( variable_get('narrow_display', '0') ) {
-			$style .= ' th { font-size: 70%; }';
-		}
 		$output .= h2('Spirit reports per game');
 		$output .= "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
 
