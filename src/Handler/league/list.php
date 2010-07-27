@@ -1,20 +1,6 @@
 <?php
 class league_list extends Handler
 {
-	private $season;
-
-	function __construct ( $season = null)
-	{
-		parent::__construct( );
-
-		if( ! $season ) {
-			$season = strtolower(variable_get('current_season', "Summer"));
-		}
-
-		$this->season = $season;
-
-	}
-
 	function has_permission ()
 	{
 		global $lr_session;
@@ -25,17 +11,30 @@ class league_list extends Handler
 	{
 		global $lr_session;
 
-		$this->title = "Leagues &raquo; {$this->season}";
+		$current_season_id = $_GET['season'];
+		if( !$current_season_id ) {
+			$current_season_id = strtolower(variable_get('current_season', 'ongoing'));
+		}
+
+		$current_season = Season::load(array( 'id' => $current_season_id ));
+		if( !$current_season) {
+			$current_season_id = 'ongoing';
+			$current_season = Season::load(array( 'id' => $current_season_id ));
+		}
+
+		$this->title = "{$current_season->display_name} Leagues";
 		$this->template_name = 'pages/league/list.tpl';
 
-		$seasons = getOptionsFromEnum('league', 'season');
-		$maybe_dash = array_shift($seasons);
-		if( $maybe_dash != '---' ) {
-			array_unshift($seasons, $maybe_dash);
+		$season_obj = Season::load_many();
+		$seasons = array();
+		foreach($season_obj as $s) {
+			$seasons[$s->id] = $s->display_name;
 		}
+
+		$this->smarty->assign('current_season', $current_season);
 		$this->smarty->assign('seasons', $seasons);
 
-		$leagues = League::load_many( array( 'season' => $this->season, 'status' => 'open', '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
+		$leagues = League::load_many( array( 'season' => $current_season_id, '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
 		$this->smarty->assign('leagues', $leagues);
 
 		return true;

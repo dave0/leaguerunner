@@ -85,6 +85,7 @@ require_once("classes/session.php");
 require_once("classes/spirit.php");
 require_once("classes/field_report.php");
 require_once("classes/note.php");
+require_once("classes/season.php");
 
 if(!valid_input_data($_REQUEST)) {
 	die("terminated request due to suspicious input data");
