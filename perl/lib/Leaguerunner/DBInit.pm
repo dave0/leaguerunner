@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 27;
+my $LATEST_SCHEMA = 28;
 
 my @TABLES = (
 	'person' => [q{
@@ -81,6 +81,18 @@ my @TABLES = (
 			status      ENUM('coach', 'captain', 'assistant', 'player', 'substitute', 'captain_request', 'player_request'),
 			date_joined date,
 			PRIMARY KEY (team_id,player_id)
+		);
+	}],
+
+	'season' => [q{
+		DROP TABLE IF EXISTS season;
+	},
+	q{
+		CREATE TABLE season (
+			id           varchar(100) PRIMARY KEY NOT NULL,
+			display_name varchar(100) NOT NULL,
+			season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
+			year         integer
 		);
 	}],
 
@@ -1910,6 +1922,47 @@ sub upgrade_26_to_27
 				MODIFY  payment ENUM('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded', 'Wait List') NOT NULL default 'Unpaid'
 		},
 		]
+	]);
+}
+
+sub upgrade_27_to_28
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+		season_support => [
+		q{
+			CREATE TABLE season (
+				id           varchar(100) PRIMARY KEY NOT NULL,
+				display_name varchar(100) NOT NULL,
+				season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
+				year         integer
+			);
+		},
+		q{
+			INSERT INTO season (id, display_name, season)
+				VALUES('ongoing', 'Ongoing Leagues', 'none')
+		},
+		q{
+			INSERT INTO season (id,display_name,season,year)
+				SELECT DISTINCT CONCAT('old',LOWER(season),'2010'), CONCAT('Old ',season,' 2010'), season, 2010
+					FROM league
+					WHERE season IN('Spring', 'Summer', 'Fall', 'Winter');
+		},
+		q{
+			ALTER TABLE league MODIFY COLUMN season varchar(100);
+		},
+		q{
+			UPDATE league
+				SET season = 'ongoing'
+				WHERE season = 'none';
+		},
+		q{
+			UPDATE league
+				SET season = CONCAT('old',LOWER(season),'2010')
+				WHERE season IN('Spring', 'Summer', 'Fall', 'Winter');
+		}
+		],
 	]);
 }
 
