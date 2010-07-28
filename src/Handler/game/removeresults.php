@@ -58,7 +58,7 @@ class game_removeresults extends GameHandler
 		$output .= form_item( "Away Team", l($game->away_name,"team/view/$game->away_id"));
 
 		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end(), $note);
-		$field = field_load( array('fid' => $game->fid) );
+		$field = Field::load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 
@@ -105,7 +105,7 @@ class game_removeresults extends GameHandler
 				$approver = 'game automatically forfeited due to lack of score submission';
 				break;
 			default:
-				$approver = person_load( array('user_id' => $game->approved_by));
+				$approver = Person::load( array('user_id' => $game->approved_by));
 				$approver = l($approver->fullname, "person/view/$approver->user_id");
 		}
 		$score_group .= form_item("Score Approved By", $approver);

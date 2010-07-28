@@ -56,7 +56,7 @@ class schedule_edit extends schedule_view
 			error_exit("There are no fields assigned to this league");
 		}
 
-		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		$sth = Game::query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 		while( $game = $sth->fetchObject('Game') ) {
 			$games[] = $game;
 		}
@@ -156,7 +156,7 @@ class schedule_edit extends schedule_view
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 			reset($game_info);
 
-			$slot = slot_load( array('slot_id' => $game_info['slot_id']) );
+			$slot = Slot::load( array('slot_id' => $game_info['slot_id']) );
 
 			$team_sth = $dbh->prepare('SELECT name FROM team WHERE team_id = ?');
 
@@ -192,7 +192,7 @@ class schedule_edit extends schedule_view
 		$should_publish = ($edit['published'] == 'yes' ? 1 : 0);
 
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
-			$game = game_load( array('game_id' => $game_id) );
+			$game = Game::load( array('game_id' => $game_id) );
 			if( !$game ) {
 				error_exit("Attempted to edit game info for a nonexistant game!");
 			}

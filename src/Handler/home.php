@@ -71,7 +71,7 @@ class home extends Handler
 		$sth->execute( array($lr_session->user->user_id) );
 
 		while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$game = game_load(array('game_id' => $row->game_id));
+			$game = Game::load(array('game_id' => $row->game_id));
 			$game->user_team_id = $row->team_id;
 			$games[] = $game;
 		}
@@ -81,7 +81,7 @@ class home extends Handler
 		$sth->execute( array($lr_session->user->user_id) );
 
 		while($row = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$game = game_load(array('game_id' => $row->game_id));
+			$game = Game::load(array('game_id' => $row->game_id));
 			$game->user_team_id = $row->team_id;
 			$games[] = $game;
 		}

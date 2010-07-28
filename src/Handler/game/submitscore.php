@@ -9,7 +9,7 @@ class game_submitscore extends GameHandler
 	{
 		parent::__construct( $game_id );
 
-		$this->team = team_load( array('team_id' => $team_id ) );
+		$this->team = Team::load( array('team_id' => $team_id ) );
 		team_add_to_menu( $this->team );
 	}
 

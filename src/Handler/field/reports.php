@@ -17,7 +17,7 @@ class field_reports extends FieldHandler
 	{
 		$this->title = "Reports: {$this->field->fullname}";
 
-		$sth = field_report_query(array('field_id' => $this->field->fid, '_order' => 'created DESC' ));
+		$sth = FieldReport::query(array('field_id' => $this->field->fid, '_order' => 'created DESC' ));
 
 		$header = array("Date Played","Time Reported", "Game","Reported By","Report");
 		$rows = array();

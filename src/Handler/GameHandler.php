@@ -7,7 +7,7 @@ class GameHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->game = game_load( array('game_id' => $id) );
+		$this->game = Game::load( array('game_id' => $id) );
 
 		if(!$this->game) {
 			error_exit("That game does not exist");
@@ -19,7 +19,7 @@ class GameHandler extends Handler
 	function get_league ( )
 	{
 		if( ! $this->league ) {
-			$this->league = league_load( array('league_id' => $this->game->league_id) );
+			$this->league = League::load( array('league_id' => $this->game->league_id) );
 			league_add_to_menu( $this->league );
 		}
 		return $this->league;
@@ -39,7 +39,7 @@ class GameHandler extends Handler
 				'defaulted' => 'no'
 			);
 		} else {
-			$entry_person = person_load( array('user_id' => $home['entered_by']));
+			$entry_person = Person::load( array('user_id' => $home['entered_by']));
 			$home['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 		}
 
@@ -52,7 +52,7 @@ class GameHandler extends Handler
 				'defaulted' => 'no'
 			);
 		} else {
-			$entry_person = person_load( array('user_id' => $away['entered_by']));
+			$entry_person = Person::load( array('user_id' => $away['entered_by']));
 			$away['entered_by'] = l($entry_person->fullname, "person/view/$entry_person->user_id");
 		}
 

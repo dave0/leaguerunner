@@ -50,7 +50,7 @@ class person_create extends person_edit
 		if( ! validate_name_input($edit['username']) ) {
 			$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 		}
-		$existing_user = person_load( array('username' => $edit['username']) );
+		$existing_user = Person::load( array('username' => $edit['username']) );
 		if( $existing_user ) {
 			error_exit("A user with that username already exists; please go back and try again");
 		}

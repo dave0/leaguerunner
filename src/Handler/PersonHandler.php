@@ -6,7 +6,7 @@ class PersonHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->person = person_load( array('user_id' => $id) );
+		$this->person = Person::load( array('user_id' => $id) );
 
 		if(!$this->person) {
 			error_exit("That user does not exist");

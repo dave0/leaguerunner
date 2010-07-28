@@ -9,7 +9,7 @@ class sportsml extends Handler
 
 	function __construct ( $what, $id )
 	{
-		$this->league = league_load( array('league_id' => $id) );
+		$this->league = League::load( array('league_id' => $id) );
 		if( ! $this->league ){
 			error_exit("That league does not exist");
 		}
@@ -87,7 +87,7 @@ class sportsml extends Handler
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
 		}
-		$sth = game_query ( array( 'league_id' => $this->league->league_id, 'published' => 1, '_order' => 'g.game_date, g.game_start, field_code') );
+		$sth = Game::query ( array( 'league_id' => $this->league->league_id, 'published' => 1, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$currentTime = time();
 		$games = array();

@@ -424,7 +424,7 @@ END_TEXT;
 			if( ! validate_name_input($edit['username']) ) {
 				$errors .= "\n<li>You can only use letters, numbers, spaces, and the characters - ' and . in usernames";
 			}
-			$user = person_load( array('username' => $edit['username']) );
+			$user = Person::load( array('username' => $edit['username']) );
 			# TODO: BUG: need to check that $user->user_id != current id
 			if( $user && !$lr_session->is_admin()) {
 				error_exit("A user with that username already exists; please go back and try again");

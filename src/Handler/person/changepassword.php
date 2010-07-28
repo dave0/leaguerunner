@@ -8,7 +8,7 @@ class person_changepassword extends Handler
 	{
 		global $lr_session;
 		if( $id ) {
-			$this->person = person_load( array('user_id' => $id) );
+			$this->person = Person::load( array('user_id' => $id) );
 		}
 
 		if( ! $this->person ) {

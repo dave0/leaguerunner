@@ -277,7 +277,7 @@ function menu_build( )
 		}
 
 		if($lr_session->is_admin()) {
-			$newUsers = person_count(array( 'status' => 'new' ));
+			$newUsers = Person::count(array( 'status' => 'new' ));
 			if($newUsers) {
 				menu_add_child('person','person/listnew',"approve new accounts ($newUsers pending)", array('link' => "person/listnew"));
 			}

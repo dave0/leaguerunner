@@ -22,7 +22,7 @@ class team_ical extends TeamHandler
 		/*
 		 * Grab schedule info
 		 */
-		$games = game_load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date DESC,g.game_start,g.game_id') );
+		$games = Game::load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date DESC,g.game_start,g.game_id') );
 
 		// We'll be outputting an ical
 		header('Content-type: text/calendar; charset=UTF-8');
@@ -39,9 +39,9 @@ class team_ical extends TeamHandler
 
 		while(list(,$game) = each($games)) {
 			$opponent_id = ($game->home_id == $this->team->team_id) ? $game->away_id : $game->home_id;
-			$game->opponent = team_load( array('team_id' => $opponent_id) );
+			$game->opponent = Team::load( array('team_id' => $opponent_id) );
 
-			$game->field = field_load(array('fid' => $game->fid));
+			$game->field = Field::load(array('fid' => $game->fid));
 		}
 
 		$this->smarty->assign('games', $games);

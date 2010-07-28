@@ -21,13 +21,13 @@ class league_status extends LeagueHandler
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $this->league->current_round ));
 
 		$fields = array();
-		$sth = field_query( array( '_extra' => '1 = 1', '_order' => 'f.code') );
+		$sth = Field::query( array( '_extra' => '1 = 1', '_order' => 'f.code') );
 		while( $field = $sth->fetchObject('Field') ) {
 			$fields[$field->code] = $field->region;
 		}
 
 		// Parse the schedule and accumulate per-team stats
-		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		$sth = Game::query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 		while($g = $sth->fetchObject('Game') ) {
 
 			$season[$g->home_team]->game_count++;

@@ -19,14 +19,14 @@ class team_view extends TeamHandler
 		$this->smarty->assign('team', $this->team);
 
 		if($this->team->home_field) {
-			$field = field_load(array('fid' => $this->team->home_field));
+			$field = Field::load(array('fid' => $this->team->home_field));
 			$this->smarty->assign('home_field', $field);
 		}
 
 		$teamSBF = $this->team->calculate_sbf( );
 		if( $teamSBF ) {
 			$this->smarty->assign('team_sbf', $teamSBF);
-			$league = league_load( array('league_id' => $this->team->league_id) );
+			$league = League::load( array('league_id' => $this->team->league_id) );
 			$this->smarty->assign('league_sbf', $league->calculate_sbf());
 		}
 

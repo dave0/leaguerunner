@@ -6,7 +6,7 @@ class TeamHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->team = team_load( array('team_id' => $id) );
+		$this->team = Team::load( array('team_id' => $id) );
 
 		if(!$this->team) {
 			error_exit("That team does not exist");

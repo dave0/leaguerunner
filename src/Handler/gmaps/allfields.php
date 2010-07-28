@@ -12,7 +12,7 @@ class gmaps_allfields extends Handler
 		$this->template_name = 'pages/gmaps/allfields.tpl';
 
 
-		$sth = field_query( array( '_extra' => 'ISNULL(f.parent_fid) AND f.status = "open"', '_order' => 'f.fid') );
+		$sth = Field::query( array( '_extra' => 'ISNULL(f.parent_fid) AND f.status = "open"', '_order' => 'f.fid') );
 
 		$fields = array();
 		while( $field = $sth->fetchObject('Field') ) {

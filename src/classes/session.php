@@ -96,9 +96,9 @@ class UserSession
 		}
 
 		if( variable_get("session_requires_ip", 1) ) {
-			$user = person_load( array( 'session_cookie' => $cookie, 'client_ip' => $client_ip ) );
+			$user = Person::load( array( 'session_cookie' => $cookie, 'client_ip' => $client_ip ) );
 		} else {
-			$user = person_load( array( 'session_cookie' => $cookie ) );
+			$user = Person::load( array( 'session_cookie' => $cookie ) );
 		}
 
 		if( ! $user ) {
@@ -130,7 +130,7 @@ class UserSession
 			return false;
 		}
 
-		$user = person_load( array( 'username' => $username, 'password' => $password ) );
+		$user = Person::load( array( 'username' => $username, 'password' => $password ) );
 
 		if( ! $user ) {
 			return false;

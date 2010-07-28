@@ -30,13 +30,13 @@ class slot_day extends Handler
 		$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$mm,$dd,$yyyy));
 		$this->title = "Field Availability Report &raquo; $formattedDay";
 
-		$sth = slot_query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
+		$sth = Slot::query ( array( 'game_date' => sprintf('%d-%d-%d', $year, $month, $day), '_order' => 'g.game_start, field_code, field_num') );
 		$num_open = 0;
 		$slots = array();
 		while($g = $sth->fetch()) {
 			// load game info, if game scheduled
 			if ($g['game_id']) {
-				$g['game'] = game_load( array('game_id' => $g['game_id']) );
+				$g['game'] = Game::load( array('game_id' => $g['game_id']) );
 			} else {
 				$num_open++;
 			}

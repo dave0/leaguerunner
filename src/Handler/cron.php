@@ -31,7 +31,7 @@ function league_cron()
 	$sth = $dbh->prepare('SELECT DISTINCT league_id FROM league WHERE status = ? AND season != ? ORDER BY season, day, tier, league_id');
 	$sth->execute( array('open', 'none') );
 	while( $id = $sth->fetchColumn() ) {
-		$league = league_load( array('league_id' => $id) );
+		$league = League::load( array('league_id' => $id) );
 		$output .= h2(l($league->name, "league/view/$league->league_id"));
 
 		// Find all games older than our expiry time, and finalize them

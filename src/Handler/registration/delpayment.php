@@ -8,7 +8,7 @@ class registration_delpayment extends RegistrationHandler
 	{
 		parent::__construct( $id );
 
-		$this->payment = registration_payment_load( array('order_id' => $id, 'payment_type' => $type ) );
+		$this->payment = RegistrationPayment::load( array('order_id' => $id, 'payment_type' => $type ) );
 		if( !$this->payment) {
 			error_exit("No such payment for this registration");
 		}

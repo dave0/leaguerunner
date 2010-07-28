@@ -214,7 +214,7 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 					}
 				} else {
 					// Other user.  Now comes the hard part
-					$player = person_load( array('user_id' => $arg1) );
+					$player = Person::load( array('user_id' => $arg1) );
 
 					// New or locked players cannot be viewed.
 					if( $player->status == 'new' || $player->status == 'locked' ) {

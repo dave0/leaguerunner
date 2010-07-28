@@ -76,7 +76,7 @@ class game_edit extends GameHandler
 
 		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end() . $note);
 
-		$field = field_load( array('fid' => $game->fid) );
+		$field = Field::load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 
@@ -151,7 +151,7 @@ class game_edit extends GameHandler
 					$approver = 'game automatically forfeited due to lack of score submission';
 					break;
 				default:
-					$approver = person_load( array('user_id' => $game->approved_by));
+					$approver = Person::load( array('user_id' => $game->approved_by));
 					$approver = l($approver->fullname, "person/view/$approver->user_id");
 			}
 			$score_group .= form_item("Score Approved By", $approver);
@@ -179,7 +179,7 @@ class game_edit extends GameHandler
 				$emails = array();
 				$names = array();
 				while($user = $sth->fetch(PDO::FETCH_OBJ)) {
-					$captain = person_load(array('user_id' => $user->user_id));
+					$captain = Person::load(array('user_id' => $user->user_id));
 					$emails[] = $captain->email;
 					$names[] = $captain->fullname;
 				}
@@ -258,7 +258,7 @@ class game_edit extends GameHandler
 
 		if( $lr_session->has_permission('field', 'view reports')) {
 
-			$sth = field_report_query(array('game_id' => $this->game->game_id ));
+			$sth = FieldReport::query(array('game_id' => $this->game->game_id ));
 			$header = array("Date Reported","Reported By","Report");
 			while( $r = $sth->fetchObject('FieldReport') ) {
 				$rows[] = array(
@@ -402,8 +402,8 @@ class game_edit extends GameHandler
 		}
 
 		// load the teams in order to be able to save their current rating
-		$home_team = team_load( array('team_id' => $this->game->home_id) );
-		$away_team = team_load( array('team_id' => $this->game->away_id) );
+		$home_team = Team::load( array('team_id' => $this->game->home_id) );
+		$away_team = Team::load( array('team_id' => $this->game->away_id) );
 
 		// only save the current team ratings if we didn't already save them
 		if ($this->game->rating_home == null || $this->game->rating_home == "" &&

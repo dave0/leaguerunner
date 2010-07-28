@@ -15,7 +15,7 @@ class GameSlot extends LeaguerunnerObject
 
 		/* set derived attributes */
 		if($this->fid) {
-			$this->field = field_load( array('fid' => $this->fid) );
+			$this->field = Field::load( array('fid' => $this->fid) );
 		}
 
 		return true;
@@ -179,57 +179,54 @@ class GameSlot extends LeaguerunnerObject
 
 		return '';
 	}
-}
 
-function slot_query ( $array = array() )
-{
-	global $dbh;
-	$query  = array();
-	$params = array();
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "g.$key = ?";
-				$params[] = $value;
+	static function query ( $array = array() )
+	{
+		global $dbh;
+		$query  = array();
+		$params = array();
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "g.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		$sth = $dbh->prepare("SELECT
+			g.slot_id,
+			COALESCE(field.name, pf.name) AS field_name,
+			field.num  AS field_num,
+			COALESCE(field.code, pf.code) AS field_code,
+			g.fid,
+			g.game_date,
+			UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
+			TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
+			TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
+			g.game_id,
+			1 as _in_database
+		FROM
+			gameslot g
+			INNER JOIN field ON (g.fid = field.fid)
+			LEFT JOIN field pf ON (pf.fid = field.parent_fid)
+		WHERE " . implode(' AND ',$query) .  $order);
+
+		$sth->execute($params);
+		return $sth;
 	}
 
-	$sth = $dbh->prepare("SELECT
-		g.slot_id,
-		COALESCE(field.name, pf.name) AS field_name,
-		field.num  AS field_num,
-		COALESCE(field.code, pf.code) AS field_code,
-		g.fid,
-		g.game_date,
-		UNIX_TIMESTAMP(g.game_date) AS date_timestamp,
-		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
-		TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
-		g.game_id,
-		1 as _in_database
-	FROM
-		gameslot g
-		INNER JOIN field ON (g.fid = field.fid)
-		LEFT JOIN field pf ON (pf.fid = field.parent_fid)
-	WHERE " . implode(' AND ',$query) .  $order);
-
-	$sth->execute($params);
-	return $sth;
-}
-
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function slot_load( $array = array() )
-{
-	$result = slot_query( $array );
-	return $result->fetchObject('GameSlot');
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
+	}
 }
 ?>

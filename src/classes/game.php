@@ -88,7 +88,7 @@ class Game extends LeaguerunnerObject
 	{
 		if( is_null($this->_away_team_object) ) {
 			if( $this->away_id ) {
-				$this->_away_team_object = team_load( array('team_id' => $this->away_id) );
+				$this->_away_team_object = Team::load( array('team_id' => $this->away_id) );
 			} else {
 				return null;
 			}
@@ -100,7 +100,7 @@ class Game extends LeaguerunnerObject
 	{
 		if( is_null($this->_home_team_object) ) {
 			if( $this->home_id ) {
-				$this->_home_team_object = team_load( array('team_id' => $this->home_id) );
+				$this->_home_team_object = Team::load( array('team_id' => $this->home_id) );
 			} else {
 				return null;
 			}
@@ -1248,125 +1248,121 @@ class Game extends LeaguerunnerObject
 
 		return Team::cmp_home_field_ratio( $a_away, $b_away);
 	}
-}
 
-function game_query ( $array = array() )
-{
-	global $CONFIG, $dbh;
+	static function query ( $array = array() )
+	{
+		global $CONFIG, $dbh;
 
-	$order = '';
-	$tables = array( 'schedule s');
+		$order = '';
+		$tables = array( 'schedule s');
 
-	$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
+		$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
 
-	$query  = array();
-	$params = array();
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case 'game_date':
-				$query[] = "g.game_date = ?";
-				$params[] = $value;
-				break;
-			case 'game_date_past':
-				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) < UNIX_TIMESTAMP(NOW())";
-				break;
-			case 'game_date_future':
-				$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) > UNIX_TIMESTAMP(NOW())";
-				break;
-			case 'either_team':
-				$query[] = '(s.home_team = ? OR s.away_team = ?)';
-				$params[] = $value;
-				$params[] = $value;
-				break;
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			case '_limit':
-				$limit = ' LIMIT ' . $value;
-				break;
-			case '_extra_table':
-				array_unshift($tables, $value);
-				break;
-			case '_extra_params':
-				$params = array_merge($params, $value);
-				break;
-			default:
-				$query[] = "s.$key = ?";
-				$params[] = $value;
+		$query  = array();
+		$params = array();
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case 'game_date':
+					$query[] = "g.game_date = ?";
+					$params[] = $value;
+					break;
+				case 'game_date_past':
+					$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) < UNIX_TIMESTAMP(NOW())";
+					break;
+				case 'game_date_future':
+					$query[] = "(UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs) > UNIX_TIMESTAMP(NOW())";
+					break;
+				case 'either_team':
+					$query[] = '(s.home_team = ? OR s.away_team = ?)';
+					$params[] = $value;
+					$params[] = $value;
+					break;
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				case '_limit':
+					$limit = ' LIMIT ' . $value;
+					break;
+				case '_extra_table':
+					array_unshift($tables, $value);
+					break;
+				case '_extra_params':
+					$params = array_merge($params, $value);
+					break;
+				default:
+					$query[] = "s.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		// TODO FIXME we use both home_team and home_id, away_team and away_id.  Should standardize on one!
+		$sth = $dbh->prepare("SELECT 
+			s.*,
+			1 as _in_database,
+			IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
+			s.home_team AS home_id,
+			h.name AS home_name,
+			h.rating AS rating_home,
+			s.away_team AS away_id,
+			a.name AS away_name,
+			a.rating AS rating_away,
+			g.slot_id,
+			g.game_date,
+			TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
+			TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
+			g.fid,
+			UNIX_TIMESTAMP(g.game_date) as day_id,
+			IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
+			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs as timestamp
+		FROM " . join(',', $tables) .
+			" INNER JOIN league l ON (l.league_id = s.league_id)
+			LEFT JOIN gameslot g ON (g.game_id = s.game_id)
+			LEFT JOIN field f ON (f.fid = g.fid)
+			LEFT JOIN field pf ON (pf.fid = f.parent_fid)
+			LEFT JOIN team h ON (h.team_id = s.home_team)
+			LEFT JOIN team a ON (a.team_id = s.away_team)
+		WHERE " . implode(' AND ',$query) .  $order . $limit);
+
+		$sth->execute( $params );
+
+		return $sth;
 	}
 
-	// TODO FIXME we use both home_team and home_id, away_team and away_id.  Should standardize on one!
-	$sth = $dbh->prepare("SELECT 
-		s.*,
-		1 as _in_database,
-		IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
-		s.home_team AS home_id,
-		h.name AS home_name,
-		h.rating AS rating_home,
-		s.away_team AS away_id,
-		a.name AS away_name,
-		a.rating AS rating_away,
-		g.slot_id,
-		g.game_date,
-		TIME_FORMAT(g.game_start,'%H:%i') AS game_start,
-		TIME_FORMAT(g.game_end,'%H:%i') AS game_end,
-		g.fid,
-		UNIX_TIMESTAMP(g.game_date) as day_id,
-		IF(f.parent_fid, CONCAT(pf.code, ' ', f.num), CONCAT(f.code, ' ', f.num)) AS field_code,
-		UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + $local_adjust_secs as timestamp
-	FROM " . join(',', $tables) .
-		" INNER JOIN league l ON (l.league_id = s.league_id)
-		LEFT JOIN gameslot g ON (g.game_id = s.game_id)
-		LEFT JOIN field f ON (f.fid = g.fid)
-		LEFT JOIN field pf ON (pf.fid = f.parent_fid)
-		LEFT JOIN team h ON (h.team_id = s.home_team)
-		LEFT JOIN team a ON (a.team_id = s.away_team)
-	WHERE " . implode(' AND ',$query) .  $order . $limit);
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		$game = $result->fetchObject( get_class() );
+		if( !$game ) {
+			return null;
+		}
 
-	$sth->execute( $params );
-
-	return $sth;
-}
-
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function game_load( $array = array() )
-{
-	$result = game_query( $array );
-	$game = $result->fetchObject('Game');
-	if( !$game ) {
-		return null;
-	}
-
-	// These two fields come from a different table, but need to be saved
-	// when we update this record.
-	$game->touch ('rating_home');
-	$game->touch ('rating_away');
-
-	return $game;
-}
-
-function game_load_many( $array = array() )
-{
-	$sth = game_query( $array );
-
-	$games = array();
-	while($g = $sth->fetchObject('Game') ) {
 		// These two fields come from a different table, but need to be saved
 		// when we update this record.
-		$g->touch ('rating_home');
-		$g->touch ('rating_away');
+		$game->touch ('rating_home');
+		$game->touch ('rating_away');
 
-		$games[$g->game_id] = $g;
+		return $game;
 	}
 
-	return $games;
-}
+	static function load_many( $array = array() )
+	{
+		$sth = self::query( $array );
 
+		$games = array();
+		while($g = $sth->fetchObject( get_class() ) ) {
+			// These two fields come from a different table, but need to be saved
+			// when we update this record.
+			$g->touch ('rating_home');
+			$g->touch ('rating_away');
+
+			$games[$g->game_id] = $g;
+		}
+
+		return $games;
+	}
+}
 ?>

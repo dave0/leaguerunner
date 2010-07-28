@@ -10,20 +10,6 @@ class LeaguerunnerObject
 	}
 
 	/**
-	 * Load a single object from the database using the supplied query data.
-	 * If more than one object matches, we will load only the first one.  If
-	 * fewer than one matches, this object remains empty.
-	 *
-	 * @param	mixed 	$array key-value pairs that identify the team to be
-	 * loaded.
-	 * TODO: pull common subclass code up here and remove from subclass
-	 */
-	function load ( $array = array() )
-	{
-		die("Load implemented by subclass");
-	}
-
-	/**
 	 * Set a particular field for later insertion/update into database.
 	 */
 	function set ( $key, $value )

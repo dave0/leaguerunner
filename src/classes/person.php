@@ -98,7 +98,7 @@ class Person extends LeaguerunnerObject
 			$this->teams[ $team->team_id ]->id = $team->team_id;
 		}
 
-		/* Fetch league info.  Can't use league_load as it calls person_load,
+		/* Fetch league info.  Can't use League::load as it calls Person::load,
 		 * which makes this recursively painful.
 		 */
 		$sth = $dbh->prepare(
@@ -141,7 +141,7 @@ class Person extends LeaguerunnerObject
 
 		/* Evil hack to get 'Inactive Teams' into menu */
 		if( $this->is_a_coordinator ) {
-			$sth = league_query( array( 'league_id' => 1 ) );
+			$sth = League::query( array( 'league_id' => 1 ) );
 			$this->leagues[1] = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 		}
 
@@ -434,7 +434,7 @@ class Person extends LeaguerunnerObject
 	{
 		global $dbh;
 
-		// TODO: Find a way to make this work within game_query()
+		// TODO: Find a way to make this work within Game::query()
 		$sth = $dbh->prepare("SELECT
 			distinct s.*,
 			1 as _in_database,
@@ -487,75 +487,76 @@ class Person extends LeaguerunnerObject
 		}
 		return $games;
 	}
-}
 
-function person_query ( $array = array() )
-{
-	global $dbh;
+	static function query ( $array = array() )
+	{
+		global $dbh;
 
-	$query  = array();
-	$params = array();
-	$order  = '';
-	$limit  = '';
+		$query  = array();
+		$params = array();
+		$order  = '';
+		$limit  = '';
 
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case 'lastname_wildcard':
-				$value = strtr( $value, array('*'=>'%') );
-				$query[]  = "p.lastname LIKE ?";
-				$params[] = $value;
-				break;
-			case 'password':
-				$query[]  = 'p.password = ?';
-				$params[] = md5($value);
-				break;
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = " ORDER BY $value ";
-				break;
-			case '_limit':
-				$limit = " LIMIT $value ";
-				break;
-			default:
-				$query[]  = "p.$key = ?";
-				$params[] = $value;
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case 'lastname_wildcard':
+					$value = strtr( $value, array('*'=>'%') );
+					$query[]  = "p.lastname LIKE ?";
+					$params[] = $value;
+					break;
+				case 'password':
+					$query[]  = 'p.password = ?';
+					$params[] = md5($value);
+					break;
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = " ORDER BY $value ";
+					break;
+				case '_limit':
+					$limit = " LIMIT $value ";
+					break;
+				default:
+					$query[]  = "p.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		$sth = $dbh->prepare("SELECT
+			p.*,
+			1 AS _in_database,
+			UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
+			UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp
+			FROM person p
+			WHERE " . implode(' AND ',$query) . $order . $limit);
+
+		$sth->execute( $params );
+
+		return $sth;
 	}
 
-	$sth = $dbh->prepare("SELECT
-		p.*,
-		1 AS _in_database,
-		UNIX_TIMESTAMP(p.waiver_signed) AS waiver_timestamp,
-		UNIX_TIMESTAMP(p.dog_waiver_signed) AS dog_waiver_timestamp
-		FROM person p
-		WHERE " . implode(' AND ',$query) . $order . $limit);
-
-	$sth->execute( $params );
-
-	return $sth;
-}
-
-function person_load( $array = array() )
-{
-	$result = person_query( $array );
-	return $result->fetchObject('Person');
-}
-
-function person_count( $array = array() ) 
-{
-	global $dbh;
-	$query = array();
-	$params = array();
-	foreach ($array as $key => $value) {
-		$query[]  = "$key = ?";
-		$params[] = $value;
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
 	}
-	$sth = $dbh->prepare('SELECT COUNT(*) FROM person WHERE ' . implode( ' AND ', $query ));
-	$sth->execute( $params );
-	return $sth->fetchColumn();
+
+	static function count( $array = array() )
+	{
+		global $dbh;
+		$query = array();
+		$params = array();
+		foreach ($array as $key => $value) {
+			$query[]  = "$key = ?";
+			$params[] = $value;
+		}
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM person WHERE ' . implode( ' AND ', $query ));
+		$sth->execute( $params );
+		return $sth->fetchColumn();
+	}
+
 }
 
 ?>

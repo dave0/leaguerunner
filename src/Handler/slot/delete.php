@@ -46,7 +46,7 @@ class slot_delete extends SlotHandler
 
 		$group = '';
 		foreach( $this->slot->leagues as $l ) {
-			$league = league_load( array('league_id' => $l->league_id) );
+			$league = League::load( array('league_id' => $l->league_id) );
 			$group .= $league->fullname . "<br />";
 		}
 		$output .= form_group('Available To:', $group);

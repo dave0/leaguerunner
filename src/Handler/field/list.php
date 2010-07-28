@@ -22,7 +22,7 @@ class field_list extends Handler
 		} else {
 			$status = "AND (status = 'open' OR ISNULL(status))";
 		}
-		$sth = field_query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
+		$sth = Field::query( array( '_extra' => "ISNULL(parent_fid) $status", '_order' => 'f.region,f.name') );
 
 		$fields = array();
 		while($field = $sth->fetch(PDO::FETCH_OBJ) ) {

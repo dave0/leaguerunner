@@ -242,7 +242,7 @@ class Event extends LeaguerunnerObject
 
 	function get_registration_for( $user_id = null )
 	{
-		return registration_load(array(
+		return Registration::load(array(
 			'user_id'         => $user_id,
 			'registration_id' => $this->registration_id,
 		));
@@ -279,55 +279,51 @@ class Event extends LeaguerunnerObject
 		return array( $applicable_cap, $registered_count );
 	}
 
-}
 
-
-function event_query ( $array = array() )
-{
-	global $dbh; 
-	$query = array();
-	$params = array();
-	$fields = '';
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_fields':
-				$fields = ", $value";
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "e.$key = ?";
-				$params[] = $value;
+	static function query ( $array = array() )
+	{
+		global $dbh;
+		$query = array();
+		$params = array();
+		$fields = '';
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_fields':
+					$fields = ", $value";
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "e.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		$sth  = $dbh->prepare("SELECT
+			e.*,
+			1 as _in_database,
+			UNIX_TIMESTAMP(e.open) as open_timestamp,
+			UNIX_TIMESTAMP(e.close) as close_timestamp
+			$fields
+			FROM registration_events e
+			WHERE " . implode(' AND ',$query) .  $order);
+
+		$sth->execute( $params );
+
+		return $sth;
 	}
 
-	$sth  = $dbh->prepare("SELECT
-		e.*,
-		1 as _in_database,
-		UNIX_TIMESTAMP(e.open) as open_timestamp,
-		UNIX_TIMESTAMP(e.close) as close_timestamp
-		$fields
-		FROM registration_events e
-		WHERE " . implode(' AND ',$query) .  $order);
-
-	$sth->execute( $params );
-
-	return $sth;
-}
-
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function event_load( $array = array() )
-{
-	$sth = event_query( $array );
-	return $sth->fetchObject('Event');
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
+	}
 }
 
 function event_types ()

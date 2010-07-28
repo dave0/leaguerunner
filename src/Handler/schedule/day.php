@@ -29,7 +29,7 @@ class schedule_day extends Handler
 		$this->title .= " &raquo; $formattedDay";
 		$this->template_name = 'pages/schedule/day.tpl';
 
-		$sth = game_query ( array(
+		$sth = Game::query ( array(
 			'game_date' => sprintf('%d-%d-%d', $yyyy, $mm, $dd),
 			'published' => true,
 			'_order' => 'g.game_start, field_code') );

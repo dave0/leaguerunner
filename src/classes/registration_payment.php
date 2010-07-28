@@ -132,63 +132,61 @@ class RegistrationPayment extends LeaguerunnerObject
 	function entered_by_name()
 	{
 		if( ! $this->entered_by_user ) {
-			$this->entered_by_user = person_load(array( 'user_id' => $this->entered_by ));
+			$this->entered_by_user = Person::load(array( 'user_id' => $this->entered_by ));
 		}
 		return $this->entered_by_user->fullname;
 	}
-}
 
-function registration_payment_query ( $array = array() )
-{
-	global $dbh;
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
+	}
 
-	$query = array();
-	$query[] = '1 = 1';
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "p.$key = ?";
-				$params[] = $value;
+	function query ( $array = array() )
+	{
+		global $dbh;
+
+		$query = array();
+		$query[] = '1 = 1';
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "p.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		$sth = $dbh->prepare("SELECT
+			1 as _in_database,
+			p.*
+			FROM registration_payments p
+			WHERE " . implode(' AND ',$query) .  $order
+		);
+		$sth->execute( $params );
+		return $sth;
 	}
 
-	$sth = $dbh->prepare("SELECT
-		1 as _in_database,
-		p.*
-		FROM registration_payments p
-		WHERE " . implode(' AND ',$query) .  $order
-	);
-	$sth->execute( $params );
-	return $sth;
-}
+	function load_many ( $array = array() )
+	{
+		$sth = self::query( $array );
 
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function registration_payment_load( $array = array() )
-{
-	$sth = registration_payment_query( $array );
-	return $sth->fetchObject('RegistrationPayment');
-}
+		$results = array();
+		while( $r = $sth->fetchObject(get_class(), array(LOAD_RELATED_DATA))) {
+			array_push( $results, $r);
+		}
 
-function registration_payment_load_many ( $array = array() )
-{
-	$sth = registration_payment_query( $array );
-
-	$results = array();
-	while( $r = $sth->fetchObject('RegistrationPayment', array(LOAD_RELATED_DATA))) {
-		array_push( $results, $r);
+		return $results;
 	}
 
-	return $results;
 }
 
 ?>

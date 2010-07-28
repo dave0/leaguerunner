@@ -51,7 +51,7 @@ class league_scores extends LeagueHandler
 					   array('title'=>"Rank:$seed Rating:".$season[$tid]->rating));
 
 			// grab schedule information
-			$games = game_load_many( array( 'either_team' => $tid,
+			$games = Game::load_many( array( 'either_team' => $tid,
 											'_order' => 'g.game_date,g.game_start,g.game_id') );
 			$gameentry = array();
 			//while(list(,$game) = each($games)) {

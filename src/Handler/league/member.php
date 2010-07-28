@@ -38,7 +38,7 @@ class league_member extends LeagueHandler
 			error_exit("You cannot add or remove yourself as league coordinator");
 		}
 
-		$player = person_load( array('user_id' => $this->player_id) );
+		$player = Person::load( array('user_id' => $this->player_id) );
 
 		switch($_GET['edit']['status']) {
 			case 'remove':

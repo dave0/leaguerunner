@@ -5,7 +5,7 @@ class Field extends LeaguerunnerObject
 	{
 		// If we have a parent, override the overridables.
 		if( $this->parent_fid ) {
-			$parent = field_load( array('fid' => $this->parent_fid) );
+			$parent = Field::load( array('fid' => $this->parent_fid) );
 			$this->name = $parent->name;
 			$this->code = $parent->code;
 			$this->region = $parent->region;
@@ -156,39 +156,46 @@ class Field extends LeaguerunnerObject
 		}
 		return $sth;
 	}
-}
 
-function field_query ( $array = array() )
-{
-	global $dbh;
-
-	$query = array();
-	$params = array();
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "f.$key = ?";
-				$params[] = $value;
-		}
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
 	}
 
-	$sth = $dbh->prepare("SELECT
-		f.*,
-		1 AS _in_database,
-		CONCAT_WS(' ',f.name,f.num) as fullname
-		FROM field f
-	WHERE " . implode(' AND ',$query) .  $order);
+	static function query ( $array = array() )
+	{
+		global $dbh;
 
-	$sth->execute( $params );
-	return $sth;
+		$query = array();
+		$params = array();
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "f.$key = ?";
+					$params[] = $value;
+			}
+		}
+
+		$sth = $dbh->prepare("SELECT
+			f.*,
+			1 AS _in_database,
+			CONCAT_WS(' ',f.name,f.num) as fullname
+			FROM field f
+		WHERE " . implode(' AND ',$query) .  $order);
+
+		$sth->execute( $params );
+		return $sth;
+	}
+
 }
 
 function field_rating_values()
@@ -202,12 +209,4 @@ function field_rating_values()
 	);
 }
 
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function field_load( $array = array() )
-{
-	$result = field_query( $array );
-	return $result->fetchObject('Field');
-}
 ?>

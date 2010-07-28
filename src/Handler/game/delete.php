@@ -60,7 +60,7 @@ class game_delete extends GameHandler
 
 		$output .= form_item("Date and Time", "$game->game_date, $game->game_start until " . $game->display_game_end(), $note);
 
-		$field = field_load( array('fid' => $game->fid) );
+		$field = Field::load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
 

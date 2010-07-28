@@ -29,7 +29,7 @@ class team_move extends TeamHandler
 				error_exit("Sorry, you cannot move teams to leagues you do not coordinate");
 			}
 
-			$targetleague = league_load( array('league_id' => $edit['target']));
+			$targetleague = League::load( array('league_id' => $edit['target']));
 			if( !$targetleague ) {
 				error_exit("You must supply a valid league to move to");
 			}
@@ -40,7 +40,7 @@ class team_move extends TeamHandler
 		}
 
 		if( $edit['swaptarget'] ) {
-			$target_team = team_load( array('team_id' => $edit['swaptarget'] ) );
+			$target_team = Team::load( array('team_id' => $edit['swaptarget'] ) );
 			if( !$target_team ) {
 				error_exit("You must supply a valid target team ID");
 			}
@@ -60,7 +60,7 @@ class team_move extends TeamHandler
 
 		switch($edit['step']) {
 			case 'perform':
-				$sourceleague = league_load( array('league_id' => $this->team->league_id));
+				$sourceleague = League::load( array('league_id' => $this->team->league_id));
 				$this->perform($targetleague, $target_team);
 				local_redirect(url("league/view/" . $sourceleague->league_id));
 			case 'confirm':
@@ -101,7 +101,7 @@ class team_move extends TeamHandler
 			$output .= form_hidden('edit[swaptarget]', $target_team->team_id);
 		}
 
-		$sourceleague = league_load( array('league_id' => $this->team->league_id));
+		$sourceleague = League::load( array('league_id' => $this->team->league_id));
 		$output .= para(
 			"You are attempting to move the team <b>" . $this->team->name . "</b> to <b>$targetleague->fullname</b>");
 		if( $target_team ) {
@@ -139,7 +139,7 @@ class team_move extends TeamHandler
 		$leagues = array();
 		$leagues[0] = '-- select from list --';
 		if( $lr_session->is_admin() ) {
-			# TODO: league_load?
+			# TODO: League::load?
 			$sth = $dbh->prepare("
 				SELECT
 					league_id as theKey,

@@ -500,8 +500,8 @@ class Team extends LeaguerunnerObject
 		$other->move_team_to( $this_league_id );
 
 		# Get future games for $this and $other
-		$this_games = game_load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
-		$other_games = game_load_many(array('either_team' => $other->team_id, 'game_date_future' => 1));
+		$this_games = Game::load_many(array('either_team' => $this->team_id, 'game_date_future' => 1));
+		$other_games = Game::load_many(array('either_team' => $other->team_id, 'game_date_future' => 1));
 
 		# Update future unplayed games in both leagues
 		foreach ($this_games as $game) {
@@ -543,72 +543,71 @@ class Team extends LeaguerunnerObject
 	{
 		return self::$roster_positions;
 	}
-}
 
-function team_query( $array = array() )
-{
-	global $CONFIG, $dbh;
+	static function query( $array = array() )
+	{
+		global $CONFIG, $dbh;
 
-	$order = '';
-	$query = array();
-	$params = array();
+		$order = '';
+		$query = array();
+		$params = array();
 
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			case 'league_id':
-				$query[]  = "l.$key = ?";
-				$params[] = $value;
-				break;
-			default:
-				$query[]  = "t.$key = ?";
-				$params[] = $value;
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				case 'league_id':
+					$query[]  = "l.$key = ?";
+					$params[] = $value;
+					break;
+				default:
+					$query[]  = "t.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
+
+		$sth = $dbh->prepare("SELECT
+			t.*,
+			1 AS _in_database,
+			l.name AS league_name,
+			l.tier AS league_tier,
+			l.day AS league_day, 
+			l.season AS league_season, 
+			l.year AS league_year, 
+			l.league_id,
+			(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + $local_adjust_secs) AS roster_deadline
+			FROM team t
+			INNER JOIN leagueteams s ON (s.team_id = t.team_id)
+			INNER JOIN league l ON (s.league_id = l.league_id)
+			WHERE " . implode(' AND ',$query) . $order);
+		$sth->execute( $params );
+
+		return $sth;
 	}
 
-	$local_adjust_secs = $CONFIG['localization']['tz_adjust'] * 60;
-
-	$sth = $dbh->prepare("SELECT
-		t.*,
-		1 AS _in_database,
-		l.name AS league_name,
-		l.tier AS league_tier,
-		l.day AS league_day, 
-		l.season AS league_season, 
-		l.year AS league_year, 
-		l.league_id,
-		(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + $local_adjust_secs) AS roster_deadline
-		FROM team t
-		INNER JOIN leagueteams s ON (s.team_id = t.team_id)
-		INNER JOIN league l ON (s.league_id = l.league_id)
-		WHERE " . implode(' AND ',$query) . $order);
-	$sth->execute( $params );
-
-	return $sth;
-}
-
-function team_load( $array = array() )
-{
-	$result = team_query( $array );
-	return $result->fetchObject('Team');
-}
-
-function team_load_many( $array = array() )
-{
-	$sth = team_query( $array );
-
-	$teams = array();
-	while( $t = $sth->fetchObject('Team', array(LOAD_RELATED_DATA))) {
-		$teams[$t->team_id] = $t;
+	static function load( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject(get_class());
 	}
 
-	return $teams;
-}
+	static function load_many( $array = array() )
+	{
+		$sth = self::query( $array );
+		$teams = array();
+		while( $t = $sth->fetchObject(get_class(), array(LOAD_RELATED_DATA))) {
+			$teams[$t->team_id] = $t;
+		}
 
+		return $teams;
+	}
+
+}
 ?>

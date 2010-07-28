@@ -15,9 +15,9 @@ class event_list extends Handler
 		$this->template_name = 'pages/event/list.tpl';
 
 		if( $lr_session->is_admin() ) {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
+			$sth = Event::query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 YEAR)', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		} else {
-			$sth = event_query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
+			$sth = Event::query( array( '_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()', '_order' => 'e.type,e.open,e.close,e.registration_id') );
 		}
 
 		$type_desc = event_types();

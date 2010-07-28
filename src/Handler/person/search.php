@@ -44,7 +44,7 @@ class person_search extends Handler
 
 		$this->smarty->assign('lastname', $search);
 
-		$result = person_query( $query );
+		$result = Person::query( $query );
 		$result->setFetchMode(PDO::FETCH_CLASS, 'Person', array(LOAD_OBJECT_ONLY));
 
 		$people = array();

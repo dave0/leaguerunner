@@ -9,7 +9,7 @@ class Registration extends LeaguerunnerObject
 		if( ! $this->user_id ) {
 			return null;
 		}
-		return person_load( array( 'user_id' => $this->user_id ) );
+		return Person::load( array( 'user_id' => $this->user_id ) );
 	}
 
 	function save ()
@@ -156,7 +156,7 @@ class Registration extends LeaguerunnerObject
 	function get_payments()
 	{
 		if( ! $this->_payments ) {
-			$this->_payments = registration_payment_load_many(array(
+			$this->_payments = RegistrationPayment::load_many(array(
 				'order_id' => $this->order_id,
 				'_order'   => 'date_paid'
 			));
@@ -173,64 +173,60 @@ class Registration extends LeaguerunnerObject
 
 		return $balance;
 	}
-}
 
-function registration_query ( $array = array() )
-{
-	global $CONFIG, $dbh;
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
+	}
 
-	$query = array();
-	$query[] = '1 = 1';
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "r.$key = ?";
-				$params[] = $value;
+	static function query ( $array = array() )
+	{
+		global $CONFIG, $dbh;
+
+		$query = array();
+		$query[] = '1 = 1';
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "r.$key = ?";
+					$params[] = $value;
+			}
 		}
+
+		// Yes, do it twice.
+		$params = array_merge( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust']), $params );
+
+		$sth = $dbh->prepare("SELECT 
+			1 as _in_database,
+			r.*,
+			DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
+			DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified
+			FROM registrations r
+			WHERE " . implode(' AND ',$query) .  $order
+		);
+		$sth->execute( $params );
+		return $sth;
 	}
 
-	// Yes, do it twice.
-	$params = array_merge( array( -$CONFIG['localization']['tz_adjust'], -$CONFIG['localization']['tz_adjust']), $params );
+	static function load_many ( $array = array() )
+	{
+		$sth = self::query( $array );
 
-	$sth = $dbh->prepare("SELECT 
-		1 as _in_database,
-		r.*,
-		DATE_ADD(r.time, INTERVAL ? MINUTE) as time,
-		DATE_ADD(r.modified, INTERVAL ? MINUTE) as modified
-		FROM registrations r
-		WHERE " . implode(' AND ',$query) .  $order
-	);
-	$sth->execute( $params );
-	return $sth;
-}
+		$results = array();
+		while( $r = $sth->fetchObject(get_class(), array(LOAD_RELATED_DATA))) {
+			array_push( $results, $r);
+		}
 
-/**
- * Wrapper for convenience and backwards-compatibility.
- */
-function registration_load( $array = array() )
-{
-	$sth = registration_query( $array );
-	return $sth->fetchObject('Registration');
-}
-
-function registration_load_many ( $array = array() )
-{
-	$sth = registration_query( $array );
-
-	$results = array();
-	while( $r = $sth->fetchObject('Registration', array(LOAD_RELATED_DATA))) {
-		array_push( $results, $r);
+		return $results;
 	}
-
-	return $results;
 }
-
 ?>

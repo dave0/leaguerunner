@@ -135,7 +135,7 @@ class slot_create extends FieldHandler
 		$this->smarty->assign('edit', $edit);
 		$leagues = array();
 		foreach( $edit['availability'] as $league_id ) {
-			$league = league_load( array('league_id' => $league_id) );
+			$league = League::load( array('league_id' => $league_id) );
 			$leagues[ $league_id] = $league->fullname;
 		}
 		$this->smarty->assign('leagues', $leagues);

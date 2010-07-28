@@ -41,7 +41,7 @@ class field_edit extends FieldHandler
 		$output .= form_select("Field Rating", 'edit[rating]', $data['rating'], field_rating_values(), "Rate this field on the scale provided");
 
 		// TODO: Should become Field::get_eligible_parents()
-		$sth = field_query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
+		$sth = Field::query( array('_extra' => 'ISNULL(parent_fid)', '_order' => 'f.name,f.num') );
 		$parents = array();
 		$parents[0] = "---";
 		while($p = $sth->fetch(PDO::FETCH_OBJ) ) {
@@ -100,7 +100,7 @@ class field_edit extends FieldHandler
 
 		$ratings = field_rating_values();
 		if ( $edit['parent_fid'] ) {
-			$parent = field_load( array('fid' => $edit['parent_fid']));
+			$parent = Field::load( array('fid' => $edit['parent_fid']));
 			$rows = array();
 			$rows[] = array( "Name:", $parent->name );
 			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));

@@ -13,7 +13,8 @@ class schedule_view extends LeagueHandler
 		$this->title = "{$this->league->fullname} &raquo; Schedule";
 		$this->template_name = 'pages/schedule/view.tpl';
 
-		$sth = game_query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
+		// TODO: do load_many() and query using 'published'
+		$sth = Game::query ( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date, g.game_start, field_code') );
 
 		$games = array();
 		while( $game = $sth->fetchObject('Game') ) {

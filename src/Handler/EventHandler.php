@@ -9,7 +9,7 @@ class EventHandler extends Handler
 	{
 		global $lr_session;
 
-		$this->event = event_load( array('registration_id' => $id) );
+		$this->event = Event::load( array('registration_id' => $id) );
 		$this->event_types = event_types();
 
 		if(!$this->event) {

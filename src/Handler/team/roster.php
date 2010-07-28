@@ -10,7 +10,7 @@ class team_roster extends TeamHandler
 	{
 		parent::__construct( $id );
 		if( $player_id ) {
-			$this->player = person_load( array('user_id' => $player_id ) );
+			$this->player = Person::load( array('user_id' => $player_id ) );
 		}
 	}
 

@@ -27,13 +27,13 @@ class fieldreport_day extends Handler
 		$formattedDay = strftime('%A %B %d %Y', mktime (6,0,0,$mm,$dd,$yyyy));
 		$this->title = "Field Reports &raquo; $formattedDay";
 
-		$sth = field_report_query ( array(
+		$sth = FieldReport::query( array(
 			'date_played' => sprintf('%d-%d-%d', $yyyy, $mm, $dd),
 			'_order' => 'field_id ASC') );
 
 		$reports = array();
 		while($r = $sth->fetchObject('FieldReport') ) {
-			$r->field  = field_load(array('fid' => $r->field_id));
+			$r->field  = Field::load(array('fid' => $r->field_id));
 			$reports[] = $r;
 		}
 

@@ -16,7 +16,7 @@ class league_spirit extends LeagueHandler
 		/*
 		 * Grab schedule info
 		 */
-		$games = game_load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
+		$games = Game::load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
 
 		if( !is_array($games) ) {
 			error_exit("There are no games scheduled for this league");

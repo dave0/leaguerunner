@@ -6,7 +6,7 @@ class LeagueHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->league = league_load( array('league_id' => $id) );
+		$this->league = League::load( array('league_id' => $id) );
 
 		if(!$this->league) {
 			error_exit("That league does not exist");

@@ -77,50 +77,51 @@ class FieldReport extends LeaguerunnerObject
 
 		return true;
 	}
-}
 
-function field_report_query ( $array = array() )
-{
-	global $dbh;
-
-	$query = array();
-	$params = array();
-	$order = '';
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-			case 'date_played':
-				$query[] = 'g.game_date = ?';
-				$params[] = $value;
-			case '_extra':
-				/* Just slap on any extra query fields desired */
-				$query[] = $value;
-				break;
-			case '_order':
-				$order = ' ORDER BY ' . $value;
-				break;
-			default:
-				$query[] = "t.$key = ?";
-				$params[] = $value;
-		}
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
 	}
 
-	$sth = $dbh->prepare("SELECT
-		CONCAT_WS(' ', p.firstname, p.lastname) AS reporting_user_fullname,
-		g.game_date AS date_played,
-		t.*,
-		1 AS _in_database
-		FROM field_report t
-			LEFT JOIN gameslot g ON (g.game_id = t.game_id)
-			LEFT JOIN person p ON (p.user_id = t.reporting_user_id)
-	WHERE " . implode(' AND ',$query) .  $order);
+	static function query ( $array = array() )
+	{
+		global $dbh;
 
-	$sth->execute( $params );
-	return $sth;
+		$query = array();
+		$params = array();
+		$order = '';
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+				case 'date_played':
+					$query[] = 'g.game_date = ?';
+					$params[] = $value;
+				case '_extra':
+					/* Just slap on any extra query fields desired */
+					$query[] = $value;
+					break;
+				case '_order':
+					$order = ' ORDER BY ' . $value;
+					break;
+				default:
+					$query[] = "t.$key = ?";
+					$params[] = $value;
+			}
+		}
+
+		$sth = $dbh->prepare("SELECT
+			CONCAT_WS(' ', p.firstname, p.lastname) AS reporting_user_fullname,
+			g.game_date AS date_played,
+			t.*,
+			1 AS _in_database
+			FROM field_report t
+				LEFT JOIN gameslot g ON (g.game_id = t.game_id)
+				LEFT JOIN person p ON (p.user_id = t.reporting_user_id)
+		WHERE " . implode(' AND ',$query) .  $order);
+
+		$sth->execute( $params );
+		return $sth;
+	}
 }
 
-function field_report_load( $array = array() )
-{
-	$result = field_report_query( $array );
-	return $result->fetchObject('FieldReport');
-}
 ?>

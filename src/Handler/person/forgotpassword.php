@@ -49,7 +49,7 @@ class person_forgotpassword extends Handler
 		}
 
 		/* Now, try and find the user */
-		$user = person_load( $fields );
+		$user = Person::load( $fields );
 
 		/* Now, we either have one or zero users.  Regardless, we'll present
 		 * the user with the same output; that prevents them from using this

@@ -134,7 +134,7 @@ class person_approve extends person_view
 				return true;
 
 			case 'delete_duplicate':
-				$existing = person_load( array('user_id' => $dup_id) );
+				$existing = Person::load( array('user_id' => $dup_id) );
 				$message = _person_mail_text('dup_delete_body', array( 
 					'%fullname' => $this->person->fullname,
 					'%username' => $this->person->username,
@@ -170,7 +170,7 @@ class person_approve extends person_view
 			// This is basically the same as the delete duplicate, except
 			// that some old information (e.g. user ID) is preserved
 			case 'merge_duplicate':
-				$existing = person_load( array('user_id' => $dup_id) );
+				$existing = Person::load( array('user_id' => $dup_id) );
 				$message = _person_mail_text('dup_merge_body', array( 
 					'%fullname' => $this->person->fullname,
 					'%username' => $this->person->username,

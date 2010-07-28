@@ -74,7 +74,7 @@ class league_approvescores extends LeagueHandler
 			$emails = array();
 			$names = array();
 			while($id = $captains_sth->fetchColumn()) {
-				$captain = person_load(array('user_id' => $id ));
+				$captain = Person::load(array('user_id' => $id ));
 				$emails[] = $captain->email;
 				$names[] = $captain->fullname;
 			}

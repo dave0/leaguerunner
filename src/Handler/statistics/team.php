@@ -95,7 +95,7 @@ class statistics_team extends StatisticsHandler
 		$sth->execute( array($current_season) );
 		$sub_table = array();
 		while($row = $sth->fetch()) {
-			$team = team_load( array('team_id' => $row['team_id']) );
+			$team = Team::load( array('team_id' => $row['team_id']) );
 			$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
 		}
 		$rows[] = array("Top defaulting $current_season teams:", table(null, $sub_table));
@@ -112,7 +112,7 @@ class statistics_team extends StatisticsHandler
 		$sth->execute( array($current_season) );
 		$sub_table = array();
 		while($row = $sth->fetch() ) {
-			$team = team_load( array('team_id' => $row['team_id']) );
+			$team = Team::load( array('team_id' => $row['team_id']) );
 			$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['num']);
 		}
 		$rows[] = array("Top non-score-submitting $current_season teams:", table(null, $sub_table));
@@ -135,7 +135,7 @@ class statistics_team extends StatisticsHandler
 		$sth->execute ( array ($current_season) );
 		$sub_table = array();
 		while($row = $sth->fetch() ) {
-			$team = team_load( array('team_id' => $row['team_id']) );
+			$team = Team::load( array('team_id' => $row['team_id']) );
 			$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['avgspirit']);
 		}
 		$rows[] = array("Best spirited $current_season teams:", table(null, $sub_table));
@@ -144,7 +144,7 @@ class statistics_team extends StatisticsHandler
 		$sth->execute ( array ($current_season) );
 		$sub_table = array();
 		while($row = $sth->fetch() ) {
-			$team = team_load( array('team_id' => $row['team_id']) );
+			$team = Team::load( array('team_id' => $row['team_id']) );
 			$sub_table[] = array( l($team->name,"team/view/" . $row['team_id']), $row['avgspirit']);
 		}
 		$rows[] = array("Lowest spirited $current_season teams:", table(null, $sub_table));

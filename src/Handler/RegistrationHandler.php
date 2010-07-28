@@ -9,13 +9,13 @@ class RegistrationHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->registration = registration_load( array('order_id' => $id) );
+		$this->registration = Registration::load( array('order_id' => $id) );
 
 		if(!$this->registration) {
 			error_exit("That registration does not exist");
 		}
 
-		$this->event = event_load( array('registration_id' => $this->registration->registration_id) );
+		$this->event = Event::load( array('registration_id' => $this->registration->registration_id) );
 
 		registration_add_to_menu( $this->registration );
 	}

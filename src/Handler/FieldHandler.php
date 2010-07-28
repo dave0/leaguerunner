@@ -6,7 +6,7 @@ class FieldHandler extends Handler
 
 	function __construct ( $id )
 	{
-		$this->field = field_load( array('fid' => $id) );
+		$this->field = Field::load( array('fid' => $id) );
 
 		if(!$this->field) {
 			error_exit("That field does not exist");

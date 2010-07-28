@@ -16,7 +16,7 @@ class team_schedule extends TeamHandler
 		/*
 		 * Grab schedule info
 		 */
-		$games = game_load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date,g.game_start,g.game_id') );
+		$games = Game::load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date,g.game_start,g.game_id') );
 
 		if( !count($games) ) {
 			error_exit('This team does not yet have any games scheduled');
@@ -85,7 +85,7 @@ class team_schedule extends TeamHandler
 				$score_type .= " (default)";
 			}
 
-			$field = field_load(array('fid' => $game->fid));
+			$field = Field::load(array('fid' => $game->fid));
 			$rows[] = array(
 				l($game->game_id, "game/view/$game->game_id"),
 				strftime('%a %b %d %Y', $game->timestamp),

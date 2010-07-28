@@ -35,11 +35,12 @@ class League extends LeaguerunnerObject
 	{
 		global $dbh;
 
+		// TODO: this should be one query, not a select on leaguemembers and a loop over Person
 		$sth = $dbh->prepare('SELECT m.player_id FROM leaguemembers m WHERE m.league_id = ?');
 		$sth->execute(array($this->league_id));
 
 		while( $id = $sth->fetchColumn() ) {
-			$c_sth = person_query( array( 'user_id' => $id ) );
+			$c_sth = Person::query( array( 'user_id' => $id ) );
 			$c = $c_sth->fetchObject('Person', array(LOAD_OBJECT_ONLY));
 			$c->coordinator_status = 'loaded';
 			$this->coordinators[$c->user_id] = $c;
@@ -74,7 +75,7 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		$this->teams = team_load_many( array('league_id' => $this->league_id, '_order' => 't.name'));
+		$this->teams = Team::load_many( array('league_id' => $this->league_id, '_order' => 't.name'));
 
 		// Cheat.  If we didn't find any teams, set $this->teams to an empty
 		// array again.
@@ -82,7 +83,7 @@ class League extends LeaguerunnerObject
 			$this->teams = array();
 		}
 
-		$this->_teams_loaded = true;	
+		$this->_teams_loaded = true;
 		return true;
 	}
 
@@ -177,7 +178,7 @@ class League extends LeaguerunnerObject
 
 		$output = '';
 
-		// TODO: game_load_many()?  Or at least game_query()?
+		// TODO: Game::load_many()?  Or at least Game::query()?
 		$sth = $dbh->prepare("SELECT
 				DISTINCT s.game_id,
 				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + ?) AS start_timestamp
@@ -203,7 +204,7 @@ class League extends LeaguerunnerObject
 		));
 
 		while( $game_id = $sth->fetchColumn() ) {
-			$game = game_load( array('game_id' => $game_id) );
+			$game = Game::load( array('game_id' => $game_id) );
 			if ($game->finalize())
 			{
 				$stat = 'Finalized';
@@ -236,7 +237,7 @@ class League extends LeaguerunnerObject
 
 		$output = '';
 
-		// TODO: game_load_many()?  Or at least game_query()?
+		// TODO: Game::load_many()?  Or at least Game::query()?
 		$start_offset = $CONFIG['localization']['tz_adjust'] * 60;
 		$email_offset = $start_offset + ($this->email_after * 60) * 60;
 		$sth = $dbh->prepare("SELECT
@@ -262,7 +263,7 @@ class League extends LeaguerunnerObject
 		$sth->execute( array( $this->league_id ) );
 
 		while( $game_id = $sth->fetchColumn() ) {
-			$game = game_load( array('game_id' => $game_id) );
+			$game = Game::load( array('game_id' => $game_id) );
 			if ($game->remind())
 			{
 				$stat = 'Emailed';
@@ -514,7 +515,7 @@ class League extends LeaguerunnerObject
 		 * is currently in this league, regardless of whether or not
 		 * their opponents are still here
 		 */
-		// TODO: I'd like to use game_load_many here, but it's too slow.
+		// TODO: I'd like to use Game::load_many here, but it's too slow.
 		$sth = $dbh->prepare('SELECT DISTINCT 
 			s.*,
 			1 as _in_database,
@@ -1121,7 +1122,7 @@ class League extends LeaguerunnerObject
 		}
 		if ($load_from_db) {
 			// gotta load this team's games to see who they've played recently...
-			$past_games = game_load_many( array( 'either_team' => $teamid, '_order' => 'g.game_date') );
+			$past_games = Game::load_many( array( 'either_team' => $teamid, '_order' => 'g.game_date') );
 			if ($past_games == null)
 				$past_games = array();
 			// make the most recent game first in the array:
@@ -1475,7 +1476,7 @@ class League extends LeaguerunnerObject
 	{
 		global $dbh;
 		$dbh->beginTransaction();
-		$games_list = game_load_many(array(
+		$games_list = Game::load_many(array(
 			'league_id' => $this->league_id,
 			'game_date' => strftime("%Y-%m-%d", $olddate)
 		));
@@ -1602,47 +1603,46 @@ class League extends LeaguerunnerObject
 		return true;
 	}
 
-}
+	static function load ( $array = array() )
+	{
+		$result = self::query( $array );
+		return $result->fetchObject( get_class() );
+	}
 
-function league_query( $array = array() )
-{
-	global $dbh;
-	$order = '';
-	$query = array();
-	$params = array();
+	function query( $array = array() )
+	{
+		global $dbh;
+		$order = '';
+		$query = array();
+		$params = array();
 
-	foreach ($array as $key => $value) {
-		switch( $key ) {
-		case '_order':
-			$order = ' ORDER BY ' . $value;
-			break;
-		default:
-			$query[]  = "l.$key = ?";
-			$params[] = $value;
+		foreach ($array as $key => $value) {
+			switch( $key ) {
+			case '_order':
+				$order = ' ORDER BY ' . $value;
+				break;
+			default:
+				$query[]  = "l.$key = ?";
+				$params[] = $value;
+			}
 		}
+
+		$sth = $dbh->prepare("SELECT l.*, 1 as _in_database FROM league l WHERE " . implode(' AND ',$query) . $order);
+		$sth->execute($params);
+		return $sth;
 	}
 
-	$sth = $dbh->prepare("SELECT l.*, 1 as _in_database FROM league l WHERE " . implode(' AND ',$query) . $order);
-	$sth->execute($params);
-	return $sth;
-}
+	function load_many( $array = array() )
+	{
+		$sth = self::query( $array );
 
-function league_load( $array = array() )
-{
-	$result = league_query( $array );
-	return $result->fetchObject('League');
-}
+		$leagues = array();
+		while($l = $sth->fetchObject( get_class() ) ) {
+			$leagues[$l->league_id] = $l;
+		}
 
-function league_load_many( $array = array() )
-{
-	$sth = league_query( $array );
-
-	$leagues = array();
-	while($l = $sth->fetchObject('League') ) {
-		$leagues[$l->league_id] = $l;
+		return $leagues;
 	}
-
-	return $leagues;
 }
 
 /**

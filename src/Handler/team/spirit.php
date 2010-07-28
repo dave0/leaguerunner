@@ -15,7 +15,7 @@ class team_spirit extends TeamHandler
 		$this->title = "{$this->team->name} &raquo; Spirit";
 
 		// load the league
-		$league = league_load( array('league_id' => $this->team->league_id) );
+		$league = League::load( array('league_id' => $this->team->league_id) );
 
 		// if the person doesn't have permission to see this team's spirit, bail out
 		if( !$lr_session->has_permission('team', 'view', $this->team->team_id, 'spirit') ) {
@@ -33,7 +33,7 @@ class team_spirit extends TeamHandler
 		/*
 		 * Grab schedule info
 		 */
-		$games = game_load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
+		$games = Game::load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
 		if( !is_array($games) ) {
 			error_exit('There are no games scheduled for this team');
