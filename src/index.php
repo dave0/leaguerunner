@@ -56,10 +56,10 @@ try {
 
 require_once("includes/smarty.php");
 
-require_once("includes/common.inc");
-require_once("includes/menu.inc");
-require_once("includes/permissions.inc");
-require_once("includes/mail/php.inc");
+require_once("includes/common.php");
+require_once("includes/menu.php");
+require_once("includes/permissions.php");
+require_once("includes/mail.php");
 
 // Initialise configuration variables
 $conf = variable_init();
@@ -70,18 +70,18 @@ $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_version', '2.7');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 
-require_once("classes/lrobject.inc");
-require_once("classes/field.inc");
-require_once("classes/person.inc");
-require_once("classes/league.inc");
-require_once("classes/team.inc");
-require_once("classes/game.inc");
-require_once("classes/slot.inc");
-require_once("classes/event.inc");
-require_once("classes/registration.inc");
+require_once("classes/lrobject.php");
+require_once("classes/field.php");
+require_once("classes/person.php");
+require_once("classes/league.php");
+require_once("classes/team.php");
+require_once("classes/game.php");
+require_once("classes/slot.php");
+require_once("classes/event.php");
+require_once("classes/registration.php");
 require_once("classes/registration_payment.php");
-require_once("classes/formbuilder.inc");
-require_once("classes/session.inc");
+require_once("classes/formbuilder.php");
+require_once("classes/session.php");
 require_once("classes/spirit.php");
 require_once("classes/field_report.php");
 

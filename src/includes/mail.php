@@ -1,6 +1,4 @@
 <?php
-// $Id: mail.inc $
-
 /**
  * Method for handling sending of email.
  * This is intended to be expandable, so that new implementations,
