@@ -924,7 +924,7 @@ class Game extends LeaguerunnerObject
 		$change = 0;
 
 		if($this->home_score == $this->away_score) {
-			# For a tie, we assume the home team wins
+			// TODO FIXME: should treat ties as a win by the lower-rated team, rather than as a home win.
 			$winner = $this->home_id;
 			$loser = $this->away_id;
 			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->home_expected_win());
@@ -1218,7 +1218,7 @@ class Game extends LeaguerunnerObject
 						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"'$home' wins $h to $a, takes $change rating points from '$away'", 'class'=>"highlight");
 				} else if ($h == $a) {
-					// treat as a home win
+					// TODO FIXME: should treat ties as a win by the lower-rated team, rather than as a home win.
 					$change = $this->$change_calculator($h, $a,
 						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"Tie $h to $a, '$home' takes $change rating points from '$away'", 'class'=>"highlight");
