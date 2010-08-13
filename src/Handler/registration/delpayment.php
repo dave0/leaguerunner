@@ -33,7 +33,7 @@ class registration_delpayment extends RegistrationHandler
 
 		$this->title = 'Registration ' . $this->registration->formatted_order_id() . ' &raquo; Delete Payment';
 
-		if( $_POST['submit'] == 'Delete' ) {
+		if( $_POST['submit'] == 'Delete Payment' ) {
 			if( ! $this->payment->delete() ) {
 				error_exit ("Could not delete payment") ;
 			}
