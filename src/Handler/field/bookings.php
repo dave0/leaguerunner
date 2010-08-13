@@ -20,7 +20,7 @@ class field_bookings extends FieldHandler
 
 		$this->title = "Bookings: {$this->field->fullname}";
 
-		$sth = Slot::query( array('fid' => $this->field->fid,
+		$sth = GameSlot::query( array('fid' => $this->field->fid,
 				'_extra' => 'DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND DATE_ADD(CURDATE(), INTERVAL 1 YEAR)',
 				'_order' => 'g.game_date, g.game_start'));
 

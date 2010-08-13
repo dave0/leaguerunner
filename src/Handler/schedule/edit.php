@@ -156,7 +156,7 @@ class schedule_edit extends schedule_view
 		while (list ($game_id, $game_info) = each ($edit['games']) ) {
 			reset($game_info);
 
-			$slot = Slot::load( array('slot_id' => $game_info['slot_id']) );
+			$slot = GameSlot::load( array('slot_id' => $game_info['slot_id']) );
 
 			$team_sth = $dbh->prepare('SELECT name FROM team WHERE team_id = ?');
 
