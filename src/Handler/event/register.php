@@ -157,7 +157,7 @@ class event_register extends EventHandler
 		$this->smarty->assign('offline_payment_text',
 			strtr(
 				variable_get('offline_payment_text', ''),
-				array( '%order_num' => $r->formatted_order_id())
+				array( '%order_num' => $this->registration->formatted_order_id())
 			)
 		);
 		$this->smarty->assign('refund_policy_text', variable_get('refund_policy_text', ''));
