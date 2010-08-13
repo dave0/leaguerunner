@@ -154,7 +154,12 @@ class event_register extends EventHandler
 		$this->template_name = 'pages/event/register/offline_payment.tpl';
 
 		// TODO: should probably just be a sub-template
-		$this->smarty->assign('offline_payment_text', strtr( variable_get('offline_payment_text', '')));
+		$this->smarty->assign('offline_payment_text',
+			strtr(
+				variable_get('offline_payment_text', ''),
+				array( '%order_num' => $r->formatted_order_id())
+			)
+		);
 		$this->smarty->assign('refund_policy_text', variable_get('refund_policy_text', ''));
 		return true;
 	}
