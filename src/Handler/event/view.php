@@ -69,9 +69,8 @@ class event_view extends EventHandler
 				);
 			}
 
-			if( $r->payment == 'Paid' && $this->event->multiple ) {
-				// If the record is considered paid, and we
-				// allow multiple registrations, show that.
+			if( $this->event->multiple ) {
+				// If we allow multiple registrations, show that.
 				$this->smarty->assign('message', 'You have already registered for this event. However, this event allows multiple registrations (e.g. the same person can register teams to play on different nights).');
 			} else if( $r->payment == 'Paid' ) {
 				// Multiples are not allowed.  If the

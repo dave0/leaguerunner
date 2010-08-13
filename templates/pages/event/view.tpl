@@ -38,13 +38,15 @@
 </table>
 </div>
 <p></p>
+{if $allow_register}
+<h2>Registration</h2>
+<b>You may <a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">Register now!</a></b>
+{/if}
 {if $allow_unregister}
 <h2>Unregistering</h2>
 <p>
 <b>You may <a href="{lr_url path="registration/unregister/`$registration->order_id`"}" title="Unregister for {$event->name}">Unregister</a> from this event if desired.</b>
 </p>
-{elseif $allow_register}
-<h2 style="text-decoration: underline"><a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">Register now!</a></h2>
 {/if}
 {if $offline_payment_text}
 <h2>Payment</h2>
