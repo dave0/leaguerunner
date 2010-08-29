@@ -6,8 +6,8 @@ use IO::File;
 
 my $conf = {
 	fetch_base    => 'http://www.ocua.ca/leaguerunner/',
-	wanted_season => 'summer',
-	username      => 'your leaguerunner username',
+	wanted_season => 'Fall',
+	username      => 'your username',
 	password      => 'your password',
 };
 
@@ -15,10 +15,10 @@ my $conf = {
 my $agent = WWW::Mechanize->new();
 
 $agent->get($conf->{fetch_base} . 'login');
-$agent->form_name('lrlogin');
+$agent->form_number(1);
 $agent->field('edit[username]', $conf->{username});
 $agent->field('edit[password]', $conf->{password});
-$agent->click('submit');
+$agent->click('Submit');
 
 
 $agent->follow_link(text => 'list leagues', n => '1');
