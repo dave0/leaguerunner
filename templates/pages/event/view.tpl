@@ -21,7 +21,7 @@
   {if $event->cap_female > 0}
   <tr>
     <td>Registration capacity (female):</td>
-    <td>{$event->cap_male}</td>
+    <td>{$event->cap_female}</td>
   </tr>
   {/if}
   {/if}
