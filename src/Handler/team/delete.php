@@ -12,48 +12,17 @@ class team_delete extends TeamHandler
 	function process ()
 	{
 		$this->title = "{$this->team->name} &raquo; Delete";
+		$this->template_name = 'pages/team/delete.tpl';
 
-		switch($_POST['edit']['step']) {
-			case 'perform':
-				if ( $this->team->delete() ) {
-					local_redirect(url("league/view/1"));
-				} else {
-					error_exit("Failure deleting team");
-				}
-				break;
-			case 'confirm':
-			default:
-				return $this->generateConfirm();
-				break;
+		$this->smarty->assign('team', $this->team);
+
+		if( $_POST['submit'] == 'Delete' ) {
+			if( ! $this->team->delete() ) {
+				error_exit('Failure deleting team');
+			}
+			$this->smarty->assign('successful', true);
 		}
-		error_exit("Error: This code should never be reached.");
-	}
-
-	function generateConfirm ()
-	{
-		global $dbh;
-		$rows = array();
-		$rows[] = array("Team Name:", check_form($this->team->name, ENT_NOQUOTES));
-		if($this->team->website) {
-			$rows[] = array("Website:", l($this->team->website, $this->team->website));
-		}
-		$rows[] = array("Shirt Colour:", check_form($this->team->shirt_colour, ENT_NOQUOTES));
-		$rows[] = array("League/Tier:", l($this->team->league_name, "league/view/" . $this->team->league_id));
-
-		$rows[] = array("Team Status:", $this->team->status);
-
-		/* and, grab roster */
-		$sth = $dbh->prepare('SELECT COUNT(r.player_id) as num_players FROM teamroster r WHERE r.team_id = ?');
-		$sth->execute( array( $this->team->team_id) );
-
-		$rows[] = array("Num. players on roster:", $sth->fetchColumn());
-
-		$output = form_hidden('edit[step]', 'perform');
-		$output .= "<p>Do you really wish to delete this team?</p>";
-		$output .= "<div class='pairtable'>" . table(null, $rows) . "</div>";
-		$output .= form_submit('submit');
-
-		return form($output);
+		return true;
 	}
 }
 

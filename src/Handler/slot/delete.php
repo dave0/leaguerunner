@@ -12,48 +12,22 @@ class slot_delete extends SlotHandler
 	{
 		$this->title = "{$this->slot->field->fullname} &raquo; Delete Gameslot {$this->slot->slot_id}";
 
-		switch($_POST['edit']['step']) {
-			case 'perform':
-				$fid = $this->slot->fid;
-				if ( $this->slot->delete() ) {
-					local_redirect(url("field/view/$fid"));
-				} else {
-					error_exit("Failure deleting gameslot");
-				}
-				break;
-			case 'confirm':
-			default:
-				return $this->generateConfirm();
-				break;
-		}
-		error_exit("Error: This code should never be reached.");
-	}
+		$this->template_name = 'pages/slot/delete.tpl';
 
-	function generateConfirm ()
-	{
+		$this->smarty->assign('slot', $this->slot);
+
 		// Check that the slot has no games scheduled
 		if ($this->slot->game_id) {
 			error_exit("Cannot delete a gameslot with a currently-scheduled game");
 		}
 
-		// Print confirmation info
-		$output = form_hidden('edit[step]', 'perform');
-
-		$group = form_item("Date", strftime("%A %B %d %Y", $this->slot->date_timestamp));
-		$group .= form_item('Game Start Time', $this->slot->game_start);
-		$group .= form_item('Game End Time', $this->slot->game_end);
-		$output .= form_group("Gameslot Information", $group);
-
-		$group = '';
-		foreach( $this->slot->leagues as $l ) {
-			$league = League::load( array('league_id' => $l->league_id) );
-			$group .= $league->fullname . "<br />";
+		if( $_POST['submit'] == 'Delete' ) {
+			if( ! $this->slot->delete() ) {
+				error_exit('Failure deleting slot');
+			}
+			$this->smarty->assign('successful', true);
 		}
-		$output .= form_group('Available To:', $group);
-
-		$output .= form_submit('submit');
-
-		return form($output);
+		return true;
 	}
 }
 ?>
