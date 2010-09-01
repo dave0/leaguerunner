@@ -18,7 +18,7 @@ class event_downloadsurvey extends EventHandler
 		}
 
 		if( empty( $data ) ) {
-			return para( 'No details available for download.' );
+			error_exit( 'No survey details available for download.' );
 		}
 
 		header('Content-type: text/x-csv');
