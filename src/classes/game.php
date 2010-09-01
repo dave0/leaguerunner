@@ -204,17 +204,16 @@ class Game extends LeaguerunnerObject
 					AND (m.status = 'coordinator')");
 				$sth->execute( array($this->league_id) );
 
-				$to_addr = $to_name = array();
-				while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
-					$to_addr[] = $row->email;
-					$to_name[] = $row->fullname;
+				$to_list = array();
+				while( $p = $sth->fetchObject('Person') ) {
+					$to_list[] = $p;
 				}
 
 				$message = "Game {$this->game_id} between {$this->home_name} and {$this->away_name} in {$this->league_name} has score entries which do not match. Edit the game here:\n" . url("game/edit/{$this->game_id}");
 
-				if( send_mail($to_addr, $to_name,
-					false, false, // from the administrator
-					false, false, // no Cc
+				if( send_mail($to_list,
+					false, // from the administrator
+					false, // no Cc
 					'Score entry mismatch',
 					$message) )
 				{
@@ -281,6 +280,23 @@ class Game extends LeaguerunnerObject
 		return true;
 	}
 
+	function get_captains ()
+	{
+		global $dbh;
+		$sth = $dbh->prepare("SELECT user_id
+					FROM person p
+						LEFT JOIN teamroster r ON p.user_id = r.player_id
+					WHERE r.team_id IN (?,?)
+						AND r.status IN ( 'captain', 'assistant', 'coach')");
+		$sth->execute( array( $this->home_id, $this->away_id) );
+		$captains = array();
+		while($user = $sth->fetch(PDO::FETCH_OBJ)) {
+			$captains[] = Person::load(array('user_id' => $user->user_id));
+		}
+
+		return $captains;
+	}
+
 	/*
 	 * Send any required reminders to captains about unscored games.
 	 */
@@ -316,30 +332,22 @@ class Game extends LeaguerunnerObject
 			}
 		}
 
-		$sth = $dbh->prepare("
-			SELECT
-				CONCAT(p.firstname, ' ', p.lastname) as fullname,
-				email,
-				r.status
-			FROM teamroster r
-			LEFT JOIN person p ON r.player_id = p.user_id
-			WHERE team_id = ?
-			AND (r.status = 'captain' OR r.status = 'assistant')");
-		$sth->execute( array($team_id) );
+		$to_list = array();
+		$cc_list = array();
+		$to_names = array();
 
-		$to_addr = $to_name = $cc_addr = $cc_name = array();
-		while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
-			if( $row->status == 'captain' ) {
-				$to_addr[] = $row->email;
-				$to_name[] = $row->fullname;
+		$captains = $this->get_captains();
+		foreach ($captains as $p) {
+			if( $p->status == 'captain' ) {
+				$to_names[] = $p->fullname;
+				$to_list[] = $p;
 			} else {
-				$cc_addr[] = $row->email;
-				$cc_name[] = $row->fullname;
+				$cc_list[] = $p;
 			}
 		}
 
 		$variables = array(
-			'%fullname' => join(',', $to_name),
+			'%fullname' => join(',', $to_names),
 			'%team' => $team_name,
 			'%opponent' => $opponent,
 			'%league' => $this->league_name,
@@ -349,9 +357,9 @@ class Game extends LeaguerunnerObject
 			'%site' => variable_get('app_name','Leaguerunner'));
 		$message = _person_mail_text("{$reason}_body", $variables);
 
-		if (!send_mail($to_addr, $to_name,
-			false, false, // from the administrator
-			$cc_addr, $cc_name,
+		if (!send_mail($to_list,
+			false, // from the administrator
+			$cc_list,
 			_person_mail_text("{$reason}_subject", $variables),
 			$message))
 		{

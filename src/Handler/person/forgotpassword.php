@@ -67,9 +67,9 @@ class person_forgotpassword extends Handler
 			}
 
 			/* And fire off an email */
-			$rc = send_mail($user->email, "$user->firstname $user->lastname",
-				false, false, // from the administrator
-				false, false, // no Cc
+			$rc = send_mail($user,
+				false, // from the administrator
+				false, // no Cc
 				_person_mail_text('password_reset_subject', array('%site' => variable_get('app_name','Leaguerunner'))),
 				_person_mail_text('password_reset_body', array(
 					'%fullname' => "$user->firstname $user->lastname",

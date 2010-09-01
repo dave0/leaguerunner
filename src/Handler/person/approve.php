@@ -94,9 +94,9 @@ class person_approve extends person_view
 					'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 
-				$rc = send_mail($this->person->email, $this->person->fullname,
-					false, false, // from the administrator
-					false, false, // no Cc
+				$rc = send_mail($this->person,
+					false, // from the administrator
+					false, // no Cc
 					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner') )), 
 					$message);
 				if($rc == false) {
@@ -117,9 +117,9 @@ class person_approve extends person_view
 					'%url' => url(""),
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
-				$rc = send_mail($this->person->email, $this->person->fullname,
-					false, false, // from the administrator
-					false, false, // no Cc
+				$rc = send_mail($this->person,
+					false, // from the administrator
+					false, // no Cc
 					_person_mail_text('approved_subject', array( '%username' => $this->person->username, '%site' => variable_get('app_name','Leaguerunner' ))), 
 					$message);
 				if($rc == false) {
@@ -144,22 +144,22 @@ class person_approve extends person_view
 					'%adminname' => $lr_session->user->fullname,
 					'%site' => variable_get('app_name','Leaguerunner')));
 
-				$addresses = $names = array();
-				$addresses[] = $this->person->email;
-				$names[] = $this->person->fullname;
+				$to_list = array(
+					$this->person,
+				);
+
 				if($this->person->email != $existing->email) {
-					$addresses[] = $existing->email;
-					$names[] = $this->person->fullname;
+					$to_list[] = $existing;
 				}
 
 				if( ! $this->person->delete() ) {
 					error_exit("Delete of user " . $this->person->fullname . " failed.");
 				}
 
-				$rc = send_mail($addresses, $names,
-					false, false, // from the administrator
-					false, false, // no Cc
-					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
+				$rc = send_mail($to_list,
+					false, // from the administrator
+					false, // no Cc
+					_person_mail_text('dup_delete_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )),
 					$message);
 
 				if($rc == false) {
@@ -180,12 +180,12 @@ class person_approve extends person_view
 					'%adminname' => variable_get('app_admin_name','Leaguerunner Admin'),
 					'%site' => variable_get('app_name','Leaguerunner')));
 
-				$addresses = $names = array();
-				$addresses[] = $this->person->email;
-				$names[] = $this->person->fullname;
+				$to_list = array(
+					$this->person,
+				);
+
 				if($this->person->email != $existing->email) {
-					$addresses[] = $existing->email;
-					$names[] = $this->person->fullname;
+					$to_list[] = $existing;
 				}
 
 				// Copy over almost all of the new data; there must be a better way
@@ -233,10 +233,10 @@ class person_approve extends person_view
 					error_exit("Couldn't save new member information");
 				}
 
-				$rc = send_mail($addresses, $names,
-					false, false, // from the administrator
-					false, false, // no Cc
-					_person_mail_text('dup_merge_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )), 
+				$rc = send_mail($to_list,
+					false, // from the administrator
+					false, // no Cc
+					_person_mail_text('dup_merge_subject', array( '%site' => variable_get('app_name', 'Leaguerunner') )),
 					$message);
 
 				if($rc == false) {

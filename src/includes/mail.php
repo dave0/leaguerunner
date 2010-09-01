@@ -5,127 +5,66 @@
  * e.g. using Pear::Mail or some such, can be plugged in without
  * changes to any other code.
  */
-
-function send_mail($to_addr, $to_name, $from_addr, $from_name, $cc_addr, $cc_name, $subject, $message)
+// TODO: refactor to take Person objects instead of name/addr for from, and arrays of Person for to/cc
+function send_mail($to_list, $from_person, $cc_list, $subject, $message)
 {
-	if (empty ($message))
+	if (empty ($message)) {
 		return false;
+	}
 
 	$crlf = "\n";
-	$to = create_rfc2822_address_list($to_addr, $to_name, false);
-
-	if( !$from_addr )
-	{
-		$from_addr = variable_get('app_admin_email','webmaster@localhost');
-		$from_name = variable_get('app_admin_name', 'Leaguerunner Administrator');
+	if( ! is_array( $to_list ) ) {
+		$to_list = array( $to_list );
 	}
-	$from = create_rfc2822_address_list($from_addr, $from_name, false, false);
+	$to = player_rfc2822_address_list($to_list);
+
+	if( !$from_person ) {
+		$from_person = new Person;
+		$from_person->email    = variable_get('app_admin_email','webmaster@localhost');
+		$from_person->fullname = variable_get('app_admin_name', 'Leaguerunner Administrator');
+	}
+	$from = $from_person->rfc2822_address();
 	$headers = "From: $from$crlf";
 
-	if( $cc_addr )
-	{
-		$cc = create_rfc2822_address_list($cc_addr, $cc_name, false);
+	if( $cc_list ) {
+		$cc = player_rfc2822_address_list($cc_list);
 		$headers .= "Cc: $cc$crlf";
 	}
 
-	if( empty( $to ) && empty( $cc ) )
-	{
+	if( empty( $to ) && empty( $cc ) ) {
 		return false;
 	}
 
-	return mail($to, $subject, $message, $headers, "-f $from_addr");
+	return mail($to, $subject, $message, $headers, "-f $from_person->email");
 }
 
 /**
- * Create a string with an RFC2822-compliant address or address-list.
+ * Create a string with an RFC2822-compliant address list.
  */
-function create_rfc2822_address_list($addrs, $names, $for_html, $multiple_allowed = true)
+function player_rfc2822_address_list( $players, $for_html = false )
 {
 	// If this is being created for embedding in HTML, we separate with
 	// a semi-colon and linefeed, and HTML-encode it. This works nicely
 	// with both mailto links and pre-formatted output of addresses.
-	if($for_html)
-	{
+	if($for_html) {
 		$join = ";\n";
-	}
-	// Otherwise, we make a truly RFC-compliant list, suitable for sending
-	// to the mail function.
-	else
-	{
+	} else {
+		// Otherwise, we make a truly RFC-compliant list, suitable for
+		// sending to the mail function.
 		$join = ', ';
 	}
 
-	$output = '';
-
-	if(is_array($addrs))
-	{
-		if($multiple_allowed)
-		{
-			if(is_array($names))
-			{
-				if(count($addrs) != count($names))
-				{
-					error_exit('create_rfc2822_address_list: number of addresses does not match number of names.');
-				}
-
-				$list = array_combine($addrs, $names);
-				foreach($list as $addr => $name)
-				{
-					$list[$addr] = create_rfc2822_address($name, $addr);
-				}
-				$output = join($join, $list);
-			}
-			else if(!$names)
-			{
-				$output = join($join, $addrs);
-			}
-			else
-			{
-				error_exit('create_rfc2822_address_list: array of addresses provided but only a single name.');
-			}
-		}
-		else
-		{
-			error_exit('create_rfc2822_address_list: array of addresses not allowed.');
-		}
+	$list = array();
+	foreach($players as $player) {
+		$list[] = $player->rfc2822_address();
 	}
 
-	else
-	{
-		if(is_array($names))
-		{
-			error_exit('create_rfc2822_address_list: array of names provided but only a single address.');
-		}
+	$output = join($join, $list);
 
-		$output = create_rfc2822_address($names, $addrs);
-	}
-
-	if( $for_html )
-	{
+	if( $for_html ) {
 		return htmlentities( $output );
-	} else {
-		return $output;
 	}
-}
-
-function create_rfc2822_address($name, $addr)
-{
-	if(!$addr)
-	{
-		error_exit('create_rfc2822_address: blank address given');
-	}
-	else if(!$name)
-	{
-		return $addr;
-	}
-	else if(strpos($name, ' '))
-	{
-		return "\"$name\" <$addr>";
-	}
-	else
-	{
-		return "$name <$addr>";
-	}
+	return $output;
 }
 
 ?>

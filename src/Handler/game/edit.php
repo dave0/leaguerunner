@@ -161,30 +161,7 @@ class game_edit extends GameHandler
 			 * Otherwise, scores are still pending.
 			 */
 			if( $lr_session->is_coordinator_of($game->league_id)) {
-				$sth = $dbh->prepare("SELECT
-								user_id
-							FROM
-								person p
-							LEFT JOIN
-								teamroster r
-							ON
-								p.user_id = r.player_id
-							WHERE
-								r.team_id IN (?,?)
-							AND
-								r.status IN ( 'captain', 'assistant', 'coach')
-							AND
-								p.user_id != ?");
-				$sth->execute( array( $game->home_id, $game->away_id, $lr_session->user->user_id) );
-				$emails = array();
-				$names = array();
-				while($user = $sth->fetch(PDO::FETCH_OBJ)) {
-					$captain = Person::load(array('user_id' => $user->user_id));
-					$emails[] = $captain->email;
-					$names[] = $captain->fullname;
-				}
-
-				$list = create_rfc2822_address_list($emails, $names, true);
+				$list = player_rfc2822_address_list($game->get_captains(), true);
 				$output .= para( l('Click here to send an email', "mailto:$list") . ' to all captains.' );
 			}
 

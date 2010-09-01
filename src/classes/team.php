@@ -104,6 +104,9 @@ class Team extends LeaguerunnerObject
 			"SELECT
 				p.user_id as id,
 				CONCAT(p.firstname, ' ', p.lastname) as fullname,
+				p.firstname,
+				p.lastname,
+				p.email,
 				p.gender,
 				p.shirtsize,
 				p.skill_level,
@@ -120,7 +123,7 @@ class Team extends LeaguerunnerObject
 
 		$this->roster = array();
 		$this->roster_count = 0;
-		while($player = $sth->fetch(PDO::FETCH_OBJ) ) {
+		while($player = $sth->fetchObject('Person') ) {
 
 			if($lr_session->has_permission('team','player status', $this->team_id, $player->id) ) {
 				$player->_modify_status = 1;

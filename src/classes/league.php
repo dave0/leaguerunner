@@ -47,6 +47,31 @@ class League extends LeaguerunnerObject
 		}
 	}
 
+	function get_captains() 
+	{
+		global $dbh;
+
+		// TODO: this should be one query, not a select on leaguemembers and a loop over Person
+		$sth = $dbh->prepare("SELECT p.user_id
+			FROM leagueteams l, teamroster r
+				LEFT JOIN person p ON (r.player_id = p.user_id)
+			WHERE
+				l.league_id = ?
+				AND l.team_id = r.team_id
+				AND (r.status = 'coach' OR r.status = 'captain' OR r.status = 'assistant')
+			ORDER BY
+				p.lastname, p.firstname");
+		$sth->execute(array($this->league_id));
+
+		$captains = array();
+		while( $id = $sth->fetchColumn() ) {
+			$c_sth = Person::query( array( 'user_id' => $id ) );
+			$captains[] = $c_sth->fetchObject('Person', array(LOAD_OBJECT_ONLY));
+		}
+
+		return $captains;
+	}
+
 	/**
 	* Check if this league contains a particular team.  There are 
 	* two modes of operation, to take advantage of team data if we

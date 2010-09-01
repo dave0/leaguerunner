@@ -20,9 +20,9 @@ class league_approvescores extends LeagueHandler
 		$game_sth = $dbh->prepare( "SELECT DISTINCT
 			se.game_id,
 			UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) + ($local_adjust_secs) as timestamp,
-			s.home_team,
+			s.home_team AS home_id,
 			h.name AS home_name,
-			s.away_team,
+			s.away_team AS away_id,
 			a.name AS away_name
 			FROM
 				schedule s,
@@ -56,13 +56,10 @@ class league_approvescores extends LeagueHandler
 		$rows = array();
 
 		$se_sth = $dbh->prepare('SELECT score_for, score_against FROM score_entry WHERE team_id = ? AND game_id = ?');
-		$captains_sth = $dbh->prepare("SELECT user_id FROM person p
-						LEFT JOIN teamroster r ON p.user_id = r.player_id
-						WHERE r.team_id IN (?,?) AND r.status IN( 'captain','coach', 'assistant')");
 
 		$time_format = '%A %B %d %Y, %H%Mh';
 
-		while($game = $game_sth->fetchObject() ) {
+		while($game = $game_sth->fetchObject('Game') ) {
 			$rows[] = array(
 				array('data' => strftime($time_format, $game->timestamp),'rowspan' => 3),
 				array('data' => $game->home_name, 'colspan' => 2),
@@ -70,16 +67,8 @@ class league_approvescores extends LeagueHandler
 				array('data' => l("approve score", "game/approve/$game->game_id"))
 			);
 
-			$captains_sth->execute(array( $game->home_team, $game->away_team) );
-			$emails = array();
-			$names = array();
-			while($id = $captains_sth->fetchColumn()) {
-				$captain = Person::load(array('user_id' => $id ));
-				$emails[] = $captain->email;
-				$names[] = $captain->fullname;
-			}
 
-			$se_sth->execute( array( $game->home_team, $game->game_id ) );
+			$se_sth->execute( array( $game->home_id, $game->game_id ) );
 			$home = $se_sth->fetch(PDO::FETCH_ASSOC);
 
 			if(!$home) {
@@ -89,7 +78,7 @@ class league_approvescores extends LeagueHandler
 				);
 			}
 
-			$se_sth->execute( array( $game->away_team, $game->game_id ) );
+			$se_sth->execute( array( $game->away_id, $game->game_id ) );
 			$away = $se_sth->fetch(PDO::FETCH_ASSOC);
 			if(!$away) {
 				$away = array(
@@ -98,7 +87,7 @@ class league_approvescores extends LeagueHandler
 				);
 			}
 
-			$list = create_rfc2822_address_list($emails, $names, true);
+			$list = player_rfc2822_address_list($game->get_captains(), true);
 			$rows[] = array(
 				"Home Score:", $home['score_for'], "Home Score:", $away['score_against'],
 				l('email captains', "mailto:$list")

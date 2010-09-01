@@ -333,9 +333,9 @@ class team_roster extends TeamHandler
 					'%site' => variable_get('app_org_name','league'));
 				$message = _person_mail_text('captain_request_body', $variables);
 
-				$rc = send_mail($player->email, $player->fullname,
-					false, false, // from the administrator
-					false, false, // no Cc
+				$rc = send_mail($player,
+					false, // from the administrator
+					false, // no Cc
 					_person_mail_text('captain_request_subject', $variables),
 					$message);
 				if($rc == false) {
@@ -344,6 +344,7 @@ class team_roster extends TeamHandler
 			}
 			else if( $status == 'player_request') {
 
+				// TODO: $team->get_captains()/get_assistants()
 				$sth = $dbh->prepare(
 					"SELECT firstname, lastname, email, r.status
 					 FROM   person p
@@ -353,16 +354,12 @@ class team_roster extends TeamHandler
 				$sth->execute( array( $this->team->team_id) );
 
 				$captains = array();
-				$captain_names = array();
 				$assistants = array();
-				$assistant_names = array();
-				while( $row = $sth->fetch(PDO::FETCH_OBJ) ) {
-					if( $row->status == 'captain' ) {
-						$captains[] = $row->email;
-						$captain_names[] = "$row->firstname $row->lastname";
+				while( $p = $sth->fetchObject('Person') ) {
+					if( $p->status == 'captain' ) {
+						$captains[] = $p;
 					} else {
-						$assistants[] = $row->email;
-						$assistant_names[] = "$row->firstname $row->lastname";
+						$assistants[] = $p;
 					}
 				}
 
@@ -378,9 +375,9 @@ class team_roster extends TeamHandler
 					'%site' => variable_get('app_org_name','league'));
 				$message = _person_mail_text('player_request_body', $variables);
 
-				$rc = send_mail($captains, $captain_names,
-					false, false, // from the administrator
-					$assistants, $assistant_names,
+				$rc = send_mail($captains,
+					false, // from the administrator
+					$assistants,
 					_person_mail_text('player_request_subject', $variables),
 					$message);
 				if($rc == false) {

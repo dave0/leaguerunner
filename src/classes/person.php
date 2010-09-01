@@ -401,9 +401,9 @@ class Person extends LeaguerunnerObject
 			'%year' => date('Y'));
 		$message = _person_mail_text('member_letter_body', $variables);
 
-		if (!send_mail($this->email, $this->fullname,
-			false, false, // from the administrator
-			false, false,
+		if (!send_mail($this,
+			false, // from the administrator
+			false,
 			_person_mail_text('member_letter_subject', $variables),
 			$message))
 		{
@@ -555,6 +555,24 @@ class Person extends LeaguerunnerObject
 		$sth = $dbh->prepare('SELECT COUNT(*) FROM person WHERE ' . implode( ' AND ', $query ));
 		$sth->execute( $params );
 		return $sth->fetchColumn();
+	}
+
+	function rfc2822_address()
+	{
+		if(!$this->email) {
+			return;
+		}
+
+		$name = $this->fullname;
+		if(!$name) {
+			$name = "$this->firstname $this->lastname";
+		}
+
+		if(!$name) {
+			return $this->email;
+		}
+
+		return "\"$name\" <$this->email>";
 	}
 
 }
