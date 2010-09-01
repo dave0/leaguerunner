@@ -84,6 +84,17 @@ class FieldReport extends LeaguerunnerObject
 		return $result->fetchObject( get_class() );
 	}
 
+	static function load_many( $array = array() )
+	{
+		$sth = self::query( $array );
+		$many = array();
+		while( $i = $sth->fetchObject(get_class(), array(LOAD_RELATED_DATA))) {
+			$many[] = $i;
+		}
+
+		return $many;
+	}
+
 	static function query ( $array = array() )
 	{
 		global $dbh;
