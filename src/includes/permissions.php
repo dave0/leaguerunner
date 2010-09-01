@@ -1,4 +1,21 @@
 <?php
+/*
+ * session_perm ($path)
+ * Check permissions of the current session on th egiven path.
+ * 
+ * This is intended for use in Smarty {if} tags like so:
+ * 	{if session_perm("league/manage teams/`$league->league_id`") }
+ * 	...
+ * 	{/if}
+ */
+function session_perm($path)
+{
+        global $lr_session;
+
+        list($module, $action, $a1, $a2) = preg_split("/\//", $path);
+        return $lr_session->has_permission( $module, $action, $a1, $a2 );
+}
+
 
 # TODO: big cleanup necessary
 

@@ -66,9 +66,9 @@ Games where home team was not assigned a field in their home region are highligh
 	<td>&nbsp;</td>
 	{/if}
 	<td>
-		{if_session_permission path="gameslot/edit/`$s.slot_id`}<a href="{lr_url path="slot/availability/`$s.slot_id`"}">change avail</a>{/if_session_permission}
-		{if_session_permission path="gameslot/delete/`$s.slot_id`}<a href="{lr_url path="slot/delete/`$s.slot_id`"}">delete</a>{/if_session_permission}
-		{if_session_permission path="game/reschedule/`$s.game_id`}<a href="{lr_url path="game/reschedule/`$s.game_id`"}">reschedule/move</a>{/if_session_permission}
+		{if session_perm("gameslot/edit/`$s.slot_id`")}<a href="{lr_url path="slot/availability/`$s.slot_id`"}">change avail</a>{/if}
+		{if session_perm("gameslot/delete/`$s.slot_id`")}<a href="{lr_url path="slot/delete/`$s.slot_id`"}">delete</a>{/if}
+		{if session_perm("game/reschedule/`$s.game_id`")}<a href="{lr_url path="game/reschedule/`$s.game_id`"}">reschedule/move</a>{/if}
 	</td>
    </tr>
    {/foreach}

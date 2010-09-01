@@ -9,9 +9,9 @@
         {if $league->schedule_type != 'none'}
 	        <tr><td>League SBF:</td><td>{$league->calculate_sbf()}</td></tr>
         {/if}
-        {if_session_permission path="league/view/`$league->league_id`/delays"}
+        {if session_perm("league/view/`$league->league_id`/delays")}
                 {if $league->email_after}<tr><td>Scoring reminder delay:</td><td>{$league->email_after} hours</td></tr>{/if}
-        {/if_session_permission}
+        {/if}
         {if $league->finalize_after}<tr><td>Scores must be entered within:</td><td>{$league->finalize_after} hours of game end</td></tr>{/if}
      </table>
     </div>
@@ -23,9 +23,9 @@
                 <th>Players</th>
                 <th>Rating</th>
                 <th>Avg. Skill</th>
-                {if_session_permission path="league/manage teams/`$league->league_id`"}
+                {if session_perm("league/manage teams/`$league->league_id`")}
                 <th>Region</th>
-                {/if_session_permission}
+                {/if}
                 <th>&nbsp;</th>
             </tr>
         </thead>
@@ -37,18 +37,18 @@
                 <td>{$t->count_players()}</td>
                 <td>{$t->rating}</td>
                 <td>{$t->avg_skill()}</td>
-                {if_session_permission path="league/manage teams/`$league->league_id`"}
+                {if session_perm("league/manage teams/`$league->league_id`")}
                 <td>{$t->region_preference}</td>
-                {/if_session_permission}
+                {/if}
                 <td>{if $t->status == 'open'}
                         <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`}">join</a> &nbsp;
                     {/if}
-                    {if_session_permission path="team/edit/`$t->team_id`"}
+                    {if session_perm("team/edit/`$t->team_id`")}
                         <a href="{lr_url path="team/edit/`$t->team_id`}">edit</a> &nbsp;
-                    {/if_session_permission}
-                    {if_session_permission path="team/delete/`$t->team_id`"}
+                    {/if}
+                    {if session_perm("team/delete/`$t->team_id`")}
                         <a href="{lr_url path="team/delete/`$t->team_id`}">delete</a> &nbsp;
-                    {/if_session_permission}
+                    {/if}
                 </td>
             </tr>
         {/foreach}
@@ -72,9 +72,9 @@ $(document).ready(function() {
 			null,
 			null,
 {/literal}
-                {if_session_permission path="league/manage teams/`$league->league_id`"}
+                {if session_perm("league/manage teams/`$league->league_id`")}
 			null,
-		{/if_session_permission}
+		{/if}
 {literal}
 			{ bSortable : false }
 		]

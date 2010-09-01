@@ -63,9 +63,9 @@
 	{/if}
 
 	{if $field->site_instructions}
-	{if_session_permission path="field/view/`$field->fid`/site_instructions"}
+	{if session_perm("field/view/`$field->fid`/site_instructions")}
 	<tr><td>Private Instructions:</td><td>{$field->site_instructions}</td></tr>
-	{/if_session_permission}
+	{/if}
 	{/if}
 
 	{if $other_fields}

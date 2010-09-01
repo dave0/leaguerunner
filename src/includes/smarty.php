@@ -42,20 +42,6 @@ function smarty_hidden_fields($params, &$smarty)
 	return $output;
 }
 
-$smarty->register_block('if_session_permission', 'smarty_if_session_permission');
-function smarty_if_session_permission($params, $content, &$smarty, &$repeat)
-{
-        global $lr_session;
-
-        // Do nothing on opening tag
-        if( $repeat ) { return; }
-
-        list($module, $action, $a1, $a2) = preg_split("/\//", $params['path']);
-        if( $lr_session->has_permission( $module, $action, $a1, $a2 ) ) {
-                return $content;
-        }
-}
-
 $smarty->register_modifier('utf8', 'smarty_modifier_utf8');
 function smarty_modifier_utf8 ($string)
 {

@@ -4,9 +4,9 @@
                 {strip}
                 {foreach from=$league->coordinators item=c}
                 <a href="{lr_url path="person/view/`$c->user_id`"}">{$c->fullname}</a>
-                {if_session_permission path="league/edit/`$league->league_id`"}
+                {if session_perm("league/edit/`$league->league_id`")}
                 &nbsp;[&nbsp;<a href="{lr_url path="league/member/`$league->league_id`/`$c->user_id`?edit[status]=remove"}">remove coordinator</a>&nbsp;]
-                {/if_session_permission}
+                {/if}
                 <br />
                 {/foreach}
                 {/strip}
