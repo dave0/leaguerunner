@@ -10,102 +10,51 @@ class team_schedule extends TeamHandler
 
 	function process ()
 	{
-		global $lr_session, $CONFIG;
-		$this->title = "{$this->team->name} &raquo; Schedule";
+		global $lr_session;
 
-		/*
-		 * Grab schedule info
-		 */
+		$this->title = "{$this->team->name} &raquo; Schedule";
+		$this->template_name = 'pages/team/schedule.tpl';
+
 		$games = Game::load_many( array( 'either_team' => $this->team->team_id, 'published' => 1, '_order' => 'g.game_date,g.game_start,g.game_id') );
 
 		if( !count($games) ) {
 			error_exit('This team does not yet have any games scheduled');
 		}
 
-		$header = array(
-			"Game",
-			"Date",
-			"Start",
-			"End",
-			"Opponent",
-			array('data' => "Location",'colspan' => 2),
-			array('data' => "Score",'colspan' => 2)
-		);
-		$rows = array();
-
-		$empty_row_added = 0;
-		while(list(,$game) = each($games)) {
-			$space = '&nbsp;';
-			$dash = '-';
-			if($game->home_id == $this->team->team_id) {
-				$opponent_id = $game->away_id;
-				$opponent_name = $game->away_name;
-				$home_away = '(home)';
-			} else {
-				$opponent_id = $game->home_id;
-				$opponent_name = $game->home_name;
-				$home_away = '(away)';
-			}
-
-			if ($opponent_name == "") {
-				$opponent_name = "(to be determined)";
-			} else {
-				$opponent_name = l($opponent_name, "team/view/$opponent_id");
-			}
-
-			$game_score = $space;
-			$score_type = $space;
-
-			if($game->is_finalized()) {
+		foreach($games as $g) {
+			if($g->is_finalized()) {
 				/* Already entered */
-				$score_type = '(accepted final)';
-				if($game->home_id == $this->team->team_id) {
-					$game_score = "$game->home_score - $game->away_score";
-				} else {
-					$game_score = "$game->away_score - $game->home_score";
-				}
+				$g->score_type = 'final';
 			} else {
 				/* Not finalized yet, so we will either:
-				 *   - display entered score if present
-				 *   - display score entry link if game date has passed
-				 *   - display a blank otherwise
-				 */
-				$entered = $game->get_score_entry( $this->team->team_id );
+				*   - display entered score if present
+				*   - display score entry link if game date has passed
+				*   - display a blank otherwise
+				*/
+				$entered = $g->get_score_entry( $this->team->team_id );
 				if($entered) {
-					$score_type = '(unofficial, waiting for opponent)';
-					$game_score = "$entered->score_for - $entered->score_against";
-				} else if($lr_session->has_permission('game','submit score', $game, $this->team)
-					&& ($game->timestamp < time()) ) {
-						$score_type = l("submit score", "game/submitscore/$game->game_id/" . $this->team->team_id);
-				} else {
-					$score_type = "&nbsp;";
+					$g->score_type = 'unofficial';
+					if( $g->home_id == $this->team->team_id) {
+						$g->home_score = $entered->score_for;
+						$g->away_score = $entered->score_against;
+					} else {
+						$g->away_score = $entered->score_for;
+						$g->home_score = $entered->score_against;
+					}
+				} else if($lr_session->has_permission('game','submit score', $g, $this->team)
+					&& ($g->timestamp < time()) ) {
+						$g->score_type = l("submit score", "game/submitscore/$g->game_id/" . $this->team->team_id);
 				}
 			}
-			if($game->status == 'home_default' || $game->status == 'away_default') {
-				$score_type .= " (default)";
-			}
-
-			$field = Field::load(array('fid' => $game->fid));
-			$rows[] = array(
-				l($game->game_id, "game/view/$game->game_id"),
-				strftime('%a %b %d %Y', $game->timestamp),
-				$game->game_start,
-				$game->display_game_end(),
-				$opponent_name,
-				l($game->field_code, "field/view/$game->fid", array('title' => $field->fullname)),
-				$home_away,
-				$game_score,
-				$score_type
-			);
 		}
-		// add another row of dashes when you're done.
-		$rows[] = array($dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash,$dash);
 
-		// add iCal link
-		$ical_url = url("team/ical/".$this->team->team_id);
-		$icon_url = $CONFIG['paths']['base_url'] . '/image/icons';
-		return "<div class='schedule'>" . table($header,$rows, array('alternate-colours' => true) ) . "</div>"
-		  . para("Get your team schedule in <a href=\"$ical_url/team.ics\"><img style=\"display: inline\" src=\"$icon_url/ical.gif\" alt=\"iCal\" /></a> format");
+
+
+		$this->smarty->assign('can_edit', false);
+		$this->smarty->assign('games', $games);
+		$this->smarty->assign('team', $this->team);
+
+		return true;
 	}
 }
 ?>
