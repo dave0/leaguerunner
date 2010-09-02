@@ -10,10 +10,11 @@ class registration_history extends PersonHandler
 
 	function process ()
 	{
-		global $lr_session, $dbh;
+		global $dbh;
 
-		$this->title= 'View Registration History';
-		$rows = array();
+		$this->title= "{$this->person->fullname} &raquo; Registration History";
+
+		$this->template_name = 'pages/registration/history.tpl';
 
 		$sth = $dbh->prepare('SELECT
 				e.registration_id, e.name, r.order_id, r.time, r.payment
@@ -22,21 +23,11 @@ class registration_history extends PersonHandler
 			WHERE r.user_id = ?
 			ORDER BY r.time');
 		$sth->execute( array( $this->person->user_id ) );
-		while($row = $sth->fetch() ) {
-			$name = l($row['name'], 'event/view/' . $row['registration_id']);
-			$order = sprintf(variable_get('order_id_format', '%d'), $row['order_id']);
 
-			if( $lr_session->has_permission('registration', 'view', $row['order_id']) ) {
-				$order = l($order, 'registration/view/' . $row['order_id']);
-			}
+		$this->smarty->assign('registrations', $sth->fetchAll(PDO::FETCH_ASSOC) );
+		$this->smarty->assign('order_id_format', variable_get('order_id_format', '%d'));
 
-			$rows[] = array( $name, $order, substr($row['time'], 0, 10), $row['payment'] );
-		}
-
-		$header = array('Event', 'Order ID', 'Date', 'Payment');
-		$output = table($header, $rows);
-
-		return $output;
+		return true;
 	}
 }
 
