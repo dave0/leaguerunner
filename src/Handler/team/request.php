@@ -7,14 +7,15 @@ require_once('Handler/team/roster.php');
  */
 class team_request extends team_roster
 {
+	function __construct ( $id, $player_id = null )
+	{
+		parent::__construct( $id, $player_id );
+		$this->template_name = 'pages/team/request.tpl';
+	}
+
 	function checkPrereqs( $next )
 	{
 		return false;
-	}
-
-	function formPrompt()
-	{
-		return para("You have been invited to join the team <b>{$this->team->name}</b>. To ensure up-to-date rosters, you must either accept or decline this invitation. Please select your desired level of participation on this team from the list below:");
 	}
 }
 

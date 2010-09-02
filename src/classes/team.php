@@ -527,6 +527,126 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
+	function get_roster_status ( $player_id )
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare('SELECT status FROM teamroster WHERE team_id = ? AND player_id = ?');
+		$sth->execute( array( $this->team_id, $player_id) );
+		$current_status = $sth->fetchColumn();
+
+		if(!$current_status) {
+			$current_status = 'none';
+		}
+
+		return $current_status;
+	}
+
+	function set_roster_status ( $player_id, $status, $current_status = null )
+	{
+		global $dbh;
+
+		if( is_null($current_status) ) {
+			$current_status = $this->get_roster_status( $player_id );
+		}
+
+		if( $status == $current_status ) {
+			// No-op
+			return true;
+		}
+
+		if( $status == 'none' ) {
+			$sth = $dbh->prepare('DELETE FROM teamroster WHERE team_id = ? AND player_id = ?');
+			$sth->execute( array($this->team_id, $player_id));
+
+		} elseif ($current_status != 'none') {
+			$sth = $dbh->prepare('UPDATE teamroster SET status = ? WHERE team_id = ? AND player_id = ?');
+			$sth->execute( array($status, $this->team_id, $player_id) );
+
+		} else {
+			$sth = $dbh->prepare('INSERT INTO teamroster VALUES(?,?,?,NOW())');
+			$sth->execute( array($this->team_id, $player_id, $status));
+		}
+
+		return ( 1 == $sth->rowCount() );
+	}
+
+	function getStatesForAdministrator($current_status)
+	{
+		return array_keys( Team::get_roster_positions() );
+	}
+
+	function getStatesForCaptain($current_status)
+	{
+		global $dbh;
+
+		$generally_allowed = array( 'none', 'coach', 'captain', 'assistant', 'player', 'substitute');
+
+		switch($current_status) {
+		case 'captain':
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster where status = ? AND team_id = ?');
+			$sth->execute( array('captain', $this->team_id));
+
+			if($sth->fetchColumn() <= 1) {
+				error_exit("All teams must have at least one player with captain status.");
+			}
+
+			return $generally_allowed;
+		case 'coach':
+		case 'assistant':
+		case 'player':
+		case 'substitute':
+		case 'player_request':
+			return $generally_allowed;
+		case 'captain_request':
+			// Can only remove players when in this state
+			return array( 'none' );
+		case 'none':
+			return array( 'captain_request' );
+		default:
+			error_exit("Internal error in player status");
+		}
+	}
+
+	function getStatesForPlayer($current_status)
+	{
+		global $dbh;
+
+		switch($current_status) {
+		case 'captain':
+			$sth = $dbh->prepare('SELECT COUNT(*) FROM teamroster WHERE status = ? AND team_id = ?');
+			$sth->execute( array('captain', $this->team_id));
+
+			if($sth->fetchColumn() <= 1) {
+				error_exit("All teams must have at least one player with captain status.");
+			}
+
+			return array( 'none', 'coach', 'assistant', 'player', 'substitute');
+		case 'coach':
+			return array( 'none', 'captain', 'assistant', 'player', 'substitute');
+		case 'assistant':
+			return array( 'none', 'player', 'substitute');
+		case 'player':
+			return array( 'none', 'substitute');
+		case 'substitute':
+			return array( 'none' );
+		case 'captain_request':
+			return array( 'none', 'player', 'substitute');
+		case 'player_request':
+			return array( 'none' );
+		case 'none':
+			$sth = $dbh->prepare('SELECT status FROM team WHERE team_id = ?');
+			$sth->execute( array( $this->team_id ));
+			if($sth->fetchColumn() != 'open') {
+				error_exit("Sorry, this team is not open for new players to join");
+			}
+			return array( 'player_request' );
+		default:
+			error_exit("Internal error in player status");
+		}
+	}
+
+
 	/**
 	 * Compare two teams by their home field ratio.  Returns teams ordered
 	 * lowest ratio to highest ratio.

@@ -293,17 +293,6 @@ class Person extends LeaguerunnerObject
 		);
 	}
 
-	function is_member()
-	{
-		global $dbh;
-
-		if ( ! $this->is_player() ) {
-			return false;
-		}
-
-		return true;
-	}
-
 	function is_active()
 	{
 		return( $this->status == 'active' );
