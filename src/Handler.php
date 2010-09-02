@@ -77,11 +77,6 @@ class Handler
 			}
 		}
 
-# DMO: Disable the survey.
-#		if( $lr_session->attr_get('survey_completed') != 'Y' ) {
-#			return url("person/survey","next=$next");
-#		}
-
 		return false;
 	}
 
