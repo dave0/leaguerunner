@@ -72,20 +72,16 @@ END_TEXT;
 			);
 		}
 
-		if($lr_session->has_permission('person', 'edit', $id, 'name') ) {
-			$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
+		$group .= form_textfield('First Name', 'edit[firstname]', $formData['firstname'], 25,100, 'First (and, if desired, middle) name.');
 
-			$group .= form_textfield('Last Name', 'edit[lastname]', $formData['lastname'], 25,100);
-		} else {
-			$group .= form_item('Full Name', $formData['firstname'] . ' ' . $formData['lastname']);
-		}
+		$group .= form_textfield('Last Name', 'edit[lastname]', $formData['lastname'], 25,100);
 
 		if($lr_session->has_permission('person', 'edit', $id, 'username') ) {
 			$group .= form_textfield('System Username', 'edit[username]', $formData['username'], 25,100, 'Desired login name.');
 		} else {
 			$group .= form_item('System Username', $formData['username'], 'Desired login name.');
 		}
-		
+
 		if($lr_session->has_permission('person', 'edit', $id, 'password') ) {
 			$group .= form_password('Password', 'edit[password_once]', '', 25,100, 'Enter your desired password.');
 			$group .= form_password('Re-enter Password', 'edit[password_twice]', '', 25,100, 'Enter your desired password a second time to confirm it.');
