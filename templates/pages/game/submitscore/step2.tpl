@@ -20,6 +20,8 @@ uses, we need your feedback.  Do there appear to be any changes to the field
 <input type="hidden" name="edit[step]" value="{$next_step}" />
 <input type="submit" class="form-submit" name="submit" value="Next Step" />
 <input type="reset" class="form-reset" name="reset" value="reset" />
+</form>
+
 <script language="javascript">
 {literal}
 $(document).ready(function(){
