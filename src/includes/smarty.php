@@ -49,4 +49,32 @@ function smarty_modifier_utf8 ($string)
 	return $utf;
 }
 
+require_once('includes/fillInFormValues.php');
+$smarty->register_block('fill_form_values', 'smarty_fill_form_values', false);
+/**
+ * Smarty {fill_form_values}...{/fill_form_values} extension.
+ * Fills in form fields between the tags based on values in Smarty template
+ * variables, and shows form errors stored in the template variable
+ * "formErrors".
+ *
+ * @param array $params		Params from smarty template (unused)
+ * @param string $content	HTML to filter (it's {...}THIS STUFF{/...}
+ * @param Smarty $smarty
+ * @return string		$content with form vars set properly.
+ */
+function smarty_fill_form_values($params, $content, &$smarty)
+{
+	if ($content === null) {
+		return "";
+	}
+
+	$vars   = $smarty->get_template_vars();
+	$errors = array();
+	if( array_key_exists('formErrors', $vars) ) {
+		$errors = $vars['formErrors'];
+	}
+
+	return fillInFormValues($content, $vars, $errors);
+}
+
 ?>
