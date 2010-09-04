@@ -48,22 +48,10 @@ class person_changepassword extends Handler
 	function generateForm( )
 	{
 		$this->title = "{$this->person->fullname} &raquo; Change Password";
+		$this->template_name = 'pages/person/changepassword.tpl';
+		$this->smarty->assign('person', $this->person);
 
-		$output = para("You are changing the password for '" . $this->person->fullname . "' (username '" . $this->person->username . "').");
-
-		$output .= form_hidden('edit[step]', 'perform');
-		$output .= "<div class='pairtable'>";
-		$output .= table( null, 
-			array(
-				array("New Password:", form_password('', 'edit[password_one]', '', 25, 100, "Enter your new password")),
-				array("New Password (again):", form_password('', 'edit[password_two]', '', 25, 100, "Enter your new password a second time to confirm")),
-			)
-		);
-		$output .= "</div>";
-
-		$output .= form_submit("Submit") . form_reset("Reset");
-
-		return form($output);
+		return true;
 	}
 }
 
