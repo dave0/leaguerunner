@@ -13,48 +13,23 @@ class league_scores extends LeagueHandler
 
 	function process ()
 	{
-		$id = $this->league->league_id;
-
 		$this->title = "{$this->league->fullname} &raquo; Scores";
+
+		$this->template_name = 'pages/league/headtohead.tpl';
 
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");
 		}
 
 		// TODO: do we need to handle multiple rounds differently?
-
-		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
-
-		$this->league->load_teams();
-		if( $this->league->teams <= 0 ) {
-			return para('This league has no teams.');
-		}
-
-		$header = array('');
-		$seed = 0;
+		list($order, $season, $round) = $this->league->calculate_standings();
+		$teams = array();
 		foreach ($order as $tid) {
-			$seed++;
-			$short_name = $season[$tid]->name;
-			$header[] = l($short_name, "team/view/$tid",
-						  array('title' => htmlspecialchars($season[$tid]->name)
-								." Rank:$seed Rating:".$season[$tid]->rating));
-		}
-		$header[] = '';
-
-		$rows = array($header);
-
-		$seed = 0;
-		foreach ($order as $tid) {
-			$seed++;
 			$row = array();
-			$row[] = l($season[$tid]->name, "team/schedule/$tid",
-					   array('title'=>"Rank:$seed Rating:".$season[$tid]->rating));
 
 			// grab schedule information
-			$games = Game::load_many( array( 'either_team' => $tid,
-											'_order' => 'g.game_date,g.game_start,g.game_id') );
+			$games = Game::load_many( array( 'either_team' => $tid, '_order' => 'g.game_date,g.game_start,g.game_id') );
 			$gameentry = array();
-			//while(list(,$game) = each($games)) {
 			foreach ($games as &$game) {
 				if($game->home_id == $tid) {
 					$opponent_id = $game->away_id;
@@ -71,7 +46,7 @@ class league_scores extends LeagueHandler
 			foreach ($order as $opponent_id) {
 				if ($opponent_id == $tid) {
 					// no games against my own team
-					$row[] = array('data'=>'&nbsp;', 'bgcolor'=>'gray');
+					$row[] = array('data'=>'&nbsp;', 'class'=>'impossible');
 					continue;
 				}
 				if( ! array_key_exists($opponent_id, $gameentry) ) {
@@ -143,22 +118,16 @@ class league_scores extends LeagueHandler
 				} else if ($wins < $losses) {
 					$row[] = array('data'=>$thiscell, 'class'=>'losing');
 				} else {
-					$row[] = $thiscell;
+					$row[] = array('data' => $thiscell);
 				}
 			}
 
-			// repeat team name
-			$row[] = l($season[$tid]->name, "team/schedule/$tid",
-					   array('title'=>"Rank:$seed Rating:".$season[$tid]->rating));
-			$rows[] = $row;
+			$season[$tid]->headtohead = $row;
+
+			$teams[] = $season[$tid];
 		}
 
-		//return "<div class='pairtable'>" . table(null, $rows, array('border'=>'1')) . "</div>"
-		return "<div class='scoretable'>" . table(null, $rows, array('class'=>'scoretable')) . "</div>"
-			. para("Scores are listed with the first score belonging the team whose name appears on the left.<br />"
-			. "Green backgrounds means row team is winning season series, red means column team is winning series. Defaulted games are not counted.");
-		//return "<div class='pairtable'>" . table(null, $rows, array('style'=>'border: 1px solid gray;')) . "</div>";
-		//return "<div class='listtable'>" . table(null, $rows) . "</div>";
+		$this->smarty->assign('teams', $teams);
 	}
 }
 

@@ -253,3 +253,21 @@ tr.region_mismatch {
 	background-color: #99B3FF;
 }
 
+/* Head-to-head */
+#headtohead {
+	font-size: 60%;
+}
+
+#headtohead td {
+	border: 1px solid gray;
+}
+
+#headtohead td.impossible {
+   background-color: gray;
+}
+#headtohead td.winning {
+   background-color: #99ff99;
+}
+#headtohead td.losing {
+   background-color: #ffcccc;
+}
