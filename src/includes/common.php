@@ -392,17 +392,12 @@ function form($form, $method = "post", $action = 0, $options = 0)
 function form_item($title, $value, $description = 0)
 {
 	if ($title) {
-		$colon = ':';
-		$last = substr($title, strlen($title) - 1);
-		if ($last == ':' || $last == '?' || $last == '.' || $last == '!') {
-			$colon = '';
-		}
-		$title = "<label>$title$colon</label><br />";
+		$title = "<label>$title</label>";
 	} else {
 		# Ensure that if $title == 0, we blank it instead.
 		$title = "";
 	}
-	return "<div class=\"form-item\">". $title . $value . ($description ? "<div class=\"description\">$description</div>" : "") ."</div>\n";
+	return $title . $value . ($description ? "<div class=\"description\">$description</div>" : "") ."\n";
 }
 
 function form_group($legend, $group, $description = NULL)
@@ -412,24 +407,24 @@ function form_group($legend, $group, $description = NULL)
 
 function form_radio($title, $name, $value = 1, $checked = 0, $description = 0)
 {
-	return form_item(0, "<input type=\"radio\" class=\"form-radio\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
+	return form_item(0, "<input type=\"radio\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
 function form_checkbox($title, $name, $value = 1, $checked = 0, $description = 0)
 {
-	return form_item(0, "<input type=\"checkbox\" class=\"form-checkbox\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
+	return form_item(0, "<input type=\"checkbox\" name=\"$name\" value=\"". $value ."\"". ($checked ? " checked=\"checked\"" : "") ." /> $title", $description);
 }
 
 function form_textfield($title, $name, $value, $size, $maxlength, $description = 0)
 {
 	$size = $size ? " size=\"$size\"" : "";
-	return form_item($title, "<input type=\"text\" maxlength=\"$maxlength\" class=\"form-text\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
+	return form_item($title, "<input type=\"text\" maxlength=\"$maxlength\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
 function form_password($title, $name, $value, $size, $maxlength, $description = 0)
 {
 	$size = $size ? " size=\"$size\"" : "";
-	return form_item($title, "<input type=\"password\" class=\"form-password\" maxlength=\"$maxlength\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
+	return form_item($title, "<input type=\"password\" maxlength=\"$maxlength\" name=\"$name\"$size value=\"". check_form($value) ."\" />", $description);
 }
 
 function form_textarea($title, $name, $value, $cols, $rows, $description = 0)
@@ -498,12 +493,12 @@ function form_hidden($name, $value)
 
 function form_submit($value, $name = "submit", $javascript = "")
 {
-	return "<input type=\"submit\" class=\"form-submit\" name=\"$name\" value=\"". check_form($value) ."\" $javascript/>\n";
+	return "<input type=\"submit\" name=\"$name\" value=\"". check_form($value) ."\" $javascript/>\n";
 }
 
 function form_reset($value, $name = "reset")
 {
-	return "<input type=\"reset\" class=\"form-reset\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
+	return "<input type=\"reset\" name=\"$name\" value=\"". check_form($value) ."\" />\n";
 }
 
 /**

@@ -8,18 +8,17 @@ uses, we need your feedback.  Do there appear to be any changes to the field
 </p>
 <form method="post" id="field_report_form">
 
-<div class="form-item">
-	<div class="description">Were there any issues to report?</div>
-	<input type="radio" class="form-radio" name="enable_textarea" value="Yes" /> Yes
-	<input type="radio" class="form-radio" name="enable_textarea" value="No" /> No
-</div>
-<div id="fieldreport" class="form-item"><textarea id="fieldreport_text" wrap="virtual" cols="70" rows="5" name="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
+<div class="description">Were there any issues to report?</div>
+<input type="radio" name="enable_textarea" value="Yes" /> Yes
+<input type="radio" name="enable_textarea" value="No" /> No
+
+<div id="fieldreport"><textarea id="fieldreport_text" wrap="virtual" cols="70" rows="5" name="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
 <p>
 
 {hidden_fields fields=$hidden_fields}
 <input type="hidden" name="edit[step]" value="{$next_step}" />
-<input type="submit" class="form-submit" name="submit" value="Next Step" />
-<input type="reset" class="form-reset" name="reset" value="reset" />
+<input type="submit" name="submit" value="Next Step" />
+<input type="reset" name="reset" value="reset" />
 </form>
 
 <script language="javascript">

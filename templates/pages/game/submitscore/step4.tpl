@@ -16,6 +16,6 @@ If this is correct, please click 'Submit' to continue.  If not, use your back bu
 {hidden_fields group="edit" fields=$edit_hidden_fields}
 {hidden_fields group="spirit" fields=$spirit_hidden_fields}
 <input type="hidden" name="edit[step]" value="save" />
-<input type="submit" class="form-submit" name="submit" value="Submit" />
+<input type="submit" name="submit" value="Submit" />
 </form>
 {include file=footer.tpl}

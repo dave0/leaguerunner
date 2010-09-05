@@ -4,7 +4,7 @@
 <form method="POST">
   <input type="hidden" name="edit[step]" value="confirm" />
   {$formbuilder_editable}
-  <input type="submit" class="form-submit" name="submit" value="Proceed to confirmation" />
-  <input type="reset" class="form-reset" name="reset" value="reset" />
+  <input type="submit" name="submit" value="Proceed to confirmation" />
+  <input type="reset" name="reset" value="reset" />
 </form>
 {include file=footer.tpl}

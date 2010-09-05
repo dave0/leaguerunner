@@ -12,7 +12,7 @@ Please fill out the questions below.
 {$spirit_form_questions}
 {hidden_fields fields=$hidden_fields}
 <input type="hidden" name="edit[step]" value="confirm" />
-<input type="submit" class="form-submit" name="submit" value="Next Step" />
-<input type="reset" class="form-reset" name="reset" value="reset" />
+<input type="submit" name="submit" value="Next Step" />
+<input type="reset" name="reset" value="reset" />
 </form>
 {include file=footer.tpl}

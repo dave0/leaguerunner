@@ -18,6 +18,7 @@
 <form method="POST" id="create">
    <input type="hidden" name="edit[step]" value="details" />
    <p>Select a date to start adding gameslots.</p>
-   <label>Date: <input type="text" maxlength="15" name="edit[date]" size="15" value="{$date}" id="datepicker" /></label>
+   <label>Date</label>
+	<input type="text" maxlength="15" name="edit[date]" size="15" value="{$date}" id="datepicker" />
 </form>
 {include file=footer.tpl}

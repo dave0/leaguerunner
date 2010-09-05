@@ -47,19 +47,19 @@ If your opponent has already entered a score, it will be displayed below.  If th
   <tr>
     <td>{$team->name}</td>
     <td><input type='checkbox' name='edit[defaulted]' value='us' onclick='defaultCheckboxChanged()'></td>
-    <td><input type="text" maxlength="2" class="form-text" name="edit[score_for]" size="2" /></td>
+    <td><input type="text" maxlength="2" name="edit[score_for]" size="2" /></td>
     <td>{$opponent_entry->score_against|default:"not yet entered"}{if $opponent_entry->defaulted == "them"} (defaulted){/if}</td>
   </tr>
   <tr>
     <td>{$opponent->name}</td>
     <td><input type='checkbox' name='edit[defaulted]' value='them' onclick='defaultCheckboxChanged()'></td>
-    <td><input type="text" maxlength="2" class="form-text" name="edit[score_against]" size="2" /></td>
+    <td><input type="text" maxlength="2" name="edit[score_against]" size="2" /></td>
     <td>{$opponent_entry->score_for|default:"not yet entered" }{if $opponent_entry->defaulted == "us"} (defaulted){/if}</td>
   </tr>
 </table>
 <p>
-  <input type="submit" class="form-submit" name="submit" value="Next Step" />
-  <input type="reset" class="form-reset" name="reset" value="reset" />
+  <input type="submit" name="submit" value="Next Step" />
+  <input type="reset" name="reset" value="reset" />
 </p>
 </form>
 {include file=footer.tpl}

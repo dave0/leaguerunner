@@ -11,6 +11,6 @@
 <form method="POST">
   <input type="hidden" name="edit[step]" value="submit" />
   {$formbuilder_hidden}
-  <input type="submit" class="form-submit" name="submit" value="Submit" />
+  <input type="submit" name="submit" value="Submit" />
 </form>
 {include file=footer.tpl}

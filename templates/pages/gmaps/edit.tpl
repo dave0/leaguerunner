@@ -72,7 +72,7 @@
 	<input type="hidden" name="width" value="{$width}" />
 	<input type="hidden" name="length" value="{$length}" />
 	<input type="hidden" name="zoom" value="{$zoom}" />
-	<p><input type="submit" class="form-submit" name="submit" value="Save Changes" onclick="return check()"/>
+	<p><input type="submit" name="submit" value="Save Changes" onclick="return check()"/>
 
     </div>
 </body>

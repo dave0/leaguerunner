@@ -13,8 +13,8 @@ If this is correct, please click 'Submit' to continue.  If not, use your back bu
 
 <form method="POST">
   <input type="hidden" name="step" value="perform" />
-  <input type="submit" class="form-submit" name="submit" value="Submit" />
-  <input type="reset" class="form-reset" name="reset" value="reset" />
+  <input type="submit" name="submit" value="Submit" />
+  <input type="reset" name="reset" value="reset" />
 </form>
 
 {include file=footer.tpl}

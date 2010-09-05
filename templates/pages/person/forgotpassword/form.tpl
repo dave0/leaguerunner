@@ -9,16 +9,16 @@
 <table>
 <tr>
   <td><b>Username</b></td>
-  <td><input type="text" maxlength="100" class="form-text" name="edit[username]" size="30" /></td>
-  <td><input type="submit" class="form-submit" name="submit" value="Submit" /></td>
+  <td><input type="text" maxlength="100" name="edit[username]" size="30" /></td>
+  <td><input type="submit" name="submit" value="Submit" /></td>
 </tr>
 </form>
 <form action="{lr_url path="person/forgotpassword"}" method="post">
 <input type="hidden" name="edit[step]" value="perform" />
 <tr>
   <td><b>Email Address</b></td>
-  <td><input type="text" maxlength="100" class="form-text" name="edit[email]" size="30" /></td>
-  <td><input type="submit" class="form-submit" name="submit" value="Submit" /></td>
+  <td><input type="text" maxlength="100" name="edit[email]" size="30" /></td>
+  <td><input type="submit" name="submit" value="Submit" /></td>
 </tr>
 </table>
 
