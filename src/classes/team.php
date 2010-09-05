@@ -233,7 +233,6 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
-	// TODO: this belongs in league.inc
 	function validate_unique ($name)
 	{
 		global $dbh;
@@ -242,33 +241,12 @@ class Team extends LeaguerunnerObject
 			$name,
 		);
 
-		$sth = $dbh->prepare('SELECT year, season, day
-			FROM league
-			WHERE league_id = ?');
-	
-		$sth->execute( array( $this->league_id ) );
-
-		$league_data = $sth->fetch(PDO::FETCH_ASSOC);
-		foreach( array_keys( $league_data ) as $key )
-		{
-			if( isset( $league_data[$key] ) && $league_data[$key] != '' ) {
-				$opt .= " AND league.$key = ?";
-				$params[] = $league_data[$key];
-			} else {
-				$opt .= " AND league.$key IS NULL";
-			}
-		}
-
 		if (isset ($this->team_id)) {
 			$opt .= ' AND team.team_id != ?';
 			$params[] = $this->team_id;
 		}
 
-		$sth = $dbh->prepare('SELECT COUNT(*) FROM team, leagueteams, league
-					WHERE team.name = ? 
-						AND team.team_id = leagueteams.team_id
-						AND leagueteams.league_id = league.league_id
-					' . $opt);
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM team WHERE team.name = ?  ' . $opt);
 		$sth->execute( $params );
 
 		return ($sth->fetchColumn() == 0 );
