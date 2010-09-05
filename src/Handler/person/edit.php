@@ -29,8 +29,7 @@ class person_edit extends PersonHandler
 				}
 				break;
 			default:
-				$edit = object2array($this->person);
-				$rc = $this->generateForm($this->person->user_id, $edit, "Edit any of the following fields and click 'Submit' when done.");
+				$rc = $this->generateForm($this->person->user_id, (array)$this->person, "Edit any of the following fields and click 'Submit' when done.");
 		}
 
 		$this->title = "{$this->person->fullname} &raquo; Edit";

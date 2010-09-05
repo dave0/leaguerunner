@@ -23,8 +23,7 @@ class field_edit extends FieldHandler
 				local_redirect(url("field/view/". $this->field->fid));
 				break;
 			default:
-				$edit = object2array($this->field);
-				$rc = $this->generateForm( $edit );
+				$rc = $this->generateForm( (array)$this->field );
 		}
 
 		return $rc;

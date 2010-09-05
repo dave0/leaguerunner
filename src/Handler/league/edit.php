@@ -37,7 +37,7 @@ class league_edit extends LeagueHandler
 		if(strpos($league->day, ",")) {
 			$league->day = explode(',',$league->day);
 		}
-		return object2array($league);
+		return (array)$league;
 	}
 
 	function generateForm ( &$formData )

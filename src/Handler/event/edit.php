@@ -22,8 +22,7 @@ class event_edit extends EventHandler
 				local_redirect(url("event/view/" . $this->event->registration_id));
 				break;
 			default:
-				$edit = object2array($this->event);
-				$rc = $this->generateForm( $edit );
+				$rc = $this->generateForm( (array)$this->event );
 		}
 
 		return $rc;

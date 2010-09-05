@@ -67,8 +67,7 @@ class person_activate extends person_edit
 				local_redirect(url("home"));
 				break;
 			default:
-				$edit = object2array($this->person);
-				$rc = $this->generateForm( $this->person->user_id , $edit, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
+				$rc = $this->generateForm( $this->person->user_id , (array)$this->person, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		}
 
 		$this->title = "{$this->person->fullname} &raquo; Activate";

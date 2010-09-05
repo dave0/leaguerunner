@@ -88,7 +88,7 @@ class game_submitscore extends GameHandler
 				$this->smarty->assign('default_losing_score', variable_get('default_losing_score', 6));
 				$this->smarty->assign('team', $this->team);
 				$this->smarty->assign('opponent', $opponent);
-				$this->smarty->assign('opponent_entry', $opponent_entry = $this->game->get_score_entry( $opponent->team_id ) );
+				$this->smarty->assign('opponent_entry', $this->game->get_score_entry( $opponent->team_id ) );
 				$rc = true;
 		}
 
@@ -301,7 +301,7 @@ class game_submitscore extends GameHandler
 		$opponent_entry = $this->game->get_score_entry( $opponent->team_id );
 
 		if( $opponent_entry ) {
-			if( ! $this->game->score_entries_agree( $edit, object2array($opponent_entry) ) ) {
+			if( ! $this->game->score_entries_agree( $edit, (array)$opponent_entry ) ) {
 				$output .= para("<b>Note:</b> this score does NOT agree with the one provided by your opponent, so coordinator approval will be required if you submit it");
 			}
 		}

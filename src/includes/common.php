@@ -108,20 +108,6 @@ function request_uri() {
   return check_url($uri);
 }
 
-function object2array($obj) {
-
-  if (is_object($obj)) {
-    foreach ($obj as $key => $value) {
-      $array[$key] = $value;
-    }
-  }
-  else {
-    $array = $obj;
-  }
-
-  return $array;
-}
-
 /*
  * Global configuration variables
  */

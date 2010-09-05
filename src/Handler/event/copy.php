@@ -25,8 +25,7 @@ class event_copy extends event_edit
 				local_redirect(url("event/view/" . $new_event->registration_id));
 				break;
 			default:
-				$edit = object2array($this->event);
-				$rc = $this->generateForm($edit);
+				$rc = $this->generateForm((array)$this->event);
 		}
 		return $rc;
 	}

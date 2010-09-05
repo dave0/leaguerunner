@@ -165,7 +165,7 @@ class Game extends LeaguerunnerObject
 		$home_entry = $this->get_score_entry( $this->home_id );
 		$away_entry = $this->get_score_entry( $this->away_id );
 		if( $home_entry && $away_entry ) {
-			if( $this->score_entries_agree( object2array($home_entry), object2array($away_entry)) ) {
+			if( $this->score_entries_agree( (array)$home_entry, (array)$away_entry) ) {
 				switch( $home_entry->defaulted ) {
 					case 'us':
 						// HOME default
