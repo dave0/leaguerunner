@@ -1652,7 +1652,12 @@ class League extends LeaguerunnerObject
 			}
 		}
 
-		$sth = $dbh->prepare("SELECT l.*, 1 as _in_database FROM league l WHERE " . implode(' AND ',$query) . $order);
+		$sth = $dbh->prepare("SELECT
+			l.*,
+			DATE(l.roster_deadline) AS roster_deadline,
+			1 as _in_database
+		FROM league l
+		WHERE " . implode(' AND ',$query) . $order);
 		$sth->execute($params);
 		return $sth;
 	}

@@ -501,6 +501,12 @@ function validate_nonhtml ( $string )
 	return true;
 }
 
+function validate_yyyymmdd_input ( $date )
+{
+	list( $year, $month, $day) = preg_split("/[\/-]/", $date);
+	return validate_date_input($year, $month, $day);
+}
+
 function validate_date_input ( $year, $month, $day )
 {
 	if( !(validate_nonblank($year) && validate_nonblank($month) && validate_nonblank($day)) ) {
