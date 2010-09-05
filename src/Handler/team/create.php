@@ -6,6 +6,8 @@ class team_create extends team_edit
 {
 	function __construct ()
 	{
+		$this->title = "Create Team";
+		$this->team  = new Team;
 	}
 
 	function has_permission ()
@@ -14,40 +16,9 @@ class team_create extends team_edit
 		return $lr_session->has_permission('team','create');
 	}
 
-	function process ()
-	{
-		global $lr_session;
-
-		$this->title = "Create Team";
-		$edit = &$_POST['edit'];
-
-		switch($edit['step']) {
-			case 'confirm':
-				$this->team = new Team;
-				$this->team->league_id = 1;	// inactive teams
-				$rc = $this->generateConfirm( $edit );
-				break;
-			case 'perform':
-				$this->team = new Team;
-				$this->team->league_id = 1;	// inactive teams
-				$this->perform($edit);
-				local_redirect(url("team/view/" . $this->team->team_id));
-				break;
-			default:
-				$edit = array();
-				$rc = $this->generateForm( $edit );
-		}
-		return $rc;
-	}
-
 	function perform ($edit = array() )
 	{
 		global $lr_session, $dbh;
-
-		$dataInvalid = $this->isDataInvalid( $edit );
-		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
-		}
 
 		if( ! parent::perform($edit) ) {
 			return false;

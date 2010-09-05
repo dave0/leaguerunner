@@ -79,7 +79,7 @@ tr.dark {
 .splash td { font-size: 8pt; }
 .splash .highlight { background-color: lightblue; }
 
-.error { color: red }
+.error { color: red; font-weight: bold; }
 
 /* Menu styles */
 .menu {
@@ -164,17 +164,6 @@ li.active a {
 #loginbox {
 	width: 400px;
 	margin: 0px auto;
-}
-#loginbox form label {
-	text-align: right;
-	width: 105px;
-	float: left;
-	padding: 8px 2px 0 0;
-}
-#loginbox form input {
-	font-family: Verdana, sans-serif;
-	padding: 3px;
-	margin: 3px;
 }
 
 /* necessary? */
@@ -271,3 +260,28 @@ tr.region_mismatch {
 #headtohead td.losing {
    background-color: #ffcccc;
 }
+
+/* */
+/* Form prettiness */
+/* */
+input:focus, textarea:focus  { background:#ffc; }
+
+/* Align labels on forms */
+label {
+	display:block;
+	margin:12px 0 0;
+	font-weight:bold;
+	font-size:.9em;
+	float:left;
+	clear:left;
+	width:120px;}
+label:after     {content:": ";}
+
+select, input, textarea {
+	border:1px solid #ccc;
+	padding:5px;
+	margin:10px 10px 0 0;
+}
+
+.description { font-size: 0.85em; }
+
