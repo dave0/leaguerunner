@@ -12,7 +12,7 @@
 
     <tr><td>Team SBF:</td><td>{$team_sbf} {if $league_sbf}(league {$league_sbf}){/if}</td></tr>
     <tr><td>Rating:</td><td>{$team->rating}</td></tr>
-</table>
+</table></div>
 {if $display_roster_note}
 <p class='error'>
 Your team currently has only {$team->roster_count} full-time players with active accounts listed.
