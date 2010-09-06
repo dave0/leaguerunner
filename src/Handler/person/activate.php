@@ -14,6 +14,7 @@ class person_activate extends person_edit
 	{
 		global $lr_session;
 		$this->person =& $lr_session->user;
+		$this->title = "{$this->person->fullname} &raquo; Activate";
 	}
 
 	function checkPrereqs ( $ignored )
@@ -42,38 +43,42 @@ class person_activate extends person_edit
 
 	function process ()
 	{
-		global $lr_session;
-
 		$edit = $_POST['edit'];
-		$this->person = $lr_session->user;
+
 		if( ! $this->person ) {
 			error_exit("That account does not exist");
 		}
 
-		switch($edit['step']) {
-			case 'confirm': 
-				$rc = $this->generateConfirm( $this->person->user_id, $edit );
-				break;
-			case 'perform':
-				$rc = $this->perform( $this->person, $edit );
-				if( ! $rc ) {
-					error_exit("Failed attempting to activate account");
-				}
-				$this->person->set('status', 'active');
-				$rc = $this->person->save();
-				if( !$rc ) {
-					error_exit("Failed attempting to activate account");
-				}
-				local_redirect(url("home"));
-				break;
-			default:
-				$rc = $this->generateForm( $this->person->user_id , (array)$this->person, "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
+
+		$this->smarty->assign('instructions', "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
+		$this->template_name = 'pages/person/edit.tpl';
+
+		$this->generateForm( $edit );
+		$this->smarty->assign('person', $this->person);
+
+		if( $edit['step'] == 'perform' ) {
+			$errors = $this->check_input_errors( $edit );
+			if(count($errors) > 0) {
+				$this->smarty->assign('edit', $edit);
+				$this->smarty->assign('formErrors', $errors);
+				return true;
+			}
+			$rc = $this->perform( $edit );
+			if( ! $rc ) {
+				error_exit("Failed attempting to activate account");
+			}
+			$this->person->set('status', 'active');
+			$rc = $this->person->save();
+			if( !$rc ) {
+				error_exit("Failed attempting to activate account");
+			}
+			local_redirect(url("home"));
+		} else {
+			/* Deal with multiple days and start times */
+			$this->smarty->assign('edit', (array)$this->person);
 		}
 
-		$this->title = "{$this->person->fullname} &raquo; Activate";
-
-
-		return $rc;
+		return true;
 	}
 }
 ?>

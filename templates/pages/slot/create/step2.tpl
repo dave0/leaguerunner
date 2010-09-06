@@ -20,7 +20,7 @@
 	<div class="description">Number of weeks to repeat this gameslot</div>
 
 <fieldset><legend>Make Gameslot Available To:</legend>
-{html_checkboxes name="edit[availability]" options=$leagues separator="<br />"}
+{html_checkboxes labels=false name="edit[availability]" options=$leagues separator="<br />"}
 </fieldset>
 
 <input type="submit" name="submit" value="submit" />

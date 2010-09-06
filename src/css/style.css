@@ -256,10 +256,16 @@ label {
 	width:130px;}
 label:after     {content:": ";}
 
-fieldset>label {
+label.unformatted {
+	display:block;
+	margin:12px 12px 0 0;
+	font-weight:bold;
+	font-size:.9em;
+	float:left;
+	clear:left;
 	width:auto;
 }
-fieldset>label:after     {content:"";}
+label.unformatted:after     {content:"";}
 
 select, input, textarea {
 	border:1px solid #ccc;
