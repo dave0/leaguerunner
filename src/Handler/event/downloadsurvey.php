@@ -39,7 +39,8 @@ class event_downloadsurvey extends EventHandler
 			$fsth = $dbh->prepare('SELECT akey FROM registration_answers WHERE order_id = ?  AND qkey = ?');
 			foreach ($this->formbuilder->_questions as $question) {
 				$fsth->execute( array( $row['order_id'], $question->qkey));
-				$data[] = $fsth->fetchColumn();
+				$foo = $fsth->fetchColumn();
+				$data[] = preg_replace('/\s\s+/', ' ', $foo);
 			}
 
 			fputcsv($out, $data);

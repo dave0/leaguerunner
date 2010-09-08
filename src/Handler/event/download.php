@@ -141,11 +141,13 @@ class event_download extends EventHandler
 						$data[] = $team_info['rating'];
 					}
 
+					$item = preg_replace('/\s\s+/', ' ', $item);
+
 					$data[] = $item;
 				}
 			}
 
-			$data[] = $row['notes'];
+			$data[] = preg_replace('/\s\s+/', ' ', $row['notes']);
 
 			// Output the data row
 			fputcsv($out, $data);
