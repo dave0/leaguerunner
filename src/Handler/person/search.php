@@ -25,24 +25,34 @@ class person_search extends Handler
 
 	function process ()
 	{
-		$search = &$_GET['search'];
+		global $lr_session;
 
 		$this->template_name = 'pages/person/search.tpl';
 
-		if( ! $search || $search == '' ) {
+		$query = array();
+
+		if( $_GET['lastname'] ) {
+			$query['lastname_wildcard'] = $_GET['lastname'];
+		} elseif ( $lr_session->has_permission('person','search','email') && $_GET['email']) {
+			$query['email'] = $_GET['email'];
+		} elseif ( $lr_session->has_permission('person','search','member_id') && $_GET['member_id']) {
+			$query['member_id'] = $_GET['member_id'];
+		}
+
+		if( ! count($query) ) {
 			// no search yet...
 			return true;
 		}
 
-		$query = array(
-			'lastname_wildcard' => $search,
-			'_order' => 'p.lastname, p.firstname',
-		);
+		$query['_order'] = 'p.lastname, p.firstname';
+
 		if( strlen($this->extra_where) ) {
 			$query['_extra'] = $this->extra_where;
 		}
 
-		$this->smarty->assign('lastname', $search);
+		$this->smarty->assign('lastname', $_GET['lastname']);
+		$this->smarty->assign('email', $_GET['email']);
+		$this->smarty->assign('member_id', $_GET['member_id']);
 
 		$result = Person::query( $query );
 		$result->setFetchMode(PDO::FETCH_CLASS, 'Person', array(LOAD_OBJECT_ONLY));

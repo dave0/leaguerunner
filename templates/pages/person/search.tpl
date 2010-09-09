@@ -4,7 +4,13 @@
 	Enter information on which to search and click 'submit'.  You may use '*' as a wildcard
 </p>
 <form method="GET">
-<label>Last Name:<input type='textfield' size='25' name = 'search' value="{$lastname|escape}"/></label>
+<label>Last Name:</label><input type='textfield' size='25' name = 'lastname' value="{$lastname|escape}"/><br />
+{if session_perm('person/search/email')}
+<label>Email:</label><input type='textfield' size='25' name = 'email' value="{$email|escape}"/><br />
+{/if}
+{if session_perm('person/search/member_id')}
+<label>Member ID:</label><input type='textfield' size='25' name = 'member_id' value="{$member_id|escape}"/></label><br />
+{/if}
 <input type="submit" value="search" />
 </form>
 <table id="players" style="width: 100%">

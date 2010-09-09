@@ -308,6 +308,10 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			if( ! ($user && $user->is_active()) ) {
 				return false;
 			}
+			if( $arg1 ) {
+				// Specific searches require admin access
+				return false;
+			}
 			return($user->class != 'visitor');
 		case 'approve':
 			// administrator-only
