@@ -27,7 +27,7 @@ class person_listnew extends person_search
 
 	function process ()
 	{
-		$_GET['search'] = '*';
+		$_GET['lastname'] = '*';
 		return parent::process();
 	}
 }
