@@ -49,7 +49,6 @@ class person_activate extends person_edit
 			error_exit("That account does not exist");
 		}
 
-
 		$this->smarty->assign('instructions', "In order to keep our records up-to-date, please confirm that the information below is correct, and make any changes necessary.");
 		$this->template_name = 'pages/person/edit.tpl';
 

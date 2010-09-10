@@ -14,6 +14,9 @@ class person_search extends Handler
 		if( $lr_session->has_permission('person','delete') ) {
 			$this->ops['delete'] = 'person/delete';
 		}
+		if( $lr_session->has_permission('person','invalidateemail') ) {
+			$this->ops['invalidate email'] = 'person/invalidemail';
+		}
 		return true;
 	}
 

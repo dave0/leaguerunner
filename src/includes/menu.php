@@ -387,6 +387,10 @@ function person_add_to_menu( &$person )
 			menu_add_child($person->fullname, "$person->fullname/delete",'delete account', array('weight' => -10, 'link' => "person/delete/$person->user_id"));
 		}
 
+		if($lr_session->has_permission('person', 'invalidateemail', $person->user_id) ) {
+			menu_add_child($person->fullname, "$person->fullname/invalidemail",'invalidate email', array('weight' => -10, 'link' => "person/invalidemail/$person->user_id"));
+		}
+
 		if($lr_session->has_permission('person', 'password_change', $person->user_id) ) {
 			menu_add_child($person->fullname, "$person->fullname/changepassword",'change password', array('weight' => -10, 'link' => "person/changepassword/$person->user_id"));
 		}
