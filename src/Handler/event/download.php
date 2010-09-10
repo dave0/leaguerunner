@@ -22,6 +22,8 @@ class event_download extends EventHandler
 			'First Name',
 			'Last Name',
 			'Email',
+			'Home Phone',
+			'Mobile Phone',
 			'Gender',
 			'Skill Level',
 			'Order ID',
@@ -87,6 +89,8 @@ class event_download extends EventHandler
 			p.firstname,
 			p.lastname,
 			p.email,
+			p.home_phone,
+			p.mobile_phone,
 			p.gender,
 			p.skill_level
 		FROM registrations r
@@ -105,6 +109,8 @@ class event_download extends EventHandler
 				$row['firstname'],
 				$row['lastname'],
 				$row['email'],
+				$row['home_phone'],
+				$row['mobile_phone'],
 				$row['gender'],
 				$row['skill_level'],
 				$order_id,
