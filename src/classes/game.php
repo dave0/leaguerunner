@@ -1241,6 +1241,24 @@ class Game extends LeaguerunnerObject
 		return table($header, $rows, array('border'=>1));
 	}
 
+	function time_until ( )
+	{
+		$minutesleft = ( $this->timestamp - time()) / 60;
+
+		// Format the minutes left text
+		if ( $minutesleft < 0  ) {
+			$timeleft = 'already played';
+		} else if ( $minutesleft < 90 ) {
+			$timeleft = round($minutesleft) . " " . 'minutes';
+		} else if ( $minutesleft < (2*24*60) ) {
+			$timeleft = round($minutesleft/60) . " " . 'hours';
+		} else {
+			$timeleft = round($minutesleft/(24*60)) . " " . 'days';
+		}
+
+		return $timeleft;
+	}
+
 	static function cmp_hometeam_field_ratio ( $a, $b )
 	{
 		$a_home = $a->get_home_team_object();
