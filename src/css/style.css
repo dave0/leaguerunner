@@ -247,32 +247,21 @@ input:focus, textarea:focus  { background:#ffc; }
 
 /* Align labels on forms */
 label {
-	display:block;
-	margin:12px 12px 0 0;
+	margin: 12px 12px 0 0;
 	font-weight:bold;
-	font-size:.9em;
-	float:left;
-	clear:left;
-	width:130px;}
-label:after     {content:": ";}
-
-label.unformatted {
 	display:block;
-	margin:12px 12px 0 0;
-	font-weight:bold;
-	font-size:.9em;
-	float:left;
-	clear:left;
-	width:auto;
 }
+label:after     {content:": ";}
 label.unformatted:after     {content:"";}
 
+/*
 select, input, textarea {
 	border:1px solid #ccc;
 	padding:5px;
 	margin:12px 12px 0 0;
 }
 .labeldata { padding:10px;  margin:12px 12px 0 0; }
+*/
 
 .description { font-size: 0.85em; }
 
