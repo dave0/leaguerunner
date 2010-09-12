@@ -181,6 +181,7 @@ The following errors were encountered in your submission:
     <label for="edit[shirtsize]">Shirt Size</label>
 	{html_options name="edit[shirtsize]" options=$shirt_sizes}
 	<div class="description">You may optionally enter your shirt size. This is to assist captains when ordering team shirts.</div>
+</fieldset>
 
 <fieldset>
     <legend>Administrative Information</legend>
