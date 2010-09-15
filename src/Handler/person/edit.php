@@ -233,7 +233,7 @@ class person_edit extends PersonHandler
 			$edit['addr_country']);
 
 		if( count($address_errors) > 0) {
-			$errors[] = "" . join("\n<li>", $address_errors);
+			$errors = array_merge( $errors, $address_errors);
 		}
 
 		if( !preg_match("/^[mf]/i",$edit['gender'] ) ) {

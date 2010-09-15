@@ -627,7 +627,7 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
     }
 
     if( ! validate_canadian_postalcode( $postalcode, $prov ) ) {
-        array_push( $errors, "You must enter a valid Canadian postalcode for province: $prov");
+        array_push( $errors, "You must enter a valid Canadian postalcode for $prov");
     }
 
 	return $errors;

@@ -68,6 +68,8 @@ class person_create extends person_edit
 		if($edit['password_once'] != $edit['password_twice']) {
 			$errors[] = error_exit("First and second entries of password do not match");
 		}
+
+		return $errors;
 	}
 }
 
