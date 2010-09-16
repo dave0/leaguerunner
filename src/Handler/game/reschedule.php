@@ -50,24 +50,20 @@ class game_reschedule extends LeagueHandler
 		if ( ! $this->league->load_teams() ) {
 			error_exit("Error loading teams for league $league->fullname");
 		}
-		$num_teams = count($this->league->teams);
-		$num_fields = ($num_teams / 2);
 
 		$output .= "<p>Select date for rescheduling</p>";
 
 		$sth = $dbh->prepare(
 			"SELECT
 				UNIX_TIMESTAMP(s.game_date) AS datestamp,
-				COUNT(s.slot_id) AS num_slots
 			 FROM
 			 	league_gameslot_availability a, gameslot s
 			 WHERE (a.slot_id = s.slot_id)
 			 	AND isnull(s.game_id)
 				AND a.league_id = ?
 			 GROUP BY s.game_date
-			 HAVING(num_slots >= ?)
 			 ORDER BY s.game_date");
-		$sth->execute( array( $this->league->league_id, $num_fields) );
+		$sth->execute( array( $this->league->league_id) );
 
 		$possible_dates = array();
 		while($date = $sth->fetch(PDO::FETCH_OBJ)) {
