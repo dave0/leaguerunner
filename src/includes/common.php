@@ -170,11 +170,6 @@ function simple_tag($name, $content, $attributes = array())
 	return "<$name". (count($t) ? " " : "") . implode($t, " ") .">$content</$name>";
 }
 
-function h2($text, $attributes = array())
-{
-	return simple_tag("h2", $text, $attributes);
-}
-
 function para($text, $attributes = array())
 {
 	return simple_tag("p", $text, $attributes);
