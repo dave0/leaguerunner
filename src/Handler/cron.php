@@ -26,20 +26,17 @@ function league_cron()
 {
 	global $dbh;
 
-	$output = '';
-
 	$sth = $dbh->prepare('SELECT DISTINCT league_id FROM league WHERE status = ? AND season != ? ORDER BY season, day, tier, league_id');
 	$sth->execute( array('open', 'none') );
 	while( $id = $sth->fetchColumn() ) {
 		$league = League::load( array('league_id' => $id) );
-		$output .= h2(l($league->name, "league/view/$league->league_id"));
 
 		// Find all games older than our expiry time, and finalize them
-		$output .= $league->finalize_old_games();
+		$league->finalize_old_games();
 
 		// Send any email scoring reminders. Do this after finalizing, so
 		// captains don't get useless reminders.
-		$output .= $league->send_scoring_reminders();
+		$league->send_scoring_reminders();
 
 		// If schedule is round-robin, possibly update the current round
 		if($league->schedule_type == 'roundrobin') {
@@ -47,7 +44,7 @@ function league_cron()
 		}
 	}
 
-	return "$output<pre>Completed league_cron run</pre>";
+	return "<pre>Completed league_cron run</pre>";
 }
 
 ?>
