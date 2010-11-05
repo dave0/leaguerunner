@@ -52,7 +52,7 @@ The following errors were encountered in your submission:
 	<div class="description">Gender format for the league.</div>
 
 <label for="edit[current_round]">Current Round</label>
-	{html_options name="edit[round]" options=$rounds}
+	{html_options name="edit[current_round]" options=$rounds}
 	<div class="description">New games will be scheduled in this round by default.</div>
 
 <label for="edit[schedule_type]">Scheduling Type</label>
