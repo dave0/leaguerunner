@@ -174,12 +174,15 @@ class Spirit
 	}
 
 	/**
-	 * Drop the highest and lowest SOTG score if specified, and return the average SOTG.
+	 * Drop the highest and lowest SOTG score if specified, and return the
+	 * average SOTG.
+	 *
+	 * If no SOTG scores are provided, return -1
 	 */
 	function average_sotg ( $scores , $drop = false ) {
 		// $scores is an array of SOTG scores
 		if (sizeof( $scores ) == 0) {
-			return 0;
+			return -1;
 		}
 		$high  = 0;
 		$low   = 10;
@@ -208,7 +211,7 @@ class Spirit
 
 		// Avoid divide-by-zero
 		if( $count == 0 ) {
-			return 0;
+			return -1;
 		}
 
 		return $total / $count;
@@ -229,6 +232,11 @@ class Spirit
 	{
 		global $CONFIG;
 		$icon_url = $CONFIG['paths']['base_url'] . '/image/icons';
+
+		if( $answer_value == -1 ) {
+			# TODO: need a (?) image for not-available
+			return "N/A";
+		}
 
 		$by_value = $this->icons_by_max_value[$max_value];
 
