@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 25;
+my $LATEST_SCHEMA = 26;
 
 my @TABLES = (
 	'person' => [q{
@@ -107,7 +107,6 @@ my @TABLES = (
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
 			capt_list           varchar(100),
-			email_after         integer NOT NULL DEFAULT '0',
 			finalize_after      integer NOT NULL DEFAULT '0',
 			PRIMARY KEY (league_id)
 		);
@@ -196,17 +195,6 @@ my @TABLES = (
 			comments         TEXT,
 
 			PRIMARY KEY (tid_created,gid)
-		);
-	},
-	q{
-		DROP TABLE IF EXISTS score_reminder;
-	},
-	q{
-		CREATE TABLE score_reminder (
-			game_id   integer NOT NULL,
-			team_id   integer NOT NULL,
-			sent_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY ( game_id, team_id )
 		);
 	}],
 
@@ -1777,6 +1765,30 @@ sub upgrade_24_to_25
 			DROP TABLE registration_audit;
 		},
 		],
+	]);
+}
+
+sub upgrade_25_to_26
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+		remove_email_notices => [
+		q{
+			DROP TABLE activity_log
+		},
+		q{
+			ALTER TABLE league
+				DROP COLUMN email_after
+		},
+		q{
+			DELETE FROM variable WHERE name IN (
+				'approval_notice_subject',
+				'approval_notice_body',
+				'score_reminder_subject',
+				'score_reminder_body'
+			)
+		}],
 	]);
 }
 

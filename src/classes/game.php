@@ -183,17 +183,6 @@ class Game extends LeaguerunnerObject
 				}
 				$this->set('approved_by', APPROVAL_AUTOMATIC);
 			} else {
-				$sth = $dbh->prepare('
-					SELECT COUNT(*)
-					FROM
-						activity_log
-					WHERE type = "email_score_mismatch"
-					AND primary_id = ?');
-				$sth->execute( array($this->game_id) );
-				if( $sth->fetchColumn() ) {
-					return false;
-				}
-
 				$sth = $dbh->prepare(
 					"SELECT
 						CONCAT(p.firstname, ' ', p.lastname) as fullname,
@@ -211,15 +200,11 @@ class Game extends LeaguerunnerObject
 
 				$message = "Game {$this->game_id} between {$this->home_name} and {$this->away_name} in {$this->league_name} has score entries which do not match. Edit the game here:\n" . url("game/edit/{$this->game_id}");
 
-				if( send_mail($to_list,
+				send_mail($to_list,
 					false, // from the administrator
 					false, // no Cc
 					'Score entry mismatch',
-					$message) )
-				{
-					$sth = $dbh->prepare('INSERT into activity_log (type, primary_id) VALUES(?,?)');
-					$sth->execute( array("email_score_mismatch", $this->game_id) );
-				}
+					$message);
 				return false;
 			}
 		} else if ( $home_entry && !$away_entry ) {
@@ -239,7 +224,6 @@ class Game extends LeaguerunnerObject
 			$this->set('home_score', $home_entry->score_for);
 			$this->set('away_score', $home_entry->score_against);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_HOME);
-			$this->remind_team( $this->away_team, $this->away_name, $this->home_name, 'approval_notice', false );
 		} else if ( !$home_entry && $away_entry ) {
 			switch( $away_entry->defaulted ) {
 				case 'us':
@@ -257,7 +241,6 @@ class Game extends LeaguerunnerObject
 			$this->set('home_score', $away_entry->score_against);
 			$this->set('away_score', $away_entry->score_for);
 			$this->set('approved_by', APPROVAL_AUTOMATIC_AWAY);
-			$this->remind_team( $this->home_team, $this->home_name, $this->away_name, 'approval_notice', false );
 		} else if ( !$home_entry && !$away_entry ) {
 			// TODO: don't do automatic forfeit yet.  Make it per-league configurable
 			return false;
@@ -295,84 +278,6 @@ class Game extends LeaguerunnerObject
 		}
 
 		return $captains;
-	}
-
-	/*
-	 * Send any required reminders to captains about unscored games.
-	 */
-	function remind()
-	{
-		if( $this->is_finalized() ) {
-			return false;
-		}
-
-		$ret = $this->remind_team( $this->home_team, $this->home_name, $this->away_name, 'score_reminder', true ) |
-				$this->remind_team( $this->away_team, $this->away_name, $this->home_name, 'score_reminder', true );
-
-		return $ret;
-	}
-
-	function remind_team($team_id, $team_name, $opponent, $reason, $update_db)
-	{
-		global $dbh;
-
-		if( array_key_exists($team_id, $this->_score_entries) ) {
-			return false;
-		}
-
-		if( $update_db )
-		{
-			$sth = $dbh->prepare("SELECT COUNT(*) FROM activity_log
-				WHERE type = 'email_$reason'
-				AND primary_id = ? AND secondary_id = ?");
-			$sth->execute( array( $this->game_id, $team_id) );
-			$sent = $sth->fetchColumn();
-			if( $sent ) {
-				return false;
-			}
-		}
-
-		$to_list = array();
-		$cc_list = array();
-		$to_names = array();
-
-		$captains = $this->get_captains();
-		foreach ($captains as $p) {
-			if( $p->status == 'captain' ) {
-				$to_names[] = $p->fullname;
-				$to_list[] = $p;
-			} else {
-				$cc_list[] = $p;
-			}
-		}
-
-		$variables = array(
-			'%fullname' => join(',', $to_names),
-			'%team' => $team_name,
-			'%opponent' => $opponent,
-			'%league' => $this->league_name,
-			'%gamedate' => $this->game_date,
-			'%scoreurl' => url("game/submitscore/{$this->game_id}/$team_id"),
-			'%adminname' => variable_get('app_admin_name', 'Leaguerunner Admin'),
-			'%site' => variable_get('app_name','Leaguerunner'));
-		$message = _person_mail_text("{$reason}_body", $variables);
-
-		if (!send_mail($to_list,
-			false, // from the administrator
-			$cc_list,
-			_person_mail_text("{$reason}_subject", $variables),
-			$message))
-		{
-			return false;
-		}
-
-		if( $update_db )
-		{
-			$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
-			$sth->execute( array("email_$reason", $this->game_id, $team_id) );
-		}
-
-		return true;
 	}
 
 	function save ()
@@ -515,8 +420,6 @@ class Game extends LeaguerunnerObject
 			'UPDATE gameslot SET game_id = NULL where game_id = ?',
 			'DELETE FROM spirit_entry WHERE gid = ?',
 			'DELETE FROM score_entry WHERE game_id = ?',
-			'DELETE FROM activity_log WHERE primary_id = ? AND
-				(type = "email_score_mismatch" OR type = "email_score_reminder")',
 			'DELETE FROM schedule WHERE game_id = ?'
 		);
 

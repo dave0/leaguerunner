@@ -390,20 +390,11 @@ class Person extends LeaguerunnerObject
 			'%year' => date('Y'));
 		$message = _person_mail_text('member_letter_body', $variables);
 
-		if (!send_mail($this,
+		return send_mail($this,
 			false, // from the administrator
 			false,
 			_person_mail_text('member_letter_subject', $variables),
-			$message))
-		{
-			return false;
-		}
-
-		// Update the activity log
-		$year = date('Y');
-		$sth = $dbh->prepare('INSERT into activity_log (type, primary_id, secondary_id) VALUES(?,?,?)');
-		$sth->execute( array("email_membership_letter", $year, $this->user_id) );
-		return( 1 == $sth->rowCount() );
+			$message);
 	}
 
 	function teams_for_pulldown ( $position = 'captain' )

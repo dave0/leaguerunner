@@ -9,9 +9,6 @@
         {if $league->schedule_type != 'none'}
 	        <tr><td>League SBF:</td><td>{$league->calculate_sbf()}</td></tr>
         {/if}
-        {if session_perm("league/view/`$league->league_id`/delays")}
-                {if $league->email_after}<tr><td>Scoring reminder delay:</td><td>{$league->email_after} hours</td></tr>{/if}
-        {/if}
         {if $league->finalize_after}<tr><td>Scores must be entered within:</td><td>{$league->finalize_after} hours of game end</td></tr>{/if}
      </table>
     </div>

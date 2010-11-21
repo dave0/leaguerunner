@@ -144,7 +144,6 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 			switch($data_field) {
 				case 'spirit':
 				case 'captain emails':
-				case 'delays':
 					return ($user && $user->is_coordinator_of($id));
 				default:
 					return true;

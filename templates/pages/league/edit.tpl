@@ -84,10 +84,6 @@ The following errors were encountered in your submission:
 	{html_options name="edit[excludeTeams]" options=$excludeTeams}
 	<div class="description">Allows coordinators to exclude teams from schedule generation.</div>
 
-<label for="edit[email_after]">Scoring reminder delay</label>
-	<input type="text" maxlength="5" name="edit[email_after]" size="5" value="20" />
-	<div class="description">Email captains who haven't scored games after this many hours, no reminder if 0</div>
-
 <label for="edit[finalize_after]">Game finalization delay</label>
 	<input type="text" maxlength="5" name="edit[finalize_after]" size="5" value="36" />
 	<div class="description">Games which haven't been scored will be automatically finalized after this many hours, no finalization if 0</div>

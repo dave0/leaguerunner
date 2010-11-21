@@ -85,7 +85,6 @@ class league_edit extends LeagueHandler
 		$this->league->set('capt_list', $edit['capt_list']);
 		$this->league->set('excludeTeams', $edit['excludeTeams']);
 
-		$this->league->set('email_after', $edit['email_after']);
 		$this->league->set('finalize_after', $edit['finalize_after']);
 
 		if( !$this->league->save() ) {
@@ -126,10 +125,6 @@ class league_edit extends LeagueHandler
 			if( !$edit['day'] ) {
 				$errors[] = "One or more days of play must be selected";
 			}
-		}
-
-		if ( ! validate_number($edit['email_after']) || $edit['email_after'] < 0 ) {
-			$errors[] = "A valid number must be entered for the scoring reminder delay";
 		}
 
 		if ( ! validate_number($edit['finalize_after']) || $edit['finalize_after'] < 0 ) {

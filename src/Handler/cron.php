@@ -34,10 +34,6 @@ function league_cron()
 		// Find all games older than our expiry time, and finalize them
 		$league->finalize_old_games();
 
-		// Send any email scoring reminders. Do this after finalizing, so
-		// captains don't get useless reminders.
-		$league->send_scoring_reminders();
-
 		// If schedule is round-robin, possibly update the current round
 		if($league->schedule_type == 'roundrobin') {
 			$league->update_current_round();

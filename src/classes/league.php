@@ -250,65 +250,6 @@ class League extends LeaguerunnerObject
 		return $output;
 	}
 
-	/**
-	* Send email reminders to any captains that haven't scored their games.
-	*/
-	function send_scoring_reminders()
-	{
-		global $CONFIG, $dbh;
-
-		if( $this->email_after == 0 )
-			return '';
-
-		$output = '';
-
-		// TODO: Game::load_many()?  Or at least Game::query()?
-		$start_offset = $CONFIG['localization']['tz_adjust'] * 60;
-		$email_offset = $start_offset + ($this->email_after * 60) * 60;
-		$sth = $dbh->prepare("SELECT
-				DISTINCT s.game_id,
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $start_offset) AS start_timestamp
-			FROM
-				schedule s,
-				gameslot g
-			WHERE
-				s.league_id = ?
-			AND
-				g.game_id = s.game_id
-			AND
-				s.status = 'normal'
-			AND
-				(UNIX_TIMESTAMP(CONCAT(g.game_date, ' ', g.game_start)) + $email_offset) < UNIX_TIMESTAMP(NOW())
-			AND
-				(ISNULL(s.home_score) OR ISNULL(s.away_score))
-			ORDER BY
-				g.game_id
-			");
-
-		$sth->execute( array( $this->league_id ) );
-
-		while( $game_id = $sth->fetchColumn() ) {
-			$game = Game::load( array('game_id' => $game_id) );
-			if ($game->remind())
-			{
-				$stat = 'Emailed';
-			}
-			else
-			{
-				$stat = 'DID NOT email';
-			}
-			$output .= "<p>$stat reminder for $game->game_date-$game->game_start game " .
-				l($game_id, "game/edit/$game_id") .
-				' between ' .
-				l($game->home_name, "team/view/$game->home_team") .
-				' and ' .
-				l($game->away_name, "team/view/$game->away_team") .
-				", status {$game->status}</p>";
-		}
-
-		return $output;
-	}
-
 	# TODO: add_team and remove_team, same as add and remove coordinator.
 
 	function save ()
@@ -414,7 +355,6 @@ class League extends LeaguerunnerObject
 			'DELETE FROM leaguemembers WHERE league_id = ?',
 			'DELETE FROM score_entry USING score_entry, schedule WHERE score_entry.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM field_report USING field_report, schedule WHERE field_report.game_id = schedule.game_id AND schedule.league_id = ?',
-			'DELETE FROM activity_log USING activity_log,schedule WHERE activity_log.primary_id = schedule.game_id AND (type = "email_score_mismatch" OR type = "email_score_reminder") AND schedule.league_id = ?',
 			'DELETE FROM spirit_entry USING spirit_entry,schedule WHERE spirit_entry.gid = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM gameslot USING gameslot, schedule WHERE gameslot.game_id = schedule.game_id AND schedule.league_id = ?',
 			'DELETE FROM league_gameslot_availability WHERE league_id = ?',
