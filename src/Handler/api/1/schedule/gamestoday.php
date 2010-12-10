@@ -21,7 +21,7 @@ class api_1_schedule_gamestoday extends Handler
 		list($game_count, $distinct_end_times) = $sth->fetch();
 
 		$this->smarty->assign('game_count', $game_count);
-		$this->smarty->assign('timestamp', $now);
+		$this->smarty->assign('date', strftime('%Y/%m/%d', $now));
 
 		/* Also, take a stab at guessing timecap.  Since only summer usually
 		 * has a "default" timecap, we will only display for that season.
