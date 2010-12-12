@@ -86,12 +86,12 @@ class registration_downloadall extends Handler
 				$row['deposit_date_paid'],
 				$row['deposit_paid_amount'],
 				$row['deposit_paid_by'],
-				$row['deposit_method'],
+				$row['deposit_payment_method'],
 
 				$row['balance_date_paid'],
 				$row['balance_paid_amount'],
 				$row['balance_paid_by'],
-				$row['balance_method']
+				$row['balance_payment_method']
 			));
 		}
 
