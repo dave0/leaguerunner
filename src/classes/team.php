@@ -15,6 +15,7 @@ class Team extends LeaguerunnerObject
 	var $roster;
 	var $roster_count;
 	var $preferred_ratio;
+	var $notes;
 
 	public static $roster_positions = array(
 		'player'            => "regular player",
@@ -710,5 +711,15 @@ class Team extends LeaguerunnerObject
 		return $teams;
 	}
 
+	function get_notes ( )
+	{
+		if( ! $this->notes ) {
+			$this->notes = Note::load_many( array( 'assoc_type' => 'team', 'assoc_id' => $this->team_id ) );
+			foreach($this->notes as $n) {
+				$n->load_creator();
+			}
+		}
+		return $this->notes;
+	}
 }
 ?>

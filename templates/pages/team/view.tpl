@@ -45,6 +45,28 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
         <tr><th colspan="3">Average Skill Rating</th><th></th>{if $display_shirts}<th></th>{/if}<th></th></tr>
     </tfoot>
 </table>
+<table>
+  {if session_perm("person/view/`$person->user_id`/notes")}
+  <tr>
+    <td>Notes:</td>
+    <td>
+      <table class="baretable">
+	{foreach item=n from=$team->get_notes()}
+        <tr>
+	   <td><a href="{lr_url path="note/view/`$n->id`"}">{$n->created}</a></td><td>{$n->note}</td>
+        </tr>
+        <tr>
+           <td></td>
+	   <td>(note added by {$n->creator->fullname} )</td>
+	</tr>
+	{foreachelse}
+	<tr><td colspan='4'>No notes</td></tr>
+	{/foreach}
+      </table>
+    </td>
+  </tr>
+  {/if}
+</table>
 <script type="text/javascript">
 {literal}
 var positionSort = {

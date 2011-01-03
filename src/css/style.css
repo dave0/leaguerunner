@@ -20,6 +20,10 @@ fieldset fieldset {
 	font-weight:    bold;
 }
 
+.baretable td:first-child {
+	font-weight:	normal;
+}
+
 .listtable th {
 	background-color:    black;
 	color:               white;

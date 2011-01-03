@@ -199,6 +199,27 @@
   </tr>
   {/if}
 
+  {if session_perm("person/view/`$person->user_id`/notes")}
+  <tr>
+    <td>Notes:</td>
+    <td>
+      <table class="baretable">
+	{foreach item=n from=$person->get_notes()}
+        <tr>
+	   <td><a href="{lr_url path="note/view/`$n->id`"}">{$n->created}</a></td><td>{$n->note}</td>
+        </tr>
+        <tr>
+           <td></td>
+	   <td>(note added by {$n->creator->fullname} )</td>
+	</tr>
+	{foreachelse}
+	<tr><td colspan='4'>No notes</td></tr>
+	{/foreach}
+      </table>
+    </td>
+  </tr>
+  {/if}
+
   {if session_perm("registration/history/`$person->user_id`")}
   <tr>
     <td>Registration:</td>

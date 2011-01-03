@@ -40,6 +40,8 @@ class Person extends LeaguerunnerObject
 
         var $is_a_coordinator;
 
+	var $notes;
+
 	/*
 	 * Load related tables, and perform some post-load cleanups
 	 */
@@ -571,6 +573,17 @@ class Person extends LeaguerunnerObject
 		$url .= md5( strtolower( trim( $this->email ) ) );
 		$url .= "?s=$s&d=$d&r=$r";
 		return $url;
+	}
+
+	function get_notes ( )
+	{
+		if( ! $this->notes ) {
+			$this->notes = Note::load_many( array( 'assoc_type' => 'person', 'assoc_id' => $this->user_id ) );
+			foreach($this->notes as $n) {
+				$n->load_creator();
+			}
+		}
+		return $this->notes;
 	}
 
 }

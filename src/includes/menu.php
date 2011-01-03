@@ -320,6 +320,8 @@ function menu_build( )
 			menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));
 		}
 	}
+
+	menu_add_child('_root','note','Notes');
 }
 
 /**
@@ -398,6 +400,10 @@ function person_add_to_menu( &$person )
 		if($lr_session->has_permission('person', 'password_reset') ) {
 			menu_add_child($person->fullname, "$person->fullname/forgotpassword", 'send new password', array( 'link' => "person/forgotpassword?edit[username]=$person->username&amp;edit[step]=perform"));
 		}
+
+		if($lr_session->has_permission('person', 'notes') ) {
+			menu_add_child($person->fullname, "$person->fullname/addnote", 'add note', array( 'link' => "person/addnote/$person->user_id"));
+		}
 	}
 }
 
@@ -461,6 +467,10 @@ function team_add_to_menu( &$team )
 
 	if( $lr_session->has_permission('team','move',$team->team_id)) {
 		menu_add_child($menu_name, "$menu_name/move",'move team', array('weight' => 1, 'link' => "team/move/$team->team_id"));
+	}
+
+	if($lr_session->has_permission('team', 'notes') ) {
+		menu_add_child($menu_name, "$menu_name/addnote", 'add note', array( 'link' => "team/addnote/$team->team_id"));
 	}
 }
 
@@ -531,6 +541,17 @@ function game_add_to_menu( &$league, &$game )
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/edit", "edit game", array('link' => "game/edit/$game->game_id"));
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/delete", "delete game", array('link' => "game/delete/$game->game_id"));
 		menu_add_child("$league->fullname/schedule/$game->game_id", "$league->fullname/schedule/$game->game_id/removeresults", "remove results", array('link' => "game/removeresults/$game->game_id"));
+	}
+}
+
+function note_add_to_menu( &$note )
+{
+	global $lr_session;
+	menu_add_child("note", "note/$note->id", "Note $note->id", array('link' => "note/view/$note->id"));
+
+	if( $lr_session->has_permission('note','edit', $note->id) ) {
+		menu_add_child("note/$note->id", "$note->id/edit", "edit note", array('link' => "note/edit/$note->id"));
+		menu_add_child("note/$note->id", "$note->id/delete", "delete note", array('link' => "note/delete/$note->id"));
 	}
 }
 

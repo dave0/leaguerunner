@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 26;
+my $LATEST_SCHEMA = 27;
 
 my @TABLES = (
 	'person' => [q{
@@ -381,6 +381,48 @@ my @TABLES = (
 			report_text       TEXT
 		);
 	}],
+
+	'notes' => [
+		q{
+			CREATE TABLE note (
+				id	   INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+				creator_id INTEGER NOT NULL,
+				assoc_id   INTEGER,
+				assoc_type ENUM('person', 'team'),
+				note	   TEXT,
+				created    TIMESTAMP NOT NULL DEFAULT NOW(),
+				edited     TIMESTAMP
+			);
+		},
+		q{
+			CREATE VIEW person_note AS
+				SELECT
+					n.assoc_id AS person_id,
+					n.id AS id,
+					n.note AS note,
+					n.creator_id AS creator_id,
+					n.created AS created,
+					n.edited AS edited
+				FROM note n
+				WHERE
+					n.assoc_type = 'person'
+			;
+		},
+		q{
+			CREATE VIEW team_note AS
+				SELECT
+					n.assoc_id AS team_id,
+					n.id AS id,
+					n.note AS note,
+					n.creator_id AS creator_id,
+					n.created AS created,
+					n.edited AS edited
+				FROM note n
+				WHERE
+					n.assoc_type = 'team'
+			;
+		},
+	],
 );
 
 my @INITIAL_DATA = (
@@ -1789,6 +1831,58 @@ sub upgrade_25_to_26
 				'score_reminder_body'
 			)
 		}],
+	]);
+}
+
+sub upgrade_26_to_27
+{
+	my ($self) = @_;
+
+	my %data = (
+	);
+
+	$self->_run_sql([
+		notes_feature => [
+		q{
+			CREATE TABLE note (
+				id	   INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+				creator_id INTEGER NOT NULL,
+				assoc_id   INTEGER,
+				assoc_type ENUM('person', 'team'),
+				note	   TEXT,
+				created    TIMESTAMP NOT NULL DEFAULT NOW(),
+				edited     TIMESTAMP
+			);
+		},
+		q{
+			CREATE VIEW person_note AS
+				SELECT
+					n.assoc_id AS person_id,
+					n.id AS id,
+					n.note AS note,
+					n.creator_id AS creator_id,
+					n.created AS created,
+					n.edited AS edited
+				FROM note n
+				WHERE
+					n.assoc_type = 'person'
+			;
+		},
+		q{
+			CREATE VIEW team_note AS
+				SELECT
+					n.assoc_id AS team_id,
+					n.id AS id,
+					n.note AS note,
+					n.creator_id AS creator_id,
+					n.created AS created,
+					n.edited AS edited
+				FROM note n
+				WHERE
+					n.assoc_type = 'team'
+			;
+		},
+		],
 	]);
 }
 
