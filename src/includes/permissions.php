@@ -220,11 +220,19 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 			if( ! ($user && $user->is_active()) ) {
 				return false;
 			}
+
 			if( is_numeric( $arg1 )) {
 				if( $user->user_id == $arg1 ) {
 					// Viewing yourself allowed, most fields
 					if( $arg2 ) {
 						return( in_array( $arg2, $self_view_fields ) );
+					} else {
+						return true;
+					}
+				} elseif ( ! $user->is_player() ) {
+					// Name only
+					if( $arg2 ) {
+						return( in_array( $arg2, array('name') ) );
 					} else {
 						return true;
 					}

@@ -48,7 +48,7 @@ class team_view extends TeamHandler
 			$this->smarty->assign('display_roster_note', true);
 		}
 
-		return $rc;
+		return true;
 	}
 }
 ?>

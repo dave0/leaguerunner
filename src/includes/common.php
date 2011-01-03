@@ -929,25 +929,6 @@ function getShirtSizes()
 }
 
 /**
- * Helper fn to return full descriptions for numeric skill levels
- */
-function getOptionsForSkill()
-{
-	return array(
-		"10" => "10: High calibre competitive player (team was top 4 at nationals)",
-		"9" => "9: Medium calibre competitive player",
-		"8" => "8: Lower calibre competitive player",
-		"7" => "7: Top tier Mon/Wed league player, minimal/no comp experience",
-		"6" => "6: Mid to Upper tier Mon/Wed OR Top Tier Tue/Thu league player",
-		"5" => "5: Mid tier league player",
-		"4" => "4: Key player lower tier team, minimal/no higher tier experience",
-		"3" => "3: Lower tier league player",
-		"2" => "2: Beginner, minimal experience but athletic with sports background",
-		"1" => "1: Absolute Beginner",
-	);
-}
-
-/**
  * Helper fn to set up allowed values for an option list.
  * Use in preference to get_numeric_options, as that fn is deprecated
  */
