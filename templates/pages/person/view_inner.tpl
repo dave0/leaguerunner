@@ -1,4 +1,4 @@
-<img align="right" src="{$person->get_gravatar()}" width="80" height="80" />
+<img align="right" src="{$person->get_gravatar(120)}" width="120" height="120" />
 <div class='pairtable'><table>
   <tr>
     <td>Name:</td>

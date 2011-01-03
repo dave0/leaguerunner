@@ -29,7 +29,7 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
     <tbody>
     {foreach from=$team->roster item=p}
 	<tr>
-	  <td><a href="{lr_url path="person/view/`$p->id`"}">{$p->fullname}</a>
+	  <td><img align="left" src="{$p->get_gravatar(16)}" width="16" height="16" /><a href="{lr_url path="person/view/`$p->id`"}"><a href="{lr_url path="person/view/`$p->id`"}">{$p->fullname}</a>
 	    {if $p->roster_conflict}<div class='roster_conflict'>(roster conflict)</div>{/if}
 	    {if $p->player_status == "inactive"}<div class='roster_conflict'>(account inactive)</div>{/if}
 	  </td>
