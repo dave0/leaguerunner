@@ -1,8 +1,8 @@
 <?php
 
-require_once('Handler/person/view.php');
+require_once('Handler/PersonHandler.php');
 
-class person_delete extends person_view
+class person_delete extends PersonHandler
 {
 	function has_permission()
 	{

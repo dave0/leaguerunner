@@ -1,8 +1,8 @@
 <?php
 
-require_once('Handler/person/view.php');
+require_once('Handler/PersonHandler.php');
 
-class person_invalidemail extends person_view
+class person_invalidemail extends PersonHandler
 {
 	function has_permission()
 	{
