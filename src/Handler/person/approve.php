@@ -20,46 +20,24 @@ class person_approve extends person_view
 			/* Actually do the approval on the 'perform' step */
 			$this->perform( $edit );
 			local_redirect("person/listnew");
-		} 
+		}
 
 		if($this->person->status != 'new') {
 			error_exit("That account has already been approved");
 		}
+		parent::process();
 
-		$dispositions = array(
-			'---'	          => '- Select One -',
-			'approve_player'  => 'Approved as Player',
-			'approve_visitor' => 'Approved as visitor account',
-			'delete' 		  => 'Deleted silently',
-		);
+		$this->template_name = 'pages/person/approve.tpl';
 
 		$sth = $this->person->find_duplicates();
 
-		$duplicates = '';
+		$duplicates = array();
 		while( $user = $sth->fetchObject('Person', array(LOAD_OBJECT_ONLY)) ) {
-			$duplicates .= "<li>$user->firstname $user->lastname";
-			$duplicates .= "[&nbsp;" . l("view", "person/view/$user->user_id") . "&nbsp;]";
-
-			$dispositions["delete_duplicate:$user->user_id"] = "Deleted as duplicate of $user->firstname $user->lastname ($user->user_id)";
-			$dispositions["merge_duplicate:$user->user_id"] = "Merged backwards into $user->firstname $user->lastname ($user->user_id)";
+			$duplicates[] = $user;
 		}
+		$this->smarty->assign('duplicates', $duplicates);
 
-		$approval_form = 
-			form_hidden('edit[step]', 'perform')
-			. form_select('This user should be', 'edit[disposition]', '---', $dispositions)
-			. form_submit("Submit");
-
-
-		if( strlen($duplicates) > 0 ) {
-			$duplicates = para("<div class='warning'><br>The following users may be duplicates of this account:<ul>\n"
-				. $duplicates
-				. "</ul></div>");
-		}
-
-		return 
-			$duplicates
-			. form( para($approval_form) )
-			. $this->generateView($this->person);
+		return true;
 	}
 
 	function perform ( $edit )
