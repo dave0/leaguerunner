@@ -155,6 +155,13 @@
   </tr>
   {/if}
 
+  {if session_perm("person/view/`$person->user_id`/created")}
+  <tr>
+    <td>Account Created:</td>
+    <td>{$person->created|default:'Unknown'}</td>
+  </tr>
+  {/if}
+
   {if session_perm("person/view/`$person->user_id`/last_login")}
   <tr>
     <td>Last Login:</td>

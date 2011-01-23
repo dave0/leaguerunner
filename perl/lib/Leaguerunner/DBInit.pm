@@ -47,6 +47,8 @@ my @TABLES = (
 			survey_completed     ENUM('Y','N') DEFAULT 'N',
 			willing_to_volunteer ENUM('Y','N') DEFAULT 'N',
 			contact_for_feedback ENUM('Y','N') DEFAULT 'Y',
+			show_gravatar        BOOL DEFAULT false,
+			created              timestamp NOT NULL DEFAULT NOW(),
 			last_login           datetime,
 			client_ip            varchar(50)
 		);
@@ -1883,6 +1885,25 @@ sub upgrade_26_to_27
 			;
 		},
 		],
+
+		person_table_cleanups => [
+
+		# Allow gravatar to be enabled/disabled
+		q{
+			ALTER TABLE person
+				ADD COLUMN show_gravatar BOOL DEFAULT false
+				AFTER contact_for_feedback
+		},
+
+		# Add a creation-date column
+		q{
+			ALTER TABLE person
+				ADD COLUMN created timestamp NOT NULL DEFAULT NOW()
+				AFTER show_gravatar
+		},
+		],
+
+
 		waitlist_payment_status => [
 		q{
 			ALTER TABLE registrations

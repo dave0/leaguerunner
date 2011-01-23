@@ -82,6 +82,14 @@ The following errors were encountered in your submission:
 		<option value="Female">Female</option>
 	</select>
 	<div class="description">Select your gender</div>
+
+    <label for="edit[show_gravatar]">Show Gravatar image for your account?</label>
+	<select name="edit[show_gravatar]">
+		<option value="">---</option>
+		<option value="1">Yes</option>
+		<option value="0">No</option>
+	</select>
+	<div class="description">You can have an image (G-rated, please!) shown on your account if you enable this setting and then create a <a href="http://www.gravatar.com">gravatar.com</a> account using the email address you've associated with your {$app_org_short_name} account.</div>
 </fieldset>
 
 <fieldset>

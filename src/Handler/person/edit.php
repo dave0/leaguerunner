@@ -160,6 +160,7 @@ class person_edit extends PersonHandler
 
 		$person->set('willing_to_volunteer', $edit['willing_to_volunteer']);
 		$person->set('contact_for_feedback', $edit['contact_for_feedback']);
+		$person->set('show_gravatar', $edit['show_gravatar']);
 
 		if( ! $person->save() ) {
 			error_exit("Internal error: couldn't save changes");

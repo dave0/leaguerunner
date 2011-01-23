@@ -35,6 +35,7 @@ class Person extends LeaguerunnerObject
 	var $survey_completed;
 	var $willing_to_volunteer;
 	var $contact_for_feedback;
+	var $show_gravatar;
 	var $last_login;
 	var $client_ip;
 
@@ -570,7 +571,11 @@ class Person extends LeaguerunnerObject
 	*/
 	function get_gravatar( $s = 80, $d = 'mm', $r = 'pg' ) {
 		$url = 'http://www.gravatar.com/avatar/';
-		$url .= md5( strtolower( trim( $this->email ) ) );
+		if( $this->show_gravatar ) {
+			$url .= md5( strtolower( trim( $this->email ) ) );
+		} else {
+			$url .= '00000000000000000000000000000000';
+		}
 		$url .= "?s=$s&d=$d&r=$r";
 		return $url;
 	}
