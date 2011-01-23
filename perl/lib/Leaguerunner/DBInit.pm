@@ -334,7 +334,7 @@ my @TABLES = (
 			registration_id int(10) unsigned NOT NULL default '0',
 			`time` timestamp NULL default 0,
 			modified timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			payment enum('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded') NOT NULL default 'Unpaid',
+			payment ENUM('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded', 'Wait List') NOT NULL default 'Unpaid',
 			total_amount decimal(7,2) default 0.0,
 			notes blob,
 			PRIMARY KEY  (order_id),
@@ -1883,6 +1883,12 @@ sub upgrade_26_to_27
 			;
 		},
 		],
+		waitlist_payment_status => [
+		q{
+			ALTER TABLE registrations
+				MODIFY  payment ENUM('Unpaid', 'Pending', 'Deposit Paid', 'Paid', 'Refunded', 'Wait List') NOT NULL default 'Unpaid'
+		},
+		]
 	]);
 }
 
