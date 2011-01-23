@@ -23,7 +23,7 @@
     <td>${$reg->total_amount|string_format:"%.2f"}</td>
   </tr>
   <tr>
-    <td>Payment Status:</td>
+    <td>Registration Status:</td>
     <td>{$reg->payment}</td>
   </tr>
   <tr>

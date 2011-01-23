@@ -6,7 +6,7 @@
       <th>Order#</th>
       <th>Player</th>
       <th>Last Modified</th>
-      <th>Payment Status</th>
+      <th>Registration Status</th>
     </tr>
   </thead>
 {foreach item=u from=$unpaid}

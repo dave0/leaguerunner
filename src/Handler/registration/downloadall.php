@@ -24,7 +24,7 @@ class registration_downloadall extends Handler
 			'Email',
 			'Date Created',
 			'Date Modified',
-			'Payment Status',
+			'Status',
 			'Total Amount',
 
 			'Deposit Date',
@@ -46,7 +46,7 @@ class registration_downloadall extends Handler
 					p.firstname,
 					p.lastname,
 					p.email,
-					r.payment AS payment_status,
+					r.payment,
 					r.total_amount,
 					DATE_ADD(r.time, INTERVAL ? MINUTE)     as reg_created,
 					DATE_ADD(r.modified, INTERVAL ? MINUTE) as reg_modified,
@@ -80,7 +80,7 @@ class registration_downloadall extends Handler
 				$row['email'],
 				$row['reg_created'],
 				$row['reg_modified'],
-				$row['payment_status'],
+				$row['payment'],
 				$row['total_amount'],
 
 				$row['deposit_date_paid'],

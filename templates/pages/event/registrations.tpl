@@ -51,7 +51,7 @@
         <th>First Name</th>
         <th>Last Name</th>
         <th>Date Registered</th>
-        <th>Payment Status</th>
+        <th>Registration Status</th>
       </tr>
     </thead>
     <tbody>

@@ -30,7 +30,7 @@ class event_download extends EventHandler
 			'Date Registered',
 			'Date Modified',
 			'Total Amount',
-			'Payment Status',
+			'Status',
 
 			'Deposit Date',
 			'Deposit Amount',

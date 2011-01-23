@@ -54,7 +54,7 @@ class registration_edit extends RegistrationHandler
 		$form = '<div class="pairtable">' . table(NULL, $noneditable) . '</div>';
 		$pay_opts = getOptionsFromEnum('registrations', 'payment');
 		array_shift($pay_opts);
-		$form .= form_select('Payment Status', 'edit[payment]', $this->registration->payment, $pay_opts);
+		$form .= form_select('Registration Status', 'edit[payment]', $this->registration->payment, $pay_opts);
 		$form .= form_textarea('Notes', 'edit[notes]', $this->registration->notes, 45, 5);
 		$output .= form_group('Registration details', $form);
 
@@ -93,7 +93,7 @@ class registration_edit extends RegistrationHandler
 		$output = para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
 		$output .= form_hidden('edit[step]', 'submit');
 		$fields = array(
-			'Payment Status' => 'payment',
+			'Registration Status' => 'payment',
 			'Notes' => 'notes'
 		);
 
