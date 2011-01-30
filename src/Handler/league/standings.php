@@ -79,6 +79,7 @@ class league_standings extends LeagueHandler
 		$this->smarty->assign('league', $this->league);
 		$this->smarty->assign('teams', $teams);
 		$this->smarty->assign('highlight_team', $this->teamid);
+		$this->smarty->assign('display_round', ($current_round > 1));
 
 		return true;
 	}
