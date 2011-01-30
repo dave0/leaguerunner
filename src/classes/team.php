@@ -113,7 +113,8 @@ class Team extends LeaguerunnerObject
 				p.skill_level,
 				p.status AS player_status,
 				r.status,
-				r.date_joined
+				r.date_joined,
+				p.show_gravatar
 			FROM
 				teamroster r
 				LEFT JOIN person p ON (r.player_id = p.user_id)
