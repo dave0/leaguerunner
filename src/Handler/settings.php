@@ -207,6 +207,8 @@ END;
 
 	$group .= form_textarea('Text of offline payment directions', 'edit[offline_payment_text]', variable_get('offline_payment_text', $offline), 70, 10, 'Customize the text of your offline payment policy. Available variables are: %order_num');
 
+	$group .= form_textarea('Text for "Partner Info" section', 'edit[partner_info_text]', variable_get('partner_info_text', ''), 70, 10, 'Customize the text for the "Partner Info" section of the registration results.');
+
 	$output = form_group('Registration configuration', $group);
 
 	return $output;

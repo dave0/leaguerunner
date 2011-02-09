@@ -13,4 +13,11 @@
 <p>
 {$refund_policy_text}
 </p>
+{if $partner_info_text}
+<p></p>
+<h2>Partner Info</h2>
+<p>
+{$partner_info_text}
+</p>
+{/if}
 {include file=footer.tpl}

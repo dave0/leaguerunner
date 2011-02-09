@@ -161,6 +161,7 @@ class event_register extends EventHandler
 			)
 		);
 		$this->smarty->assign('refund_policy_text', variable_get('refund_policy_text', ''));
+		$this->smarty->assign('partner_info_text', variable_get('partner_info_text', ''));
 		return true;
 	}
 }
