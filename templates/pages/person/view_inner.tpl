@@ -206,6 +206,13 @@
   </tr>
   {/if}
 
+  {if session_perm("registration/history/`$person->user_id`")}
+  <tr>
+    <td>Registration:</td>
+    <td><a href="{lr_url path="registration/history/`$person->user_id`"}">view registration history</a></td>
+  </tr>
+  {/if}
+
   {if session_perm("person/view/`$person->user_id`/notes")}
   <tr>
     <td>Notes:</td>
@@ -227,12 +234,6 @@
   </tr>
   {/if}
 
-  {if session_perm("registration/history/`$person->user_id`")}
-  <tr>
-    <td>Registration:</td>
-    <td><a href="{lr_url path="registration/history/`$person->user_id`"}">view registration history</a></td>
-  </tr>
-  {/if}
 
 
 </table></div>
