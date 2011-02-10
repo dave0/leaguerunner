@@ -26,12 +26,8 @@ The following errors were encountered in your submission:
 <label for="edit[status]">Status</label>
 	{html_options id="edit[status]" name="edit[status]" options=$status}<div class="description">Teams in closed leagues are locked and can be viewed only in historical modes</div>
 
-<label for="edit[year]">Year</label>
-	<input id="edit[year]" type="text" maxlength="4" name="edit[year]" size="4" value="2010" />
-	<div class="description">Year of play.</div>
-
 <label for="edit[season]">Season</label>
-	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'none' for administrative groupings and comp teams.</div>
+	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'Ongoing' for administrative groupings and comp teams.</div>
 
 <label for="edit[day][]">Day(s) of play</label>
 	<select name="edit[day][]" multiple >{html_options options=$days}</select>

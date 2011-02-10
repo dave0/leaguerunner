@@ -1591,8 +1591,10 @@ class League extends LeaguerunnerObject
 		$sth = $dbh->prepare("SELECT
 			l.*,
 			DATE(l.roster_deadline) AS roster_deadline,
+			s.display_name AS season_name,
 			1 as _in_database
 		FROM league l
+			LEFT JOIN season s ON (s.id = l.season)
 		WHERE " . implode(' AND ',$query) . $order);
 		$sth->execute($params);
 		return $sth;

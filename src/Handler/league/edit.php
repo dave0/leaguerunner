@@ -21,7 +21,9 @@ class league_edit extends LeagueHandler
 		$this->template_name = 'pages/league/edit.tpl';
 
 		$this->smarty->assign('status',  getOptionsFromEnum('league','status') );
-		$this->smarty->assign('seasons', getOptionsFromEnum('league','season') );
+		$this->smarty->assign('seasons', getOptionsFromQuery(
+			"SELECT id AS theKey, display_name AS theValue FROM season ORDER BY year, id")
+		);
 		$this->smarty->assign('days',    getOptionsFromEnum('league','day') );
 		$this->smarty->assign('ratios',  getOptionsFromEnum('league','ratio') );
 		$this->smarty->assign('schedule_types',  getOptionsFromEnum('league','schedule_type') );
@@ -66,7 +68,6 @@ class league_edit extends LeagueHandler
 		}
 		$this->league->set('day', $edit['day']);
 
-		$this->league->set('year', $edit['year']);
 		$this->league->set('season', $edit['season']);
 		$this->league->set('roster_deadline', $edit['roster_deadline'] );
 		$this->league->set('tier', $edit['tier']);
