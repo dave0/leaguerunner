@@ -443,19 +443,6 @@ function form_select($title, $name, $value, $options, $description = 0, $extra =
 	}
 }
 
-function form_select_date($title,$prefix,$value, $startYear, $endYear, $description)
-{
-	list($value_year, $value_month, $value_day) = explode("-", $value);
-	$allSelect = __form_select($prefix . '[year]', $value_year,
-		getOptionsFromRange($startYear, $endYear, 'reverse'));
-	$allSelect .= __form_select($prefix . '[month]', $value_month,
-		getOptionsFromRange('1','12'));
-	$allSelect .= __form_select($prefix . '[day]', $value_day,
-		getOptionsFromRange('1','31'));
-
-	return form_item($title, $allSelect, $description);
-}
-
 function form_radios($title, $name, $value, $options, $description = 0)
 {
 	if (count($options) > 0) {
