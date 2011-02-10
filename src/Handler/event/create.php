@@ -4,6 +4,7 @@ class event_create extends event_edit
 {
 	function __construct ( )
 	{
+		$this->title = "Create Event";
 	}
 
 	function has_permission()
@@ -14,23 +15,8 @@ class event_create extends event_edit
 
 	function process ()
 	{
-		$edit = $_POST['edit'];
-		$this->title = 'Create Event';
-
-		switch($edit['step']) {
-			case 'confirm':
-				$rc = $this->generateConfirm($edit);
-				break;
-			case 'perform':
-				$this->event = new Event;
-				$this->perform($this->event, $edit);
-				local_redirect(url("event/view/" . $this->event->registration_id));
-				break;
-			default:
-				$edit = array();
-				$rc = $this->generateForm($edit);
-		}
-		return $rc;
+		$this->event = new Event;
+		return parent::process();
 	}
 }
 
