@@ -13,12 +13,12 @@ class league_list extends Handler
 
 		$current_season_id = $_GET['season'];
 		if( !$current_season_id ) {
-			$current_season_id = strtolower(variable_get('current_season', 'ongoing'));
+			$current_season_id = strtolower(variable_get('current_season', 1 ));
 		}
 
 		$current_season = Season::load(array( 'id' => $current_season_id ));
 		if( !$current_season) {
-			$current_season_id = 'ongoing';
+			$current_season_id = 1;
 			$current_season = Season::load(array( 'id' => $current_season_id ));
 		}
 
@@ -34,8 +34,8 @@ class league_list extends Handler
 		$this->smarty->assign('current_season', $current_season);
 		$this->smarty->assign('seasons', $seasons);
 
-		$leagues = League::load_many( array( 'season' => $current_season_id, '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
-		$this->smarty->assign('leagues', $leagues);
+		$current_season->load_leagues();
+		$this->smarty->assign('leagues', $current_season->leagues);
 
 		return true;
 	}

@@ -12,14 +12,10 @@ class League extends LeaguerunnerObject
 		$this->teams = array();
 
 		/* set derived attributes */
-		$year = '';
-		if($this->year) { 
-			$year = $this->year;
-		}
 		if($this->tier) {
-			$this->fullname = sprintf("$this->name Tier %02d $year", $this->tier);
+			$this->fullname = sprintf("$this->name Tier %02d", $this->tier);
 		} else {
-			$this->fullname = "$this->name $year";
+			$this->fullname = $this->name;
 		}
 
 		if( $load_mode == LOAD_OBJECT_ONLY ) {

@@ -148,7 +148,7 @@ class Team extends LeaguerunnerObject
 			$sth = $dbh->prepare("SELECT COUNT(*) from
 					league l, leagueteams t, teamroster r
 				WHERE
-					l.year = ? AND l.season = ? AND l.day = ?
+					AND l.season = ? AND l.day = ?
 					AND r.status != 'substitute'
 					AND l.schedule_type != 'none'
 					AND l.league_id = t.league_id
@@ -156,7 +156,6 @@ class Team extends LeaguerunnerObject
 					AND t.team_id = r.team_id
 					AND r.player_id = ?");
 			$sth->execute(array(
-				$this->league_year,
 				$this->league_season,
 				$this->league_day,
 				$player->id
@@ -683,7 +682,6 @@ class Team extends LeaguerunnerObject
 			l.tier AS league_tier,
 			l.day AS league_day, 
 			l.season AS league_season, 
-			l.year AS league_year, 
 			l.league_id,
 			(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + $local_adjust_secs) AS roster_deadline
 			FROM team t
