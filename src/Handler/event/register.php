@@ -10,6 +10,7 @@ class event_register extends EventHandler
 
 	function process ()
 	{
+		global $CONFIG;
 		$this->title = "Registration &raquo; {$this->event->name}";
 
 		$edit = $_POST['edit'];
@@ -18,7 +19,9 @@ class event_register extends EventHandler
 			default:
 				// If we have a form, prompt user with it.
 				if( $this->formbuilder ) {
-					return $this->generateForm();
+					$this->template_name = 'pages/event/register/form.tpl';
+					$this->smarty->assign('formbuilder_editable', $this->formbuilder->render_editable (false));
+					return true;
 				}
 
 				// Otherwise, fall through to register automatically.
@@ -34,20 +37,8 @@ class event_register extends EventHandler
 		return $rc;
 	}
 
-	function generateForm ()
-	{
-		global $CONFIG;
-
-		$this->template_name = 'pages/event/register/form.tpl';
-		$this->smarty->assign('formbuilder_editable', $this->formbuilder->render_editable (false));
-
-		return true;
-	}
-
 	function generateConfirm()
 	{
-		global $lr_session;
-
 		if (! $this->formbuilder ) {
 			error_exit( 'Error: No event survey found!' );
 		}
@@ -142,8 +133,6 @@ class event_register extends EventHandler
 	 */
 	function generatePay()
 	{
-		global $lr_session;
-
 		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
 
 		if( $this->event->cost == 0 ) {
@@ -165,4 +154,4 @@ class event_register extends EventHandler
 		return true;
 	}
 }
-
+?>
