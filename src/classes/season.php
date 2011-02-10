@@ -69,6 +69,50 @@ class Season extends LeaguerunnerObject
 		return true;
 	}
 
+	function save ()
+	{
+		global $dbh;
+
+		if( ! $this->_in_database ) {
+			if( ! $this->create() ) {
+				error_exit("Couldn't create season");
+			}
+		}
+
+		if( count($this->_modified_fields) > 0 ) {
+			$fields      = array();
+			$fields_data = array();
+
+			foreach ( $this->_modified_fields as $key => $value) {
+				$fields[] = "$key = ?";
+				if( empty($this->{$key}) ) {
+					$fields_data[] = null;
+				} else {
+					$fields_data[] = $this->{$key};
+				}
+			}
+
+			if(count($fields_data) != count($fields)) {
+				error_exit('Internal error: Incorrect number of fields set');
+			}
+
+			$fields_data[] = $this->id;
+
+			$sth = $dbh->prepare( 'UPDATE season SET '
+				. join(', ', $fields)
+				. ' WHERE id = ?');
+
+			$sth->execute( $fields_data );
+
+			if($sth->rowCount() < 1) {
+				$err = $sth->errorInfo();
+				error_exit("Error: database not updated: $err[2]");
+			}
+		}
+
+		unset($this->_modified_fields);
+		return true;
+	}
 }
 
 

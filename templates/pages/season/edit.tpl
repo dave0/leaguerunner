@@ -1,0 +1,29 @@
+{include file=header.tpl}
+<h1>{$title}</h1>
+<form method="POST">
+{fill_form_values}
+{if $formErrors}
+<p>
+The following errors were encountered in your submission:
+</p>
+<ul class="error"></ul>
+{/if}
+
+<label for="edit[display_name]">Display Name</label>
+	<input id="edit[display_name]" type="text" maxlength="200" name="edit[display_name]" size="35" value="" />
+	<div class="description">The name to use for this season</div>
+
+<label for="edit[year]">Year</label>
+	<input id="edit[year]" type="text" maxlength="4" name="edit[year]" size="4" value="2010" />
+	<div class="description">Year of play.</div>
+
+<label for="edit[season]">Season</label>
+	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'none' for administrative groupings and comp teams.</div>
+
+{/fill_form_values}
+
+<input type="hidden" name="edit[step]" value="perform" />
+<input type="submit" name="submit" value="submit" />
+<input type="reset" name="reset" value="reset" />
+</form>
+{include file=footer.tpl}
