@@ -16,8 +16,6 @@ class league_create extends league_edit
 
 	function process ()
 	{
-		$id = -1;
-
 		$this->league = new League;
 
 		return parent::process();
