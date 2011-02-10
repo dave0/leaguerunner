@@ -212,12 +212,23 @@ function menu_build( )
 	menu_add_child('_root','logout','Log Out', array('link' => 'logout', 'weight' => '20'));
 	menu_add_child('_root','home','Home', array('link' => 'home', 'weight' => '-20'));
 
+	menu_add_child('_root', 'season', 'Seasons');
+	menu_add_child('season','season/list','list seasons', array('link' => 'season/list') );
+
 	if($lr_session->is_admin()) {
+		# Notes
+		menu_add_child('_root','note','Notes');
+
 		# Handler/settings.php
 		menu_add_child('_root','settings','Settings');
 		menu_add_child('settings','settings/global','global settings', array('link' => 'settings/global'));
 		menu_add_child('settings','settings/feature','feature settings', array('link' => 'settings/feature'));
 		menu_add_child('settings','settings/rss','rss settings', array('link' => 'settings/rss'));
+
+		# Seasons
+		if($lr_session->has_permission('season','create') ) {
+			menu_add_child('season', 'season/create', "create season", array('link' => "season/create", 'weight' => 1));
+		}
 
 		# Handler/statistics.php
 		menu_add_child('_root','statistics','Statistics');
@@ -320,8 +331,6 @@ function menu_build( )
 			menu_add_child('statistics', 'statistics/team', 'team statistics', array('link' => 'statistics/team'));
 		}
 	}
-
-	menu_add_child('_root','note','Notes');
 }
 
 /**
@@ -552,6 +561,17 @@ function note_add_to_menu( &$note )
 	if( $lr_session->has_permission('note','edit', $note->id) ) {
 		menu_add_child("note/$note->id", "$note->id/edit", "edit note", array('link' => "note/edit/$note->id"));
 		menu_add_child("note/$note->id", "$note->id/delete", "delete note", array('link' => "note/delete/$note->id"));
+	}
+}
+
+function season_add_to_menu( &$season )
+{
+	global $lr_session;
+	menu_add_child("season", "season/$season->id", $season->display_name, array('link' => "season/view/$season->id"));
+
+	if( $lr_session->has_permission('season','edit', $season->id) ) {
+		menu_add_child("season/$season->id", "$season->id/edit", "edit season", array('link' => "season/edit/$season->id"));
+		menu_add_child("season/$season->id", "$season->id/delete", "delete season", array('link' => "season/delete/$season->id"));
 	}
 }
 
