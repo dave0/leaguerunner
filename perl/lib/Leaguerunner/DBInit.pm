@@ -324,6 +324,7 @@ my @TABLES = (
 			name varchar(100) default NULL,
 			description blob,
 			type enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
+			season_id INTEGER DEFAULT 1,
 			cost decimal(7,2) default NULL,
 			gst decimal(7,2) default NULL,
 			pst decimal(7,2) default NULL,
@@ -1993,6 +1994,12 @@ sub upgrade_27_to_28
 			ALTER TABLE league
 				DROP COLUMN old_season,
 				DROP COLUMN year
+		},
+
+		# Add season column to registration events
+		q{
+			ALTER TABLE registration_events
+				ADD COLUMN season_id INTEGER DEFAULT 1 AFTER type;
 		},
 		],
 	]);
