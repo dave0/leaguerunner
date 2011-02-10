@@ -10,6 +10,7 @@
 			"bPaginate": false,
 			"bFilter": false,
 			"bInfo": false,
+			"aaSorting": [[ 1, "asc"]],
 			"aoColumns": [
 				{ "sType" : "html" },
 				{ "sType" : "html" },
