@@ -38,16 +38,19 @@
 </table>
 </div>
 <p></p>
-{if $allow_register}
 <h2>Registration</h2>
-<b>You may <a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">Register now!</a></b>
+<b>You may now:</b>
+<ul>
+{if $allow_register}
+	<li><a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">register yourself</a> for this event.
 {/if}
 {if $allow_unregister}
-<h2>Unregistering</h2>
-<p>
-<b>You may <a href="{lr_url path="registration/unregister/`$registration->order_id`"}" title="Unregister for {$event->name}">Unregister</a> from this event if desired.</b>
-</p>
+	<li><a href="{lr_url path="registration/unregister/`$registration->order_id`"}" title="Unregister from {$event->name}">unregister yourself</a> from this event.
 {/if}
+{if session_perm("registration/register/other")}
+	<li><a href="{lr_url path="event/register/`$event->registration_id`/choose"}" title="Register another user for {$event->name}">register another player</a> for this event.
+{/if}
+</ul>
 {if $offline_payment_text}
 <h2>Payment</h2>
 {$offline_payment_text}

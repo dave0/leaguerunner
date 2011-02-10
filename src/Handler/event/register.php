@@ -1,17 +1,49 @@
 <?php
 require_once('Handler/EventHandler.php');
+require_once('Handler/person/search.php');
+
 class event_register extends EventHandler
 {
+	private $registrant_id = null;
+	private $registrant    = null;
+
+	function __construct ( $event_id, $registrant_id = null)
+	{
+		global $lr_session;
+
+		if( $lr_session->is_admin() && !is_null($registrant_id) ) {
+			$this->registrant_id = $registrant_id;
+			if( $this->registrant_id != 'choose' ) {
+				$this->registrant = Person::load( array('user_id' => $registrant_id) );
+			}
+		} else {
+			$this->registrant_id = $lr_session->user->user_id;
+			$this->registrant    = $lr_session->user;
+		}
+
+		parent::__construct( $event_id, $this->registrant );
+	}
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('registration','register');
+		return $lr_session->has_permission('registration','register', $this->registrant_id);
 	}
 
 	function process ()
 	{
 		global $CONFIG;
 		$this->title = "Registration &raquo; {$this->event->name}";
+
+		if( $this->registrant_id == 'choose' ) {
+			$new_handler = new person_search;
+			$new_handler->smarty = &$this->smarty;
+			$new_handler->initialize();
+			$new_handler->ops['Register for event'] = 'event/register/' . $this->event->registration_id;
+			$new_handler->process();
+			$this->template_name = $new_handler->template_name;
+			return true;
+
+		}
 
 		$edit = $_POST['edit'];
 
@@ -57,15 +89,13 @@ class event_register extends EventHandler
 
 	function save()
 	{
-		global $lr_session;
-
 		$dataInvalid = $this->isDataInvalid();
 		if( $dataInvalid ) {
 			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->registration = new Registration;
-		$this->registration->set('user_id', $lr_session->user->user_id);
+		$this->registration->set('user_id', $this->registrant_id);
 		$this->registration->set('registration_id', $this->event->registration_id);
 		$this->registration->set('total_amount', $this->event->total_cost());
 		if( $this->event->cost == 0 ) {
@@ -112,12 +142,9 @@ class event_register extends EventHandler
 	 */
 	function confirm_team_league()
 	{
-
-		global $lr_session;
-
 		$team_id = $_POST[$this->event->formkey()]['__auto__team_id'];
 
-		if( $lr_session->user->has_position_on( $team_id, array('captain') ) ) {
+		if( $this->registrant->has_position_on( $team_id, array('captain') ) ) {
 			return false;
 		}
 		return "<ul><li>You do not captain team $team_id</li></ul>";
