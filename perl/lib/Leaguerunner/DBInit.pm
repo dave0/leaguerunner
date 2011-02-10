@@ -89,7 +89,7 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE season (
-			id           varchar(100) PRIMARY KEY NOT NULL,
+			id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			display_name varchar(100) NOT NULL,
 			season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 			year         integer
@@ -1931,37 +1931,70 @@ sub upgrade_27_to_28
 
 	$self->_run_sql([
 		season_support => [
+
+		# Create season table
 		q{
 			CREATE TABLE season (
-				id           varchar(100) PRIMARY KEY NOT NULL,
+				id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				display_name varchar(100) NOT NULL,
 				season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 				year         integer
 			);
 		},
+
+		# Add a season for leagues with no fixed season
 		q{
-			INSERT INTO season (id, display_name, season)
-				VALUES('ongoing', 'Ongoing Leagues', 'none')
+			INSERT INTO season (display_name, season)
+				VALUES('Ongoing Leagues', 'none')
 		},
+
+		# Add a new season column to the leagues table
 		q{
-			INSERT INTO season (id,display_name,season,year)
-				SELECT DISTINCT CONCAT('old',LOWER(season),'2010'), CONCAT('Old ',season,' 2010'), season, 2010
-					FROM league
-					WHERE season IN('Spring', 'Summer', 'Fall', 'Winter');
+			ALTER TABLE league
+				CHANGE COLUMN season old_season varchar(100),
+				ADD COLUMN season integer AFTER old_season;
 		},
-		q{
-			ALTER TABLE league MODIFY COLUMN season varchar(100);
-		},
+
+		# Move any of the "no season" leagues to Ongoing Leagues
 		q{
 			UPDATE league
-				SET season = 'ongoing'
-				WHERE season = 'none';
+				SET season = 1, old_season = null
+				WHERE old_season = 'none';
 		},
+
+		# Create appropriate seasons
 		q{
-			UPDATE league
-				SET season = CONCAT('old',LOWER(season),'2010')
-				WHERE season IN('Spring', 'Summer', 'Fall', 'Winter');
-		}
+			INSERT INTO season (display_name, season, year)
+				SELECT DISTINCT
+					CONCAT_WS(' ', 'Old', old_season, IF(year, year, 2010)),
+					old_season,
+					IF(year, year, 2010)
+				FROM league
+				WHERE old_season IN('Spring', 'Summer', 'Fall', 'Winter');
+		},
+
+		# Use those seasons
+		q{
+			UPDATE league SET
+				season = (SELECT season.id
+					FROM season
+					WHERE season.season = league.old_season AND season.year = league.year)
+				WHERE ISNULL(league.season);
+		},
+
+		# Clean up stragglers
+		q{
+			UPDATE league SET
+				season = 1
+				WHERE ISNULL(league.season);
+		},
+
+		# Clean up league table
+		q{
+			ALTER TABLE league
+				DROP COLUMN old_season,
+				DROP COLUMN year
+		},
 		],
 	]);
 }
