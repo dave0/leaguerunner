@@ -100,7 +100,9 @@ function global_settings()
 
 	$output .= form_group('Site configuration', $group);
 
-	$group = form_select('Current Season', 'edit[current_season]', variable_get('current_season','Summer'), getOptionsFromEnum('league','season'), 'Season of play currently in effect');
+	$group = form_select('Current Season', 'edit[current_season]', variable_get('current_season','Summer'),
+		getOptionsFromQuery("SELECT id AS theKey, display_name AS theValue FROM season ORDER BY year, id"),
+		'Season of play currently in effect');
 
 	$output .= form_group('Season Information', $group);
 
