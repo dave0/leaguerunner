@@ -6,6 +6,10 @@ class Season extends LeaguerunnerObject
 	public $season;
 	public $year;
 
+	public $leagues;
+
+	private $_leagues_loaded;
+
 	static function query ( $array = array() )
 	{
 		global $dbh;
@@ -47,6 +51,23 @@ class Season extends LeaguerunnerObject
 		return $seasons;
 	}
 
+	function load_leagues ()
+	{
+		if($this->_leagues_loaded) {
+			return true;
+		}
+
+		$this->leagues = League::load_many( array( 'season' => $this->id, '_order' => "year,FIELD(MAKE_SET((day & 62), 'BUG','Monday','Tuesday','Wednesday','Thursday','Friday'),'Monday','Tuesday','Wednesday','Thursday','Friday'), tier, league_id") );
+
+		// Cheat.  If we didn't find any leagues, set $this->leagues to an empty
+		// array again.
+		if( !is_array($this->leagues) ) {
+			$this->leagues = array();
+		}
+
+		$this->_leagues_loaded = true;
+		return true;
+	}
 
 }
 
