@@ -23,6 +23,9 @@ class event_edit extends EventHandler
 		$this->smarty->assign('event_types', $this->event_types);
 		$this->smarty->assign('time_choices', getOptionsFromTimeRange(0000,2400,30));
 		$this->smarty->assign('yes_no', array( 'No', 'Yes') );
+		$this->smarty->assign('seasons', getOptionsFromQuery(
+			"SELECT id AS theKey, display_name AS theValue FROM season ORDER BY year, id")
+		);
 
 		if( $edit['step'] == 'perform' ) {
 			$errors = $this->check_input_errors( $edit );
@@ -51,6 +54,7 @@ class event_edit extends EventHandler
 		$this->event->set('name', $edit['name']);
 		$this->event->set('description', $edit['description']);
 		$this->event->set('type', $edit['type']);
+		$this->event->set('season_id', $edit['season_id']);
 		$this->event->set('cost', $edit['cost']);
 		$this->event->set('gst', $edit['gst']);
 		$this->event->set('pst', $edit['pst']);

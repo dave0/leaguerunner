@@ -30,6 +30,9 @@ The following errors were encountered in your submission:
 <label for="edit[description]">Description</label>
 	<textarea wrap="virtual" cols="70" rows="5" name="edit[description]" ></textarea><div class="description">Complete description of the event.  HTML is allowed</div>
 
+<label for="edit[season_id]">Season</label>
+	{html_options name="edit[season_id]" options=$seasons}<div class="description">Season for which this registration applies.</div>
+
 <label for="edit[type]">Event Type</label>
 	{html_radios name="edit[type]" options=$event_types}<div class="description">Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration</div>
 

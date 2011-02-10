@@ -1,4 +1,8 @@
   <tr>
+    <td>Season:</td>
+    <td><a href="{lr_url path="season/view/`$event->season_id`"}">{$event->season_name}</a></td>
+  </tr>
+  <tr>
     <td>Description:</td>
     <td>{$event->description}</td>
   </tr>

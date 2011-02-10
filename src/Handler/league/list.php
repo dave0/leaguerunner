@@ -25,14 +25,10 @@ class league_list extends Handler
 		$this->title = "{$current_season->display_name} Leagues";
 		$this->template_name = 'pages/league/list.tpl';
 
-		$season_obj = Season::load_many();
-		$seasons = array();
-		foreach($season_obj as $s) {
-			$seasons[$s->id] = $s->display_name;
-		}
-
+		$this->smarty->assign('seasons', getOptionsFromQuery(
+			"SELECT id AS theKey, display_name AS theValue FROM season ORDER BY year, id")
+		);
 		$this->smarty->assign('current_season', $current_season);
-		$this->smarty->assign('seasons', $seasons);
 
 		$current_season->load_leagues();
 		$this->smarty->assign('leagues', $current_season->leagues);

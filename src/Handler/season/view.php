@@ -20,6 +20,9 @@ class season_view extends SeasonHandler
 		$this->season->load_leagues();
 		$this->smarty->assign('leagues', $this->season->leagues);
 
+		$this->season->load_events();
+		$this->smarty->assign('events', $this->season->events);
+
 		return true;
 	}
 }

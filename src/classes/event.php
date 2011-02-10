@@ -14,6 +14,7 @@ class Event extends LeaguerunnerObject
 	var $cap_female;
 	var $multiple;
 	var $anonymous;
+	var $season_id;
 
 	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
 	{
@@ -308,10 +309,12 @@ class Event extends LeaguerunnerObject
 		$sth  = $dbh->prepare("SELECT
 			e.*,
 			1 as _in_database,
+			s.display_name AS season_name,
 			UNIX_TIMESTAMP(e.open) as open_timestamp,
 			UNIX_TIMESTAMP(e.close) as close_timestamp
 			$fields
 			FROM registration_events e
+				LEFT JOIN season s ON (s.id = e.season_id)
 			WHERE " . implode(' AND ',$query) .  $order);
 
 		$sth->execute( $params );
@@ -323,6 +326,18 @@ class Event extends LeaguerunnerObject
 	{
 		$result = self::query( $array );
 		return $result->fetchObject( get_class() );
+	}
+
+	function load_many( $array = array() )
+	{
+		$sth = self::query( $array );
+
+		$objects = array();
+		while($i = $sth->fetchObject( get_class() ) ) {
+			$objects[$i->registration_id] = $i;
+		}
+
+		return $objects;
 	}
 }
 

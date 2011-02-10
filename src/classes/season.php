@@ -7,8 +7,10 @@ class Season extends LeaguerunnerObject
 	public $year;
 
 	public $leagues;
-
 	private $_leagues_loaded;
+
+	public $events;
+	private $_events_loaded;
 
 	static function query ( $array = array() )
 	{
@@ -66,6 +68,37 @@ class Season extends LeaguerunnerObject
 		}
 
 		$this->_leagues_loaded = true;
+		return true;
+	}
+
+	function load_events ()
+	{
+		global $lr_session;
+
+		if($this->_events_loaded) {
+			return true;
+		}
+
+		$query_args = array(
+			'season_id' => $this->id,
+			'_order' => 'e.type,e.open,e.close,e.registration_id'
+		);
+
+		if( $lr_session->is_admin()) {
+			$query_args['_extra'] = 'e.open < e.close';
+		} else {
+			$query_args['_extra'] = 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()';
+		}
+
+		$this->events = Event::load_many( $query_args );
+
+		// Cheat.  If we didn't find any events, set $this->events to an empty
+		// array again.
+		if( !is_array($this->events) ) {
+			$this->events = array();
+		}
+
+		$this->_events_loaded = true;
 		return true;
 	}
 

@@ -13,5 +13,5 @@
 
     <p></p>
     <h3>Registration Events</h3>
-    <b>TODO</b>
+    {include file="pages/season/components/event_list.tpl"}
 {include file=footer.tpl}
