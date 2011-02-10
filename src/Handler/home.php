@@ -27,25 +27,27 @@ class home extends Handler
 			$xml = curl_exec($curl);
 			curl_close($curl);
 
-			$xmlObj = simplexml_load_string( $xml );
+			if( $xml ) {
+				$xmlObj = simplexml_load_string( $xml );
 
-			$count = 0;
-			$limit = variable_get('rss_feed_items', 2);
-			$items = array();
+				$count = 0;
+				$limit = variable_get('rss_feed_items', 2);
+				$items = array();
 
-			foreach ( $xmlObj->channel[0]->item as $item )
-			{
-				$items[] = array(
-					'title' => $item->title,
-					'link'  => $item->link,
-				);
-				if( ++$count >= $limit ) {
-					break;
+				foreach ( $xmlObj->channel[0]->item as $item )
+				{
+					$items[] = array(
+						'title' => $item->title,
+						'link'  => $item->link,
+					);
+					if( ++$count >= $limit ) {
+						break;
+					}
 				}
-			}
-			if( $count > 0 ) {
-				$this->smarty->assign('rss_feed_title', variable_get('rss_feed_title', 'OCUA Volunteer Opportunities'));
-				$this->smarty->assign('rss_feed_items', $items);
+				if( $count > 0 ) {
+					$this->smarty->assign('rss_feed_title', variable_get('rss_feed_title', 'OCUA Volunteer Opportunities'));
+					$this->smarty->assign('rss_feed_items', $items);
+				}
 			}
 		}
 
