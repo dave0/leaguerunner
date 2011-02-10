@@ -349,7 +349,11 @@ function registration_permissions ( &$user, $action, $id, $registration )
 			// Only admin can view details or edit
 			break;
 		case 'register':
-			// Only players with completed profiles can register
+			// Only admins can register other players
+			if( ! is_null($id) ) {
+				return ($id == $lr_session->user->user_id || $lr_session->is_admin());
+			}
+			// Otherwise, only players with completed profiles can register
 			return ($lr_session->user->is_active() && $lr_session->is_complete());
 		case 'unregister':
 			// Players may only unregister themselves from events before paying.

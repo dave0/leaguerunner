@@ -5,7 +5,7 @@ class EventHandler extends Handler
 
 	protected $event_types;
 
-	function __construct ( $id )
+	function __construct ( $id, $user = null )
 	{
 		global $lr_session;
 
@@ -16,7 +16,7 @@ class EventHandler extends Handler
 			error_exit("That event does not exist");
 		}
 
-		$this->formbuilder = $this->event->load_survey( true, $lr_session->user);
+		$this->formbuilder = $this->event->load_survey( true, $user ? $user : $lr_session->user);
 
 		// Other code relies on the formbuilder variable not being set if there
 		// are no questions.
