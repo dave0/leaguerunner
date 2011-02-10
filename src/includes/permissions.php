@@ -450,4 +450,27 @@ function gameslot_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	return false;
 }
 
+function season_permissions( $user, $action, $id, $data_field = '' )
+{
+	global $lr_session;
+
+	if (!$lr_session || !$lr_session->user) {
+		return false;
+	}
+
+	switch($action)
+	{
+		case 'view':
+			return true;
+		case 'list':
+			return true;
+		case 'edit':
+		case 'create':
+		case 'delete':
+			// admin only
+			break;
+	}
+	return false;
+}
+
 ?>
