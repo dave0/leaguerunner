@@ -106,7 +106,7 @@ class slot_create extends FieldHandler
 		$leagues = array();
 		// TODO: Pull into get_league_checkbox();
 		$sth = $dbh->prepare("SELECT
-			l.league_id, l.name, l.tier, l.year
+			l.league_id, l.name, l.tier
 			FROM league l
 			WHERE l.schedule_type != 'none' AND (FIND_IN_SET(?, l.day) > 0) AND l.status = 'open'
 			ORDER BY l.day,l.name,l.tier");

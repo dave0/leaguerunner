@@ -74,7 +74,6 @@ class Person extends LeaguerunnerObject
 				t.name,
 				l.league_id,
 				IF(l.tier,CONCAT_WS(' ',l.name,'Tier',l.tier),l.name) AS league_name,
-				l.year,
 				l.season,
 				l.day,
 				l.status AS league_status
@@ -86,7 +85,7 @@ class Person extends LeaguerunnerObject
 			WHERE 
 				r.player_id = ?
 			ORDER BY
-				l.year DESC, l.season DESC, l.day");
+				l.season DESC, l.day");
 	
 		$sth->setFetchMode(PDO::FETCH_CLASS, 'Team', array(LOAD_OBJECT_ONLY));
 		$sth->execute(array($this->user_id));
@@ -109,7 +108,6 @@ class Person extends LeaguerunnerObject
 				l.league_id, 
 				l.name,
 				l.tier,
-				l.year,
 				l.season,
 				l.day,
 				l.schedule_type,
@@ -122,22 +120,17 @@ class Person extends LeaguerunnerObject
 				m.status = 'coordinator'
 			AND
 				m.player_id = ?
-			 ORDER BY l.year, l.season, l.day, l.name, l.tier");
+			 ORDER BY l.season, l.day, l.name, l.tier");
 		$sth->setFetchMode(PDO::FETCH_CLASS, 'League', array(LOAD_OBJECT_ONLY));
 		$sth->execute(array($this->user_id));
 		$this->leagues = array();
 		while($league = $sth->fetch() ) {
 			# TODO: evil hack... this belongs in the league constructor, no?
 			$this->is_a_coordinator = true;
-			if($league->year == 0) { 
-				$year = ''; 
-			} else { 
-				$year = $league->year;
-			}
 			if($league->tier) {
-				$league->fullname = sprintf("$league->name Tier %02d $year", $league->tier);
+				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
 			} else {
-				$league->fullname = "$league->name $year";
+				$league->fullname = $league->name;
 			}
 			$this->leagues[ $league->league_id ] = $league;
 		}
