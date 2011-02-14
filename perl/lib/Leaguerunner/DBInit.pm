@@ -92,7 +92,8 @@ my @TABLES = (
 			id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			display_name varchar(100) NOT NULL,
 			season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
-			year         integer
+			year         integer,
+			archived     BOOLEAN default false
 		);
 	}],
 
@@ -1938,7 +1939,8 @@ sub upgrade_27_to_28
 				id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				display_name varchar(100) NOT NULL,
 				season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
-				year         integer
+				year         integer,
+				archived     BOOLEAN default false
 			);
 		},
 

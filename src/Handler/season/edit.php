@@ -21,6 +21,7 @@ class season_edit extends SeasonHandler
 
 		$this->template_name = 'pages/season/edit.tpl';
 
+		$this->smarty->assign('yes_no', array( 'No', 'Yes') );
 		$this->smarty->assign('seasons', getOptionsFromEnum('season','season') );
 
 		if( $edit['step'] == 'perform' ) {
@@ -38,6 +39,7 @@ class season_edit extends SeasonHandler
 			if(strpos($season->day, ",")) {
 				$season->day = explode(',',$season->day);
 			}
+			$this->season->archived = $this->season->archived ? 1 : 0;
 			$this->smarty->assign('edit', (array)$this->season);
 		}
 		return true;
@@ -49,6 +51,7 @@ class season_edit extends SeasonHandler
 
 		$this->season->set('year', $edit['year']);
 		$this->season->set('season', $edit['season']);
+		$this->season->set('archived', $edit['archived']);
 
 		if( !$this->season->save() ) {
 			error_exit("Internal error: couldn't save changes");
