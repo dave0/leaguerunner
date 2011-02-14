@@ -699,15 +699,7 @@ function question_render_maintenance( &$q )
 function question_render_editable_multiplechoice( &$q, $editgroup, $value = '', $formtype = 'auto' )
 {
 	if( $formtype == 'auto' ) {
-		/*
-		if( count($q->answers) > 4 ) {
-			$formtype = 'select';
-		} else {
-		*/
-			$formtype = 'radio';
-		/*
-		}
-		*/
+		$formtype = 'radio';
 	}
 
 	$form = '';
@@ -741,11 +733,7 @@ function question_render_viewable_multiplechoice( &$q, $akey = '' )
 function question_render_maintenance_multiplechoice( &$q, $formtype = 'auto' )
 {
 	if( $formtype == 'auto' ) {
-		/* if( count($q->answers) > 4 ) {
-			$formtype = 'select';
-		} else */ {
-			$formtype = 'radio';
-		}
+		$formtype = 'radio';
 	}
 
 	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 60, 5 );
