@@ -707,7 +707,7 @@ function question_render_editable_multiplechoice( &$q, $editgroup, $value = '', 
 		case 'radio':
 			$radio = "";
 			while( list(,$ans) = each($q->answers) ) {
-				$radio .= form_radio( $ans->answer, $editgroup."[".$ans->qkey."]", $ans->akey, ($ans->akey == $value), '');
+				$radio .= form_radio( $ans->answer, $editgroup."[".$ans->qkey."]", $ans->akey, ($ans->akey == $value), '') . "<br />";
 			}
 			reset( $q->answers );
 			$form = form_item($q->question, $radio, $q->desc);
