@@ -1,11 +1,10 @@
 {include file=header.tpl}
 <h1>{$title}</h1>
-  <div class='pairtable'>
-    <table>
-	<tr><td>Season:</td><td>{$season->season}</td></tr>
-	<tr><td>Year:</td><td>{$season->year}</td></tr>
-	<tr><td>Archived:</td><td>{if $season->archived}Yes{else}No{/if}</td></tr>
-     </table>
+
+    <div class='pairtable'>
+      <table>
+	{include file=pages/season/components/short_view.tpl}
+      </table>
     </div>
 
     <p></p>

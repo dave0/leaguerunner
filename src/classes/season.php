@@ -146,6 +146,38 @@ class Season extends LeaguerunnerObject
 		unset($this->_modified_fields);
 		return true;
 	}
+
+	function delete ()
+	{
+		global $dbh;
+
+		if ( ! $this->_in_database ) {
+			return false;
+		}
+
+		if ( $this->id == 1 ) {
+			error_exit("Cannot delete the default league (id 1)");
+		}
+
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM league WHERE season = ?');
+		$sth->execute( array( $this->id ) );
+		if( $sth->fetchColumn() > 0) {
+			error_exit("Cannot delete season: Season must not have any leagues associated");
+		}
+
+		$sth = $dbh->prepare('SELECT COUNT(*) FROM registration_events WHERE season_id = ?');
+		$sth->execute( array( $this->id ) );
+		if( $sth->fetchColumn() > 0) {
+			error_exit("Cannot delete season: Season must not have any registration events associated");
+		}
+
+
+		$queries = array(
+			'DELETE FROM season WHERE id = ?',
+		);
+
+		return $this->generic_delete( $queries, $this->id );
+	}
 }
 
 
