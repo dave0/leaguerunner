@@ -38,13 +38,15 @@ class slot_availability extends SlotHandler
 
 		$leagues = array();
 		$sth = $dbh->prepare("SELECT
-			l.league_id,
-			l.name,
-			l.tier
-			FROM league l
-			WHERE l.schedule_type != 'none'
-			AND (FIND_IN_SET(?, l.day) > 0)
-			AND l.status = 'open'
+			l.league_id, l.name, l.tier
+			FROM
+				league l, season s
+			WHERE
+				l.season = s.id
+				AND NOT s.archived
+				AND l.schedule_type != 'none'
+				AND (FIND_IN_SET(?, l.day) > 0)
+				AND l.status = 'open'
 			ORDER BY l.day,l.name,l.tier"
 		);
 		$weekday = strftime("%A", $this->slot->date_timestamp);
