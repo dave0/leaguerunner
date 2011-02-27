@@ -130,19 +130,27 @@ class UserSession
 			return false;
 		}
 
-		$user = Person::load( array( 'username' => $username, 'password' => $password ) );
+		$user = Person::load( array( 'username' => $username ) );
 
 		if( ! $user ) {
 			return false;
 		}
 
+		# Check password
+		if( ! $user->check_password( $password ) ) {
+			return false;
+		}
 
 		/* Ok, the user is good.  Now we need to save the user
 		 * and generate a session key.
 		 */
 		$this->user = $user;
 
-		$this->session_key = $this->set_session_key($client_ip);
+		$this->session_key = session_id();
+
+		if( ! $this->user->log_in( $this->session_key, $client_ip, $password ) ) {
+			return false;
+		}
 
 		return true;
 	}
@@ -190,24 +198,6 @@ class UserSession
 
 		return $this->user->$attr;
 
-	}
-
-	/**
-	 * Set the session key
-	 */
-	function set_session_key ( $client_ip )
-	{
-		global $dbh;
-
-		$sesskey = session_id();
-
-		$sth = $dbh->prepare('UPDATE person SET session_cookie = ?, last_login = NOW(), client_ip = ? WHERE user_id = ?');
-		$sth->execute(array($sesskey, $client_ip, $this->user->user_id));
-		if( $sth->rowCount != 1 ) {
-			return false;
-		}
-
-		return $sesskey;
 	}
 
 	/**

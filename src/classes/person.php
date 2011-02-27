@@ -269,8 +269,6 @@ class Person extends LeaguerunnerObject
 
 	function generate_member_id()
 	{
-		global $dbh;
-
 		// we add 21000000 to the user_id to arrive at a member_id
 		// value that won't clash with pre-existing ones that were
 		// based on YYYYGNNN where G = gender, and NNN was a count of
@@ -589,6 +587,57 @@ class Person extends LeaguerunnerObject
 			}
 		}
 		return $this->notes;
+	}
+
+	function set_password( $password )
+	{
+		$this->set('password', $this->crypt_password( $password ) );
+	}
+
+	function crypt_password ( $password, $resalt = false )
+	{
+		if( !$resalt && substr( $this->password, 0, 3) == '$1$' ) {
+			$salt = substr( $this->password, 0, 12);
+		} else {
+			$base64_alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./';
+			$salt='$1$';
+			for($i=0; $i<=8; $i++){
+				$salt.=$base64_alphabet[rand(0,63)];
+			}
+			$salt .= '$';
+		}
+		return crypt( $password, $salt );
+	}
+
+	function check_password ( $password )
+	{
+		/* HACK: old-format passwords were unsalted md5().  New ones
+		 * are properly using crypt(), though only the salted md5
+		 * version due to PHP limitations.
+		 */
+		if( substr( $this->password, 0, 3) == '$1$' ) {
+			return ( $this->crypt_password( $password ) == $this->password );
+		} else {
+			return ( md5( $password ) == $this->password );
+		}
+	}
+
+	function log_in ( $session, $client_ip, $password )
+	{
+		global $dbh;
+
+		$sth = $dbh->prepare('UPDATE person SET
+			session_cookie = ?,
+			last_login     = NOW(),
+			client_ip      = ?,
+			password       = ?
+			WHERE user_id = ?');
+		$sth->execute(array($session, $client_ip, $this->crypt_password( $password, true ), $this->user_id) );
+		$count = $sth->rowCount();
+		if( $count != 1) {
+			return false;
+		}
+		return true;
 	}
 
 }

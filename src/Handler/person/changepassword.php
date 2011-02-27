@@ -32,7 +32,8 @@ class person_changepassword extends Handler
 				if($edit['password_one'] != $edit['password_two']) {
 					error_exit("You must enter the same password twice.");
 				}
-				$this->person->set('password', md5($edit['password_one']));
+
+				$this->person->set_password($edit['password_one']);
 				if( ! $this->person->save() ) {
 					error_exit("Couldn't change password due to internal error");
 				}

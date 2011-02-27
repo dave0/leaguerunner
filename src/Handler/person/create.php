@@ -42,7 +42,7 @@ class person_create extends person_edit
 				return true;
 			}
 			$this->person->set('username', $edit['username']);
-			$this->person->set('password', md5($edit['password_once']) );
+			$this->person->set_password($edit['password_once']);
 			$this->perform($edit);
 			$this->template_name = 'pages/person/create_complete.tpl';
 			return true;

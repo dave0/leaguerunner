@@ -58,10 +58,7 @@ class person_forgotpassword extends Handler
 		if( $user ) {
 			/* Generate a password */
 			$pass = generate_password();
-			$cryptpass = md5($pass);
-
-			$user->set('password', $cryptpass);
-
+			$user->set_password( $pass );
 			if( ! $user->save() ) {
 				error_exit("Error setting password");
 			}
