@@ -3,9 +3,9 @@
 <p>Please be sure to read all information carefully and complete all
 preferences when registering.</p>
 
-{if $is_admin}
-	[ <a href="{lr_url path="event/list/all"}">all events</a> | <a href="{lr_url path="event/list/current"}">current events</a> ]
-{/if}
+<form method="GET">
+    {html_options name="season" selected=$season_id options=$seasons onChange="form.submit()"}
+</form>
 <table>
 {assign var='last_type' value=''}
 {foreach from=$events item=e}

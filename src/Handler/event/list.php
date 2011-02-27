@@ -3,13 +3,12 @@ class event_list extends Handler
 {
 	private $query_args;
 
-	function __construct ( $all = null )
+	function __construct ( )
 	{
 		global $lr_session;
 		parent::__construct();
 
-		if( (is_null($all) && $lr_session->is_admin())
-		    || ($all == 'all') ) {
+		if( $lr_session->is_admin() ) {
 			$this->query_args = array(
 				'_extra' => 'e.open < e.close',
 				'_order' => 'e.type,e.open,e.close,e.registration_id'
@@ -32,8 +31,23 @@ class event_list extends Handler
 	{
 		global $lr_session, $CONFIG;
 
-		$this->title = 'Registration Event List';
+		$season_id = $_GET['season'];
+		if( $season_id > 0 ) {
+			$current_season = Season::load(array( 'id' => $season_id ));
+			$this->query_args['season_id'] = $season_id;
+			$this->title = "{$current_season->display_name} Registration";
+		} else {
+			$this->title = "Registration";
+			$season_id = -1;
+		}
 		$this->template_name = 'pages/event/list.tpl';
+
+		$pulldown_choices = getOptionsFromQuery(
+			"SELECT s.id AS theKey, s.display_name AS theValue FROM season s, registration_events e WHERE e.season_id = s.id GROUP BY s.id HAVING count(*) > 0 ORDER BY s.year, s.season"
+		);
+		$pulldown_choices[-1] = "All open events";
+		$this->smarty->assign('seasons', $pulldown_choices);
+		$this->smarty->assign('season_id', $season_id);
 
 		$type_desc = event_types();
 
