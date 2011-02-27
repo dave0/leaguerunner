@@ -1579,6 +1579,10 @@ class League extends LeaguerunnerObject
 
 		foreach ($array as $key => $value) {
 			switch( $key ) {
+			case '_day':
+				$query[] = '(FIND_IN_SET(?, l.day) > 0)';
+				$params[] = $value;
+				break;
 			case '_order':
 				$order = ' ORDER BY ' . $value;
 				break;

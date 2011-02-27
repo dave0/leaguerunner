@@ -104,17 +104,10 @@ class slot_create extends FieldHandler
 
 		$weekday = strftime("%A", $datestamp);
 		$leagues = array();
-		// TODO: Pull into get_league_checkbox();
-		$sth = $dbh->prepare("SELECT
-			l.league_id, l.name, l.tier
-			FROM league l
-			WHERE l.schedule_type != 'none' AND (FIND_IN_SET(?, l.day) > 0) AND l.status = 'open'
-			ORDER BY l.day,l.name,l.tier");
-		$sth->execute( array( $weekday) );
-
+		$sth = League::query( array( '_day' => $weekday, 'status' => 'open' ));
 		$leagues = array();
 		while($league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY)) ) {
-			$leagues[$league->league_id] = $league->fullname;
+			$leagues[$league->league_id] = "$league->season_name - $league->fullname";
 		}
 		$this->smarty->assign('leagues', $leagues);
 
