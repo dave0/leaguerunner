@@ -136,8 +136,6 @@ function feature_settings()
 
 	$group .= form_radios('Force roster request responses', 'edit[force_roster_request]', variable_get('force_roster_request', 0), array('Disabled', 'Enabled'), 'Should players be forced to respond to roster requests immediately?');
 
-	$group .= form_radios('Generate roster request emails', 'edit[generate_roster_email]', variable_get('generate_roster_email', 0), array('Disabled', 'Enabled'), 'Should emails be sent to players invited to join rosters, and captains who have players request to join their teams?');
-
 	$output = form_group('Feature configuration', $group);
 
 	return $output;
