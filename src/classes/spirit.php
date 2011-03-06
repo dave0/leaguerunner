@@ -11,7 +11,6 @@ class Spirit
 				'met expectations'          => 1,
 				'did not meet expectations' => 0,
 			),
-			'use_for'  => 'survey_only',
 		),
 		'rules_knowledge' => array(
 			'heading'  => 'Rules',
@@ -24,7 +23,6 @@ class Spirit
 				'below average' => 1,
 				'bad'           => 0
 			),
-			'use_for'  => 'survey_only',
 		),
 		'sportsmanship'   => array(
 			'heading'  => 'Sportsmanship',
@@ -37,7 +35,6 @@ class Spirit
 				'below average' => 1,
 				'poor'          => 0
 			),
-			'use_for'  => 'survey_only',
 		),
 		'rating_overall'  => array(
 			'heading'  => 'Overall',
@@ -50,13 +47,6 @@ class Spirit
 				'This was a mediocre game'             => 1,
 				'This was a very bad game'             => 0
 			),
-			'use_for'  => 'survey_only',
-		),
-		'entered_sotg' => array(
-			'heading'  => 'Spirit Rating',
-			'question' => 'Spirit rating (1 to 10)',
-			'type'     => 'textfield',
-			'use_for'  => 'numeric_only',
 		),
 		'score_entry_penalty' => array(
 			'heading'  => 'Score Submitted?',
@@ -108,18 +98,10 @@ class Spirit
 	 */
 	var $display_numeric_sotg = 0;
 
-	/*
-	 * How to enter spirit (numeric or survey)
-	 */
-	var $entry_type           = 'survey_only';
-
 	function question_headings ( )
 	{
 		$headings = array();
 		while( list($qkey, $qdata) = each($this->questions) ) {
-			if( array_key_exists('use_for', $qdata) && $qdata['use_for'] != $this->entry_type ) {
-				continue;
-			}
 			if( array_key_exists('out_of', $qdata)  ) {
 				$headings[] = $qdata['heading'];
 			}
@@ -132,9 +114,6 @@ class Spirit
 	{
 		$keys = array();
 		while( list($qkey, $qdata) = each($this->questions) ) {
-			if( array_key_exists('use_for', $qdata) && $qdata['use_for'] != $this->entry_type ) {
-				continue;
-			}
 			if(  $qdata['type'] == 'multiplechoice' ) {
 				$keys[] = $qkey;
 			}
@@ -147,9 +126,6 @@ class Spirit
 	{
 		$out_of = array();
 		while( list($qkey, $qdata) = each($this->questions) ) {
-			if( array_key_exists('use_for', $qdata) && $qdata['use_for'] != $this->entry_type ) {
-				continue;
-			}
 			if( $qdata['out_of'] ) {
 				$out_of[$qkey] = $qdata['out_of'];
 			}
@@ -162,9 +138,6 @@ class Spirit
 	{
 		$sum = 0;
 		while( list($qkey, $qdata) = each($this->questions) ) {
-			if( array_key_exists('use_for', $qdata) && $qdata['use_for'] != $this->entry_type ) {
-				continue;
-			}
 			if( $qdata['out_of'] && !$qdata['type'] != 'hidden') {
 				$sum += $qdata['out_of'];
 			}
@@ -269,10 +242,6 @@ class Spirit
 		$sorder = 0;
 		while( list($qkey, $qdata) = each($this->questions) ) {
 
-			if( array_key_exists('use_for', $qdata) && $qdata['use_for'] != $this->entry_type ) {
-				continue;
-			}
-
 			$new_q = array(
 				'qkey' => $qkey,
 				'qtype' => $qdata['type'],
@@ -349,10 +318,7 @@ class Spirit
 			t.name AS team_name,
 			s.tid,
 			AVG(
-				COALESCE(
-					s.entered_sotg,
-					s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall + s.score_entry_penalty
-				)
+				s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall + s.score_entry_penalty
 			) AS total,
 			AVG(s.timeliness) AS timeliness,
 			AVG(s.rules_knowledge) AS rules_knowledge,
@@ -427,7 +393,6 @@ class Spirit
 	function default_spirit_answers ( )
 	{
 		$spirit = array (
-			'entered_sotg' => 7,
 			'timeliness' => 1,
 			'rules_knowledge' => 2,
 			'sportsmanship' => 2,
@@ -442,11 +407,8 @@ class Spirit
 		global $dbh;
 		$sth = $dbh->prepare("SELECT
 			AVG(
-				COALESCE(
-					s.entered_sotg,
-					s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall + s.score_entry_penalty
-				)
-			) AS entered_sotg,
+				s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall + s.score_entry_penalty
+			) AS numeric_sotg,
 			AVG(s.timeliness) AS timeliness,
 			AVG(s.rules_knowledge) AS rules_knowledge,
 			AVG(s.sportsmanship) AS sportsmanship,
@@ -466,21 +428,15 @@ class Spirit
 	{
 		$out_of = $this->question_maximums();
 
-		if( ! $spirit['entered_sotg'] ) {
-			$spirit['entered_sotg'] = (
-				$spirit['timeliness'] + $spirit['rules_knowledge'] + $spirit['sportsmanship'] + $spirit['rating_overall'] + $spirit['score_entry_penalty']
-			);
-		}
-
 		$result = array(
-			$this->full_spirit_symbol_html( $spirit['entered_sotg'] ),
+			$this->full_spirit_symbol_html(
+				$spirit['timeliness'] + $spirit['rules_knowledge'] + $spirit['sportsmanship'] + $spirit['rating_overall'] + $spirit['score_entry_penalty']
+			),
 		);
-		if( $this->entry_type == 'survey_only' ) {
-			$result[] = $this->question_spirit_symbol_html( $spirit['timeliness'], $out_of['timeliness'] );
-			$result[] = $this->question_spirit_symbol_html( $spirit['rules_knowledge'], $out_of['rules_knowledge'] );
-			$result[] = $this->question_spirit_symbol_html( $spirit['sportsmanship'], $out_of['sportsmanship'] );
-			$result[] = $this->question_spirit_symbol_html( $spirit['rating_overall'], $out_of['rating_overall'] );
-		}
+		$result[] = $this->question_spirit_symbol_html( $spirit['timeliness'], $out_of['timeliness'] );
+		$result[] = $this->question_spirit_symbol_html( $spirit['rules_knowledge'], $out_of['rules_knowledge'] );
+		$result[] = $this->question_spirit_symbol_html( $spirit['sportsmanship'], $out_of['sportsmanship'] );
+		$result[] = $this->question_spirit_symbol_html( $spirit['rating_overall'], $out_of['rating_overall'] );
 		$result[] = $this->question_spirit_symbol_html( $spirit['score_entry_penalty'], $out_of['score_entry_penalty'] );
 
 		return $result;
@@ -505,18 +461,14 @@ class Spirit
 		// save in DB
 		$sth = $dbh->prepare('REPLACE INTO spirit_entry (tid_created,tid,gid,
 			entered_by,
-			entered_sotg,
-			timeliness,rules_knowledge,sportsmanship,rating_overall, comments) VALUES (?,?,?,?,?,?,?,?,?,?)');
+			timeliness,rules_knowledge,sportsmanship,rating_overall, comments) VALUES (?,?,?,?,?,?,?,?,?)');
 
-		if( $this->entry_type == 'survey_only' ) {
-			$spirit['entered_sotg'] = null;
-		}
+		$spirit['numeric_sotg'] = null;
 		$sth->execute( array(
 			$opponent_id,
 			$team_id,
 			$game->game_id,
 			$enterer_id,
-			$spirit['entered_sotg'],
 			$spirit['timeliness'],
 			$spirit['rules_knowledge'],
 			$spirit['sportsmanship'],

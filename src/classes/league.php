@@ -477,32 +477,26 @@ class League extends LeaguerunnerObject
 		 * their opponents are still here
 		 */
 		// TODO: I'd like to use Game::load_many here, but it's too slow.
-		$sth = $dbh->prepare('SELECT DISTINCT 
+		$sth = $dbh->prepare('SELECT DISTINCT
 			s.*,
 			1 as _in_database,
 			s.home_team AS home_id,
-			h.name AS home_name, 
+			h.name AS home_name,
 			s.away_team AS away_id,
 			a.name AS away_name,
-			COALESCE(
-				asotg.entered_sotg,
-				hsotg.timeliness + hsotg.rules_knowledge + hsotg.sportsmanship + hsotg.rating_overall + hsotg.score_entry_penalty
-			) AS home_spirit,
-			COALESCE(
-				hsotg.entered_sotg,
-				asotg.timeliness + asotg.rules_knowledge + asotg.sportsmanship + asotg.rating_overall + asotg.score_entry_penalty
-			) AS away_spirit
+			(hsotg.timeliness + hsotg.rules_knowledge + hsotg.sportsmanship + hsotg.rating_overall + hsotg.score_entry_penalty) AS home_spirit,
+			(asotg.timeliness + asotg.rules_knowledge + asotg.sportsmanship + asotg.rating_overall + asotg.score_entry_penalty) AS away_spirit
 			FROM leagueteams t, schedule s
-				LEFT JOIN team h ON (h.team_id = s.home_team) 
+				LEFT JOIN team h ON (h.team_id = s.home_team)
 				LEFT JOIN team a ON (a.team_id = s.away_team)
 				LEFT JOIN gameslot g ON (g.game_id = s.game_id)
 				LEFT JOIN spirit_entry hsotg ON (hsotg.tid = s.home_team AND g.game_id = hsotg.gid)
 				LEFT JOIN spirit_entry asotg ON (asotg.tid = s.away_team AND g.game_id = asotg.gid)
 			WHERE t.league_id = ?
-				AND NOT ISNULL(s.home_score) 
-				AND NOT ISNULL(s.away_score) 
-				AND (s.home_team = t.team_id 
-					OR s.away_team = t.team_id) 
+				AND NOT ISNULL(s.home_score)
+				AND NOT ISNULL(s.away_score)
+				AND (s.home_team = t.team_id
+					OR s.away_team = t.team_id)
 			ORDER BY g.game_date, g.game_start');
 		$sth->execute( array($this->league_id) );
 

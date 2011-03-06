@@ -27,7 +27,6 @@ class game_submitscore extends GameHandler
 		$this->get_league();
 
 		$this->spirit = new Spirit;
-		$this->spirit->entry_type = $this->league->enter_sotg;
 
 		if( $this->team->team_id != $this->game->home_id && $this->team->team_id != $this->game->away_id ) {
 			error_exit("That team did not play in that game!");

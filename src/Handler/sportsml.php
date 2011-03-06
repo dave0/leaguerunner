@@ -46,7 +46,6 @@ class sportsml extends Handler
 	function render_standings()
 	{
 		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
 
 		if($this->league->schedule_type == 'none') {
 			error_exit("This league does not have a schedule or standings.");

@@ -29,7 +29,6 @@ class league_standings extends LeagueHandler
 		}
 
 		$s = new Spirit;
-		$s->entry_type           = $this->league->enter_sotg;
 
 		$round = $_GET['round'];
 		if(! isset($round) ) {

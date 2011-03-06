@@ -28,7 +28,6 @@ class team_spirit extends TeamHandler
 
 		$s = new Spirit;
 		$s->display_numeric_sotg = $league->display_numeric_sotg();
-		$s->entry_type = $league->enter_sotg;
 
 		/*
 		 * Grab schedule info

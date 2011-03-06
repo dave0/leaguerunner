@@ -117,7 +117,6 @@ my @TABLES = (
 			games_before_repeat integer default 4,
 			schedule_attempts   integer default 100,
 			display_sotg        ENUM('coordinator_only', 'symbols_only', 'all') DEFAULT 'all',
-			enter_sotg          ENUM('numeric_only', 'survey_only') DEFAULT 'survey_only',
 			excludeTeams        ENUM('true','false') default 'false',
 			coord_list          varchar(100),
 			capt_list           varchar(100),
@@ -197,8 +196,6 @@ my @TABLES = (
 			tid         INTEGER NOT NULL,
 			gid         INTEGER NOT NULL,
 			entered_by  INTEGER NOT NULL,
-
-			entered_sotg     INTEGER,
 
 			score_entry_penalty INTEGER NOT NULL DEFAULT 0,
 			timeliness       INTEGER NOT NULL DEFAULT 0,
@@ -1931,6 +1928,18 @@ sub upgrade_27_to_28
 	my ($self) = @_;
 
 	$self->_run_sql([
+
+		# Remove support for numeric-entry-only SOTG.
+		cleanup_sotg   => [
+		q{
+			ALTER TABLE league DROP COLUMN enter_sotg;
+		},
+		q{
+			ALTER TABLE spirit_entry DROP COLUMN entered_sotg;
+		}
+		],
+
+
 		season_support => [
 
 		# Create season table

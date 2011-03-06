@@ -14,7 +14,6 @@ class league_spirit extends LeagueHandler
 		$this->template_name = 'pages/league/spirit.tpl';
 
 		$s = new Spirit;
-		$s->entry_type           = $this->league->enter_sotg;
 		$s->display_numeric_sotg = $this->league->display_numeric_sotg();
 
 		$this->smarty->assign('question_headings', $s->question_headings() );

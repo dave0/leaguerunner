@@ -199,7 +199,6 @@ class game_edit extends GameHandler
 			$ary = $game->get_spirit_entry( $game->home_id );
 
 			$s = new Spirit;
-			$s->entry_type = $this->league->enter_sotg;
 			$formbuilder = $s->as_formbuilder();
 			if( $ary ) {
 				$formbuilder->bulk_set_answers( $ary );
@@ -264,7 +263,6 @@ class game_edit extends GameHandler
 		$dataInvalid = $this->isDataInvalid( $edit );
 
 		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
 		$home_spirit = $s->as_formbuilder();
 		$away_spirit = $s->as_formbuilder();
 
@@ -331,7 +329,6 @@ class game_edit extends GameHandler
 		}
 
 		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
 		$home_spirit = $s->as_formbuilder();
 		$away_spirit = $s->as_formbuilder();
 		if( $_POST['spirit_home'] ) {

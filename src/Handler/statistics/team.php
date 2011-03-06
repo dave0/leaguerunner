@@ -118,10 +118,7 @@ class statistics_team extends StatisticsHandler
 		$rows[] = array("Top non-score-submitting $current_season teams:", table(null, $sub_table));
 
 		$sotg_query = "SELECT
-				ROUND( AVG( COALESCE(
-					s.entered_sotg,
-					s.score_entry_penalty + s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall )
-				), 2) AS avgspirit,
+				ROUND( AVG( s.score_entry_penalty + s.timeliness + s.rules_knowledge + s.sportsmanship + s.rating_overall ), 2) AS avgspirit,
 				s.tid AS team_id
 			FROM league l, leagueteams lt, spirit_entry s
 			WHERE

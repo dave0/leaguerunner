@@ -27,7 +27,6 @@ class league_edit extends LeagueHandler
 		$this->smarty->assign('days',    getOptionsFromEnum('league','day') );
 		$this->smarty->assign('ratios',  getOptionsFromEnum('league','ratio') );
 		$this->smarty->assign('schedule_types',  getOptionsFromEnum('league','schedule_type') );
-		$this->smarty->assign('enter_sotg',  getOptionsFromEnum('league','enter_sotg') );
 		$this->smarty->assign('display_sotg',  getOptionsFromEnum('league','display_sotg') );
 		$this->smarty->assign('excludeTeams',  getOptionsFromEnum('league','excludeTeams') );
 
@@ -80,7 +79,6 @@ class league_edit extends LeagueHandler
 			$this->league->set('games_before_repeat', $edit['games_before_repeat']);
 		}
 
-		$this->league->set('enter_sotg', $edit['enter_sotg']);
 		$this->league->set('display_sotg', $edit['display_sotg']);
 		$this->league->set('coord_list', $edit['coord_list']);
 		$this->league->set('capt_list', $edit['capt_list']);

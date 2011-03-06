@@ -59,10 +59,6 @@ The following errors were encountered in your submission:
 	{html_options name="edit[games_before_repeat]" options=$games_before_repeat}
 	<div class="description">The number of games before two teams can be scheduled to play each other again (FOR PYRAMID/RATINGS LADDER SCHEDULING ONLY).</div>
 
-<label for="edit[enter_sotg]">SOTG Entry</label>
-	{html_options name="edit[enter_sotg]" options=$enter_sotg}
-	<div class="description">Control SOTG entry.  "both" uses the survey and allows numeric input.  "numeric_only" turns off the survey for spirit.  "survey_only" uses only the survey questions to gather SOTG info.</div>
-
 <label for="edit[display_sotg]">SOTG Display</label>
 	{html_options name="edit[display_sotg]" options=$display_sotg}
 	<div class="description">Control SOTG display.  "all" shows numeric scores and survey answers to any player.  "symbols_only" shows only star, check, and X, with no numeric values attached.  "coordinator_only" restricts viewing of any per-game information to coordinators only.</div>

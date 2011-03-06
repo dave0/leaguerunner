@@ -17,7 +17,6 @@ class league_spiritdownload extends LeagueHandler
 		}
 
 		$s = new Spirit;
-		$s->entry_type = $this->league->enter_sotg;
 		$s->display_numeric_sotg = $this->league->display_numeric_sotg();
 
 		// Start the output, let the browser know what type it is
@@ -58,12 +57,6 @@ class league_spiritdownload extends LeagueHandler
 					$entry = array(
 						comments => 'Team did not submit a spirit rating',
 					);
-				} else {
-					if( ! $entry['entered_sotg'] ) {
-						$entry['entered_sotg'] = (
-							$entry['timeliness'] + $entry['rules_knowledge'] + $entry['sportsmanship'] + $entry['rating_overall'] + $entry['score_entry_penalty']
-						);
-					}
 				}
 
 				$thisrow = array(
@@ -73,7 +66,7 @@ class league_spiritdownload extends LeagueHandler
 					$giver,
 					$teams[$recipient],
 					$recipient,
-					$entry['entered_sotg'],
+					$entry['numeric_sotg'],
 					$entry['timeliness'],
 					$entry['rules_knowledge'],
 					$entry['sportsmanship'],

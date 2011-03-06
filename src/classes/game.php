@@ -597,7 +597,7 @@ class Game extends LeaguerunnerObject
 				'score_entry_penalty'  => $row['score_entry_penalty'],
 				'comments'        => $row['comments'] ? $row['comments'] : '',
 				'entered_by'      => $row['entered_by'],
-				'entered_sotg'    => $row['entered_sotg'],
+				'numeric_sotg'    => $row['timeliness'] + $row['rules_knowledge'] + $row['sportsmanship'] + $row['rating_overall'] + $row['score_entry_penalty'],
 			);
 		}
 
