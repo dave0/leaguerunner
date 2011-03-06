@@ -30,13 +30,7 @@ class team_create extends team_edit
 			return false;
 		}
 
-		# TODO: Replace with $team->add_player($lr_session->user,'captain')
-		#       and call before parent::perform()
-		$sth = $dbh->prepare('INSERT INTO teamroster (team_id, player_id, status, date_joined) VALUES(?, ?, ?, NOW())');
-		$sth->execute( array($this->team->team_id, $lr_session->attr_get('user_id'), 'captain'));
-		if( 1 != $sth->rowCount() ) {
-			return false;
-		}
+		$this->team->set_roster_status( $lr_session->attr_get('user_id'), 'captain');
 
 		return true;
 	}

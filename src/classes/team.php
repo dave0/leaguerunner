@@ -53,48 +53,6 @@ class Team extends LeaguerunnerObject
 		return true;
 	}
 
-	/**
-	 * Add a player to the roster, with the given status
-	 */
-	function add_player( &$player, $status )
-	{
-		if( !is_object($player) ) {
-			$object->user_id = $player;
-			$player = &$object;
-		}
-
-		// TODO 
-		return false;
-	}
-
-	/**
-	 * Update status of a player currently on the roster
-	 */
-	function set_player_status( &$player, $status )
-	{
-		if( !is_object($player) ) {
-			$object->user_id = $player;
-			$player = &$object;
-		}
-
-		// TODO 
-		return false;
-	}
-
-	/**
-	 * Remove a player from the roster.
-	 */
-	function remove_player( &$player )
-	{
-		if( !is_object($player) ) {
-			$object->user_id = $player;
-			$player = &$object;
-		}
-
-		// TODO 
-		return false;
-	}
-
 	function get_roster()
 	{
 		global $dbh, $lr_session;
