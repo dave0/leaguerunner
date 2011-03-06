@@ -11,7 +11,7 @@ class team_view extends TeamHandler
 
 	function process ()
 	{
-		global $lr_session, $dbh;
+		global $lr_session;
 
 		$this->title = $this->team->name;
 

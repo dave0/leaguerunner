@@ -142,7 +142,7 @@ class game_submitscore extends GameHandler
 
 	function perform ($edit, $opponent, $spirit)
 	{
-		global $lr_session, $dbh;
+		global $lr_session;
 
 		if( $edit['defaulted'] != 'us' && $edit['defaulted'] != 'them' ) {
 			$questions = $this->spirit->as_formbuilder();

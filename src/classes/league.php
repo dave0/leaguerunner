@@ -43,7 +43,7 @@ class League extends LeaguerunnerObject
 		}
 	}
 
-	function get_captains() 
+	function get_captains()
 	{
 		global $dbh;
 

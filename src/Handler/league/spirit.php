@@ -10,7 +10,6 @@ class league_spirit extends LeagueHandler
 
 	function process ()
 	{
-		global $dbh, $CONFIG;
 		$this->title = "{$this->league->fullname} Spirit";
 		$this->template_name = 'pages/league/spirit.tpl';
 

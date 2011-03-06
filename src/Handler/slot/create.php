@@ -92,7 +92,6 @@ class slot_create extends FieldHandler
 
 	function generateForm ( $datestamp )
 	{
-		global $dbh;
 		$this->smarty->assign('field',      $this->field);
 		$this->smarty->assign('start_date', $datestamp);
 

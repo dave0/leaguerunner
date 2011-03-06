@@ -11,7 +11,7 @@ class team_spirit extends TeamHandler
 
 	function process ()
 	{
-		global $lr_session, $dbh, $CONFIG;
+		global $lr_session;
 		$this->title = "{$this->team->name} &raquo; Spirit";
 
 		// load the league

@@ -65,9 +65,6 @@ class RegistrationPayment extends LeaguerunnerObject
 
 	function delete()
 	{
-		global $dbh;
-
-
 		if ( ! $this->_in_database ) {
 			return false;
 		}

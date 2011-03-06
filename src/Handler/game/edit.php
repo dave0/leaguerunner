@@ -53,7 +53,7 @@ class game_edit extends GameHandler
 
 	function generateForm ( )
 	{
-		global $lr_session, $dbh;
+		global $lr_session;
 		# Alias, to avoid typing.  Bleh.
 		$game = &$this->game;
 		$league = &$this->league;

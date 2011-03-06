@@ -98,7 +98,6 @@ class game_reschedule extends LeagueHandler
 
 	function perform ( &$edit )
 	{
-		global $dbh;
 		list($rc, $message) = $this->league->reschedule_games_for_day( $edit['olddate'], $edit['newdate']);
 		if( $rc ) {
 			local_redirect(url("schedule/view/" . $this->league->league_id));

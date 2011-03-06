@@ -37,8 +37,6 @@ class registration_edit extends RegistrationHandler
 
 	function generateForm()
 	{
-		global $dbh;
-
 		$output = form_hidden('edit[step]', 'confirm');
 
 		$player = $this->registration->user();

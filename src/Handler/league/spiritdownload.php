@@ -10,8 +10,6 @@ class league_spiritdownload extends LeagueHandler
 
 	function process ()
 	{
-		global $dbh;
-
 		$games = Game::load_many( array( 'league_id' => $this->league->league_id, '_order' => 'g.game_date,g.game_id') );
 
 		if( !is_array($games) ) {

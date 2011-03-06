@@ -10,7 +10,6 @@ class registration_view extends RegistrationHandler
 
 	function process ()
 	{
-		global $dbh;
 		$this->title = 'Registration ' . $this->registration->formatted_order_id();
 
 		$this->template_name = 'pages/registration/view.tpl';

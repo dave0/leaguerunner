@@ -30,8 +30,6 @@ class Team extends LeaguerunnerObject
 
 	function __construct( $array = array() ) 
 	{
-		global $dbh;
-
 		// Fixups 
 		if($this->league_tier) {
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);

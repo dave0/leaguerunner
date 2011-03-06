@@ -10,7 +10,7 @@ class event_view extends EventHandler
 
 	function process ()
 	{
-		global $lr_session, $dbh;
+		global $lr_session;
 		$this->title = $this->event->name;
 
 		$this->template_name = 'pages/event/view.tpl';

@@ -10,8 +10,6 @@ class slot_day extends Handler
 
 	function process ()
 	{
-		global $dbh;
-
 		$this->template_name = 'pages/slot/day.tpl';
 
 		list( $year, $month, $day) = preg_split("/[\/-]/", $_GET['date']);
