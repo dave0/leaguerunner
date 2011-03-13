@@ -16,7 +16,7 @@ class season_list extends Handler
 		$this->title = "Season List";
 		$this->template_name = 'pages/season/list.tpl';
 
-		$seasons = Season::load_many();
+		$seasons = Season::load_many( array('_order' => 'year DESC, season ASC') );
 		$this->smarty->assign('current_season', $current_season_id);
 		$this->smarty->assign('seasons', $seasons);
 
