@@ -32,7 +32,7 @@ while( $data =~ m{league/view/(\d+)">([^<]+)</a>}g ) {
 	$league_name =~ s{/}{_}g;
 
 
-	my $filename = "\L${league_name}.xml";
+	my $filename = "$league_id-\L${league_name}.xml";
 
 	$agent->get($conf->{fetch_base} . 'sportsml/combined/' . $league_id);
 	my $fh = IO::File->new( $filename, 'w');
