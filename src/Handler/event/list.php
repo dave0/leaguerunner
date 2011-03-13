@@ -1,26 +1,6 @@
 <?php
 class event_list extends Handler
 {
-	private $query_args;
-
-	function __construct ( )
-	{
-		global $lr_session;
-		parent::__construct();
-
-		if( $lr_session->is_admin() ) {
-			$this->query_args = array(
-				'_extra' => 'e.open < e.close',
-				'_order' => 'e.type,e.open,e.close,e.registration_id'
-			);
-		} else {
-			$this->query_args = array(
-				'_extra' => 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()',
-				'_order' => 'e.type,e.open,e.close,e.registration_id'
-			);
-		}
-	}
-
 	function has_permission()
 	{
 		global $lr_session;
@@ -29,15 +9,19 @@ class event_list extends Handler
 
 	function process ()
 	{
-		global $lr_session, $CONFIG;
+		global $CONFIG;
+		$query_args = array(
+			'_order' => 'e.type,e.open,e.close,e.registration_id'
+		);
 
 		$season_id = $_GET['season'];
 		if( $season_id > 0 ) {
 			$current_season = Season::load(array( 'id' => $season_id ));
-			$this->query_args['season_id'] = $season_id;
+			$query_args['season_id'] = $season_id;
 			$this->title = "{$current_season->display_name} Registration";
 		} else {
 			$this->title = "Registration";
+			$query_args['_extra'] = 'e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()';
 			$season_id = -1;
 		}
 		$this->template_name = 'pages/event/list.tpl';
@@ -52,13 +36,12 @@ class event_list extends Handler
 		$type_desc = event_types();
 
 		$events = array();
-		$sth = Event::query( $this->query_args );
+		$sth = Event::query( $query_args );
 		while( $e = $sth->fetchObject('Event') ) {
 			$e->full_type = $type_desc[$e->type];
 			$events[] = $e;
 		}
 		$this->smarty->assign('events', $events);
-		$this->smarty->assign('is_admin', $lr_session->is_admin());
 
 		return true;
 	}
