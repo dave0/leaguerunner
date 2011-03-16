@@ -14,97 +14,49 @@ lr-mailman-sync.pl - Sync leaguerunner with mailman
 
 =head1 SYNOPSIS
 
- # sync data for a single list
- lr-mailman-sync.pl --list listname
-
- # Or, do it all from cron:
- 00 22   *   *   *        root    /home/webteam/bin/lr-mailman-sync.pl --all
-
-=head1 DESCRIPTION
-
-Synchronizes membership lists of a Mailman mailing list with a query run on the
-Leaguerunner database.
-
-Note that this script is very hardcoded as OCUA-specific.  You will need to
-edit it for your own local use, or perhaps, if you're feeling generous, provide
-patches to allow list configuration within Leaguerunner and make editing the
-%lists hash unnecessary.
-
-=head1 OPTIONS
-
-=over 4
-
-=item --list=<listname>
-
-Update only the list with the given name.
-
-=item --all
-
-Update all lists.
-
-=item --help
-
-This help
-
-=item --man
-
-Full manpage
-
-=back
-
-=head1 LICENCE AND COPYRIGHT
-
-Copyright (C) 2009 Dave O'Neill.
-
-Released under the terms of the GNU General Public License, version 2.
+lr-mailman-sync.pl [ --list listname | --all ]
 
 =cut
 
-use lib qw( lib );
+use lib qw( /opt/websites/www.ocua.ca/leaguerunner/perl/lib );
 use Leaguerunner;
 
-my $mm_path         = '/usr/lib/mailman/bin';
-my $mm_list_lists   = join('/', $mm_path, 'list_lists');
-my $mm_sync_members = join('/', $mm_path, 'sync_members');
-my $mm_newlist      = join('/', $mm_path, 'newlist');
+my $mm_path = '/usr/lib/mailman/bin';
+my $mm_sync_members = join('/',$mm_path, 'sync_members');
+my $mm_config_list = join('/',$mm_path, 'config_list');
 
-## This sets up a query dictionary
-my %queries = (
-	active_players => q{
-		SELECT distinct p.email
-		FROM person p
-		WHERE p.status = 'active'
-			AND p.class IN ('player', 'administrator', 'volunteer')
-	},
-	league_players => q{
-		SELECT distinct p.email
-		FROM person p, leagueteams l, teamroster r
-		WHERE r.player_id = p.user_id
-			AND l.team_id = r.team_id
-			AND l.league_id = ?;
-	},
-	league_captains_coordinators => q{
-		SELECT distinct p.email
-		FROM person p, leagueteams l, teamroster r
-		WHERE r.player_id = p.user_id
-			AND l.team_id = r.team_id
-			AND r.status IN ('captain', 'assistant', 'COACH')
-			AND l.league_id = ?
+sub cb_season_coordinators
+{
+	my ($dbh, $season_name) = @_;
+
+	my ($season_id) = $dbh->selectrow_array(q{
+		SELECT id FROM season WHERE season = ? ORDER BY year DESC limit 1
+	}, undef, $season_name);
+	if( ! $season_id ) {
+		warn "No season_id found for $season_name";
+		return;
+	}
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT email FROM person WHERE username = 'dmo'
 		UNION
 		SELECT distinct p.email
-		FROM person p, leaguemembers m
-		WHERE m.player_id = p.user_id
-			AND m.status IN ('coordinator')
-			AND m.league_id = ?
-	},
-	league_coordinators => q{
-		SELECT distinct p.email
-		FROM person p, leaguemembers m
-		WHERE m.player_id = p.user_id
-			AND m.status IN ('coordinator')
-			AND m.league_id = ?
-	},
-	season_captains_coordinators => q{
+			FROM person p, leaguemembers m, league l
+			WHERE m.player_id = p.user_id AND m.status IN ('coordinator') AND m.league_id = l.league_id AND l.season = ?}, undef, $season_id) || [] };
+}
+
+sub cb_season_captains_coordinators
+{
+	my ($dbh, $season_name) = @_;
+
+	my ($season_id) = $dbh->selectrow_array(q{
+		SELECT id FROM season WHERE season = ? ORDER BY year DESC limit 1
+	}, undef, $season_name);
+	if( ! $season_id ) {
+		warn "No season_id found for $season_name";
+		return;
+	}
+
+	return @{ $dbh->selectcol_arrayref(q{
 		SELECT distinct p.email
 		FROM person p, leagueteams lt, league l, teamroster r
 		WHERE r.player_id = p.user_id
@@ -119,218 +71,320 @@ my %queries = (
 			AND m.status IN ('coordinator')
 			AND m.league_id = l.league_id
 			AND l.season = ?
-	},
-	season_coordinators => q{
+	}, undef, $season_id, $season_id) || [] };
+}
+
+sub cb_active_players
+{
+	my ($dbh) = @_;
+	return @{ $dbh->selectcol_arrayref(q{
 		SELECT distinct p.email
-		FROM person p, leaguemembers m, league l
+		FROM person p
+		WHERE p.status = 'active'
+			AND p.email IS NOT NULL
+			AND p.class IN ('player', 'administrator', 'volunteer')
+			AND p.waiver_signed > (NOW() - INTERVAL 13 MONTH)
+	}) || [] };
+}
+
+sub cb_league_players
+{
+	my ($dbh, $league_id) = @_;
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leagueteams l, teamroster r
+		WHERE r.player_id = p.user_id
+			AND p.email IS NOT NULL
+			AND l.team_id = r.team_id
+			AND l.league_id = ?
+	}, undef, $league_id) || [] };
+}
+
+sub cb_league_captains_coordinators
+{
+	my ($dbh, $league_id) = @_;
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leagueteams l, teamroster r
+		WHERE r.player_id = p.user_id
+			AND p.email IS NOT NULL
+			AND l.team_id = r.team_id
+			AND r.status IN ('captain', 'assistant', 'COACH')
+			AND l.league_id = ?
+		UNION
+		SELECT distinct p.email
+		FROM person p, leaguemembers m
 		WHERE m.player_id = p.user_id
+			AND p.email IS NOT NULL
 			AND m.status IN ('coordinator')
-			AND m.league_id = l.league_id
-			AND l.season = ?
-	},
+			AND m.league_id = ?
+	}, undef, $league_id, $league_id) || [] };
+}
 
-);
+sub cb_league_coordinators
+{
+	my ($dbh, $league_id) = @_;
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leaguemembers m
+		WHERE m.player_id = p.user_id
+			AND p.email IS NOT NULL
+			AND (m.status IN ('coordinator')
+			AND m.league_id = ?) OR (p.username = 'dmo')
+	}, undef, $league_id) || [] }
+}
 
-## This sets up the lists to construct, using the queries from the dictionary
-## and the given parameters.
 my %lists = (
 
 	# Ad-hoc lists
 	'summer-yp-league-players' => {
-		query      => $queries{league_players},
-		parameters => [100]
+		callback   => \&cb_league_players,
+		parameters => [ 177 ]
+	},
+	'summer-womens-league-players' => {
+		callback   => \&cb_league_players,
+		parameters => [ 181 ]
+	},
+	'summer-masters-league-players' => {
+		callback   => \&cb_league_players,
+		parameters => [ 176 ]
 	},
 
 	# opt-in lists.
 	'player-notices' => {
-		# Currently, this returns inactive players as well.  Maybe, it
-		# shouldn't?
-		query => q{
-		SELECT distinct p.email
-		FROM person p
-		WHERE p.contact_for_feedback = 'Y'
-			AND p.status IN ('active', 'inactive')
+		callback => sub {
+			@{ shift->selectcol_arrayref(q{
+				SELECT distinct p.email
+				FROM person p
+				WHERE p.contact_for_feedback = 'Y'
+					AND p.email IS NOT NULL
+					AND p.status IN ('active')
+					AND p.class IN ('player', 'administrator', 'volunteer')
+					AND p.waiver_signed > (NOW() - INTERVAL 13 MONTH)
+				},
+			) || [] };
 		},
 	},
-	'players-l' => { query => $queries{active_players}, },
+	'volunteer-survey-l' => {
+		callback => sub {
+			@{ shift->selectcol_arrayref(q{
+				SELECT distinct p.email
+				FROM person p
+				WHERE p.willing_to_volunteer = 'Y'
+					AND p.email IS NOT NULL
+					AND p.status IN ('active')
+					AND p.class IN ('player', 'administrator', 'volunteer')
+					AND p.waiver_signed > (NOW() - INTERVAL 13 MONTH)
+				},
+			) || [] };
+		},
+	},
+	'players-l' => {
+		callback   => \&cb_active_players,
+	},
 
 	# Summer league
 	'summer-captains' => {
-		query      => $queries{season_captains_coordinators},
-		parameters => [ 'Summer', 'Summer' ],
+		callback   => \&cb_season_captains_coordinators,
+		parameters => [ 'Summer' ],
 	},
 	'summer-coordinators' => {
-		query      => $queries{season_coordinators},
-		parameters => ['Summer'],
+		callback   => \&cb_season_coordinators,
+		parameters => [ 'Summer' ],
 	},
 
 	'summer-monday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 92, 92 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 175 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 175 ],
 	},
 	'summer-monday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [92],
+		callback => \&cb_league_coordinators,
+		parameters => [ 175 ],
 	},
 	'summer-tuesday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 93, 93 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 178 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 178 ],
 	},
 	'summer-tuesday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [93],
+		callback => \&cb_league_coordinators,
+		parameters => [ 178 ],
 	},
 	'summer-wednesday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 94, 94 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 179 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 179 ],
 	},
 	'summer-wednesday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [94],
+		callback => \&cb_league_coordinators,
+		parameters => [ 179 ],
 	},
 	'summer-thursday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 95, 95 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 180 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 180 ],
 	},
 	'summer-thursday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [95],
+		callback => \&cb_league_coordinators,
+		parameters => [ 180 ],
 	},
 	'summer-friday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 97, 97 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 183 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 183 ],
 	},
 	'summer-friday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [97],
+		callback => \&cb_league_coordinators,
+		parameters => [ 183 ],
 	},
 	'summer-womens-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 96, 96 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 181 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 181 ],
 	},
 	'summer-womens-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [96],
+		callback => \&cb_league_coordinators,
+		parameters => [ 181 ],
 	},
 	'summer-masters-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 119, 119 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 176 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 176 ],
 	},
-	# TODO: No such list
-	#	'summer-masters-coordinators' => {
-	#		query	   => $queries{league_coordinators},
-	#		parameters => [ 119 ],
-	#	},
+	# TODO:
+	'summer-masters-coordinators' => {
+		callback => \&cb_league_coordinators,
+		parameters => [ 176 ],
+	},
 	'summer-young-professionals-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 100, 100 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 177 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 177 ],
 	},
 	'summer-young-professionals-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [100],
+		callback => \&cb_league_coordinators,
+		parameters => [ 177 ],
 	},
-	'summer-sunday-east-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 99, 99 ],
-	},
+
 	'summer-sunday-east-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [99],
+		callback => \&cb_league_coordinators,
+		parameters => [ 174 ],
 	},
 	'summer-sunday-central-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 121, 121 ],
-	},
-	'summer-sunday-central-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [121],
-	},
-	'summer-youth-division-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 101, 101 ],
-	},
-	'summer-youth-division-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [101],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 151 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 151 ],
 	},
 
 	# Fall League
 	'fall-captains' => {
-		query      => $queries{season_captains_coordinators},
-		parameters => [ 'Fall', 'Fall' ],
+		callback   => \&cb_season_captains_coordinators,
+		parameters => [ 'Fall' ],
 	},
 	'fall-coordinators' => {
-		query      => $queries{season_coordinators},
-		parameters => ['Fall'],
+		callback   => \&cb_season_coordinators,
+		parameters => [ 'Fall' ],
 	},
 	'fall-monday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 104, 104 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 192 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 192 ],
 	},
 	'fall-monday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [104],
+		callback => \&cb_league_coordinators,
+		parameters => [ 192 ],
 	},
 	'fall-tuesday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 105, 105 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 193 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 193 ],
 	},
 	'fall-tuesday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [105],
+		callback => \&cb_league_coordinators,
+		parameters => [ 193 ],
 	},
 	'fall-wednesday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 106, 106 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 194 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 194 ],
 	},
 	'fall-wednesday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [106],
+		callback => \&cb_league_coordinators,
+		parameters => [ 194 ],
 	},
+
 	'fall-thursday-captains' => {
-		query      => $queries{league_captains_coordinators},
-		parameters => [ 107, 107 ],
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 195 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 195 ],
 	},
 	'fall-thursday-coordinators' => {
-		query      => $queries{league_coordinators},
-		parameters => [107],
+		callback => \&cb_league_coordinators,
+		parameters => [ 195 ],
+	},
+
+	'fall-womens-captains' => {
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 196 ],
+		moderator_callback => \&cb_league_coordinators,
+		moderator_parameters => [ 196 ],
+	},
+	'fall-womens-coordinators' => {
+		callback => \&cb_league_coordinators,
+		parameters => [ 196 ],
 	},
 );
+
 
 my $list_name = undef;
 my $all_lists = 0;
 GetOptions(
 	'list=s' => \$list_name,
 	'all'    => \$all_lists,
-	'help'   => sub { pod2usage(-exitval => EXIT_SUCCESS, -verbose => 1); },
-	'man'    => sub { pod2usage(-exitval => EXIT_SUCCESS, -verbose => 2); },
+	'help'   => sub { pod2usage( -exitval => EXIT_SUCCESS, -verbose => 1 ); },
+	'man'    => sub { pod2usage( -exitval => EXIT_SUCCESS, -verbose => 2 ); },
 );
 
-if(!$all_lists && !($list_name && exists $lists{$list_name})) {
-	pod2usage(-message => "--list argument is missing, or not a valid list", -exitval => EXIT_FAILURE, -verbose => 0);
+if( !$all_lists && !($list_name && exists $lists{$list_name}) ) {
+	pod2usage( -message => "--list argument is missing, or not a valid list", -exitval => EXIT_FAILURE, -verbose => 0 );
 }
 
 my $config = Leaguerunner::parseConfigFile("/opt/websites/www.ocua.ca/leaguerunner/src/leaguerunner.conf");
 
 ## Initialise database handle.
-my $DB = DBI->connect( $config->{database}{dsn}, $config->{database}{username}, $config->{database}{password}, { RaiseError => 1, }) || die("Error establishing database connect; $DBI::errstr\n");
-
-# We must remember to disconnect on exit.  Use the magical END sub.
-sub END { $DB->disconnect() if defined($DB); }
+my $DB = DBI->connect( $config->{database}{dsn}, $config->{database}{username}, $config->{database}{password}, { RaiseError => 1, }) ||
+	die("Error establishing database connect; $DBI::errstr\n");
 
 my @list_names;
-if($all_lists) {
+if( $all_lists ) {
 	@list_names = sort keys %lists;
 } else {
 	@list_names = $list_name;
 }
 
 foreach my $name (@list_names) {
-	if(!exists $lists{$name}) {
+	if( ! exists $lists{ $name } ) {
 		warn "No list for $name; skipping";
 		next;
 	}
-	list_sync_members({ name => $name, %{ $lists{$name} } });
+	list_sync_members( { name => $name, %{$lists{ $name }} } );
+	if( exists $lists{$name}{moderator_callback} ) {
+		list_sync_moderators( { name => $name, %{$lists{ $name }} } );
+	}
 }
 
 sub list_sync_members
@@ -338,20 +392,56 @@ sub list_sync_members
 	my ($listinfo) = @_;
 
 	# Real work starts here
-	my $sth = $DB->prepare($listinfo->{query});
-	my $new_members = $DB->selectcol_arrayref($sth, undef, @{ $listinfo->{parameters} || [] });
+	my @new_members = $listinfo->{callback}->($DB, @{ $listinfo->{parameters} || [] });
 
 	print "Building $listinfo->{name}\n";
 
-	# warn join (",",@$new_members) . "\n";
+	if( ! @new_members ) {
+		warn "No members found for $listinfo->{name}, continuing anyway";
+	}
 
-	my $tmpdir      = tempdir(CLEANUP => 1);
+#	warn join (",",@new_members) . "\n";
+
+	my $tmpdir = tempdir( CLEANUP => 1 );
 	my $tmpfilename = "$tmpdir/temp-address-file";
-	my $fh          = new IO::File "> $tmpfilename" or die("Couldn't open tempfile: $!");
-	print $fh join("\n", @$new_members) . "\n";
+	my $fh = IO::File->new("> $tmpfilename") or die("Couldn't open tempfile: $!");
+
+	$fh->print(join("\n",@new_members) . "\n");
 	$fh->close;
 
 	# run /usr/lib/mailman/bin/sync_members on the list
-	print join(' ', $mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listinfo->{name}, "\n");
-	system($mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listinfo->{name}) == 0 or die("$mm_sync_members failed");
+	print join( ' ',$mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listinfo->{name}, "\n" ) ;
+	system( $mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listinfo->{name} ) == 0 or die("$mm_sync_members failed");
+}
+
+sub list_sync_moderators
+{
+	my ($listinfo) = @_;
+
+	my $new_moderators = join(',',
+		map { qq{'$_'} }
+		$listinfo->{moderator_callback}->($DB, @{ $listinfo->{moderator_parameters}} ));
+
+	print "Setting moderators for $listinfo->{name} to $new_moderators\n";
+#	warn $new_moderators;
+
+	my $tmpdir = tempdir( CLEANUP => 1 );
+	my $tmpfilename = "$tmpdir/temp-config-file";
+	my $fh = IO::File->new("> $tmpfilename") or die("Couldn't open tempfile: $!");
+	print $fh <<"END";
+# Disable emergency moderation
+emergency = 0
+# Set list moderation for subscribers to prevent posting
+default_member_moderation = 1
+# Allow coordinators as moderators
+moderator = [ $new_moderators ]
+# Allow them to post, even if not on the list
+accept_these_nonmembers = [ $new_moderators ]
+# Reject any nonmember messages
+generic_nonmember_action = 1
+END
+	$fh->close;
+
+	# Import the new config
+	system( $mm_config_list, '--inputfile', $tmpfilename , $listinfo->{name}) == 0 or die "$mm_config_list failed";
 }
