@@ -141,14 +141,14 @@ function leaguerunner_form_alter($form_id, &$form)
 	if ($form_id == 'user_pass') {
 		//drupal_goto($forgotpw);
 		header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $forgotpw);
-		break;
+		return;
 	}
 
 	// Redirect the Drupal User Register Form to the path set in the Leaguerunner Configuration Page
 	if ($form_id == 'user_register') {
 		//drupal_goto($newusers);
 		header( 'Location: http://' . $_SERVER['HTTP_HOST'] . '/' . $newusers);
-		break;
+		return;
 	}
 
 	// Set the Contact Page email to default to the senders full name rather than their Drupal user name
@@ -216,11 +216,19 @@ function leaguerunner_auth($username, $password, $server)
 	$tmpUsername = db_escape_string($username);
 	$tmpPassword = md5($password);
 	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
-	$result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE u.username = '$tmpUsername' AND u.password = '$tmpPassword'", 0, 1);
+	$result = db_query_range("SELECT u.* FROM $lr_dbname.person u WHERE u.username = '$tmpUsername'", 0, 1);
 	$lrUser = db_fetch_object($result);
-
 	// See if we successfully authenticated a Leaguerunner user in the LR DB.
 	if($lrUser) {
+		$hashed_pw = null;
+		if( substr( $lrUser->password, 0, 3) == '$1$' ) {
+			$hashed_pw = crypt( $password, substr( $lrUser->password, 0, 12));
+		} else {
+			$hashed_pw = md5( $password );
+		}
+		if( $hashed_pw != $lrUser->password ) {
+			return 0;
+		}
 
 		$fullname = $lrUser->firstname . ' ' . $lrUser->lastname;
 
@@ -235,9 +243,9 @@ function leaguerunner_auth($username, $password, $server)
 				drupal_set_message(t('<strong>Welcome, %name</strong>. You have logged in successfully.', array('%name' => $fullname)));
 
 				// See if they have signed a waiver yet.
-				// TODO: fix WODS-ism
+				// TODO: fix OCUA-ism
 				if (!$lrUser->waiver_signed) {
-					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in WODS events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
+					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in OCUA events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
 				}
 
 				// Valid user as they are either active or inactive.
@@ -276,13 +284,13 @@ function leaguerunner_auth($username, $password, $server)
 function leaguerunner_user($op, &$edit, &$account, $category = null)
 {
 
-	// Strip name and server from ID:
-	$name = '';
-	if ($server = strrchr($account->init, '@')) {
-		$name = substr($account->init, 0, strlen($account->init) - strlen($server));
-	}
-
 	if ($op == 'login') {
+
+		// Strip name and server from ID:
+		$name = '';
+		if ($server = strrchr($account->init, '@')) {
+			$name = substr($account->init, 0, strlen($account->init) - strlen($server));
+		}
 
 		if( ! $name ) {
 			return;
@@ -330,6 +338,11 @@ function leaguerunner_user($op, &$edit, &$account, $category = null)
 
 	// Log the user out of Leaguerunner when logging out of Drupal
 	if ($op == 'logout') {
+		$name = '';
+		if ($server = strrchr($account->init, '@')) {
+			$name = substr($account->init, 0, strlen($account->init) - strlen($server));
+		}
+
 		if( ! $name ) {
 			return;
 		}
@@ -393,11 +406,8 @@ function _leaguerunner_next_games ( )
 	$lr_dbname = variable_get("leaguerunner_dbname", "leaguerunner");
 	$lr_numtoshow = variable_get("leaguerunner_numtoshow", "3");
 
-	// For old mysql
-	//$result = db_query("select s.game_id, UNIX_TIMESTAMP(CONCAT(g.game_date,' ',g.game_start)) AS date, IF(s.home_team = t.team_id,home.name,away.name) AS myteam, IF(s.home_team = t.team_id,away.name,home.name) AS opponent FROM $lr_dbname.schedule s INNER JOIN $lr_dbname.gameslot g INNER JOIN $lr_dbname.teamroster t INNER JOIN $lr_dbname.team home ON (home.team_id = s.home_team) INNER JOIN $lr_dbname.team away ON (away.team_id = s.away_team) WHERE ((s.home_team = t.team_id OR s.away_team = t.team_id) AND t.player_id = %d) AND g.game_date >= NOW()  ORDER BY g.game_date asc LIMIT $lr_numtoshow", $player->user_id, $player->user_id);
-
 	// For new ( > 5.0.1 ) mysql
-	$result = db_query("SELECT UNIX_TIMESTAMP( CONCAT( g.game_date, ' ', g.game_start ) ) AS date, s.game_id, homeTeam.name AS homeTitle, awayTeam.name AS awayTitle, homeRoster.player_id, awayRoster.player_id, field.fid, field.parent_fid, field.num FROM ((((($lr_dbname.schedule AS s INNER JOIN $lr_dbname.gameslot AS g ON s.game_id = g.game_id) INNER JOIN $lr_dbname.team AS homeTeam ON s.home_team = homeTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS homeRoster ON homeTeam.team_id = homeRoster.team_id ) INNER JOIN $lr_dbname.team AS awayTeam ON s.away_team = awayTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS awayRoster ON awayTeam.team_id = awayRoster.team_id ) INNER JOIN $lr_dbname.field ON g.fid = field.fid WHERE g.game_date >= CURDATE( ) AND (homeRoster.player_id = %d OR awayRoster.player_id = %d) GROUP BY s.game_id ORDER BY g.game_date LIMIT $lr_numtoshow;", $player->user_id, $player->user_id);
+	$result = db_query("SELECT UNIX_TIMESTAMP( CONCAT( g.game_date, ' ', g.game_start ) ) AS date, s.game_id, homeTeam.name AS homeTitle, awayTeam.name AS awayTitle, homeRoster.player_id, awayRoster.player_id, field.fid, field.parent_fid, field.num FROM ((((($lr_dbname.schedule AS s INNER JOIN $lr_dbname.gameslot AS g ON s.game_id = g.game_id) INNER JOIN $lr_dbname.team AS homeTeam ON s.home_team = homeTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS homeRoster ON homeTeam.team_id = homeRoster.team_id ) INNER JOIN $lr_dbname.team AS awayTeam ON s.away_team = awayTeam.team_id ) INNER JOIN $lr_dbname.teamroster AS awayRoster ON awayTeam.team_id = awayRoster.team_id ) INNER JOIN $lr_dbname.field ON g.fid = field.fid WHERE s.published AND g.game_date >= CURDATE( ) AND (homeRoster.player_id = %d OR awayRoster.player_id = %d) GROUP BY s.game_id ORDER BY g.game_date LIMIT $lr_numtoshow;", $player->user_id, $player->user_id);
 
 	$games = array();
 	while($item = db_fetch_object($result)) {
