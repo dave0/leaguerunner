@@ -80,9 +80,6 @@ class team_roster extends TeamHandler
 			error_exit("Could not set roster status for {$this->player->fullname}");
 		}
 
-		// Send an email, if configured
-		$this->sendInvitation ($edit['status'], $this->player);
-
 		local_redirect(url("team/view/" . $this->team->team_id));
 		return true;
 	}
