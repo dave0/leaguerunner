@@ -4,9 +4,9 @@
   <head>
     <title>{ $title | escape | default:$app_name }</title>
     {include file="components/css.tpl"}
-    <script type="text/javascript" src="{$base_url}/js/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="{$base_url}/js/jquery-1.4.4.min.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.dataTables.1.6.min.js"></script>
-    <script type="text/javascript" src="{$base_url}/js/jquery-ui-1.8.2.custom.min.js"></script>
+    <script type="text/javascript" src="{$base_url}/js/jquery-ui-1.8.11.custom.min.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.sortable.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.compatibility.js"></script>
