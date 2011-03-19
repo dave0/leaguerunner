@@ -446,8 +446,7 @@ function team_add_to_menu( &$team )
 {
 	global $lr_session;
 
-	// Now that team names aren't unique, we need a unique id for the menu
-	$menu_name = $team->name . $team->team_id;
+	$menu_name = "team/$team->team_id";
 
 	menu_add_child('team', $menu_name, $team->name, array('weight' => -10, 'link' => "team/view/$team->team_id"));
 	menu_add_child($menu_name, "$menu_name/standings",'standings', array('weight' => -1, 'link' => "league/standings/$team->league_id/$team->team_id"));
@@ -463,6 +462,7 @@ function team_add_to_menu( &$team )
 
 	if( $lr_session->has_permission('team','edit',$team->team_id)) {
 		menu_add_child($menu_name, "$menu_name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
+		menu_add_child($menu_name, "$menu_name/fieldpreference",'field preferences', array('weight' => 1, 'link' => "team/fieldpreference/$team->team_id"));
 		menu_add_child($menu_name, "$menu_name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
 	}
 

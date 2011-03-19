@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 28;
+my $LATEST_SCHEMA = 29;
 
 my @TABLES = (
 	'person' => [q{
@@ -258,6 +258,7 @@ my @TABLES = (
 			location_province   varchar(50),
 			latitude            double,
 			longitude           double,
+			is_indoor	    boolean NOT NULL DEFAULT false,
 			angle               integer NOT NULL,
 			length              integer NOT NULL,
 			width               integer NOT NULL,
@@ -2013,6 +2014,38 @@ sub upgrade_27_to_28
 				ADD COLUMN season_id INTEGER DEFAULT 1 AFTER type;
 		},
 		],
+	]);
+}
+
+sub upgrade_28_to_29
+{
+	my ($self) = @_;
+
+	$self->_run_sql([
+
+		flag_indoor_fields => [
+		q{
+			ALTER TABLE field
+				ADD COLUMN is_indoor BOOLEAN NOT NULL DEFAULT false;
+		},
+		],
+
+		field_ranking => [
+		q{
+			CREATE TABLE team_site_ranking (
+				team_id  INTEGER NOT NULL,
+				site_id  INTEGER NOT NULL,
+				rank     INTEGER NOT NULL,
+				PRIMARY KEY(team_id, site_id),
+				UNIQUE(team_id,rank)
+			);
+		},
+		# TODO: possibly auto-populate team's preference from the available sites?
+		q{
+			ALTER TABLE team
+				DROP COLUMN region_preference;
+		},
+		]
 	]);
 }
 
