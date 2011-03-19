@@ -7,6 +7,7 @@
 	<tr><td>Field Rating:</td><td>{$field->rating_description}</td></tr>
 	<tr><td>Number:</td><td>{$field->num}</td></tr>
 	<tr><td>Field Region:</td><td>{$field->region}</td></tr>
+	<tr><td>Is indoor:</td><td>{if $field->is_indoor}yes{else}no{/if}</td></tr>
 	{if $field->location_street}
 	<tr><td>Street Address:</td><td>
 		{include file='components/street_address.tpl'

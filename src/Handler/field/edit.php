@@ -57,6 +57,8 @@ class field_edit extends FieldHandler
 
 			$output .= form_select("Region", 'edit[region]', $data['region'], getOptionsFromEnum('field', 'region'), "Area of city this field is located in");
 
+			$output .= form_select("Is indoor", 'edit[is_indoor]', $data['is_indoor'], array( 0 => 'No', 1 => 'Yes'), "Is this an indoor field");
+
 			$output .= form_textfield('Street and Number','edit[location_street]',$data['location_street'], 25, 100);
 
 			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city');
@@ -113,6 +115,7 @@ class field_edit extends FieldHandler
 			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
+			$rows[] = array("Is indoor:", form_hidden('edit[is_indoor]', $edit['is_indoor']) . ($edit['is_indoor'] ? 'Yes' : 'No'));
 			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 			$rows[] = array( "Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
 
@@ -161,6 +164,7 @@ class field_edit extends FieldHandler
 			$field->set('location_street', $edit['location_street']);
 			$field->set('location_city', $edit['location_city']);
 			$field->set('location_province', $edit['location_province']);
+			$field->set('is_indoor', $edit['is_indoor']);
 
 			$field->set('region', $edit['region']);
 			$field->set('location_url', $edit['location_url']);

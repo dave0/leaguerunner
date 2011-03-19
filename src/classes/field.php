@@ -25,6 +25,7 @@ class Field extends LeaguerunnerObject
 			$this->location_url = $parent->location_url;
 			$this->layout_url = $parent->layout_url;
 			$this->fullname = join(" ", array($this->name, $this->num));
+			$this->is_indoor = $parent->is_indoor;
 
 			// Fields may have their own parking details, or inherit from the parent
 			if (! $this->parking ) {
