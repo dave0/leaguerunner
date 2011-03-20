@@ -46,15 +46,14 @@ class league_status extends LeagueHandler
 		$teams = array();
 		while(list(, $tid) = each($order)) {
 			$team = $season[$tid];
+			$ratio = sprintf("%.3f", $team->preferred_field_ratio());
 
-			// region preference
-			if ($team->region_preference != "---" && $team->region_preference != "") {
-				list($team->in_region_ratio, $team->in_region_ratio_bad) = _ratio_helper( $team->region_game_counts[$team->region_preference], $team->game_count);
-			} else {
-				// No region preference means they're always happy :)
-				$team->in_region_ratio = '1.000';
-				$team->in_region_ratio_bad = false;
+			$check_ratio = $ratio;
+			if( $team->game_count % 2 ) {
+				$check_ratio = ( ($ratio * $team->game_count)+1)/($team->game_count +1);
 			}
+
+			list($team->preferred_ratio, $team->preferred_ratio_bad) = array($ratio, ($check_ratio < 0.5) );
 
 			list($team->home_game_ratio, $team->home_game_ratio_bad) = _ratio_helper( $team->home_game_count, $team->game_count);
 

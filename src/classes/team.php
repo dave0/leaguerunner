@@ -349,8 +349,10 @@ class Team extends LeaguerunnerObject
 			return $this->preferred_ratio;
 		}
 
-		if( ! $this->region_preference
-			|| $this->region_preference == '---' ) {
+		$sth = $dbh->prepare("SELECT COUNT(*) FROM team_site_ranking WHERE team_id = ?");
+		$sth->execute( array( $this->team_id ));
+		$num_pref = $sth->fetchColumn();
+		if( ! $num_pref ) {
 			// No preference means they're always happy.  We set
 			// this to over 100% to force them to sort last when
 			// ordering by ratio, so that teams with a preference
@@ -359,30 +361,37 @@ class Team extends LeaguerunnerObject
 			return ($this->preferred_ratio);
 		}
 
-		// It's not the most evil SQL hack in Leaguerunner, but it's
-		// probably a runner-up.  The idea is to get a count of the
-		// games played in the preferred region or on a home field, and
-		// a count played outside.
+		// We consider any field played at a site ranked 5 or better to
+		// be "preferred".
+		// TODO: to account for teams that rank fields late, or who
+		// change rankings throughout the season, perhaps we should use
+		// the current ranking if no ranking was found from game-time?
 		$sth = $dbh->prepare(
-			'SELECT
-				IF(g.fid = t.home_field, 1, COALESCE(f.region,p.region) = t.region_preference) AS is_preferred,
-				COUNT(*) AS num_games
-				FROM schedule s
-				LEFT JOIN gameslot g USING (game_id)
-				LEFT JOIN field f USING (fid)
-				LEFT JOIN field p ON (f.parent_fid = p.fid),
-				team t
-				WHERE (s.home_team = t.team_id OR s.away_team = t.team_id)
-				AND t.team_id = ? GROUP BY is_preferred');
-		$sth->execute( array( $this->team_id) );
+		'SELECT
+			IF(ISNULL(stats.rank),      -1,
+				IF(stats.rank <= 5,  1,
+					             0 )) AS is_preferred,
+			COUNT(*) AS num_games
+		FROM schedule s
+		    LEFT JOIN field_ranking_stats stats ON (s.game_id = stats.game_id)
+		WHERE (s.home_team = ? OR s.away_team = ?)
+		GROUP BY is_preferred');
+		$sth->execute( array( $this->team_id, $this->team_id) );
 
 		$preferred     = 0;
 		$not_preferred = 0;
 		while($row = $sth->fetch( PDO::FETCH_ASSOC ) ) {
-			if($row['is_preferred']) {
-				$preferred = $row['num_games'];
-			} else {
-				$not_preferred = $row['num_games'];
+			switch($row['is_preferred']) {
+				case 1:
+					$preferred = $row['num_games'];
+					break;
+				case 0:
+					$not_preferred = $row['num_games'];
+					break;
+				default:
+				case -1:
+					// team didn't care.  Don't count this one towards preference stat
+					break;
 			}
 		}
 

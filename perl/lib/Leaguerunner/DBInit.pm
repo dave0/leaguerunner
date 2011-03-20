@@ -2040,6 +2040,17 @@ sub upgrade_28_to_29
 				UNIQUE(team_id,rank)
 			);
 		},
+
+		# Store the rank at game-creation time for future use in
+		# calculating stats.
+		q{
+			CREATE TABLE field_ranking_stats (
+				game_id INTEGER NOT NULL,
+				team_id INTEGER NOT NULL,
+				rank INTEGER NOT NULL,
+				PRIMARY KEY (game_id, team_id)
+			);
+		},
 		# TODO: possibly auto-populate team's preference from the available sites?
 		q{
 			ALTER TABLE team

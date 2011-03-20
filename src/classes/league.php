@@ -1512,36 +1512,36 @@ class League extends LeaguerunnerObject
 	{
 
 		// First pass - cherry-pick anyone with a home field
-		$by_home_region = array();
+		$by_home_preference = array();
 		while($game = array_pop($games)) {
 			if( ! $game->select_home_field_gameslot( $timestamp ) ) {
-				$by_home_region[] = $game;
+				$by_home_preference[] = $game;
 			}
 		}
 
-		if( ! count($by_home_region) ) {
+		if( ! count($by_home_preference) ) {
 			return true;
 		}
 
 		// Second pass: by home region.  We sort by preference ratio (ascending) so that
 		// teams who received their field preference least get first crack.
-		usort( $by_home_region, array('Game', 'cmp_hometeam_field_ratio'));
-		$by_away_region = array();
-		while($game = array_pop($by_home_region)) {
-			if( ! $game->select_home_region_gameslot( $game->home_team,  $timestamp ) ) {
-				$by_away_region[] = $game;
+		usort( $by_home_preference, array('Game', 'cmp_hometeam_field_ratio'));
+		$by_away_preference = array();
+		while($game = array_pop($by_home_preference)) {
+			if( ! $game->select_team_preference_gameslot( $game->home_team,  $timestamp ) ) {
+				$by_away_preference[] = $game;
 			}
 		}
 
-		if( ! count($by_away_region) ) {
+		if( ! count($by_away_preference) ) {
 			return true;
 		}
 
 		// Third pass: by away region, again sorting first
-		usort( $by_away_region, array('Game', 'cmp_awayteam_field_ratio'));
+		usort( $by_away_preference, array('Game', 'cmp_awayteam_field_ratio'));
 		$by_random = array();
-		while($game = array_pop($by_away_region)) {
-			if( ! $game->select_home_region_gameslot( $game->away_team, $timestamp ) ) {
+		while($game = array_pop($by_away_preference)) {
+			if( ! $game->select_team_preference_gameslot( $game->away_team, $timestamp ) ) {
 				$by_random[] = $game;
 			}
 		}

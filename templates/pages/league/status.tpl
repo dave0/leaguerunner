@@ -9,7 +9,7 @@
 	    <th rowspan="2">Rating</th>
 	    <th rowspan="2">Team</th>
 	    <th rowspan="2">Home&nbsp;Pct</th>
-	    <th rowspan="2">Region&nbsp;Pct</th>
+	    <th rowspan="2">Want Fld&nbsp;Pct</th>
 	    <th colspan="6">Games Played</th>
 	    <th rowspan="2">Opponents</th>
 	    <th rowspan="2">Repeat Opponents</th>
@@ -31,8 +31,8 @@
 	    <td {if $team->home_game_ratio_bad}style="color: white; background-color: red; font-weight: bold"{/if}>
 		{$team->home_game_ratio}
 	    </td>
-	    <td {if $team->in_region_ratio_bad}style="color: white; background-color: red; font-weight: bold"{/if}>
-		{$team->in_region_ratio}
+	    <td {if $team->preferred_ratio_bad}style="color: white; background-color: red; font-weight: bold"{/if}>
+		{$team->preferred_ratio}
 	    </td>
 	    <td>{$team->game_count}</td>
 	    <td>{$team->home_game_count}</td>

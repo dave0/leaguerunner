@@ -420,6 +420,7 @@ class Game extends LeaguerunnerObject
 			'UPDATE gameslot SET game_id = NULL where game_id = ?',
 			'DELETE FROM spirit_entry WHERE gid = ?',
 			'DELETE FROM score_entry WHERE game_id = ?',
+			'DELETE FROM field_ranking_stats WHERE game_id = ?',
 			'DELETE FROM schedule WHERE game_id = ?'
 		);
 
@@ -983,7 +984,15 @@ class Game extends LeaguerunnerObject
 
 		$this->_gameslot_assign_sanity_check();
 
-		$sth = $dbh->prepare('SELECT s.slot_id FROM gameslot s, league_gameslot_availability a WHERE a.slot_id = s.slot_id AND UNIX_TIMESTAMP(s.game_date) = ? AND a.league_id = ? AND ISNULL(s.game_id) ORDER BY RAND() LIMIT 1');
+		$sth = $dbh->prepare('SELECT s.slot_id
+			FROM gameslot s,
+				league_gameslot_availability a
+			WHERE a.slot_id = s.slot_id
+				AND UNIX_TIMESTAMP(s.game_date) = ?
+				AND a.league_id = ?
+				AND ISNULL(s.game_id)
+			ORDER BY RAND()
+			LIMIT 1');
 		$sth->execute( array( $timestamp, $this->league_id) );
 		$slot_id = $sth->fetchColumn();
 		if( ! $slot_id ) {
@@ -994,7 +1003,7 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
-	 * Select a gameslot in the provided team's home region for this game.
+	 * Select a gameslot by the provided team's field rankings.
 	 * Changes are made directly in the database (no need to ->save() the
 	 * game) however this means that you should probably call this only
 	 * within a transaction if you want to roll back changes easily on
@@ -1006,7 +1015,7 @@ class Game extends LeaguerunnerObject
 	 * to do this would be to order by field quality instead of RAND(),
 	 * keeping our best fields in use.
 	 */
-	function select_home_region_gameslot( $team_id, $timestamp )
+	function select_team_preference_gameslot( $team_id, $timestamp )
 	{
 		global $dbh;
 
@@ -1017,17 +1026,20 @@ class Game extends LeaguerunnerObject
 			FROM
 				gameslot s,
 				league_gameslot_availability a,
-				team t,
-				field f LEFT JOIN field pf ON (pf.fid = f.parent_fid)
+				team_site_ranking r,
+				field f
 			WHERE
 				a.slot_id = s.slot_id
 				AND UNIX_TIMESTAMP(s.game_date) = ?
 				AND a.league_id = ?
 				AND ISNULL(s.game_id)
 				AND f.fid = s.fid
-				AND t.team_id = ?
-				AND (t.region_preference = f.region OR t.region_preference = pf.region)
-			ORDER BY RAND() LIMIT 1');
+				AND (
+					(ISNULL(f.parent_fid) AND f.fid = r.site_id)
+					OR f.parent_fid = r.site_id
+				)
+				AND r.team_id = ?
+			ORDER BY r.rank ASC, RAND() LIMIT 1');
 
 		$region_pref_sth->execute( array($timestamp, $this->league_id, $team_id) );
 		$slot_id = $region_pref_sth->fetchColumn();
@@ -1096,6 +1108,23 @@ class Game extends LeaguerunnerObject
 			throw new Exception('Could not assign gameslot: failed to update table');
 		}
 		$this->slot_id = $slot_id;
+
+		// Now update some statistics for future calculation of
+		// "preferred" field assignments.
+		$teams = array($this->home_team, $this->away_team);
+		$sth = $dbh->prepare(
+		'INSERT INTO field_ranking_stats (game_id, team_id, rank)
+			SELECT g.game_id, r.team_id, r.rank
+				FROM team_site_ranking r, field f, gameslot g
+				WHERE g.game_id = ?
+					AND g.fid = f.fid
+					AND ( (ISNULL(f.parent_fid) AND f.fid = r.site_id)
+						OR f.parent_fid = r.site_id)
+					AND r.team_id = ?');
+		foreach($teams as $team) {
+			$sth->execute( array( $this->game_id, $team ) );
+		}
+
 		return true;
 	}
 
