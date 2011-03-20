@@ -256,6 +256,7 @@ class Team extends LeaguerunnerObject
 		$queries = array(
 			'DELETE FROM teamroster WHERE team_id = ?',
 			'DELETE FROM leagueteams WHERE team_id = ?',
+			'DELETE FROM team_site_ranking WHERE team_id = ?',
 			'DELETE FROM team WHERE team_id = ?',
 		);
 
