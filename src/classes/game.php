@@ -1015,7 +1015,7 @@ class Game extends LeaguerunnerObject
 	 * to do this would be to order by field quality instead of RAND(),
 	 * keeping our best fields in use.
 	 */
-	function select_team_preference_gameslot( $team_id, $timestamp )
+	function select_team_preference_gameslot( $team_id, $timestamp, $rank_limit = 9999 )
 	{
 		global $dbh;
 
@@ -1039,9 +1039,10 @@ class Game extends LeaguerunnerObject
 					OR f.parent_fid = r.site_id
 				)
 				AND r.team_id = ?
+				AND r.rank < ?
 			ORDER BY r.rank ASC, RAND() LIMIT 1');
 
-		$region_pref_sth->execute( array($timestamp, $this->league_id, $team_id) );
+		$region_pref_sth->execute( array($timestamp, $this->league_id, $team_id, $rank_limit) );
 		$slot_id = $region_pref_sth->fetchColumn();
 
 		if( ! $slot_id ) {

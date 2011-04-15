@@ -361,15 +361,15 @@ class Team extends LeaguerunnerObject
 			return ($this->preferred_ratio);
 		}
 
-		// We consider any field played at a site ranked 5 or better to
+		// We consider any field played at a site ranked 10 or better to
 		// be "preferred".
 		// TODO: to account for teams that rank fields late, or who
 		// change rankings throughout the season, perhaps we should use
 		// the current ranking if no ranking was found from game-time?
 		$sth = $dbh->prepare(
 		'SELECT
-			IF(ISNULL(stats.rank),      -1,
-				IF(stats.rank <= 5,  1,
+			IF(ISNULL(stats.rank),       -1,
+				IF(stats.rank <= 10,  1,
 					             0 )) AS is_preferred,
 			COUNT(*) AS num_games
 		FROM schedule s

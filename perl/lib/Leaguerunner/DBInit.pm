@@ -64,7 +64,6 @@ my @TABLES = (
 			website           varchar(100),
 			shirt_colour      varchar(50),
 			home_field        integer,
-			region_preference varchar(50),
 			status            ENUM('open','closed'),
 			rating            int DEFAULT 1500,
 			PRIMARY KEY (team_id),
@@ -276,7 +275,31 @@ my @TABLES = (
 			location_url        varchar(255),
 			layout_url          varchar(255)
 		);
-	}],
+	},
+	q{
+		DROP TABLE IF EXISTS team_site_ranking;
+	},
+	q{
+		CREATE TABLE team_site_ranking (
+			team_id  INTEGER NOT NULL,
+			site_id  INTEGER NOT NULL,
+			rank     INTEGER NOT NULL,
+			PRIMARY KEY(team_id, site_id),
+			UNIQUE(team_id,rank)
+		);
+	},
+	q{
+		DROP TABLE IF EXISTS field_ranking_stats;
+	},
+	q{
+		CREATE TABLE field_ranking_stats (
+			game_id INTEGER NOT NULL,
+			team_id INTEGER NOT NULL,
+			rank INTEGER NOT NULL,
+			PRIMARY KEY (game_id, team_id)
+		);
+	}
+	],
 
 	'gameslot' => [q{
 		DROP TABLE IF EXISTS gameslot;

@@ -1523,12 +1523,17 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
+		# We cap team preference search at 10 here, since if we can't
+		# give the home team a top-10 field, we'll try and make the
+		# away team happy instead.
+		$team_preference_cutoff = 10;
+
 		// Second pass: by home region.  We sort by preference ratio (ascending) so that
 		// teams who received their field preference least get first crack.
 		usort( $by_home_preference, array('Game', 'cmp_hometeam_field_ratio'));
 		$by_away_preference = array();
 		while($game = array_pop($by_home_preference)) {
-			if( ! $game->select_team_preference_gameslot( $game->home_team,  $timestamp ) ) {
+			if( ! $game->select_team_preference_gameslot( $game->home_team, $timestamp, $team_preference_cutoff ) ) {
 				$by_away_preference[] = $game;
 			}
 		}
@@ -1539,9 +1544,19 @@ class League extends LeaguerunnerObject
 
 		// Third pass: by away region, again sorting first
 		usort( $by_away_preference, array('Game', 'cmp_awayteam_field_ratio'));
-		$by_random = array();
+		$by_home_preference_nolimit = array();
 		while($game = array_pop($by_away_preference)) {
-			if( ! $game->select_team_preference_gameslot( $game->away_team, $timestamp ) ) {
+			if( ! $game->select_team_preference_gameslot( $game->away_team, $timestamp, $team_preference_cutoff ) ) {
+				$by_home_preference_nolimit[] = $game;
+			}
+		}
+
+		// Fourth pass, try home team again, this time with no limit
+		// (in case the home team has more than the limit available on their list)
+		usort( $by_home_preference_nolimit, array('Game', 'cmp_hometeam_field_ratio'));
+		$by_random = array();
+		while($game = array_pop($by_home_preference_nolimit)) {
+			if( ! $game->select_team_preference_gameslot( $game->home_team, $timestamp ) ) {
 				$by_random[] = $game;
 			}
 		}
@@ -1550,7 +1565,7 @@ class League extends LeaguerunnerObject
 			return true;
 		}
 
-		// Fourth pass: randomly,  If nothing found, select_random_gameslot() will throw exception
+		// Fifth pass: randomly,  If nothing found, select_random_gameslot() will throw exception
 		while($game = array_pop($by_random)) {
 			$game->select_random_gameslot( $timestamp );
 		}
