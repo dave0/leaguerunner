@@ -269,3 +269,14 @@ select, input, textarea {
 
 .description { font-size: 0.85em; }
 
+/* bsmListItem stuff is for field ranking.  It displays a leading number on the count */
+.bsmListItem {
+  counter-increment: number;
+}
+.bsmListItemLabel:before {
+   content: counter(number) " ";
+}
+
+
+
+

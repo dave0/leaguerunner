@@ -46,7 +46,8 @@ $(function($) {
         plugins: [
           $.bsmSelect.plugins.sortable({ axis : 'y', opacity : 0.5 }),
           $.bsmSelect.plugins.compatibility()
-        ]
+        ],
+	extractLabel: function($o) { return $o.html() + ' (' + $o.parents('optgroup').attr('label') + ')' }
       });
 });
 {/literal}

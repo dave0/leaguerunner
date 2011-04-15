@@ -21,16 +21,11 @@ class team_fieldpreference extends TeamHandler
 		$selected = array();
 
 		// Load any currently-selected selected fields
-		$sth = $dbh->prepare("SELECT r.site_id, f.name FROM team_site_ranking r LEFT JOIN field f ON (f.fid = r.site_id) WHERE team_id = ? ORDER BY rank ASC");
+		$sth = $dbh->prepare("SELECT r.site_id, f.name, f.region FROM team_site_ranking r LEFT JOIN field f ON (f.fid = r.site_id) WHERE team_id = ? ORDER BY rank ASC");
 		$sth->execute( array( $this->team->team_id)  );
 
-		$chosen = array();
 		while( $item = $sth->fetch(PDO::FETCH_OBJ) ) {
-			$chosen[$item->site_id] = $item->name;
 			array_push($selected, $item->site_id);
-		}
-		if( count($chosen) > 0 ) {
-			$fields['Previously Chosen'] = $chosen;
 		}
 
 		// Ugh, now figure out what fields to display
@@ -50,9 +45,6 @@ class team_fieldpreference extends TeamHandler
 			ORDER BY f.region, f.name");
 		$sth->execute( array( $this->team->team_id ));
 		while($field = $sth->fetch(PDO::FETCH_OBJ) ) {
-			if( array_key_exists( $field->fid, $fields['Previously Chosen'] ) ) {
-				continue;
-			}
 			if(! array_key_exists( $field->region, $fields) ) {
 				$fields[$field->region] = array();
 			}
