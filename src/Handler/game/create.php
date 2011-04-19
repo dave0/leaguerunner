@@ -232,7 +232,7 @@ class game_create extends LeagueHandler
 		$output .= "<p>Select desired start date.  Scheduling a $type will require $tot_fields fields: $num_fields per day on $num_dates dates.</p>";
 
 		$sth = $dbh->prepare(
-			"SELECT DISTINCT UNIX_TIMESTAMP(s.game_date) as datestamp from league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = ? ORDER BY s.game_date, s.game_start");
+			"SELECT UNIX_TIMESTAMP(s.game_date) as datestamp, count(*) AS num_slots FROM league_gameslot_availability a, gameslot s WHERE (a.slot_id = s.slot_id) AND isnull(s.game_id) AND a.league_id = ? GROUP BY datestamp ORDER BY s.game_date");
 		$sth->execute( array( $this->league->league_id) );
 
 		$possible_dates = array();
@@ -241,7 +241,7 @@ class game_create extends LeagueHandler
 			#     a) the minimum $num_fields is available
 			#     b) there are $num_dates - 1 days beyond this onewith $num fields
 			#     available
-			$possible_dates[$date->datestamp] = strftime("%A %B %d %Y", $date->datestamp);
+			$possible_dates[$date->datestamp] = strftime("%A %B %d %Y", $date->datestamp) . " ($date->num_slots fields)";
 		}
 		if( count($possible_dates) == 0) {
 			error_exit("Sorry, there are no fields available for your league.  Check that fields have been allocated before attempting to proceed.");
