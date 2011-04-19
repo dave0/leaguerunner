@@ -218,6 +218,57 @@ team (still requires captain to accept).</p>
 info page for your team, click on <b>edit team</b> in the left menu, and select
 the appropriate new state.</p>
 
+<h3>Select preferred field locations</h3>
+
+<p>Leaguerunner allows captains to rank field sites in order of desirability
+for your team. When choosing a field for your "home" games, Leaguerunner will
+allocate a field at the first available site on your list, instead of choosing
+a random site from within your preferred region as in the past.
+You can base your preferences on field quality, distance to the field,
+accessibility by transit, whether or not dogs are allowed, or any other
+reason.</p>
+
+<p>To rank your field locations, your team must be assigned to its proper
+league for the current year of play.  Then, the captain can:
+<ol>
+   <li>select the desired team from the left-hand menu
+   <li>click on <b>field preferences</b> in the menu for that team
+   <li>You should now see a page consisting of a pull-down menu and a submit
+	button.
+   <li>To rank field sites, choose a site from the pulldown list, and it will be added to your chosen list of sites. You may rank all, some, or none of the sites allocated to the league you are participating in.
+   <li>You may sort your list of sites by dragging the chosen site up or down (javascript required).
+   <li>Sites can be removed from your list by clicking the "remove" link for that site.
+   <li>No changes will take effect until you click "Submit".  Once you are ready to save your preferences, click "Submit" to save them.
+</ol>
+
+Some things to keep in mind:
+
+<ul>
+   <li>Leaguerunner will attempt to schedule your home games on a field at one
+	of your preferred sites, no guarantees can be made.
+   <li>If you have a preference to <b>not</b> play on particular fields, we recommend
+	that you rank all sites and place the ones you like least at the
+	bottom.  You will then only play at those sites if no other fields are
+	available.	
+   <li>If a team does not rank all available sites, the away team's preferences
+	will be consulted if a field is not found at a location in the home
+	team's site list.  If no field is found in either team's preferences, a
+	field will be chosen randomly at one of the available sites.
+   <li>If no sites are ranked for a particular team, fields will be allocated
+	randomly for that team's home games.
+   <li>You cannot rank a particular field (ie: UPI 2) at a site.  Only entire
+	sites may be ranked.
+   <li>You may re-rank sites at any time throughout the season, but:
+	the change in rankings will only affect games added to the schedule
+	after your change.  It will not change the statistics used by
+	Leaguerunner to calculate which teams have not had enough games on
+	their preferred sites.  So, for those of you who gamed the previous
+	allocation system by switching your "Home Region" selection partway
+	through the season, you're out of luck now.
+</ul>
+
+</p>
+
 <p><font size="-2"><a href="#toc">Back to top</a></font></p>
 
 <hr align="center" width="75%" />
