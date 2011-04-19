@@ -104,6 +104,21 @@ player logged in to the system.  Your gender, skill level, name, and the list of
 <a href="http://www.ocua.ca/node/17">review our Privacy Policy</a> and / or contact <a href="mailto:webmaster@ocua.ca">the 
 webmaster</a>.</p>
 
+<h3>How can I have my photo shown in my profile?</h3>
+<p>
+	Leaguerunner uses <a href="http://www.gravatar.com/">gravatar.com</a>
+	to provide user images.  It's a free service that associates photos
+	with email addresses.
+</p>
+<p>
+	To enable your photo:
+	<ol>
+		<li>Create a <a href="http://www.gravatar.com/">gravatar.com</a> account, using the <b>same email address</b> you use in your Leaguerunner account.
+		<li>Edit your Leaguerunner profile and change <b> Show Gravatar image for your account?</b> to <b>Yes</b> and submit the page.
+	</ol>
+	Your chosen photo will now be visible.
+</p>
+
 <p><font size="-2"><a href="#toc">Back to top</a></font></p>
 
 <hr align="center" width="75%" />
@@ -183,7 +198,7 @@ next to any player whose status is shown as <b>requested by player</b>.  You
 will have the option of setting the person as a regular player, a substitute, a
 captain, an assistant, or removing them from the team entirely</p>
 
-<h3><a nane="C.5">C.5. Submit game score</a></h3>
+<h3>Submit game score</h3>
 
 <p>One of your most important tasks as a team captain is the timely submission of scores and spirit ratings after a game.  To 
 do this click on the team name in the left menu, then click <b>schedule</b>
