@@ -67,6 +67,9 @@ $conf = variable_init();
 // Set some template defaults
 global $smarty;
 $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
+$smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
+$smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
+
 $smarty->assign('app_version', '2.7');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 

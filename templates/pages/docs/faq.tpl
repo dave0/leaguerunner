@@ -15,8 +15,8 @@
   Leaguerunner implementation.
   </p>
   <p><i>Please note that this document is a work in progress.  As such, if there
-are questions you'd like answered, please don't hesitate to contact <a
-href="mailto:webmaster@ocua.ca">the webmasters</a></i>
+are questions you'd like answered, please don't hesitate to contact the <a
+href="mailto:{$app_admin_email}">{$app_admin_name}</a></i>
   </p>
 
   <!--  Table Of Contents -->

@@ -16,7 +16,7 @@ Guides are broken down in to categories based on what sort of role you have in t
 
 <p><i>Please note that this document is a work in progress.  As such, you might run into 
 things you're trying to do that aren't covered here.  If you have any questions, don't 
-hesitate to contact <a href="mailto:webmaster@ocua.ca">the webmasters</a></i></p>
+hesitate to contact the <a href="mailto:{$app_admin_email}">{$app_admin_name}</a></i></p>
 
 <p>If there are specific questions you're looking for the answers to, check out
 the <a href="{lr_url path="docs/faq"}">Leaguerunner FAQ</a>.</p>
@@ -70,7 +70,7 @@ the <a href="/leaguerunner/">login page</a> and click on <b>Forgot your password
 a form where you can enter any of your <b>membership number</b>, <b>username</b>, or <b>email address</b>.  The 
 system will email you a new password at the address that is in the system.  If you can't remember either your 
 membership number or your username and you don't have access to your email address of record any more, then you 
-will need to contact <a href="mailto:leaguerunner@ocua.ca">the leaguerunner administrator</a> and provide your full name, street address, 
+will need to contact the <a href="mailto:{$app_admin_email}">{$app_admin_name}</a> and provide your full name, street address, 
 and date of birth so that we can confirm that you are in fact you.</p>
 
 <h3>Edit Your Information</h3>
