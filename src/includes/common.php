@@ -419,7 +419,7 @@ function form_radiogroup($title, $name, $value, $options, $description = 0)
 	$radio = "";
 	if (count($options) > 0) {
 		foreach ($options as $key=>$choice) {
-			$radio .= form_radio($choice,$name,$key, ($key == $value), '');
+			$radio .= form_radio($choice,$name,$key, ($key == $value), '') . '<br />';
 		}
 		return form_item($title, $radio, $description);
 	}
