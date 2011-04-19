@@ -1131,12 +1131,15 @@ class Game extends LeaguerunnerObject
 		$teams = array($this->home_team, $this->away_team);
 		$sth = $dbh->prepare(
 		'INSERT INTO field_ranking_stats (game_id, team_id, rank)
-			SELECT g.game_id, r.team_id, r.rank
-				FROM team_site_ranking r, field f, gameslot g
+			SELECT g.game_id, r.team_id, IF(g.fid = t.home_field, 1, r.rank)
+				FROM team_site_ranking r, field f, gameslot g, team t
 				WHERE g.game_id = ?
 					AND g.fid = f.fid
 					AND ( (ISNULL(f.parent_fid) AND f.fid = r.site_id)
-						OR f.parent_fid = r.site_id)
+						OR f.parent_fid = r.site_id
+						OR g.fid = t.home_field
+					)
+					AND t.team_id = r.team_id
 					AND r.team_id = ?');
 		foreach($teams as $team) {
 			$sth->execute( array( $this->game_id, $team ) );
