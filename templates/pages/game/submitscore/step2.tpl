@@ -8,7 +8,7 @@ uses, we need your feedback.  Do there appear to be any changes to the field
 </p>
 <form method="post" id="field_report_form">
 
-<div class="description">Were there any issues to report?</div>
+<div class="description">Were there any field-related issues to report?</div>
 <input type="radio" name="enable_textarea" value="Yes" /> Yes
 <input type="radio" name="enable_textarea" value="No" /> No
 
