@@ -20,9 +20,6 @@
                 <th>Players</th>
                 <th>Rating</th>
                 <th>Avg. Skill</th>
-                {if session_perm("league/manage teams/`$league->league_id`")}
-                <th>Region</th>
-                {/if}
                 <th>&nbsp;</th>
             </tr>
         </thead>
@@ -34,9 +31,6 @@
                 <td>{$t->count_players()}</td>
                 <td>{$t->rating}</td>
                 <td>{$t->avg_skill()}</td>
-                {if session_perm("league/manage teams/`$league->league_id`")}
-                <td>{$t->region_preference}</td>
-                {/if}
                 <td>{if $t->status == 'open'}
                         <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`}">join</a> &nbsp;
                     {/if}
@@ -68,11 +62,6 @@ $(document).ready(function() {
 			null,
 			null,
 			null,
-{/literal}
-                {if session_perm("league/manage teams/`$league->league_id`")}
-			null,
-		{/if}
-{literal}
 			{ bSortable : false }
 		]
 	} );

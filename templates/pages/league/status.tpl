@@ -36,10 +36,10 @@
 	    </td>
 	    <td>{$team->game_count}</td>
 	    <td>{$team->home_game_count}</td>
-	    <td {if $team->region_preference == "Central"}style="color: blue; font-weight:bold"{/if}>{$team->region_game_counts.Central|default:0}</td>
-	    <td {if $team->region_preference == "East"}style="color: blue; font-weight:bold"{/if}>{$team->region_game_counts.East|default:0}</td>
-	    <td {if $team->region_preference == "South"}style="color: blue; font-weight:bold"{/if}>{$team->region_game_counts.South|default:0}</td>
-	    <td {if $team->region_preference == "West"}style="color: blue; font-weight:bold"{/if}>{$team->region_game_counts.West|default:0}</td>
+	    <td>{$team->region_game_counts.Central|default:0}</td>
+	    <td>{$team->region_game_counts.East|default:0}</td>
+	    <td>{$team->region_game_counts.South|default:0}</td>
+	    <td>{$team->region_game_counts.West|default:0}</td>
 	    <td>{$team->opponent_counts|@count}</td>
 	    <td>
 		{foreach from=$team->opponent_counts key=name item=repeats}

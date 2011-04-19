@@ -40,7 +40,6 @@ class league_fields extends LeagueHandler
 
 		$header[] = array('data' => "Rating", 'rowspan' => 2);
 		$header[] = array('data' => "Team", 'rowspan' => 2);
-		$header[] = array('data' => "Region", 'rowspan' => 2);
 
 		// now gather all possible fields this league can use
 		$sth = $dbh->prepare('SELECT
@@ -103,7 +102,6 @@ class league_fields extends LeagueHandler
 			}
 			$row = array( array('data'=>$season[$tid]->rating, 'class'=>"$rowstyle") );
 			$row[] = array('data'=>l($season[$tid]->name, "team/view/$tid"), 'class'=>"$rowstyle");
-			$row[] = array('data'=>$season[$tid]->region_preference, 'class'=>"$rowstyle");
 
 			// count number of games per field for this team:
 			$numgames = 0;

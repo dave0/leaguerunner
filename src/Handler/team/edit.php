@@ -21,7 +21,6 @@ class team_edit extends TeamHandler
 
 		$this->template_name = 'pages/team/edit.tpl';
 
-		$this->smarty->assign('regions', getOptionsFromEnum('field', 'region'));
 		$this->smarty->assign('status', getOptionsFromEnum('team', 'status'));
 
 		if( $edit['step'] == 'perform' ) {
@@ -50,7 +49,6 @@ class team_edit extends TeamHandler
 		if( $lr_session->has_permission('team','edit', $this->team->team_id, 'home_field')) {
 			$this->team->set('home_field', $edit['home_field']);
 		}
-		$this->team->set('region_preference', $edit['region_preference']);
 
 		if( !$this->team->save() ) {
 			error_exit("Internal error: couldn't save changes");

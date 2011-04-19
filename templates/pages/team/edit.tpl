@@ -22,9 +22,6 @@ The following errors were encountered in your submission:
     	<input type="text" maxlength="3" name="edit[home_field]" size="3" value="" /><div class="description">Home field, if you happen to have one</div>
 {/if}
 
-    <label for="edit[region_preference]">Region</label>
-        {html_options name="edit[region_preference]" options=$regions}<div class="description">Area of city where you would prefer to play</div>
-
     <label for="edit[status]">Team Status</label>
     	{html_options name="edit[status]" options=$status}<div class="description">Is your team open (others can join) or closed (only captain can add players)</div>
 {/fill_form_values}

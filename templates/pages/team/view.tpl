@@ -7,7 +7,6 @@
     {if $home_field}
 	<tr><td>Home Field:</td><td><a href="{lr_url path="field/view/`$home_field->fid`"}">{$home_field->fullname|escape}</a></td></tr>
     {/if}
-    <tr><td>Region Preference:</td><td>{$team->region_preference|default:"None"}</td></tr>
     <tr><td>Team Status:</td><td>{$team->status}</td></tr>
 
     <tr><td>Team SBF:</td><td>{$team_sbf} {if $league_sbf}(league {$league_sbf}){/if}</td></tr>

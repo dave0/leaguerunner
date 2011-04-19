@@ -7,7 +7,6 @@ class Team extends LeaguerunnerObject
 	var $website;
 	var $shirt_colour;
 	var $home_field;
-	var $region_preference;
 	var $status;
 	var $rating;
 	var $league_name;

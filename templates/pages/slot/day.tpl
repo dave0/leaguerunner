@@ -25,7 +25,6 @@
 				{ "sType" : "html" },
 				{ "sType" : "html" },
 				{ "sType" : "html" },
-				null,
 				null
 			]
 		});
@@ -42,7 +41,7 @@
 There are {$num_fields} fields available for use this week, currently {$num_open} of these are unused.
 </p>
 <p>
-Games where home team was not assigned a field in their home region are highlighted.
+Games where home team was not assigned a preferred  field are highlighted.
 </p>
 
 <table id="slots">
@@ -51,7 +50,7 @@ Games where home team was not assigned a field in their home region are highligh
 </thead>
 <tbody>
    {foreach from=$slots item=s}
-   <tr {if ! $s.is_preferred && $s.home_region_preference && $s.home_region_preference != '---'}class='region_mismatch'{/if}>
+   <tr {if $s.site_rank && $s.site_rank > 5}class='region_mismatch'{/if}>
 	<td>{$s.slot_id}</td>
 	<td><a href="{lr_url path="field/view/`$s.fid`"}">{$s.field_code}{$s.field_num}</a></td>
 	{if $s.game_id}
