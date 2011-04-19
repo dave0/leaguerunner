@@ -1003,6 +1003,22 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
+	 * Return the site ranking for the given team for this game
+	 */
+	function get_site_ranking ( $team_id )
+	{
+		global $dbh;
+		$sth = $dbh->prepare('SELECT rank from field_ranking_stats
+			WHERE game_id = ? AND team_id = ?');
+		$sth->execute( array( $this->game_id, $team_id) );
+		$rank = $sth->fetchColumn();
+		if( !isset($rank) || !$rank ) {
+			return 'unranked';
+		}
+		return $rank;
+	}
+
+	/**
 	 * Select a gameslot by the provided team's field rankings.
 	 * Changes are made directly in the database (no need to ->save() the
 	 * game) however this means that you should probably call this only

@@ -79,6 +79,12 @@ class game_edit extends GameHandler
 		$field = Field::load( array('fid' => $game->fid) );
 		$output .= form_item("Location",
 			l("$field->fullname ($game->field_code)", "field/view/$game->fid"), $note);
+		if( $lr_session->is_coordinator_of($game->league_id)) {
+			$output .= form_item("Site Ranking (home team)",
+				$game->get_site_ranking( $game->home_id ));
+			$output .= form_item("Site Ranking (away team)",
+				$game->get_site_ranking( $game->away_id ));
+		}
 
 		$output .= form_item("Game Status", $game->status);
 
