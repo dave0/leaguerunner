@@ -24,6 +24,7 @@ use Leaguerunner;
 my $mm_path = '/usr/lib/mailman/bin';
 my $mm_sync_members = join('/',$mm_path, 'sync_members');
 my $mm_config_list = join('/',$mm_path, 'config_list');
+my $lr_admin = 'dmo@dmo.ca';
 
 sub cb_season_coordinators
 {
@@ -41,7 +42,7 @@ sub cb_season_coordinators
 		UNION
 		SELECT distinct p.email
 			FROM person p, leaguemembers m, league l
-			WHERE m.player_id = p.user_id AND m.status IN ('coordinator') AND m.league_id = l.league_id AND l.season = ?}, undef, $season_id) || [] };
+			WHERE m.player_id = p.user_id AND m.status IN ('coordinator') AND m.league_id = l.league_id AND l.season = ?}, undef, $season_id) || [] }, $lr_admin;
 }
 
 sub cb_season_captains_coordinators
@@ -71,7 +72,7 @@ sub cb_season_captains_coordinators
 			AND m.status IN ('coordinator')
 			AND m.league_id = l.league_id
 			AND l.season = ?
-	}, undef, $season_id, $season_id) || [] };
+	}, undef, $season_id, $season_id) || [] }, $lr_admin;
 }
 
 sub cb_active_players
@@ -118,7 +119,74 @@ sub cb_league_captains_coordinators
 			AND p.email IS NOT NULL
 			AND m.status IN ('coordinator')
 			AND m.league_id = ?
-	}, undef, $league_id, $league_id) || [] };
+	}, undef, $league_id, $league_id) || [] }, $lr_admin;
+}
+
+sub cb_season_day_ratio_captains_coordinators
+{
+	my ($dbh, $season_name, $day_name, $ratio) = @_;
+
+	my ($season_id) = $dbh->selectrow_array(q{
+		SELECT id FROM season WHERE season = ? ORDER BY year DESC limit 1
+	}, undef, $season_name);
+	if( ! $season_id ) {
+		warn "No season_id found for $season_name";
+		return;
+	}
+
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leagueteams lt, league l, teamroster r
+		WHERE r.player_id = p.user_id
+			AND lt.team_id = r.team_id
+			AND r.status IN ('captain', 'assistant', 'COACH')
+			AND lt.league_id = l.league_id
+			AND l.season = ?
+			AND l.day = ?
+			AND l.ratio = ?
+		UNION
+		SELECT distinct p.email
+		FROM person p, leaguemembers m, league l
+		WHERE m.player_id = p.user_id
+			AND m.status IN ('coordinator')
+			AND m.league_id = l.league_id
+			AND l.season = ?
+			AND l.day = ?
+			AND l.ratio = ?
+	}, undef, $season_id, $day_name, $ratio, $season_id, $day_name, $ratio) || [] };
+}
+
+sub cb_season_day_ratio_players
+{
+	my ($dbh, $season_name, $day_name, $ratio) = @_;
+	my ($season_id) = $dbh->selectrow_array(q{
+		SELECT id FROM season WHERE season = ? ORDER BY year DESC limit 1
+	}, undef, $season_name);
+	if( ! $season_id ) {
+		warn "No season_id found for $season_name";
+		return;
+	}
+
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leagueteams lt, league l, teamroster r
+		WHERE r.player_id = p.user_id
+			AND lt.team_id = r.team_id
+			AND p.email IS NOT NULL
+			AND lt.league_id = l.league_id
+			AND l.season = ?
+			AND l.day = ?
+			AND l.ratio = ?
+		UNION
+		SELECT distinct p.email
+		FROM person p, leaguemembers m, league l
+		WHERE m.player_id = p.user_id
+			AND m.status IN ('coordinator')
+			AND m.league_id = l.league_id
+			AND l.season = ?
+			AND l.day = ?
+			AND l.ratio = ?
+	}, undef, $season_id, $day_name, $ratio, $season_id, $day_name, $ratio) || [] };
 }
 
 sub cb_league_coordinators
@@ -129,9 +197,33 @@ sub cb_league_coordinators
 		FROM person p, leaguemembers m
 		WHERE m.player_id = p.user_id
 			AND p.email IS NOT NULL
-			AND (m.status IN ('coordinator')
-			AND m.league_id = ?) OR (p.username = 'dmo')
-	}, undef, $league_id) || [] }
+			AND m.status IN ('coordinator')
+			AND m.league_id = ?
+	}, undef, $league_id) || [] }, $lr_admin;
+}
+
+sub cb_season_day_ratio_coordinators
+{
+	my ($dbh, $season_name, $day_name, $ratio) = @_;
+
+	my ($season_id) = $dbh->selectrow_array(q{
+		SELECT id FROM season WHERE season = ? ORDER BY year DESC limit 1
+	}, undef, $season_name);
+	if( ! $season_id ) {
+		warn "No season_id found for $season_name";
+		return;
+	}
+
+	return @{ $dbh->selectcol_arrayref(q{
+		SELECT distinct p.email
+		FROM person p, leaguemembers m, league l
+		WHERE m.player_id = p.user_id
+			AND m.status IN ('coordinator')
+			AND m.league_id = l.league_id
+			AND l.season = ?
+			AND l.day = ?
+			AND l.ratio = ?
+	}, undef, $season_id, $day_name, $ratio) || [] }, $lr_admin;
 }
 
 my %lists = (
@@ -140,10 +232,6 @@ my %lists = (
 	'summer-yp-league-players' => {
 		callback   => \&cb_league_players,
 		parameters => [ 177 ]
-	},
-	'summer-womens-league-players' => {
-		callback   => \&cb_league_players,
-		parameters => [ 181 ]
 	},
 	'summer-masters-league-players' => {
 		callback   => \&cb_league_players,
@@ -194,96 +282,71 @@ my %lists = (
 	},
 
 	'summer-monday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 175 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 175 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Monday', '4/3' ],
 	},
 	'summer-monday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 175 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Monday', '4/3' ],
 	},
 	'summer-tuesday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 178 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 178 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Tuesday', '4/3' ],
 	},
 	'summer-tuesday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 178 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Tuesday', '4/3' ],
 	},
 	'summer-wednesday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 179 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 179 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Wednesday', '4/3' ],
 	},
 	'summer-wednesday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 179 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Wednesday', '4/3' ],
 	},
 	'summer-thursday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 180 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 180 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Thursday', '4/3' ],
 	},
 	'summer-thursday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 180 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Thursday', '4/3' ],
 	},
 	'summer-friday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 183 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 183 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Friday', '4/3' ],
 	},
 	'summer-friday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 183 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Friday', '4/3' ],
 	},
 	'summer-womens-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 181 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 181 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Thursday', 'womens' ],
 	},
 	'summer-womens-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 181 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Thursday', 'womens' ],
 	},
-	'summer-masters-captains' => {
+	'summer-womens-league-players' => {
+		callback   => \&cb_season_day_ratio_players,
+		parameters => [ 'Summer', 'Thursday', 'womens' ],
+	},
+	'summer-sunday-coordinators' => {
+		callback => \&cb_league_coordinators,
+		parameters => [ 213 ],
+	},
+	'summer-sunday-captains' => {
 		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 176 ],
+		parameters => [ 213 ],
 		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 176 ],
-	},
-	# TODO:
-	'summer-masters-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 176 ],
-	},
-	'summer-young-professionals-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 177 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 177 ],
-	},
-	'summer-young-professionals-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 177 ],
-	},
-
-	'summer-sunday-east-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 174 ],
-	},
-	'summer-sunday-central-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 151 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 151 ],
 	},
 
 	# Fall League
@@ -296,57 +359,73 @@ my %lists = (
 		parameters => [ 'Fall' ],
 	},
 	'fall-monday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 192 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 192 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Monday', '4/3' ],
 	},
 	'fall-monday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 192 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Monday', '4/3' ],
 	},
 	'fall-tuesday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 193 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 193 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Tuesday', '4/3' ],
 	},
 	'fall-tuesday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 193 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Tuesday', '4/3' ],
 	},
 	'fall-wednesday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 194 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 194 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Wednesday', '4/3' ],
 	},
 	'fall-wednesday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 194 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Wednesday', '4/3' ],
 	},
 
 	'fall-thursday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 195 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 195 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Thursday', '4/3' ],
 	},
 	'fall-thursday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 195 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Thursday', '4/3' ],
 	},
 
 	'fall-womens-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 196 ],
-		moderator_callback => \&cb_league_coordinators,
-		moderator_parameters => [ 196 ],
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Thursday', 'womens' ],
 	},
 	'fall-womens-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 196 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Fall', 'Thursday', 'womens' ],
 	},
+
+	# TODO:
+	'summer-masters-coordinators' => {
+		callback => \&cb_league_coordinators,
+		parameters => [ 214 ],
+	},
+	'summer-masters-captains' => {
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 214 ],
+		moderator_callback => \&cb_league_coordinators,
+	},
+	'summer-young-professionals-captains' => {
+		callback   => \&cb_league_captains_coordinators,
+		parameters => [ 177 ],
+		moderator_callback => \&cb_league_coordinators,
+	},
+	'summer-young-professionals-coordinators' => {
+		callback => \&cb_league_coordinators,
+		parameters => [ 177 ],
+	},
+
 );
 
 
@@ -417,6 +496,10 @@ sub list_sync_members
 sub list_sync_moderators
 {
 	my ($listinfo) = @_;
+
+	if (! exists( $listinfo->{moderator_parameters} ) ) {
+		$listinfo->{moderator_parameters} = $listinfo->{parameters};
+	}
 
 	my $new_moderators = join(',',
 		map { qq{'$_'} }
