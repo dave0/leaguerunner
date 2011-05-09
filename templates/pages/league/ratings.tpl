@@ -30,7 +30,7 @@
             <tr>
 	      <td>{$t->rating}</td>
 	      <td>{$t->name}</td>
-	      <td>{$t->avg_skill}</td>
+	      <td>{$t->avg_skill()}</td>
 	      <td><font size='-4'><a href='#' onClick='document.getElementById("ratings_form").elements["edit[{$t->team_id}]"].value++; return false'> better </a>
 	      <input type='text' size='3' name='edit[{$t->team_id}]' value='{$t->rating}' />
 	      <a href='#' onClick='document.getElementById("ratings_form").elements["edit[{$t->team_id}]"].value--; return false'> worse</a></font>

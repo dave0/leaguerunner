@@ -292,7 +292,7 @@ class Team extends LeaguerunnerObject
 	function avg_skill()
 	{
 		global $dbh;
-		
+
 		if( is_null($this->_avg_skill) ) {
 			$sth = $dbh->prepare('SELECT ROUND(AVG(p.skill_level),2) FROM teamroster r INNER JOIN person p ON (r.player_id = p.user_id) WHERE r.team_id = ?');
 			$sth->execute(array( $this->team_id));
