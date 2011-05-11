@@ -37,16 +37,20 @@ class Field extends LeaguerunnerObject
 			return;
 		}
 
-		$season = strtolower(variable_get("current_season","Summer"));
-		$permit_dir = join("/", array(variable_get("league_file_base",'/opt/websites/www.ocua.ca/static-content/leagues'), $season, 'current','permits'));
+		$current_season_id = strtolower(variable_get("current_season",1));
+		$current_season = Season::load(array( 'id' => $current_season_id ));
+
+		$permit_dir = join("/", array(strtolower($current_season->season), $current_season->year,'permits'));
+
+		$system_permit_dir = join("/", array(variable_get("league_file_base",'/opt/websites/www.ocua.ca/static-content/leagues'), $permit_dir));
 
 		# Auto-detect the permit URLs
 		$this->permit_url = '';
-		if (is_dir($permit_dir)) {
-			if ($dh = opendir($permit_dir)) {
+		if (is_dir($system_permit_dir)) {
+			if ($dh = opendir($system_permit_dir)) {
 				while (($file = readdir($dh)) !== false) {
 					if( fnmatch( $this->code . "*", $file) ) {
-						$this->permit_url .= l($file, variable_get("league_url_base",'http://www.ocua.ca/leagues') . "/$season/current/permits/$file\"") . '<br />';
+						$this->permit_url .= l($file, variable_get("league_url_base",'http://www.ocua.ca/leagues') . "/$permit_dir/$file\"") . '<br />';
 					}
 				}
 			}
