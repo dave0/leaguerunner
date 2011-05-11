@@ -8,7 +8,7 @@ function initialize_edit()
 	if ((latitude) != 0.0) {
 		point = new GLatLng(latitude, longitude);
 		map.setCenter(point, zoom, G_HYBRID_MAP);
-		createMarker(point, true);
+		marker = createMarker(point, num, true);
 		redraw();
 	} else {
 		var gc = new GClientGeocoder();
@@ -25,7 +25,7 @@ function center_by_address(point)
 		alert('Field has no lat/long yet, and the street address was not found by Google.\nUsing default lat/long from "global settings" as a fallback.');
 	}
 	map.setCenter(point, zoom - 2, G_HYBRID_MAP);
-	createMarker(point, true);
+	marker = createMarker(point, num, true);
 
 	// Initialize everything that a drag does
 	dragged();

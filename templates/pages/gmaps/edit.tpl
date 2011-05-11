@@ -11,13 +11,14 @@
     <script type="text/javascript">
     //<![CDATA[
     var lr_path      = '{$base_url}';
-    var leaguelat    = {$leaguelat};
-    var leaguelng    = {$leaguelng};
+    var leaguelat    = {$location_latitude};
+    var leaguelng    = {$location_longitude};
     var drag         = true;
     var name         = '{$name}';
     var address      = '{$address}';
     var full_address = '{$full_address}';
     var fid          = {$fid};
+    var num          = {$num};
     var latitude     = {$latitude};
     var longitude    = {$longitude};
     var angle        = {$angle};

@@ -2,7 +2,8 @@
 require_once('Handler/gmaps/view.php');
 class gmaps_edit extends gmaps_view
 {
-	private $map_vars = array('fid', 'latitude', 'longitude', 'angle', 'width', 'length', 'zoom');
+	private $map_vars = array('fid', 'latitude', 'longitude', 'angle', 'width', 'length', 'zoom', 'num' );
+	private $save_vars = array('latitude', 'longitude', 'angle', 'width', 'length', 'zoom');
 
 	function __construct ( $id )
 	{
@@ -28,7 +29,7 @@ class gmaps_edit extends gmaps_view
 
 	function save($edit)
 	{
-		foreach ($this->map_vars as $var) {
+		foreach ($this->save_vars as $var) {
 			$this->field->set($var, $edit[$var]);
 		}
 
@@ -49,8 +50,8 @@ class gmaps_edit extends gmaps_view
 		// We use these as last-ditch emergency values, if the field has neither
 		// a valid lat/long or an address that Google can find.
 		$this->smarty->assign('gmaps_key', variable_get('gmaps_key', '') );
-		$this->smarty->assign('leaguelat', variable_get('location_latitude', 0));
-		$this->smarty->assign('leaguelng', variable_get('location_longitude', 0));
+		$this->smarty->assign('location_latitude', variable_get('location_latitude', 0));
+		$this->smarty->assign('location_longitude', variable_get('location_longitude', 0));
 
 		// TODO: wtf isn't this a JSON object?
 		$this->smarty->assign('name',"{$this->field->name} ({$this->field->code}) {$this->field->num}");

@@ -37,6 +37,11 @@ class image_pins extends Handler
 			$font = 'ttf-bitstream-vera/Vera';
 			$size = 6;
 
+			if( strlen($code) < 3) {
+				# Bigger image for number-only pins
+				$size = 8;
+			}
+
 			$im = ImageCreateFromPNG("$basefile/blank-marker.png");
 			imageSaveAlpha($im, true);
 
