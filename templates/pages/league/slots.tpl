@@ -35,7 +35,9 @@
 				{ "sType" : "html" },
 				{ "sType" : "html" },
 				{ "sType" : "html" },
-				null
+				null,
+				{ "sType" : "html" },
+				{ "sType" : "html" }
 			]
 		});
 	});
@@ -56,7 +58,7 @@ Games where home team was not assigned a preferred field are highlighted.
 
 <table id="slots">
 <thead>
-  <tr><th>Slot</th><th>Field</th><th>Game</th><th>Home</th><th>Away</th><th>Field Region</th></tr>
+  <tr><th>Slot</th><th>Field</th><th>Game</th><th>Home</th><th>Away</th><th>Field Region</th><th>Home Rank</th><th>Away Rank</th></tr>
 </thead>
 <tbody>
    {foreach from=$slots item=s}
@@ -68,11 +70,15 @@ Games where home team was not assigned a preferred field are highlighted.
 	<td><a href="{lr_url path="team/view/`$s.game->home_id`"}">{$s.game->home_name|truncate:20}</a></td>
 	<td><a href="{lr_url path="team/view/`$s.game->away_id`"}">{$s.game->away_name|truncate:20}</a></td>
 	<td>{$s.field_region}</td>
+	<td>{$s.home_site_rank}</td>
+	<td>{$s.away_site_rank}</td>
 	{else}
 	<td>---</td>
 	<td>open</td>
 	<td>---</td>
 	<td>{$s.field_region}</td>
+	<td>{$s.home_site_rank}</td>
+	<td>{$s.away_site_rank}</td>
 	{/if}
    </tr>
    {/foreach}

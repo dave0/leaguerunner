@@ -38,7 +38,8 @@ class league_slots extends schedule_view
 			COALESCE(f.num, pf.num)   AS field_num,
 			COALESCE(f.region, pf.region) AS field_region,
 			g.fid,
-			fr.rank AS site_rank,
+			frh.rank AS home_site_rank,
+			fra.rank AS away_site_rank,
 			g.game_id
 
 		FROM
@@ -46,7 +47,8 @@ class league_slots extends schedule_view
 			gameslot g
 				LEFT JOIN schedule s ON (g.game_id = s.game_id)
 				LEFT JOIN team t ON (s.home_team = t.team_id)
-				LEFT JOIN field_ranking_stats fr ON (s.game_id = fr.game_id),
+				LEFT JOIN field_ranking_stats frh ON (s.game_id = frh.game_id AND frh.team_id = s.home_team)
+				LEFT JOIN field_ranking_stats fra ON (s.game_id = fra.game_id AND fra.team_id = s.away_team),
 			field f LEFT JOIN field pf ON (f.parent_fid = pf.fid)
 		WHERE l.league_id = ?
 			AND g.game_date = ?
