@@ -17,7 +17,10 @@ class team_ical extends TeamHandler
 
 		$this->smarty->assign('team', $this->team);
 		$this->smarty->assign('short_league_name', variable_get('app_org_short_name', 'League'));
-		$this->smarty->assign('timezone', $CONFIG['localization']['local_tz']);
+
+		# Our timezone is specified as US/Eastern, but ical wants US-Eastern.  bleh.
+		$timezone = preg_replace("!/!","-", $CONFIG['localization']['local_tz']);
+		$this->smarty->assign('timezone', $timezone);
 
 		/*
 		 * Grab schedule info
