@@ -46,7 +46,13 @@ class league_status extends LeagueHandler
 		$teams = array();
 		while(list(, $tid) = each($order)) {
 			$team = $season[$tid];
-			$ratio = sprintf("%.3f", $team->preferred_field_ratio());
+			$ratio = $team->preferred_field_ratio();
+			if($ratio > 1) {
+				# If ratio is > 1, lower it to 1 for display purposes
+				$ratio = 1;
+			}
+			$ratio = sprintf("%.3f", $ratio);
+
 
 			$check_ratio = $ratio;
 			if( $team->game_count % 2 ) {
