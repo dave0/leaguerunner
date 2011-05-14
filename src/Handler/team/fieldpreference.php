@@ -6,14 +6,42 @@ class team_fieldpreference extends TeamHandler
 	function has_permission ()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('team', 'edit', $this->team->team_id);
+		return (
+			$lr_session->has_permission('team', 'edit', $this->team->team_id)
+			||
+			$lr_session->has_permission('team', 'viewfieldprefs', $this->team->team_id)
+		);
+	}
+
+	function process_readonly ()
+	{
+		global $dbh;
+		$this->template_name = 'pages/team/fieldpreference_viewonly.tpl';
+		// Load any currently-selected selected fields
+		$sth = $dbh->prepare("SELECT f.fid, f.name, f.region FROM team_site_ranking r LEFT JOIN field f ON (f.fid = r.site_id) WHERE team_id = ? ORDER BY rank ASC");
+		$sth->execute( array( $this->team->team_id)  );
+
+		$selected = array();
+		while( $item = $sth->fetch(PDO::FETCH_OBJ) ) {
+			array_push($selected, $item);
+		}
+		$this->smarty->assign('selected', $selected);
+		$this->smarty->assign('team', $this->team);
+
+		return true;
 	}
 
 	function process ()
 	{
-		global $dbh;
+		global $dbh, $lr_session;
 
 		$this->title = $this->team->name . " &raquo; Rank Fields";
+
+		if( $lr_session->has_permission('team', 'viewfieldprefs', $this->team->team_id)
+			&& !  $lr_session->has_permission('team', 'edit', $this->team->team_id)) {
+			# Non-captain team members can view the preferences
+			return $this->process_readonly();
+		}
 
 		$this->template_name = 'pages/team/fieldpreference.tpl';
 
@@ -64,8 +92,8 @@ class team_fieldpreference extends TeamHandler
 
 		$edit = $_POST['edit'];
 
-
-		if( $edit['step'] == 'perform' ) {
+		if( ($edit['step'] == 'perform')
+			&& $lr_session->has_permission('team', 'edit', $this->team->team_id)) {
 			$errors = $this->check_input_errors( $edit );
 			if(count($errors) > 0) {
 				$this->smarty->assign('formErrors', $errors);

@@ -440,6 +440,8 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			break;
 		case 'spirit':
 			return ($user && $user->is_player_on( $id ));
+		case 'viewfieldprefs':
+			return ($user && ($user->is_player_on( $id ) || $user->coordinates_league_containing( $id )));
 	}
 	return false;
 }

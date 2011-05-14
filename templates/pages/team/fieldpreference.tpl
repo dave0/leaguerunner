@@ -22,7 +22,7 @@
 <p>
 	<b>Please remember that...</b>
 	<ul>
-		<li>Leaguerunner will attempt to schedule your home games on a field at one of your preferred sites, no guarantees can be made.
+		<li>Leaguerunner will attempt to schedule your home games on a field at one of your preferred sites, however no guarantees can be made.
 		<li>If you have a preference to <b>not</b> play on particular
 fields, we recommend that you rank all sites and place the ones you like least at the bottom.
 		<li>You cannot rank a particular field (ie: UPI 2) at a site.

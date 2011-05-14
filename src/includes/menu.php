@@ -462,8 +462,10 @@ function team_add_to_menu( &$team )
 
 	if( $lr_session->has_permission('team','edit',$team->team_id)) {
 		menu_add_child($menu_name, "$menu_name/edit",'edit team', array('weight' => 1, 'link' => "team/edit/$team->team_id"));
-		menu_add_child($menu_name, "$menu_name/fieldpreference",'field preferences', array('weight' => 1, 'link' => "team/fieldpreference/$team->team_id"));
 		menu_add_child($menu_name, "$menu_name/add",'add player', array('weight' => 0, 'link' => "team/roster/$team->team_id"));
+	}
+	if( $lr_session->has_permission('team','viewfieldprefs',$team->team_id) ) {
+		menu_add_child($menu_name, "$menu_name/fieldpreference",'field preferences', array('weight' => 1, 'link' => "team/fieldpreference/$team->team_id"));
 	}
 
 	if( $lr_session->has_permission('team','email',$team->team_id)) {
