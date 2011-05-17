@@ -51,19 +51,25 @@ class game_reschedule extends LeagueHandler
 			error_exit("Error loading teams for league $league->fullname");
 		}
 
-		$output .= "<p>Select date for rescheduling</p>";
+		$output .= "<p>Games for " . strftime("%A %B %d %Y", $this->day_id) . " should be moved to: </p>";
+
+		$sth = $dbh->prepare("SELECT COUNT(*) from schedule s, gameslot g WHERE s.game_id = g.game_id AND s.league_id = ? AND UNIX_TIMESTAMP(g.game_date) = ?");
+		$sth->execute( array( $this->league->league_id, $this->day_id) );
+		$need_slots = $sth->fetchColumn();
 
 		$sth = $dbh->prepare(
 			"SELECT
 				UNIX_TIMESTAMP(s.game_date) AS datestamp,
+				COUNT(*) AS num_avail
 			 FROM
 			 	league_gameslot_availability a, gameslot s
 			 WHERE (a.slot_id = s.slot_id)
 			 	AND isnull(s.game_id)
 				AND a.league_id = ?
+				AND UNIX_TIMESTAMP(s.game_date) != ?
 			 GROUP BY s.game_date
 			 ORDER BY s.game_date");
-		$sth->execute( array( $this->league->league_id) );
+		$sth->execute( array( $this->league->league_id, $this->day_id) );
 
 		$possible_dates = array();
 		while($date = $sth->fetch(PDO::FETCH_OBJ)) {

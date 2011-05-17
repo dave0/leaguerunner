@@ -1436,9 +1436,11 @@ class League extends LeaguerunnerObject
 			'game_date' => strftime("%Y-%m-%d", $olddate)
 		));
 
-		$sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL where game_id = ?');
+		$gameslot_sth = $dbh->prepare('UPDATE gameslot SET game_id = NULL where game_id = ?');
+		$fieldranking_sth = $dbh->prepare('DELETE FROM field_ranking_stats WHERE game_id = ?');
 		foreach($games_list as $game) {
-			$sth->execute( array( $game->game_id ) );
+			$gameslot_sth->execute( array( $game->game_id ) );
+			$fieldranking_sth->execute( array( $game->game_id ) );
 			$game->slot_id = null;
 		}
 
