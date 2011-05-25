@@ -170,9 +170,6 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 
 function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 {
-	$self_edit_fields = array();  # TODO
-	$create_fields = array( 'name', 'username', 'password');
-	$create_fields = array_merge($self_edit_fields, $create_fields);
 
 	$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
 	if (variable_get('dog_questions', 1)) {
@@ -180,6 +177,15 @@ function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 	}
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
 	$captain_view_fields = array( 'height', 'shirtsize' );
+
+	$self_edit_fields = array_merge(
+		$all_view_fields,
+		$captain_view_fields,
+		$restricted_contact_fields,
+		array('birthdate','address','height', 'shirtsize')
+	);
+
+	$create_fields = array_merge( $self_edit_fields, array( 'username') );
 
 	$self_view_fields = array('username','birthdate','address','last_login', 'member_id','height','shirtsize');
 	$self_view_fields = array_merge($all_view_fields, $restricted_contact_fields, $self_view_fields);
