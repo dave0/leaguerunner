@@ -34,7 +34,7 @@ class league_fields extends LeagueHandler
 			$fields[$field->code] = $field->region;
 		}
 
-		$output = para("This is a general field scheduling balance report for the league.");
+		$output = para("This is a general field scheduling balance report for the league. The first number in each cell is the number of games that team has played at a given site.  The second number, in brackets, is the team's average ranking for that site.  Zero represents an unranked field.");
 
 		$num_teams = sizeof($order);
 
@@ -94,6 +94,8 @@ class league_fields extends LeagueHandler
 
 		// we'll cache these results, so we can compute avgs and highlight numbers too far from average
 		$cache_rows = array();
+		$total_at_field     = array();
+		$sum_field_rankings = array();
 		while(list(, $tid) = each($order)) {
 			if ($rowstyle == "standings_light") {
 				$rowstyle = "standings_dark";
@@ -106,6 +108,7 @@ class league_fields extends LeagueHandler
 			// count number of games per field for this team:
 			$numgames = 0;
 			$count = array();
+			$site_ranks = array();
 
 			// parse the schedule
 			reset($schedule);
@@ -114,16 +117,21 @@ class league_fields extends LeagueHandler
 					$numgames++;
 					list($code, $num) = explode(' ', $game->field_code);
 					$count["$code $game->game_start"]++;
+					$rank = $game->get_site_ranking( $tid );
+					if( $rank != 'unranked' ) {
+						$site_ranks["$code $game->game_start"] += $rank;
+					}
 				}
 			}
 
 			foreach ($field_list as $f) {
+				$thisrow = array('data'=> "0", 'class'=>"$rowstyle", 'align'=>'center');
 				if ($count[$f]) {
-					$row[] = array('data'=> $count[$f], 'class'=>"$rowstyle", 'align'=>'center');
+					$thisrow['data'] = $count[$f] . sprintf(' (%.3f)', ($site_ranks[$f] / $count[$f]));
 					$total_at_field[$f] += $count[$f];
-				} else {
-					$row[] = array('data'=> "0", 'class'=>"$rowstyle", 'align'=>'center');
+					$sum_field_ranks[$f] += $site_ranks[$f];
 				}
+				$row[] = $thisrow;
 			}
 
 			$row[] = array('data'=>$numgames, 'class'=>"$rowstyle", 'align'=>"center");
@@ -145,27 +153,28 @@ class league_fields extends LeagueHandler
 			$rows[] = $row;
 		}
 
-		// output totals line
-		$row = array(array('data' => "Total games:", 'colspan' => 3, 'align' => 'right'));
-		foreach ($field_list as $f) {
-			if ($total_at_field[$f]) {
-				$row[] = array('data'=> $total_at_field[$f], 'align'=>'center');
-			} else {
-				$row[] = array('data'=> "0", 'align'=>'center');
-			}
-		}
-		$rows[] = $row;
+		// output totals lines
+		$total_row = array(array('data' => "Total games:", 'colspan' => 2, 'align' => 'right'));
+		$avg_row = array(array('data' => "Avg num at site:", 'colspan' => 2, 'align' => 'right'));
+		$rank_row = array(array('data' => "Average Rank:", 'colspan' => 2, 'align' => 'right'));
 
-		$row = array(array('data' => "Average:", 'colspan' => 3, 'align' => 'right'));
+		$column_idx = 1;
 		foreach ($field_list as $f) {
+			$total_row[$column_idx] = array('data'=> "0", 'align'=>'center');
+			$avg_row[$column_idx] = array('data'=> "0", 'align'=>'center');
+			$rank_row[$column_idx] = array('data'=> "0", 'align'=>'center');
 			if ($total_at_field[$f]) {
-				$row[] = array('data'=> sprintf('%.1f', $total_at_field[$f] / $num_teams), 'align'=>'center');
-			} else {
-				$row[] = array('data'=> "0", 'align'=>'center');
+				$total_row[$column_idx]['data'] = $total_at_field[$f];
+				$avg_row[$column_idx]['data'] = sprintf('%.1f', $total_at_field[$f] / $num_teams);
+				$rank_row[$column_idx]['data'] = sprintf("%.3f", ($sum_field_ranks[$f] / $total_at_field[$f]));
 			}
+			$column_idx++;
 		}
-		$rows[] = $row;
 
+		$rows[] = $total_row;
+		$rows[] = $avg_row;
+		$rows[] = $rank_row;
+		$rows[] = array_merge( array( array( 'colspan' => 2, 'data' => '') ), $subheader);
 
 		//$output .= table($header, $rows);
 		$output .= "<div class='listtable'>" . table($header, $rows) . "</div>";
