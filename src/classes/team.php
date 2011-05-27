@@ -360,47 +360,26 @@ class Team extends LeaguerunnerObject
 			return ($this->preferred_ratio);
 		}
 
-		// We consider any field played at a site ranked 5 or better to
-		// be "preferred".
+		// We calculate the preference as (1/rank), giving us:
+		//    #1 rank = 1.000
+		//    #2 rank = 0.500
+		//    #3 rank = 0.333
+		//    #4 rank = 0.250
+		// etc, etc.
+		//
 		// TODO: to account for teams that rank fields late, or who
 		// change rankings throughout the season, perhaps we should use
 		// the current ranking if no ranking was found from game-time?
-		$sth = $dbh->prepare(
-		'SELECT
-			IF(ISNULL(stats.rank),       -1,
-				IF(stats.rank <= 5,  1,
-					             0 )) AS is_preferred,
-			COUNT(*) AS num_games
-		FROM schedule s
-		    LEFT JOIN field_ranking_stats stats ON (s.game_id = stats.game_id)
-		WHERE (s.home_team = ? OR s.away_team = ?)
-		GROUP BY is_preferred');
-		$sth->execute( array( $this->team_id, $this->team_id) );
+		$sth = $dbh->prepare('SELECT AVG(1/rank) FROM field_ranking_stats WHERE team_id = ?');
+		$sth->execute( array($this->team_id) );
 
-		$preferred     = 0;
-		$not_preferred = 0;
-		while($row = $sth->fetch( PDO::FETCH_ASSOC ) ) {
-			switch($row['is_preferred']) {
-				case 1:
-					$preferred = $row['num_games'];
-					break;
-				case 0:
-					$not_preferred = $row['num_games'];
-					break;
-				default:
-				case -1:
-					// team didn't care.  Don't count this one towards preference stat
-					break;
-			}
+		$preferred = $sth->fetchColumn();
+		if( is_null($preferred) ) {
+			$this->preferred_ratio = 0;
+		} else {
+			$this->preferred_ratio = $preferred;
 		}
 
-		if( $preferred + $not_preferred < 1 ) {
-			# Avoid divide-by-zero
-			return 0;
-		}
-
-
-		$this->preferred_ratio = $preferred / ($preferred + $not_preferred);
 		return ($this->preferred_ratio);
 	}
 
