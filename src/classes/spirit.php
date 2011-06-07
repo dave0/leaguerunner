@@ -442,6 +442,24 @@ class Spirit
 		return $result;
 	}
 
+	// TODO use this one and deprecate the one above
+	function fetch_game_spirit_items_html ( $spirit )
+	{
+		$out_of = $this->question_maximums();
+
+		$result = array(
+			'full' => $this->full_spirit_symbol_html(
+				$spirit['timeliness'] + $spirit['rules_knowledge'] + $spirit['sportsmanship'] + $spirit['rating_overall'] + $spirit['score_entry_penalty']
+			),
+			'timeliness' => $this->question_spirit_symbol_html( $spirit['timeliness'], $out_of['timeliness'] ),
+			'rules_knowledge' => $this->question_spirit_symbol_html( $spirit['rules_knowledge'], $out_of['rules_knowledge'] ),
+			'sportsmanship' => $this->question_spirit_symbol_html( $spirit['sportsmanship'], $out_of['sportsmanship'] ),
+			'rating_overall' => $this->question_spirit_symbol_html( $spirit['rating_overall'], $out_of['rating_overall'] ),
+			'score_entry_penalty' => $this->question_spirit_symbol_html( $spirit['score_entry_penalty'], $out_of['score_entry_penalty'] ),
+		);
+		return $result;
+	}
+
 	/**
 	 * Save a spirit entry for the given team
 	 */

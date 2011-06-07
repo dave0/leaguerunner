@@ -37,6 +37,59 @@
   </tr>
   </tfoot>
 </table>
+
+
+{if $spirit_detail}
+<h1>Detailed Per-game Spirit</h1>
+<table id="spirit_detail" style="font-size: 80%">
+  <thead>
+    <tr>
+      <th>Game</th>
+      <th>Entry By</th>
+      <th>Given To</th>
+      <th>Score</th>
+      {foreach from=$question_headings item=heading}
+      <th>{$heading}</th>
+      {/foreach}
+    </tr>
+  </thead>
+  <tbody>
+  {assign var='current_day'  value=''}
+  {foreach from=$spirit_detail item=row}
+  {cycle values="even,odd" assign="rowclass"}
+  {if $row.day_id != $current_day}
+  <tr>
+     <td colspan="3"><h2>{$row.day_id|date_format:"%a %b %d %Y"}</h2></td>
+     <td colspan="{$num_spirit_columns}"></td>
+  </tr>
+	{assign var='current_day' value=$row.day_id}
+  {/if}
+  <tr class="{$rowclass}">
+    <td><a href="{lr_url path="game/view/`$row.game_id`"}">{$row.game_id}</a></td>
+    <td><a href="{lr_url path="team/view/`$row.given_by_id`"}">{$row.given_by_name}</a></td>
+    <td><a href="{lr_url path="team/view/`$row.given_to_id`"}">{$row.given_to_name}</a></td>
+    {if $row.no_spirit}
+    <td colspan="{$num_spirit_columns}">
+    	Team did not submit a spirit rating
+    </td>
+    {else}
+      {foreach from=$question_keys item=key}
+      <td>{$row[$key]}</td>
+      {/foreach}
+    {/if}
+  </tr>
+  {if $row.comments}
+  <tr class="{$rowclass}">
+     <td colspan="2"><b>Comment for entry above:</b></td>
+     <td colspan="{$num_comment_columns}">{$row.comments}</td>
+  </tr>
+  {/if}
+  {/foreach}
+  </tbody>
+</table>
+{/if}
+
+
 <script type="text/javascript">
 {literal}
 $(document).ready(function() {
