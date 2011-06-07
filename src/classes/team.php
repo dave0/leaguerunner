@@ -367,11 +367,22 @@ class Team extends LeaguerunnerObject
 		//    #4 rank = 0.250
 		// etc, etc.
 		//
-		// TODO: to account for teams that rank fields late, or who
-		// change rankings throughout the season, perhaps we should use
-		// the current ranking if no ranking was found from game-time?
-		$sth = $dbh->prepare('SELECT AVG(1/rank) FROM field_ranking_stats WHERE team_id = ?');
-		$sth->execute( array($this->team_id) );
+		// to account for teams that rank fields late, or who change
+		// rankings throughout the season, perhaps use the current
+		// ranking if no ranking was found from game-time.
+		$sth = $dbh->prepare('SELECT
+				SUM( 1/ COALESCE(r.rank, sr.ranK) ) / COUNT(*)
+			FROM
+				schedule s,
+				field f
+					LEFT JOIN team_site_ranking sr ON (sr.site_id = COALESCE(f.parent_fid, f.fid) AND sr.team_id = ?),
+				gameslot g
+					LEFT JOIN field_ranking_stats r ON (r.game_id = g.game_id AND r.team_id = ?)
+			WHERE g.game_id = s.game_id
+				AND f.fid = g.fid
+				AND (s.home_team = ? or s.away_team = ?)');
+
+		$sth->execute( array($this->team_id, $this->team_id, $this->team_id, $this->team_id) );
 
 		$preferred = $sth->fetchColumn();
 		if( is_null($preferred) ) {
