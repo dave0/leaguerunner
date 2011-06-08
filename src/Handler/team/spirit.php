@@ -13,6 +13,7 @@ class team_spirit extends TeamHandler
 	{
 		global $lr_session;
 		$this->title = "{$this->team->name} &raquo; Spirit";
+		$this->template_name = 'pages/team/spirit.tpl';
 
 		// load the league
 		$league = League::load( array('league_id' => $this->team->league_id) );
@@ -37,26 +38,12 @@ class team_spirit extends TeamHandler
 		if( !is_array($games) ) {
 			error_exit('There are no games scheduled for this team');
 		}
-
-		$questions = $s->question_headings();
-		$header = array_merge(
-			array(
-				'ID',
-				'Date',
-				'Opponent',
-				'Game Avg',
-			),
-			(array)$questions
-		);
-
-		$question_column_count = count($questions);
-		if ($lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-			$header[] = 'Comments';
-			$question_column_count++;
-		}
+		$this->smarty->assign('question_keys',  array_merge( array('full'), $s->question_keys(), array('score_entry_penalty') ));
+		$this->smarty->assign('question_headings', $s->question_headings() );
+		$this->smarty->assign('num_spirit_columns', count($s->question_headings()) + 1);
+		$this->smarty->assign('num_comment_columns', count($s->question_headings()) + 2);
 
 		$rows = array();
-
 		foreach($games as $game) {
 
 			if( ! $game->is_finalized() ) {
@@ -72,27 +59,25 @@ class team_spirit extends TeamHandler
 				$opponent_name = $game->home_name;
 				$home_away = '(away)';
 			}
-
 			$thisrow = array(
-				l($game->game_id, "game/view/$game->game_id"),
-				strftime('%a %b %d %Y', $game->timestamp),
-				l($opponent_name, "team/view/$opponent_id")
+				'game_id' => $game->game_id,
+				'day_id' => $game->day_id,
+				'given_by_id' => $opponent_id,
+				'given_by_name' => $opponent_name,
+				'has_entry'     => 0,
 			);
 
 			# Fetch spirit answers for games
 			$entry = $game->get_spirit_entry( $this->team->team_id );
 			if( !$entry ) {
-				$thisrow[] = array(
-					'data'    => 'Opponent did not submit a spirit rating',
-					'colspan' => $question_column_count + 1,
-				);
 				$rows[] = $thisrow;
 				continue;
 			}
+			$thisrow['has_entry'] = 1;
 
 			$thisrow = array_merge(
 				$thisrow,
-				(array)$s->render_game_spirit( $entry )
+				(array)$s->fetch_game_spirit_items_html( $entry )
 			);
 
 			// can only see comments if you're a coordinator
@@ -102,19 +87,9 @@ class team_spirit extends TeamHandler
 
 			$rows[] = $thisrow;
 		}
+		$this->smarty->assign('spirit_detail', $rows );
 
-		$rows[] = array_merge(
-			array(
-				"Average","-","-"
-			),
-			(array)$s->team_sotg_averages( $this->team ),
-			array(
-				'-'
-			)
-		);
-
-		$style = '#main table td { font-size: 80% }';
-		return "<style>$style</style>" . table($header,$rows, array('alternate-colours' => true) );
+		return true;
 	}
 }
 

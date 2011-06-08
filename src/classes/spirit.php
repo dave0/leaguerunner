@@ -93,6 +93,13 @@ class Spirit
 		),
 	);
 
+	var $image_descriptions = array(
+		'not_ok.png' => 'Poor SOTG',
+		'caution.png' => 'Below Average SOTG',
+		'ok.png' => 'Good SOTG',
+		'perfect.png' => 'Exceptional SOTG',
+	);
+
 	/*
 	 * Whether or not to display
 	 */
@@ -222,7 +229,7 @@ class Spirit
 			$found = $by_value[$num];
 		}
 
-		$output = "<img src='$icon_url/$found' />";
+		$output = "<img src='$icon_url/$found' title='" . $this->image_descriptions[$found] . "'/>";
 		if( $this->display_numeric_sotg ) {
 			return sprintf("%s (%.2f)", $output, $answer_value);
 		}

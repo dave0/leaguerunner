@@ -12,7 +12,7 @@ class league_spirit extends LeagueHandler
 	{
 		global $lr_session;
 
-		$this->title = "{$this->league->fullname} Spirit";
+		$this->title = "{$this->league->fullname} &raquo; Spirit";
 		$this->template_name = 'pages/league/spirit.tpl';
 
 		$s = new Spirit;
@@ -39,7 +39,7 @@ class league_spirit extends LeagueHandler
 		$this->smarty->assign('num_comment_columns', count($s->question_headings()) + 2);
 
 		$rows = array();
-		while(list(,$game) = each($games)) {
+		foreach($games as $game) {
 
 			$teams = array(
 				$game->home_team => $game->home_name,

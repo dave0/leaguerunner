@@ -5,6 +5,15 @@
 {/literal}
 </style>
 <h1>{$title}</h1>
+<table>
+  <tr>
+    <td><img src="/leaguerunner/image/icons/perfect.png" align="left" title="Exceptional SOTG"/>= Exceptional SOTG </td>
+    <td><img src="/leaguerunner/image/icons/ok.png" align="left" title="Good SOTG"/>=Good SOTG </td>
+    <td><img src="/leaguerunner/image/icons/caution.png" align="left" title="Below Average SOTG"/>=Below Average SOTG</td>
+    <td><img src="/leaguerunner/image/icons/not_ok.png" align="left" title="Poor SOTG"/>=Poor SOTG</td>
+  </tr>
+<table>
+
 <table id="spirit">
   <thead>
     <tr>
