@@ -13,6 +13,8 @@
 <ol>
 	{foreach from=$selected item=f}
 	<li><a href="{lr_url path="field/view/`$f->fid`"}">{$f->name}</a> ({$f->region})</li>
+	{foreachelse}
+	<li>This team has not ranked any fields.
 	{/foreach}
 </ol>
 

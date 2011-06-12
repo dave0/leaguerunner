@@ -59,6 +59,8 @@ class team_fieldpreference extends TeamHandler
 		}
 		if( count($chosen) > 0 ) {
 			$fields['Previously Chosen'] = $chosen;
+		} else {
+			$fields['Previously Chosen'] = array();
 		}
 
 		// Ugh, now figure out what fields to display
