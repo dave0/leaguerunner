@@ -447,6 +447,12 @@ class Game extends LeaguerunnerObject
 			$errors[] = "Couldn't remove spirit answers: " . $sth->errorCode;
 		}
 
+		// Remove any submitted scores
+		$sth = $dbh->prepare('DELETE FROM score_entry WHERE game_id = ?');
+		if( ! $sth->execute( array($this->game_id) ) ) {
+			$errors[] = "Couldn't remove submitted scores: " . $sth->errorCode;
+		}
+
 		// Update SCHEDULE table to remove these results
 		$sth = $dbh->prepare("UPDATE schedule SET home_score = NULL, away_score = NULL, rating_points = NULL, rating_home = NULL, rating_away = NULL, approved_by = NULL, status = 'normal' where game_id = ?");
 		$sth->execute( array($this->game_id) );
