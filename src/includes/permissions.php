@@ -84,7 +84,8 @@ function field_permissions ( &$user, $action, $fid, $data_field )
 			}
 			break;
 		case 'view reports':
-			// Admin and "volunteer" can edit
+		case 'view rankings':
+			// Admin and "volunteer" can view field reports and rankings
 			if($user && $user->class == 'volunteer') {
 				return true;
 			}

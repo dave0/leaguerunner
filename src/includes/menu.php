@@ -526,6 +526,10 @@ function field_add_to_menu( &$field )
 		menu_add_child($field->fullname, "$field->fullname bookings", "view bookings", array('link' => "field/bookings/$field->fid"));
 	}
 
+	if($lr_session->has_permission('field','view rankings', $field->fid) ) {
+		menu_add_child($field->fullname, "$field->fullname rankings", "view rankings", array('link' => "field/rankings/$field->fid"));
+	}
+
 	if($lr_session->has_permission('field','edit', $field->fid) ) {
 		menu_add_child($field->fullname, "$field->fullname/edit",'edit field', array('weight' => 1, 'link' => "field/edit/$field->fid"));
 		menu_add_child($field->fullname, "$field->fullname/layout",'edit layout', array('weight' => 1, 'link' => "gmaps/edit/$field->fid"));
