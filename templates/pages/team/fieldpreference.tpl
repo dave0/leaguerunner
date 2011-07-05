@@ -23,9 +23,11 @@
 	<b>Please remember that...</b>
 	<ul>
 		<li>Leaguerunner will attempt to schedule your home games on a field at one of your preferred sites, however no guarantees can be made.
+		<li>You cannot rank a particular field (ie: UPI 2) at a site.
+		<li>Fields -- or entire sites -- may be taken out of service throughout the season.  Just because a field was available early in the season doesn't mean it's available every week.  Further, just because it's not currently available doesn't mean it won't be back online later in the season.
+		<li>UPI has 19 fields in total, most of which are available every night of the week.  So, when the scheduler heads down your list of preferences to find the best available field and finds none you've ranked better than UPI, you will probably get allocated a field at UPI.  If you have sites you'd rather play on that aren't UPI, make sure you rank them above UPI.
 		<li>If you have a preference to <b>not</b> play on particular
 fields, we recommend that you rank all sites and place the ones you like least at the bottom.
-		<li>You cannot rank a particular field (ie: UPI 2) at a site.
 	</ul>
 </p>
 
