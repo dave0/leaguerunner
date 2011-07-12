@@ -102,6 +102,34 @@ class Season extends LeaguerunnerObject
 		return true;
 	}
 
+	function create ()
+	{
+		global $dbh;
+
+		if( $this->_in_database ) {
+			return false;
+		}
+
+		if( ! $this->display_name ) {
+			return false;
+		}
+
+		if( ! $this->season ) {
+			return false;
+		}
+
+		$sth = $dbh->prepare('INSERT into season (display_name, season) VALUES(?,?)');
+		$sth->execute( array( $this->display_name, $this->season) );
+		if( 1 != $sth->rowCount() ) {
+			return false;
+		}
+		$sth = $dbh->prepare('SELECT LAST_INSERT_ID() FROM season');
+		$sth->execute();
+		$this->id = $sth->fetchColumn();
+
+		return true;
+	}
+
 	function save ()
 	{
 		global $dbh;
