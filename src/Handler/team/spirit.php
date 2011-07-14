@@ -75,15 +75,15 @@ class team_spirit extends TeamHandler
 			}
 			$thisrow['has_entry'] = 1;
 
+			// can only see comments if you're a coordinator
+			if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
+				$thisrow['comments'] = $entry['comments'];
+			}
+
 			$thisrow = array_merge(
 				$thisrow,
 				(array)$s->fetch_game_spirit_items_html( $entry )
 			);
-
-			// can only see comments if you're a coordinator
-			if( $lr_session->has_permission('league', 'view', $this->team->league_id, 'spirit') ) {
-				$thisrow[] = $entry['comments'];
-			}
 
 			$rows[] = $thisrow;
 		}
