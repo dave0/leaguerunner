@@ -51,10 +51,6 @@ class login extends Handler
 		global $lr_session;
 
 		$status = $lr_session->attr_get('status');
-		// New users may be treated as active, if the right setting is on
-		if( $lr_session->user->is_active () ) {
-			$status = 'active';
-		}
 
 		switch($status) {
 			case 'new':
