@@ -3,14 +3,18 @@ use strict;
 
 use WWW::Mechanize;
 use IO::File;
+use Getopt::Long;
 
 my $conf = {
 	fetch_base    => 'http://www.ocua.ca/leaguerunner/',
-	wanted_season => 'Fall',
+	wanted_season => 'Fall 2010',
 	username      => 'your username',
 	password      => 'your password',
 };
 
+GetOptions(
+	'season=s' => \($conf->{wanted_season}),
+);
 
 my $agent = WWW::Mechanize->new();
 
@@ -20,9 +24,15 @@ $agent->field('edit[username]', $conf->{username});
 $agent->field('edit[password]', $conf->{password});
 $agent->click('Submit');
 
-
 $agent->follow_link(text => 'list leagues', n => '1');
-$agent->follow_link(text => $conf->{wanted_season}, n => '1');
+
+if( ! $agent->form_number(1) ) {
+	die "No season-selection form found";
+}
+if( ! $agent->set_visible( [ 'option' => $conf->{wanted_season} ] ) ) {
+	die "Couldn't select season name in form";
+}
+$agent->submit();
 my $data = $agent->content();
 while( $data =~ m{league/view/(\d+)">([^<]+)</a>}g ) {
 	my ($league_id, $league_name) = ($1,$2);
