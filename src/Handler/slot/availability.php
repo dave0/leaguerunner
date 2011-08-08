@@ -36,29 +36,16 @@ class slot_availability extends SlotHandler
 
 		$this->smarty->assign('slot', $this->slot);
 
-		$leagues = array();
-		$sth = $dbh->prepare("SELECT
-			l.league_id, l.name, l.tier
-			FROM
-				league l, season s
-			WHERE
-				l.season = s.id
-				AND NOT s.archived
-				AND l.schedule_type != 'none'
-				AND (FIND_IN_SET(?, l.day) > 0)
-				AND l.status = 'open'
-			ORDER BY l.day,l.name,l.tier"
-		);
 		$weekday = strftime("%A", $this->slot->date_timestamp);
-		$sth->execute( array( $weekday) );
-
-		while($league = $sth->fetch(PDO::FETCH_OBJ) ) {
+		$sth = League::query( array( '_day' => $weekday, 'status' => 'open', '_order' => 'l.league_id'));
+		$leagues = array();
+		while($league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY)) ) {
 			if( $league->tier ) {
 				$league->fullname = sprintf("$league->name Tier %02d", $league->tier);
 			} else {
 				$league->fullname = $league->name;
 			}
-			$leagues[$league->league_id] = $league->fullname;
+			$leagues[$league->league_id] = "($league->season_name) $league->fullname";
 		}
 
 		$this->smarty->assign('leagues', $leagues);

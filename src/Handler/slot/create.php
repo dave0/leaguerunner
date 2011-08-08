@@ -102,11 +102,10 @@ class slot_create extends FieldHandler
 		$this->smarty->assign('start_end_times', getOptionsFromTimeRange(0000,2400,5) );
 
 		$weekday = strftime("%A", $datestamp);
-		$leagues = array();
-		$sth = League::query( array( '_day' => $weekday, 'status' => 'open' ));
+		$sth = League::query( array( '_day' => $weekday, 'status' => 'open', '_order' => 'l.league_id'));
 		$leagues = array();
 		while($league = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY)) ) {
-			$leagues[$league->league_id] = "$league->season_name - $league->fullname";
+			$leagues[$league->league_id] = "($league->season_name) $league->fullname";
 		}
 		$this->smarty->assign('leagues', $leagues);
 
