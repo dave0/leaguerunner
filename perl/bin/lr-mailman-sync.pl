@@ -142,7 +142,7 @@ sub cb_season_day_ratio_captains_coordinators
 			AND r.status IN ('captain', 'assistant', 'COACH')
 			AND lt.league_id = l.league_id
 			AND l.season = ?
-			AND l.day = ?
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.ratio = ?
 		UNION
 		SELECT distinct p.email
@@ -151,7 +151,7 @@ sub cb_season_day_ratio_captains_coordinators
 			AND m.status IN ('coordinator')
 			AND m.league_id = l.league_id
 			AND l.season = ?
-			AND l.day = ?
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.ratio = ?
 	}, undef, $season_id, $day_name, $ratio, $season_id, $day_name, $ratio) || [] };
 }
@@ -175,7 +175,7 @@ sub cb_season_day_ratio_players
 			AND p.email IS NOT NULL
 			AND lt.league_id = l.league_id
 			AND l.season = ?
-			AND l.day = ?
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.ratio = ?
 		UNION
 		SELECT distinct p.email
@@ -184,7 +184,7 @@ sub cb_season_day_ratio_players
 			AND m.status IN ('coordinator')
 			AND m.league_id = l.league_id
 			AND l.season = ?
-			AND l.day = ?
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.ratio = ?
 	}, undef, $season_id, $day_name, $ratio, $season_id, $day_name, $ratio) || [] };
 }
@@ -221,7 +221,7 @@ sub cb_season_day_ratio_coordinators
 			AND m.status IN ('coordinator')
 			AND m.league_id = l.league_id
 			AND l.season = ?
-			AND l.day = ?
+			AND (FIND_IN_SET(?, l.day) > 0)
 			AND l.ratio = ?
 	}, undef, $season_id, $day_name, $ratio) || [] }, $lr_admin;
 }
