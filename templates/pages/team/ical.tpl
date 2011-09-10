@@ -1,21 +1,36 @@
 BEGIN:VCALENDAR
-PRODID:-//Leaguerunner//Team Schedule//EN
 VERSION:2.0
+PRODID:-//Leaguerunner//Team Schedule//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:{$team->name|utf8} schedule from {$short_league_name}
-{* TODO: add VTIMEZONE group *}
-
+BEGIN:VTIMEZONE
+TZID:US/Eastern
+LAST-MODIFIED:20070101T000000Z
+BEGIN:DAYLIGHT
+DTSTART:20070301T020000
+RRULE:FREQ=YEARLY;BYDAY=2SU;BYMONTH=3
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+TZNAME:EDT
+END:DAYLIGHT
+BEGIN:STANDARD
+DTSTART:20071101T020000
+RRULE:FREQ=YEARLY;BYDAY=1SU;BYMONTH=11
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+TZNAME:EST
+END:STANDARD
+END:VTIMEZONE
 {foreach from=$games item=game}
 BEGIN:VEVENT
-UID:{$game->game_id}@{$domain_url}
+UID:{$game->game_id}-{$domain_url}
 DTSTAMP:{$now}
 {* TODO: created and last-modified are bullshit *}
-CREATED:20090101T000000Z
-LAST-MODIFIED:20090101T000000Z
-{* TODO: do we need tzid in here? *}
-DTSTART;TZID={$timezone}:{$game->timestamp|date_format:"%Y%m%d"}T{$game->game_start|replace:':':''}00
-DTEND;TZID={$timezone}:{$game->timestamp|date_format:"%Y%m%d"}T{$game->display_game_end()|replace:':':''}00
+CREATED:{$now}
+LAST-MODIFIED:{$now}
+DTSTART;TZID=US/Eastern:{$game->iso8601_local_game_start()}
+DTEND;TZID=US/Eastern:{$game->iso8601_local_game_end()}
 {*
 	TODO: possible bug; Google Calendar tries to generate a Google Maps
 	link from the data in LOCATION, which will always be wrong.  Is this
@@ -31,9 +46,6 @@ DESCRIPTION:Game {$game->game_id}: {$game->home_name|utf8} (home) vs. {$game->aw
 {else}
 {/if}
 X-OPPONENT-COLOUR: {$game->opponent->shirt_colour|utf8}
-STATUS:CONFIRMED
-TRANSP:OPAQUE
 END:VEVENT
 {/foreach}
-
 END:VCALENDAR

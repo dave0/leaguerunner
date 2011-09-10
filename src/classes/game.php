@@ -45,6 +45,21 @@ class Game extends LeaguerunnerObject
 		return '';
 	}
 
+	function iso8601_local_game_start ()
+	{
+		return strftime('%Y%m%dT%H%M%S', $this->timestamp);
+	}
+
+	function iso8601_local_game_end ()
+	{
+		list($hh,$mm) = preg_split('/:/', $this->display_game_end());
+		list($year,$mon, $mday) = preg_split('/-/', $this->game_date);
+		return strftime(
+			'%Y%m%dT%H%M%S',
+			mktime($hh, $mm, 00, $mon, $mday, $year)
+		);
+	}
+
 	/**
 	 * Add two opponents to the game, attempting to balance the number of home
 	 * and away games
