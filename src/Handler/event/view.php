@@ -111,7 +111,7 @@ class event_view extends EventHandler
 			if ( $event_register_count >= $event_register_cap ) {
 				$admin_name = variable_get('app_admin_name', 'Leaguerunner Admin');
 				$admin_addr = variable_get('app_admin_email','webmaster@localhost');
-				$this->smarty->assign('message', "This event is already full.  You may email the <a href=\"mailto:$admin_addr\">$admin_name</a> or phone the head office to be put on a waiting list in case others drop out." );
+				$this->smarty->assign('message', "This event is already full.");
 				// There may be a payment-pending registration already done,
 				// if multiples are allowed, so we allow for payment to be made.
 				return;
