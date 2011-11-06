@@ -6,7 +6,7 @@ use POSIX qw( EXIT_SUCCESS EXIT_FAILURE );
 use Getopt::Long;
 use Pod::Usage;
 
-use lib qw(./perl/lib);
+use lib qw(../lib);
 use Leaguerunner;
 use Leaguerunner::DBInit;
 

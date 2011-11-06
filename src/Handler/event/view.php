@@ -57,6 +57,17 @@ class event_view extends EventHandler
 			if( $r->payment != 'Paid' ) {
 				$this->smarty->assign('message', 'You have already registered for this event, but not yet paid.  See below for payment information.');
 
+				
+				// include paypal as payment option if configured
+				if (variable_get('paypal',''))
+				{
+					$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
+					$this->smarty->assign('paypal_email', variable_get('paypal_email',''));
+					
+					// include user details for auto fill forms
+					$this->smarty->assign('user', $lr_session->user);
+				}
+				
 				$this->smarty->assign('offline_payment_text',
 					strtr(
 						variable_get('offline_payment_text', ''),

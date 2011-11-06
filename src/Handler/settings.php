@@ -127,6 +127,10 @@ function global_settings()
 function feature_settings()
 {
 	$group = form_radios('Handle registration', 'edit[registration]', variable_get('registration', 0), array('Disabled', 'Enabled'), 'Enable or disable processing of registrations');
+	
+	$group .= form_radios('Use PayPal for Registration payment', 'edit[paypal]', variable_get('paypal', 0), array('Disabled','Enabled'), 'Use PayPal to take credit card payments');
+
+	$group .= form_textfield('Paypal account primary email address', 'edit[paypal_email]', variable_get('paypal_email',''), 50,100);
 
 	$group .= form_radios('Dog questions', 'edit[dog_questions]', variable_get('dog_questions', 1), array('Disabled', 'Enabled'), 'Enable or disable questions and options about dogs');
 

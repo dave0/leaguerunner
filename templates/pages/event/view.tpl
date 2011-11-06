@@ -53,6 +53,10 @@
 </ul>
 {if $offline_payment_text}
 <h2>Payment</h2>
+{if $paypal}
+{include file=$paypal}
+{/if}
+<h3>Offline Payment</h3>
 {$offline_payment_text}
 {/if}
 {if $refund_policy_text}

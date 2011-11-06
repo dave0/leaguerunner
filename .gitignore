@@ -1,1 +1,9 @@
 *~
+*.conf
+.buildpath
+.settings/
+.project
+templates_c
+config
+cache
+src/dummy.php

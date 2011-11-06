@@ -160,11 +160,23 @@ class event_register extends EventHandler
 	 */
 	function generatePay()
 	{
+		global $lr_session;
 		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
 
 		if( $this->event->cost == 0 ) {
 			$this->template_name = 'pages/event/register/done_no_cost.tpl';
 			return true;
+		}
+		
+		if ( variable_get('paypal',''))
+		{
+			$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
+			$this->smarty->assign('paypal_email', variable_get('paypal_email',''));
+			$this->smarty->assign('registration', $this->registration);
+			$this->smarty->assign('event', $this->event);
+			
+			// include user details for auto fill forms
+			$this->smarty->assign('user', $lr_session->user);
 		}
 
 		$this->template_name = 'pages/event/register/offline_payment.tpl';

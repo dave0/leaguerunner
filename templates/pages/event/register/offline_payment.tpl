@@ -6,6 +6,9 @@
    You are now registered for this event, pending arrival of your registration
    fee.  Your registration number is <b>{$order_number}</b>
 </p>
+{if $paypal}
+{include file=$paypal}
+{/if}
 <p>
 {$offline_payment_text}
 </p>
