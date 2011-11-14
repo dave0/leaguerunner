@@ -1,6 +1,6 @@
 <h3>PayPal</h3>
 <p>You can add this event to a PayPal cart for online payment.</p>
-<form target="paypal" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+<form target="paypal" action="{$paypal_url}" method="post">
 
 	<!-- Identify your business so that you can collect the payments. -->
 	<input type="hidden" name="business" value="{$paypal_email}">
@@ -20,8 +20,9 @@
 	<input type="hidden" name="last_name" value="{$user->lastname}">
 	<input type="hidden" name="address1" value="{$user->addr_street}">
 	<input type="hidden" name="city" value="{$user->addr_city}">
-	<input type="hidden" name="country" value="{$user->addr_country}">
+	<input type="hidden" name="state" value="{$user->addr_prov}">
 	<input type="hidden" name="zip" value="{$user->addr_postalcode}">
+	<input type="hidden" name="country" value="{$user->addr_country}">
 
 	<!-- Continue shopping -->
 	<input type="hidden" name="shopping_url" value="http://www.leaguerunner.com">

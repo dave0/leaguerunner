@@ -356,6 +356,7 @@ function registration_permissions ( &$user, $action, $id, $registration )
 			// Only admin can view details or edit
 			break;
 		case 'register':
+		case 'paypal':		// Paypal PDT with valid player info and currently active user
 			// Only admins can register other players
 			if( ! is_null($id) ) {
 				return ($id == $lr_session->user->user_id || $lr_session->is_admin());

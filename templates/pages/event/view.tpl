@@ -38,9 +38,10 @@
 </table>
 </div>
 <p></p>
+{if $allow_register}
 <h2>Registration</h2>
 <b>You may now:</b>
-<ul>
+{/if}<ul>
 {if $allow_register}
 	<li><a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">register yourself</a> for this event.
 {/if}

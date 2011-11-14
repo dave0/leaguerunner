@@ -172,10 +172,21 @@ class event_register extends EventHandler
 		{
 			$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
 			$this->smarty->assign('paypal_email', variable_get('paypal_email',''));
+			
+			// determine if we're submitting to the sandbox or the real PayPal
+			if (variable_get('paypal_url',''))
+			{
+				$this->smarty->assign('paypal_url', variable_get('paypal_sandbox_url',''));
+			} else {
+				$this->smarty->assign('paypal_url', variable_get('paypal_submit_url',''));
+			}
+			
 			$this->smarty->assign('registration', $this->registration);
 			$this->smarty->assign('event', $this->event);
 			
 			// include user details for auto fill forms
+			// Paypal wants country codes, not names, so rewrite country value in user
+			$lr_session->user->addr_country = getCountryCode($lr_session->user->addr_country);
 			$this->smarty->assign('user', $lr_session->user);
 		}
 

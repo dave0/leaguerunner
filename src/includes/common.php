@@ -902,6 +902,17 @@ function GetCountryNames()
 	return $ary;
 }
 
+function GetCountryCode($string)
+{
+	switch($string)
+	{
+		case "Canada":
+			return "CA";
+		case "United States":
+			return "US";
+	}
+}
+
 /**
  * Helper fn to get shirt sizes for pulldown list
  */

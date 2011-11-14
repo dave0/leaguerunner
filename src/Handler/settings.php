@@ -127,10 +127,6 @@ function global_settings()
 function feature_settings()
 {
 	$group = form_radios('Handle registration', 'edit[registration]', variable_get('registration', 0), array('Disabled', 'Enabled'), 'Enable or disable processing of registrations');
-	
-	$group .= form_radios('Use PayPal for Registration payment', 'edit[paypal]', variable_get('paypal', 0), array('Disabled','Enabled'), 'Use PayPal to take credit card payments');
-
-	$group .= form_textfield('Paypal account primary email address', 'edit[paypal_email]', variable_get('paypal_email',''), 50,100);
 
 	$group .= form_radios('Dog questions', 'edit[dog_questions]', variable_get('dog_questions', 1), array('Disabled', 'Enabled'), 'Enable or disable questions and options about dogs');
 
@@ -195,7 +191,15 @@ function person_settings ( )
 
 function registration_settings ( )
 {
-	$group = form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 60, 120, 'sprintf format string for the unique order ID.');
+	$group = form_radios('Use PayPal for Registration payment', 'edit[paypal]', variable_get('paypal', 0), array('Disabled','Enabled'), 'Use PayPal to take credit card payments');
+	$group .= form_textfield('Paypal account primary email address', 'edit[paypal_email]', variable_get('paypal_email',''), 50,100, 'Email address of Paypal account handling payments');
+	$group .= form_textfield('PDT Identity Token', 'edit[paypal_pdt]', variable_get('paypal_pdt',''),50,100,'Identity Token PayPal uses to return information regarding the transaction');
+	$group .= form_textfield('Payment URL', 'edit[paypal_submit_url]', variable_get('paypal_submit_url',''),100,100, 'Standard URL for submitting queries to the PayPal system');
+	$group .= form_textfield('Sandbox URL', 'edit[paypal_sandbox_url]', variable_get('paypal_sandbox_url',''),100,100, 'URL for testing PayPal payments');
+	$group .= form_radios('Use URL', 'edit[paypal_url]', variable_get('paypal_url',0), array('Standard', 'Sandbox'), 'Which URL should payment requests be sent to?');
+	
+	
+	$group .= form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 60, 120, 'sprintf format string for the unique order ID.');
 
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
 
