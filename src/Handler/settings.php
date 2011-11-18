@@ -192,13 +192,17 @@ function person_settings ( )
 function registration_settings ( )
 {
 	$group = form_radios('Use PayPal for Registration payment', 'edit[paypal]', variable_get('paypal', 0), array('Disabled','Enabled'), 'Use PayPal to take credit card payments');
-	$group .= form_textfield('Paypal account primary email address', 'edit[paypal_email]', variable_get('paypal_email',''), 50,100, 'Email address of Paypal account handling payments');
-	$group .= form_textfield('PDT Identity Token', 'edit[paypal_pdt]', variable_get('paypal_pdt',''),50,100,'Identity Token PayPal uses to return information regarding the transaction');
-	$group .= form_textfield('Payment URL', 'edit[paypal_submit_url]', variable_get('paypal_submit_url',''),100,100, 'Standard URL for submitting queries to the PayPal system');
-	$group .= form_textfield('Sandbox URL', 'edit[paypal_sandbox_url]', variable_get('paypal_sandbox_url',''),100,100, 'URL for testing PayPal payments');
-	$group .= form_radios('Use URL', 'edit[paypal_url]', variable_get('paypal_url',0), array('Standard', 'Sandbox'), 'Which URL should payment requests be sent to?');
+	$group .= form_radios('Payment Processing', 'edit[paypal_url]', variable_get('paypal_url',0), array('Live', 'Sandbox'), 'Using live for real payments or Sandbox for testing?');
+
+	$group .= form_textfield('Sandbox account email address', 'edit[paypal_sandbox_email]', variable_get('paypal_sandbox_email',''), 50,100, 'Email address of Sandbox account');
+	$group .= form_textfield('Sandbox PDT Identity Token', 'edit[paypal_sandbox_pdt]', variable_get('paypal_sandbox_pdt',''),50,100,'Identity Token for Sandbox testing');
+	$group .= form_textfield('Sandbox URL', 'edit[paypal_sandbox_url]', variable_get('paypal_sandbox_url',''),50,100, 'URL for testing PayPal payments');
 	
+	$group .= form_textfield('Live account primary email address', 'edit[paypal_live_email]', variable_get('paypal_live_email',''), 50,100, 'Email address of Paypal account handling payments');
+	$group .= form_textfield('Live PDT Identity Token', 'edit[paypal_live_pdt]', variable_get('paypal_live_pdt',''),50,100,'Identity Token PayPal uses to return information regarding the transaction');
+	$group .= form_textfield('Live URL', 'edit[paypal_live_url]', variable_get('paypal_live_url',''),50,100, 'Standard URL for submitting queries to the PayPal system');
 	
+		
 	$group .= form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 60, 120, 'sprintf format string for the unique order ID.');
 
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
@@ -221,7 +225,4 @@ END;
 
 	return $output;
 }
-
-
-
 ?>

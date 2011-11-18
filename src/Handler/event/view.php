@@ -11,6 +11,7 @@ class event_view extends EventHandler
 	function process ()
 	{
 		global $lr_session;
+		global $CONFIG;
 		$this->title = $this->event->name;
 
 		$this->template_name = 'pages/event/view.tpl';
@@ -62,14 +63,18 @@ class event_view extends EventHandler
 				if (variable_get('paypal',''))
 				{
 					$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
-					$this->smarty->assign('paypal_email', variable_get('paypal_email',''));
+					$this->smarty->assign('shopping_url',$CONFIG['session']['session_name'].$CONFIG['paths']['base_url']);
+					$this->smarty->assign('return_url', $CONFIG['session']['session_name'].
+														$CONFIG['paths']['base_url'].'/registration/paypal/'.$r->order_id);
 					
 					// determine if we're submitting to the sandbox or the real PayPal
 					if (variable_get('paypal_url',''))
 					{
 						$this->smarty->assign('paypal_url', variable_get('paypal_sandbox_url',''));
+						$this->smarty->assign('paypal_email', variable_get('paypal_sandbox_email',''));
 					} else {
-						$this->smarty->assign('paypal_url', variable_get('paypal_submit_url',''));
+						$this->smarty->assign('paypal_url', variable_get('paypal_live_url',''));
+						$this->smarty->assign('paypal_email', variable_get('paypal_live_email',''));
 					}
 					
 					// Paypal wants country codes, not names, so rewrite country value in user

@@ -1,9 +1,10 @@
 <h3>PayPal</h3>
 <p>You can add this event to a PayPal cart for online payment.</p>
-<form target="paypal" action="{$paypal_url}" method="post">
+<form target="_self" action="{$paypal_url}" method="post">
 
 	<!-- Identify your business so that you can collect the payments. -->
 	<input type="hidden" name="business" value="{$paypal_email}">
+	<input type="hidden" name="return" value="{$return_url}">
 	
 	<!-- Specify a PayPal Shopping Cart Add to Cart button. -->
 	<input type="hidden" name="cmd" value="_cart">
@@ -25,7 +26,7 @@
 	<input type="hidden" name="country" value="{$user->addr_country}">
 
 	<!-- Continue shopping -->
-	<input type="hidden" name="shopping_url" value="http://www.leaguerunner.com">
+	<input type="hidden" name="shopping_url" value="http://www.suc-dev.com/leaguerunner">
 	
 	<!-- Display the payment button. -->
 	<input type="image" name="submit" border="0" src="https://www.paypal.com/en_US/i/btn/btn_cart_LG.gif" alt="PayPal - The safer, easier way to pay online">

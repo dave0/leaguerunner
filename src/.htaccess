@@ -15,15 +15,15 @@ DirectoryIndex index.php
 
 # Various rewrite rules
 <IfModule mod_rewrite.c>
-  #RewriteEngine on
+  RewriteEngine on
 
   # Modify the RewriteBase appropriately if you are using Leaguerunner
   # somewhere other than http://your.hostname.tld/leaguerunner
-  #RewriteBase /
+  RewriteBase /
 
   # Rewrite URLs to the form 'index.php?q=x':
-  #RewriteCond %{REQUEST_FILENAME} !-f
-  #RewriteCond %{REQUEST_FILENAME} !-d
-  #sRewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
 </IfModule>
 

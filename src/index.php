@@ -112,6 +112,8 @@ menu_build();
 
 if( array_key_exists('q', $_GET) ) {
 	$q = $_GET['q'];
+} else if ( array_key_exists('tx', $_GET)) {
+	$q = 'registration/paypal';
 } else {
 	$q = 'login';
 }

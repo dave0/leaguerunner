@@ -344,6 +344,9 @@ function registration_permissions ( &$user, $action, $id, $registration )
 {
 	global $lr_session;
 
+	if($action == 'paypal')
+		return true;
+	
 	if (!$lr_session || !$lr_session->user)
 		return false;
 
