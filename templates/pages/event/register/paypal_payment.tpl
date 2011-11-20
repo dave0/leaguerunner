@@ -12,7 +12,7 @@
 	
 	<!-- Specify details about the item that buyers will purchase. -->
 	<input type="hidden" name="item_name" value="{$event->name}">
-	<input type="hidden" name="item_number" value="{$registration->formatted_order_id()}">
+	<input type="hidden" name="item_number" value="{$registration->order_id}">
 	<input type="hidden" name="amount" value="{$event->cost}">
 	<input type="hidden" name="currency_code" value="CAD">
 	

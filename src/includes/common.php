@@ -357,6 +357,18 @@ function check_form($input, $quotes = ENT_QUOTES)
 	return htmlspecialchars($input, $quotes);
 }
 
+/* return array from key matches instead of element matches */
+function preg_grep_keys( $pattern, $input, $flags = 0 )
+{
+	$keys = preg_grep( $pattern, array_keys( $input ), $flags );
+	$vals = array();
+	foreach ( $keys as $key )
+	{
+		$vals[$key] = $input[$key];
+	}
+	return $vals;
+}
+
 /*
  * Form-generation functions
  */
