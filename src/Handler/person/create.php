@@ -24,7 +24,7 @@ class person_create extends person_edit
 	{
 		$edit = $_POST['edit'];
 
-		$this->smarty->assign('instructions', "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE</b> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . variable_get('password_reset', url('person/forgotpassword')) . "\">follow these instructions</a> to gain access to your account.");
+		$this->smarty->assign('instructions', "To create a new account, fill in all the fields below and click 'Submit' when done.  Your account will be placed on hold until approved by an administrator.  Once approved, you will be allocated a membership number, and have full access to the system.<p><b>NOTE:</b><ul><li>If you are a parent creating an account for your child, the account must be in the child's name. <li> If you already have an account from a previous season, DO NOT CREATE ANOTHER ONE!  Instead, please <a href=\"" . variable_get('password_reset', url('person/forgotpassword')) . "\">follow these instructions</a> to gain access to your account.</ul>");
 		$this->template_name = 'pages/person/edit.tpl';
 
 		$this->generateForm( $edit );
