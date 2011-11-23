@@ -64,7 +64,20 @@ require_once("includes/mail.php");
 // Initialise configuration variables
 $conf = variable_init();
 
-// Set some template defaults
+
+/*
+ * PayPal IPN transactions are purely B2B, so most of the leaguerunner codebase isn't needed.
+ * The main functions are:
+ *  - Update registration payments
+ *  - ensure registrations/payments are matched up for players 
+ */
+
+// Check Request for IPN 
+if ($_GET['q'] == 'ipn') {
+	print "IPN Transaction";
+}
+
+	// Set some template defaults
 global $smarty;
 $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
@@ -112,8 +125,6 @@ menu_build();
 
 if( array_key_exists('q', $_GET) ) {
 	$q = $_GET['q'];
-} else if ( array_key_exists('tx', $_GET)) {
-	$q = 'registration/paypal';
 } else {
 	$q = 'login';
 }
