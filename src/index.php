@@ -73,8 +73,31 @@ $conf = variable_init();
  */
 
 // Check Request for IPN 
-if ($_GET['q'] == 'ipn') {
-	print "IPN Transaction";
+if ($_GET['q'] == 'ipn') {	
+	require_once("includes/logging.php");
+	require_once("Handler/PaypalHandler.php");
+	
+	$handler = new PaypalHandler();
+	$log = new Logging();
+	
+	//Logging object appends .log
+	$log->lfile($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/paypal'); 
+	$log->lwrite('Received IPN Request');
+	
+	$status = $handler->process();
+	
+	
+	// success could have multiple payments to log
+	if($status['status'] == true) {
+		foreach($status['message'] as $payment) {
+			$log->lwrite('Registration '.$payment->payment_amount.' paid in full');
+		}
+	} else {
+		$log->lwrite($status['message']);
+	}
+	
+	// no more IPN processing required
+	exit;
 }
 
 	// Set some template defaults
@@ -85,6 +108,9 @@ $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@lo
 
 $smarty->assign('app_version', '2.7');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
+$smarty->assign('site_name', 'Sudbury Ultimate Club');
+$smarty->assign('site_slogan', 'All Things SUC');
+
 
 require_once("classes/lrobject.php");
 require_once("classes/field.php");

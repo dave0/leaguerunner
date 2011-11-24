@@ -1,0 +1,133 @@
+@CHARSET "UTF-8";
+
+body {
+    background: none repeat scroll 0 0 #F0F0F2;
+    color: #666666;
+    font-family: Arial,Verdana,sans-serif;
+    font-size: 13px;
+    line-height: 1.5em;
+    margin: 0;
+    padding: 0;
+}
+
+#page-wrapper {
+    float: left;
+    margin: 0 auto;
+    padding: 0;
+    width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	line-height: 1.3em;	
+}
+
+a {
+    text-decoration: none;
+}
+a:link {
+    color: #0B5ED8;
+    text-decoration: none;
+}
+a:visited {
+    color: #0B5ED8;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+#header-wrapper {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-bottom: 1px solid #BFBFC6;
+    float: left;
+    height: 75px;
+    width: 100%;
+}
+#header {
+    margin: 0 auto;
+    width: 806px;
+}
+#branding-wrapper {
+    float: left;
+    height: 75px;
+    width: 50%;
+}
+.branding {
+    display: inline;
+    float: left;
+    margin: 14px 0;
+}
+.branding h1, .branding h2 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0 10px 0 0;
+    text-transform: uppercase;
+}
+.branding a:hover {
+    text-decoration: none;
+}
+.name-slogan-wrapper {
+    float: left;
+}
+.logo {
+    float: left;
+    margin-right: 10px;
+}
+.logo img {
+    height: 43px;
+}
+.site-name {
+    font-style: normal;
+}
+.site-slogan {
+    font-size: 14px;
+    font-style: italic;
+    font-weight: bold;
+}
+#authorize {
+    bottom: 0;
+    float: right;
+    font-size: 12px;
+}
+#authorize ul {
+    margin: 40px 0 0;
+    padding-left: 0;
+}
+#authorize ul li {
+    background-image: none;
+    display: inline;
+    list-style: none outside none;
+}
+#authorize ul li.first {
+    padding-right: 10px;
+}
+
+#container-wrapper {
+    background: url("/sites/all/themes/metropolis/images/body-bg.gif") repeat-x scroll center top #F0F0F2;
+    clear: both;
+    width: 100%;
+}
+#container-outer {
+    background: url("/sites/all/themes/metropolis/images/shadow-body.gif") repeat-y scroll 0 0 #F0F0F2;
+    margin: 0 auto;
+    width: 818px;
+}
+#container-inner {
+    background: url("/sites/all/themes/metropolis/images/separator-bottom.gif") no-repeat scroll center bottom #FFFFFF;
+    clear: both;
+    margin: 0 auto;
+    width: 804px;
+}
+#shadow-bottom {
+    background: url("/sites/all/themes/metropolis/images/shadow-footer.gif") no-repeat scroll 0 0 #F0F0F2;
+    height: 9px;
+    margin: 0 auto;
+    width: 818px;
+}
+
+#footer {
+    clear: both;
+    color: #666666;
+    font-size: 12px;
+    padding: 20px 20px 30px;
+    text-align: center;
+}
