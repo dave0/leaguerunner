@@ -21,6 +21,26 @@ h1, h2, h3, h4, h5, h6 {
 	line-height: 1.3em;	
 }
 
+.clearfix {
+    clear: both;
+}
+.clearfix:after {
+    clear: both;
+    content: ".";
+    display: block;
+    height: 0;
+    visibility: hidden;
+}
+
+.one-sidebar #content-wrapper {
+    padding-left: 45px;
+    padding-right: 45px;
+}
+
+#content-wrapper {
+    padding: 30px 65px 45px;
+}
+
 a {
     text-decoration: none;
 }
@@ -124,6 +144,29 @@ a:hover {
     width: 818px;
 }
 
+.one-sidebar #main-content {
+    float: left;
+    margin-right: 3%;
+    width: 71%;
+}
+
+.sidebar {
+    float: right;
+    width: 25%;
+}
+.sidebar h2.block-title {
+    border-bottom: 1px solid #BBBBBB;
+    font-size: 1.3em;
+    padding-bottom: 3px;
+}
+.sidebar .content {
+    margin: 13px 0;
+}
+
+.sidebar ul {
+	padding-left: 20px;
+}
+
 #footer {
     clear: both;
     color: #666666;
@@ -131,3 +174,9 @@ a:hover {
     padding: 20px 20px 30px;
     text-align: center;
 }
+
+.splash table { border-collapse: collapse; width: 100% !important; }
+.splash th { border-bottom: 1px solid #BBBBBB; }
+.splash td { font-size: 8pt; }
+.splash .highlight { background-color: lightblue; }
+

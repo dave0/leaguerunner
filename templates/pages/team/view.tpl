@@ -23,7 +23,13 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
 {/if}
 <table id="roster">
    <thead>
-      <tr><th>Name</th><th>Position</th><th>Gender</th><th>Rating</th>{if $display_shirts}<th>Shirt Size</th>{/if}<th>Date Joined</th></tr>
+      <tr>
+        <th>Name</th>
+        <th>Position</th>
+        <th>Gender</th>
+        {if $display_rating}<th>Rating</th>{/if}
+        {if $display_shirts}<th>Shirt Size</th>{/if}
+        <th>Date Joined</th></tr>
     </thead>
     <tbody>
     {foreach from=$team->roster item=p}
@@ -34,14 +40,18 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
 	  </td>
 	  <td>{if $p->_modify_status}<a href="{lr_url path="team/roster/`$team->team_id`/`$p->id`"}">{$p->status}</a>{else}{$p->status}{/if}</td>
 	  <td>{$p->gender}</td>
-	  <td>{$p->skill_level}</td>
+	  {if $display_rating}<td>{$p->skill_level}</td>{/if}
 	  {if $display_shirts}<td>{$p->shirtsize}</td>{/if}
 	  <td>{$p->date_joined}</td>
 	</tr>
     {/foreach}
     </tbody>
     <tfoot>
-        <tr><th colspan="3">Average Skill Rating</th><th></th>{if $display_shirts}<th></th>{/if}<th></th></tr>
+        <tr>
+        <th colspan="3">Average Skill Rating</th>
+        {if $display_rating}<th></th>{/if}
+        {if $display_shirts}<th></th>{/if}
+        <th></th></tr>
     </tfoot>
 </table>
 <table>
@@ -103,7 +113,9 @@ $(document).ready(function() {
 			{ "sType" : "html" },
 			{ "sType" : "roster-position"  },
 			null,
+{/literal}{if $display_rating}			
 			null,
+{/if}{literal}
 {/literal}{if $display_shirts}
 			null,
 {/if}{literal}

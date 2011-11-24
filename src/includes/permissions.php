@@ -414,6 +414,7 @@ function team_permissions ( &$user, $action, $id, $data_field )
 			}
 			return ($user && $user->is_captain_of( $id ) );
 		case 'player shirts':
+		case 'player rating':
 			if( $user && $user->coordinates_league_containing( $id ) ) {
 				return true;
 			}

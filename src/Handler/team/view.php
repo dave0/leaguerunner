@@ -33,6 +33,10 @@ class team_view extends TeamHandler
 		if( $lr_session->has_permission('team','player shirts', $this->team->team_id) ) {
 			$this->smarty->assign('display_shirts', true);
 		}
+		
+		if ($lr_session->has_permission('team', 'player rating', $this->team->team_id)) {
+			$this->smarty->assign('display_rating', true);
+		}
 		$rosterPositions = Team::get_roster_positions();
 		$this->smarty->assign('roster_positions', $rosterPositions );
 

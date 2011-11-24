@@ -56,13 +56,14 @@ tr.dark {
 	font-weight: bold;
 }
 
+/* SUC Override
 .schedule .gamedate, .schedule th {
 	background-color:    white;
   	color: #369;
 	border-bottom: 2px solid #369;
 	font-weight:         bold;
 }
-
+*/
 .schedule .column-heading {
 	font-weight: bold;
 	vertical-align: bottom;
@@ -77,11 +78,14 @@ tr.dark {
 .fieldlist td a { font-weight: bold }
 .fieldlist td a.closedfield { font-weight: normal; text-decoration: line-through; color: #C0C0C0; }
 
+
+/*  Override for SUC styling
 .splash table { border-collapse: collapse; width: 100% !important; }
 .splash th { text-align: left; background-color: black; color: white;
               font-weight: bold; font-size: 9pt; }
 .splash td { font-size: 8pt; }
 .splash .highlight { background-color: lightblue; }
+*/
 
 .error { color: red; font-weight: bold; }
 
