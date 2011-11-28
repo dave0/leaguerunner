@@ -18,8 +18,6 @@
 		<input type="submit" name="Submit" value="Login" /><br />
 
 			<a href="{lr_url path=person/forgotpassword}">Forgot your password?</a><br />
-			<a href="{lr_url path=person/create}">Create a new account?</a>
-
 	</div>
 	</form>
 </div>
