@@ -33,6 +33,11 @@ class event_view extends EventHandler
 			$this->smarty->assign('message', 'This event is for the opposite gender only.' );
 			return;
 		}
+		
+		if ($event_register_count >= $event_register_cap) {
+			$this->smarty->assign('message', 'The gender cap for this event has been reached.');
+			return;
+		}
 
 		$r = $this->event->get_registration_for( $lr_session->user->user_id );
 
