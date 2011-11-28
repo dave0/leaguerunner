@@ -55,7 +55,7 @@ class event_register extends EventHandler
 					$this->smarty->assign('formbuilder_editable', $this->formbuilder->render_editable (false));
 					return true;
 				}
-
+				
 				// Otherwise, fall through to register automatically.
 			case 'submit':
 				$this->save();  // dies on failure
@@ -154,7 +154,7 @@ class event_register extends EventHandler
 	{
 		return $this->confirm_team_league();
 	}
-
+	
 	/**
 	 * Generate the page about payment information.
 	 */
@@ -172,8 +172,9 @@ class event_register extends EventHandler
 		if ( variable_get('paypal',''))
 		{
 			$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
-			$this->smarty->assign('return_url', $CONFIG['session']['session_name'].'/'
-												.$CONFIG['paths']['base_url'].'/registration/paypal/'.$r->order_id);
+			$this->smarty->assign('return_url', $CONFIG['session']['session_name']
+												.$CONFIG['paths']['base_url'].'/registration/paypal/'
+												.$this->registration->order_id);
 			
 			// determine if we're submitting to the sandbox or the real PayPal
 			if (variable_get('paypal_url',''))

@@ -35,7 +35,8 @@ class event_view extends EventHandler
 			return;
 		}
 		
-		if ($event_register_count >= $event_register_cap) {
+		if( ($event_register_count >= $event_register_cap) &&
+			($event_register_cap > 0) ) {
 			$this->smarty->assign('message', 'The gender cap for this event has been reached.');
 			return;
 		}

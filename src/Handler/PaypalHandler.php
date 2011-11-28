@@ -133,7 +133,7 @@ class PaypalHandler
 				case 'ipn':
 					return array('status'=>true, 'message'=>$ipn_post);
 				case 'pdt':
-					return array('status'=>true, 'message'=>parsePDT($response));				
+					return array('status'=>true, 'message'=>self::parsePDT($response));				
 			}
 		}
 		return array('status'=>false, 'message'=>'Failed Talkback');
@@ -146,7 +146,7 @@ class PaypalHandler
 	 * @param string $response URL values returned from PDT query
 	 * @return Ambigous <string, multitype:> parsed array of PDT values
 	 */
-	private function parsePDT($response)
+	private static function parsePDT($response)
 	{
 		// Remove first line success
 		$response = substr($response, 7);
@@ -207,8 +207,8 @@ class PaypalHandler
 			return $status;
 		}
 				
-		// does the price paid and registration cost match?
-		if ($mc_gross != $registration->cost) {
+		// does the price paid and registration cost match?		
+		if ($mc_gross != $event->cost) {
 			$status = array('status' => false, 'message' =>'Amount Paid does not match Registration Cost');
 			return $status;
 		}
@@ -226,7 +226,7 @@ class PaypalHandler
 		$payment->set('payment_amount', $mc_gross);
 		$payment->set('payment_method', 'PayPal');
 		$payment->set('paid_by', $paid_by);
-		$payment->set('date_paid', date());
+		$payment->set('date_paid', time());
 			
 		if( ! $payment->save() ) {
 			$status = array('status'=>false, message=>"Couldn't save payment to database");
