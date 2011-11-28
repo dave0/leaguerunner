@@ -28,7 +28,7 @@
   <td align="right">
       <a href="{lr_url path="league/edit/`$l->league_id`"}">edit</a> 
       {if $l->schedule_type != 'none'}
-      | <a href="{lr_url path="league/schedule/`$l->league_id`"}">schedule</a> 
+      | <a href="{lr_url path="schedule/view/`$l->league_id`"}">schedule</a> 
       | <a href="{lr_url path="league/standings/`$l->league_id`"}">standings</a>
       | <a href="{lr_url path="league/approvescores/`$l->league_id`"}">approve scores</a>
       {/if}

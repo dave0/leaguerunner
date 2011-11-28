@@ -5,7 +5,7 @@
     <title>{ $title | escape | default:$app_name }</title>
     {include file="components/css.tpl"}
     {include file="components/javascript.tpl"}
-    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="shortcut icon" href="/suc_logo.ico" />
 </head>
 <body>
 	<div id="page-wrapper">

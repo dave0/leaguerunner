@@ -20,10 +20,10 @@
 	{assign var='current_day' value=$game->day_id}
 	{* schedule_heading *}
 	<tr>
-		<th class="gamedate" colspan="{if $can_edit}5{else}7{/if}">{$game->timestamp|date_format:"%Y/%m/%d"}</th>
+		<th class="gamedate" colspan="{if $can_edit}5{else}7{/if}">{$game->timestamp|date_format:"%a %b %e, %G"}</th>
 		{if $can_edit}
 		<th class="gamedate" colspan="2" style="text-align:right">
-			{assign var='formatted_date' value=$current_day|date_format:"%Y/%m/%d"}
+			{assign var='formatted_date' value=$current_day|date_format:"%a %b %e, %G"}
 			<a href="{lr_url path="league/slots/`$game->league_id`?date=`$formatted_date`"}">fields</a>&nbsp;|&nbsp;
 			<a href="{lr_url path="schedule/edit/`$game->league_id`/`$game->day_id`"}">edit week</a>&nbsp;|&nbsp;
 			<a href="{lr_url path="game/reschedule/`$game->league_id`/`$game->day_id`"}">reschedule</a>

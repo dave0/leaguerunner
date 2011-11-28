@@ -180,3 +180,21 @@ a:hover {
 .splash td { font-size: 8pt; }
 .splash .highlight { background-color: lightblue; }
 
+fieldset {
+	border: 1px solid #BBBBBB;	
+}
+
+fieldset {
+	border: 1px solid #BBBBBB;
+}
+
+.schedule table {
+	border-collapse: collapse;
+	}
+.gamedate {
+	padding-top: 20px;
+}
+	
+.schedule th, .schedule td {
+	padding-right: 5px;
+}
