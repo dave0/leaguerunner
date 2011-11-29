@@ -4,3 +4,4 @@
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.sortable.js"></script>
     <script type="text/javascript" src="{$base_url}/js/jquery.bsmselect.compatibility.js"></script>
+    <script type="text/javascript" src="{$base_url}/js/superfish.js"></script>

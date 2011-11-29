@@ -7,7 +7,7 @@
     {include file="components/javascript.tpl"}
     <link rel="shortcut icon" href="/suc_logo.ico" />
 </head>
-<body>
+<body class="one-sidebar">
 	<div id="page-wrapper">
 		<div id="header-wrapper">
 			<div id="header">
@@ -28,7 +28,7 @@
 						<li class="first">Logged in as <a href="{lr_url path=person/view/$session_userid}">{$session_fullname}</a></li>
 						<li class="last"><a href="{lr_url path=logout}">Logout</a></li>
 					{else}
-						<li class="first"><a href="{lr_url path=login}">Log In</a></li>
+						<li class="first"><a href="{lr_url path=login}">Login</a></li>
 						<li class="last"><a href="{lr_url path=person/create}">Register</a></li>
 					{/if}
 					</ul>
@@ -37,7 +37,37 @@
 		</div> <!-- end header wrapper -->
 		
 		<div id="container-wrapper">
-		<div id="container-outer">			
+		<div id="container-outer">
+			<div class="menu-wrapper">
+			<div class="menu-outer">
+				<div class="menu-inner">
+				<div class="menu-left"></div> 
+				<div id="superfish">
+					<div class="region region-superfish-menu">
+						<div id="block-menu-menu-superfish" class="block block-menu">
+							<div class="content">
+							<ul class="menu">
+								<li class="first leaf"><a href="/" title="Sudbury Ultimate Club">Home</a></li>
+								<li class="leaf"><a href="/photos">Photos</a></li>
+								<li class="expanded"><a href="/about" title="Information about Sudbury Ultimate Club">About</a>
+								<ul class="menu">
+									<li class="first leaf"><a href="/content/rules" title="">Rules</a></li>
+									<li class="leaf"><a href="/content/bylaws" title="">Bylaws</a></li>
+									<li class="last leaf"><a href="/content/board" title="People currently looking after Sudbury Ultimate Club">The Board</a></li>
+								</ul></li>
+								<li class="leaf"><a href="/forum" title="Forums for Sudbury Ultimate Club">Forums</a></li>
+								<li class="leaf"><a href="/content/snowplate" title="Details about the Snowplate Tournament hosted by the Sudbury Ultimate Club">Snowplate</a></li>
+								<li class="leaf"><a href="/contact" title="">Contact</a></li>
+								<li class="last leaf"><a href="/leaguerunner" title="Leaguerunner" class="active">Leaguerunner</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div> <!-- end menu / superfish -->
+			<div class="menu-right"></div>
+		</div>
+	</div>
+</div>				
 				<div id="container-inner">
 					<div id="content-wrapper" class="clearfix">
 						<div id="main-content">																
