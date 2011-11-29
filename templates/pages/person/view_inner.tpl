@@ -73,7 +73,7 @@
 
   {if session_perm("person/view/`$person->user_id`/birthdate")}
   <tr>
-    <td>Birthdate:</td>
+    <td>{if variable_get('birth_year_only', 0) }Year{else}Date{/if} of Birth:</td>
     <td>{$person->birthdate}</td>
   </tr>
   {/if}

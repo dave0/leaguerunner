@@ -136,6 +136,10 @@ function feature_settings()
 
 	$group .= form_radios('Force roster request responses', 'edit[force_roster_request]', variable_get('force_roster_request', 0), array('Disabled', 'Enabled'), 'Should players be forced to respond to roster requests immediately?');
 
+	$group .= form_radios('Birthdate optional', 'edit[birthdate_optional]', variable_get('birthdate_optional', 0), array('No', 'Yes'), '"Yes" means that date (or year, see below) of birth will be an optional field when creating/updating user accounts');
+
+	$group .= form_radios('Birth year only', 'edit[birth_year_only]', variable_get('birth_year_only', 0), array('No', 'Yes'), '"Yes" means that Leaguerunner will only collect and store the year of birth, instead of the full date');
+
 	$output = form_group('Feature configuration', $group);
 
 	return $output;

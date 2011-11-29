@@ -179,8 +179,12 @@ The following errors were encountered in your submission:
 	<div class="description">The year you started playing Ultimate in this league.</div>
 
     <label for="edit[birthdate]">Birthdate</label>
+        {if variable_get('birth_year_only', 0) }
+	{html_options name="edit[birthdate]" options=$birth_years}
+        {else}
         <input type="text" maxlength="15" name="edit[birthdate]" size="15" value="" id="datepicker" />
-        <div class="description">Please enter a correct birthdate; having accurate information is important for insurance purposes</div>
+        {/if}
+        <div class="description">{if variable_get('birthdate_optional', 0) }(Optional){/if} enter your {if  variable_get('birth_year_only', 0)}year{else}date{/if} of birth; having accurate information is important for insurance purposes</div>
 
     <label for="edit[height]">Height</label>
 	<input type="text" maxlength="4"  name="edit[height]" size="4" />

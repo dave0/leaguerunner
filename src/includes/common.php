@@ -507,6 +507,11 @@ function validate_date_input ( $year, $month, $day )
 		return false;
 	}
 
+	# Special case: valid year and day/month of 00/00 is OK
+	if( $month == 0 && $day == 0 ) {
+		return true;
+	}
+
 	if(!checkdate($month, $day, $year) ) {
 		return false;
 	}

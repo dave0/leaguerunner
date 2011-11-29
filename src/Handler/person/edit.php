@@ -71,6 +71,7 @@ class person_edit extends PersonHandler
 
 
 		$this->smarty->assign('skill_levels', getOptionsFromRange(1,10));
+		$this->smarty->assign('birth_years', getOptionsFromRange(strftime('%Y', time()) - 80, strftime('%Y', time()), 'reverse') );
 		$this->smarty->assign('start_years', getOptionsFromRange(1986, strftime('%Y', time()), 'reverse') );
 		$this->smarty->assign('shirt_sizes', getShirtSizes());
 
@@ -241,8 +242,19 @@ class person_edit extends PersonHandler
 			$errors[] = "You must select either male or female for gender.";
 		}
 
-		if( !validate_yyyymmdd_input( $edit['birthdate'] ) ) {
-			$errors[] = "You must provide a valid birthdate";
+		# Birthdate trickery
+		# 1) it may be optional, but if present we still need to validate
+		if( $edit['birthdate'] ) {
+			if( variable_get('birth_year_only', 0) ) {
+				# If we're only keeping year, set the month and day to zero
+				$edit['birthdate'] = substr($edit['birthdate'], 0, 4) . '-00-00';
+			}
+
+			if( ! validate_yyyymmdd_input( $edit['birthdate']) ) {
+				$errors[] = "You must provide a valid birthdate";
+			}
+		} else if( !variable_get('birthdate_optional', 0 ) ) {
+			$errors[] = 'You must provide a valid birthdate';
 		}
 
 		if( validate_nonblank($edit['height']) ) {
@@ -265,11 +277,13 @@ class person_edit extends PersonHandler
 			$errors[] = "Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
 		}
 
-		$birth_year = substr($edit['birthdate'], 0, 4);
+		if( $edit['birthdate'] ) {
+			$birth_year = substr($edit['birthdate'], 0, 4);
 
-		$yearDiff = $edit['year_started'] - $birth_year;
-		if( $yearDiff < 8) {
-			$errors[] = "You can't have started playing when you were $yearDiff years old!  Please correct your birthdate, or your starting year";
+			$yearDiff = $edit['year_started'] - $birth_year;
+			if( $yearDiff < 8) {
+				$errors[] = "You can't have started playing when you were $yearDiff years old!  Please correct your birthdate, or your starting year";
+			}
 		}
 
 		return $errors;

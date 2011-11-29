@@ -141,6 +141,11 @@ class Person extends LeaguerunnerObject
 			$this->leagues[1] = $sth->fetchObject('League', array(LOAD_OBJECT_ONLY));
 		}
 
+		/* Evil hack: clobber MM-DD portion of birthdate if we're not using it anymore */
+		if( variable_get('birth_year_only', 0) ) {
+			$this->birthdate = substr($this->birthdate, 0, 4);
+		}
+
 		return true;
 	}
 
