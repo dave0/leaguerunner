@@ -15,9 +15,8 @@
   {foreach item=p from=$payments}
   <tr>
   	<td><a href="{lr_url path="registration/view/`$p->order_id`"}">{$p->order_id|string_format:"`$order_id_format`"}</a></td>
-    <td>{$p->payment_type}</td>
     <td>{$p->payment_amount}</td>
-    <td>{$p->date_paid|date_format:"%Y-%m-%d"}</td>
+    <td>{$smarty.now|date_format:"%Y-%m-%d"}</td>
     <td>{$p->payment_method}</td>
     <td><a href="{lr_url path="person/view/`$p->entered_by`"}">{$p->entered_by_name()}</a></td>
   </tr>

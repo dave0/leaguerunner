@@ -172,7 +172,7 @@ class event_register extends EventHandler
 		if ( variable_get('paypal',''))
 		{
 			$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
-			$this->smarty->assign('return_url', $CONFIG['session']['session_name']
+			$this->smarty->assign('return_url', 'http://'.$CONFIG['session']['session_name']
 												.$CONFIG['paths']['base_url'].'/registration/paypal/'
 												.$this->registration->order_id);
 			
@@ -183,7 +183,7 @@ class event_register extends EventHandler
 				$this->smarty->assign('paypal_email', variable_get('paypal_sandbox_email',''));
 			} else {
 				$this->smarty->assign('paypal_url', variable_get('paypal_live_url',''));
-				$this->smarty->assign('paypal_email', variable_get('paypal__live_email',''));
+				$this->smarty->assign('paypal_email', variable_get('paypal_live_email',''));
 			}
 			
 			$this->smarty->assign('registration', $this->registration);

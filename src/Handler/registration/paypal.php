@@ -41,10 +41,10 @@ class registration_paypal extends RegistrationHandler
 			}			
 		}
 		
-		// output confirmation view
-		$this->smarty->assign('title', 'Payment Received');
+		// output confirmation view		
 		$this->smarty->assign('payments', $payments);
 		$this->smarty->assign('order_id_format', variable_get('order_id_format', '%d'));
+		$this->title = 'Registration ' . $this->registration->formatted_order_id() . '- Payment Received';
 		$this->template_name = 'pages/registration/paypal.tpl';
 		
 		return true;

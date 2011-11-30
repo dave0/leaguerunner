@@ -70,7 +70,7 @@ class event_view extends EventHandler
 				{
 					$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
 					$this->smarty->assign('shopping_url',$CONFIG['session']['session_name'].$CONFIG['paths']['base_url']);
-					$this->smarty->assign('return_url', $CONFIG['session']['session_name'].
+					$this->smarty->assign('return_url', 'http://'.$CONFIG['session']['session_name'].
 														$CONFIG['paths']['base_url'].'/registration/paypal/'.$r->order_id);
 					
 					// determine if we're submitting to the sandbox or the real PayPal

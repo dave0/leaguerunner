@@ -29,6 +29,6 @@
 	<input type="hidden" name="shopping_url" value="http://www.suc-dev.com/leaguerunner">
 	
 	<!-- Display the payment button. -->
-	<input type="image" name="submit" border="0" src="https://www.paypal.com/en_US/i/btn/btn_cart_LG.gif" alt="PayPal - The safer, easier way to pay online">
+	<input type="image" name="submit" src="https://www.paypal.com/en_US/i/btn/btn_cart_LG.gif" alt="PayPal - The safer, easier way to pay online">
 	<img alt="" border="0" width="1" height="1" src="https://www.paypal.com/en_US/i/scr/pixel.gif" >
 </form>
