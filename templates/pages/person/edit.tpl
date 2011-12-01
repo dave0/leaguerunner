@@ -184,7 +184,7 @@ The following errors were encountered in your submission:
         {else}
         <input type="text" maxlength="15" name="edit[birthdate]" size="15" value="" id="datepicker" />
         {/if}
-        <div class="description">{if variable_get('birthdate_optional', 0) }(Optional){/if} enter your {if  variable_get('birth_year_only', 0)}year{else}date{/if} of birth; having accurate information is important for insurance purposes</div>
+        <div class="description">{if variable_get('birthdate_optional', 0) }(Optional){/if} enter your {if  variable_get('birth_year_only', 0)}year{else}date{/if} of birth</div>
 
     <label for="edit[height]">Height</label>
 	<input type="text" maxlength="4"  name="edit[height]" size="4" />
