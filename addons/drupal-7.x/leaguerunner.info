@@ -1,0 +1,4 @@
+name = Leaguerunner
+description = Authentication and integration with Leaguerunner
+package = Other
+core = 7.x

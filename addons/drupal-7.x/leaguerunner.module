@@ -1,0 +1,42 @@
+<?php
+function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
+  _leaguerunner_login_user_login_form_alter($form, $form_state);  
+}
+
+function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
+  _leaguerunner_login_user_login_form_alter($form, $form_state);
+}
+
+function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
+  $saveForm = $form;
+
+  $form = array();
+  
+  foreach( $saveForm as $key => $value ) {
+    if( $key == '#validate' ) {
+      $form[ $key ] = array();
+      foreach( $value as $validator ) {
+        if( $validator == 'user_login_authenticate_validate' ) {
+          $validator = 'leaguerunner_login_authenticate_validate';
+        }
+        $form[ $key ][] = $validator;
+      }
+    } else {
+      $form[ $key ] = $value;
+    }
+  }
+}
+
+function leaguerunner_loging_authenticate_validate($form, $form_state) {
+  $name = $form_state[ 'values' ][ 'name' ];
+  $pass = $form_state[ 'values' ][ 'pass' ];
+
+  if( $name == "admin" ) {
+    user_login_authenticate_validate( $form, $form_state );
+  } else {
+    //... custom code to verify credentials ...
+    // call through to lr db via Drupal's abstraction layers.
+    // see https://www.touchnoc.com/node/86 for details
+    $form_state['uid'] = $drupalUser->uid;
+  }
+}
