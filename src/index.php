@@ -11,7 +11,7 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.  
+ * more details.
  *
  * You should have received a copy of the GNU General Public License along
  * with this library; if not, write to the Free Software Foundation, Inc., 59
@@ -69,33 +69,33 @@ $conf = variable_init();
  * PayPal IPN transactions are purely B2B, so most of the leaguerunner codebase isn't needed.
  * The main functions are:
  *  - Update registration payments
- *  - ensure registrations/payments are matched up for players 
+ *  - ensure registrations/payments are matched up for players
  */
 
-// Check Request for IPN 
-if ($_GET['q'] == 'ipn') {	
+// Check Request for IPN
+if ($_GET['q'] == 'ipn') {
 	require_once("includes/logging.php");
 	require_once("Handler/PaypalHandler.php");
-	
+
 	$handler = new PaypalHandler();
 	$log = new Logging();
-	
+
 	//Logging object appends .log
-	$log->lfile($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/paypal'); 
+	$log->lfile($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/paypal');
 	$log->lwrite('Received IPN Request');
-	
+
 	$status = $handler->process();
-	
-	
+
+
 	// success could have multiple payments to log
 	if($status['status'] == true) {
 		foreach($status['message'] as $payment) {
-			$log->lwrite('Registration '.$payment->payment_amount.' paid in full');
+			$log->lwrite('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
 		}
 	} else {
 		$log->lwrite($status['message']);
 	}
-	
+
 	// no more IPN processing required
 	exit;
 }
@@ -106,7 +106,7 @@ $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
 $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
 
-$smarty->assign('app_version', '2.8');
+$smarty->assign('app_version', '2.8.1');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 $smarty->assign('site_name', 'Sudbury Ultimate Club');
 $smarty->assign('site_slogan', 'All Things SUC');
