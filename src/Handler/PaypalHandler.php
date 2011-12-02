@@ -291,7 +291,7 @@ class PaypalHandler
 		$payment->set('payment_amount', $mc_gross);
 		$payment->set('payment_method', 'PayPal');
 		$payment->set('paid_by', $paid_by);
-		$payment->set('date_paid', time());
+		$payment->set('date_paid', date("Y-m-d"));
 
 		if( ! $payment->save() ) {
 			$status = array('status'=>false, message=>"Couldn't save payment to database");

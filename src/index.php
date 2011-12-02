@@ -55,15 +55,15 @@ try {
 }
 
 require_once("includes/smarty.php");
-
+require_once("includes/KLogger.php");
 require_once("includes/common.php");
 require_once("includes/menu.php");
 require_once("includes/permissions.php");
 require_once("includes/mail.php");
 
-// Initialise configuration variables
+// Initialise configuration variables and Logger
 $conf = variable_init();
-
+$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url']);
 
 /*
  * PayPal IPN transactions are purely B2B, so most of the leaguerunner codebase isn't needed.
@@ -74,15 +74,10 @@ $conf = variable_init();
 
 // Check Request for IPN
 if ($_GET['q'] == 'ipn') {
-	require_once("includes/logging.php");
 	require_once("Handler/PaypalHandler.php");
 
 	$handler = new PaypalHandler();
-	$log = new Logging();
-
-	//Logging object appends .log
-	$log->lfile($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/paypal');
-	$log->lwrite('Received IPN Request');
+	$log->logInfo('Received IPN Request');
 
 	$status = $handler->process();
 
@@ -90,10 +85,10 @@ if ($_GET['q'] == 'ipn') {
 	// success could have multiple payments to log
 	if($status['status'] == true) {
 		foreach($status['message'] as $payment) {
-			$log->lwrite('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
+			$log->logInfo('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
 		}
 	} else {
-		$log->lwrite($status['message']);
+		$log->logError($status['message']);
 	}
 
 	// no more IPN processing required
@@ -177,8 +172,9 @@ while( count( $dispatch_path ) > 0 ) {
 }
 
 if( ! $handler_class ) {
-	# TODO: should 404
-	error_exit("Not found");
+	// Adds 404 header to error page
+	$details = array('header'=>'HTTP/1.0 404 Not Found');
+	error_exit("Leaguerunner could not find the requested file", $details);
 }
 require_once($handler_file);
 
@@ -234,15 +230,19 @@ if($handler->initialize()) {
 	error_exit("Failed to initialize handler for $handler_class");
 }
 
-function error_exit($error = NULL)
+function error_exit($error = NULL, $options = array())
 {
 	global $smarty;
+	global $log;
+	if(isset($options['header'])) {
+		$smarty->assign('header', $options['header']);
+	}
 	$smarty->assign('title', 'Error' );
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
+	$log->logError($error);
 	$smarty->assign('error', $error);
-
 	$smarty->display('error.tpl');
 	exit;
 }
