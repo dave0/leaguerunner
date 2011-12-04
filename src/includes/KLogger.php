@@ -159,7 +159,7 @@ class KLogger
 		. DIRECTORY_SEPARATOR
 		. 'log_'
 		. date('Y-m-d')
-		. '.txt';
+		. '.log';
 
 		$this->_severityThreshold = $severity;
 		if (!file_exists($logDirectory)) {

@@ -47,7 +47,7 @@ class PaypalHandler
 	 * @param unknown_type $property
 	 */
 	public function __get($property) {
-		if (property_exist($this, $property)) {
+		if (property_exists($this, $property)) {
 			return $this->$property;
 		}
 	}

@@ -63,7 +63,12 @@ require_once("includes/mail.php");
 
 // Initialise configuration variables and Logger
 $conf = variable_init();
-$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url']);
+if (variable_get('log_messages', 0)) {
+	if (!$log) {
+		$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs', variable_get('log_threshold',Klogger::DEBUG));
+	}
+}
+
 
 /*
  * PayPal IPN transactions are purely B2B, so most of the leaguerunner codebase isn't needed.
@@ -76,19 +81,21 @@ $log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url']);
 if ($_GET['q'] == 'ipn') {
 	require_once("Handler/PaypalHandler.php");
 
+	// PayPal has its own logger
+	$paypal_log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs/paypal', Klogger::DEBUG);
+	$paypal_log->logInfo('Received IPN Request');
+	
 	$handler = new PaypalHandler();
-	$log->logInfo('Received IPN Request');
-
 	$status = $handler->process();
-
 
 	// success could have multiple payments to log
 	if($status['status'] == true) {
 		foreach($status['message'] as $payment) {
-			$log->logInfo('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
+			$paypal_log->logInfo('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
 		}
 	} else {
-		$log->logError($status['message']);
+		$paypal_log->logError($status['message']);
+		$paypal_log->logDebug(print_r(debug_backtrace(), true));
 	}
 
 	// no more IPN processing required
@@ -101,7 +108,7 @@ $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
 $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
 
-$smarty->assign('app_version', '2.8.1');
+$smarty->assign('app_version', '2.8.2');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 $smarty->assign('site_name', 'Sudbury Ultimate Club');
 $smarty->assign('site_slogan', 'All Things SUC');
@@ -173,8 +180,8 @@ while( count( $dispatch_path ) > 0 ) {
 
 if( ! $handler_class ) {
 	// Adds 404 header to error page
-	$details = array('header'=>'HTTP/1.0 404 Not Found');
-	error_exit("Leaguerunner could not find the requested file", $details);
+	//$details = array('header'=>"HTTP/1.0 404 Not Found");
+	error_exit("Leaguerunner could not find the requested file");
 }
 require_once($handler_file);
 
@@ -235,13 +242,18 @@ function error_exit($error = NULL, $options = array())
 	global $smarty;
 	global $log;
 	if(isset($options['header'])) {
-		$smarty->assign('header', $options['header']);
+		header($options['header']);
+		$smarty->assign('title', 'Page not Found');
+		$smarty->assign('error', 'Page not Found');
+		$smarty->display('404.tpl');
+		exit;
 	}
 	$smarty->assign('title', 'Error' );
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
 	$log->logError($error);
+	$log->logDebug(print_r(debug_backtrace(), true));
 	$smarty->assign('error', $error);
 	$smarty->display('error.tpl');
 	exit;
