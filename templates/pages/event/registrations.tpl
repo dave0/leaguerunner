@@ -58,10 +58,10 @@
       {foreach from=$registrations item=r}
       <tr>
         <td><a href="{lr_url path="registration/view/`$r.order_id`"}">{$r.order_id|string_format:"`$order_id_format`"}</a></td>
-        <td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.firstname}</a></td>
-        <td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.lastname}</a></td>
-        <td>{$r.time}</td>
-        <td>{$r.payment}</td>
+				<td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.firstname}</a></td>
+				<td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.lastname}</a></td>
+				<td>{$r.time}</td>
+				<td>{$r.payment}</td>
       </tr>
       {/foreach}
     </tbody>
