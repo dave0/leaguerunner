@@ -32,7 +32,7 @@ END;
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
-error_reporting(E_ALL & ~E_NOTICE);
+error_reporting(E_ALL); // & ~E_NOTICE
 
 
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
@@ -84,7 +84,7 @@ if ($_GET['q'] == 'ipn') {
 	// PayPal has its own logger
 	$paypal_log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs/paypal', Klogger::DEBUG);
 	$paypal_log->logInfo('Received IPN Request');
-	
+
 	$handler = new PaypalHandler();
 	$status = $handler->process();
 
