@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>Step 1: Answer registration questions</h2>
 <form method="POST">
@@ -7,4 +7,4 @@
   <input type="submit" name="submit" value="Proceed to confirmation" />
   <input type="reset" name="reset" value="reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

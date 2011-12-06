@@ -11,16 +11,16 @@
         <tbody>
         {foreach from=$leagues item=i}
             <tr>
-                <td><a href="{lr_url path="league/view/`$i->league_id`}">{$i->fullname}</a></td>
+                <td><a href="{lr_url path="league/view/`$i->league_id`"}">{$i->fullname}</a></td>
                 <td>{$i->day}</td>
                 <td>{$i->ratio}</td>
                 <td>{$i->status}</td>
                 <td>{if $i->schedule_type != 'none'}
-                        <a href="{lr_url path="schedule/view/`$i->league_id`}">schedule</a> &nbsp;
-                        <a href="{lr_url path="league/standings/`$i->league_id`}">standings</a> &nbsp;
+                        <a href="{lr_url path="schedule/view/`$i->league_id`"}">schedule</a> &nbsp;
+                        <a href="{lr_url path="league/standings/`$i->league_id`"}">standings</a> &nbsp;
                     {/if}
                     {if session_perm("league/delete/`$i->league_id`")}
-                        <a href="{lr_url path="league/delete/`$i->league_id`}">delete</a> &nbsp;
+                        <a href="{lr_url path="league/delete/`$i->league_id`"}">delete</a> &nbsp;
                     {/if}
                 </td>
             </tr>

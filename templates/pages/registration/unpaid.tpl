@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <fieldset>
 	<legend>Registration List</legend>
@@ -16,8 +16,8 @@
 		{foreach item=u from=$unpaid}
 			<tr>
 				<td><a href="{lr_url path="registration/view/`$u.order_id`"}">{$u.order_id|string_format:"`$order_id_format`"}</a></td>
-				<td><a href="{lr_url path="person/view/`$u.user_id`}">{$u.firstname}</a></td>
-				<td><a href="{lr_url path="person/view/`$u.user_id`}">{$u.lastname}</a></td>
+				<td><a href="{lr_url path="person/view/`$u.user_id`"}">{$u.firstname}</a></td>
+				<td><a href="{lr_url path="person/view/`$u.user_id`"}">{$u.lastname}</a></td>
 				<td>{$u.modified}</td>
 				<td>{$u.payment}</td>
 			</tr>
@@ -45,4 +45,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

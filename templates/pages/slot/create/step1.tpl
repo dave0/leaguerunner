@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <script type="text/javascript">
 {literal}
@@ -21,4 +21,4 @@
    <label>Date</label>
 	<input type="text" maxlength="15" name="edit[date]" size="15" value="{$date}" id="datepicker" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

@@ -32,7 +32,7 @@ END;
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
-error_reporting(E_ALL); // & ~E_NOTICE
+error_reporting(E_ALL& ~E_NOTICE); // 
 
 
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
@@ -64,7 +64,7 @@ require_once("includes/mail.php");
 // Initialise configuration variables and Logger
 $conf = variable_init();
 if (variable_get('log_messages', 0)) {
-	if (!$log) {
+	if (!isset($log)) {
 		$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs', variable_get('log_threshold',Klogger::DEBUG));
 	}
 }

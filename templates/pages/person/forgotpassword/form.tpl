@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	If you'd like to reset your password, please enter ONLY ONE OF:
@@ -35,4 +35,4 @@ If you really can't remember any of these, you can mail <a
 href="mailto:{$admin_addr}">{$admin_addr}</a> for support.  <b>DO NOT CREATE A
 NEW ACCOUNT!</b>
 </p>
-{include file=footer.tpl}
+{include file='footer.tpl'}

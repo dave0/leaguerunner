@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <script type="text/javascript">
 	var page_date = {$date};
@@ -57,4 +57,4 @@
    {/foreach}
    <tfoot></tfoot>
 </table>
-{include file=footer.tpl}
+{include file='footer.tpl'}

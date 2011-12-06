@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 {if $successful}
 You have successfully removed the gameslot {$slot->name}
@@ -18,4 +18,4 @@ You have successfully removed the gameslot {$slot->name}
   <input type="submit" name="submit" value="Delete" />
 </form>
 {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}

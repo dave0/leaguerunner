@@ -1,4 +1,4 @@
-{include file=header.tpl title=$title}
+{include file='header.tpl' title=$title}
 <h1>{$title}</h1>
 {$interim_game_result}
 <p>
@@ -15,4 +15,4 @@ Please fill out the questions below.
 <input type="submit" name="submit" value="Next Step" />
 <input type="reset" name="reset" value="reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

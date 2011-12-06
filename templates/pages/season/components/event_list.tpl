@@ -11,7 +11,7 @@
         <tbody>
         {foreach from=$events item=i}
             <tr>
-                <td><a href="{lr_url path="event/view/`$i->registration_id`}">{$i->name}</a></td>
+                <td><a href="{lr_url path="event/view/`$i->registration_id`"}">{$i->name}</a></td>
                 <td>{$i->type}</td>
                 <td>${$i->total_cost()}</td>
                 <td>{$i->open}</td>

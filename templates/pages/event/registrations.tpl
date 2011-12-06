@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <fieldset>
   <legend>Registration Statistics (<a href="{lr_url path="event/downloadsurvey/`$event->registration_id`"}" style="font-size: 0.8em">download survey spreadsheet</a>)</legend>
@@ -58,8 +58,8 @@
       {foreach from=$registrations item=r}
       <tr>
         <td><a href="{lr_url path="registration/view/`$r.order_id`"}">{$r.order_id|string_format:"`$order_id_format`"}</a></td>
-				<td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.firstname}</a></td>
-				<td><a href="{lr_url path="person/view/`$r.user_id`}">{$r.lastname}</a></td>
+				<td><a href="{lr_url path="person/view/`$r.user_id`"}">{$r.firstname}</a></td>
+				<td><a href="{lr_url path="person/view/`$r.user_id`"}">{$r.lastname}</a></td>
 				<td>{$r.time}</td>
 				<td>{$r.payment}</td>
       </tr>
@@ -87,4 +87,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

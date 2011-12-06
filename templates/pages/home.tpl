@@ -13,7 +13,9 @@
 <table>
 <tr><th colspan="2">My Teams</th></tr>
 {foreach item=t from=$teams}
-<tr><td><a href="{lr_url path='team/view/`$t->team_id`'}">{$t->name}</a> ({$t->rendered_position})</td><td align="right"><a href="{lr_url path='team/schedule/$t->team_id'}">schedule</a> | <a href="{lr_url path='league/standings/$t->league_id/$t->team_id'}">standings</a></td></tr>
+<tr>
+	<td><a href="{lr_url path="team/view/`$t->team_id`"}">{$t->name}</a> ({$t->rendered_position})</td>
+	<td align="right"><a href="{lr_url path="team/schedule/`$t->team_id`"}">schedule</a> | <a href="{lr_url path="league/standings/`$t->league_id`/`$t->team_id`"}">standings</a></td></tr>
 {foreachelse}
 <tr><td colspan="2">You are not yet on any teams</td></tr>
 {/foreach}
@@ -43,8 +45,8 @@
 {foreach item=g from=$games}
 {* TODO: jQuery for alternating row colours *}
 <tr>
-  <td><a href="{lr_url path='game/view/`$g->game_id`'}">{$g->timestamp|date_format:"%a %b %d"}, {$g->game_start}-{$g->display_game_end()}</a></td>
-  <td><a href="{lr_url path='team/view/`$g->home_id`'}">{$g->home_name}</a> (home) vs. <a href="{lr_url path='team/view/`$g->away_id`'}">{$g->away_name}</a> (away) at <a href="{lr_url path='field/view/`$g->fid`'}">{$g->field_code}</a></td>
+  <td><a href="{lr_url path="game/view/`$g->game_id`"}">{$g->timestamp|date_format:"%a %b %d"}, {$g->game_start}-{$g->display_game_end()}</a></td>
+  <td><a href="{lr_url path="team/view/`$g->home_id`"}">{$g->home_name}</a> (home) vs. <a href="{lr_url path="team/view/`$g->away_id`"}">{$g->away_name}</a> (away) at <a href="{lr_url path="field/view/`$g->fid`"}">{$g->field_code}</a></td>
   <td>{if $g->is_finalized()}
   	{$g->home_score} - {$g->away_score}
   {else}

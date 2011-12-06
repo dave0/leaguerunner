@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 {$content}
-{include file=footer.tpl}
+{include file='footer.tpl'}

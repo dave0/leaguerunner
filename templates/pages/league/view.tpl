@@ -1,7 +1,7 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
   <div class='pairtable'><table>
-	{include file=pages/league/components/short_view.tpl}
+	{include file='pages/league/components/short_view.tpl'}
 	{if $league->coord_list}<tr><td>Coordinator Email List:</td><td><a href="mailto:{$league->coord_list}">{$league->coord_list}</a></td></tr>{/if}
 	{if $league->capt_list}<tr><td>Captain Email List:</td><td><a href="mailto:{$league->capt_list}">{$league->capt_list}</a></td></tr>{/if}
 	{if $league->roster_deadline}<tr><td>Roster deadline:</td><td>{$league->roster_deadline}</td></tr>{/if}
@@ -27,18 +27,18 @@
         {foreach from=$teams item=t}
             <tr>
                 <td>{counter}</td>
-                <td><a href="{lr_url path="team/view/`$t->team_id`}">{$t->name|truncate:35}</a></td>
+                <td><a href="{lr_url path="team/view/`$t->team_id`"}">{$t->name|truncate:35}</a></td>
                 <td>{$t->count_players()}</td>
                 <td>{$t->rating}</td>
                 <td>{$t->avg_skill()}</td>
                 <td>{if $t->status == 'open'}
-                        <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`}">join</a> &nbsp;
+                        <a href="{lr_url path="team/roster/`$t->team_id`/`$session_userid`"}">join</a> &nbsp;
                     {/if}
                     {if session_perm("team/edit/`$t->team_id`")}
-                        <a href="{lr_url path="team/edit/`$t->team_id`}">edit</a> &nbsp;
+                        <a href="{lr_url path="team/edit/`$t->team_id`"}">edit</a> &nbsp;
                     {/if}
                     {if session_perm("team/delete/`$t->team_id`")}
-                        <a href="{lr_url path="team/delete/`$t->team_id`}">delete</a> &nbsp;
+                        <a href="{lr_url path="team/delete/`$t->team_id`"}">delete</a> &nbsp;
                     {/if}
                 </td>
             </tr>
@@ -68,4 +68,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

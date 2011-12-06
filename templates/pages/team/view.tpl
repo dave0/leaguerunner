@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <div class='pairtable'><table>
     {if $team->website}<tr><td>Website:</td><td><a href="{$team->website|escape}">{$team->website|escape}</a></td></tr>{/if}
@@ -137,4 +137,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

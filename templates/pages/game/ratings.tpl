@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>{$game->home_name} (rating {$rating_home}) vs {$game->away_name} (rating {$rating_away})</h2>
 <form name='whatif' method='GET'>
@@ -35,4 +35,4 @@
     indicates that in the event of a tie, the home team will lose rating points
     (and the away team will gain them).
 </p>
-{include file=footer.tpl}
+{include file='footer.tpl'}

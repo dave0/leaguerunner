@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <style>
 {literal}
 #main table td { font-size: 80% }
@@ -123,4 +123,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

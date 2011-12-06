@@ -1,8 +1,8 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>Please confirm that you wish to delete this payment from this registration:</p>
 <div class='pairtable'><table>
-{include file=pages/registration/components/short_view.tpl registrant=$registrant event=$event reg=$reg}
+{include file='pages/registration/components/short_view.tpl' registrant=$registrant event=$event reg=$reg}
 </table></div>
 <fieldset>
   <legend>Payment Details</legend>
@@ -28,4 +28,4 @@
 <form method="POST">
   <input type="submit" name="submit" value="Delete Payment" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

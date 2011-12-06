@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 {if $duplicates}
 <div class="warning">
@@ -27,5 +27,5 @@ The following users may be duplicates of this account:
   <input type="submit" />
 </p>
 </form>
-{include file=pages/person/view_inner.tpl}
-{include file=footer.tpl}
+{include file='pages/person/view_inner.tpl'}
+{include file='footer.tpl'}

@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>Step 2: Confirm your information</h2>
 <p></p>
@@ -13,4 +13,4 @@
   {$formbuilder_hidden}
   <input type="submit" name="submit" value="Submit" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

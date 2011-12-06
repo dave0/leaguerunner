@@ -68,7 +68,7 @@ function smarty_fill_form_values($params, $content, &$smarty)
 		return "";
 	}
 
-	$vars   = $smarty->get_template_vars();
+	$vars   = $smarty->getTemplateVars();
 	$errors = array();
 	if( array_key_exists('formErrors', $vars) ) {
 		$errors = $vars['formErrors'];

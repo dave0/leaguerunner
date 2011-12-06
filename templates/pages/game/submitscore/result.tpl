@@ -1,4 +1,4 @@
-{include file=header.tpl title=$title}
+{include file='header.tpl' title=$title}
 <h1>{$title}</h1>
 {if $have_opponent_entry}
   {if $finalized}
@@ -9,4 +9,4 @@
 {else}
 <p>This score has been saved.  Once your opponent has entered their score, it will be officially posted.</p>
 {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}
