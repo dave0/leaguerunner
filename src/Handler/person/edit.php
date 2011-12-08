@@ -27,6 +27,14 @@ class person_edit extends PersonHandler
 		$this->smarty->assign('person', $this->person);
 
 		if( $edit['step'] == 'perform' ) {
+
+			// Ugh, need to normalize birthdate first
+			if( $edit['birthdate'] && $edit['birthdate'] != "---") {
+				if( variable_get('birth_year_only', 0) ) {
+					# If we're only keeping year, set the month and day to zero
+					$edit['birthdate'] = substr($edit['birthdate'], 0, 4) . '-00-00';
+				}
+			}
 			$errors = $this->check_input_errors( $edit );
 			if(count($errors) > 0) {
 				$this->smarty->assign('edit', $edit);
@@ -244,14 +252,9 @@ class person_edit extends PersonHandler
 
 		# Birthdate trickery
 		# 1) it may be optional, but if present we still need to validate
-		if( $edit['birthdate'] ) {
-			if( variable_get('birth_year_only', 0) ) {
-				# If we're only keeping year, set the month and day to zero
-				$edit['birthdate'] = substr($edit['birthdate'], 0, 4) . '-00-00';
-			}
-
+		if( $edit['birthdate'] && $edit['birthdate'] != "---") {
 			if( ! validate_yyyymmdd_input( $edit['birthdate']) ) {
-				$errors[] = "You must provide a valid birthdate";
+				$errors[] = "If you provide the optional birthdate, it must be valid";
 			}
 		} else if( !variable_get('birthdate_optional', 0 ) ) {
 			$errors[] = 'You must provide a valid birthdate';
@@ -277,7 +280,7 @@ class person_edit extends PersonHandler
 			$errors[] = "Year started must be after 1986.  For the number of people who started playing before then, I don't think it matters if you're listed as having played 17 years or 20, you're still old. :)";
 		}
 
-		if( $edit['birthdate'] ) {
+		if( $edit['birthdate'] && $edit['birthdate'] != '---' ) {
 			$birth_year = substr($edit['birthdate'], 0, 4);
 
 			$yearDiff = $edit['year_started'] - $birth_year;
