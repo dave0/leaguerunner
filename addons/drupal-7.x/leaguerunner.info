@@ -1,4 +1,5 @@
 name = Leaguerunner
 description = Authentication and integration with Leaguerunner
-package = Other
+package = Administration
 core = 7.x
+configure = admin/config/system/leaguerunner

@@ -1,23 +1,78 @@
 <?php
-function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
-  _leaguerunner_login_user_login_form_alter($form, $form_state);  
+
+/**
+ * Implements hook_menu()
+ */
+function leaguerunner_menu() {
+	$items['admin/config/system/leaguerunner'] = array(
+		'title' => 'Leaguerunner',
+		'description' => 'Configure how Leaguerunner interacts with Drupal.',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('leaguerunner_admin_form'),
+		'access arguments' => array('administer leaguerunner'),
+		'file' => 'leaguerunner.pages.inc',
+	);
+
+  $items['admin/config/system/leaguerunner/default'] = array(
+    'title' => 'Leaguerunner',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+	return $items;
 }
 
+
+
+/**
+* Implements hook_permission().
+*/
+function leaguerunner_permission() {
+	return array(
+    'administer leaguerunner' => array(
+      'title' => t('Administer Leaguerunner'),
+	  ),
+	);
+}
+
+/**
+ *
+ * Enter description here ...
+ * @param unknown_type $form
+ * @param unknown_type $form_state
+ */
+function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
+  _leaguerunner_login_user_login_form_alter($form, $form_state);
+}
+
+/**
+ *
+ * Enter description here ...
+ * @param unknown_type $form
+ * @param unknown_type $form_state
+ */
 function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
   _leaguerunner_login_user_login_form_alter($form, $form_state);
 }
 
+/**
+ *
+ * Enter description here ...
+ * @param unknown_type $form
+ * @param unknown_type $form_state
+ */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
   $saveForm = $form;
 
   $form = array();
-  
+
   foreach( $saveForm as $key => $value ) {
     if( $key == '#validate' ) {
       $form[ $key ] = array();
       foreach( $value as $validator ) {
         if( $validator == 'user_login_authenticate_validate' ) {
-          $validator = 'leaguerunner_login_authenticate_validate';
+        	if(variable_get('leaguerunner_authenticate', 0)) {
+            $validator = 'leaguerunner_login_authenticate_validate';
+        	}
         }
         $form[ $key ][] = $validator;
       }
@@ -27,6 +82,9 @@ function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
   }
 }
 
+/**
+ * Authenticate against Leaguerunner DB
+ */
 function leaguerunner_loging_authenticate_validate($form, $form_state) {
   $name = $form_state[ 'values' ][ 'name' ];
   $pass = $form_state[ 'values' ][ 'pass' ];
