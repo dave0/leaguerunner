@@ -1,9 +1,9 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>{$game->home_name} vs {$game->away_name}</h2>
 
 <table class='pairtable'>
-{include file=pages/game/components/short_view.tpl}
+{include file='pages/game/components/short_view.tpl'}
 </table>
 
 <p>
@@ -17,4 +17,4 @@ If this is correct, please click 'Submit' to continue.  If not, use your back bu
   <input type="reset" name="reset" value="reset" />
 </form>
 
-{include file=footer.tpl}
+{include file='footer.tpl'}

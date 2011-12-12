@@ -267,7 +267,7 @@ class FormBuilder
 		}
 
 		// Add a form group for adding a new element
-		$element = form_textfield( 'Element name', "data[_new][name]", '', 60, 60, 'If this is blank, no new element will be added' );
+		$element = form_textfield( 'Element name', "data[_new][name]", '', 50, 60, 'If this is blank, no new element will be added' );
 		$element .= form_textarea( 'Element text', "data[_new][question]", '', 60, 5 );
 		$element .= form_textfield( 'Sort order', "data[_new][sorder]", $sorder + 1, 10, 10 );
 		$element .= form_checkbox( 'Required', "data[_new][required]", 1, false, 'Does this element require an answer? (Ignored for checkboxes, labels and descriptions)' );
@@ -736,7 +736,7 @@ function question_render_maintenance_multiplechoice( &$q, $formtype = 'auto' )
 		$formtype = 'radio';
 	}
 
-	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 60, 5 );
+	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 50, 5 );
 	$group .= form_textfield( 'Sort order', "data[{$q->qkey}][sorder]", $q->sorder, 10, 10 );
 	$group .= form_checkbox( 'Required', "data[{$q->qkey}][required]", 1, $q->required, 'Does this question require an answer?' );
 	$group .= form_checkbox( 'Delete this question entirely', "data[{$q->qkey}][delete]", 1, false );
@@ -798,7 +798,7 @@ function question_render_viewable_checkbox( &$q, $value = '')
 
 function question_render_maintenance_checkbox( &$q )
 {
-	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 60, 5 );
+	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 50, 5 );
 	$group .= form_textfield( 'Sort order', "data[{$q->qkey}][sorder]", $q->sorder, 10, 10 );
 
 	$group .= form_checkbox( 'Delete this checkbox', "data[{$q->qkey}][delete]", 1, false );
@@ -821,7 +821,7 @@ function question_render_viewable_freetext( &$q, $value = '')
 
 function question_render_maintenance_freetext( &$q )
 {
-	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 60, 5 );
+	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 50, 5 );
 	$group .= form_textfield( 'Sort order', "data[{$q->qkey}][sorder]", $q->sorder, 10, 10 );
 	$group .= form_checkbox( 'Required', "data[{$q->qkey}][required]", 1, $q->required, 'Does this question require an answer?' );
 
@@ -853,7 +853,7 @@ function question_render_viewable_textfield( &$q, $value = '')
 
 function question_render_maintenance_textfield( &$q )
 {
-	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 60, 5 );
+	$group = form_textarea( 'Question', "data[{$q->qkey}][question]", $q->question, 50, 5 );
 	$group .= form_textfield( 'Sort order', "data[{$q->qkey}][sorder]", $q->sorder, 10, 10 );
 	$group .= form_checkbox( 'Required', "data[{$q->qkey}][required]", 1, $q->required, 'Does this question require an answer?' );
 
@@ -888,7 +888,7 @@ function question_render_viewable_label( &$q, $value = '')
 
 function question_render_maintenance_label( &$q )
 {
-	$group = form_textarea( 'Element', "data[{$q->qkey}][question]", $q->question, 60, 5 );
+	$group = form_textarea( 'Element', "data[{$q->qkey}][question]", $q->question, 50, 5 );
 	$group .= form_textfield( 'Sort order', "data[{$q->qkey}][sorder]", $q->sorder, 10, 10 );
 
 	$group .= form_checkbox( 'Delete this label', "data[{$q->qkey}][delete]", 1, false );

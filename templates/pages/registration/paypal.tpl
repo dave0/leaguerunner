@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>Payment has been received by PayPal and updated in Leaguerunner.  The transaction is now complete.</p>
 <p>You will receive an email from PayPal outlining the details of this transaction.</p>
@@ -23,4 +23,4 @@
   {/foreach}
   </table>
 </fieldset>
-{include file=footer.tpl}
+{include file='footer.tpl'}

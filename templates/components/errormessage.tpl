@@ -1,1 +1,1 @@
-<span class="error">{$message | default:"Unknown error" }</span>
+<span class="error">{$message|default:"Unknown error" }</span>

@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <script type="text/javascript">
 {literal}
@@ -227,4 +227,4 @@ The following errors were encountered in your submission:
 <input type="submit" name="submit" value="submit" />
 <input type="reset" name="reset" value="reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

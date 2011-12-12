@@ -136,6 +136,19 @@ function feature_settings()
 
 	$group .= form_radios('Force roster request responses', 'edit[force_roster_request]', variable_get('force_roster_request', 0), array('Disabled', 'Enabled'), 'Should players be forced to respond to roster requests immediately?');
 
+	$group .= form_radios('Log Messages', 'edit[log_messages]', variable_get('log_messages', 0), array('Disabled', 'Enabled'), 'Enable or disable System Logs.  This will record any messages meeting the set threshold or higher to the logs subfolder.');
+	
+	$group .= form_select('Log Threshold', 'edit[log_threshold]', variable_get('log_threshold', KLogger::INFO), array(
+		KLogger::EMERG=>'Emergency',
+		KLogger::ALERT=>'Alert',
+		KLogger::CRIT=>'Critical' ,
+		KLogger::ERR=>'Error',
+		KLogger::WARN=>'Warning',
+		KLogger::NOTICE=>'Notice' ,
+		KLogger::INFO=>'Information',
+		KLogger::DEBUG=>'Debug' ,
+	), 'Threshold for storing Log Messages.  Messages at this level and above will be logged.');
+	
 	$output = form_group('Feature configuration', $group);
 
 	return $output;

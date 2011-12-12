@@ -1,4 +1,4 @@
-{include file=header.tpl title=$title}
+{include file='header.tpl' title=$title}
 <h1>{$title}</h1>
 <p>Submit the score for the {$game->game_date} {$game->game_start} at {$game->field_code}
 between {$game->home_name} and {$game->away_name}
@@ -62,4 +62,4 @@ If your opponent has already entered a score, it will be displayed below.  If th
   <input type="reset" name="reset" value="reset" />
 </p>
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

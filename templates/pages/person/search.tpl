@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	Enter information on which to search and click 'submit'.  You may use '*' as a wildcard
@@ -53,4 +53,4 @@ $(document).ready(function() {
 {/literal}
 </script>
 
-{include file=footer.tpl}
+{include file='footer.tpl'}

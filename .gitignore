@@ -7,3 +7,4 @@ templates_c
 config
 cache
 src/dummy.php
+src/logs/

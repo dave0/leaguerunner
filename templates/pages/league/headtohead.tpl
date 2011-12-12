@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	Scores are listed with the first score belonging the team whose name appears on the left.<br />
@@ -26,4 +26,4 @@
 	{/foreach}
     </tbody>
 </table>
-{include file=footer.tpl}
+{include file='footer.tpl'}

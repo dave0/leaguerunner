@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
     <table id="seasons">
         <thead>
@@ -10,10 +10,10 @@
         <tbody>
         {foreach from=$seasons item=s}
             <tr>
-                <td><a href="{lr_url path="season/view/`$s->id`}">{$s->display_name}</a></td>
+                <td><a href="{lr_url path="season/view/`$s->id`"}">{$s->display_name}</a></td>
                 <td>
             </tr>
         {/foreach}
 	</tbody>
     </table>
-{include file=footer.tpl}
+{include file='footer.tpl'}
