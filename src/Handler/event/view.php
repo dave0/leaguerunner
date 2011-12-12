@@ -1,5 +1,6 @@
 <?php
 require_once('Handler/EventHandler.php');
+require_once('Handler/PaypalHandler.php');
 class event_view extends EventHandler
 {
 	function has_permission()
@@ -34,7 +35,7 @@ class event_view extends EventHandler
 			$this->smarty->assign('message', 'This event is for the opposite gender only.' );
 			return;
 		}
-		
+
 		if( ($event_register_count >= $event_register_cap) &&
 			($event_register_cap > 0) ) {
 			$this->smarty->assign('message', 'The gender cap for this event has been reached.');
@@ -64,32 +65,24 @@ class event_view extends EventHandler
 			if( $r->payment != 'Paid' ) {
 				$this->smarty->assign('message', 'You have already registered for this event, but not yet paid.  See below for payment information.');
 
-				
+
 				// include paypal as payment option if configured
 				if (variable_get('paypal',''))
 				{
+					$paypal = new PaypalHandler();
 					$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
-					$this->smarty->assign('shopping_url',$CONFIG['session']['session_name'].$CONFIG['paths']['base_url']);
-					$this->smarty->assign('return_url', 'http://'.$CONFIG['session']['session_name'].
-														$CONFIG['paths']['base_url'].'/registration/paypal/'.$r->order_id);
-					
-					// determine if we're submitting to the sandbox or the real PayPal
-					if (variable_get('paypal_url',''))
-					{
-						$this->smarty->assign('paypal_url', variable_get('paypal_sandbox_url',''));
-						$this->smarty->assign('paypal_email', variable_get('paypal_sandbox_email',''));
-					} else {
-						$this->smarty->assign('paypal_url', variable_get('paypal_live_url',''));
-						$this->smarty->assign('paypal_email', variable_get('paypal_live_email',''));
-					}
-					
+					$this->smarty->assign('shopping_url', $paypal->shopping_url);
+					$this->smarty->assign('return_url', $paypal->return_url.$r->order_id);
+					$this->smarty->assign('paypal_url', $paypal->submit_url);
+					$this->smarty->assign('paypal_email', $paypal->account_email);
+
 					// Paypal wants country codes, not names, so rewrite country value in user
 					$lr_session->user->addr_country = getCountryCode($lr_session->user->addr_country);
-					
+
 					// include user details for auto fill forms
 					$this->smarty->assign('user', $lr_session->user);
 				}
-				
+
 				$this->smarty->assign('offline_payment_text',
 					strtr(
 						variable_get('offline_payment_text', ''),

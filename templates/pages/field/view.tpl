@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
   <div class='pairtable'><table>
 	<tr><td>Field Name:</td><td>{$field->name}</td></tr>
@@ -11,9 +11,9 @@
 	{if $field->location_street}
 	<tr><td>Street Address:</td><td>
 		{include file='components/street_address.tpl'
-			street=`$field->location_street`
-			city=`$field->location_city`
-			province=`$field->location_province`}
+			street=$field->location_street
+			city=$field->location_city
+			province=$field->location_province}
 	</td></tr>
 	{/if}
 
@@ -21,7 +21,7 @@
 	<td>
 	{if $field->length}
 		{* It's drawn on Google Maps *}
-		<a href="{lr_url path="gmaps/view/`$field->fid`}" target="_new">Click for Google map of field layout and location</a>
+		<a href="{lr_url path="gmaps/view/`$field->fid`"}" target="_new">Click for Google map of field layout and location</a>
 	{elseif $field->location_url}
 		{* It's an old-skool image *}
 		<a href="{$field->location_url}" target="_new">Click for map in new window</a>
@@ -92,4 +92,4 @@
     {$field->sponsor}
     </div>
     {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}

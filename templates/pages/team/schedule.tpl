@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <div class="schedule">
 <table>
@@ -25,4 +25,4 @@
 <p>
 	You may also download your team schedule in <a href="{lr_url path="team/ical/`$team->team_id`/team.ics"}"><img style="display: inline" src="{$base_url}/image/icons/ical.gif" alt="iCalendar" /></a> format
 </p>
-{include file=footer.tpl}
+{include file='footer.tpl'}

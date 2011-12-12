@@ -1,4 +1,4 @@
-{include file=header.tpl title=$title}
+{include file='header.tpl' title=$title}
 <h1>{$title}</h1>
 {$interim_game_result}
 {if $spirit_answers}
@@ -18,4 +18,4 @@ If this is correct, please click 'Submit' to continue.  If not, use your back bu
 <input type="hidden" name="edit[step]" value="save" />
 <input type="submit" name="submit" value="Submit" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

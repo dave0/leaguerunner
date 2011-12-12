@@ -1,4 +1,4 @@
-{include file=header.tpl title=$title}
+{include file='header.tpl' title=$title}
 <h1>{$title}</h1>
 {$interim_game_result}
 <p>
@@ -45,4 +45,4 @@ $('#field_report_form').submit(function(){
 
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

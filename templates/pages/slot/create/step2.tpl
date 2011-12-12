@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <form method="POST" id="create">
 <input type="hidden" name="edit[step]" value="confirm" />
@@ -27,4 +27,4 @@
 <input type="reset" name="reset" value="reset" />
 
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

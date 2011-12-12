@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>Step 3: Arrange for payment</h2>
 <p></p>
@@ -23,4 +23,4 @@
 {$partner_info_text}
 </p>
 {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}

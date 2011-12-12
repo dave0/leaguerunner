@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 The following games have not been finalized:
@@ -39,4 +39,4 @@ The following games have not been finalized:
 </table>
 </div>
 
-{include file=footer.tpl}
+{include file='footer.tpl'}

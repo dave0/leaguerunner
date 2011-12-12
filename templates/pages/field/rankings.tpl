@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	This table shows how the teams below have ranked this site.  Teams not shown have not ranked it.
@@ -44,4 +44,4 @@ $(document).ready(function() {
 });
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}
