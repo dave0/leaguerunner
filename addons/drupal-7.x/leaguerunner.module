@@ -24,8 +24,8 @@ function leaguerunner_menu() {
 
 
 /**
-* Implements hook_permission().
-*/
+ * Implements hook_permission()
+ */
 function leaguerunner_permission() {
 	return array(
     'administer leaguerunner' => array(
@@ -35,30 +35,21 @@ function leaguerunner_permission() {
 }
 
 /**
- *
- * Enter description here ...
- * @param unknown_type $form
- * @param unknown_type $form_state
+ * Implements login_block_alter()
  */
 function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
   _leaguerunner_login_user_login_form_alter($form, $form_state);
 }
 
 /**
- *
- * Enter description here ...
- * @param unknown_type $form
- * @param unknown_type $form_state
+ * Implements user_login_alter()
  */
 function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
   _leaguerunner_login_user_login_form_alter($form, $form_state);
 }
 
 /**
- *
- * Enter description here ...
- * @param unknown_type $form
- * @param unknown_type $form_state
+ * Authenticates user against Leaguerunner DB
  */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
   $saveForm = $form;
@@ -71,7 +62,7 @@ function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
       foreach( $value as $validator ) {
         if( $validator == 'user_login_authenticate_validate' ) {
         	if(variable_get('leaguerunner_authenticate', 0)) {
-            $validator = 'leaguerunner_login_authenticate_validate';
+           // $validator = 'leaguerunner_login_authenticate_validate';
         	}
         }
         $form[ $key ][] = $validator;
