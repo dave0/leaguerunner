@@ -21,8 +21,6 @@ function leaguerunner_menu() {
 	return $items;
 }
 
-
-
 /**
  * Implements hook_permission()
  */
@@ -31,9 +29,84 @@ function leaguerunner_permission() {
     'administer leaguerunner' => array(
       'title' => t('Administer Leaguerunner'),
 	  ),
+	  'email membership' => array(
+	    'title' => t('Email Membership with new Posts'),
+	  ),
 	);
 }
 
+/**
+ * Implements hook_form_alter()
+ */
+function leaguerunner_form_alter(&$form, $form_state, $form_id) {
+	// Don't add if not configured
+	$email_membership = variable_get('leaguerunner_email_membership',0);
+	if(!$email_membership) {
+		return;
+	}
+
+	// Don't add if not allowed
+	$account = user_load($GLOBALS['user']->uid);
+	if (!user_access('email membership', $account)) {
+		return;
+	}
+
+	// Alter any node forms.
+	if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
+		// If we haven't enabled Leaguerunner Email on this node type, do nothing.
+		$type = $form['#node']->type;
+		$allowed_types = variable_get('leaguerunner_post_types', array('story' => 'story', 'blog' => 'blog'));
+		if (empty($allowed_types[$type])) {
+			return;
+		}
+
+		$form['leaguerunner'] = array(
+	      '#type' => 'fieldset',
+	      '#title' => t('Leaguerunner'),
+	      '#collapsible' => TRUE,
+	      '#collapsed' => FALSE,
+	      '#tree' => TRUE,
+		);
+		$form['leaguerunner']['post'] = array(
+	      '#type' => 'checkbox',
+	      '#title' => t('Email Membership about this post.'),
+	      '#default_value' => (empty($form['nid']['#value'])),
+		);
+	}
+}
+
+/**
+ * Implementation of hook_node_insert().
+ *
+ * Intercepts newly published nodes and emails Leaguerunner Membership
+ */
+//TODO: Don't process if checkbox wasn't on, but don't know how to check for it
+function leaguerunner_node_insert($node) {
+  if(!empty($node->status) && !empty($node->leaguerunner)) {
+    module_load_include('inc', 'leaguerunner');
+    $email_addresses = '';
+
+    // pull email addresses from Leaguerunner
+    db_set_active('leaguerunner');
+    $records = db_select('person', 'p')
+      ->fields('p', array('email'))
+      ->execute();
+
+    foreach($records as $email) {
+    	$email_addresses .= $email->email . ',';
+    }
+
+    debug($email_addresses);
+    db_set_active();
+  }
+}
+
+/**
+* Implementation of hook_node_update().
+*/
+function leaguerunner_node_update($node) {
+	leaguerunner_node_insert($node);
+}
 /**
  * Implements login_block_alter()
  */

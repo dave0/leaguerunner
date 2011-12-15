@@ -3,3 +3,4 @@ description = Authentication and Integration with the Leaguerunner System
 package = Administration
 core = 7.x
 configure = admin/config/system/leaguerunner
+dependencies[] = rules
