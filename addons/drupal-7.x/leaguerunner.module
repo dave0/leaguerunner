@@ -80,24 +80,26 @@ function leaguerunner_form_alter(&$form, $form_state, $form_id) {
  *
  * Intercepts newly published nodes and emails Leaguerunner Membership
  */
-//TODO: Don't process if checkbox wasn't on, but don't know how to check for it
 function leaguerunner_node_insert($node) {
-  if(!empty($node->status) && !empty($node->leaguerunner)) {
+  if(!empty($node->status) && !empty($node->leaguerunner) && !empty($node->leaguerunner['post'])) {
     module_load_include('inc', 'leaguerunner');
     $email_addresses = '';
-
+debug($node);
     // pull email addresses from Leaguerunner
     db_set_active('leaguerunner');
     $records = db_select('person', 'p')
       ->fields('p', array('email'))
       ->execute();
 
-    foreach($records as $email) {
-    	$email_addresses .= $email->email . ',';
+    foreach($records as $person) {
+    	$email_addresses .= $person->email . ',';
     }
-
-    debug($email_addresses);
     db_set_active();
+    
+    $summary = field_get_items('node', $node, 'summary', $node->language);
+    debug($summary);
+    //Add Outbound email to Queue to send out via cron
+    //leaguerunner_rules_action_mail($email_addresses, $node['title'],  );
   }
 }
 

@@ -4,7 +4,10 @@
  */
 function leaguerunner_cron_queue_info() {
   $queues = array();
-  $queues['leaguerunner_queue_notify'] = array( 'worker callback' => 'leaguerunner_queue_notify_worker', 'time' => 15, );
+  $queues['leaguerunner_queue_notify'] = array(
+    'worker callback' => 'leaguerunner_queue_notify_worker',
+    'time' => 1,
+  );
   return $queues;
 }
 
@@ -20,6 +23,12 @@ function leaguerunner_queue_notify_worker($params) {
  */
 function leaguerunner_mail($key, &$message, $params) {
   $language = $message['language'];
+  
+  // Email all users via Bcc to keep spam down
+  $message['headers']['Bcc'] = $message['to'];
+  
+  //FIXME: better default value than SUC needed.
+  $message['to'] = variable_get('site_mail', 'sudburyultimate@gmail.com');
   $message['subject'] = $params['subject'];
   $message['body'][] = $params['message'];
 }
