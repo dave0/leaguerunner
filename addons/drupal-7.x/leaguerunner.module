@@ -4,75 +4,75 @@
  * Implements hook_menu()
  */
 function leaguerunner_menu() {
-	$items['admin/config/system/leaguerunner'] = array(
-		'title' => 'Leaguerunner',
-		'description' => 'Configure how Leaguerunner interacts with Drupal.',
-		'page callback' => 'drupal_get_form',
-		'page arguments' => array('leaguerunner_admin_form'),
-		'access arguments' => array('administer leaguerunner'),
-		'file' => 'leaguerunner.pages.inc',
-	);
+  $items['admin/config/system/leaguerunner'] = array(
+    'title' => 'Leaguerunner',
+    'description' => 'Configure how Leaguerunner interacts with Drupal.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('leaguerunner_admin_form'),
+    'access arguments' => array('administer leaguerunner'),
+    'file' => 'leaguerunner.pages.inc',
+  );
 
   $items['admin/config/system/leaguerunner/default'] = array(
     'title' => 'Leaguerunner',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-	return $items;
+  return $items;
 }
 
 /**
  * Implements hook_permission()
  */
 function leaguerunner_permission() {
-	return array(
+  return array(
     'administer leaguerunner' => array(
       'title' => t('Administer Leaguerunner'),
-	  ),
-	  'email membership' => array(
-	    'title' => t('Email Membership with new Posts'),
-	  ),
-	);
+    ),
+    'email membership' => array(
+      'title' => t('Email Membership with new Posts'),
+    ),
+  );
 }
 
 /**
  * Implements hook_form_alter()
  */
 function leaguerunner_form_alter(&$form, $form_state, $form_id) {
-	// Don't add if not configured
-	$email_membership = variable_get('leaguerunner_email_membership',0);
-	if(!$email_membership) {
-		return;
-	}
+  // Don't add if not configured
+  $email_membership = variable_get('leaguerunner_email_membership',0);
+  if(!$email_membership) {
+    return;
+  }
 
-	// Don't add if not allowed
-	$account = user_load($GLOBALS['user']->uid);
-	if (!user_access('email membership', $account)) {
-		return;
-	}
+  // Don't add if not allowed
+  $account = user_load($GLOBALS['user']->uid);
+  if (!user_access('email membership', $account)) {
+  return;
+  }
 
-	// Alter any node forms.
-	if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
-		// If we haven't enabled Leaguerunner Email on this node type, do nothing.
-		$type = $form['#node']->type;
-		$allowed_types = variable_get('leaguerunner_post_types', array('story' => 'story', 'blog' => 'blog'));
-		if (empty($allowed_types[$type])) {
-			return;
-		}
+  // Alter any node forms.
+  if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
+    // If we haven't enabled Leaguerunner Email on this node type, do nothing.
+    $type = $form['#node']->type;
+    $allowed_types = variable_get('leaguerunner_post_types', array('story' => 'story', 'blog' => 'blog'));
+    if (empty($allowed_types[$type])) {
+      return;
+    }
 
-		$form['leaguerunner'] = array(
-	      '#type' => 'fieldset',
-	      '#title' => t('Leaguerunner'),
-	      '#collapsible' => TRUE,
-	      '#collapsed' => FALSE,
-	      '#tree' => TRUE,
-		);
-		$form['leaguerunner']['post'] = array(
-	      '#type' => 'checkbox',
-	      '#title' => t('Email Membership about this post.'),
-	      '#default_value' => (empty($form['nid']['#value'])),
-		);
-	}
+    $form['leaguerunner'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Leaguerunner'),
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+      '#tree' => TRUE,
+    );
+    $form['leaguerunner']['post'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Email Leaguerunner members about this post.'),
+      '#default_value' => (empty($form['nid']['#value'])),
+    );
+  }
 }
 
 /**
@@ -82,33 +82,74 @@ function leaguerunner_form_alter(&$form, $form_state, $form_id) {
  */
 function leaguerunner_node_insert($node) {
   if(!empty($node->status) && !empty($node->leaguerunner) && !empty($node->leaguerunner['post'])) {
-    module_load_include('inc', 'leaguerunner');
-    $email_addresses = '';
-debug($node);
+
+    // Create Queue for batch mail
+    $queue = DrupalQueue::get('leaguerunner_queue_notify');
+
+    // pull body text from node and parse out summary if it exists
+    $body = array_shift(field_get_items('node', $node, 'body'));
+    $summary = empty($body['summary']) ? text_summary($body['value'], NULL, 160) : $body['summary'];
+
+    // Add link to summary back to full article
+    $summary .= "\n Read more at " . url('node/' . $node->nid, array('absolute' => TRUE));
+
     // pull email addresses from Leaguerunner
+    $from = variable_get('site_mail','Leaguerunner');
     db_set_active('leaguerunner');
     $records = db_select('person', 'p')
       ->fields('p', array('email'))
       ->execute();
+    db_set_active();
 
     foreach($records as $person) {
-    	$email_addresses .= $person->email . ',';
+      // Gather params for mail
+      $params = array(
+        'to'=> $person->email,
+        'from' => $from,
+        'subject' => $node->title,
+        'message' => $summary,
+      );
+      // Add to the queue.  Messages will be sent with next cron run
+      $queue->createItem($params);
     }
-    db_set_active();
-    
-    $summary = field_get_items('node', $node, 'summary', $node->language);
-    debug($summary);
-    //Add Outbound email to Queue to send out via cron
-    //leaguerunner_rules_action_mail($email_addresses, $node['title'],  );
   }
 }
 
 /**
-* Implementation of hook_node_update().
-*/
+ * Implementation of hook_node_update().
+ */
 function leaguerunner_node_update($node) {
-	leaguerunner_node_insert($node);
+  leaguerunner_node_insert($node);
 }
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function leaguerunner_cron_queue_info() {
+  $queues = array();
+  $queues['leaguerunner_queue_notify'] = array(
+    'worker callback' => 'leaguerunner_queue_notify_worker',
+    'time' => 15,
+  );
+  return $queues;
+}
+
+/**
+ * Queue worker for sending notification mails.
+ */
+function leaguerunner_queue_notify_worker($params) {
+  drupal_mail('leaguerunner', 'notify', $params['to'], language_default(), $params, $params['from']);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function leaguerunner_mail($key, &$message, $params) {
+  $language = $message['language'];
+  $message['subject'] = $params['subject'];
+  $message['body'][] = $params['message'];
+}
+
 /**
  * Implements login_block_alter()
  */
@@ -136,11 +177,11 @@ function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
       $form[ $key ] = array();
       foreach( $value as $validator ) {
         if( $validator == 'user_login_authenticate_validate' ) {
-        	if(variable_get('leaguerunner_authenticate', 0)) {
-           // $validator = 'leaguerunner_login_authenticate_validate';
-        	}
+          if(variable_get('leaguerunner_authenticate', 0)) {
+            // $validator = 'leaguerunner_login_authenticate_validate';
+          }
         }
-        $form[ $key ][] = $validator;
+       $form[ $key ][] = $validator;
       }
     } else {
       $form[ $key ] = $value;
