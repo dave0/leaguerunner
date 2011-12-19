@@ -6,10 +6,10 @@ require_once( $CONFIG['smarty']['smarty_path'] . '/Smarty.class.php');
 
 $smarty = new Smarty();
 
-$smarty->template_dir = $CONFIG['smarty']['template_dir'];
-$smarty->compile_dir  = $CONFIG['smarty']['compile_dir'];
-$smarty->cache_dir    = $CONFIG['smarty']['cache_dir'];
-#$smarty->config_dir  = $CONFIG['smarty']['config_dir'];
+$smarty->setTemplateDir($CONFIG['smarty']['template_dir'])
+  ->setCompileDir($CONFIG['smarty']['compile_dir'])
+  ->setCacheDir($CONFIG['smarty']['cache_dir'])
+  ->setConfigDir($CONFIG['smarty']['config_dir']);
 
 $smarty->registerPlugin('function', 'lr_url', 'smarty_lr_url');
 function smarty_lr_url($params, &$smarty)
