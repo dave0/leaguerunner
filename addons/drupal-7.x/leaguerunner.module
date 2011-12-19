@@ -95,10 +95,22 @@ function leaguerunner_node_insert($node) {
 
     // pull email addresses from Leaguerunner
     $from = variable_get('site_mail','Leaguerunner');
+
+//     // is Leaguerunner DB available?
+//     if(!array_key_exists('leaguerunner', Database::$connections)) {
+//       // create connection if not already present
+//       $lr_db = array(
+//         'database' => variable_get('leaguerunner_database_name', ''),
+//         'username' => variable_get('leaguerunner_database_user', ''),
+//         'password' => variable_get('leaguerunner_database_password', ''),
+//         'host' => variable_get('leaguerunner_database_host', ''),
+//         'driver' => variable_get('leaguerunner_database_driver', ''),
+//       );
+//       Database::addConnectionInfo('leaguerunner', 'default', $lr_db);
+//     }
+
     db_set_active('leaguerunner');
-    $records = db_select('person', 'p')
-      ->fields('p', array('email'))
-      ->execute();
+    $records = db_query("SELECT email FROM {person}");
     db_set_active();
 
     foreach($records as $person) {
@@ -165,26 +177,26 @@ function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
 }
 
 /**
- * Authenticates user against Leaguerunner DB
+ * Handle authentication hook transforms
  */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
   $saveForm = $form;
 
   $form = array();
 
-  foreach( $saveForm as $key => $value ) {
-    if( $key == '#validate' ) {
-      $form[ $key ] = array();
-      foreach( $value as $validator ) {
-        if( $validator == 'user_login_authenticate_validate' ) {
+  foreach($saveForm as $key => $value) {
+    if($key == '#validate') {
+      $form[$key] = array();
+      foreach($value as $validator) {
+        if($validator == 'user_login_authenticate_validate') {
           if(variable_get('leaguerunner_authenticate', 0)) {
-            // $validator = 'leaguerunner_login_authenticate_validate';
+            $validator = 'leaguerunner_login_authenticate_validate';
           }
         }
-       $form[ $key ][] = $validator;
+       $form[$key][] = $validator;
       }
     } else {
-      $form[ $key ] = $value;
+      $form[$key] = $value;
     }
   }
 }
@@ -192,16 +204,49 @@ function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
 /**
  * Authenticate against Leaguerunner DB
  */
-function leaguerunner_loging_authenticate_validate($form, $form_state) {
-  $name = $form_state[ 'values' ][ 'name' ];
-  $pass = $form_state[ 'values' ][ 'pass' ];
+function leaguerunner_login_authenticate_validate($form, $form_state) {
+  $username = $form_state['values']['name'];
+  $password = $form_state['values']['pass'];
 
-  if( $name == "admin" ) {
+  if($name == "admin") {
+    // call against Drupal for the admin account
     user_login_authenticate_validate( $form, $form_state );
   } else {
-    //... custom code to verify credentials ...
-    // call through to lr db via Drupal's abstraction layers.
-    // see https://www.touchnoc.com/node/86 for details
-    $form_state['uid'] = $drupalUser->uid;
+    $password_check = leaguerunner_authentication_check($username, $password);
+
+    if($password_check) {
+      // Password is good, continue with login/register
+      user_external_login_register($username, 'project_authentication');
+      $drupalUser = user_external_load($username);
+      $form_state['uid'] = $drupalUser->uid;
+    }
   }
+}
+
+/**
+ * Test given credentials against LR tables
+ */
+function leaguerunner_authentication_check($username, $password) {
+  try {
+    // pull from LR db
+    db_set_active('leaguerunner');
+    $lr_password =  db_query("SELECT password FROM {person} WHERE username = :username", array(
+      ':username' => $username,
+    ))->fetchField();
+    db_set_active();
+
+    // LR stored older pswds with just md5, not crypted.  Deal with it accordingly
+    if(substr($lr_password, 0, 3) == '$1$') {
+      $hashed_pw = crypt($password, substr($lr_password, 0, 12));
+    } else {
+      $hashed_pw = md5( $password );
+    }
+
+    return ($hashed_pw == $lr_password);
+  }
+  catch (Exception $e) {
+    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->faultstring), WATCHDOG_NOTICE);
+    return false;
+  }
+
 }
