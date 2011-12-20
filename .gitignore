@@ -9,3 +9,4 @@ config
 cache
 src/dummy.php
 src/logs/
+drupal/

@@ -48,7 +48,7 @@ function leaguerunner_form_alter(&$form, $form_state, $form_id) {
   // Don't add if not allowed
   $account = user_load($GLOBALS['user']->uid);
   if (!user_access('email membership', $account)) {
-  return;
+    return;
   }
 
   // Alter any node forms.
@@ -95,19 +95,6 @@ function leaguerunner_node_insert($node) {
 
     // pull email addresses from Leaguerunner
     $from = variable_get('site_mail','Leaguerunner');
-
-//     // is Leaguerunner DB available?
-//     if(!array_key_exists('leaguerunner', Database::$connections)) {
-//       // create connection if not already present
-//       $lr_db = array(
-//         'database' => variable_get('leaguerunner_database_name', ''),
-//         'username' => variable_get('leaguerunner_database_user', ''),
-//         'password' => variable_get('leaguerunner_database_password', ''),
-//         'host' => variable_get('leaguerunner_database_host', ''),
-//         'driver' => variable_get('leaguerunner_database_driver', ''),
-//       );
-//       Database::addConnectionInfo('leaguerunner', 'default', $lr_db);
-//     }
 
     db_set_active('leaguerunner');
     $records = db_query("SELECT email FROM {person}");
@@ -178,45 +165,30 @@ function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
 
 /**
  * Handle authentication hook transforms
+ * Insert leaguerunner check if configured
  */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
-  $saveForm = $form;
-
-  $form = array();
-
-  foreach($saveForm as $key => $value) {
-    if($key == '#validate') {
-      $form[$key] = array();
-      foreach($value as $validator) {
-        if($validator == 'user_login_authenticate_validate') {
-          if(variable_get('leaguerunner_authenticate', 0)) {
-            $validator = 'leaguerunner_login_authenticate_validate';
-          }
-        }
-       $form[$key][] = $validator;
-      }
-    } else {
-      $form[$key] = $value;
-    }
+  if(variable_get('leaguerunner_authenticate', 0)) {
+    $form['#validate'] = array('user_login_name_validate','leaguerunner_login_validate','user_login_final_validate');
   }
 }
 
 /**
  * Authenticate against Leaguerunner DB
  */
-function leaguerunner_login_authenticate_validate($form, $form_state) {
+function leaguerunner_login_validate(&$form, &$form_state) {
   $username = $form_state['values']['name'];
   $password = $form_state['values']['pass'];
 
-  if($name == "admin") {
+  if($username == "admin") {
     // call against Drupal for the admin account
-    user_login_authenticate_validate( $form, $form_state );
+    user_login_authenticate_validate($form, $form_state);
   } else {
     $password_check = leaguerunner_authentication_check($username, $password);
 
     if($password_check) {
       // Password is good, continue with login/register
-      user_external_login_register($username, 'project_authentication');
+      user_external_login_register($username, 'leaguerunner_authentication');
       $drupalUser = user_external_load($username);
       $form_state['uid'] = $drupalUser->uid;
     }
@@ -235,13 +207,13 @@ function leaguerunner_authentication_check($username, $password) {
     ))->fetchField();
     db_set_active();
 
-    // LR stored older pswds with just md5, not crypted.  Deal with it accordingly
+    // LR stored older pswds with just md5, not crypted.  Deal with it accordingly.
+    // If crypted, first 12 characters are the salt
     if(substr($lr_password, 0, 3) == '$1$') {
       $hashed_pw = crypt($password, substr($lr_password, 0, 12));
     } else {
       $hashed_pw = md5( $password );
     }
-
     return ($hashed_pw == $lr_password);
   }
   catch (Exception $e) {
