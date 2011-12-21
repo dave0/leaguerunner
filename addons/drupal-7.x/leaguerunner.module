@@ -35,10 +35,12 @@ function leaguerunner_permission() {
   );
 }
 
+
+
 /**
  * Implements hook_form_alter()
  */
-function leaguerunner_form_alter(&$form, $form_state, $form_id) {
+function leaguerunner_form_alter(&$form, &$form_state, $form_id) {
   // Don't add if not configured
   $email_membership = variable_get('leaguerunner_email_membership',0);
   if(!$email_membership) {
@@ -149,6 +151,11 @@ function leaguerunner_mail($key, &$message, $params) {
   $message['body'][] = $params['message'];
 }
 
+function leaguerunner_form_user_register_form_alter(&$form, &$form_state, $form_id) {
+  drupal_goto('http://www.leaguerunner.com/person/create');
+}
+
+
 /**
  * Implements login_block_alter()
  */
@@ -174,8 +181,8 @@ function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
 }
 
 /**
- * Authenticate against Leaguerunner DB
- */
+* Authenticate against Leaguerunner DB
+*/
 function leaguerunner_login_validate(&$form, &$form_state) {
   $username = $form_state['values']['name'];
   $password = $form_state['values']['pass'];
@@ -184,6 +191,7 @@ function leaguerunner_login_validate(&$form, &$form_state) {
     // call against Drupal for the admin account
     user_login_authenticate_validate($form, $form_state);
   } else {
+    module_load_include('inc', 'leaguerunner');
     $password_check = leaguerunner_authentication_check($username, $password);
 
     if($password_check) {
@@ -193,32 +201,4 @@ function leaguerunner_login_validate(&$form, &$form_state) {
       $form_state['uid'] = $drupalUser->uid;
     }
   }
-}
-
-/**
- * Test given credentials against LR tables
- */
-function leaguerunner_authentication_check($username, $password) {
-  try {
-    // pull from LR db
-    db_set_active('leaguerunner');
-    $lr_password =  db_query("SELECT password FROM {person} WHERE username = :username", array(
-      ':username' => $username,
-    ))->fetchField();
-    db_set_active();
-
-    // LR stored older pswds with just md5, not crypted.  Deal with it accordingly.
-    // If crypted, first 12 characters are the salt
-    if(substr($lr_password, 0, 3) == '$1$') {
-      $hashed_pw = crypt($password, substr($lr_password, 0, 12));
-    } else {
-      $hashed_pw = md5( $password );
-    }
-    return ($hashed_pw == $lr_password);
-  }
-  catch (Exception $e) {
-    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->faultstring), WATCHDOG_NOTICE);
-    return false;
-  }
-
 }
