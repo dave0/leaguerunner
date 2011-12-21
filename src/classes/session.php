@@ -29,6 +29,7 @@ function sess_write($key, $value)
 
 function sess_destroy($key)
 {
+	// TODO: BUG: PHP5 doesn't let us use objects in sess_destroy (see docs)
 	global $dbh;
 	$sth = $dbh->prepare("UPDATE person SET session_cookie = '' WHERE session_cookie = ?");
 	$sth->execute(array($key));
@@ -43,15 +44,14 @@ function lr_configure_sessions ()
 {
 	global $CONFIG;
 
-	if ($CONFIG['session']['session_name']) {
-		$session_name = $CONFIG['session']['session_name'];
+	if( $CONFIG['session']['cookie_domain'] ) {
+		$cookie_domain = $CONFIG['session']['cookie_domain'];
+		if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.',      '', $cookie_domain))) {
+			ini_set('session.cookie_domain', $cookie_domain);
+		}
 	}
-	else {
-		// Otherwise use $base_url as session name, without the protocol
-		// to use the same session identifiers across http and https.
-		list( , $session_name) = explode('://', $CONFIG['paths']['base_url'], 2);
-	}
-	session_name('SESS'. md5($session_name));
+
+	session_name('leaguerunner');
 	session_set_save_handler("sess_open","sess_close","sess_read","sess_write","sess_destroy","sess_gc");
 	session_start();
 }
@@ -62,7 +62,6 @@ function lr_configure_sessions ()
  * This encapsulates all the user-session handling code.
  *
  * @package	Leaguerunner
- * @version		$Id$
  * @author		Dave O'Neill <dmo@acm.org>
  * @access		public
  * @copyright	GPLv2; Dave O'Neill <dmo@acm.org>
