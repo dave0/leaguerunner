@@ -22,6 +22,20 @@ function leaguerunner_menu() {
 }
 
 /**
+ * Implements hook_menu_alter()
+ */
+function leaguerunner_menu_alter(&$items) {
+  if(variable_get('leaguerunner_authenticate',0)) {
+    // replace Drupal password reset and user creation with Leaguerunner
+    $items['user/password']['page callback'] = 'drupal_goto';
+    $items['user/password']['page arguments'] = array(variable_get('leaguerunner_password_reset','leaguerunner/person/forgotpassword'));
+
+    $items['user/register']['page callback'] = 'drupal_goto';
+    $items['user/register']['page arguments'] = array(variable_get('leaguerunner_user_register','leaguerunner/person/create'));
+  }
+}
+
+/**
  * Implements hook_permission()
  */
 function leaguerunner_permission() {
@@ -41,20 +55,21 @@ function leaguerunner_permission() {
  * Implements hook_form_alter()
  */
 function leaguerunner_form_alter(&$form, &$form_state, $form_id) {
-  // Don't add if not configured
-  $email_membership = variable_get('leaguerunner_email_membership',0);
-  if(!$email_membership) {
-    return;
-  }
-
-  // Don't add if not allowed
-  $account = user_load($GLOBALS['user']->uid);
-  if (!user_access('email membership', $account)) {
-    return;
-  }
-
   // Alter any node forms.
   if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
+
+    // Don't add if not configured
+    $email_membership = variable_get('leaguerunner_email_membership',0);
+    if(!$email_membership) {
+      return;
+    }
+
+    // Don't add if not allowed
+    $account = user_load($GLOBALS['user']->uid);
+    if (!user_access('email membership', $account)) {
+      return;
+    }
+
     // If we haven't enabled Leaguerunner Email on this node type, do nothing.
     $type = $form['#node']->type;
     $allowed_types = variable_get('leaguerunner_post_types', array('story' => 'story', 'blog' => 'blog'));
@@ -151,8 +166,14 @@ function leaguerunner_mail($key, &$message, $params) {
   $message['body'][] = $params['message'];
 }
 
+/**
+ * Iplements hook_user_register_form_alter()
+ * Redirect user creation to Leaguerunner if configured
+ */
 function leaguerunner_form_user_register_form_alter(&$form, &$form_state, $form_id) {
-  drupal_goto('http://www.leaguerunner.com/person/create');
+  if(variable_get('leaguerunner_authenticate', 0)) {
+    drupal_goto(variable_get('leaguerunner_user_register', 'leaguerunner/person/create'));
+  }
 }
 
 
@@ -160,24 +181,45 @@ function leaguerunner_form_user_register_form_alter(&$form, &$form_state, $form_
  * Implements login_block_alter()
  */
 function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
-  _leaguerunner_login_user_login_form_alter($form, $form_state);
+  if(variable_get('leaguerunner_authenticate',0)) {
+
+    // Override the create/reset links to Leaguerunner
+    $items = array();
+    unset($form['links']);
+    $items[] = l(t('Create new account'),
+      variable_get('leaguerunner_user_register','leaguerunner/person/create'),
+      array('attributes' => array(
+    		'title' => t('Create a new user account.')
+      )
+    ));
+    $items[] = l(t('Forgot password'),
+    	variable_get('leaguerunner_password_reset','leaguerunner/person/forgotpassword'),
+      array('attributes' => array(
+    		'title' => t('Request new password via e-mail.')
+      )
+    ));
+    $form['links'] = array('#markup' => theme('item_list', array('items' => $items)));
+    _leaguerunner_login_user_login_form_alter($form, $form_state);
+  }
 }
 
 /**
  * Implements user_login_alter()
  */
-function leaguerunner_login_form_user_login_alter(&$form, &$form_state) {
-  _leaguerunner_login_user_login_form_alter($form, $form_state);
+function leaguerunner_form_user_login_alter(&$form, &$form_state) {
+  if(variable_get('leaguerunner_authenticate',0)) {
+    // inform user to use Leaguerunner Credentials
+    $form['name']['#description'] = t('Enter your Leaguerunner username.');
+    _leaguerunner_login_user_login_form_alter($form, $form_state);
+  }
 }
 
 /**
- * Handle authentication hook transforms
- * Insert leaguerunner check if configured
+ * Handle authentication injection
  */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
-  if(variable_get('leaguerunner_authenticate', 0)) {
-    $form['#validate'] = array('user_login_name_validate','leaguerunner_login_validate','user_login_final_validate');
-  }
+  // insert our own validator
+  $form['#validate'] = array('user_login_name_validate','leaguerunner_login_validate','user_login_final_validate');
 }
 
 /**

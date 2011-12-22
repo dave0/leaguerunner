@@ -99,6 +99,7 @@ function leaguerunner_admin_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('User Registration URL'),
     '#description' => t('Path to Leaguerunner user creation page. Drupal default is "user/register"'),
+    '#default_value' => variable_get('leaguerunner_user_register', 'user/register'),
   	'#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
   	'#states' => array(
   	  'visible' => array(
@@ -111,6 +112,7 @@ function leaguerunner_admin_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Password Reset URL'),
     '#description' => t('Path to Leaguerunner password reset page. Drupal default is "user/password"'),
+    '#default_value' => variable_get('leaguerunner_password_reset', 'user/password'),
     '#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
     '#states' => array(
     	'visible' => array(
