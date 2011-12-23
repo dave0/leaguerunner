@@ -19,7 +19,7 @@ DirectoryIndex index.php
 
   # Modify the RewriteBase appropriately if you are using Leaguerunner
   # somewhere other than http://your.hostname.tld/leaguerunner
-  RewriteBase /
+  RewriteBase /leaguerunner
 
   # Rewrite URLs to the form 'index.php?q=x':
   RewriteCond %{REQUEST_FILENAME} !-f

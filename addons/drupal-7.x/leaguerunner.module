@@ -182,23 +182,6 @@ function leaguerunner_form_user_register_form_alter(&$form, &$form_state, $form_
  */
 function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
   if(variable_get('leaguerunner_authenticate',0)) {
-
-    // Override the create/reset links to Leaguerunner
-    $items = array();
-    unset($form['links']);
-    $items[] = l(t('Create new account'),
-      variable_get('leaguerunner_user_register','leaguerunner/person/create'),
-      array('attributes' => array(
-    		'title' => t('Create a new user account.')
-      )
-    ));
-    $items[] = l(t('Forgot password'),
-    	variable_get('leaguerunner_password_reset','leaguerunner/person/forgotpassword'),
-      array('attributes' => array(
-    		'title' => t('Request new password via e-mail.')
-      )
-    ));
-    $form['links'] = array('#markup' => theme('item_list', array('items' => $items)));
     _leaguerunner_login_user_login_form_alter($form, $form_state);
   }
 }
