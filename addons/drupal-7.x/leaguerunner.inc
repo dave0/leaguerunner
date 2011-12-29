@@ -2,7 +2,7 @@
 /**
  * Test given credentials against LR tables
  */
-function leaguerunner_authentication_check($username, $password) {
+function _leaguerunner_authentication_check($username, $password) {
   try {
     // pull from LR db
     db_set_active('leaguerunner');
@@ -21,7 +21,51 @@ function leaguerunner_authentication_check($username, $password) {
     return ($hashed_pw == $lr_password);
   }
   catch (Exception $e) {
-    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->faultstring), WATCHDOG_NOTICE);
+    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->getMessage()), WATCHDOG_NOTICE);
+    db_set_active();
+    return false;
+  }
+}
+
+/**
+ * Set Cookie and session in LR Database from Drupal Sign-in
+ */
+function _leaguerunner_set_session($user_id, $sess) {
+  try {
+    db_set_active('leaguerunner');
+    $updated = db_update('person')
+      ->fields(array(
+      	'session_cookie' => $sess,
+      	'client_ip' => $_SERVER['REMOTE_ADDR'],
+      ))
+      ->expression('last_login', 'NOW()')
+      ->condition('user_id', $user_id)
+      ->execute();
+    db_set_active();
+    return true;
+  }
+  catch (Exception $e) {
+    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->getMessage()), WATCHDOG_NOTICE);
+    db_set_active();
+    return false;
+  }
+}
+
+/**
+ * Retrieve LR User ID from given account
+ */
+function _leaguerunner_get_user_id($username) {
+  try {
+    db_set_active('leaguerunner');
+    $lr_id =  db_query("SELECT user_id FROM {person} WHERE username = :username", array(
+      ':username' => $username,
+    ))->fetchField();
+    db_set_active();
+    return $lr_id;
+  }
+  catch (Exception $e) {
+    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->getMessage()), WATCHDOG_NOTICE);
+    db_set_active();
     return false;
   }
 }

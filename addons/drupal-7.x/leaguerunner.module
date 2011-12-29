@@ -143,7 +143,7 @@ function leaguerunner_node_update($node) {
  */
 function leaguerunner_cron_queue_info() {
   $queues = array();
-  $queues['leaguerunner_queue_notify'] = array(
+  $queues['_leaguerunner_queue_notify'] = array(
     'worker callback' => 'leaguerunner_queue_notify_worker',
     'time' => 15,
   );
@@ -153,7 +153,7 @@ function leaguerunner_cron_queue_info() {
 /**
  * Queue worker for sending notification mails.
  */
-function leaguerunner_queue_notify_worker($params) {
+function _leaguerunner_queue_notify_worker($params) {
   drupal_mail('leaguerunner', 'notify', $params['to'], language_default(), $params, $params['from']);
 }
 
@@ -202,13 +202,13 @@ function leaguerunner_form_user_login_alter(&$form, &$form_state) {
  */
 function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
   // insert our own validator
-  $form['#validate'] = array('user_login_name_validate','leaguerunner_login_validate','user_login_final_validate');
+  $form['#validate'] = array('user_login_name_validate','_leaguerunner_login_validate','user_login_final_validate');
 }
 
 /**
 * Authenticate against Leaguerunner DB
 */
-function leaguerunner_login_validate(&$form, &$form_state) {
+function _leaguerunner_login_validate(&$form, &$form_state) {
   $username = $form_state['values']['name'];
   $password = $form_state['values']['pass'];
 
@@ -217,7 +217,7 @@ function leaguerunner_login_validate(&$form, &$form_state) {
     user_login_authenticate_validate($form, $form_state);
   } else {
     module_load_include('inc', 'leaguerunner');
-    $password_check = leaguerunner_authentication_check($username, $password);
+    $password_check = _leaguerunner_authentication_check($username, $password);
 
     if($password_check) {
       // Password is good, continue with login/register
@@ -226,4 +226,19 @@ function leaguerunner_login_validate(&$form, &$form_state) {
       $form_state['uid'] = $drupalUser->uid;
     }
   }
+}
+
+/**
+ * Implements hook_user_login()
+ */
+function leaguerunner_user_login(&$edit, $account) {
+  module_load_include('inc', 'leaguerunner');
+  // Find a LR User ID with matching user name
+  $lr_id = _leaguerunner_get_user_id($account->name);
+  if ($lr_id > 0) {
+    // Found a match, set LR session.
+    _leaguerunner_set_session($lr_id, session_id());
+    debug(SID);
+  }
+
 }
