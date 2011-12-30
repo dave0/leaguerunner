@@ -230,7 +230,7 @@ function _leaguerunner_login_validate(&$form, &$form_state) {
 
 /**
  * Implements hook_user_login()
- */
+
 function leaguerunner_user_login(&$edit, $account) {
   module_load_include('inc', 'leaguerunner');
   // Find a LR User ID with matching user name
@@ -240,5 +240,5 @@ function leaguerunner_user_login(&$edit, $account) {
     _leaguerunner_set_session($lr_id, session_id());
     debug(SID);
   }
-
 }
+*/
