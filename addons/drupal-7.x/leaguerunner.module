@@ -1,0 +1,244 @@
+<?php
+
+/**
+ * Implements hook_menu()
+ */
+function leaguerunner_menu() {
+  $items['admin/config/system/leaguerunner'] = array(
+    'title' => 'Leaguerunner',
+    'description' => 'Configure how Leaguerunner interacts with Drupal.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('leaguerunner_admin_form'),
+    'access arguments' => array('administer leaguerunner'),
+    'file' => 'leaguerunner.pages.inc',
+  );
+
+  $items['admin/config/system/leaguerunner/default'] = array(
+    'title' => 'Leaguerunner',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter()
+ */
+function leaguerunner_menu_alter(&$items) {
+  if(variable_get('leaguerunner_authenticate',0)) {
+    // replace Drupal password reset and user creation with Leaguerunner
+    $items['user/password']['page callback'] = 'drupal_goto';
+    $items['user/password']['page arguments'] = array(variable_get('leaguerunner_password_reset','leaguerunner/person/forgotpassword'));
+
+    $items['user/register']['page callback'] = 'drupal_goto';
+    $items['user/register']['page arguments'] = array(variable_get('leaguerunner_user_register','leaguerunner/person/create'));
+  }
+}
+
+/**
+ * Implements hook_permission()
+ */
+function leaguerunner_permission() {
+  return array(
+    'administer leaguerunner' => array(
+      'title' => t('Administer Leaguerunner'),
+    ),
+    'email membership' => array(
+      'title' => t('Email Membership with new Posts'),
+    ),
+  );
+}
+
+
+
+/**
+ * Implements hook_form_alter()
+ */
+function leaguerunner_form_alter(&$form, &$form_state, $form_id) {
+  // Alter any node forms.
+  if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
+
+    // Don't add if not configured
+    $email_membership = variable_get('leaguerunner_email_membership',0);
+    if(!$email_membership) {
+      return;
+    }
+
+    // Don't add if not allowed
+    $account = user_load($GLOBALS['user']->uid);
+    if (!user_access('email membership', $account)) {
+      return;
+    }
+
+    // If we haven't enabled Leaguerunner Email on this node type, do nothing.
+    $type = $form['#node']->type;
+    $allowed_types = variable_get('leaguerunner_post_types', array('story' => 'story', 'blog' => 'blog'));
+    if (empty($allowed_types[$type])) {
+      return;
+    }
+
+    $form['leaguerunner'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Leaguerunner'),
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+      '#tree' => TRUE,
+    );
+    $form['leaguerunner']['post'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Email Leaguerunner members about this post.'),
+      '#default_value' => (empty($form['nid']['#value'])),
+    );
+  }
+}
+
+/**
+ * Implementation of hook_node_insert().
+ *
+ * Intercepts newly published nodes and emails Leaguerunner Membership
+ */
+function leaguerunner_node_insert($node) {
+  if(!empty($node->status) && !empty($node->leaguerunner) && !empty($node->leaguerunner['post'])) {
+
+    // Create Queue for batch mail
+    $queue = DrupalQueue::get('leaguerunner_queue_notify');
+
+    // pull body text from node and parse out summary if it exists
+    $body = array_shift(field_get_items('node', $node, 'body'));
+    $summary = empty($body['summary']) ? text_summary($body['value'], NULL, 160) : $body['summary'];
+
+    // Add link to summary back to full article
+    $summary .= "\n Read more at " . url('node/' . $node->nid, array('absolute' => TRUE));
+
+    // pull email addresses from Leaguerunner
+    $from = variable_get('site_mail','Leaguerunner');
+
+    db_set_active('leaguerunner');
+    $records = db_query("SELECT email FROM {person}");
+    db_set_active();
+
+    foreach($records as $person) {
+      // Gather params for mail
+      $params = array(
+        'to'=> $person->email,
+        'from' => $from,
+        'subject' => $node->title,
+        'message' => $summary,
+      );
+      // Add to the queue.  Messages will be sent with next cron run
+      $queue->createItem($params);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_node_update().
+ */
+function leaguerunner_node_update($node) {
+  leaguerunner_node_insert($node);
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function leaguerunner_cron_queue_info() {
+  $queues = array();
+  $queues['_leaguerunner_queue_notify'] = array(
+    'worker callback' => 'leaguerunner_queue_notify_worker',
+    'time' => 15,
+  );
+  return $queues;
+}
+
+/**
+ * Queue worker for sending notification mails.
+ */
+function _leaguerunner_queue_notify_worker($params) {
+  drupal_mail('leaguerunner', 'notify', $params['to'], language_default(), $params, $params['from']);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function leaguerunner_mail($key, &$message, $params) {
+  $language = $message['language'];
+  $message['subject'] = $params['subject'];
+  $message['body'][] = $params['message'];
+}
+
+/**
+ * Iplements hook_user_register_form_alter()
+ * Redirect user creation to Leaguerunner if configured
+ */
+function leaguerunner_form_user_register_form_alter(&$form, &$form_state, $form_id) {
+  if(variable_get('leaguerunner_authenticate', 0)) {
+    drupal_goto(variable_get('leaguerunner_user_register', 'leaguerunner/person/create'));
+  }
+}
+
+
+/**
+ * Implements login_block_alter()
+ */
+function leaguerunner_form_user_login_block_alter(&$form, &$form_state) {
+  if(variable_get('leaguerunner_authenticate',0)) {
+    _leaguerunner_login_user_login_form_alter($form, $form_state);
+  }
+}
+
+/**
+ * Implements user_login_alter()
+ */
+function leaguerunner_form_user_login_alter(&$form, &$form_state) {
+  if(variable_get('leaguerunner_authenticate',0)) {
+    // inform user to use Leaguerunner Credentials
+    $form['name']['#description'] = t('Enter your Leaguerunner username.');
+    _leaguerunner_login_user_login_form_alter($form, $form_state);
+  }
+}
+
+/**
+ * Handle authentication injection
+ */
+function _leaguerunner_login_user_login_form_alter(&$form, &$form_state) {
+  // insert our own validator
+  $form['#validate'] = array('user_login_name_validate','_leaguerunner_login_validate','user_login_final_validate');
+}
+
+/**
+* Authenticate against Leaguerunner DB
+*/
+function _leaguerunner_login_validate(&$form, &$form_state) {
+  $username = $form_state['values']['name'];
+  $password = $form_state['values']['pass'];
+
+  if($username == "admin") {
+    // call against Drupal for the admin account
+    user_login_authenticate_validate($form, $form_state);
+  } else {
+    module_load_include('inc', 'leaguerunner');
+    $password_check = _leaguerunner_authentication_check($username, $password);
+
+    if($password_check) {
+      // Password is good, continue with login/register
+      user_external_login_register($username, 'leaguerunner_authentication');
+      $drupalUser = user_external_load($username);
+      $form_state['uid'] = $drupalUser->uid;
+    }
+  }
+}
+
+/**
+ * Implements hook_user_login()
+
+function leaguerunner_user_login(&$edit, $account) {
+  module_load_include('inc', 'leaguerunner');
+  // Find a LR User ID with matching user name
+  $lr_id = _leaguerunner_get_user_id($account->name);
+  if ($lr_id > 0) {
+    // Found a match, set LR session.
+    _leaguerunner_set_session($lr_id, session_id());
+    debug(SID);
+  }
+}
+*/

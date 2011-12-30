@@ -1,5 +1,6 @@
 *~
 *.conf
+*.log
 .buildpath
 .settings/
 .project
@@ -8,3 +9,4 @@ config
 cache
 src/dummy.php
 src/logs/
+drupal/
