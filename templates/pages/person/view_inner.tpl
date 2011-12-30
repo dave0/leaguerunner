@@ -81,7 +81,7 @@
   {if $person->height && session_perm("person/view/`$person->user_id`/height")}
   <tr>
     <td>Height:</td>
-    <td>{math equation=floor(h/12) h=$person->height}' {$person->height%12}"</td>
+    <td>{math equation="floor(h/12)" h=$person->height}' {$person->height%12}"</td>
   </tr>
   {/if}
 
