@@ -69,6 +69,7 @@ class league_edit extends LeagueHandler
 
 		$this->league->set('season', $edit['season']);
 		$this->league->set('roster_deadline', $edit['roster_deadline'] );
+		$this->league->set('min_roster_size', $edit['min_roster_size']);
 		$this->league->set('tier', $edit['tier']);
 		$this->league->set('ratio', $edit['ratio']);
 		$this->league->set('current_round', $edit['current_round']);

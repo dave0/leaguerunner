@@ -5,6 +5,7 @@
 	{if $league->coord_list}<tr><td>Coordinator Email List:</td><td><a href="mailto:{$league->coord_list}">{$league->coord_list}</a></td></tr>{/if}
 	{if $league->capt_list}<tr><td>Captain Email List:</td><td><a href="mailto:{$league->capt_list}">{$league->capt_list}</a></td></tr>{/if}
 	{if $league->roster_deadline}<tr><td>Roster deadline:</td><td>{$league->roster_deadline}</td></tr>{/if}
+	{if $league->min_roster_size}<tr><td>Minimum Roster size:</td><td>{$league->min_roster_size}</td></tr>{/if}
 	<tr><td>Type:</td><td>{$league->schedule_type}</td></tr>
         {if $league->schedule_type != 'none'}
 	        <tr><td>League SBF:</td><td>{$league->calculate_sbf()}</td></tr>
