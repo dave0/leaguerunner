@@ -37,6 +37,9 @@ The following errors were encountered in your submission:
 	<input type="text" maxlength="15" name="edit[roster_deadline]" size="15" value="" id="datepicker" />
 	<div class="description">The date after which teams are no longer allowed to edit their rosters.</div>
 
+<label for="edit[min_roster_size]">Minimum Roster size</label>
+	<input type="text" maxlength="5" name="edit[min_roster_size]" size="5" value="12"/>
+	<div class="description">The minimum number of players required for a team to be considered valid.</div>
 
 <label for="edit[tier]">Tier</label>
 	{html_options name="edit[tier]" options=$tiers}
