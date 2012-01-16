@@ -46,9 +46,9 @@ class team_view extends TeamHandler
 			$player->status = $rosterPositions[$player->status];
 		}
 
-		# TODO: don't hardcode roster requirement number
-		if( $this->team->roster_count < 12 && ($lr_session->is_captain_of($this->team->team_id) || $lr_session->is_admin()) && $this->team->roster_deadline > 0 ) {
-			$this->smarty->assign('roster_requirement', 12);
+		$min_roster = $league->min_roster_size;
+		if( $this->team->roster_count < $min_roster && ($lr_session->is_captain_of($this->team->team_id) || $lr_session->is_admin()) && $this->team->roster_deadline > 0 ) {
+			$this->smarty->assign('roster_requirement', $min_roster);
 			$this->smarty->assign('display_roster_note', true);
 		}
 
