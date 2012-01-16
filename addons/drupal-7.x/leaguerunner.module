@@ -95,7 +95,6 @@ function leaguerunner_username_alter(&$name, $account) {
  */
 function leaguerunner_form_alter(&$form, &$form_state, $form_id) {
   // Alter any node forms.
-  debug(session_name().' = '.session_id());
   if (isset($form['#node']) && $form['#node']->type . '_node_form' == $form_id) {
 
     // Don't add if not configured

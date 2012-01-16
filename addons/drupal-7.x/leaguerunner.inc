@@ -76,9 +76,10 @@ function _leaguerunner_get_user_id($username) {
 function _leaguerunner_get_fullname($username) {
   try {
     db_set_active('leaguerunner');
-    $lr_fullname =  db_query("SELECT CONCAT(firstname, lastname) as fullname FROM {person} WHERE username = :username", array(
+    $result =  db_query("SELECT firstname, lastname FROM {person} WHERE username = :username", array(
       ':username' => $username,
-    ))->fetchField();
+    ))->fetchAssoc();
+    $lr_fullname = $result['firstname'].' '.$result['lastname'];
     db_set_active();
     return $lr_fullname;
   }
