@@ -46,6 +46,7 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
 	</tr>
     {/foreach}
     </tbody>
+    {if $display_rating}
     <tfoot>
         <tr>
         <th colspan="3">Average Skill Rating</th>
@@ -53,6 +54,7 @@ If you have players showing <b>account inactive</b> or <b>request to join by cap
         {if $display_shirts}<th></th>{/if}
         <th></th></tr>
     </tfoot>
+    {/if}
 </table>
 <table>
   {if session_perm("person/view/`$person->user_id`/notes")}
@@ -113,14 +115,16 @@ $(document).ready(function() {
 			{ "sType" : "html" },
 			{ "sType" : "roster-position"  },
 			null,
-{/literal}{if $display_rating}			
+{/literal}{if $display_rating}
 			null,
 {/if}{literal}
 {/literal}{if $display_shirts}
 			null,
 {/if}{literal}
 			{ "sType" : "string" }
-		],
+		]
+{/literal}{if $display_rating}
+{literal},
 		"fnFooterCallback": function ( nRow, aaData, iStart, iEnd, aiDisplay ) {
 			var totalskill = 0;
 			var numplayers = 0;
@@ -133,6 +137,8 @@ $(document).ready(function() {
 			var nCells = nRow.getElementsByTagName('th');
 			nCells[1].innerHTML = (totalskill/numplayers).toFixed(2);
 		}
+{/literal}{/if}
+{literal}
 	} );
 })
 {/literal}

@@ -2,7 +2,7 @@
 /*
  * session_perm ($path)
  * Check permissions of the current session on th egiven path.
- * 
+ *
  * This is intended for use in Smarty {if} tags like so:
  * 	{if session_perm("league/manage teams/`$league->league_id`") }
  * 	...
@@ -346,7 +346,7 @@ function registration_permissions ( &$user, $action, $id, $registration )
 
 	if($action == 'paypal')
 		return true;
-	
+
 	if (!$lr_session || !$lr_session->user)
 		return false;
 
@@ -409,12 +409,12 @@ function team_permissions ( &$user, $action, $id, $data_field )
 		case 'view schedule':
 			return true;
 		case 'edit':
+		case 'player rating':
 		    if( $data_field == 'home_field' ) {
 				return ($user && $user->is_admin());
 			}
 			return ($user && $user->is_captain_of( $id ) );
 		case 'player shirts':
-		case 'player rating':
 			if( $user && $user->coordinates_league_containing( $id ) ) {
 				return true;
 			}
