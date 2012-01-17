@@ -35,8 +35,8 @@ class gmaps_view extends FieldHandler
 		$this->smarty->assign('name',"{$this->field->name} ({$this->field->code}) {$this->field->num}");
 		$this->smarty->assign('address', "{$this->field->location_street}, {$this->field->location_city}");
 		$this->smarty->assign('full_address', "{$this->field->location_street}, {$this->field->location_city}, {$this->field->location_province}");
-		$this->smarty->assign('location_latitude', variable_get('location_latitude'));
-		$this->smarty->assign('location_longitude', variable_get('location_longitude'));
+		$this->smarty->assign('location_latitude', variable_get('location_latitude', 0));
+		$this->smarty->assign('location_longitude', variable_get('location_longitude', 0));
 		foreach ($this->map_vars as $var) {
 			$this->smarty->assign($var, $this->field->{$var});
 		}
