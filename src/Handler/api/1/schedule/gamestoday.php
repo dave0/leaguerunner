@@ -2,6 +2,11 @@
 
 class api_1_schedule_gamestoday extends Handler
 {
+	function checkPrereqs( $op )
+	{
+		return false;
+	}
+
 	function has_permission ()
 	{
 		/* Everyone can view this box */
