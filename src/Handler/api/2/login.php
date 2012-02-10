@@ -45,14 +45,14 @@ class api_2_login extends Handler
 		 */
 		switch( $lr_session->attr_get('status') ) {
 			case 'new':
-				return $this->smarty->assign('error', "Login Denied.  Account creation is awaiting approval.");
+				$this->smarty->assign('error', "Login Denied.  Account creation is awaiting approval.");
+				return;
 			case 'locked':
 				return $this->smarty->assign('error', "Login Denied.  Account has been locked by administrator.");
 			case 'inactive':
-				/// TODO: Need a way for Drupal to redirect to the activation page
-				// local_redirect(url("person/activate"));
-				return $this->smarty->assign('error', "Login Denied.  Account is inactive.");
-				break;
+				$this->smarty->assign('reactivate', 1);
+				$this->smarty->assign('error', "Login Denied.  Account is inactive.");
+				return;
 			case 'active':
 				/* These accounts are active and can continue */
 				$this->template_name = 'api/2/login/success.tpl';
