@@ -23,18 +23,11 @@ class person_edit extends PersonHandler
 		$this->smarty->assign('instructions', "Edit any of the following fields and click 'Submit' when done.");
 		$this->template_name = 'pages/person/edit.tpl';
 
-		$this->generateForm( $edit );
+		$this->generateForm();
 		$this->smarty->assign('person', $this->person);
 
 		if( $edit['step'] == 'perform' ) {
 
-			// Ugh, need to normalize birthdate first
-			if( $edit['birthdate'] && $edit['birthdate'] != "---") {
-				if( variable_get('birth_year_only', 0) ) {
-					# If we're only keeping year, set the month and day to zero
-					$edit['birthdate'] = substr($edit['birthdate'], 0, 4) . '-00-00';
-				}
-			}
 			$errors = $this->check_input_errors( $edit );
 			if(count($errors) > 0) {
 				$this->smarty->assign('edit', $edit);
@@ -253,7 +246,11 @@ class person_edit extends PersonHandler
 		# Birthdate trickery
 		# 1) it may be optional, but if present we still need to validate
 		if( $edit['birthdate'] && $edit['birthdate'] != "---") {
-			if( ! validate_yyyymmdd_input( $edit['birthdate']) ) {
+			$tmp_date = $edit['birthdate'];
+			if( variable_get('birth_year_only', 0) ) {
+				$tmp_date = substr($tmp_date, 0, 4) . '-01-01';
+			}
+			if( ! validate_yyyymmdd_input( $tmp_date) ) {
 				$errors[] = "If you provide the optional birthdate, it must be valid";
 			}
 		} else if( !variable_get('birthdate_optional', 0 ) ) {

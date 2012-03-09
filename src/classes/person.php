@@ -172,7 +172,11 @@ class Person extends LeaguerunnerObject
 			if( empty($this->{$key}) ) {
 				$fields_data[] = null;
 			} else {
-				$fields_data[] = $this->{$key};
+				if( $key == 'birthdate' && variable_get('birth_year_only', 0)) {
+					$fields_data[] = substr($this->{$key}, 0, 4) . '-00-00';
+				} else {
+					$fields_data[] = $this->{$key};
+				}
 			}
 		}
 
