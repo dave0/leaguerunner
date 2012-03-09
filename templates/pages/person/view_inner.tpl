@@ -74,7 +74,7 @@
   {if session_perm("person/view/`$person->user_id`/birthdate")}
   <tr>
     <td>{if variable_get('birth_year_only', 0) }Year{else}Date{/if} of Birth:</td>
-    <td>{$person->birthdate}</td>
+    <td>{if $person->birthdate == '0000' || $person->birthdate == '0000-00-00'}not entered{else}{$person->birthdate}{/if}</td>
   </tr>
   {/if}
 
