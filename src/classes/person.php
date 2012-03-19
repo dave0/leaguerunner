@@ -447,14 +447,15 @@ class Person extends LeaguerunnerObject
 			field f LEFT JOIN field pf ON (pf.fid = f.parent_fid)
 		WHERE
 			l.league_id = s.league_id
+			AND s.published = true
 			AND s.home_team = h.team_id
 			AND s.away_team = a.team_id
 			AND s.game_id = g.game_id
 			AND g.fid = f.fid
 			AND hr.team_id = h.team_id
 			AND ar.team_id = a.team_id
-				AND (hr.player_id = ? OR ar.player_id = ?)
-				AND g.game_date >= CURRENT_DATE()
+			AND (hr.player_id = ? OR ar.player_id = ?)
+			AND g.game_date >= CURRENT_DATE()
 			ORDER BY g.game_date, g.game_start
 			LIMIT $want_num");
 
