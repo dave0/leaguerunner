@@ -52,7 +52,7 @@ function _leaguerunner_set_session($user_id, $sess) {
 }
 
 /**
- * Retrieve LR User ID from given account
+ * Retrieve specific LR user id from given account
  */
 function _leaguerunner_get_user_id($username) {
   try {
@@ -62,6 +62,26 @@ function _leaguerunner_get_user_id($username) {
     ))->fetchField();
     db_set_active();
     return $lr_id;
+  }
+  catch (Exception $e) {
+    watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->getMessage()), WATCHDOG_NOTICE);
+    db_set_active();
+    return false;
+  }
+}
+
+/**
+* Retrieve specific LR user id from given account
+*/
+function _leaguerunner_get_fullname($username) {
+  try {
+    db_set_active('leaguerunner');
+    $result =  db_query("SELECT firstname, lastname FROM {person} WHERE username = :username", array(
+      ':username' => $username,
+    ))->fetchAssoc();
+    $lr_fullname = $result['firstname'].' '.$result['lastname'];
+    db_set_active();
+    return $lr_fullname;
   }
   catch (Exception $e) {
     watchdog('lr-auth', 'Error %error_message.', array('%error_message' => $e->getMessage()), WATCHDOG_NOTICE);

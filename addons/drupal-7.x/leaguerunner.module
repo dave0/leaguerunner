@@ -49,8 +49,47 @@ function leaguerunner_permission() {
   );
 }
 
+/**
+* Implements hook_profile_alter()
+*/
+function leaguerunner_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
+  _leaguerunner_profile_alter($form, $form_state, 'edit');
+}
 
+/**
+ * Implements hook_user_view_alter()
+ */
+function leaguerunner_user_view_alter(&$form, &$form_state, $form_id) {
+  _leaguerunner_profile_alter($form, $form_state, 'view');
+}
 
+/**
+ * Redirect user to LR profiles instead of Drupal to keep Drupal accounts invisible
+ */
+function _leaguerunner_profile_alter(&$form, &$form_state, $task) {
+  // Don't want users editing their own drupal profile, so redirect to LR profile
+  if(variable_get('leaguerunner_authenticate', 0)) {
+    // need to translate the uid to a leaguerunner id for proper redirect
+    module_load_include('inc', 'leaguerunner');
+    $lr_id = _leaguerunner_get_user_id($form['#account']->name);
+    if($lr_id > 0) {
+      drupal_goto('leaguerunner/person/'.$task.'/'.$lr_id);
+    }
+  }
+}
+
+/**
+ * Implements hook_username_alter()
+ */
+function leaguerunner_username_alter(&$name, $account) {
+  if(isset($account->uid)){
+    if(variable_get('leaguerunner_authenticate', 0)) {
+      // need to translate the uid to a leaguerunner id for proper redirect
+      module_load_include('inc', 'leaguerunner');
+      $name = _leaguerunner_get_fullname($account->name);
+    }
+  }
+}
 /**
  * Implements hook_form_alter()
  */
@@ -114,7 +153,7 @@ function leaguerunner_node_insert($node) {
     $from = variable_get('site_mail','Leaguerunner');
 
     db_set_active('leaguerunner');
-    $records = db_query("SELECT email FROM {person}");
+    $records = db_query("SELECT email FROM {person} WHERE class='player' ");
     db_set_active();
 
     foreach($records as $person) {
