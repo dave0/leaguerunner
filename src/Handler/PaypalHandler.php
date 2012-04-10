@@ -260,10 +260,10 @@ class PaypalHandler
 		}
 
 		// has registration been already paid?
-		if ($registration->payment_type == 'Full') {
-			$status = array('status' => false, 'message' =>'Registration '.$order_id.' already paid in full');
-			return $status;
-		}
+		//if ($registration->payment_type == 'Paid') {
+		//	$status = array('status' => false, 'message' =>'Registration '.$order_id.' already paid in full');
+		//	return $status;
+		//}
 
 		// is the registration attached to the correct Event
 		$event = Event::load( array('registration_id' => $registration->registration_id) );
@@ -293,17 +293,21 @@ class PaypalHandler
 		$payment->set('paid_by', $paid_by);
 		$payment->set('date_paid', date("Y-m-d"));
 
-		if( ! $payment->save() ) {
-			$status = array('status'=>false, message=>"Couldn't save payment to database");
-			return $status;
-		}
+		// Save the payment if it's not already stored in the database
+		// It's possible that the IPN payment beats the user PDT return.
+		// Still need to ensure user is informed correctly, while not displaying any errors.
+		if ($registration->payment_type != 'Paid') {
+			if( ! $payment->save() ) {
+				$status = array('status'=>false, message=>"Couldn't save payment to database");
+				return $status;
+			}
 
-		// update registration in question
-		$registration->set('payment', 'Paid');
-		if( ! $registration->save() ) {
-			$status = array('status'=>false, message=>"Internal error: couldn't save changes to registration");
+			// update registration in question
+			$registration->set('payment', 'Paid');
+			if( ! $registration->save() ) {
+				$status = array('status'=>false, message=>"Internal error: couldn't save changes to registration");
+			}
 		}
-
 		// if successful, return the $payment to handle/display to user
 		return array('status' => true, 'message' => $payment);
 	}
