@@ -32,7 +32,7 @@ END;
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
-error_reporting(E_ALL& ~E_NOTICE); // 
+error_reporting(E_ALL& ~E_NOTICE); //
 
 
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
@@ -108,7 +108,7 @@ $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
 $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
 
-$smarty->assign('app_version', '2.8.3');
+$smarty->assign('app_version', '2.8.4');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 $smarty->assign('site_name', 'Sudbury Ultimate Club');
 $smarty->assign('site_slogan', 'All Things SUC');
