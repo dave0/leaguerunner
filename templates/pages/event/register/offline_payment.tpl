@@ -4,7 +4,7 @@
 <p></p>
 <p>
    You are now registered for this event, pending arrival of your registration
-   fee.  Your registration number is <b>{$order_number}</b>
+   fee.  Your registration number is <b><a href="{lr_url path="registration/view/`$order_id`"}">{$order_id_formatted}</a></b>
 </p>
 <p>
 {$offline_payment_text}

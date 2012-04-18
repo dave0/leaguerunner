@@ -160,7 +160,8 @@ class event_register extends EventHandler
 	 */
 	function generatePay()
 	{
-		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
+		$this->smarty->assign('order_id', $this->registration->order_id);
+		$this->smarty->assign('order_id_formatted', $this->registration->formatted_order_id());
 
 		if( $this->event->cost == 0 ) {
 			$this->template_name = 'pages/event/register/done_no_cost.tpl';
