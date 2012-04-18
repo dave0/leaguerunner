@@ -65,7 +65,7 @@ class PaypalHandler
 	}
 
 	function __construct() {
-
+		global $CONFIG;
 		// Default to Sandbox if no value set
 		if (variable_get('paypal_url','true')) {
 			$this->account_email = variable_get('paypal_sandbox_email','');
