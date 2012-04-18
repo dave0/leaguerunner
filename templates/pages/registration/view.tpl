@@ -3,7 +3,9 @@
 <div class='pairtable'><table>
 {include file=pages/registration/components/short_view.tpl registrant=$registrant event=$event reg=$reg}
 </table></div>
+{if session_perm("registration/addpayment/`$reg->order_id`")}
 <form method='POST' action="{lr_url path="registration/addpayment/`$reg->order_id`"}">
+{/if}
 <fieldset>
   <legend>Payment Details</legend>
   <table>
@@ -24,9 +26,12 @@
     <td>{$payment->date_paid|date_format:"%Y-%m-%d"}</td>
     <td>{$payment->payment_method}</td>
     <td><a href="{lr_url path="person/view/`$payment->entered_by`"}">{$payment->entered_by_name()}</a></td>
+{if session_perm("registration/delpayment/`$reg->order_id`")}
     <td><a href="{lr_url path="registration/delpayment/`$reg->order_id`/`$payment->payment_type`"}">[delete]</a></td>
+{/if}
   </tr>
   {/foreach}
+{if session_perm("registration/addpayment/`$reg->order_id`")}
   <tr>
     <td>{html_options name="edit[payment_type]" options=$payment_types}</td>
     <td><input type="text" maxlength="8" name="edit[payment_amount]" size="8" /></td>
@@ -38,7 +43,9 @@
 	<input type="submit" name="submit" value="Submit" />
     </td>
   </tr>
+{/if}
   </table>
+{if session_perm("registration/addpayment/`$reg->order_id`")}
   <div style="font-size: 0.8em">
 When adding payments:
 <ul>
@@ -47,8 +54,11 @@ When adding payments:
   <li><b>Payment Method</b> should contain the payment method (cash, cheque, email transfer) and any relevant details (such as cheque number, transfer reference number, etc)
 </ul>
   </div>
+{/if}
 </fieldset>
+{if session_perm("registration/addpayment/`$reg->order_id`")}
 </form>
+{/if}
 <fieldset>
   <legend>Registration Questionnaire</legend>
   {if $formbuilder_render_viewable}

@@ -5,7 +5,7 @@ class registration_view extends RegistrationHandler
 	function has_permission()
 	{
 		global $lr_session;
-		return $lr_session->has_permission('registration','view', $this->registration->order_id);
+		return $lr_session->has_permission('registration','view', $this->registration->order_id, $this->registration);
 	}
 
 	function process ()

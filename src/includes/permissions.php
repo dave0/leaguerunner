@@ -350,10 +350,19 @@ function registration_permissions ( &$user, $action, $id, $registration )
 	switch( $action )
 	{
 		case 'view':
+			if( $id && is_null($registration) ) {
+				$registration = Registration::load( array( 'order_id' => $id ));
+			}
+			if( ! is_null($registration)
+			    && $lr_session->is_complete() && $registration->user_id == $lr_session->user->user_id) {
+				return 1;
+			}
+			break;
+		case 'viewnotes':
 		case 'edit':
 		case 'addpayment':
 		case 'delpayment':
-			// Only admin can view details or edit
+			// Only admin can edit
 			break;
 		case 'register':
 			// Only admins can register other players

@@ -30,7 +30,9 @@
     <td>Balance Owed:</td>
     <td>${$reg->balance_owed()|string_format:"%.2f"}</td>
   </tr>
+{if session_perm("registration/viewnotes/`$reg->order_id`")}
   <tr>
     <td>Notes:</td>
     <td>{$reg->notes}</td>
   </tr>
+{/if}
