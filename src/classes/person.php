@@ -1,4 +1,8 @@
 <?php
+
+// TODO: This belongs as a config option
+$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
+
 class Person extends LeaguerunnerObject
 {
 	var $user_id;
@@ -299,6 +303,26 @@ class Person extends LeaguerunnerObject
 	function is_active()
 	{
 		return( $this->status == 'active' );
+	}
+
+	function is_waiver_current()
+	{
+		global $maxTimeBetweenSignings;
+		if( ! $this->is_player() ) {
+			return TRUE;
+		}
+		$time = $this->waiver_timestamp;
+		return !( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings));
+	}
+
+	function is_dog_waiver_current()
+	{
+		global $maxTimeBetweenSignings;
+		if ($this->has_dog != 'Y') {
+			return TRUE;
+		}
+		$time = $this->dog_waiver_timestamp;
+		return !( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings));
 	}
 
 	function has_position_on( $team_id, $wanted_positions )

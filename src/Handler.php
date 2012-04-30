@@ -53,18 +53,12 @@ class Handler
 			return false;
 		}
 
-		// TODO: This belongs as a config option
-		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
-
 		if( $lr_session->is_player() ) {
-			$time = $lr_session->attr_get('waiver_timestamp');
-			if( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings)) {
+			if( ! $lr_session->user->is_waiver_current() ) {
 				return url("person/signwaiver","next=$next");
 			}
 
-			$time = $lr_session->attr_get('dog_waiver_timestamp');
-			if(($lr_session->attr_get('has_dog') =='Y') 
-				&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
+			if( ! $lr_session->user->is_dog_waiver_current() ) {
 				return url("person/signdogwaiver","next=$next");
 			}
 

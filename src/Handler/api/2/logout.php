@@ -18,7 +18,6 @@ class api_2_logout extends logout
 	function process ()
 	{
 		global $lr_session;
-		user_error('processing logout');
 		$lr_session->expire();
 		$this->template_name = 'api/2/logout/success.tpl';
 		return true;

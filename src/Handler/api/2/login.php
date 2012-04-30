@@ -54,6 +54,16 @@ class api_2_login extends Handler
 				$this->smarty->assign('error', "Login Denied.  Account is inactive.");
 				return;
 			case 'active':
+				if( ! $lr_session->user->is_waiver_current() ) {
+					$this->smarty->assign('needwaiver', 1);
+					$this->smarty->assign('error', "Login Denied.  You must agree to the player waiver first.");
+					return;
+				}
+
+				if( ! $lr_session->user->is_dog_waiver_current() ) {
+					$this->smarty->assign('needdogwaiver', 1);
+					$this->smarty->assign('error', "Login Denied.  You must agree to the dog waiver first.");
+				}
 				/* These accounts are active and can continue */
 				$this->template_name = 'api/2/login/success.tpl';
 				$this->smarty->assign('user', $lr_session->user);
