@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 30;
+my $LATEST_SCHEMA = 31;
 
 my @TABLES = (
 	'person' => [q{
@@ -2096,4 +2096,21 @@ sub upgrade_29_to_30
 		},
 		]
 	]);
-1;
+}
+
+sub upgrade_30_to_31
+{
+	my ($self) = @_;
+	$self->_run_sql([
+		reg_prereq => [
+		q{
+			CREATE TABLE registration_prerequisites (
+				registration_id INTEGER NOT NULL,
+				league_id INTEGER NOT NULL,
+  				PRIMARY KEY (registration_id,league_id),
+  				KEY league_id (league_id)
+			);
+		},
+		]
+	]);
+}

@@ -12,6 +12,16 @@
                 {/strip}
                 </td>
         </tr>
+	{if !empty($league->events)}
+		<tr>
+			<td>Registration Events:</td>
+			<td>
+			{foreach from=$league->events key=k item=r}
+			<a href="{lr_url path="event/view/`$k`"}">{$r}</a><br />
+			{/foreach}
+			</td>
+		</tr>
+	{/if}
 	{if $league->schedule_type == 'roundrobin'}<tr><td>Current Round:</td><td>{$league->current_round}</td></tr>{/if}
 	<tr><td>Status:</td><td>{$league->status}</td></tr>
 	<tr><td>Season:</td><td><a href="{lr_url path="season/view/`$league->season`"}">{$league->season_name}</a></td></tr>

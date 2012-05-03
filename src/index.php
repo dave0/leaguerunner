@@ -113,6 +113,8 @@ $smarty->assign('base_url', $CONFIG['paths']['base_url']);
 $smarty->assign('site_name', 'Sudbury Ultimate Club');
 $smarty->assign('site_slogan', 'All Things SUC');
 
+// NOTE: Testing Only, MUST BE REMOVED for Production
+$smarty->force_compile = true;
 
 require_once("classes/lrobject.php");
 require_once("classes/field.php");

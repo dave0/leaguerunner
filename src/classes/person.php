@@ -46,7 +46,7 @@ class Person extends LeaguerunnerObject
 	/*
 	 * Load related tables, and perform some post-load cleanups
 	 */
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
 		global $dbh;
 
@@ -68,7 +68,7 @@ class Person extends LeaguerunnerObject
 
 		/* Now fetch team info */
 		$sth = $dbh->prepare(
-			"SELECT 
+			"SELECT
 				r.status AS position,
 				r.team_id,
 				t.name,
@@ -77,16 +77,16 @@ class Person extends LeaguerunnerObject
 				l.season,
 				l.day,
 				l.status AS league_status
-			FROM 
-				teamroster r 
+			FROM
+				teamroster r
 				INNER JOIN team t ON (r.team_id = t.team_id)
 				INNER JOIN leagueteams lt ON (lt.team_id = t.team_id)
 				INNER JOIN league l ON (lt.league_id = l.league_id)
-			WHERE 
+			WHERE
 				r.player_id = ?
 			ORDER BY
 				l.season DESC, l.day");
-	
+
 		$sth->setFetchMode(PDO::FETCH_CLASS, 'Team', array(LOAD_OBJECT_ONLY));
 		$sth->execute(array($this->user_id));
 
@@ -104,8 +104,8 @@ class Person extends LeaguerunnerObject
 		 * which makes this recursively painful.
 		 */
 		$sth = $dbh->prepare(
-			"SELECT 
-				l.league_id, 
+			"SELECT
+				l.league_id,
 				l.name,
 				l.tier,
 				l.season,
@@ -114,7 +114,7 @@ class Person extends LeaguerunnerObject
 				l.status AS league_status,
 				m.status
 			FROM
-			 	leaguemembers m 
+			 	leaguemembers m
 				INNER JOIN league l ON (m.league_id = l.league_id)
 			WHERE
 				m.status = 'coordinator'
@@ -269,8 +269,8 @@ class Person extends LeaguerunnerObject
 		return $this->set('member_id', 21000000 + $this->user_id);
 	}
 
-	/* 
-	 * Check functions 
+	/*
+	 * Check functions
 	 */
 
 	function is_admin()
@@ -342,6 +342,49 @@ class Person extends LeaguerunnerObject
 
 		return $this->is_coordinator_of( $league->league_id );
 	}
+
+	/**
+	 *
+	 * Checks if $this player has registered for all prerequisites for a given team in a league
+	 * @param integer $team_id ID of Team to test eligibility
+	 * @return mixed true or array of registration_events that the player must sign up for
+	 */
+	function is_eligible_for($team_id)
+	{
+		global $dbh;
+		$query = array();
+		$params = array();
+		$events = array();
+		$sth = $dbh->prepare('SELECT league_id FROM leagueteams WHERE team_id = ?');
+		$sth->execute(array($team_id));
+		$league = $sth->fetchObject('League');
+
+		// check if player has registered for necessary events
+		// $query will contain registration_event ids
+		foreach ($league->events as $key=>$value) {
+			$query[$key] = $value;
+		}
+
+		$sth = $dbh->prepare("SELECT
+			e.registration_id AS id, e.payment AS payment
+			FROM registrations e
+			WHERE e.user_id = ?
+			AND e.registration_id IN (".implode(', ', array_keys($query)).")");
+		$sth->execute(array($this->user_id));
+
+		// If matching entries are found, remove  from $query list
+		// as the player has registered for the events in question
+		while($row = $sth->fetch()) {
+			if(array_key_exists($row['id'],$query)) {
+				unset($query[$row['id']]);
+			}
+		}
+
+		// If the query list still contains registration_ids, then the player
+		// is not eligible for the team
+		return $empty = empty($query) ? true : $query;
+	}
+
 
 	function find_duplicates ( )
 	{
