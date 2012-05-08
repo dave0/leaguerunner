@@ -17,7 +17,7 @@
 		</div> <!-- end container wrapper -->
 
 		<div id="footer">
-			<i>Powered by <a href="http://wiki.github.com/h07r0d/leaguerunner/">Leaguerunner</a>, version {$app_version}</i>
+			<i>Powered by <a href="https://github.com/h07r0d/leaguerunner/wiki">Leaguerunner</a>, SUC'd version {$app_version}</i>
 		</div> <!-- end footer -->
 
 	</div> <!-- end page wrapper -->
