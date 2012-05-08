@@ -10,3 +10,5 @@ cache
 src/dummy.php
 src/logs/
 drupal/
+
+.DS_Store
