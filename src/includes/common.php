@@ -335,7 +335,7 @@ function format_street_address( $street, $city, $province, $country, $postalcode
 	$foo =  "$street<br />\n" . join (', ', $arr) . "<br />\n$postalcode";
 	$prov_abbr = substr($province,0,2);
 	$street_uri = strtr($street, array(' ' => '+'));
-	$foo .= "<br />[&nbsp;<a href=\"http://maps.google.com?q=$street_uri,+$city,+$province&hl=en\">maps.google.com</a>&nbsp;|&nbsp;<a href=\"http://www.mapquest.com/maps/map.adp?country=ca&zoom=7&city=$city&state=$prov_abbr&address=$street_uri\">MapQuest</a>&nbsp;]";
+	$foo .= "<br />[&nbsp;<a target=\"_blank\" href=\"http://maps.google.com?q=$street_uri,+$city,+$province&hl=en\">maps.google.com</a>&nbsp;|&nbsp;<a target=\"_blank\" href=\"http://www.mapquest.com/maps/map.adp?zoom=7&city=$city&state=$prov_abbr&address=$street_uri\">MapQuest</a>&nbsp;]";
 	return $foo;
 }
 
@@ -897,8 +897,15 @@ function generate_password()
 function getProvinceNames()
 {
 	$names = array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon');
+	$names2 = array('Alabama','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','District of Columbia','Florida','Georgia','Guam','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Northern Marianas Islands','Ohio','Oklahoma','Oregon','Pennsylvania','Puerto Rico','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Virgin Islands','Washington','West Virginia','Wisconsin','Wyoming');
+
 	$ary = array();
+	sort($names);
 	while(list(,$name) = each($names)) {
+		$ary[$name] = $name;
+	}
+	sort($names2);
+	while(list(,$name) = each($names2)) {
 		$ary[$name] = $name;
 	}
 	return $ary;
@@ -1101,7 +1108,7 @@ function local_sunset_for_date( $timestamp )
 /**
  * Message text for account-related emails
  */
-function _person_mail_text($messagetype, $variables = array() ) 
+function _person_mail_text($messagetype, $variables = array() )
 {
 	// Check if the default has been overridden by the DB
 	if( $override = variable_get('person_mail_' . $messagetype, false) ) {
