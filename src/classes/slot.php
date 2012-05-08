@@ -8,7 +8,7 @@ class GameSlot extends LeaguerunnerObject
 		global $dbh;
 		$sth = $dbh->prepare('SELECT league_id from league_gameslot_availability WHERE slot_id = ?');
 		$sth->execute(array($this->slot_id));
-		$leagues = array();
+		$this->leagues = array();
 		while( $league = $sth->fetch(PDO::FETCH_OBJ) ) {
 			$league->league_status = 'loaded';
 			$this->leagues[$league->league_id] = $league;
