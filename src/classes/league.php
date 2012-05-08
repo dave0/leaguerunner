@@ -332,7 +332,7 @@ class League extends LeaguerunnerObject
 
 		// Execute same process for registration events
 		$add_sth = $dbh->prepare('INSERT INTO registration_prerequisites (registration_id, league_id) VALUES (?,?)');
-		$del_sth = $dbh->prepare('DELETE FROM registration_prerequisites WHERE league_id = ? AND registration_id = ?');
+		$del_sth = $dbh->prepare('DELETE FROM registration_prerequisites WHERE registration_id = ? AND league_id = ?');
 		foreach( $this->events as $event => $name ) {
 			switch( $name ) {
 				case "add":
@@ -347,7 +347,7 @@ class League extends LeaguerunnerObject
 					break;
 			}
 		}
-
+		reset($this->events);
 
 		unset($this->_modified_fields);
 		return true;

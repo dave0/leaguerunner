@@ -81,9 +81,9 @@ class league_edit extends LeagueHandler
 			}
 		}
 		// loop against $edit a second time to check for registration additions
-		foreach ($edit['events'] as $key=>$value) {
-			if (! in_array($key, $this->league->events)) {
-				$this->league->events[$key] = "add";
+		foreach ($edit['events'] as $index=>$value) {
+			if (! in_array_keys($value, $this->league->events)) {
+				$this->league->events[$value] = "add";
 			}
 		}
 
