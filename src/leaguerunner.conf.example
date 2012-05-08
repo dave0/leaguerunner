@@ -21,9 +21,9 @@ password = password
 ; It's used to construct URLs, but please do not prefix it with http://hostname/
 base_url = "/leaguerunner"
 
-; How to find files on the local system.  This should be the path to the ;
-directory containing Leaguerunner, so that files in data/ can be loaded, for
-example.
+; How to find files on the local system.  This should be the path to the
+; directory containing Leaguerunner, so that files in data/ can be loaded, for
+; example.
 file_path = "./"
 
 [smarty]

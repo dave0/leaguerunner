@@ -3,7 +3,7 @@ require_once('Handler/field/edit.php');
 
 class field_create extends field_edit
 {
-	function __construct ( $id )
+	function __construct ( )
 	{
 	}
 
