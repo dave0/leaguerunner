@@ -39,7 +39,7 @@ class Person extends LeaguerunnerObject
 	var $last_login;
 	var $client_ip;
 
-        var $is_a_coordinator;
+	var $is_a_coordinator;
 
 	var $notes;
 

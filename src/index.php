@@ -254,8 +254,11 @@ function error_exit($error = NULL, $options = array())
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
-	$log->logError($error);
-	$log->logDebug(print_r(debug_backtrace(), true));
+	if(isset($log))
+	{
+		$log->logError($error);
+		$log->logDebug(print_r(debug_backtrace(), true));
+	}
 	$smarty->assign('error', $error);
 	$smarty->display('error.tpl');
 	exit;
