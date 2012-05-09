@@ -129,7 +129,7 @@ class FillInFormHelper
 	 * @param string $attribute E.g. "name" or "value" or "width"
 	 * @return string|false Returns value of attribute (or false)
 	 */
-	function getAttributeVal($tag, $attribute)
+	static function getAttributeVal($tag, $attribute)
 	{
 		$matches = array();
 		// This regular expression matches attribute="value" or
@@ -342,7 +342,7 @@ class FillInFormHelper
 		$valueAfter = $matches[2]; // Potential value (stuff after option tag)
 		$val = FillInFormHelper::getAttributeVal($tag, "value");
 		if (false === $val) { $val = trim($valueAfter); }
-		if (in_array($val, $this->selectVals)) {
+		if ( (in_array($val, $this->selectVals)) || array_key_exists($val, $this->selectVals) ) {
 			return $this->replaceAttributeVal($tag, 'selected', 'selected').$valueAfter;
 		} else {
 			return $this->replaceAttributeVal($tag, 'selected', null).$valueAfter;

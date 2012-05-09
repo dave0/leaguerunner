@@ -21,7 +21,7 @@ class league_edit extends LeagueHandler
 
 		// If Registrations are enabled, assign required events to the league
 		if(variable_get('registration','')) {
-			$this->smarty->assign('events', getOptionsFromQuery(
+			$this->smarty->assign('allevents', getOptionsFromQuery(
 				"SELECT registration_id AS theKey, name AS theValue FROM registration_events e ".
 				"WHERE e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()")
 			);
@@ -73,6 +73,19 @@ class league_edit extends LeagueHandler
 			$edit['day'] = join(",",$edit['day']);
 		}
 		$this->league->set('day', $edit['day']);
+
+		// Have any registration events been deleted?
+		foreach ($this->league->events as $key => $value) {
+			if (! in_array($key, $edit['events'])) {
+				$this->league->events[$key] ="delete";
+			}
+		}
+		// loop against $edit a second time to check for registration additions
+		foreach ($edit['events'] as $index=>$value) {
+			if (! in_array_keys($value, $this->league->events)) {
+				$this->league->events[$value] = "add";
+			}
+		}
 
 		$this->league->set('season', $edit['season']);
 		$this->league->set('roster_deadline', $edit['roster_deadline'] );

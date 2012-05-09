@@ -47,7 +47,7 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
-	 *
+	 * Pull linked Registration Events into the League Object
 	 */
 	function load_events()
 	{
@@ -303,7 +303,7 @@ class League extends LeaguerunnerObject
 				. join(', ', $fields)
 				. ' WHERE league_id = ?');
 
-			$sth->execute( $fields_data );
+			$test = $sth->execute( $fields_data );
 
 			if($sth->rowCount() < 1) {
 				$err = $sth->errorInfo();
@@ -329,6 +329,25 @@ class League extends LeaguerunnerObject
 			}
 		}
 		reset($this->coordinators);
+
+		// Execute same process for registration events
+		$add_sth = $dbh->prepare('INSERT INTO registration_prerequisites (registration_id, league_id) VALUES (?,?)');
+		$del_sth = $dbh->prepare('DELETE FROM registration_prerequisites WHERE registration_id = ? AND league_id = ?');
+		foreach( $this->events as $event => $name ) {
+			switch( $name ) {
+				case "add":
+					$add_sth->execute( array($event, $this->league_id) );
+					break;
+				case "delete":
+					$del_sth->execute( array($event, $this->league_id));
+					unset($this->events[$event]);
+					break;
+				default:
+					# Skip if not add or delete.
+					break;
+			}
+		}
+		reset($this->events);
 
 		unset($this->_modified_fields);
 		return true;
