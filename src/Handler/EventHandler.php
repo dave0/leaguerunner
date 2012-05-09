@@ -26,5 +26,12 @@ class EventHandler extends Handler
 
 		event_add_to_menu( $this->event );
 	}
+
+	// Players required to register for an event to join a team should be allowed to
+	// register, even if force_roster_requests are turned on.
+	function checkPrereqs()
+	{
+		return false;
+	}
 }
 ?>

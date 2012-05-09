@@ -4,12 +4,14 @@ class League extends LeaguerunnerObject
 	var $_teams_loaded;
 	var $coordinators;
 	var $teams;
+	var $events;
 
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
 		$this->_teams_loaded = false;
 		$this->coordinators = array();
 		$this->teams = array();
+		$this->events = array();
 
 		/* set derived attributes */
 		if($this->tier) {
@@ -23,11 +25,12 @@ class League extends LeaguerunnerObject
 		}
 
 		$this->load_coordinators();
+		$this->load_events();
 
 		return true;
 	}
 
-	function load_coordinators() 
+	function load_coordinators()
 	{
 		global $dbh;
 
@@ -42,6 +45,25 @@ class League extends LeaguerunnerObject
 			$this->coordinators[$c->user_id] = $c;
 		}
 	}
+
+	/**
+	 * Pull linked Registration Events into the League Object
+	 */
+	function load_events()
+	{
+		global $dbh;
+		$sth = $dbh->prepare("SELECT
+			 r.registration_id AS id, e.name AS name
+			 FROM registration_prerequisites r
+			 INNER JOIN registration_events e ON (r.registration_id = e.registration_id)
+			 WHERE r.league_id = ?");
+		$sth->execute(array($this->league_id));
+
+		while($row = $sth->fetch()) {
+			$this->events[$row['id']] = $row['name'];
+		}
+	}
+
 
 	function get_captains()
 	{
@@ -69,11 +91,11 @@ class League extends LeaguerunnerObject
 	}
 
 	/**
-	* Check if this league contains a particular team.  There are 
+	* Check if this league contains a particular team.  There are
 	* two modes of operation, to take advantage of team data if we
 	* already have it.
 	*/
-	function contains_team( $team_id ) 
+	function contains_team( $team_id )
 	{
 		global $dbh;
 		if($this->_teams_loaded) {
@@ -128,7 +150,7 @@ class League extends LeaguerunnerObject
 	/**
 	* Return true if this league has had any games scheduled.
 	*/
-	function has_schedule() 
+	function has_schedule()
 	{
 		global $dbh;
 		$sth = $dbh->prepare('SELECT COUNT(*) from schedule where league_id = ?');
@@ -136,7 +158,7 @@ class League extends LeaguerunnerObject
 		return ($sth->fetchColumn() > 0);
 	}
 
-	/** 
+	/**
 	* Return array of rounds, suitable for use in pulldown
 	* For now, this is just a braindead list, but in future, it
 	* will have playoff semis/quarters/finals available
@@ -207,7 +229,7 @@ class League extends LeaguerunnerObject
 				schedule s,
 				gameslot g
 			WHERE
-				s.league_id = ? 
+				s.league_id = ?
 			AND
 				g.game_id = s.game_id
 			AND
@@ -281,7 +303,7 @@ class League extends LeaguerunnerObject
 				. join(', ', $fields)
 				. ' WHERE league_id = ?');
 
-			$sth->execute( $fields_data );
+			$test = $sth->execute( $fields_data );
 
 			if($sth->rowCount() < 1) {
 				$err = $sth->errorInfo();
@@ -297,7 +319,7 @@ class League extends LeaguerunnerObject
 					$add_sth->execute( array($this->league_id, $coord->user_id, 'coordinator') );
 					$this->coordinators[$coord->user_id]->coordinator_status = 'loaded';
 					break;
-				case 'delete':	
+				case 'delete':
 					$del_sth->execute( array($this->league_id, $coord->user_id ));
 					unset($this->coordinators[$coord->user_id]);
 					break;
@@ -307,6 +329,25 @@ class League extends LeaguerunnerObject
 			}
 		}
 		reset($this->coordinators);
+
+		// Execute same process for registration events
+		$add_sth = $dbh->prepare('INSERT INTO registration_prerequisites (registration_id, league_id) VALUES (?,?)');
+		$del_sth = $dbh->prepare('DELETE FROM registration_prerequisites WHERE registration_id = ? AND league_id = ?');
+		foreach( $this->events as $event => $name ) {
+			switch( $name ) {
+				case "add":
+					$add_sth->execute( array($event, $this->league_id) );
+					break;
+				case "delete":
+					$del_sth->execute( array($event, $this->league_id));
+					unset($this->events[$event]);
+					break;
+				default:
+					# Skip if not add or delete.
+					break;
+			}
+		}
+		reset($this->events);
 
 		unset($this->_modified_fields);
 		return true;
@@ -390,21 +431,21 @@ class League extends LeaguerunnerObject
 	function get_gameslots( $timestamp )
 	{
 		global $dbh;
-		$sth = $dbh->prepare("SELECT 
+		$sth = $dbh->prepare("SELECT
 			s.slot_id AS slot_id,
-			IF( f.parent_fid, 
+			IF( f.parent_fid,
 				CONCAT_WS(' ', s.game_start, p.name, f.num),
 				CONCAT_WS(' ', s.game_start, f.name, f.num)
 			) AS value
-			FROM gameslot s 
-				INNER JOIN field f ON (s.fid = f.fid) 
-				LEFT JOIN field p ON (p.fid = f.parent_fid) 
+			FROM gameslot s
+				INNER JOIN field f ON (s.fid = f.fid)
+				LEFT JOIN field p ON (p.fid = f.parent_fid)
 				LEFT JOIN league_gameslot_availability a ON (s.slot_id = a.slot_id)
-				LEFT JOIN schedule g ON (s.game_id = g.game_id) 
-			WHERE 
+				LEFT JOIN schedule g ON (s.game_id = g.game_id)
+			WHERE
 				UNIX_TIMESTAMP(s.game_date) = :timestamp
-				AND ( 
-					(a.league_id=:league_id AND ISNULL(s.game_id)) 
+				AND (
+					(a.league_id=:league_id AND ISNULL(s.game_id))
 					OR
 					g.league_id=:league_id
 				)
@@ -507,10 +548,10 @@ class League extends LeaguerunnerObject
 			}
 		}
 
-		/* HACK: Before we sort everything, we've gotta copy the 
-		 * $season's spirit and games values into the $round array 
-		 * because otherwise, in any round after the first we're 
-		 * only sorting on the spirit scores received in the current 
+		/* HACK: Before we sort everything, we've gotta copy the
+		 * $season's spirit and games values into the $round array
+		 * because otherwise, in any round after the first we're
+		 * only sorting on the spirit scores received in the current
 		 * round.
 		 */
 		if( $current_round ) {
@@ -646,7 +687,7 @@ class League extends LeaguerunnerObject
 	* 5- GOALS FOR
 	* 6- RANDOM (team id)
 	**/
-	function standings_sort_rating_ladder (&$a, &$b) 
+	function standings_sort_rating_ladder (&$a, &$b)
 	{
 		/* Check Rating */
 		if ($a->rating != $b->rating) {
@@ -687,7 +728,7 @@ class League extends LeaguerunnerObject
 		return ($a->team_id < $b->team_id) ? -1 : 1;
 	}
 
-	function standings_sort_bywinloss (&$a, &$b) 
+	function standings_sort_bywinloss (&$a, &$b)
 	{
 		/* First, order by wins */
 		$b_points = (( 2 * $b->win ) + $b->tie);
@@ -723,7 +764,7 @@ class League extends LeaguerunnerObject
 			return -1;
 		}
 
-		/* 
+		/*
 		* Finally, check losses.  This ensures that teams with no record
 		* appear above teams who have losses.
 		*/
@@ -962,7 +1003,7 @@ class League extends LeaguerunnerObject
 			return array($rc, $message);
 		}
 		list($rc, $message) = $this->create_full_roundrobin($datestamp, $bottom_half, $should_publish);
-		if( !$rc ) { 
+		if( !$rc ) {
 			return array($rc, $message);
 		}
 
@@ -1468,7 +1509,7 @@ class League extends LeaguerunnerObject
 		if ($this->schedule_type == 'ratings_ladder' || $this->schedule_type == 'ratings_wager_ladder' ) {
 			uasort($this->teams, array($this, 'standings_sort_rating_ladder'));
 		} else {
-			uasort($this->teams, array($this, 'standings_sort_bywinloss'));	
+			uasort($this->teams, array($this, 'standings_sort_bywinloss'));
 		}
 	}
 
@@ -1627,7 +1668,7 @@ function rotate_all_except_first ( $ary )
 	return $result;
 }
 
-/** 
+/**
  * Sort teams by rating, and then by average skill as tiebreaker
  */
 function teams_sort_rating(&$a, &$b)

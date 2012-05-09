@@ -17,8 +17,15 @@ class league_edit extends LeagueHandler
 	function process ()
 	{
 		$edit = &$_POST['edit'];
-
 		$this->template_name = 'pages/league/edit.tpl';
+
+		// If Registrations are enabled, assign required events to the league
+		if(variable_get('registration','')) {
+			$this->smarty->assign('allevents', getOptionsFromQuery(
+				"SELECT registration_id AS theKey, name AS theValue FROM registration_events e ".
+				"WHERE e.open < DATE_ADD(NOW(), INTERVAL 1 WEEK) AND e.close > NOW()")
+			);
+		}
 
 		$this->smarty->assign('status',  getOptionsFromEnum('league','status') );
 		$this->smarty->assign('seasons', getOptionsFromQuery(
@@ -49,8 +56,8 @@ class league_edit extends LeagueHandler
 
 		} else {
 			/* Deal with multiple days and start times */
-			if(strpos($league->day, ",")) {
-				$league->day = explode(',',$league->day);
+			if(strpos($this->league->day, ",")) {
+				$this->league->day = explode(',',$this->league->day);
 			}
 			$this->smarty->assign('edit', (array)$this->league);
 		}
@@ -66,6 +73,19 @@ class league_edit extends LeagueHandler
 			$edit['day'] = join(",",$edit['day']);
 		}
 		$this->league->set('day', $edit['day']);
+
+		// Have any registration events been deleted?
+		foreach ($this->league->events as $key => $value) {
+			if (! in_array($key, $edit['events'])) {
+				$this->league->events[$key] ="delete";
+			}
+		}
+		// loop against $edit a second time to check for registration additions
+		foreach ($edit['events'] as $index=>$value) {
+			if (! array_key_exists($value, $this->league->events)) {
+				$this->league->events[$value] = "add";
+			}
+		}
 
 		$this->league->set('season', $edit['season']);
 		$this->league->set('roster_deadline', $edit['roster_deadline'] );

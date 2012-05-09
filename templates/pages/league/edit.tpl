@@ -29,6 +29,12 @@ The following errors were encountered in your submission:
 <label for="edit[season]">Season</label>
 	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'Ongoing' for administrative groupings and comp teams.</div>
 
+{if $allevents}
+<label for="edit[events][]">Registration Events</label>
+	<select name="edit[events][]" multiple >{html_options options=$allevents}</select>
+	<div class="description">Select all required Registration Events a player must sign up for to be eligible to play in this league.</div>
+{/if}
+
 <label for="edit[day][]">Day(s) of play</label>
 	<select name="edit[day][]" multiple >{html_options options=$days}</select>
 	<div class="description">Day, or days, on which this league will play.</div>
