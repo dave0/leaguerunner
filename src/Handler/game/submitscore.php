@@ -209,7 +209,6 @@ class game_submitscore extends GameHandler
 			$this->smarty->assign('next_step', 'spirit');
 		}
 
-		# TODO: smartyification
 		$this->smarty->assign('interim_game_result', $this->interim_game_result($edit, $opponent));
 		$this->smarty->assign('league_name', variable_get('app_org_short_name', 'the league'));
 		$this->smarty->assign('hidden_fields', $edit);
