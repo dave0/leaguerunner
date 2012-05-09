@@ -46,7 +46,7 @@ try {
 	$dbh = new PDO($CONFIG['database']['dsn'], $CONFIG['database']['username'], $CONFIG['database']['password'],
 	array(
 		PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
-		PDO::MYSQL_ATTR_FOUND_ROWS => true,
+		PDO::MYSQL_ATTR_FOUND_ROWS => true,	// PHP 5.3
 		PDO::ATTR_EMULATE_PREPARES         => true,
 	)
 	);
