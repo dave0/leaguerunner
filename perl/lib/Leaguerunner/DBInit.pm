@@ -403,6 +403,17 @@ my @TABLES = (
 			akey varchar(255) default NULL,
 			PRIMARY KEY  (order_id,qkey)
 		);
+	},
+	q{
+		DROP TABLE IF EXISTS registration_prerequisites;
+	},
+	q{
+		CREATE TABLE registration_prerequisites (
+			registration_id INTEGER NOT NULL,
+			league_id INTEGER NOT NULL,
+			PRIMARY KEY (registration_id,league_id),
+			KEY league_id (league_id)
+		);
 	}],
 
 	'field_report' => [
