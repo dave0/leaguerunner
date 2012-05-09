@@ -108,13 +108,13 @@ $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
 $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
 
-$smarty->assign('app_version', '2.8.4');
+$smarty->assign('app_version', '2.8.5');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
-$smarty->assign('site_name', 'Sudbury Ultimate Club');
-$smarty->assign('site_slogan', 'All Things SUC');
+$smarty->assign('site_name', 'Your Ultimate Club');
+$smarty->assign('site_slogan', 'Slogan about Your Ultimate Club');
 
-// NOTE: Testing Only, MUST BE REMOVED for Production
-$smarty->force_compile = true;
+//TODO NOTE: Testing Only, MUST BE REMOVED for Production
+//$smarty->force_compile = true;
 
 require_once("classes/lrobject.php");
 require_once("classes/field.php");
