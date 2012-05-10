@@ -53,8 +53,8 @@ class Handler
 			return false;
 		}
 
-		// TODO: This belongs as a config option
-		$maxTimeBetweenSignings = 60 * 60 * 24 * 365;
+		// Time between signings modified by number of days selected in global options
+		$maxTimeBetweenSignings = 60 * 60 * 24 * variable_get('days_between_waiver', 365);
 
 		if( $lr_session->is_player() ) {
 			$time = $lr_session->attr_get('waiver_timestamp');
@@ -63,7 +63,7 @@ class Handler
 			}
 
 			$time = $lr_session->attr_get('dog_waiver_timestamp');
-			if(($lr_session->attr_get('has_dog') =='Y') 
+			if(($lr_session->attr_get('has_dog') =='Y')
 				&& ( is_null($time) || ((time() - $time) >= $maxTimeBetweenSignings) )) {
 				return url("person/signdogwaiver","next=$next");
 			}
@@ -85,11 +85,11 @@ class Handler
 	 * Returns true/false indicating success/failure.
 	 *
 	 * This must be overridden by subclasses.
-	 * 
+	 *
 	 * @access public
 	 * @return boolean 	Permission success/fail
 	 */
-	function has_permission() 
+	function has_permission()
 	{
 		global $lr_session;
 
@@ -100,9 +100,9 @@ class Handler
 	 * Process this operation
 	 *
 	 * This must be overridden by the subclass.
-	 * 
+	 *
 	 * @access public
-	 * 
+	 *
 	 */
 	function process ()
 	{
