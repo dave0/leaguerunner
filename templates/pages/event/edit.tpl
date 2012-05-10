@@ -69,11 +69,11 @@ The following errors were encountered in your submission:
 	<div class="description">The time at which registration will close.</div>
 
 <label for="edit[cap_male]">Male cap</label>
-	<input id="edit[cap_male]" type="text" maxlength="10" name="edit[cap_male]" size="10" value="" />
+	<input id="edit[cap_male]" type="text" maxlength="10" name="edit[cap_male]" size="10" value="-1" />
 	<div class="description">Number of male players allowed (if individual registration).  Use -1 for no limit.</div>
 
 <label for="edit[cap_female]">Female cap</label>
-	<input id="edit[cap_female]" type="text" maxlength="10" name="edit[cap_female]" size="10" value="" />
+	<input id="edit[cap_female]" type="text" maxlength="10" name="edit[cap_female]" size="10" value="-1" />
 	<div class="description">Number of female players allowed (if individual registration).  Use -1 for no limit, -2 to use male cap as a combined limit for both genders.</div>
 
 <label for="edit[multiple]">Allow multiple registrations</label>
