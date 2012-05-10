@@ -74,16 +74,21 @@ class league_edit extends LeagueHandler
 		}
 		$this->league->set('day', $edit['day']);
 
-		// Have any registration events been deleted?
-		foreach ($this->league->events as $key => $value) {
-			if (! in_array($key, $edit['events'])) {
-				$this->league->events[$key] ="delete";
+		if(is_array($this->league->events)) {
+			// Have any registration events been deleted?
+			foreach ($this->league->events as $key => $value) {
+				if (! in_array($key, $edit['events'])) {
+					$this->league->events[$key] ="delete";
+				}
 			}
 		}
-		// loop against $edit a second time to check for registration additions
-		foreach ($edit['events'] as $index=>$value) {
-			if (! in_array_keys($value, $this->league->events)) {
-				$this->league->events[$value] = "add";
+
+		if(is_array($edit['events'])) {
+			// loop against $edit a second time to check for registration additions
+			foreach ($edit['events'] as $index=>$value) {
+				if (! array_key_exists($value, $this->league->events)) {
+					$this->league->events[$value] = "add";
+				}
 			}
 		}
 
