@@ -80,8 +80,12 @@ class PaypalHandler
 		$this->shopping_url = 'http://'.$CONFIG['session']['session_name'].$CONFIG['paths']['base_url'];
 		$this->return_url = 'http://'.$CONFIG['session']['session_name'].$CONFIG['paths']['base_url'];
 
-		$this->return_url .= '?q=registration/paypal/'; // dirty url
-		//$this->return_url .= '/registration/paypal/'; // clean url
+		$cleanURL = variable_get('clean_url', 0);
+		if($cleanURL) {
+			$this->return_url .= '/registration/paypal/'; // clean url
+		} else {
+			$this->return_url .= '?q=registration/paypal/'; // dirty url
+		}
 	}
 
 	/**
