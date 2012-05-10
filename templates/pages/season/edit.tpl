@@ -14,7 +14,7 @@ The following errors were encountered in your submission:
 	<div class="description">The name to use for this season</div>
 
 <label for="edit[year]">Year</label>
-	<input id="edit[year]" type="text" maxlength="4" name="edit[year]" size="4" value="2010" />
+	<input id="edit[year]" type="text" maxlength="4" name="edit[year]" size="4" value="{$smarty.now|date_format:"%Y"}" />
 	<div class="description">Year of play.</div>
 
 <label for="edit[season]">Season</label>
