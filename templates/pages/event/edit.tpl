@@ -36,6 +36,10 @@ The following errors were encountered in your submission:
 <label for="edit[type]">Event Type</label>
 	{html_radios name="edit[type]" options=$event_types}<div class="description">Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration</div>
 
+<label for="edit[currency_code]">Currency</label>
+	{html_options name="edit[currency_code]" options=$currency_codes}
+	<div class="description">The time at which registration will open.</div>
+
 <label for="edit[cost]">Cost</label>
 	<input id="edit[cost]" type="text" maxlength="10" name="edit[cost]" size="10" value="" />
 	<div class="description">Cost of this event.  May be zero.  <b>SHOULD NOT INCLUDE TAXES</b></div>

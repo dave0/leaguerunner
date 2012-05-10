@@ -66,9 +66,11 @@ function global_settings()
 
 	$group .= form_textfield('City', 'edit[app_org_city]', variable_get('app_org_city', ''), 50, 120, 'Your organization\'s city.');
 
-	$group .= form_select('Province/State', 'edit[app_org_province]', variable_get('app_org_province', ''), getProvinceNames(), 'Your organization\'s province or state.');
+	$group .= form_select('Province/State', 'edit[app_org_province]', variable_get('app_org_province', ''), getProvinceStateNames(), 'Your organization\'s province or state.');
 
-	$group .= form_textfield('Postal code', 'edit[app_org_postal]', variable_get('app_org_postal', ''), 50, 120, 'Your organization\'s postal code.');
+	$group .= form_select('Country', 'edit[app_org_country]', variable_get('app_org_country', ''), getCountryNames(), 'Your organization\'s country.');
+
+	$group .= form_textfield('Postal code', 'edit[app_org_postal]', variable_get('app_org_postal', ''), 7, 120, 'Your organization\'s postal code.');
 
 	$group .= form_textfield('Phone', 'edit[app_org_phone]', variable_get('app_org_phone', ''), 50, 120, 'Your organization\'s phone number.');
 
@@ -137,7 +139,7 @@ function feature_settings()
 	$group .= form_radios('Force roster request responses', 'edit[force_roster_request]', variable_get('force_roster_request', 0), array('Disabled', 'Enabled'), 'Should players be forced to respond to roster requests immediately?');
 
 	$group .= form_radios('Log Messages', 'edit[log_messages]', variable_get('log_messages', 0), array('Disabled', 'Enabled'), 'Enable or disable System Logs.  This will record any messages meeting the set threshold or higher to the logs subfolder.');
-	
+
 	$group .= form_select('Log Threshold', 'edit[log_threshold]', variable_get('log_threshold', KLogger::INFO), array(
 		KLogger::EMERG=>'Emergency',
 		KLogger::ALERT=>'Alert',
@@ -148,7 +150,7 @@ function feature_settings()
 		KLogger::INFO=>'Information',
 		KLogger::DEBUG=>'Debug' ,
 	), 'Threshold for storing Log Messages.  Messages at this level and above will be logged.');
-	
+
 	$output = form_group('Feature configuration', $group);
 
 	return $output;
@@ -168,33 +170,33 @@ function rss_settings()
 function person_settings ( )
 {
 	$group = form_textfield('Subject of account approval e-mail', 'edit[person_mail_approved_subject]', _person_mail_text('approved_subject'), 50, 180, 'Customize the subject of your approval e-mail, which is sent after account is approved. Available variables are: %username, %site, %url.');
- 
+
 	$group .= form_textarea('Body of account approval e-mail (player)', 'edit[person_mail_approved_body_player]', _person_mail_text('approved_body_player'), 70, 10, 'Customize the body of your approval e-mail, to be sent to players after accounts are approved. Available variables are: %fullname, %memberid, %adminname, %username, %site, %url.');
 
 	$group .= form_textarea('Body of account approval e-mail (visitor)', 'edit[person_mail_approved_body_visitor]', _person_mail_text('approved_body_visitor'), 70, 10, 'Customize the body of your approval e-mail, to be sent to a non-player visitor after account is approved. Available variables are: %fullname, %adminname, %username, %site, %url.');
 
 	$group .= form_textfield('Subject of membership letter e-mail', 'edit[person_mail_member_letter_subject]', _person_mail_text('member_letter_subject'), 50, 180, 'Customize the subject of your membership letter e-mail, which is sent annually after membership is paid for. Available variables are: %fullname, %firstname, %lastname, %site, %year.');
- 
+
 	$group .= form_textarea('Body of membership letter e-mail (player)', 'edit[person_mail_member_letter_body]', _person_mail_text('member_letter_body'), 70, 10, 'Customize the body of your membership letter e-mail, which is sent annually after membership is paid for. If registrations are disabled, or this field is empty, no letters will be sent. Available variables are: %fullname, %firstname, %lastname, %adminname, %site, %year.');
 
 	$group .= form_textfield('Subject of password reset e-mail', 'edit[person_mail_password_reset_subject]', _person_mail_text('password_reset_subject'), 50, 180, 'Customize the subject of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %site.');
- 
+
 	$group .= form_textarea('Body of password reset e-mail', 'edit[person_mail_password_reset_body]', _person_mail_text('password_reset_body'), 70, 10, 'Customize the body of your password reset e-mail, which is sent when a user requests a password reset. Available variables are: %fullname, %adminname, %username, %password, %site, %url.');
 
 	$group .= form_textfield('Subject of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_subject]', _person_mail_text('dup_delete_subject'), 50, 180, 'Customize the subject of your account deletion mail, sent to a user who has created a duplicate account. Available variables are: %site.');
- 
+
 	$group .= form_textarea('Body of duplicate account deletion e-mail', 'edit[person_mail_dup_delete_body]', _person_mail_text('dup_delete_body'), 70, 10, 'Customize the body of your account deletion e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
 
 	$group .= form_textfield('Subject of duplicate account merge e-mail', 'edit[person_mail_dup_merge_subject]', _person_mail_text('dup_merge_subject'), 50, 180, 'Customize the subject of your account merge mail, sent to a user who has created a duplicate account. Available variables are: %site.');
- 
+
 	$group .= form_textarea('Body of duplicate account merge e-mail', 'edit[person_mail_dup_merge_body]', _person_mail_text('dup_merge_body'), 70, 10, 'Customize the body of your account merge e-mail, sent to a user who has created a duplicate account. Available variables are: %fullname, %adminname, %existingusername, %existingemail, %site, %passwordurl.');
 
 	$group .= form_textfield('Subject of captain request e-mail', 'edit[person_mail_captain_request_subject]', _person_mail_text('captain_request_subject'), 50, 180, 'Customize the subject of your captain request mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %league, %day, %adminname.');
- 
+
 	$group .= form_textarea('Body of captain request e-mail', 'edit[person_mail_captain_request_body]', _person_mail_text('captain_request_body'), 70, 10, 'Customize the body of your captain request e-mail, sent to a user who has been invited to join a team. Available variables are: %site, %fullname, %captain, %team, %teamurl, %league, %day, %adminname.');
 
 	$group .= form_textfield('Subject of player request e-mail', 'edit[person_mail_player_request_subject]', _person_mail_text('player_request_subject'), 50, 180, 'Customize the subject of your player request mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %team, %league, %day, %adminname.');
- 
+
 	$group .= form_textarea('Body of player request e-mail', 'edit[person_mail_player_request_body]', _person_mail_text('player_request_body'), 70, 10, 'Customize the body of your player request e-mail, sent to captains when a player asks to join their team. Available variables are: %site, %fullname, %captains, %team, %teamurl, %league, %day, %adminname.');
 
 	$output = form_group('User email settings', $group);
@@ -210,12 +212,12 @@ function registration_settings ( )
 	$group .= form_textfield('Sandbox account email address', 'edit[paypal_sandbox_email]', variable_get('paypal_sandbox_email',''), 50,100, 'Email address of Sandbox account');
 	$group .= form_textfield('Sandbox PDT Identity Token', 'edit[paypal_sandbox_pdt]', variable_get('paypal_sandbox_pdt',''),50,100,'Identity Token for Sandbox testing');
 	$group .= form_textfield('Sandbox URL', 'edit[paypal_sandbox_url]', variable_get('paypal_sandbox_url',''),50,100, 'URL for testing PayPal payments');
-	
+
 	$group .= form_textfield('Live account primary email address', 'edit[paypal_live_email]', variable_get('paypal_live_email',''), 50,100, 'Email address of Paypal account handling payments');
 	$group .= form_textfield('Live PDT Identity Token', 'edit[paypal_live_pdt]', variable_get('paypal_live_pdt',''),50,100,'Identity Token PayPal uses to return information regarding the transaction');
 	$group .= form_textfield('Live URL', 'edit[paypal_live_url]', variable_get('paypal_live_url',''),50,100, 'Standard URL for submitting queries to the PayPal system');
-	
-		
+
+
 	$group .= form_textfield('Order ID format string', 'edit[order_id_format]', variable_get('order_id_format', 'R%09d'), 50, 120, 'sprintf format string for the unique order ID.');
 
 	$group .= form_textarea('Text of refund policy', 'edit[refund_policy_text]', variable_get('refund_policy_text', ''), 70, 10, 'Customize the text of your refund policy, to be shown on registration pages and invoices.');
