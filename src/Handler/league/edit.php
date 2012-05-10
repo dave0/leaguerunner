@@ -77,7 +77,7 @@ class league_edit extends LeagueHandler
 		if(is_array($this->league->events)) {
 			// Have any registration events been deleted?
 			foreach ($this->league->events as $key => $value) {
-				if (! in_array($key, $edit['events'])) {
+				if (!is_array($edit['events']) || !in_array($key, $edit['events'])) {
 					$this->league->events[$key] ="delete";
 				}
 			}
