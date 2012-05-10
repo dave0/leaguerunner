@@ -653,8 +653,11 @@ function validate_us_address ( $street, $city, $state, $zip)
  */
 function validate_province_full( $prov )
 {
+	if($prov == "---") {
+		return false;
+	}
 	$ary = array_change_key_case(getProvinceNames(), CASE_LOWER);
-	return (array_search(strtolower($prov), $ary) != false);
+	return ($ary[strtolower($prov)] != "");
 }
 
 /**
@@ -665,7 +668,6 @@ function validate_province_full( $prov )
  */
 function validate_canadian_postalcode ( $postalcode, $prov )
 {
-
 	if( !validate_nonblank($postalcode) ) {
 		return false;
 	}
@@ -741,14 +743,20 @@ function validate_canadian_postalcode ( $postalcode, $prov )
  */
 function validate_state_full( $state )
 {
+	if($state == "---") {
+		return false;
+	}
 	$ary = array_change_key_case(getStateNames(), CASE_LOWER);
-	return (array_search(strtolower($state), $ary) != false);
+	return ($ary[strtolower($state)] != "");
 }
 
 function validate_currency_code( $code )
 {
+	if($code == "---") {
+		return false;
+	}
 	$ary = array_change_key_case(getCurrencyCodes(), CASE_LOWER);
-	return (array_search(strtolower($code), $ary) != false);
+	return ($ary[strtolower($code)] != "");
 }
 
 function validate_us_zipcode ( $zipcode, $state )
