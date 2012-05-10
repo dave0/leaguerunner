@@ -14,7 +14,7 @@
 	<input type="hidden" name="item_name" value="{$event->name}">
 	<input type="hidden" name="item_number" value="{$registration->order_id}">
 	<input type="hidden" name="amount" value="{$event->cost}">
-	<input type="hidden" name="currency_code" value="CAD">
+	<input type="hidden" name="currency_code" value="{$event->currency_code}">
 
 	<!-- Details about the Buyer -->
 	<input type="hidden" name="first_name" value="{$user->firstname}">
