@@ -87,57 +87,57 @@ class event_edit extends EventHandler
 		$errors = array();
 
 		if( !validate_nonhtml($edit['name'] ) ) {
-			$errors[] = '<li>Name cannot be left blank, and cannot contain HTML';
+			$errors[] = 'Name cannot be left blank, and cannot contain HTML';
 		}
 
 		if( !validate_currency_code($edit['currency_code']) ) {
-			$errors[] = '<li>You must provide a valid currency code';
+			$errors[] = 'You must provide a valid currency code';
 		}
 
 		if( !validate_number($edit['cost'] ) ) {
-			$errors[] = '<li>Invalid cost: not a number';
+			$errors[] = 'Invalid cost: not a number';
 		}
 		else if( $edit['cost'] < 0 ) {
-			$errors[] = '<li>Invalid cost: cannot be negative';
+			$errors[] = 'Invalid cost: cannot be negative';
 		}
 
 		if( !validate_number($edit['gst'] ) ) {
-			$errors[] = '<li>Invalid GST: not a number';
+			$errors[] = 'Invalid GST: not a number';
 		}
 		else if( $edit['gst'] < 0 ) {
-			$errors[] = '<li>Invalid GST: cannot be negative';
+			$errors[] = 'Invalid GST: cannot be negative';
 		}
 
 		if( !validate_number($edit['pst'] ) ) {
-			$errors[] = '<li>Invalid PST: not a number';
+			$errors[] = 'Invalid PST: not a number';
 		}
 		else if( $edit['pst'] < 0 ) {
-			$errors[] = '<li>Invalid PST: cannot be negative';
+			$errors[] = 'Invalid PST: cannot be negative';
 		}
 
 		if( !validate_yyyymmdd_input($edit['open_date']) ) {
-			$errors[] = '<li>You must provide a valid open date';
+			$errors[] = 'You must provide a valid open date';
 		}
 
 		if( !validate_yyyymmdd_input($edit['close_date']) ) {
-			$errors[] = '<li>You must provide a valid close date';
+			$errors[] = 'You must provide a valid close date';
 		}
 
 		if( !validate_number($edit['cap_male'] ) ) {
-			$errors[] = '<li>Invalid male cap: not a number';
+			$errors[] = 'Invalid male cap: not a number';
 		}
 		else if( $edit['cap_male'] < -1 ) {
-			$errors[] = '<li>Invalid male cap: cannot be less than -1';
+			$errors[] = 'Invalid male cap: cannot be less than -1';
 		}
 
 		if( !validate_number($edit['cap_female'] ) ) {
-			$errors[] = '<li>Invalid female cap: not a number';
+			$errors[] = 'Invalid female cap: not a number';
 		}
 		else if( $edit['cap_female'] < -2 ) {
-			$errors[] = '<li>Invalid female cap: cannot be less than -2';
+			$errors[] = 'Invalid female cap: cannot be less than -2';
 		}
 		else if( $edit['cap_female'] == -2 && $edit['cap_male'] <= 0 ) {
-			$errors[] = '<li>Invalid female cap: can only be -2 if male cap is > 0';
+			$errors[] = 'Invalid female cap: can only be -2 if male cap is > 0';
 		}
 
 		return $errors;
