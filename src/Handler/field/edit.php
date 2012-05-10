@@ -63,7 +63,11 @@ class field_edit extends FieldHandler
 
 			$output .= form_textfield('City','edit[location_city]',$data['location_city'], 25, 100, 'Name of city');
 
-			$output .= form_select('Province', 'edit[location_province]', $data['location_province'], getProvinceNames(), 'Select a province from the list');
+			$output .= form_select('Province/State', 'edit[location_province]', $data['location_province'], getProvinceStateNames(), 'Select a province or state from the list');
+
+			$output .= form_select('Country', 'edit[location_country]', $data['location_country'], getCountryNames(), 'Select a country from the list');
+
+			$output .= form_textfield("Postal Code", 'edit[location_postalcode]', $data['location_postalcode'],25, 50, "Postal code");
 
 			$output .= form_textfield("Location Map", 'edit[location_url]', $data['location_url'],50, 255, "URL for image that shows how to reach the field");
 
@@ -115,13 +119,15 @@ class field_edit extends FieldHandler
 			$rows[] = array( "Status:", form_hidden('edit[status]', $edit['status']) . check_form($edit['status']));
 			$rows[] = array( "Number:", form_hidden('edit[num]', $edit['num']) . check_form($edit['num']));
 			$rows[] = array("Field&nbsp;Rating:", form_hidden('edit[rating]', $edit['rating']) . $ratings[$edit['rating']]);
-			$rows[] = array("Is indoor:", form_hidden('edit[is_indoor]', $edit['is_indoor']) . ($edit['is_indoor'] ? 'Yes' : 'No'));
+			$rows[] = array("Is&nbsp;indoor:", form_hidden('edit[is_indoor]', $edit['is_indoor']) . ($edit['is_indoor'] ? 'Yes' : 'No'));
 			$rows[] = array( "Code:", form_hidden('edit[code]', $edit['code']) . check_form($edit['code']));
 			$rows[] = array( "Region:", form_hidden('edit[region]', $edit['region']) . check_form($edit['region']));
 
 			$rows[] = array( "Street:", form_hidden('edit[location_street]', $edit['location_street']) . check_form($edit['location_street']));
 			$rows[] = array( "City:", form_hidden('edit[location_city]', $edit['location_city']) . check_form($edit['location_city']));
 			$rows[] = array( "Province:", form_hidden('edit[location_province]', $edit['location_province']) . check_form($edit['location_province']));
+			$rows[] = array( "Country:", form_hidden('edit[location_country]', $edit['location_country']) . check_form($edit['location_country']));
+			$rows[] = array( "Postal&nbsp;Code:", form_hidden('edit[location_postalcode]', $edit['location_postalcode']) . check_form($edit['location_postalcode']));
 
 			$rows[] = array( "Location&nbsp;Map:", form_hidden('edit[location_url]', $edit['location_url']) . check_form($edit['location_url']));
 			$rows[] = array( "Layout&nbsp;Map:", form_hidden('edit[layout_url]', $edit['layout_url']) . check_form($edit['layout_url']));
@@ -163,7 +169,8 @@ class field_edit extends FieldHandler
 			$field->set('code', $edit['code']);
 			$field->set('location_street', $edit['location_street']);
 			$field->set('location_city', $edit['location_city']);
-			$field->set('location_province', $edit['location_province']);
+			$field->set('location_country', $edit['location_country']);
+			$field->set('location_postalcode', $edit['location_postalcode']);
 			$field->set('is_indoor', $edit['is_indoor']);
 
 			$field->set('region', $edit['region']);

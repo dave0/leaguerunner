@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 31;
+my $LATEST_SCHEMA = 32;
 
 my @TABLES = (
 	'person' => [q{
@@ -88,14 +88,13 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE season (
-			id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			id           integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			display_name varchar(100) NOT NULL,
 			season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 			year         integer,
 			archived     BOOLEAN default false
 		);
 	}],
-
 
 	'league' => [ q{
 		DROP TABLE IF EXISTS league;
@@ -148,7 +147,6 @@ my @TABLES = (
 		);
 	}],
 
-
 	'schedule' => [q{
 		DROP TABLE IF EXISTS schedule;
 	},
@@ -192,18 +190,18 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE spirit_entry (
-			tid_created INTEGER NOT NULL,
-			tid         INTEGER NOT NULL,
-			gid         INTEGER NOT NULL,
-			entered_by  INTEGER NOT NULL,
+			tid_created         INTEGER NOT NULL,
+			tid                 INTEGER NOT NULL,
+			gid                 INTEGER NOT NULL,
+			entered_by          INTEGER NOT NULL,
 
 			score_entry_penalty INTEGER NOT NULL DEFAULT 0,
-			timeliness       INTEGER NOT NULL DEFAULT 0,
-			rules_knowledge  INTEGER NOT NULL DEFAULT 0,
-			sportsmanship    INTEGER NOT NULL DEFAULT 0,
-			rating_overall   INTEGER NOT NULL DEFAULT 0,
+			timeliness          INTEGER NOT NULL DEFAULT 0,
+			rules_knowledge     INTEGER NOT NULL DEFAULT 0,
+			sportsmanship       INTEGER NOT NULL DEFAULT 0,
+			rating_overall      INTEGER NOT NULL DEFAULT 0,
 
-			comments         TEXT,
+			comments            TEXT,
 
 			PRIMARY KEY (tid_created,gid)
 		);
@@ -256,9 +254,11 @@ my @TABLES = (
 			location_street     varchar(50),
 			location_city       varchar(50),
 			location_province   varchar(50),
+			location_country    varchar(50),
+			location_postalcode varchar(7),
 			latitude            double,
 			longitude           double,
-			is_indoor	    boolean NOT NULL DEFAULT false,
+			is_indoor	        boolean NOT NULL DEFAULT false,
 			angle               integer NOT NULL,
 			length              integer NOT NULL,
 			width               integer NOT NULL,
@@ -285,8 +285,8 @@ my @TABLES = (
 			team_id  INTEGER NOT NULL,
 			site_id  INTEGER NOT NULL,
 			rank     INTEGER NOT NULL,
-			PRIMARY KEY(team_id, site_id),
-			UNIQUE(team_id,rank)
+			PRIMARY KEY (team_id, site_id),
+			UNIQUE (team_id,rank)
 		);
 	},
 	q{
@@ -296,7 +296,7 @@ my @TABLES = (
 		CREATE TABLE field_ranking_stats (
 			game_id INTEGER NOT NULL,
 			team_id INTEGER NOT NULL,
-			rank INTEGER NOT NULL,
+			rank    INTEGER NOT NULL,
 			PRIMARY KEY (game_id, team_id)
 		);
 	}
@@ -331,9 +331,9 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE variable (
-			name        varchar(50) NOT NULL default '',
-			value        longtext    NOT NULL,
-			PRIMARY KEY(name)
+			name  varchar(50) NOT NULL default '',
+			value longtext    NOT NULL,
+			PRIMARY KEY (name)
 		);
 	}],
 
@@ -344,20 +344,21 @@ my @TABLES = (
 	q{
 		CREATE TABLE registration_events (
 			registration_id int(10) unsigned NOT NULL auto_increment,
-			name varchar(100) default NULL,
-			description blob,
-			type enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
-			season_id INTEGER DEFAULT 1,
-			cost decimal(7,2) default NULL,
-			gst decimal(7,2) default NULL,
-			pst decimal(7,2) default NULL,
-			`open` datetime default NULL,
-			`close` datetime default NULL,
-			cap_male int(10) NOT NULL default '0',
-			cap_female int(10) NOT NULL default '0',
-			multiple tinyint(1) default '0',
-			anonymous tinyint(1) default '0',
-			PRIMARY KEY  (registration_id),
+			name            varchar(100) default NULL,
+			description     blob,
+			type            enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
+			season_id       INTEGER DEFAULT 1,
+			currency_code   ENUM('USD','AUD','BRL','GBP','CAD','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MXN','TWD','NZD','NOK','PHP','PLN','SGD','SEK','CHF','THB') DEFAULT 'USD' NOT NULL,
+			cost            decimal(7,2) default NULL,
+			gst             decimal(7,2) default NULL,
+			pst             decimal(7,2) default NULL,
+			`open`          datetime default NULL,
+			`close`         datetime default NULL,
+			cap_male        int(10) NOT NULL default '0',
+			cap_female      int(10) NOT NULL default '0',
+			multiple        tinyint(1) default '0',
+			anonymous       tinyint(1) default '0',
+			PRIMARY KEY (registration_id),
 			UNIQUE KEY name (name)
 		);
 	},
@@ -390,7 +391,7 @@ my @TABLES = (
 			date_paid      date NOT NULL,
 			payment_method varchar(255),
 			entered_by     int(11) NOT NULL,
-			PRIMARY KEY(order_id, payment_type)
+			PRIMARY KEY (order_id, payment_type)
 		);
 	},
 	q{
@@ -401,7 +402,7 @@ my @TABLES = (
 			order_id int(10) unsigned NOT NULL default '0',
 			qkey varchar(255) NOT NULL default '',
 			akey varchar(255) default NULL,
-			PRIMARY KEY  (order_id,qkey)
+			PRIMARY KEY (order_id,qkey)
 		);
 	},
 	q{
@@ -431,45 +432,45 @@ my @TABLES = (
 	}],
 
 	'notes' => [
-		q{
-			CREATE TABLE note (
-				id	   INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-				creator_id INTEGER NOT NULL,
-				assoc_id   INTEGER,
-				assoc_type ENUM('person', 'team'),
-				note	   TEXT,
-				created    TIMESTAMP NOT NULL DEFAULT NOW(),
-				edited     TIMESTAMP
-			);
-		},
-		q{
-			CREATE VIEW person_note AS
-				SELECT
-					n.assoc_id AS person_id,
-					n.id AS id,
-					n.note AS note,
-					n.creator_id AS creator_id,
-					n.created AS created,
-					n.edited AS edited
-				FROM note n
-				WHERE
-					n.assoc_type = 'person'
-			;
-		},
-		q{
-			CREATE VIEW team_note AS
-				SELECT
-					n.assoc_id AS team_id,
-					n.id AS id,
-					n.note AS note,
-					n.creator_id AS creator_id,
-					n.created AS created,
-					n.edited AS edited
-				FROM note n
-				WHERE
-					n.assoc_type = 'team'
-			;
-		},
+	q{
+		CREATE TABLE note (
+			id	       INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+			creator_id INTEGER NOT NULL,
+			assoc_id   INTEGER,
+			assoc_type ENUM('person', 'team'),
+			note	   TEXT,
+			created    TIMESTAMP NOT NULL DEFAULT NOW(),
+			edited     TIMESTAMP
+		);
+	},
+	q{
+		CREATE VIEW person_note AS
+			SELECT
+				n.assoc_id AS person_id,
+				n.id AS id,
+				n.note AS note,
+				n.creator_id AS creator_id,
+				n.created AS created,
+				n.edited AS edited
+			FROM note n
+			WHERE
+				n.assoc_type = 'person'
+		;
+	},
+	q{
+		CREATE VIEW team_note AS
+			SELECT
+				n.assoc_id AS team_id,
+				n.id AS id,
+				n.note AS note,
+				n.creator_id AS creator_id,
+				n.created AS created,
+				n.edited AS edited
+			FROM note n
+			WHERE
+				n.assoc_type = 'team'
+		;
+	},
 	],
 );
 
@@ -652,89 +653,89 @@ sub upgrade_14_to_15
 		q{
 			CREATE TABLE registration_events (
 				registration_id int(10) unsigned NOT NULL auto_increment,
-				name varchar(100) default NULL,
-				description blob,
-				cost decimal(7,2) default NULL,
-				gst decimal(7,2) default NULL,
-				pst decimal(7,2) default NULL,
-				`open` datetime default NULL,
-				`close` datetime default NULL,
-				cap_male int(10) NOT NULL default '0',
-				cap_female int(10) NOT NULL default '0',
-				PRIMARY KEY  (registration_id),
+				name            varchar(100) default NULL,
+				description     blob,
+				cost            decimal(7,2) default NULL,
+				gst             decimal(7,2) default NULL,
+				pst             decimal(7,2) default NULL,
+				`open`          datetime default NULL,
+				`close`         datetime default NULL,
+				cap_male        int(10) NOT NULL default '0',
+				cap_female      int(10) NOT NULL default '0',
+				PRIMARY KEY (registration_id),
 				UNIQUE KEY name (name)
 			)
 		},
 		q{
 			CREATE TABLE registration_prereq (
 				registration_id int(11) NOT NULL default '0',
-				prereq_id int(11) NOT NULL default '0',
-				is_prereq tinyint(1) NOT NULL default '0',
-				PRIMARY KEY  (registration_id,prereq_id)
+				prereq_id       int(11) NOT NULL default '0',
+				is_prereq       tinyint(1) NOT NULL default '0',
+				PRIMARY KEY (registration_id,prereq_id)
 			)
 		},
 		q{
 			CREATE TABLE registrations (
-				order_id int(10) unsigned NOT NULL auto_increment,
-				user_id int(11) NOT NULL default '0',
+				order_id        int(10) unsigned NOT NULL auto_increment,
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(10) unsigned NOT NULL default '0',
-				`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
-				paid tinyint(1) NOT NULL default '0',
-				notes blob,
-				PRIMARY KEY  (order_id),
+				`time`          timestamp NOT NULL default CURRENT_TIMESTAMP,
+				paid            tinyint(1) NOT NULL default '0',
+				notes           blob,
+				PRIMARY KEY (order_id),
 				KEY user_id (user_id,registration_id)
 			)
 		},
 		q{
 			CREATE TABLE registration_answers (
-				user_id int(11) NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(11) NOT NULL default '0',
-				qkey varchar(255) NOT NULL default '',
-				akey varchar(255) default NULL,
-				PRIMARY KEY  (user_id,registration_id,qkey)
+				qkey            varchar(255) NOT NULL default '',
+				akey            varchar(255) default NULL,
+				PRIMARY KEY (user_id,registration_id,qkey)
 			)
 		},
 		q{
 			CREATE TABLE registration_audit (
-				order_id int(10) unsigned NOT NULL default '0',
-				response_code smallint(5) unsigned NOT NULL default '0',
-				iso_code smallint(5) unsigned NOT NULL default '0',
-				`date` text NOT NULL,
-				`time` text NOT NULL,
-				transaction_id bigint(18) NOT NULL default '0',
-				approval_code text NOT NULL,
-				transaction_name varchar(20) NOT NULL default '',
-				charge_total decimal(7,2) NOT NULL default '0.00',
-				cardholder varchar(40) NOT NULL default '',
-				expiry text NOT NULL,
-				f4l4 text NOT NULL,
-				card text NOT NULL,
-				message varchar(100) NOT NULL default '',
-				`issuer` varchar(30) default NULL,
-				issuer_invoice varchar(20) default NULL,
+				order_id            int(10) unsigned NOT NULL default '0',
+				response_code       smallint(5) unsigned NOT NULL default '0',
+				iso_code            smallint(5) unsigned NOT NULL default '0',
+				`date`              text NOT NULL,
+				`time`              text NOT NULL,
+				transaction_id      bigint(18) NOT NULL default '0',
+				approval_code       text NOT NULL,
+				transaction_name    varchar(20) NOT NULL default '',
+				charge_total        decimal(7,2) NOT NULL default '0.00',
+				cardholder          varchar(40) NOT NULL default '',
+				expiry              text NOT NULL,
+				f4l4                text NOT NULL,
+				card                text NOT NULL,
+				message             varchar(100) NOT NULL default '',
+				`issuer`            varchar(30) default NULL,
+				issuer_invoice      varchar(20) default NULL,
 				issuer_confirmation varchar(15) default NULL,
-				PRIMARY KEY  (order_id)
+				PRIMARY KEY (order_id)
 			)
 		},
 		q{
 			CREATE TABLE refunds (
-				order_id int(10) unsigned NOT NULL default '0',
-				user_id int(11) NOT NULL default '0',
+				order_id        int(10) unsigned NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(10) unsigned NOT NULL default '0',
-				`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
-				paid tinyint(1) NOT NULL default '0',
-				notes blob,
-				PRIMARY KEY  (order_id),
+				`time`          timestamp NOT NULL default CURRENT_TIMESTAMP,
+				paid            tinyint(1) NOT NULL default '0',
+				notes          blob,
+				PRIMARY KEY (order_id),
 				KEY user_id (user_id,registration_id)
 			)
 		},
 		q{
 			CREATE TABLE refund_answers (
-				user_id int(11) NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(11) NOT NULL default '0',
-				qkey varchar(255) NOT NULL default '',
-				akey varchar(255) default NULL,
-				PRIMARY KEY  (user_id,registration_id,qkey)
+				qkey            varchar(255) NOT NULL default '',
+				akey            varchar(255) default NULL,
+				PRIMARY KEY (user_id,registration_id,qkey)
 			)
 		}],
 
@@ -891,8 +892,8 @@ sub upgrade_15_to_16
 		q{
 			CREATE TABLE registration_answers (
 				order_id int UNSIGNED NOT NULL,
-				qkey varchar(255) NOT NULL,
-				akey varchar(255),
+				qkey     varchar(255) NOT NULL,
+				akey     varchar(255),
 				PRIMARY KEY (order_id, qkey)
 			);
 		},
@@ -913,8 +914,8 @@ sub upgrade_15_to_16
 		q{
 			CREATE TABLE refund_answers (
 				order_id int UNSIGNED NOT NULL,
-				qkey varchar(255) NOT NULL,
-				akey varchar(255),
+				qkey     varchar(255) NOT NULL,
+				akey     varchar(255),
 				PRIMARY KEY (order_id, qkey)
 			);
 		},
@@ -1022,7 +1023,7 @@ sub upgrade_16_to_17
 		create_preregistrations => [
 		q{
 			CREATE TABLE preregistrations (
-				user_id INTEGER NOT NULL DEFAULT '0',
+				user_id         INTEGER NOT NULL DEFAULT '0',
 				registration_id INTEGER UNSIGNED NOT NULL DEFAULT '0',
 				KEY user_id (user_id,registration_id)
 			)
@@ -1077,8 +1078,8 @@ sub upgrade_16_to_17
 		track_score_reminders => [
 		q{
 			CREATE TABLE score_reminder (
-				game_id INTEGER NOT NULL,
-				team_id INTEGER NOT NULL,
+				game_id   INTEGER NOT NULL,
+				team_id   INTEGER NOT NULL,
 				sent_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY ( game_id, team_id )
 			)
@@ -1105,7 +1106,7 @@ sub upgrade_17_to_18
 			DELETE FROM variable WHERE name = 'wards'
 		}],
 
-		# Convert to InnoDB
+		# Convert to INNODB
 		innodb_conversion => [
 		q{
 			ALTER TABLE field ENGINE=INNODB
@@ -1290,7 +1291,7 @@ sub upgrade_18_to_19
 		# Add allstar nominations table
 		allstar_table => [q{
 			CREATE TABLE allstars (
-				game_id INTEGER NOT NULL default '0',
+				game_id   INTEGER NOT NULL default '0',
 				player_id INTEGER NOT NULL default '0',
 				PRIMARY KEY (game_id, player_id)
 			) ENGINE=INNODB;
@@ -1301,7 +1302,7 @@ sub upgrade_18_to_19
 			CREATE TABLE incidents (
 				game_id INTEGER NOT NULL ,
 				team_id INTEGER NOT NULL ,
-				type VARCHAR( 128 ) NOT NULL ,
+				type    VARCHAR( 128 ) NOT NULL ,
 				details TEXT NOT NULL ,
 				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
@@ -1324,7 +1325,7 @@ sub upgrade_19_to_20
 		# Add allstar nominations table
 		allstar_table => [q{
 			CREATE TABLE allstars (
-				game_id INTEGER NOT NULL default '0',
+				game_id   INTEGER NOT NULL default '0',
 				player_id INTEGER NOT NULL default '0',
 				PRIMARY KEY (game_id, player_id)
 			) ENGINE=INNODB;
@@ -1335,7 +1336,7 @@ sub upgrade_19_to_20
 			CREATE TABLE incidents (
 				game_id INTEGER NOT NULL ,
 				team_id INTEGER NOT NULL ,
-				type VARCHAR( 128 ) NOT NULL ,
+				type    VARCHAR( 128 ) NOT NULL ,
 				details TEXT NOT NULL ,
 				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
@@ -1516,20 +1517,20 @@ sub upgrade_20_to_21
 		# create new spirit table
 		spirit_entries => [q{
 			CREATE TABLE spirit_entry (
-				tid_created INTEGER NOT NULL,
-				tid         INTEGER NOT NULL,
-				gid         INTEGER NOT NULL,
-				entered_by  INTEGER NOT NULL,
+				tid_created         INTEGER NOT NULL,
+				tid                 INTEGER NOT NULL,
+				gid                 INTEGER NOT NULL,
+				entered_by          INTEGER NOT NULL,
 
-				entered_sotg     INTEGER,
+				entered_sotg        INTEGER,
 
 				score_entry_penalty INTEGER NOT NULL DEFAULT 0,
-				timeliness       INTEGER NOT NULL DEFAULT 0,
-				rules_knowledge  INTEGER NOT NULL DEFAULT 0,
-				sportsmanship    INTEGER NOT NULL DEFAULT 0,
-				rating_overall   INTEGER NOT NULL DEFAULT 0,
+				timeliness          INTEGER NOT NULL DEFAULT 0,
+				rules_knowledge     INTEGER NOT NULL DEFAULT 0,
+				sportsmanship       INTEGER NOT NULL DEFAULT 0,
+				rating_overall      INTEGER NOT NULL DEFAULT 0,
 
-				comments         TEXT,
+				comments            TEXT,
 
 				PRIMARY KEY (tid_created,gid)
 			);
@@ -1981,7 +1982,7 @@ sub upgrade_27_to_28
 		# Create season table
 		q{
 			CREATE TABLE season (
-				id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				id	         integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				display_name varchar(100) NOT NULL,
 				season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 				year         integer,
@@ -2071,8 +2072,8 @@ sub upgrade_28_to_29
 				team_id  INTEGER NOT NULL,
 				site_id  INTEGER NOT NULL,
 				rank     INTEGER NOT NULL,
-				PRIMARY KEY(team_id, site_id),
-				UNIQUE(team_id,rank)
+				PRIMARY KEY (team_id, site_id),
+				UNIQUE (team_id,rank)
 			);
 		},
 
@@ -2082,7 +2083,7 @@ sub upgrade_28_to_29
 			CREATE TABLE field_ranking_stats (
 				game_id INTEGER NOT NULL,
 				team_id INTEGER NOT NULL,
-				rank INTEGER NOT NULL,
+				rank    INTEGER NOT NULL,
 				PRIMARY KEY (game_id, team_id)
 			);
 		},
@@ -2117,10 +2118,32 @@ sub upgrade_30_to_31
 		q{
 			CREATE TABLE registration_prerequisites (
 				registration_id INTEGER NOT NULL,
-				league_id INTEGER NOT NULL,
+				league_id       INTEGER NOT NULL,
   				PRIMARY KEY (registration_id,league_id),
   				KEY league_id (league_id)
 			);
+		},
+		]
+	]);
+}
+
+sub upgrade_31_to_32
+{
+	my ($self) = @_;
+	$self->_run_sql([
+
+		field_addr => [
+		q{
+			ALTER TABLE field
+				ADD COLUMN location_country varchar(50),
+				ADD COLUMN location_postalcode varchar(7);
+		},
+		],
+
+		reg_events => [
+		q{
+			ALTER TABLE registration_events
+				ADD COLUMN currency_code ENUM('USD','AUD','BRL','GBP','CAD','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MXN','TWD','NZD','NOK','PHP','PLN','SGD','SEK','CHF','THB') DEFAULT 'USD' NOT NULL,
 		},
 		]
 	]);

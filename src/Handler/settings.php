@@ -66,9 +66,11 @@ function global_settings()
 
 	$group .= form_textfield('City', 'edit[app_org_city]', variable_get('app_org_city', ''), 50, 120, 'Your organization\'s city.');
 
-	$group .= form_select('Province/State', 'edit[app_org_province]', variable_get('app_org_province', ''), getProvinceNames(), 'Your organization\'s province or state.');
+	$group .= form_select('Province/State', 'edit[app_org_province]', variable_get('app_org_province', ''), getProvinceStateNames(), 'Your organization\'s province or state.');
 
-	$group .= form_textfield('Postal code', 'edit[app_org_postal]', variable_get('app_org_postal', ''), 50, 120, 'Your organization\'s postal code.');
+	$group .= form_select('Country', 'edit[app_org_country]', variable_get('app_org_country', ''), getCountryNames(), 'Your organization\'s country.');
+
+	$group .= form_textfield('Postal code', 'edit[app_org_postal]', variable_get('app_org_postal', ''), 7, 120, 'Your organization\'s postal code.');
 
 	$group .= form_textfield('Phone', 'edit[app_org_phone]', variable_get('app_org_phone', ''), 50, 120, 'Your organization\'s phone number.');
 
