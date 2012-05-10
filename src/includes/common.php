@@ -1,85 +1,85 @@
 <?php
 /*
  * Common code for use throughout Leaguerunner.
- * Some of these functions are borrowed and adapted from Drupal
- * (http://www.drupal.org/) -- credit where credit is due.
- */
+* Some of these functions are borrowed and adapted from Drupal
+* (http://www.drupal.org/) -- credit where credit is due.
+*/
 
 /*
  * HTTP-mangling
- */
+*/
 function local_redirect($url)
 {
-    global $headers_sent;
-    $url = str_replace("&amp;", "&", $url);
+	global $headers_sent;
+	$url = str_replace("&amp;", "&", $url);
 	if(preg_match("/^(http|ftp|mailto):/", $url) > 0) {
 		$url = $url;
 	} else {
 		$url = url($url);
 	}
 
-    if ($headers_sent == 0) {
-        header("Location: $url");
+	if ($headers_sent == 0) {
+		header("Location: $url");
 
-        /*
-        * The "Location" header sends a REDIRECT status code to the http
-        * daemon.  In some cases this can go wrong, so we make sure none of
-        * the code /below/ gets executed when we redirect.
-        */
-        exit();
-    }
-    else {
-        print "<html><body>";
-        print "<center>";
-        print "Your results are ready.  Please click the following link. <br> ";
-        print "<a href=\"$url\">$url</a>";
-        print "</center>";
-        // Tony turned off automatic redirect so that coordinators get a chance to read the text
-        // and, this does NOT wait 30 seconds, rather it's closer to 3 seconds...
-        //print "<script language=\"javascript\">";
-        //print "setTimeout('location.href=\"$url\"', 30000);";  // Redirect them in 30 seconds
-        //print "</script>";
-        print "</body></html>";
-        exit();
-    }
+		/*
+		 * The "Location" header sends a REDIRECT status code to the http
+		* daemon.  In some cases this can go wrong, so we make sure none of
+		* the code /below/ gets executed when we redirect.
+		*/
+		exit();
+	}
+	else {
+		print "<html><body>";
+		print "<center>";
+		print "Your results are ready.  Please click the following link. <br> ";
+		print "<a href=\"$url\">$url</a>";
+		print "</center>";
+		// Tony turned off automatic redirect so that coordinators get a chance to read the text
+		// and, this does NOT wait 30 seconds, rather it's closer to 3 seconds...
+		//print "<script language=\"javascript\">";
+		//print "setTimeout('location.href=\"$url\"', 30000);";  // Redirect them in 30 seconds
+		//print "</script>";
+		print "</body></html>";
+		exit();
+	}
 }
 
 function valid_input_data($data) {
 
-  if (is_array($data) || is_object($data)) {
-    /*
-    ** Form data can contain a number of nested arrays.
-    */
+	if (is_array($data) || is_object($data)) {
+		/*
+		 ** Form data can contain a number of nested arrays.
+		*/
 
-    foreach ($data as $key => $value) {
-      if (!valid_input_data($value)) {
-        return 0;
-      }
-    }
-  }
-  else {
-    /*
-    ** Detect evil input data.
-    */
+		foreach ($data as $key => $value) {
+			if (!valid_input_data($value)) {
+				return 0;
+			}
+		}
+	}
+	else {
+		/*
+		 ** Detect evil input data.
+		*/
 
-    // check strings:
-    $match  = preg_match("/\Wjavascript\s*:/i", $data);
-    $match += preg_match("/\Wexpression\s*\(/i", $data);
-    $match += preg_match("/\Walert\s*\(/i", $data);
+		// check strings:
+		$match  = preg_match("/\Wjavascript\s*:/i", $data);
+		$match += preg_match("/\Wexpression\s*\(/i", $data);
+		$match += preg_match("/\Walert\s*\(/i", $data);
 
-    // check attributes:
-    $match += preg_match("/\W(dynsrc|datasrc|data|lowsrc|on[a-z]+)\s*=[^>]+?>/i", $data);
+		// check attributes:
+		$match += preg_match("/\W(dynsrc|datasrc|data|lowsrc|on[a-z]+)\s*=[^>]+?>/i", $data);
 
 
-    // check tags:
-    $match += preg_match("/<\s*(applet|script|object|style|embed|form|blink|meta|html|frame|iframe|layer|ilayer|head|frameset|xml)/i", $data);
+		// check tags:
+		$match += preg_match("/<\s*(applet|script|object|style|embed|form|blink|meta|html|frame|iframe|layer|ilayer|head|frameset|xml)/i", $data);
 
-    if ($match) {
-      return 0;
-    }
-  }
+		if ($match) {
+			return 0;
+		}
+	}
 
-  return 1;
+	return 1;
 }
 
 
@@ -93,24 +93,24 @@ function queryUnpickle( $q )
 }
 
 function request_uri() {
-  /*
-  ** Since request_uri() is only available on Apache, we generate
-  ** equivalent using other environment vars.
-  */
+	/*
+	 ** Since request_uri() is only available on Apache, we generate
+	** equivalent using other environment vars.
+	*/
 
-  if (isset($_SERVER["REQUEST_URI"])) {
-    $uri = $_SERVER["REQUEST_URI"];
-  }
-  else {
-    $uri = $_SERVER["PHP_SELF"] ."?". $_SERVER["QUERY_STRING"];
-  }
+	if (isset($_SERVER["REQUEST_URI"])) {
+		$uri = $_SERVER["REQUEST_URI"];
+	}
+	else {
+		$uri = $_SERVER["PHP_SELF"] ."?". $_SERVER["QUERY_STRING"];
+	}
 
-  return check_url($uri);
+	return check_url($uri);
 }
 
 /*
  * Global configuration variables
- */
+*/
 function variable_init( $conf = array() )
 {
 	global $conf,$dbh;
@@ -158,7 +158,7 @@ function variable_del($name)
 
 /*
  * HTML-generation functions
- */
+*/
 
 function simple_tag($name, $content, $attributes = array())
 {
@@ -181,80 +181,80 @@ function pre($text, $attributes = array())
 }
 
 function table_cell($cell, $header = 0) {
-  $attributes = '';
-  if (is_array($cell)) {
-    $data = $cell["data"];
-    foreach ($cell as $key => $value) {
-      if ($key != "data")  {
-        $attributes .= " $key=\"$value\"";
-      }
-    }
-  }
-  else {
-    $data = $cell;
-  }
+	$attributes = '';
+	if (is_array($cell)) {
+		$data = $cell["data"];
+		foreach ($cell as $key => $value) {
+			if ($key != "data")  {
+				$attributes .= " $key=\"$value\"";
+			}
+		}
+	}
+	else {
+		$data = $cell;
+	}
 
-  if ($header) {
-    $output = "<th$attributes>$data</th>";
-  }
-  else {
-    $output = "<td$attributes>$data</td>";
-  }
+	if ($header) {
+		$output = "<th$attributes>$data</th>";
+	}
+	else {
+		$output = "<td$attributes>$data</td>";
+	}
 
-  return $output;
+	return $output;
 }
 
 function table($header, $rows, $attrArray = array())
 {
 
-  $attributes = '';
-  foreach ($attrArray as $key => $value) {
-    $attributes .= " $key=\"$value\"";
-  }
+	$attributes = '';
+	foreach ($attrArray as $key => $value) {
+		$attributes .= " $key=\"$value\"";
+	}
 
-  $output = "<table$attributes>\n";
+	$output = "<table$attributes>\n";
 
-  /*
-  ** Emit the table header:
-  */
+	/*
+	 ** Emit the table header:
+	*/
 
-  if (is_array($header)) {
-    $output .= "<tr>";
-    foreach ($header as $cell) {
-      if (is_array($cell) && $cell["field"]) {
-        $cell = tablesort($cell, $header);
-      }
-      $output .= table_cell($cell, 1);
-    }
-    $output .= "</tr>\n";
-  }
+	if (is_array($header)) {
+		$output .= "<tr>";
+		foreach ($header as $cell) {
+			if (is_array($cell) && $cell["field"]) {
+				$cell = tablesort($cell, $header);
+			}
+			$output .= table_cell($cell, 1);
+		}
+		$output .= "</tr>\n";
+	}
 
-  /*
-  ** Emit the table rows:
-  */
+	/*
+	 ** Emit the table rows:
+	*/
 
-  if (is_array($rows)) {
-    foreach ($rows as $number => $row) {
+	if (is_array($rows)) {
+		foreach ($rows as $number => $row) {
 	  if(array_key_exists( 'alternate-colours', $attrArray) && $attrArray['alternate-colours']) {
-        if ($number % 2 == 1) {
-          $output .= "<tr class=\"light\">";
-        }
-        else {
-          $output .= "<tr class=\"dark\">";
-        }
-      } else {
-        $output .= "<tr>";
+	  	if ($number % 2 == 1) {
+	  		$output .= "<tr class=\"light\">";
+	  	}
+	  	else {
+	  		$output .= "<tr class=\"dark\">";
+	  	}
+	  } else {
+	  	$output .= "<tr>";
 	  }
-      foreach ($row as $cell) {
-        $output .= table_cell($cell, 0);
-      }
-      $output .= "</tr>\n";
-    }
-  }
+	  foreach ($row as $cell) {
+	  	$output .= table_cell($cell, 0);
+	  }
+	  $output .= "</tr>\n";
+		}
+	}
 
-  $output .= "</table>\n";
+	$output .= "</table>\n";
 
-  return $output;
+	return $output;
 }
 
 
@@ -273,83 +273,70 @@ function l($text, $query = NULL, $attributes = array())
 
 
 function url($url = NULL, $query = NULL) {
-  global $CONFIG;
-  static $script;
+	global $CONFIG;
+	static $script;
 
-  $base_url = 'http://' . $_SERVER["HTTP_HOST"] . $CONFIG['paths']['base_url'];
-  $cleanURL = variable_get('clean_url', 0);
+	$base_url = 'http://' . $_SERVER["HTTP_HOST"] . $CONFIG['paths']['base_url'];
+	$cleanURL = variable_get('clean_url', 0);
 
-  if (empty($script)) {
-    /*
-    ** On some webservers such as IIS we can't omit "index.php".  As such we
-    ** generate "index.php?q=foo" instead of "?q=foo" on anything that is not
-    ** Apache.
-    */
-    $script = (strpos($_SERVER["SERVER_SOFTWARE"], "Apache") === false) ? "index.php" : "";
-  }
+	if (empty($script)) {
+		/*
+		 ** On some webservers such as IIS we can't omit "index.php".  As such we
+		** generate "index.php?q=foo" instead of "?q=foo" on anything that is not
+		** Apache.
+		*/
+		$script = (strpos($_SERVER["SERVER_SOFTWARE"], "Apache") === false) ? "index.php" : "";
+	}
 
-  if (!$cleanURL) {
-    if (isset($url)) {
-      if (isset($query)) {
-        return "$base_url/$script?q=$url&amp;$query";
-      }
-      else {
-        return "$base_url/$script?q=$url";
-      }
-    }
-    else {
-      if (isset($query)) {
-        return "$base_url/$script?$query";
-      }
-      else {
-        return "$base_url/";
-      }
-    }
-  }
-  else {
-    if (isset($url)) {
-      if (isset($query)) {
-        return "$base_url/$url?$query";
-      }
-      else {
-        return "$base_url/$url";
-      }
-    }
-    else {
-      if (isset($query)) {
-        return "$base_url/$script?$query";
-      }
-      else {
-        return "$base_url/";
-      }
-    }
-  }
-}
-
-// TODO: replaced by components/street_address.tpl
-function format_street_address( $street, $city, $province, $country, $postalcode)
-{
-	$arr = array ($city, $province);
-	if (! empty ($country))
-		$arr[] = $country;
-	$foo =  "$street<br />\n" . join (', ', $arr) . "<br />\n$postalcode";
-	$prov_abbr = substr($province,0,2);
-	$street_uri = strtr($street, array(' ' => '+'));
-	$foo .= "<br />[&nbsp;<a target=\"_blank\" href=\"http://maps.google.com?q=$street_uri,+$city,+$province&hl=en\">maps.google.com</a>&nbsp;|&nbsp;<a target=\"_blank\" href=\"http://www.mapquest.com/maps/map.adp?zoom=7&city=$city&state=$prov_abbr&address=$street_uri\">MapQuest</a>&nbsp;]";
-	return $foo;
+	if (!$cleanURL) {
+		if (isset($url)) {
+			if (isset($query)) {
+				return "$base_url/$script?q=$url&amp;$query";
+			}
+			else {
+				return "$base_url/$script?q=$url";
+			}
+		}
+		else {
+			if (isset($query)) {
+				return "$base_url/$script?$query";
+			}
+			else {
+				return "$base_url/";
+			}
+		}
+	}
+	else {
+		if (isset($url)) {
+			if (isset($query)) {
+				return "$base_url/$url?$query";
+			}
+			else {
+				return "$base_url/$url";
+			}
+		}
+		else {
+			if (isset($query)) {
+				return "$base_url/$script?$query";
+			}
+			else {
+				return "$base_url/";
+			}
+		}
+	}
 }
 
 function check_url($uri) {
-  $uri = check_form($uri, ENT_QUOTES);
+	$uri = check_form($uri, ENT_QUOTES);
 
-  /*
-  ** We replace ( and ) with their entity equivalents to prevent XSS
-  ** attacks.
-  */
+	/*
+	 ** We replace ( and ) with their entity equivalents to prevent XSS
+	** attacks.
+	*/
 
-  $uri = strtr($uri, array("(" => "&040;", ")" => "&041;"));
+	$uri = strtr($uri, array("(" => "&040;", ")" => "&041;"));
 
-  return $uri;
+	return $uri;
 }
 
 function check_form($input, $quotes = ENT_QUOTES)
@@ -371,7 +358,7 @@ function preg_grep_keys( $pattern, $input, $flags = 0 )
 
 /*
  * Form-generation functions
- */
+*/
 
 function form($form, $method = "post", $action = 0, $options = 0)
 {
@@ -512,9 +499,9 @@ function validate_date_input ( $year, $month, $day )
 
 	/* Checkdate doesn't check that the year is sane, so we have to
 	 * do it ourselves.  Our sanity window is that anything earlier
-	 * than 80 years ago, and anything 5 years in the future must be
-	 * bogus.
-	 */
+	* than 80 years ago, and anything 5 years in the future must be
+	* bogus.
+	*/
 	if( ($year < $this_year - 80) || ($year > $this_year + 5) ) {
 		return false;
 	}
@@ -586,13 +573,13 @@ function validate_email_input ( $string )
  */
 function validate_address ( $street, $city, $prov, $postalcode, $country )
 {
-    if( $country == 'Canada' ) {
-        return validate_ca_address( $street, $city, $prov, $postalcode );
-    } else if( $country == 'United States' ) {
-        return validate_us_address( $street, $city, $prov, $postalcode );
-    } else {
-        return array( "That is not a valid country" );
-    }
+	if( $country == 'Canada' ) {
+		return validate_ca_address( $street, $city, $prov, $postalcode );
+	} else if( $country == 'United States' ) {
+		return validate_us_address( $street, $city, $prov, $postalcode );
+	} else {
+		return array( "That is not a valid country" );
+	}
 }
 
 /**
@@ -605,24 +592,24 @@ function validate_address ( $street, $city, $prov, $postalcode, $country )
  */
 function validate_ca_address ( $street, $city, $prov, $postalcode )
 {
-    $errors = array();
+	$errors = array();
 
-    # Street and city must only be non-HTML
-    if( ! validate_nonhtml( $street ) ) {
-        array_push( $errors, 'You must supply a valid street address');
-    }
+	# Street and city must only be non-HTML
+	if( ! validate_nonhtml( $street ) ) {
+		array_push( $errors, 'You must supply a valid street address');
+	}
 
-    if( ! validate_nonhtml( $city ) ) {
-        array_push( $errors, 'You must supply a city');
-    }
+	if( ! validate_nonhtml( $city ) ) {
+		array_push( $errors, 'You must supply a city');
+	}
 
-    if( ! validate_province_full( $prov ) ) {
-        array_push( $errors, 'You must select a valid Canadian province or territory');
-    }
+	if( ! validate_province_full( $prov ) ) {
+		array_push( $errors, 'You must select a valid Canadian province or territory');
+	}
 
-    if( ! validate_canadian_postalcode( $postalcode, $prov ) ) {
-        array_push( $errors, "You must enter a valid Canadian postalcode for $prov");
-    }
+	if( ! validate_canadian_postalcode( $postalcode, $prov ) ) {
+		array_push( $errors, "You must enter a valid Canadian postalcode for $prov");
+	}
 
 	return $errors;
 }
@@ -637,24 +624,24 @@ function validate_ca_address ( $street, $city, $prov, $postalcode )
  */
 function validate_us_address ( $street, $city, $state, $zip)
 {
-    $errors = array();
+	$errors = array();
 
-    # Street and city must only be non-HTML
-    if( ! validate_nonhtml( $street ) ) {
-        array_push( $errors, 'You must supply a valid street address');
-    }
+	# Street and city must only be non-HTML
+	if( ! validate_nonhtml( $street ) ) {
+		array_push( $errors, 'You must supply a valid street address');
+	}
 
-    if( ! validate_nonhtml( $city ) ) {
-        array_push( $errors, 'You must supply a city');
-    }
+	if( ! validate_nonhtml( $city ) ) {
+		array_push( $errors, 'You must supply a city');
+	}
 
-    if( ! validate_state_full( $state ) ) {
-        array_push( $errors, 'You must select a valid US state or territory');
-    }
+	if( ! validate_state_full( $state ) ) {
+		array_push( $errors, 'You must select a valid US state or territory');
+	}
 
-    if( ! validate_us_zipcode( $zip, $state ) ) {
-        array_push( $errors, 'You must enter a valid US Zip code');
-    }
+	if( ! validate_us_zipcode( $zip, $state ) ) {
+		array_push( $errors, 'You must enter a valid US Zip code');
+	}
 
 	return $errors;
 }
@@ -685,68 +672,68 @@ function validate_canadian_postalcode ( $postalcode, $prov )
 		return false;
 	}
 
-    $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    switch (strtoupper($prov)) {
-        case 'NF':          // Newfoundland
-        case 'NEWFOUNDLAND':
-        case 'NEWFOUNDLAND AND LABRADOR':
-            $sRegExp = 'A';
-            break;
-        case 'NS':          // Nova Scotia
-        case 'NOVA SCOTIA':
-            $sRegExp = 'B';
-            break;
-        case 'PE':          // Prince Edward Island
-        case 'PRINCE EDWARD ISLAND':
-            $sRegExp = 'C';
-            break;
-        case 'NB':          // New Brunswick
-        case 'NEW BRUNSWICK':
-            $sRegExp = 'E';
-            break;
-        case 'QC':          // Quebec
-        case 'QUEBEC':
-            $sRegExp = '[GHJ]';
-            break;
-        case 'ON':          // Ontario
-        case 'ONTARIO':
-            $sRegExp = '[KLMNP]';
-            break;
-        case 'MB':          // Manitoba
-        case 'MANITOBA':
-            $sRegExp = 'R';
-            break;
-        case 'SK':          // Saskatchewan
-        case 'SASKATCHEWAN':
-            $sRegExp = 'S';
-            break;
-        case 'AB':          // Alberta
-        case 'ALBERTA':
-            $sRegExp = 'T';
-            break;
-        case 'BC':          // British Columbia
-        case 'BRITISH COLUMBIA':
-            $sRegExp = 'V';
-            break;
-        case 'NT':          // Northwest Territories
-        case 'NORTHWEST TERRITORIES':
-        case 'NU':          // Nunavut
-        case 'NUNAVUT':
-            $sRegExp = 'X';
-            break;
-        case 'YK':          // Yukon Territory
-        case 'YUKON':
-            $sRegExp = 'Y';
-            break;
-        default:
-            return false;
-    }
+	$letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+	switch (strtoupper($prov)) {
+		case 'NF':          // Newfoundland
+		case 'NEWFOUNDLAND':
+		case 'NEWFOUNDLAND AND LABRADOR':
+			$sRegExp = 'A';
+			break;
+		case 'NS':          // Nova Scotia
+		case 'NOVA SCOTIA':
+			$sRegExp = 'B';
+			break;
+		case 'PE':          // Prince Edward Island
+		case 'PRINCE EDWARD ISLAND':
+			$sRegExp = 'C';
+			break;
+		case 'NB':          // New Brunswick
+		case 'NEW BRUNSWICK':
+			$sRegExp = 'E';
+			break;
+		case 'QC':          // Quebec
+		case 'QUEBEC':
+			$sRegExp = '[GHJ]';
+			break;
+		case 'ON':          // Ontario
+		case 'ONTARIO':
+			$sRegExp = '[KLMNP]';
+			break;
+		case 'MB':          // Manitoba
+		case 'MANITOBA':
+			$sRegExp = 'R';
+			break;
+		case 'SK':          // Saskatchewan
+		case 'SASKATCHEWAN':
+			$sRegExp = 'S';
+			break;
+		case 'AB':          // Alberta
+		case 'ALBERTA':
+			$sRegExp = 'T';
+			break;
+		case 'BC':          // British Columbia
+		case 'BRITISH COLUMBIA':
+			$sRegExp = 'V';
+			break;
+		case 'NT':          // Northwest Territories
+		case 'NORTHWEST TERRITORIES':
+		case 'NU':          // Nunavut
+		case 'NUNAVUT':
+			$sRegExp = 'X';
+			break;
+		case 'YK':          // Yukon Territory
+		case 'YUKON':
+			$sRegExp = 'Y';
+			break;
+		default:
+			return false;
+	}
 
-    $sRegExp .= '[0-9][' . $letters . '][ \t-]*[0-9][ ' . $letters . '][0-9]';
-    $sRegExp = '/^' . $sRegExp . '$/';
+	$sRegExp .= '[0-9][' . $letters . '][ \t-]*[0-9][ ' . $letters . '][0-9]';
+	$sRegExp = '/^' . $sRegExp . '$/';
 
 
-    return (bool) preg_match($sRegExp, strtoupper($postalcode));
+	return (bool) preg_match($sRegExp, strtoupper($postalcode));
 }
 
 /**
@@ -802,8 +789,8 @@ function validate_numeric_sotg ( $string ) {
 
 /*
  * Clean up a telephone number so that it's in a common format
- * Assumption: phone number has passed validate_telephone_input()
- */
+* Assumption: phone number has passed validate_telephone_input()
+*/
 function clean_telephone_number( $string )
 {
 	$matches = array();
@@ -824,7 +811,7 @@ function clean_telephone_number( $string )
 
 /*
  * Generate a random password
- */
+*/
 function generate_password()
 {
 	// Note that 0 and 1 are intentionally left out to prevent confusion with
@@ -905,7 +892,7 @@ function getCurrencyCodes()
  */
 function getShirtSizes()
 {
-    $sizes = array('Unknown','Womens XSmall', 'Womens Small', 'Womens Medium', 'Womens Large', 'Womens XLarge','Mens Small', 'Mens Medium', 'Mens Large', 'Mens XLarge');
+	$sizes = array('Unknown','Womens XSmall', 'Womens Small', 'Womens Medium', 'Womens Large', 'Womens XLarge','Mens Small', 'Mens Medium', 'Mens Large', 'Mens XLarge');
 	$ary = array();
 	while(list(,$name) = each($sizes)) {
 		$ary[$name] = $name;
@@ -949,8 +936,8 @@ function getOptionsFromTimeRange( $start, $finish, $increment )
 	$result = array();
 	$result["---"] = "---";
 	for( $min = getMinutesFromTime( $start );
-		 $min <= getMinutesFromTime( $finish );
-		 $min += $increment )
+	$min <= getMinutesFromTime( $finish );
+	$min += $increment )
 	{
 		$hour = floor( $min / 60 );
 		$minute = $min - $hour * 60;
@@ -1050,19 +1037,19 @@ function local_sunset_for_date( $timestamp )
 {
 	/*
 	 * value of 90 degrees 50 minutes is the angle at which
-	 * the sun is below the horizon.  This is the official
-	 * sunset time.  Do not use "civil twilight" zenith
-	 * value of 96 degrees. It's normally about 30 minutes
-	 * later in the evening than official sunset, and there
-	 * is some light until then, but it's too dark for safe
-	 * play.
-	 */
+	* the sun is below the horizon.  This is the official
+	* sunset time.  Do not use "civil twilight" zenith
+	* value of 96 degrees. It's normally about 30 minutes
+	* later in the evening than official sunset, and there
+	* is some light until then, but it's too dark for safe
+	* play.
+	*/
 	$zenith = 90 + (50/60);
 
 	/* TODO: eventually, use field's actual location rather than a
 	 *       system-wide location?  This would be more correct in cities
-	 *       with a large east/west spread, but might be confusing to some
-	 */
+	*       with a large east/west spread, but might be confusing to some
+	*/
 	$lat      = variable_get('location_latitude', 45.42102);
 	$long     = variable_get('location_longitude', -75.69525);
 

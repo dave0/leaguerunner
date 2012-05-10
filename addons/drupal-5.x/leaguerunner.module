@@ -186,7 +186,7 @@ function leaguerunner_form_alter($form_id, &$form)
 // releases.
 function leaguerunner_login_validate($form_id, $form_values )
 {
-	/* 
+	/*
 	 * First, we try to find the user locally.  If this doesn't work, we
 	 * set $server to 'leaguerunner' which will force the login to occur
 	 * via Leaguerunner.
@@ -243,9 +243,8 @@ function leaguerunner_auth($username, $password, $server)
 				drupal_set_message(t('<strong>Welcome, %name</strong>. You have logged in successfully.', array('%name' => $fullname)));
 
 				// See if they have signed a waiver yet.
-				// TODO: fix OCUA-ism
 				if (!$lrUser->waiver_signed) {
-					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in OCUA events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
+					drupal_set_message(t('<strong>You have not yet signed a waiver.</strong> You must sign a waiver form before participating in events.  Click the <a href="/leaguerunner/">Leaguerunner</a> link to sign the waiver.'));
 				}
 
 				// Valid user as they are either active or inactive.
@@ -306,7 +305,7 @@ function leaguerunner_user($op, &$edit, &$account, $category = null)
 
 			// Set the session in Leaguerunner
 			_leaguerunner_set_session( $lrUser, session_id() );
-			
+
 			$fullname = $lrUser->firstname . ' ' . $lrUser->lastname . ' (' . $name . ')';
 
 			// Update the email address and full name if the data's changed

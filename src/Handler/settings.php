@@ -90,7 +90,9 @@ function global_settings()
 
 	$group .= form_textfield('Items per page', 'edit[items_per_page]', variable_get('items_per_page', 25), 10, 10, 'The number of items that will be shown per page on long reports, 0 for no limit (not recommended).');
 
-	$group .= form_textfield('Base location of static league files (filesystem)', 'edit[league_file_base]', variable_get('league_file_base', '/opt/websites/www.ocua.ca/static-content/leagues'), 60, 120, 'The filesystem location where files for permits, exported standings, etc, shall live.');
+	$group .= form_textfield('Days between Waiver Signing', 'edit[days_between_waiver]', variable_get('days_between_waiver', 365), 10, 10, 'The number of days that a waiver agreement stays valid.  After this time, users will be forced to sign the waiver again.');
+
+	$group .= form_textfield('Base location of static league files (filesystem)', 'edit[league_file_base]', variable_get('league_file_base', '/opt/websites/www.ocua.ca/static-content/leagues'), 50, 120, 'The filesystem location where files for permits, exported standings, etc, shall live.');
 
 	$group .= form_textfield('Base location of static league files (URL)', 'edit[league_url_base]', variable_get('league_url_base', 'http://www.ocua.ca/leagues'), 50, 120, 'The web-accessible URL where files for permits, exported standings, etc, shall live.');
 

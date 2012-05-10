@@ -172,12 +172,12 @@ function league_permissions( $user, $action, $id, $data_field = '' )
 function person_permissions ( &$user, $action, $arg1 = NULL, $arg2 = NULL )
 {
 
-	$all_view_fields = array( 'name', 'gender', 'skill', 'willing_to_volunteer' );
+	$all_view_fields = array( 'name', 'gender', 'willing_to_volunteer' );
 	if (variable_get('dog_questions', 1)) {
 		$all_view_fields[] = 'dog';
 	}
 	$restricted_contact_fields = array( 'email', 'home_phone', 'work_phone', 'mobile_phone' );
-	$captain_view_fields = array( 'height', 'shirtsize' );
+	$captain_view_fields = array( 'height', 'skill', 'shirtsize' );
 
 	$self_edit_fields = array_merge(
 		$all_view_fields,
