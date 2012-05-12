@@ -6,7 +6,10 @@ use POSIX qw( EXIT_SUCCESS EXIT_FAILURE );
 use Getopt::Long;
 use Pod::Usage;
 
-use lib qw(../lib);
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
 use Leaguerunner;
 use Leaguerunner::DBInit;
 
