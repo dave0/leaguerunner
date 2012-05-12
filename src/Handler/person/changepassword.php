@@ -46,7 +46,7 @@ class person_changepassword extends Handler
 		return $rc;
 	}
 
-	function generateForm( )
+	function generateForm()
 	{
 		$this->title = "{$this->person->fullname} &raquo; Change Password";
 		$this->template_name = 'pages/person/changepassword.tpl';

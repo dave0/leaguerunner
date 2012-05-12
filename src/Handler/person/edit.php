@@ -42,14 +42,15 @@ class person_edit extends PersonHandler
 		return true;
 	}
 
-	function generateForm ()
+	function generateForm( &$edit )
 	{
 		global $lr_session, $CONFIG;
 
 		$this->smarty->assign('privacy_url', variable_get('privacy_policy', ''));
 		$this->smarty->assign('app_org_short_name', variable_get('app_org_short_name', 'the league'));
 
-		$this->smarty->assign('province_names', getProvinceStateNames());
+		$this->smarty->assign('province_names', getProvinceNames());
+		$this->smarty->assign('state_names', getStateNames());
 		$this->smarty->assign('country_names',  getCountryNames());
 
 		$player_classes = array(

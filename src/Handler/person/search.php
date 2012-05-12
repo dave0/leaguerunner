@@ -43,8 +43,8 @@ class person_search extends Handler
 		}
 
 		if( ! count($query) ) {
-			// no search yet...
-			return true;
+			// all players
+			$query['lastname_wildcard'] = $_GET['lastname'] = '*';
 		}
 
 		$query['_order'] = 'p.lastname, p.firstname';

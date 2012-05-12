@@ -15,7 +15,7 @@ The following errors were encountered in your submission:
     <tr><td>Edited On:</td><td>{$note->edited}</td></tr>
 </table></div>
     <label for="edit[note]">Note</label>
-	<textarea wrap="virtual" cols="70" rows="5" name="edit[note]" ></textarea><div class="description">Your note.  Text only, no HTML</div>
+	<textarea wrap="virtual" cols="60" rows="10" name="edit[note]" ></textarea><div class="description">Your note.  Text only, no HTML</div>
 {/fill_form_values}
 
 <input type="hidden" name="edit[step]" value="perform" />
