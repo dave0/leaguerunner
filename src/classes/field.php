@@ -13,6 +13,7 @@ class Field extends LeaguerunnerObject
 			$this->location_street = $parent->location_street;
 			$this->location_city = $parent->location_city;
 			$this->location_province = $parent->location_province;
+			$this->location_country = $parent->location_country;
 
 			$this->driving_directions = $parent->driving_directions;
 			$this->transit_directions = $parent->transit_directions;

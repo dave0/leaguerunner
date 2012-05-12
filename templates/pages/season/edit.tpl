@@ -21,7 +21,7 @@ The following errors were encountered in your submission:
 	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'none' for administrative groupings and comp teams.</div>
 
 <label for="edit[archived]">Archive this season</label>
-	{html_radios name="edit[archived]" options=$yes_no}
+	{html_radios name="edit[archived]" options=$yes_no labels=FALSE}
 	<div class="description">If this season is closed -- no more games to play and no further registrations to be performed -- it should be archived.  If there is any doubt, wait until you're sure because archiving cannot be undone simply by changing this setting.</div>
 
 {/fill_form_values}

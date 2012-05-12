@@ -10,16 +10,22 @@
 			dateFormat: 'yy-mm-dd',
 			yearRange: '-90:+0'
 		});
+
+		$('#edit\\[addr_country\\]').change(function() {
+			switch($(this).val().toLowerCase()) {
+				case "canada":
+					$('#edit\\[addr_prov\\]').html('{/literal}{{html_options options=$province_names}|regex_replace:"/[\r\t\n]/":""}{literal}');
+					break;
+				case "united states":
+					$('#edit\\[addr_prov\\]').html('{/literal}{{html_options options=$state_names}|regex_replace:"/[\r\t\n]/":""}{literal}');
+					break;
+			}
+		});
+
+		// update the province/state list and select the correct one
+		$('#edit\\[addr_country\\]').change();
+		$('#edit\\[addr_prov\\]').val('{/literal}{$person->addr_prov}{literal}');
 	});
-
-	function popup(url)
-	{
-		newwindow=window.open(url,'Leaguerunner Skill Rating Form','height=350,width=400,resizable=yes,scrollbars=yes')
-		if (window.focus) {newwindow.focus()}
-		return false;
-	}
-
-	function doNothing() {}
 // -->
 {/literal}
 </script>
@@ -107,13 +113,12 @@ The following errors were encountered in your submission:
 <fieldset>
     <legend>Street Address</legend>
 
-
     <label>Street and Number</label>
 	<input type="text" maxlength="100"  name="edit[addr_street]" size="25" value="" />
 	<div class="description">Number, street name, and apartment number if necessary</div>
 
     <label>City</label>
-	<input type="text" maxlength="100"  name="edit[addr_city]" size="25" value="" />
+	<input type="text" maxlength="100"  name="edit[addr_city]" id="edit[addr_city]" size="25" value="" />
 	<div class="description">Name of city</div>
 
     <label>Province</label>

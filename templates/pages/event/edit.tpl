@@ -28,13 +28,13 @@ The following errors were encountered in your submission:
 	<div class="description">The full name of this registration event.</div>
 
 <label for="edit[description]">Description</label>
-	<textarea wrap="virtual" cols="70" rows="5" name="edit[description]" ></textarea><div class="description">Complete description of the event.  HTML is allowed</div>
+	<textarea wrap="virtual" cols="60" rows="10" name="edit[description]" ></textarea><div class="description">Complete description of the event.  HTML is allowed</div>
 
 <label for="edit[season_id]">Season</label>
 	{html_options name="edit[season_id]" options=$seasons}<div class="description">Season for which this registration applies.</div>
 
 <label for="edit[type]">Event Type</label>
-	{html_radios name="edit[type]" options=$event_types}<div class="description">Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration</div>
+	{html_radios name="edit[type]" options=$event_types labels=FALSE separator="<br />"}<div class="description">Team registrations will prompt registrant to choose an existing team, or create a new team before completing registration</div>
 
 <label for="edit[currency_code]">Currency</label>
 	{html_options name="edit[currency_code]" options=$currency_codes}
@@ -77,11 +77,11 @@ The following errors were encountered in your submission:
 	<div class="description">Number of female players allowed (if individual registration).  Use -1 for no limit, -2 to use male cap as a combined limit for both genders.</div>
 
 <label for="edit[multiple]">Allow multiple registrations</label>
-	{html_radios name="edit[multiple]" options=$yes_no}
+	{html_radios name="edit[multiple]" options=$yes_no labels=FALSE}
 	<div class="description">Can a single user register multiple times for this event?</div>
 
 <label for="edit[anonymous]">Anonymous statistics</label>
-	{html_radios name="edit[anonymous]" options=$yes_no}
+	{html_radios name="edit[anonymous]" options=$yes_no labels=FALSE}
 	<div class="description">Will results from this event's survey be kept anonymous?</div>
 {/fill_form_values}
 
