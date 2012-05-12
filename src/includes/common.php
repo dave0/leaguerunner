@@ -118,7 +118,7 @@ function variable_init( $conf = array() )
 	$sth->execute();
 	while ($variable = $sth->fetchObject()) {
 		if( !isset($conf[$variable->name]) && $variable->name != '_SchemaVersion' ) {
-			$conf[$variable->name] = unserialize($variable->value);
+			$conf[$variable->name] = unserialize(preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $variable->value ));;
 		}
 	}
 	return $conf;
