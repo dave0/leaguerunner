@@ -4,14 +4,14 @@ class team_list extends Handler
 {
 	private $letter;
 
-	function __construct ( $letter = 'A' )
+	function __construct ( $letter = '' )
 	{
 		parent::__construct();
 
 		if( preg_match('/^[A-Z0-9\."]$/', $letter) ) {
 			$this->letter = $letter;
 		} else {
-			$this->letter = 'A';
+			$this->letter = '';
 		}
 	}
 
