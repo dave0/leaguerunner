@@ -1,11 +1,15 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
-use lib qw( /opt/websites/www.ocua.ca/leaguerunner/perl/lib );
 use DBI;
-use Leaguerunner;
 use Getopt::Long;
 use Term::Prompt;
+
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
+use Leaguerunner;
 
 my @league_ids;
 my $rc = GetOptions(

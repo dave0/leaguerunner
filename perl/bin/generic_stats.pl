@@ -8,10 +8,15 @@
 use strict;
 use DBI;
 use POSIX;
-use Leaguerunner;
 use Getopt::Mixed;
 use IO::Handle;
 use IO::Pipe;
+
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
+use Leaguerunner;
 
 our(@addresses, $addresses);
 
