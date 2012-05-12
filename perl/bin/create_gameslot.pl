@@ -4,8 +4,13 @@
 use strict;
 use DBI;
 use POSIX;
-use Leaguerunner;
 use Getopt::Mixed;
+
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
+use Leaguerunner;
 
 our($opt_debug);
 $opt_debug = 0;

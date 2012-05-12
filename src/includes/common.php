@@ -118,7 +118,7 @@ function variable_init( $conf = array() )
 	$sth->execute();
 	while ($variable = $sth->fetchObject()) {
 		if( !isset($conf[$variable->name]) && $variable->name != '_SchemaVersion' ) {
-			$conf[$variable->name] = unserialize($variable->value);
+			$conf[$variable->name] = unserialize(preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $variable->value ));;
 		}
 	}
 	return $conf;
@@ -653,24 +653,11 @@ function validate_us_address ( $street, $city, $state, $zip)
  */
 function validate_province_full( $prov )
 {
-	switch (strtolower($prov)) {
-		case 'alberta':
-		case 'british columbia':
-		case 'manitoba':
-		case 'new brunswick':
-		case 'newfoundland':
-		case 'newfoundland and labrador':
-		case 'northwest territories':
-		case 'nova scotia':
-		case 'nunavut':
-		case 'ontario':
-		case 'prince edward island':
-		case 'quebec':
-		case 'saskatchewan':
-		case 'yukon':
-			return true;
+	if($prov == "---") {
+		return false;
 	}
-	return false;
+	$ary = array_change_key_case(getProvinceNames(), CASE_LOWER);
+	return ($ary[strtolower($prov)] != "");
 }
 
 /**
@@ -681,7 +668,6 @@ function validate_province_full( $prov )
  */
 function validate_canadian_postalcode ( $postalcode, $prov )
 {
-
 	if( !validate_nonblank($postalcode) ) {
 		return false;
 	}
@@ -755,62 +741,22 @@ function validate_canadian_postalcode ( $postalcode, $prov )
  *
  * @param string $prov Full state name
  */
-function validate_state_full( $prov )
+function validate_state_full( $state )
 {
-	switch (strtolower($prov)) {
-		case 'alabama':
-		case 'alaska':
-		case 'arizona':
-		case 'arkansas':
-		case 'california':
-		case 'colorado':
-		case 'connecticut':
-		case 'delaware':
-		case 'florida':
-		case 'georgia':
-		case 'hawaii':
-		case 'idaho':
-		case 'illinois':
-		case 'indiana':
-		case 'iowa':
-		case 'kansas':
-		case 'kentucky':
-		case 'louisiana':
-		case 'maine':
-		case 'maryland':
-		case 'massachusetts':
-		case 'michigan':
-		case 'minnesota':
-		case 'mississippi':
-		case 'missouri':
-		case 'montana':
-		case 'nebraska':
-		case 'nevada':
-		case 'new hampshire':
-		case 'new jersey':
-		case 'new mexico':
-		case 'new york':
-		case 'north carolina':
-		case 'north dakota':
-		case 'ohio':
-		case 'oklahoma':
-		case 'oregon':
-		case 'pennsylvania':
-		case 'rhode island':
-		case 'south carolina':
-		case 'south dakota':
-		case 'tennessee':
-		case 'texas':
-		case 'utah':
-		case 'vermont':
-		case 'virginia':
-		case 'washington':
-		case 'west virginia':
-		case 'wisconsin':
-		case 'wyoming';
-		return true;
+	if($state == "---") {
+		return false;
 	}
-	return false;
+	$ary = array_change_key_case(getStateNames(), CASE_LOWER);
+	return ($ary[strtolower($state)] != "");
+}
+
+function validate_currency_code( $code )
+{
+	if($code == "---") {
+		return false;
+	}
+	$ary = array_change_key_case(getCurrencyCodes(), CASE_LOWER);
+	return ($ary[strtolower($code)] != "");
 }
 
 function validate_us_zipcode ( $zipcode, $state )
@@ -884,21 +830,30 @@ function generate_password()
 function getProvinceNames()
 {
 	$names = array('Ontario','Quebec','Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland','Northwest Territories','Nunavut','Nova Scotia','Prince Edward Island','Saskatchewan','Yukon');
-	$names2 = array('Alabama','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','District of Columbia','Florida','Georgia','Guam','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Northern Marianas Islands','Ohio','Oklahoma','Oregon','Pennsylvania','Puerto Rico','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Virgin Islands','Washington','West Virginia','Wisconsin','Wyoming');
-
 	$ary = array();
 	sort($names);
 	while(list(,$name) = each($names)) {
 		$ary[$name] = $name;
 	}
-	sort($names2);
-	while(list(,$name) = each($names2)) {
+	return $ary;
+}
+
+function getStateNames()
+{
+	$names = array('Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming');
+	sort($names);
+	while(list(,$name) = each($names)) {
 		$ary[$name] = $name;
 	}
 	return $ary;
 }
 
-function GetCountryNames()
+function getProvinceStateNames()
+{
+	return array_merge(getProvinceNames(), getStateNames());
+}
+
+function getCountryNames()
 {
 	$names = array('Canada', 'United States');
 	$ary = array();
@@ -908,7 +863,7 @@ function GetCountryNames()
 	return $ary;
 }
 
-function GetCountryCode($string)
+function getCountryCode($string)
 {
 	switch($string)
 	{
@@ -917,6 +872,19 @@ function GetCountryCode($string)
 		case "United States":
 			return "US";
 	}
+}
+
+function getCurrencyCodes()
+{
+	$codes = array('USD','CAD');
+	//'AUD','BRL','GBP','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MXN','TWD','NZD','NOK','PHP','PLN','SGD','SEK','CHF','THB'
+	$ary = array();
+	sort($codes);
+	$ary["---"] = "---";
+	while(list(,$name) = each($codes)) {
+		$ary[$name] = $name;
+	}
+	return $ary;
 }
 
 /**

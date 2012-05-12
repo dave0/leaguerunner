@@ -3,8 +3,13 @@
 use warnings;
 use strict;
 use DBI;
-use Leaguerunner;
 use Spreadsheet::WriteExcel;
+
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
+use Leaguerunner;
 
 my $config = Leaguerunner::parseConfigFile("../src/leaguerunner.conf");
 

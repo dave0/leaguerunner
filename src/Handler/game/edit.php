@@ -45,13 +45,13 @@ class game_edit extends GameHandler
 				local_redirect(url("game/view/" . $this->game->game_id));
 				break;
 			default:
-				$rc = $this->generateForm( );
+				$rc = $this->generateForm();
 		}
 
 		return $rc;
 	}
 
-	function generateForm ( )
+	function generateForm()
 	{
 		global $lr_session;
 		# Alias, to avoid typing.  Bleh.

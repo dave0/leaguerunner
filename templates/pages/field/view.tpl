@@ -13,7 +13,9 @@
 		{include file='components/street_address.tpl'
 			street=$field->location_street
 			city=$field->location_city
-			province=$field->location_province}
+			province=$field->location_province
+			country=$field->location_country
+			postalcode=$field->location_postalcode}
 	</td></tr>
 	{/if}
 

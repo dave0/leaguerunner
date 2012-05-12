@@ -5,10 +5,11 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 31;
+my $LATEST_SCHEMA = 32;
 
 my @TABLES = (
-	'person' => [q{
+	'person' => [
+	q{
 		DROP TABLE IF EXISTS person;
 	},
 	q{
@@ -54,7 +55,8 @@ my @TABLES = (
 		);
 	}],
 
-	'team' => [q{
+	'team' => [
+	q{
 		DROP TABLE IF EXISTS team;
 	},
 	q{
@@ -83,12 +85,13 @@ my @TABLES = (
 		);
 	}],
 
-	'season' => [q{
+	'season' => [
+	q{
 		DROP TABLE IF EXISTS season;
 	},
 	q{
 		CREATE TABLE season (
-			id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			id           integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			display_name varchar(100) NOT NULL,
 			season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 			year         integer,
@@ -96,8 +99,8 @@ my @TABLES = (
 		);
 	}],
 
-
-	'league' => [ q{
+	'league' => [
+	q{
 		DROP TABLE IF EXISTS league;
 	},
 	q{
@@ -148,8 +151,8 @@ my @TABLES = (
 		);
 	}],
 
-
-	'schedule' => [q{
+	'schedule' => [
+	q{
 		DROP TABLE IF EXISTS schedule;
 	},
 	q{
@@ -188,22 +191,22 @@ my @TABLES = (
 		);
 	},
 	q{
-		DROP TABLE IF EXISTS score_entry;
+		DROP TABLE IF EXISTS spirit_entry;
 	},
 	q{
 		CREATE TABLE spirit_entry (
-			tid_created INTEGER NOT NULL,
-			tid         INTEGER NOT NULL,
-			gid         INTEGER NOT NULL,
-			entered_by  INTEGER NOT NULL,
+			tid_created         INTEGER NOT NULL,
+			tid                 INTEGER NOT NULL,
+			gid                 INTEGER NOT NULL,
+			entered_by          INTEGER NOT NULL,
 
 			score_entry_penalty INTEGER NOT NULL DEFAULT 0,
-			timeliness       INTEGER NOT NULL DEFAULT 0,
-			rules_knowledge  INTEGER NOT NULL DEFAULT 0,
-			sportsmanship    INTEGER NOT NULL DEFAULT 0,
-			rating_overall   INTEGER NOT NULL DEFAULT 0,
+			timeliness          INTEGER NOT NULL DEFAULT 0,
+			rules_knowledge     INTEGER NOT NULL DEFAULT 0,
+			sportsmanship       INTEGER NOT NULL DEFAULT 0,
+			rating_overall      INTEGER NOT NULL DEFAULT 0,
 
-			comments         TEXT,
+			comments            TEXT,
 
 			PRIMARY KEY (tid_created,gid)
 		);
@@ -256,9 +259,11 @@ my @TABLES = (
 			location_street     varchar(50),
 			location_city       varchar(50),
 			location_province   varchar(50),
+			location_country    varchar(50),
+			location_postalcode varchar(7),
 			latitude            double,
 			longitude           double,
-			is_indoor	    boolean NOT NULL DEFAULT false,
+			is_indoor	        boolean NOT NULL DEFAULT false,
 			angle               integer NOT NULL,
 			length              integer NOT NULL,
 			width               integer NOT NULL,
@@ -285,8 +290,8 @@ my @TABLES = (
 			team_id  INTEGER NOT NULL,
 			site_id  INTEGER NOT NULL,
 			rank     INTEGER NOT NULL,
-			PRIMARY KEY(team_id, site_id),
-			UNIQUE(team_id,rank)
+			PRIMARY KEY (team_id, site_id),
+			UNIQUE (team_id,rank)
 		);
 	},
 	q{
@@ -296,13 +301,14 @@ my @TABLES = (
 		CREATE TABLE field_ranking_stats (
 			game_id INTEGER NOT NULL,
 			team_id INTEGER NOT NULL,
-			rank INTEGER NOT NULL,
+			rank    INTEGER NOT NULL,
 			PRIMARY KEY (game_id, team_id)
 		);
 	}
 	],
 
-	'gameslot' => [q{
+	'gameslot' => [
+	q{
 		DROP TABLE IF EXISTS gameslot;
 	},
 	q{
@@ -331,9 +337,9 @@ my @TABLES = (
 	},
 	q{
 		CREATE TABLE variable (
-			name        varchar(50) NOT NULL default '',
-			value        longtext    NOT NULL,
-			PRIMARY KEY(name)
+			name  varchar(50) NOT NULL default '',
+			value longtext    NOT NULL,
+			PRIMARY KEY (name)
 		);
 	}],
 
@@ -344,20 +350,21 @@ my @TABLES = (
 	q{
 		CREATE TABLE registration_events (
 			registration_id int(10) unsigned NOT NULL auto_increment,
-			name varchar(100) default NULL,
-			description blob,
-			type enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
-			season_id INTEGER DEFAULT 1,
-			cost decimal(7,2) default NULL,
-			gst decimal(7,2) default NULL,
-			pst decimal(7,2) default NULL,
-			`open` datetime default NULL,
-			`close` datetime default NULL,
-			cap_male int(10) NOT NULL default '0',
-			cap_female int(10) NOT NULL default '0',
-			multiple tinyint(1) default '0',
-			anonymous tinyint(1) default '0',
-			PRIMARY KEY  (registration_id),
+			name            varchar(100) default NULL,
+			description     blob,
+			type            enum('membership', 'individual_event','team_event','individual_league','team_league', 'individual_youth') NOT NULL default 'individual_event',
+			season_id       INTEGER DEFAULT 1,
+			currency_code   ENUM('USD','AUD','BRL','GBP','CAD','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MXN','TWD','NZD','NOK','PHP','PLN','SGD','SEK','CHF','THB') DEFAULT 'USD' NOT NULL,
+			cost            decimal(7,2) default NULL,
+			gst             decimal(7,2) default NULL,
+			pst             decimal(7,2) default NULL,
+			`open`          datetime default NULL,
+			`close`         datetime default NULL,
+			cap_male        int(10) NOT NULL default '0',
+			cap_female      int(10) NOT NULL default '0',
+			multiple        tinyint(1) default '0',
+			anonymous       tinyint(1) default '0',
+			PRIMARY KEY (registration_id),
 			UNIQUE KEY name (name)
 		);
 	},
@@ -390,7 +397,7 @@ my @TABLES = (
 			date_paid      date NOT NULL,
 			payment_method varchar(255),
 			entered_by     int(11) NOT NULL,
-			PRIMARY KEY(order_id, payment_type)
+			PRIMARY KEY (order_id, payment_type)
 		);
 	},
 	q{
@@ -401,7 +408,7 @@ my @TABLES = (
 			order_id int(10) unsigned NOT NULL default '0',
 			qkey varchar(255) NOT NULL default '',
 			akey varchar(255) default NULL,
-			PRIMARY KEY  (order_id,qkey)
+			PRIMARY KEY (order_id,qkey)
 		);
 	},
 	q{
@@ -431,45 +438,54 @@ my @TABLES = (
 	}],
 
 	'notes' => [
-		q{
-			CREATE TABLE note (
-				id	   INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
-				creator_id INTEGER NOT NULL,
-				assoc_id   INTEGER,
-				assoc_type ENUM('person', 'team'),
-				note	   TEXT,
-				created    TIMESTAMP NOT NULL DEFAULT NOW(),
-				edited     TIMESTAMP
-			);
-		},
-		q{
-			CREATE VIEW person_note AS
-				SELECT
-					n.assoc_id AS person_id,
-					n.id AS id,
-					n.note AS note,
-					n.creator_id AS creator_id,
-					n.created AS created,
-					n.edited AS edited
-				FROM note n
-				WHERE
-					n.assoc_type = 'person'
-			;
-		},
-		q{
-			CREATE VIEW team_note AS
-				SELECT
-					n.assoc_id AS team_id,
-					n.id AS id,
-					n.note AS note,
-					n.creator_id AS creator_id,
-					n.created AS created,
-					n.edited AS edited
-				FROM note n
-				WHERE
-					n.assoc_type = 'team'
-			;
-		},
+	q{
+		DROP TABLE IF EXISTS note;
+	},
+	q{
+		CREATE TABLE note (
+			id	       INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+			creator_id INTEGER NOT NULL,
+			assoc_id   INTEGER,
+			assoc_type ENUM('person', 'team'),
+			note	   TEXT,
+			created    TIMESTAMP NOT NULL DEFAULT NOW(),
+			edited     TIMESTAMP
+		);
+	},
+	q{
+		DROP VIEW IF EXISTS person_note;
+	},
+	q{
+		CREATE VIEW person_note AS
+			SELECT
+				n.assoc_id AS person_id,
+				n.id AS id,
+				n.note AS note,
+				n.creator_id AS creator_id,
+				n.created AS created,
+				n.edited AS edited
+			FROM note n
+			WHERE
+				n.assoc_type = 'person'
+		;
+	},
+	q{
+		DROP VIEW IF EXISTS team_note;
+	},
+	q{
+		CREATE VIEW team_note AS
+			SELECT
+				n.assoc_id AS team_id,
+				n.id AS id,
+				n.note AS note,
+				n.creator_id AS creator_id,
+				n.created AS created,
+				n.edited AS edited
+			FROM note n
+			WHERE
+				n.assoc_type = 'team'
+		;
+	},
 	],
 );
 
@@ -486,6 +502,260 @@ my @INITIAL_DATA = (
 	q{
 		INSERT INTO leaguemembers (league_id, player_id, status)
 			VALUES (1,1,'coordinator');
+	}],
+
+#		INSERT INTO variable (name, value) VALUES
+#			('app_admin_email', 's:25:"webmaster@lostminions.org";');
+#
+#		INSERT INTO variable (name, value) VALUES
+#			('privacy_policy', 's:23:"lostminions.org/privacy";');
+#
+#		INSERT INTO variable (name, value) VALUES
+#			('password_reset', 's:65:"http://lostminions.org/test/leaguerunner/?q=person/forgotpassword";');
+
+	settings_defaults => [q{
+		INSERT INTO variable (name, value)
+			VALUES ('registration', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('dog_questions', 's:1:"1";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('clean_url', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('session_requires_ip', 's:1:"1";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('force_roster_request', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('log_messages', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('log_threshold', 's:1:"6";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_name', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_short_name', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_address', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_address2', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_city', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_province', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_country', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_postal', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_org_phone', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_admin_name', 's:26:"Leaguerunner Administrator";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('location_latitude', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('location_longitude', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('app_name', 's:12:"Leaguerunner";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('items_per_page', 's:2:"25";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('days_between_waiver', 's:3:"365";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('league_file_base', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('league_url_base', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('gmaps_key', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('current_season', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('missing_score_spirit_penalty', 's:1:"3";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('default_winning_score', 's:1:"6";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('default_losing_score', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('default_transfer_ratings', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('spirit_questions', 's:11:"team_spirit";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_approved_subject', 's:38:"%site Account Activation for %username";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_approved_body_player', 's:522:"Dear %fullname,\r\n\r\nYour %site account has been approved.\r\n\r\nYour new permanent member number is\r\n	%memberid\r\nThis number will identify you for member services, discounts, etc, so please write it down in a safe place so you\\'ll remember it.\r\n\r\nYou may now log in to the system at\r\n	%url\r\nwith the username\r\n	%username\r\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\r\n\r\nThanks,\r\n%adminname";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_approved_body_visitor', 's:336:"Dear %fullname,\r\n\r\nYour %site account has been approved.\r\n\r\nYou may now log in to the system at\r\n	%url\r\nwith the username\r\n	%username\r\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\r\n\r\nThanks,\r\n%adminname";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_member_letter_subject', 's:22:"%site %year Membership";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_member_letter_body', 's:216:"Dear %fullname,\r\n\r\nThank you for confirming your membership in the %site for %year. You are now eligible to be added to team rosters and enjoy all the other benefits of membership in the %site.\r\n\r\nThanks,\r\n%adminname";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_password_reset_subject', 's:20:"%site Password Reset";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_password_reset_body', 's:550:"Dear %fullname,\r\n\r\nSomeone, probably you, just requested that your password for the account\r\n	%username\r\nbe reset.  Your new password is\r\n	%password\r\nSince this password has been sent via unencrypted email, you should change it as soon as possible.\r\n\r\nIf you didn\\'t request this change, don\\'t worry.  Your account password can only ever be mailed to the email address specified in your %site system account.  However, if you think someone may be attempting to gain unauthorized access to your account, please contact the system administrator.";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_dup_delete_subject', 's:20:"%site Account Update";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_dup_delete_body', 's:552:"Dear %fullname,\r\n\r\nYou seem to have created a duplicate %site account.  You already have an account with the username\r\n	%existingusername\r\ncreated using the email address\r\n	%existingemail\r\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the \\'Forgot your password?\\' feature at\r\n	%passwordurl\r\nand a new password will be emailed to you.\r\n\r\nIf the above email address is no longer correct, please reply to this message and request an address change.\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_dup_merge_subject', 's:20:"%site Account Update";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_dup_merge_body', 's:439:"Dear %fullname,\r\n\r\nYou seem to have created a duplicate %site account.  You already had an account with the username\r\n	%existingusername\r\ncreated using the email address\r\n	%existingemail\r\nTo preserve historical information (registrations, team records, etc.) this old account has been merged with your new information.  You will be able to access this account with your newly chosen user name and password.\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_captain_request_subject', 's:26:"%site Request to Join Team";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_captain_request_body', 's:1005:"Dear %fullname,\r\n\r\nYou have been invited to join the roster of the %site team %team playing on %day in the \\'%league\\' league.  We ask that you please accept or decline this invitation at your earliest convenience.  More details about %team may be found at\r\n%teamurl\r\n\r\nIf you accept the invitation, you will be added to the team\\'s roster and your contact information will be made available to the team captain.  If you decline the invitation you will be removed from this team\\'s roster and your contact information will not be made available to the captain.  This protocol is in accordance with the %site Privacy Policy.\r\n\r\nPlease be advised that players are NOT considered a part of a team roster until they have accepted a captain\\'s request to join.  Your team\\'s roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a \\'regular player\\' (accepted the captain request).\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_player_request_subject', 's:26:"%site Request to Join Team";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('person_mail_player_request_body', 's:829:"Dear %captains,\r\n\r\n%fullname has requested to join the roster of the %site team %team playing on %day in the \\'%league\\' league.  We ask that you please accept or decline this request at your earliest convenience.  Your team roster may be accessed at\r\n%teamurl\r\n\r\nIf you accept the invitation, %fullname will be added to the team\\'s roster in whatever capacity you assign.  If you decline the invitation they will be removed from this team\\'s roster.\r\n\r\nPlease be advised that players are NOT considered a part of a team roster until their request to join has been accepted by a captain.  Your team\\'s roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a \\'regular player\\' (accepted by the captain).\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal', 's:1:"0";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_url', 's:1:"1";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_sandbox_email', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_sandbox_pdt', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_sandbox_url', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_live_email', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_live_pdt', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('paypal_live_url', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('order_id_format', 's:5:"R%09d";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('refund_policy_text', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('offline_payment_text', 's:687:"<ul>\r\n	<li>Mail (or personally deliver) a cheque for the appropriate amount to the league office</li>\r\n	<li>Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.</li>\r\n	<li>Also include a note indicating which registration the cheque is for, along with your full name.</li>\r\n	<li>If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.</li>\r\n</ul>\r\n<p>Please note that you will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt)</p>";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('partner_info_text', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('rss_feed_title', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('rss_feed_url', 's:0:"";');
+	},
+	q{
+		INSERT INTO variable (name, value)
+			VALUES ('rss_feed_items', 's:1:"0";');
 	}],
 );
 
@@ -652,89 +922,89 @@ sub upgrade_14_to_15
 		q{
 			CREATE TABLE registration_events (
 				registration_id int(10) unsigned NOT NULL auto_increment,
-				name varchar(100) default NULL,
-				description blob,
-				cost decimal(7,2) default NULL,
-				gst decimal(7,2) default NULL,
-				pst decimal(7,2) default NULL,
-				`open` datetime default NULL,
-				`close` datetime default NULL,
-				cap_male int(10) NOT NULL default '0',
-				cap_female int(10) NOT NULL default '0',
-				PRIMARY KEY  (registration_id),
+				name            varchar(100) default NULL,
+				description     blob,
+				cost            decimal(7,2) default NULL,
+				gst             decimal(7,2) default NULL,
+				pst             decimal(7,2) default NULL,
+				`open`          datetime default NULL,
+				`close`         datetime default NULL,
+				cap_male        int(10) NOT NULL default '0',
+				cap_female      int(10) NOT NULL default '0',
+				PRIMARY KEY (registration_id),
 				UNIQUE KEY name (name)
 			)
 		},
 		q{
 			CREATE TABLE registration_prereq (
 				registration_id int(11) NOT NULL default '0',
-				prereq_id int(11) NOT NULL default '0',
-				is_prereq tinyint(1) NOT NULL default '0',
-				PRIMARY KEY  (registration_id,prereq_id)
+				prereq_id       int(11) NOT NULL default '0',
+				is_prereq       tinyint(1) NOT NULL default '0',
+				PRIMARY KEY (registration_id,prereq_id)
 			)
 		},
 		q{
 			CREATE TABLE registrations (
-				order_id int(10) unsigned NOT NULL auto_increment,
-				user_id int(11) NOT NULL default '0',
+				order_id        int(10) unsigned NOT NULL auto_increment,
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(10) unsigned NOT NULL default '0',
-				`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
-				paid tinyint(1) NOT NULL default '0',
-				notes blob,
-				PRIMARY KEY  (order_id),
+				`time`          timestamp NOT NULL default CURRENT_TIMESTAMP,
+				paid            tinyint(1) NOT NULL default '0',
+				notes           blob,
+				PRIMARY KEY (order_id),
 				KEY user_id (user_id,registration_id)
 			)
 		},
 		q{
 			CREATE TABLE registration_answers (
-				user_id int(11) NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(11) NOT NULL default '0',
-				qkey varchar(255) NOT NULL default '',
-				akey varchar(255) default NULL,
-				PRIMARY KEY  (user_id,registration_id,qkey)
+				qkey            varchar(255) NOT NULL default '',
+				akey            varchar(255) default NULL,
+				PRIMARY KEY (user_id,registration_id,qkey)
 			)
 		},
 		q{
 			CREATE TABLE registration_audit (
-				order_id int(10) unsigned NOT NULL default '0',
-				response_code smallint(5) unsigned NOT NULL default '0',
-				iso_code smallint(5) unsigned NOT NULL default '0',
-				`date` text NOT NULL,
-				`time` text NOT NULL,
-				transaction_id bigint(18) NOT NULL default '0',
-				approval_code text NOT NULL,
-				transaction_name varchar(20) NOT NULL default '',
-				charge_total decimal(7,2) NOT NULL default '0.00',
-				cardholder varchar(40) NOT NULL default '',
-				expiry text NOT NULL,
-				f4l4 text NOT NULL,
-				card text NOT NULL,
-				message varchar(100) NOT NULL default '',
-				`issuer` varchar(30) default NULL,
-				issuer_invoice varchar(20) default NULL,
+				order_id            int(10) unsigned NOT NULL default '0',
+				response_code       smallint(5) unsigned NOT NULL default '0',
+				iso_code            smallint(5) unsigned NOT NULL default '0',
+				`date`              text NOT NULL,
+				`time`              text NOT NULL,
+				transaction_id      bigint(18) NOT NULL default '0',
+				approval_code       text NOT NULL,
+				transaction_name    varchar(20) NOT NULL default '',
+				charge_total        decimal(7,2) NOT NULL default '0.00',
+				cardholder          varchar(40) NOT NULL default '',
+				expiry              text NOT NULL,
+				f4l4                text NOT NULL,
+				card                text NOT NULL,
+				message             varchar(100) NOT NULL default '',
+				`issuer`            varchar(30) default NULL,
+				issuer_invoice      varchar(20) default NULL,
 				issuer_confirmation varchar(15) default NULL,
-				PRIMARY KEY  (order_id)
+				PRIMARY KEY (order_id)
 			)
 		},
 		q{
 			CREATE TABLE refunds (
-				order_id int(10) unsigned NOT NULL default '0',
-				user_id int(11) NOT NULL default '0',
+				order_id        int(10) unsigned NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(10) unsigned NOT NULL default '0',
-				`time` timestamp NOT NULL default CURRENT_TIMESTAMP,
-				paid tinyint(1) NOT NULL default '0',
-				notes blob,
-				PRIMARY KEY  (order_id),
+				`time`          timestamp NOT NULL default CURRENT_TIMESTAMP,
+				paid            tinyint(1) NOT NULL default '0',
+				notes          blob,
+				PRIMARY KEY (order_id),
 				KEY user_id (user_id,registration_id)
 			)
 		},
 		q{
 			CREATE TABLE refund_answers (
-				user_id int(11) NOT NULL default '0',
+				user_id         int(11) NOT NULL default '0',
 				registration_id int(11) NOT NULL default '0',
-				qkey varchar(255) NOT NULL default '',
-				akey varchar(255) default NULL,
-				PRIMARY KEY  (user_id,registration_id,qkey)
+				qkey            varchar(255) NOT NULL default '',
+				akey            varchar(255) default NULL,
+				PRIMARY KEY (user_id,registration_id,qkey)
 			)
 		}],
 
@@ -891,8 +1161,8 @@ sub upgrade_15_to_16
 		q{
 			CREATE TABLE registration_answers (
 				order_id int UNSIGNED NOT NULL,
-				qkey varchar(255) NOT NULL,
-				akey varchar(255),
+				qkey     varchar(255) NOT NULL,
+				akey     varchar(255),
 				PRIMARY KEY (order_id, qkey)
 			);
 		},
@@ -913,8 +1183,8 @@ sub upgrade_15_to_16
 		q{
 			CREATE TABLE refund_answers (
 				order_id int UNSIGNED NOT NULL,
-				qkey varchar(255) NOT NULL,
-				akey varchar(255),
+				qkey     varchar(255) NOT NULL,
+				akey     varchar(255),
 				PRIMARY KEY (order_id, qkey)
 			);
 		},
@@ -1022,7 +1292,7 @@ sub upgrade_16_to_17
 		create_preregistrations => [
 		q{
 			CREATE TABLE preregistrations (
-				user_id INTEGER NOT NULL DEFAULT '0',
+				user_id         INTEGER NOT NULL DEFAULT '0',
 				registration_id INTEGER UNSIGNED NOT NULL DEFAULT '0',
 				KEY user_id (user_id,registration_id)
 			)
@@ -1077,8 +1347,8 @@ sub upgrade_16_to_17
 		track_score_reminders => [
 		q{
 			CREATE TABLE score_reminder (
-				game_id INTEGER NOT NULL,
-				team_id INTEGER NOT NULL,
+				game_id   INTEGER NOT NULL,
+				team_id   INTEGER NOT NULL,
 				sent_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY ( game_id, team_id )
 			)
@@ -1105,7 +1375,7 @@ sub upgrade_17_to_18
 			DELETE FROM variable WHERE name = 'wards'
 		}],
 
-		# Convert to InnoDB
+		# Convert to INNODB
 		innodb_conversion => [
 		q{
 			ALTER TABLE field ENGINE=INNODB
@@ -1290,7 +1560,7 @@ sub upgrade_18_to_19
 		# Add allstar nominations table
 		allstar_table => [q{
 			CREATE TABLE allstars (
-				game_id INTEGER NOT NULL default '0',
+				game_id   INTEGER NOT NULL default '0',
 				player_id INTEGER NOT NULL default '0',
 				PRIMARY KEY (game_id, player_id)
 			) ENGINE=INNODB;
@@ -1301,7 +1571,7 @@ sub upgrade_18_to_19
 			CREATE TABLE incidents (
 				game_id INTEGER NOT NULL ,
 				team_id INTEGER NOT NULL ,
-				type VARCHAR( 128 ) NOT NULL ,
+				type    VARCHAR( 128 ) NOT NULL ,
 				details TEXT NOT NULL ,
 				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
@@ -1324,7 +1594,7 @@ sub upgrade_19_to_20
 		# Add allstar nominations table
 		allstar_table => [q{
 			CREATE TABLE allstars (
-				game_id INTEGER NOT NULL default '0',
+				game_id   INTEGER NOT NULL default '0',
 				player_id INTEGER NOT NULL default '0',
 				PRIMARY KEY (game_id, player_id)
 			) ENGINE=INNODB;
@@ -1335,7 +1605,7 @@ sub upgrade_19_to_20
 			CREATE TABLE incidents (
 				game_id INTEGER NOT NULL ,
 				team_id INTEGER NOT NULL ,
-				type VARCHAR( 128 ) NOT NULL ,
+				type    VARCHAR( 128 ) NOT NULL ,
 				details TEXT NOT NULL ,
 				PRIMARY KEY ( game_id , team_id )
 			) ENGINE=INNODB;
@@ -1516,20 +1786,20 @@ sub upgrade_20_to_21
 		# create new spirit table
 		spirit_entries => [q{
 			CREATE TABLE spirit_entry (
-				tid_created INTEGER NOT NULL,
-				tid         INTEGER NOT NULL,
-				gid         INTEGER NOT NULL,
-				entered_by  INTEGER NOT NULL,
+				tid_created         INTEGER NOT NULL,
+				tid                 INTEGER NOT NULL,
+				gid                 INTEGER NOT NULL,
+				entered_by          INTEGER NOT NULL,
 
-				entered_sotg     INTEGER,
+				entered_sotg        INTEGER,
 
 				score_entry_penalty INTEGER NOT NULL DEFAULT 0,
-				timeliness       INTEGER NOT NULL DEFAULT 0,
-				rules_knowledge  INTEGER NOT NULL DEFAULT 0,
-				sportsmanship    INTEGER NOT NULL DEFAULT 0,
-				rating_overall   INTEGER NOT NULL DEFAULT 0,
+				timeliness          INTEGER NOT NULL DEFAULT 0,
+				rules_knowledge     INTEGER NOT NULL DEFAULT 0,
+				sportsmanship       INTEGER NOT NULL DEFAULT 0,
+				rating_overall      INTEGER NOT NULL DEFAULT 0,
 
-				comments         TEXT,
+				comments            TEXT,
 
 				PRIMARY KEY (tid_created,gid)
 			);
@@ -1981,7 +2251,7 @@ sub upgrade_27_to_28
 		# Create season table
 		q{
 			CREATE TABLE season (
-				id	     integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				id	         integer NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				display_name varchar(100) NOT NULL,
 				season       ENUM('none', 'Spring', 'Summer', 'Fall', 'Winter') NOT NULL,
 				year         integer,
@@ -2071,8 +2341,8 @@ sub upgrade_28_to_29
 				team_id  INTEGER NOT NULL,
 				site_id  INTEGER NOT NULL,
 				rank     INTEGER NOT NULL,
-				PRIMARY KEY(team_id, site_id),
-				UNIQUE(team_id,rank)
+				PRIMARY KEY (team_id, site_id),
+				UNIQUE (team_id,rank)
 			);
 		},
 
@@ -2082,7 +2352,7 @@ sub upgrade_28_to_29
 			CREATE TABLE field_ranking_stats (
 				game_id INTEGER NOT NULL,
 				team_id INTEGER NOT NULL,
-				rank INTEGER NOT NULL,
+				rank    INTEGER NOT NULL,
 				PRIMARY KEY (game_id, team_id)
 			);
 		},
@@ -2117,10 +2387,288 @@ sub upgrade_30_to_31
 		q{
 			CREATE TABLE registration_prerequisites (
 				registration_id INTEGER NOT NULL,
-				league_id INTEGER NOT NULL,
+				league_id       INTEGER NOT NULL,
   				PRIMARY KEY (registration_id,league_id),
   				KEY league_id (league_id)
 			);
+		},
+		]
+	]);
+}
+
+sub upgrade_31_to_32
+{
+	my ($self) = @_;
+	$self->_run_sql([
+
+		field_addr => [
+		q{
+			ALTER TABLE field
+				ADD COLUMN location_country varchar(50),
+				ADD COLUMN location_postalcode varchar(7);
+		},
+		],
+
+		reg_events => [
+		q{
+			ALTER TABLE registration_events
+				ADD COLUMN currency_code ENUM('USD','AUD','BRL','GBP','CAD','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MXN','TWD','NZD','NOK','PHP','PLN','SGD','SEK','CHF','THB') DEFAULT 'USD' NOT NULL,
+		},
+		],
+
+#			INSERT INTO variable (name, value) VALUES
+#				('app_admin_email', 's:25:"webmaster@lostminions.org";');
+#
+#			INSERT INTO variable (name, value) VALUES
+#				('privacy_policy', 's:23:"lostminions.org/privacy";');
+#
+#			INSERT INTO variable (name, value) VALUES
+#				('password_reset', 's:65:"http://lostminions.org/test/leaguerunner/?q=person/forgotpassword";');
+
+		settings_defaults => [
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('registration', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('dog_questions', 's:1:"1";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('clean_url', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('session_requires_ip', 's:1:"1";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('force_roster_request', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('log_messages', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('log_threshold', 's:1:"6";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_name', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_short_name', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_address', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_address2', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_city', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_province', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_country', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_postal', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_org_phone', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_admin_name', 's:26:"Leaguerunner Administrator";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('location_latitude', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('location_longitude', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('app_name', 's:12:"Leaguerunner";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('items_per_page', 's:2:"25";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('days_between_waiver', 's:3:"365";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('league_file_base', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('league_url_base', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('gmaps_key', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('current_season', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('missing_score_spirit_penalty', 's:1:"3";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('default_winning_score', 's:1:"6";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('default_losing_score', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('default_transfer_ratings', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('spirit_questions', 's:11:"team_spirit";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_approved_subject', 's:38:"%site Account Activation for %username";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_approved_body_player', 's:522:"Dear %fullname,\r\n\r\nYour %site account has been approved.\r\n\r\nYour new permanent member number is\r\n	%memberid\r\nThis number will identify you for member services, discounts, etc, so please write it down in a safe place so you\\'ll remember it.\r\n\r\nYou may now log in to the system at\r\n	%url\r\nwith the username\r\n	%username\r\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\r\n\r\nThanks,\r\n%adminname";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_approved_body_visitor', 's:336:"Dear %fullname,\r\n\r\nYour %site account has been approved.\r\n\r\nYou may now log in to the system at\r\n	%url\r\nwith the username\r\n	%username\r\nand the password you specified when you created your account.  You will be asked to confirm your account information and sign a waiver form before your account will be activated.\r\n\r\nThanks,\r\n%adminname";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_member_letter_subject', 's:22:"%site %year Membership";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_member_letter_body', 's:216:"Dear %fullname,\r\n\r\nThank you for confirming your membership in the %site for %year. You are now eligible to be added to team rosters and enjoy all the other benefits of membership in the %site.\r\n\r\nThanks,\r\n%adminname";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_password_reset_subject', 's:20:"%site Password Reset";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_password_reset_body', 's:550:"Dear %fullname,\r\n\r\nSomeone, probably you, just requested that your password for the account\r\n	%username\r\nbe reset.  Your new password is\r\n	%password\r\nSince this password has been sent via unencrypted email, you should change it as soon as possible.\r\n\r\nIf you didn\\'t request this change, don\\'t worry.  Your account password can only ever be mailed to the email address specified in your %site system account.  However, if you think someone may be attempting to gain unauthorized access to your account, please contact the system administrator.";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_dup_delete_subject', 's:20:"%site Account Update";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_dup_delete_body', 's:552:"Dear %fullname,\r\n\r\nYou seem to have created a duplicate %site account.  You already have an account with the username\r\n	%existingusername\r\ncreated using the email address\r\n	%existingemail\r\nYour second account has been deleted.  If you cannot remember your password for the existing account, please use the \\'Forgot your password?\\' feature at\r\n	%passwordurl\r\nand a new password will be emailed to you.\r\n\r\nIf the above email address is no longer correct, please reply to this message and request an address change.\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_dup_merge_subject', 's:20:"%site Account Update";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_dup_merge_body', 's:439:"Dear %fullname,\r\n\r\nYou seem to have created a duplicate %site account.  You already had an account with the username\r\n	%existingusername\r\ncreated using the email address\r\n	%existingemail\r\nTo preserve historical information (registrations, team records, etc.) this old account has been merged with your new information.  You will be able to access this account with your newly chosen user name and password.\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_captain_request_subject', 's:26:"%site Request to Join Team";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_captain_request_body', 's:1005:"Dear %fullname,\r\n\r\nYou have been invited to join the roster of the %site team %team playing on %day in the \\'%league\\' league.  We ask that you please accept or decline this invitation at your earliest convenience.  More details about %team may be found at\r\n%teamurl\r\n\r\nIf you accept the invitation, you will be added to the team\\'s roster and your contact information will be made available to the team captain.  If you decline the invitation you will be removed from this team\\'s roster and your contact information will not be made available to the captain.  This protocol is in accordance with the %site Privacy Policy.\r\n\r\nPlease be advised that players are NOT considered a part of a team roster until they have accepted a captain\\'s request to join.  Your team\\'s roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a \\'regular player\\' (accepted the captain request).\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_player_request_subject', 's:26:"%site Request to Join Team";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('person_mail_player_request_body', 's:829:"Dear %captains,\r\n\r\n%fullname has requested to join the roster of the %site team %team playing on %day in the \\'%league\\' league.  We ask that you please accept or decline this request at your earliest convenience.  Your team roster may be accessed at\r\n%teamurl\r\n\r\nIf you accept the invitation, %fullname will be added to the team\\'s roster in whatever capacity you assign.  If you decline the invitation they will be removed from this team\\'s roster.\r\n\r\nPlease be advised that players are NOT considered a part of a team roster until their request to join has been accepted by a captain.  Your team\\'s roster must be completed (minimum of 12 rostered players) by the team roster deadline, and all team members must be listed as a \\'regular player\\' (accepted by the captain).\r\n\r\nThanks,\r\n%adminname\r\n Webteam";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal', 's:1:"0";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_url', 's:1:"1";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_sandbox_email', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_sandbox_pdt', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_sandbox_url', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_live_email', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_live_pdt', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('paypal_live_url', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('order_id_format', 's:5:"R%09d";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('refund_policy_text', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('offline_payment_text', 's:687:"<ul>\r\n	<li>Mail (or personally deliver) a cheque for the appropriate amount to the league office</li>\r\n	<li>Ensure that you quote order #<b>%order_num</b> on the cheque in order for your payment to be properly credited.</li>\r\n	<li>Also include a note indicating which registration the cheque is for, along with your full name.</li>\r\n	<li>If you are paying for multiple registrations with a single cheque, be sure to list all applicable order numbers, registrations and member names.</li>\r\n</ul>\r\n<p>Please note that you will not be registered to the appropriate category that you are paying for until the cheque is received and processed (usually within 1-2 business days of receipt)</p>";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('partner_info_text', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('rss_feed_title', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('rss_feed_url', 's:0:"";');
+		},
+		q{
+			INSERT INTO variable (name, value)
+				VALUES ('rss_feed_items', 's:1:"0";');
 		},
 		]
 	]);

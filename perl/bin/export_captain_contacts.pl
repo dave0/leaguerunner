@@ -4,10 +4,15 @@ use warnings;
 use strict;
 
 use DBI;
-use Leaguerunner;
 use Getopt::Mixed;
 use Spreadsheet::WriteExcel;
 use Spreadsheet::WriteExcel::Utility;
+
+use Cwd qw(abs_path);
+use FindBin;
+use lib abs_path("$FindBin::Bin/../lib");
+
+use Leaguerunner;
 
 our( $season, $year );
 

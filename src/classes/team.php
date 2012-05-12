@@ -27,9 +27,9 @@ class Team extends LeaguerunnerObject
 		'none'              => "not on team",
 	);
 
-	function __construct( $array = array() ) 
+	function __construct( $array = array() )
 	{
-		// Fixups 
+		// Fixups
 		if($this->league_tier) {
 			$this->league_name = sprintf("$this->league_name Tier %02d", $this->league_tier);
 		}
@@ -220,7 +220,7 @@ class Team extends LeaguerunnerObject
 			return false;
 		}
 
-		$sth = $dbh->prepare('INSERT INTO team (name) VALUES(?)'); 
+		$sth = $dbh->prepare('INSERT INTO team (name) VALUES(?)');
 		$sth->execute( array( $this->name ) );
 		if( 1 != $sth->rowCount() ) {
 			return false;
@@ -264,7 +264,7 @@ class Team extends LeaguerunnerObject
 
 	/**
 	 * Calculates the "Spence Balancing Factor" or SBF for the team.
-	 * This is the average of all score differentials for games played 
+	 * This is the average of all score differentials for games played
 	 * to-date.  A lower value indicates more even match-ups with opponents.
 	 *
 	 * The team SBF can be compared to the SBF for the division.  If it's too far
@@ -286,7 +286,7 @@ class Team extends LeaguerunnerObject
 		return $sbf;
 	}
 
-	/** 
+	/**
 	 * Calculate the average skill for this team
 	 */
 	function avg_skill()
@@ -635,8 +635,8 @@ class Team extends LeaguerunnerObject
 			1 AS _in_database,
 			l.name AS league_name,
 			l.tier AS league_tier,
-			l.day AS league_day, 
-			l.season AS league_season, 
+			l.day AS league_day,
+			l.season AS league_season,
 			l.league_id,
 			(UNIX_TIMESTAMP(CONCAT(roster_deadline,' 23:59:59')) + $local_adjust_secs) AS roster_deadline
 			FROM team t
