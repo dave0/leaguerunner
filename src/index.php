@@ -43,13 +43,21 @@ define('LOAD_RELATED_DATA', 1);
 
 // Configure database
 try {
-	$dbh = new PDO($CONFIG['database']['dsn'], $CONFIG['database']['username'], $CONFIG['database']['password'],
-	array(
-		PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
-		PDO::MYSQL_ATTR_FOUND_ROWS => true,	// PHP 5.3
-		PDO::ATTR_EMULATE_PREPARES         => true,
-	)
-	);
+	$temp_pdo_flags = array();
+    if (strnatcmp(phpversion(),'5.3') >= 0) {
+		$temp_pdo_flags = array(
+							PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+							PDO::MYSQL_ATTR_FOUND_ROWS => true,	// PHP 5.3
+							PDO::ATTR_EMULATE_PREPARES         => true,
+						  );
+    } else {
+		$temp_pdo_flags = array(
+							PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+							//PDO::MYSQL_ATTR_FOUND_ROWS => true,	// PHP 5.3
+							PDO::ATTR_EMULATE_PREPARES         => true,
+						  );
+    }
+	$dbh = new PDO($CONFIG['database']['dsn'], $CONFIG['database']['username'], $CONFIG['database']['password'], $temp_pdo_flags);
 } catch (PDOException $e) {
 	print "Error!: " . $e->getMessage() . "<br/>";
 	die();
