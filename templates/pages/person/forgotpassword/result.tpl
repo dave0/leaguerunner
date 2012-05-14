@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	The password for the user matching the criteria you've entered has been
@@ -10,4 +10,4 @@
 	remembered your information correctly, or the system may be encountering
 	problems.
 </p>
-{include file=footer.tpl}
+{include file='footer.tpl'}

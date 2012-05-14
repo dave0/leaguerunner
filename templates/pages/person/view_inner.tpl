@@ -61,11 +61,11 @@
     <td>Address:</td>
     <td>
 	{include file='components/street_address.tpl'
-		street=`$person->addr_street`
-		city=`$person->addr_city`
-		province=`$person->addr_prov`
-		country=`$person->addr_country`
-		postalcode=`$person->addr_postalcode`
+		street=$person->addr_street
+		city=$person->addr_city
+		province=$person->addr_prov
+		country=$person->addr_country
+		postalcode=$person->addr_postalcode
 	}
     </td>
   </tr>
@@ -81,7 +81,7 @@
   {if $person->height && session_perm("person/view/`$person->user_id`/height")}
   <tr>
     <td>Height:</td>
-    <td>{math equation=floor(h/12) h=$person->height}' {$person->height%12}"</td>
+    <td>{math equation="floor(h/12)" h=$person->height}' {$person->height%12}"</td>
   </tr>
   {/if}
 
@@ -147,7 +147,7 @@
     <td>Contact for feedback?</td>
     <td>
     {if $person->contact_for_feedback == 'Y'}
-    Yes, player can be contacted for feedback on OCUA programs.
+    Yes, player can be contacted for feedback on programs.
     {else}
     No, player cannot be contacted.
     {/if}

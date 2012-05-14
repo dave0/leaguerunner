@@ -11,7 +11,7 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.  
+ * more details.
  *
  * You should have received a copy of the GNU General Public License along
  * with this library; if not, write to the Free Software Foundation, Inc., 59
@@ -32,7 +32,7 @@ END;
 
 putenv("TZ=" . $CONFIG['localization']['local_tz']);
 
-error_reporting(E_ALL & ~E_NOTICE);
+error_reporting(E_ALL& ~E_NOTICE); //
 
 
 /* Flag for PDO::FETCH_CLASS usage.  Use this to prevent constructor from
@@ -55,23 +55,66 @@ try {
 }
 
 require_once("includes/smarty.php");
-
+require_once("includes/KLogger.php");
 require_once("includes/common.php");
 require_once("includes/menu.php");
 require_once("includes/permissions.php");
 require_once("includes/mail.php");
 
-// Initialise configuration variables
+// Initialise configuration variables and Logger
 $conf = variable_init();
+if (variable_get('log_messages', 0)) {
+	if (!isset($log)) {
+		$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs', variable_get('log_threshold',Klogger::DEBUG));
+	}
+}
 
-// Set some template defaults
+
+/*
+ * PayPal IPN transactions are purely B2B, so most of the leaguerunner codebase isn't needed.
+ * The main functions are:
+ *  - Update registration payments
+ *  - ensure registrations/payments are matched up for players
+ */
+
+// Check Request for IPN
+if ($_GET['q'] == 'ipn') {
+	require_once("Handler/PaypalHandler.php");
+
+	// PayPal has its own logger
+	$paypal_log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs/paypal', Klogger::DEBUG);
+	$paypal_log->logInfo('Received IPN Request');
+
+	$handler = new PaypalHandler();
+	$status = $handler->process();
+
+	// success could have multiple payments to log
+	if($status['status'] == true) {
+		foreach($status['message'] as $payment) {
+			$paypal_log->logInfo('Registration #'.$payment->order_id.' - '.$payment->payment_amount.' paid in full');
+		}
+	} else {
+		$paypal_log->logError($status['message']);
+		$paypal_log->logDebug(print_r(debug_backtrace(), true));
+	}
+
+	// no more IPN processing required
+	exit;
+}
+
+	// Set some template defaults
 global $smarty;
 $smarty->assign('app_name', variable_get('app_name', 'Leaguerunner'));
 $smarty->assign('app_admin_name', variable_get('app_admin_name', 'Leaguerunner Admin'));
 $smarty->assign('app_admin_email', variable_get('app_admin_email', 'webmaster@localhost'));
 
-$smarty->assign('app_version', '2.7');
+$smarty->assign('app_version', '2.8.5');
 $smarty->assign('base_url', $CONFIG['paths']['base_url']);
+$smarty->assign('site_name', 'Your Ultimate Club');
+$smarty->assign('site_slogan', 'Slogan about Your Ultimate Club');
+
+//TODO NOTE: Testing Only, MUST BE REMOVED for Production
+//$smarty->force_compile = true;
 
 require_once("classes/lrobject.php");
 require_once("classes/field.php");
@@ -138,8 +181,9 @@ while( count( $dispatch_path ) > 0 ) {
 }
 
 if( ! $handler_class ) {
-	# TODO: should 404
-	error_exit("Not found");
+	// Adds 404 header to error page
+	//$details = array('header'=>"HTTP/1.0 404 Not Found");
+	error_exit("Leaguerunner could not find the requested file");
 }
 require_once($handler_file);
 
@@ -195,15 +239,27 @@ if($handler->initialize()) {
 	error_exit("Failed to initialize handler for $handler_class");
 }
 
-function error_exit($error = NULL)
+function error_exit($error = NULL, $options = array())
 {
 	global $smarty;
+	global $log;
+	if(isset($options['header'])) {
+		header($options['header']);
+		$smarty->assign('title', 'Page not Found');
+		$smarty->assign('error', 'Page not Found');
+		$smarty->display('404.tpl');
+		exit;
+	}
 	$smarty->assign('title', 'Error' );
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
+	if(isset($log))
+	{
+		$log->logError($error);
+		$log->logDebug(print_r(debug_backtrace(), true));
+	}
 	$smarty->assign('error', $error);
-
 	$smarty->display('error.tpl');
 	exit;
 }

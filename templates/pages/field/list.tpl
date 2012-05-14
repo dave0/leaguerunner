@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	Please respect the following rules for all fields.  Note that some
@@ -38,4 +38,4 @@ be <b>removed from the league</b>.
 {/foreach}
 </table>
 </div>
-{include file=footer.tpl}
+{include file='footer.tpl'}

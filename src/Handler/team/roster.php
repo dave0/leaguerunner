@@ -25,6 +25,10 @@ class team_roster extends TeamHandler
 	{
 		global $lr_session;
 
+		// Using these multiple times, so saving them
+		$is_admin = $lr_session->is_admin();
+		$is_captain = $lr_session->is_captain_of($this->team->team_id);
+
 		$this->title = "{$this->team->name} &raquo; Roster Status";
 
 		if( $this->team->roster_deadline > 0 &&
@@ -37,7 +41,7 @@ class team_roster extends TeamHandler
 		if( !$this->player ) {
 			$this->title = "{$this->team->name} &raquo; Add Player";
 
-			if( !($lr_session->is_admin() || $lr_session->is_captain_of($this->team->team_id))) {
+			if( !($is_admin || $is_captain )) {
 				error_exit("You cannot add a person to that team!");
 			}
 
@@ -52,6 +56,17 @@ class team_roster extends TeamHandler
 
 		if(!$this->player->is_player()) {
 			error_exit('Only registered players can be added to a team.');
+		}
+
+		$events = $this->player->is_eligible_for($this->team->team_id);
+		if($events!==true) {
+			// Captains and admins can modify players even if they haven't registered for events.
+			// That way, the onus is on the player to register, saving captains the hassle.
+			// So, only disable the roster change for players
+			if( ! ($is_admin || $is_captain)) {
+				$this->smarty->assign('prerequisites', $events);
+				$this->smarty->assign('disabled', 'disabled="disabled"');
+			}
 		}
 
 		$this->positions       = Team::get_roster_positions();

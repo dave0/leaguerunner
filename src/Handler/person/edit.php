@@ -46,7 +46,7 @@ class person_edit extends PersonHandler
 	{
 		global $lr_session, $CONFIG;
 
-		$this->smarty->assign('privacy_url', variable_get('privacy_policy', 'http://www.ocua.ca/node/17'));
+		$this->smarty->assign('privacy_url', variable_get('privacy_policy', ''));
 		$this->smarty->assign('app_org_short_name', variable_get('app_org_short_name', 'the league'));
 
 		$this->smarty->assign('province_names', getProvinceNames());

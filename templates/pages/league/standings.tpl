@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <table id="teams">
     <thead>
@@ -39,7 +39,7 @@
     {foreach from=$teams item=team}
 	<tr{if $team->team_id == $highlight_team} style="background-color:lightgreen; font-weight:bold; font-size:1.1em"{/if}>
 	    <td>{$team->seed}</td>
-	    <td><a href="{lr_url path="team/view/`$team->team_id`}">{$team->name|truncate:25}</a></td>
+	    <td><a href="{lr_url path="team/view/`$team->team_id`"}">{$team->name|truncate:25}</a></td>
 	    <td>{$team->rating}</td>
 	    {if $display_round}
 	    <td>{$team->round_win}</td>
@@ -111,4 +111,4 @@ $(document).ready(function() {
 })
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

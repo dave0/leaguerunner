@@ -1,7 +1,7 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <div class='pairtable'><table>
-{include file=pages/registration/components/short_view.tpl registrant=$registrant event=$event reg=$reg}
+{include file='pages/registration/components/short_view.tpl' registrant=$registrant event=$event reg=$reg}
 </table></div>
 <form method='POST' action="{lr_url path="registration/addpayment/`$reg->order_id`"}">
 <fieldset>
@@ -29,10 +29,10 @@
   {/foreach}
   <tr>
     <td>{html_options name="edit[payment_type]" options=$payment_types}</td>
-    <td><input type="text" maxlength="8" name="edit[payment_amount]" size="8" /></td>
-    <td><input type="text" maxlength="255" name="edit[paid_by]" value="{$registrant->fullname}" size="30" /></td>
-    <td><input type="text" maxlength="15" name="edit[date_paid]" size="15" id="datepicker" /></td>
-    <td><input type="text" maxlength="255" name="edit[payment_method]" size="20" /></td>
+    <td><input type="text" maxlength="8" name="edit[payment_amount]" size="5" /></td>
+    <td><input type="text" maxlength="255" name="edit[paid_by]" value="{$registrant->fullname}" size="15" /></td>
+    <td><input type="text" maxlength="15" name="edit[date_paid]" size="10" id="datepicker" /></td>
+    <td><input type="text" maxlength="255" name="edit[payment_method]" size="10" /></td>
     <td colspan="2">
 	<input type="hidden" name="edit[step]" value="confirm" />
 	<input type="submit" name="submit" value="Submit" />
@@ -67,4 +67,4 @@ When adding payments:
 	});
 {/literal}
 </script>
-{include file=footer.tpl}
+{include file='footer.tpl'}

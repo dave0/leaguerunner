@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <script type="text/javascript">
 {literal}
@@ -29,6 +29,12 @@ The following errors were encountered in your submission:
 <label for="edit[season]">Season</label>
 	{html_options name="edit[season]" options=$seasons}<div class="description">Season of play for this league. Choose 'Ongoing' for administrative groupings and comp teams.</div>
 
+{if $allevents}
+<label for="edit[events][]">Registration Events</label>
+	<select name="edit[events][]" multiple >{html_options options=$allevents}</select>
+	<div class="description">Select all required Registration Events a player must sign up for to be eligible to play in this league.</div>
+{/if}
+
 <label for="edit[day][]">Day(s) of play</label>
 	<select name="edit[day][]" multiple >{html_options options=$days}</select>
 	<div class="description">Day, or days, on which this league will play.</div>
@@ -37,6 +43,9 @@ The following errors were encountered in your submission:
 	<input type="text" maxlength="15" name="edit[roster_deadline]" size="15" value="" id="datepicker" />
 	<div class="description">The date after which teams are no longer allowed to edit their rosters.</div>
 
+<label for="edit[min_roster_size]">Minimum Roster size</label>
+	<input type="text" maxlength="5" name="edit[min_roster_size]" size="5" value="12"/>
+	<div class="description">The minimum number of players required for a team to be considered valid.</div>
 
 <label for="edit[tier]">Tier</label>
 	{html_options name="edit[tier]" options=$tiers}
@@ -86,4 +95,4 @@ The following errors were encountered in your submission:
 <input type="submit" name="submit" value="submit" />
 <input type="reset" name="reset" value="reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

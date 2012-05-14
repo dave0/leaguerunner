@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <form method="post">
   <input type="hidden" name="next" value="{$next_page}" />
@@ -11,4 +11,4 @@
   <input type="submit" name="submit" value="Submit" />
   <input type="reset" name="reset" value="Reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

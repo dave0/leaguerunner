@@ -1,11 +1,11 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 {if $message}
 <blockquote>{$message}</blockquote>
 {/if}
 <div class="pairtable">
 <table>
-  {include file=pages/event/components/short_view.tpl}
+  {include file='pages/event/components/short_view.tpl'}
   {if $event->cap_female == -2}
   <tr>
     <td>Registration capacity:</td>
@@ -38,9 +38,10 @@
 </table>
 </div>
 <p></p>
+{if $allow_register}
 <h2>Registration</h2>
 <b>You may now:</b>
-<ul>
+{/if}<ul>
 {if $allow_register}
 	<li><a href="{lr_url path="event/register/`$event->registration_id`"}" title="Register for {$event->name}">register yourself</a> for this event.
 {/if}
@@ -53,6 +54,10 @@
 </ul>
 {if $offline_payment_text}
 <h2>Payment</h2>
+{if $paypal}
+{include file=$paypal}
+{/if}
+<h3>Offline Payment</h3>
 {$offline_payment_text}
 {/if}
 {if $refund_policy_text}
@@ -60,4 +65,4 @@
 {$refund_policy_text}
 {/if}
 
-{include file=footer.tpl}
+{include file='footer.tpl'}

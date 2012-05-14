@@ -1,5 +1,5 @@
 
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <form method="POST">
    <input type="hidden" name="edit[step]" value="perform" />
@@ -31,4 +31,4 @@
 <input type="submit" name="submit" value="submit" />
 
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

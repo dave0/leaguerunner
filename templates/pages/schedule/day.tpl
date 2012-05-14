@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <script type="text/javascript">
 
@@ -20,8 +20,8 @@
     <label>Games for date: <input type="text" maxlength="15" name="edit[date]" size="15" value="{$date}" id="datepicker"/></label>
 </form>
 {if $games}
-{include file=components/schedule_table.tpl}
+{include file='components/schedule_table.tpl'}
 {else}
 <p>No games scheduled</p>
 {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}

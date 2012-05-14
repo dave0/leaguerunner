@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>Registration complete!</h2>
 <p></p>
@@ -10,4 +10,4 @@
    Since there is no payment associated with this event, your registration is
    complete.
 </p>
-{include file=footer.tpl}
+{include file='footer.tpl'}

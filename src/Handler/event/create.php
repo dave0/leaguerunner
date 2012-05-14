@@ -4,6 +4,7 @@ class event_create extends event_edit
 {
 	function __construct ( )
 	{
+		$this->event_types = event_types();
 		$this->title = "Create Event";
 	}
 

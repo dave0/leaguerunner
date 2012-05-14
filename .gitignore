@@ -1,1 +1,14 @@
 *~
+*.conf
+*.log
+.buildpath
+.settings/
+.project
+templates_c
+config
+cache
+src/dummy.php
+src/logs/
+drupal/
+
+.DS_Store

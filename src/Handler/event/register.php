@@ -1,5 +1,6 @@
 <?php
 require_once('Handler/EventHandler.php');
+require_once('Handler/PaypalHandler.php');
 require_once('Handler/person/search.php');
 
 class event_register extends EventHandler
@@ -160,11 +161,30 @@ class event_register extends EventHandler
 	 */
 	function generatePay()
 	{
+		global $lr_session;
+		global $CONFIG;
+
 		$this->smarty->assign('order_number', $this->registration->formatted_order_id());
 
 		if( $this->event->cost == 0 ) {
 			$this->template_name = 'pages/event/register/done_no_cost.tpl';
 			return true;
+		}
+
+		if ( variable_get('paypal','')) {
+			$paypal = new PaypalHandler();
+			$this->smarty->assign('paypal','pages/event/register/paypal_payment.tpl');
+			$this->smarty->assign('shopping_url',$paypal->shopping_url);
+			$this->smarty->assign('return_url', $paypal->return_url.$this->registration->order_id);
+			$this->smarty->assign('paypal_url', $paypal->submit_url);
+			$this->smarty->assign('paypal_email', $paypal->account_email);
+			$this->smarty->assign('registration', $this->registration);
+			$this->smarty->assign('event', $this->event);
+
+			// include user details for auto fill forms
+			// Paypal wants country codes, not names, so rewrite country value in user
+			$lr_session->user->addr_country = getCountryCode($lr_session->user->addr_country);
+			$this->smarty->assign('user', $lr_session->user);
 		}
 
 		$this->template_name = 'pages/event/register/offline_payment.tpl';

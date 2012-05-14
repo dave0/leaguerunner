@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <p>
 	You are changing the password for '{$person->fullname}' (username "{$person->username}").
@@ -21,4 +21,4 @@
 <input type="submit" name="submit" value="Submit" />
 <input type="reset" name="reset" value="Reset" />
 </form>
-{include file=footer.tpl}
+{include file='footer.tpl'}

@@ -1,6 +1,6 @@
 <p>
 	You must agree to the following waiver in order to activate your
-	account and play in any OCUA games.
+	account and play in any SUC games.
 </p>
 <p>
 While the sport of ultimate is understood to be a non-contact sport, this 
@@ -13,7 +13,7 @@ and that injuries will not be sustained. Members are reminded that they
 engage in the sport entirely at their own risk.
 </p>
 <p>
-Given that OCUA offers the sport of ultimate at varied and dispersed 
+Given that SUC offers the sport of ultimate at varied and dispersed 
 locations, and does not have officials such as referees at the games, it 
 falls to the Captains and players of the teams participating in the game to 
 be responsible for the safety of the site at which they are playing. 
@@ -22,12 +22,12 @@ before their game begins, to determine if it is safe.   They are responsible
 for taking appropriate action if they feel that their safety is being 
 compromised by playing on what they consider an unsafe field; this includes 
 but is not limited to the refusal, as a team or individually, to play on a 
-site they deem to be potentially hazardous.  OCUA never forces its members 
+site they deem to be potentially hazardous.  SUC never forces its members 
 to play when they are not comfortable doing so; games can easily be 
 rescheduled.
 </p>
 <p>
-While participating in an OCUA sponsored game of Ultimate, all players have 
+While participating in an SUC sponsored game of Ultimate, all players have 
 the duty to take reasonable efforts to ensure their own safety, the safety 
 of their teammates, and the safety of the opposing players.  This includes 
 but is not limited to the refusal, as a team or individually, to play 
@@ -40,9 +40,9 @@ a discussion be held; and/or (b) when the Captain deems that it is necessary
 to do so.
 </p>
 <p>
-I, as a member of and player participating in OCUA's Ultimate League in the 
-Ottawa area, acknowledge that there is a risk of being injured while playing
-the game of ultimate and that OCUA does not warrant or guarantee the quality
+I, as a member of and player participating in SUC's Ultimate League in the 
+Sudbury area, acknowledge that there is a risk of being injured while playing
+the game of ultimate and that SUC does not warrant or guarantee the quality
 or condition of ultimate playing fields and other facilities, and, 
 accordingly, I agree that I will not conduct myself in a dangerous or 
 reckless manner while participating in the game of ultimate, will comply 
@@ -54,28 +54,28 @@ reckless or dangerous manner while playing or participating in the game of
 ultimate.
 </p>
 <p>
-I acknowledge that OCUA occasionally issues directions, orders and 
+I acknowledge that SUC occasionally issues directions, orders and 
 regulations for the use of playing fields and other facilities, for the 
 rules of play for the game of ultimate and for the conduct of members and 
 others while on or about the ultimate playing fields and that such 
 directions, orders and regulations are reasonable, and, accordingly, I 
 hereby agree to comply with all such directions, orders and regulations 
-issued by OCUA.
+issued by SUC.
 </p>
 <p>
-I, in consideration of my membership in OCUA and my participation in 
-ultimate games, do hereby release and forever discharge OCUA, its directors,
+I, in consideration of my membership in SUC and my participation in 
+ultimate games, do hereby release and forever discharge SUC, its directors,
 officers, employees, volunteers and other representatives from any and all 
 damages, costs and claims for any present or future injury, however grievous
 or serious it may be, which I may suffer or which any person under my care 
 may suffer as a result of or arising from my participation in the game of 
-ultimate and my use of any facility of OCUA and, further, I do hereby agree 
-to indemnify and save OCUA, its directors, officers and employees harmless 
+ultimate and my use of any facility of SUC and, further, I do hereby agree 
+to indemnify and save SUC, its directors, officers and employees harmless 
 from and against any and all such damages, costs and claims whatsoever and 
 from and against any and all damages, costs and claims whatsoever which may 
 arise from or as a result of any injury, however grievous or serious it may 
 be, which I may negligently or wilfully cause to others during my 
-participation in the game of ultimate and my use of any facility of OCUA.
+participation in the game of ultimate and my use of any facility of SUC.
 </p>
 <p>
 I agree to play fairly and by the rules, having regard to the safety and the

@@ -2,11 +2,15 @@
   deny from all
 </Files>
 
+<Files dummy.php>
+  allow from all
+</Files>
+
 <Files index.php>
   allow from all
 </Files>
 
-Options -Indexes
+Options FollowSymLinks -Indexes
 DirectoryIndex index.php
 
 # Various rewrite rules

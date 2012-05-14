@@ -1,4 +1,4 @@
-{include file=header.tpl}
+{include file='header.tpl'}
 <h1>{$title}</h1>
 <h2>Step 3: Arrange for payment</h2>
 <p></p>
@@ -6,6 +6,9 @@
    You are now registered for this event, pending arrival of your registration
    fee.  Your registration number is <b>{$order_number}</b>
 </p>
+{if $paypal}
+{include file=$paypal}
+{/if}
 <p>
 {$offline_payment_text}
 </p>
@@ -20,4 +23,4 @@
 {$partner_info_text}
 </p>
 {/if}
-{include file=footer.tpl}
+{include file='footer.tpl'}

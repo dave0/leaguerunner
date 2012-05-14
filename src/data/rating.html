@@ -1,8 +1,10 @@
 <html>
   <head>
     <title>Leaguerunner Skill Level Questionnaire</title>
-    <link rel='stylesheet' href="/leaguerunner/css/style.css" type="text/css">
-    <script language='javascript'>
+    <style type="text/css">
+      @import url(../style.css);
+    </style>
+    <script>
 
 // function to do the ranking
 function doranking() {
@@ -21,40 +23,34 @@ function doranking() {
   // these questions have 5 answers
   for (i = 0; i<5; i++) {
     if (document.ranking.q1[i].checked) {
-      q1 = parseInt(document.ranking.q1[i].value, 10);
+      q1 = parseFloat(document.ranking.q1[i].value);
+    }
+    if (document.ranking.q2[i].checked) {
+      q2 = parseFloat(document.ranking.q2[i].value);
     }
     if (document.ranking.q3[i].checked) {
-      q3 = parseInt(document.ranking.q3[i].value, 10);
+      q3 = parseFloat(document.ranking.q3[i].value);
     }
     if (document.ranking.q4[i].checked) {
-      q4 = parseInt(document.ranking.q4[i].value, 10);
+      q4 = parseFloat(document.ranking.q4[i].value);
     }
     if (document.ranking.q5[i].checked) {
-      q5 = parseInt(document.ranking.q5[i].value, 10);
+      q5 = parseFloat(document.ranking.q5[i].value);
     }
     if (document.ranking.q6[i].checked) {
-      q6 = parseInt(document.ranking.q6[i].value, 10);
+      q6 = parseFloat(document.ranking.q6[i].value);
     }
     if (document.ranking.q7[i].checked) {
-      q7 = parseInt(document.ranking.q7[i].value, 10);
+      q7 = parseFloat(document.ranking.q7[i].value);
     }
     if (document.ranking.q8[i].checked) {
-      q8 = parseInt(document.ranking.q8[i].value, 10);
+      q8 = parseFloat(document.ranking.q8[i].value);
     }
     if (document.ranking.q9[i].checked) {
-      q9 = parseInt(document.ranking.q9[i].value, 10);
+      q9 = parseFloat(document.ranking.q9[i].value);
     }
-  }
-  // this question has 7 answers
-  for (i = 0; i<7; i++) {
-    if (document.ranking.q2[i].checked) {
-      q2 = parseInt(document.ranking.q2[i].value, 10);
-    }
-  }
-  // this question has 4 answers
-  for (i = 0; i<4; i++) {
     if (document.ranking.q10[i].checked) {
-      q10 = parseInt(document.ranking.q10[i].value, 10);
+      q10 = parseFloat(document.ranking.q10[i].value);
     }
   }
 
@@ -101,9 +97,9 @@ function doranking() {
   }
 
   // CALCULATE THE RESULTS:
+  // Q1 = 
 
-  // this equation (after rounding) gives ranking between 0.5 and 9.5
-  var therank = 0.21429*(q1+q2+q3+q4+q5+q6+q7+q8+q9+q10) + 5;
+  var therank = q1+q2+q3+q4+q5+q6+q7+q8+q9+q10;
   therank = therank*10;  // slide the decimal over
   therank = Math.round(therank);  // round it to nearest int
   therank = therank/10;  // slide the decimal back
@@ -124,108 +120,98 @@ function doranking() {
   <h1>Leaguerunner Player Ranking</h1>
   <p>Fill out this questionnaire and then click "Calculate My Ranking" below to
   figure out skill level you should use in Leaguerunner.</p>
-  <p>The questionnaire is divided into Skill and Experience questions.  Answer
-  each as honestly as possible, and the resulting LeagueRunner ranking should
-  be fairly accurate</p>
-  <p>
-  	The calculated value will be entered on the Leaguerunner account editing form.
+  <p>	The calculated value will be entered on the Leaguerunner account editing form.
   </p>
 
 <form name='ranking'>
 
-<h2>Skill Questions:</h2>
-
-<b>1) Compared to other players of the same sex as you, would you consider yourself:</b><br>
-<input type="radio" name="q1" value="-2">One of the slowest</input><br>
-<input type="radio" name="q1" value="-1">Slower than most</input><br>
-<input type="radio" name="q1" value="0">Average speed</input><br>
-<input type="radio" name="q1" value="1">Faster than most</input><br>
-<input type="radio" name="q1" value="2">One of the fastest</input><br>
+<b>1) How many years have you been playing Ultimate Frsbee</b><br>
+<input type="radio" name="q1" value="0">0 Years<br>
+<input type="radio" name="q1" value="0.06">1-2 Years<br>
+<input type="radio" name="q1" value="0.12">3-5 Years<br>
+<input type="radio" name="q1" value="0.21">6-8 Years<br>
+<input type="radio" name="q1" value="0.3">8+ Years<br>
 
 <br>
 
-<b>2) How would you describe your throwing skills?</b><br>
-<input type="radio" name="q2" value="-3">just learning, only backhand throw, no forehand</input><br>
-<input type="radio" name="q2" value="-2">can make basic throws, perhaps weaker forehand, some distance and accuracy, nervous when handling the disc</input><br>
-<input type="radio" name="q2" value="-1">basic throws (backhand and forehand), some distance and accuracy, not very consistent, somewhat intimidated when handling the disc, can handle on most lower-level teams</input><br>
-<input type="radio" name="q2" value="0">good basic throws (backhand and forehand), good distance and accuracy, fairly consistent, relatively comfortable when handling disc, can handle on most lower to mid-level teams</input><br> 
-<input type="radio" name="q2" value="1">very good basic throws, know some other kinds of throws, very good distance and accuracy, usually consistent quality throws, confident when handling the disc, can handle on most mid to upper-level teams</input><br>
-<input type="radio" name="q2" value="2">all kinds of throws, excellent distance and accuracy, not prone to errors of judgment, can handle on most top-level league and lower-competitive teams</input><br>
-<input type="radio" name="q2" value="3">all kinds of throws, very rarely make a bad throw, excellent distance, near perfect accuracy, epitome of reliability, can handle on an elite team (mid-highly competitive team)</input><br>
+<b>2) Over the past few years, when did you normally play Ultimate?</b><br>
+<input type="radio" name="q2" value="0">Brand New<br>
+<input type="radio" name="q2" value="0.04">Summer - Wednesday<br>
+<input type="radio" name="q2" value="0.1">Summer - Monday<br>
+<input type="radio" name="q2" value="0.14">Summer - Both Nights (Regular League if new to Sudbury)<br> 
+<input type="radio" name="q2" value="0.2">Summer and Indoor<br>
  
 <br>
 
-<b>3) How would you rate your catching skills?</b><br>
-<input type="radio" name="q3" value="-2">can make basic catches if they're straight to me, still learning to judge the flight path of the disc</input><br>
-<input type="radio" name="q3" value="-1">can make basic catches, sometimes have difficulty judging the flight path of the disc</input><br>
-<input type="radio" name="q3" value="0">can make most catches, good at judging the flight path of the disc, not likely to attempt a layout</input><br>
-<input type="radio" name="q3" value="1">can catch almost everything (high, low, to the side), rarely misread the disc, will layout if necessary</input><br>
-<input type="radio" name="q3" value="2">catch absolutely everything thrown towards me, and most of the swill that isn't</input><br>
+<b>3) What level do you play at?</b><br>
+<input type="radio" name="q3" value="0">Brand New <br>
+<input type="radio" name="q3" value="0.3">Disc Golf only <br>
+<input type="radio" name="q3" value="0.5">SUC or equivalent league if new to Sudbury <br>
+<input type="radio" name="q3" value="0.8">SUC + 1 Tournament a year (not counting Snowplate) <br>
+<input type="radio" name="q3" value="1">SUC + multiple tournaments a year <br>
 
 <br>
 
-<b>4) With respect to playing defense, you:</b><br>
-<input type="radio" name="q4" value="-2">understand some basics, and are learning how to read the play, no/limited experience with defense strategies</input><br>
-<input type="radio" name="q4" value="-1">know the basics, but you're sometimes behind the play, learned a bit about man defense strategies</input><br>
-<input type="radio" name="q4" value="0">can stay with the play and sometimes make the D, understand the basics of man & zone style defense strategies </input><br>
-<input type="radio" name="q4" value="1">can read and anticipate the play and get in position to increase the chances of make the D, comfortable with both man/zone style defense strategies</input><br>
-<input type="radio" name="q4" value="2">always think ahead of the play and can often make the D, proficient at both man/zone style defense strategies and maybe know a few more</input><br>
+<b>4) Compared to other players of the same sex, would you consider yourself:</b><br>
+<input type="radio" name="q4" value="0.3">One of the slowest <br>
+<input type="radio" name="q4" value="0.6">Slower than most <br>
+<input type="radio" name="q4" value="0.9">Average Speed <br>
+<input type="radio" name="q4" value="1.2">Faster than most <br>
+<input type="radio" name="q4" value="1.5">One of the fastest <br>
 
 <br>
 
-<b>5) With respect to playing offense, you:</b><br>
-<input type="radio" name="q5" value="-2">are still learning the basic strategy, not quite sure where to go or when to cut</input><br>
-<input type="radio" name="q5" value="-1">have the basic idea of where/when/how cuts should be made, starting to be able to do it, basic knowledge of a stack</input><br>
-<input type="radio" name="q5" value="0">can make decent cuts, understand the stack, can play at least one of handler/striker/popper/etc, understand the concept of the dump & swing</input><br>
-<input type="radio" name="q5" value="1">can make good cuts, can play any of handler/striker/popper/etc, comfortable handling, rarely throw away the disc or get blocked</input><br>
-<input type="radio" name="q5" value="2">proficient cutter, experienced handler, can play any position, understand many offensive strategies</input><br>
+<b>5) How would you describe your athleticism?</b><br>
+<input type="radio" name="q5" value="0.24">Below Average - co-ordinateion issues, slow to pick up new sports <br>
+<input type="radio" name="q5" value="0.48">Average <br>
+<input type="radio" name="q5" value="0.72">Good - can pick up most sports <br>
+<input type="radio" name="q5" value="0.96">Very Good - can pick up and excel in most sports <br>
+<input type="radio" name="q5" value="1.2">Excellent - have played high level sports (hockey, basketball, soccer, etc.) <br>
 
 <br>
 
-
-<h2>Experience Questions:</h2>
-
-<b>6) For how many years have you been playing ultimate?</b><br>
-<input type="radio" name="q6" value="-2">0 years</input><br>
-<input type="radio" name="q6" value="-1">1-2 years</input><br>
-<input type="radio" name="q6" value="0">3-5 years</input><br>
-<input type="radio" name="q6" value="1">6-8 years</input><br>
-<input type="radio" name="q6" value="2">9+ years</input><br>
+<b>6) How would you describe your throwing skills?</b><br>
+<input type="radio" name="q6" value="0.15">Just learning or brand new <br>
+<input type="radio" name="q6" value="0.45">Average backhand, weaker flick, limited distance and accuracy, nervous ir intimidated when handling the disc <br>
+<input type="radio" name="q6" value="0.75">Good basic throws (backhand and flick) good distance and accuracy, good consistency, somewhat comfortable with the disc <br>
+<input type="radio" name="q6" value="1.05">Very good basic throws with some other throws, very good distance and accuracy, usually consistent, secondary handler <br>
+<input type="radio" name="q6" value="1.5">All kinds of throws, excellent distance and accuracy, good decisions, primary handler <br>
 
 <br>
 
-<b>7) What is the highest level at which you regularly play?</b><br>
-<input type="radio" name="q7" value="-2">Summer Mon-Thu team ranked 40th or lower or Summer Fridays</input><br>
-<input type="radio" name="q7" value="-1">Summer Mon/Wed team ranked 25th through 40th, Summer Tue/Thu team ranked 10th through 40th, or indoor rec league</input><br>
-<input type="radio" name="q7" value="0">Summer Mon/Wed team ranked 25th or better, Summer Tue/Thu team ranked 10th or better, or indoor intermediate/advanced</input><br>
-<input type="radio" name="q7" value="1">Competitive Tournament play</input><br>
-<input type="radio" name="q7" value="2">Competitive Nationals play</input><br>
+<b>7) How would you rate your catching skills?</b><br>
+<input type="radio" name="q7" value="0.15">Difficulty catching most throws <br>
+<input type="radio" name="q7" value="0.45">Can catch some throws, trouble with high and low throws, have trouble judging the flight path of the disc <br>
+<input type="radio" name="q7" value="0.75">Can catch most throws, average to good at judging the flight path of the disc, not likely to 'layout' <br>
+<input type="radio" name="q7" value="1.2">Can catch almost everything (high, low, side), can read the disc well, will 'layout' if necessary <br>
+<input type="radio" name="q7" value="1.5">Can catch everything thrown towards me, and most of the stuff that is not, will sacrifice body without thinking <br>
 
 <br>
 
-<b>8) Over the past few summers, how many nights during the week did you play ultimate? (organized practices and regular pick-up count)</b><br>
-<input type="radio" name="q8" value="-2">0 nights per week</input><br>
-<input type="radio" name="q8" value="-1">1 night per week</input><br>
-<input type="radio" name="q8" value="0">2 nights per week</input><br>
-<input type="radio" name="q8" value="1">3 nights per week</input><br>
-<input type="radio" name="q8" value="2">more than 3 nights per week</input><br>
+<b>8) With respect to playing offense, you are a:</b><br>
+<input type="radio" name="q8" value="0">Brand new player - "What's a stack?" <br>
+<input type="radio" name="q8" value="0.08">Beginner cutter <br>
+<input type="radio" name="q8" value="0.32">Average cutter or beginner handler <br>
+<input type="radio" name="q8" value="0.56">Good cutter or secondary handler <br>
+<input type="radio" name="q8" value="0.8">Primary handler or excellent cutter (always open) <br>
 
 <br>
 
-<b>9) Over the past few years, when did you normally play ultimate?</b><br>
-<input type="radio" name="q9" value="-2">The occasional pick-up game</input><br>
-<input type="radio" name="q9" value="-1">The occasional tournament</input><br>
-<input type="radio" name="q9" value="0">1 season (Summer only, Fall only, Winter only)</input><br>
-<input type="radio" name="q9" value="1">2 seasons (Summer and Fall, or Summer and Winter, or Fall and Winter)</input><br>
-<input type="radio" name="q9" value="2">3 seasons (Summer, Fall, and Winter)</input><br>
+<b>9) With respect to playing defense, you:</b><br>
+<input type="radio" name="q9" value="0">Are brand new - "What does 'home' mean?" <br>
+<input type="radio" name="q9" value="0.2">Still learning the basics, sometimes behind the play, have a hard time covering most players <br>
+<input type="radio" name="q9" value="0.4">Know the basics, can keep up with play, make occasional D, know of man and zone strategy <br>
+<input type="radio" name="q9" value="0.7">Can read the play, make average number of D plays, comfortable in man and zone <br>
+<input type="radio" name="q9" value="1">Always thinking ahead of the play, often make the D, proficient in man and zone (multiple positions) <br>
 
 <br>
 
-<b>10) If there was a disagreement on the field about a certain play, the majority of the time you would be able to:</b><br>
-<input type="radio" name=q10 value="-2">not do much because you don't know all the rules yet </input><br>
-<input type="radio" name=q10 value="-1">quote what you think is the rule, and agree with the other player/captain to go with that</input><br>
-<input type="radio" name=q10 value="1">use a copy of the rules to find the exact rule that addresses the problem</input><br>
-<input type="radio" name=q10 value="2">quote the exact rule from memory that addresses the problem</input><br>
+<b>10) With respect to the rules and fouls, you:</b><br>
+<input type="radio" name=q10 value="0">Do not know the rules yet <br>
+<input type="radio" name=q10 value="0.3">Know some of the basics, but are not comfortable calling any fouls <br>
+<input type="radio" name=q10 value="0.6">Can quote what you think is the rule, will call basic fouls (picks, marking fouls) <br>
+<input type="radio" name=q10 value="0.9">Are certain of most rules, will call most fouls <br>
+<input type="radio" name=q10 value="1">Can quote the rules from memory, will call fouls and can explain why/how they are used <br>
 
 <br>
 
@@ -235,4 +221,3 @@ function doranking() {
 
 </body>
 </html>
-

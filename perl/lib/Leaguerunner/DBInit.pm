@@ -5,7 +5,7 @@ use warnings;
 # This is the current schema value.
 # It should be increased after a release version (or major deployment from SVN
 # by one of the major contributors).
-my $LATEST_SCHEMA = 29;
+my $LATEST_SCHEMA = 31;
 
 my @TABLES = (
 	'person' => [q{
@@ -110,6 +110,7 @@ my @TABLES = (
 			ratio               ENUM('4/3','5/2','3/3','4/2','3/2','womens','mens','open'),
 			current_round       int DEFAULT 1,
 			roster_deadline     datetime DEFAULT 0,
+			min_roster_size		int DEFAULT 12,
 			stats_display       ENUM('all','currentround') DEFAULT 'all',
 			status              ENUM('open','closed') NOT NULL default 'open',
 			schedule_type       ENUM('none','roundrobin','ratings_ladder', 'ratings_wager_ladder') default 'roundrobin',
@@ -401,6 +402,17 @@ my @TABLES = (
 			qkey varchar(255) NOT NULL default '',
 			akey varchar(255) default NULL,
 			PRIMARY KEY  (order_id,qkey)
+		);
+	},
+	q{
+		DROP TABLE IF EXISTS registration_prerequisites;
+	},
+	q{
+		CREATE TABLE registration_prerequisites (
+			registration_id INTEGER NOT NULL,
+			league_id INTEGER NOT NULL,
+			PRIMARY KEY (registration_id,league_id),
+			KEY league_id (league_id)
 		);
 	}],
 
@@ -2083,4 +2095,33 @@ sub upgrade_28_to_29
 	]);
 }
 
-1;
+sub upgrade_29_to_30
+{
+	my ($self) = @_;
+	$self->_run_sql([
+
+		league_min_roster => [
+		q{
+			ALTER TABLE league
+				ADD COLUMN min_roster_size INTEGER DEFAULT 12;
+		},
+		]
+	]);
+}
+
+sub upgrade_30_to_31
+{
+	my ($self) = @_;
+	$self->_run_sql([
+		reg_prereq => [
+		q{
+			CREATE TABLE registration_prerequisites (
+				registration_id INTEGER NOT NULL,
+				league_id INTEGER NOT NULL,
+  				PRIMARY KEY (registration_id,league_id),
+  				KEY league_id (league_id)
+			);
+		},
+		]
+	]);
+}

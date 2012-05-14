@@ -16,7 +16,7 @@ class Event extends LeaguerunnerObject
 	var $anonymous;
 	var $season_id;
 
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
 		// Split the open and close dates
 		if( isset($this->open) ) {
@@ -347,7 +347,7 @@ function event_types ()
 		'individual_event'  => 'Individual Event Registration',
 		'team_event'        => 'Team Event Registration',
 		'individual_youth'  => 'Individual Youth and Junior League Registration',
-		'individual_league' => 'Individual League Registration (for players without a team)',
+		'individual_league' => 'Individual League Registration',
 		'team_league'       => 'Team League Registration'
 	);
 }

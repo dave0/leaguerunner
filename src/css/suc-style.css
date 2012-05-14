@@ -1,0 +1,431 @@
+@CHARSET "UTF-8";
+
+body {
+    background: none repeat scroll 0 0 #F0F0F2;
+    color: #666666;
+    font-family: Arial,Verdana,sans-serif;
+    font-size: 13px;
+    line-height: 1.5em;
+    margin: 0;
+    padding: 0;
+}
+
+#page-wrapper {
+    float: left;
+    margin: 0 auto;
+    padding: 0;
+    width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	line-height: 1.3em;	
+}
+
+.clearfix {
+    clear: both;
+}
+.clearfix:after {
+    clear: both;
+    content: ".";
+    display: block;
+    height: 0;
+    visibility: hidden;
+}
+
+.one-sidebar #content-wrapper {
+    padding-left: 45px;
+    padding-right: 45px;
+}
+
+#content-wrapper {
+    padding: 30px 65px 45px;
+}
+
+a {
+    text-decoration: none;
+}
+a:link {
+    color: #0B5ED8;
+    text-decoration: none;
+}
+a:visited {
+    color: #0B5ED8;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+#header-wrapper {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-bottom: 1px solid #BFBFC6;
+    float: left;
+    height: 75px;
+    width: 100%;
+}
+#header {
+    margin: 0 auto;
+    width: 806px;
+}
+#branding-wrapper {
+    float: left;
+    height: 75px;
+    width: 50%;
+}
+.branding {
+    display: inline;
+    float: left;
+    margin: 14px 0;
+}
+.branding h1, .branding h2 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0 10px 0 0;
+    text-transform: uppercase;
+}
+.branding a:hover {
+    text-decoration: none;
+}
+.name-slogan-wrapper {
+    float: left;
+}
+.logo {
+    float: left;
+    margin-right: 10px;
+}
+.logo img {
+    height: 43px;
+}
+.site-name {
+    font-style: normal;
+}
+.site-slogan {
+    font-size: 14px;
+    font-style: italic;
+    font-weight: bold;
+}
+#authorize {
+    bottom: 0;
+    float: right;
+    font-size: 12px;
+}
+#authorize ul {
+    margin: 40px 0 0;
+    padding-left: 0;
+}
+#authorize ul li {
+    background-image: none;
+    display: inline;
+    list-style: none outside none;
+}
+#authorize ul li.first {
+    padding-right: 10px;
+}
+
+#container-wrapper {
+    background: url("/sites/all/themes/metropolis/images/body-bg.gif") repeat-x scroll center top #F0F0F2;
+    clear: both;
+    width: 100%;
+}
+#container-outer {
+    background: url("/sites/all/themes/metropolis/images/shadow-body.gif") repeat-y scroll 0 0 #F0F0F2;
+    margin: 0 auto;
+    width: 818px;
+}
+#container-inner {
+    background: url("/sites/all/themes/metropolis/images/separator-bottom.gif") no-repeat scroll center bottom #FFFFFF;
+    clear: both;
+    margin: 0 auto;
+    width: 804px;
+}
+#shadow-bottom {
+    background: url("/sites/all/themes/metropolis/images/shadow-footer.gif") no-repeat scroll 0 0 #F0F0F2;
+    height: 9px;
+    margin: 0 auto;
+    width: 818px;
+}
+
+.one-sidebar #main-content {
+    float: left;
+    margin-right: 3%;
+    width: 71%;
+}
+
+.sidebar {
+    float: right;
+    width: 25%;
+}
+.sidebar h2.block-title {
+    border-bottom: 1px solid #BBBBBB;
+    font-size: 1.3em;
+    padding-bottom: 3px;
+}
+.sidebar .content {
+    margin: 13px 0;
+}
+
+.sidebar ul {
+	padding-left: 20px;
+}
+
+
+#footer {
+    clear: both;
+    color: #666666;
+    font-size: 12px;
+    padding: 20px 20px 30px;
+    text-align: center;
+}
+
+.splash table { border-collapse: collapse; width: 100% !important; }
+.splash th { border-bottom: 1px solid #BBBBBB; }
+.splash td { font-size: 8pt; }
+.splash .highlight { background-color: lightblue; }
+
+fieldset {
+	border: 1px solid #BBBBBB;
+}
+
+.schedule table {
+	border-collapse: collapse;
+	}
+.gamedate {
+	padding-top: 20px;
+}
+	
+.schedule th, .schedule td {
+	padding-right: 5px;
+}
+
+#menu-wrapper {
+    background: url("/sites/all/themes/metropolis/images/shadow-dash.gif") no-repeat scroll left top transparent;
+    float: left;
+    position: relative;
+    width: 100%;
+    z-index: 4;
+}
+.menu-outer {
+    height: 43px;
+    margin: 0 auto;
+    width: 804px;
+}
+.menu-inner {
+    background: url("/sites/all/themes/metropolis/images/menu-bg.gif") repeat-x scroll center top #F4F4F4;
+    border-bottom: 1px solid #BFBFC6;
+    float: left;
+    height: 43px;
+    margin: 0 auto;
+    width: 804px;
+}
+.menu-left {
+    background: url("/sites/all/themes/metropolis/images/menu-left.gif") no-repeat scroll 0 0 transparent;
+    float: left;
+    height: 43px;
+    width: 22px;
+}
+.menu-right {
+    background: url("/sites/all/themes/metropolis/images/menu-right.gif") no-repeat scroll 0 0 transparent;
+    float: right;
+    height: 43px;
+    width: 22px;
+}
+
+
+#superfish ul, #superfish ul * {
+    list-style: none outside none;
+    margin: 0;
+    padding: 0;
+}
+#superfish .nolink {
+    cursor: pointer;
+}
+#superfish ul, #menu ul {
+    line-height: 1.2em;
+}
+#superfish ul ul {
+    position: absolute;
+    top: -999em;
+    width: 176px;
+}
+#superfish ul ul li {
+    width: 100%;
+}
+#superfish ul li:hover {
+    visibility: inherit;
+}
+#superfish ul li, #menu ul li {
+    float: left;
+    position: relative;
+}
+#superfish ul a, #menu ul a, #superfish ul .nolink {
+    display: block;
+    position: relative;
+}
+#superfish ul li:hover ul, #superfish ul li.sfHover ul {
+    left: 0;
+    top: 43px;
+    z-index: 99;
+}
+#superfish ul li:hover li ul, #superfish ul li.sfHover li ul {
+    top: -999em;
+}
+#superfish ul li li:hover ul, #superfish ul li li.sfHover ul {
+    left: 176px;
+    top: 0;
+}
+#superfish ul li li:hover li ul, #superfish ul li li.sfHover li ul {
+    top: -999em;
+}
+#superfish ul li li li:hover ul, #superfish ul li li li.sfHover ul {
+    left: 176px;
+    top: 0;
+}
+#menu ul.links li {
+    padding: 0;
+}
+#superfish ul, #menu ul {
+    float: left;
+    margin-left: -18px;
+}
+#superfish ul ul {
+    border: 1px solid #CCCCCC;
+    margin-left: -1px;
+    padding: 0;
+}
+#superfish ul ul ul {
+    border: 1px solid #CCCCCC;
+    margin-left: 0;
+    margin-top: -1px;
+    padding: 0;
+}
+#superfish ul a, #menu ul a, #superfish ul .nolink {
+    padding: 1.1em 1.75em;
+    text-align: center;
+    text-decoration: none;
+}
+#superfish ul ul a, #menu ul ul a, #superfish ul ul .nolink {
+    padding: 0.75em 1.75em;
+    text-align: left;
+    text-decoration: none;
+}
+#superfish ul a, #superfish ul a:visited, #menu ul a, #menu ul a:visited, #superfish ul .nolink {
+    color: #666666;
+}
+#superfish ul li.active-trail a.active, #menu ul li.active-trail a.active {
+    color: #666666;
+}
+#superfish ul a.active, #menu ul a.active {
+    text-decoration: underline;
+}
+#superfish ul li, #menu ul li {
+    background: none repeat scroll 0 0 transparent;
+}
+#superfish ul li.first a, #menu ul li.first a, #superfish ul li.first .nolink {
+    background: none repeat scroll 0 0 transparent;
+}
+#superfish ul li, #menu ul li {
+    background: url("/sites/all/themes/metropolis/images/menu-sp.gif") no-repeat scroll left center transparent;
+    height: 43px;
+}
+#superfish ul li.first, #menu ul li.first {
+    background: none repeat scroll 0 0 transparent;
+}
+#superfish ul ul li.first {
+    background: none repeat scroll 0 0 #FFFFFF;
+}
+#superfish ul ul li, #menu ul ul li {
+    height: auto;
+}
+#superfish ul li.last, #menu ul li.last {
+}
+#superfish ul ul li {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-left: medium none;
+    padding: 0;
+}
+#superfish ul ul li.last {
+    border-right: medium none;
+    padding: 0;
+}
+#superfish ul ul li.first a, #superfish ul ul li a, #superfish ul ul li.last a, #superfish ul ul li.first .nolink, #superfish ul ul li.last .nolink {
+    background-image: none;
+}
+#superfish ul ul ul li {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-left: medium none;
+    padding: 0;
+}
+#superfish ul ul ul ul li {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-left: medium none;
+    padding: 0;
+}
+#superfish ul li:hover, #superfish ul li.sfHover, #superfish ul a:focus, #superfish ul a:hover, #superfish ul a:active, #menu ul li:hover, #menu ul a:focus, #menu ul a:hover, #menu ul a:active, #superfish ul .nolink:hover {
+    background-color: transparent;
+    color: #666666;
+    outline: 0 none;
+}
+#superfish ul ul li:hover, #superfish ul ul li.sfHover, #superfish ul ul a:focus, #superfish ul ul a:hover, #superfish ul ul a:active, #superfish ul ul .nolink:hover {
+    background: none repeat scroll 0 0 #FFFFFF;
+    color: #666666;
+    outline: 0 none;
+}
+#superfish ul ul ul li:hover, #superfish ul ul ul li.sfHover, #superfish ul ul ul a:focus, #superfish ul ul ul a:hover, #superfish ul ul ul a:active, #superfish ul ul ul .nolink:hover {
+    background: none repeat scroll 0 0 #FFFFFF;
+    color: #666666;
+    outline: 0 none;
+}
+#superfish ul ul ul ul li:hover, #superfish ul ul ul ul li.sfHover, #superfish ul ul ul ul a:focus, #superfish ul ul ul ul a:hover, #superfish ul ul ul ul a:active, #superfish ul ul ul ul .nolink:hover {
+    background: none repeat scroll 0 0 #FFFFFF;
+    color: #666666;
+    outline: 0 none;
+}
+#superfish ul ul li.expanded {
+    background: url("/sites/all/themes/metropolis/images/arrow-subm.png") no-repeat scroll 96.5% 50% #FFFFFF;
+}
+#superfish ul ul ul li.expanded {
+    background: url("/sites/all/themes/metropolis/images/arrow-subm.png") no-repeat scroll 96.5% 50% #FFFFFF;
+}
+#superfish ul ul li a:hover, #superfish ul ul li a:visited:hover, #superfish ul ul li .nolink:hover {
+    background: none repeat scroll 0 0 #EEEEEE !important;
+    color: #666666 !important;
+    opacity: 0.95;
+}
+#superfish ul ul li .nolink:hover {
+    background: url("/sites/all/themes/metropolis/images/arrow-subm.png") no-repeat scroll 96.5% 50% #EEEEEE !important;
+}
+#superfish ul ul .sfHover {
+    background: url("/sites/all/themes/metropolis/images/arrow-subm.png") no-repeat scroll 96.5% 50% #EEEEEE !important;
+}
+#superfish ul ul li.expanded a:hover {
+    background: url("/sites/all/themes/metropolis/images/arrow-subm.png") no-repeat scroll 96.5% 50% #EEEEEE !important;
+}
+#superfish ul ul li.expanded li.leaf a:hover, #superfish ul ul li.expanded li.collapsed a:hover {
+    background: none repeat scroll 0 0 #EEEEEE !important;
+}
+#superfish ul ul li.expanded li.leaf, #superfish ul ul li.expanded li.collapsed {
+    background: none repeat scroll 0 0 #FFFFFF !important;
+}
+#superfish ul ul li.leaf, #superfish ul ul li.collapsed {
+    background-image: none !important;
+}
+#superfish ul li.active-trail ul li a.active {
+    color: #666666;
+}
+#menu ul li a:hover, #menu ul li .nolink:hover, #superfish ul li a:hover, #superfish ul li .nolink:hover, #superfish ul li .nolink.hover {
+    text-decoration: underline;
+}
+#superfish ul ul li a:hover, #superfish ul ul li .nolink:hover, #superfish ul ul li .nolink.hover {
+    text-decoration: none;
+}
+#superfish ul li.expanded a {
+    color: #666666 !important;
+}
+#superfish ul ul li.expanded a {
+    color: #666666 !important;
+}
+#superfish ul ul ul li.expanded a {
+    color: #666666 !important;
+}
+#superfish ul a.sf-with-ul {
+    min-width: 1px;
+}

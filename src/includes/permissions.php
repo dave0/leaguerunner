@@ -2,7 +2,7 @@
 /*
  * session_perm ($path)
  * Check permissions of the current session on th egiven path.
- * 
+ *
  * This is intended for use in Smarty {if} tags like so:
  * 	{if session_perm("league/manage teams/`$league->league_id`") }
  * 	...
@@ -344,6 +344,9 @@ function registration_permissions ( &$user, $action, $id, $registration )
 {
 	global $lr_session;
 
+	if($action == 'paypal')
+		return true;
+
 	if (!$lr_session || !$lr_session->user)
 		return false;
 
@@ -356,6 +359,7 @@ function registration_permissions ( &$user, $action, $id, $registration )
 			// Only admin can view details or edit
 			break;
 		case 'register':
+		case 'paypal':		// Paypal PDT with valid player info and currently active user
 			// Only admins can register other players
 			if( ! is_null($id) ) {
 				return ($id == $lr_session->user->user_id || $lr_session->is_admin());
@@ -405,6 +409,7 @@ function team_permissions ( &$user, $action, $id, $data_field )
 		case 'view schedule':
 			return true;
 		case 'edit':
+		case 'player rating':
 		    if( $data_field == 'home_field' ) {
 				return ($user && $user->is_admin());
 			}
