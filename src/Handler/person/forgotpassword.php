@@ -45,7 +45,7 @@ class person_forgotpassword extends Handler
 		}
 
 		if( count($fields) < 1 ) {
-			error_exit("You must supply at least one of username or email address");
+			info_exit("You must supply at least one of username or email address");
 		}
 
 		/* Now, try and find the user */

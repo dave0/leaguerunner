@@ -35,7 +35,7 @@ class team_roster extends TeamHandler
 			!$lr_session->is_admin() &&
 			time() > $this->team->roster_deadline )
 		{
-			error_exit( 'The roster deadline has passed.' );
+			info_exit( 'The roster deadline has passed.' );
 		}
 
 		if( !$this->player ) {

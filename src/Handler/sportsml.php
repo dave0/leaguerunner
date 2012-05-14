@@ -48,7 +48,7 @@ class sportsml extends Handler
 		$s = new Spirit;
 
 		if($this->league->schedule_type == 'none') {
-			error_exit("This league does not have a schedule or standings.");
+			info_exit("This league does not have a schedule or standings.");
 		}
 
 		list($order, $season, $round) = $this->league->calculate_standings(array( 'round' => $current_round ));
@@ -84,7 +84,7 @@ class sportsml extends Handler
 	{
 
 		if($this->league->schedule_type == 'none') {
-			error_exit("This league does not have a schedule or standings.");
+			info_exit("This league does not have a schedule or standings.");
 		}
 		$sth = Game::query ( array( 'league_id' => $this->league->league_id, 'published' => 1, '_order' => 'g.game_date, g.game_start, field_code') );
 

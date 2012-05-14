@@ -196,7 +196,7 @@ class game_submitscore extends GameHandler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
@@ -221,7 +221,7 @@ class game_submitscore extends GameHandler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		if( $edit['defaulted'] == 'us' || $edit['defaulted'] == 'them' ) {
@@ -255,7 +255,7 @@ class game_submitscore extends GameHandler
 
 		$dataInvalid = $this->isDataInvalid( $edit, $questions);
 		if($dataInvalid) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->smarty->assign('interim_game_result', $this->interim_game_result($edit, $opponent));

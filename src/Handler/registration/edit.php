@@ -86,7 +86,7 @@ class registration_edit extends RegistrationHandler
 		}
 
 		if( $dataInvalid ) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 		$output = para('Please confirm that this data is correct and click the submit button to proceed to the payment information page.');
 		$output .= form_hidden('edit[step]', 'submit');
@@ -125,7 +125,7 @@ class registration_edit extends RegistrationHandler
 		}
 
 		if( $dataInvalid ) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->registration->set('payment', $edit['payment']);

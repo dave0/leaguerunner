@@ -74,7 +74,7 @@ require_once("includes/mail.php");
 $conf = variable_init();
 if (variable_get('log_messages', 0)) {
 	if (!isset($log)) {
-		$log = new KLogger($_SERVER['DOCUMENT_ROOT'].'/'.$CONFIG['paths']['base_url'].'/logs', variable_get('log_threshold',Klogger::DEBUG));
+		$log = new KLogger($_SERVER['DOCUMENT_ROOT'].$CONFIG['paths']['base_url'].'/logs', variable_get('log_threshold',Klogger::DEBUG));
 	}
 }
 
@@ -248,6 +248,22 @@ if($handler->initialize()) {
 	error_exit("Failed to initialize handler for $handler_class");
 }
 
+/**
+ * Exit from current execution, but not a full error.
+ * i.e. Team missing a schedule is not an error, just information for the user
+ * @param unknown_type $info Message to pass out to user
+ */
+function info_exit($info = NULL)
+{
+	$smarty->assign('title', 'Information');
+	$smarty->assign('menu', menu_render('_root'));
+	$info = $info ? $info : "Unexpected Information";
+
+	$smarty->assign('error', $info);
+	$smarty->display('error.tpl');
+	exit;
+}
+
 function error_exit($error = NULL, $options = array())
 {
 	global $smarty;
@@ -263,6 +279,7 @@ function error_exit($error = NULL, $options = array())
 	$smarty->assign('menu', menu_render('_root') );
 
 	$error = $error ? $error : "An unknown error has occurred.";
+
 	if(isset($log))
 	{
 		$log->logError($error);
