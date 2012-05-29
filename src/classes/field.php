@@ -27,6 +27,23 @@ class Field extends LeaguerunnerObject
 			$this->fullname = join(" ", array($this->name, $this->num));
 			$this->is_indoor = $parent->is_indoor;
 
+			// Assume slightly northeast of parent field if no location given.
+			if( ! $this->latitude ) {
+				$this->latitude = $parent->latitude + 0.0005;
+				$this->longitude = $parent->longitude + 0.0005;
+			}
+
+			if( ! $this->zoom ) {
+				$this->zoom = $parent->zoom;
+			}
+
+			// Assume parent field dimensions if none given.
+			if( ! $this->width ) {
+				$this->width = $parent->width;
+				$this->length = $parent->length;
+				$this->angle  = $parent->angle;
+			}
+
 			// Fields may have their own parking details, or inherit from the parent
 			if (! $this->parking ) {
 				$this->parking = $parent->parking;
