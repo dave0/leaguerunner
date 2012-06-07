@@ -99,21 +99,39 @@ class schedule_edit extends schedule_view
 				$seen_slot[] = $game['slot_id'];
 			}
 
-			$seen_team[$game['home_id']]++;
-			$seen_team[$game['away_id']]++;
-
 			if( !validate_number($game['home_id'])) {
 				return "Game entry missing home team ID";
 			}
 			if( !validate_number($game['away_id'])) {
 				return "Game entry missing away team ID";
 			}
-			if ( ($seen_team[$game['home_id']] > 1) || ($seen_team[$game['away_id']] > 1) ) {
-				// TODO: Needs to be fixed to deal with doubleheader games.
-				return "Cannot schedule a team to play two games at the same time";
+
+			$tmp_teams = array( $game['home_id'], $game['away_id'] );
+			if ( array_key_exists( $game['home_id'], $seen_team)
+			     || array_key_exists( $game['away_id'], $seen_team) ) {
+				$new_slot = GameSlot::load( array('slot_id' => $game['slot_id']) );
+				foreach($tmp_teams as $team_id) {
+					if( ! array_key_exists( $seen_team[$team_id] ) ) {
+						continue;
+					}
+					foreach($seen_team[$team_id] as $existing_slot_id) {
+						$exist_slot = GameSlot::load( array('slot_id' => $existing_slot_id ) );
+						if( $new_slot->overlaps_with( $exist_slot ) ) {
+							return "Cannot schedule team $team_id to play two games at the same time";
+						}
+					}
+				}
 			}
 			if( $game['home_id'] != 0 && ($game['home_id'] == $game['away_id']) ) {
 				return "Cannot schedule a team to play themselves.";
+			}
+
+			// Set up datastructure for avoiding game overlaps
+			foreach($tmp_teams as $team_id) {
+				if( ! array_key_exists( $team_id, $seen_team ) ) {
+					$seen_team[$team_id] = array();
+				}
+				array_push($seen_team[$team_id], $game['slot_id']);
 			}
 
 			// TODO Check the database to ensure that no other game is

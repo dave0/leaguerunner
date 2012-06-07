@@ -1060,7 +1060,7 @@ if ( !function_exists( 'fputcsv' ) )
 /**
  * Calculate local sunset time for a timestamp, using system-wide location.
  */
-function local_sunset_for_date( $timestamp )
+function local_sunset_timestamp_for_date( $timestamp )
 {
 	/*
 	 * value of 90 degrees 50 minutes is the angle at which
@@ -1084,7 +1084,13 @@ function local_sunset_for_date( $timestamp )
 
 	# Round down to nearest 5 minutes
 	$end_timestamp = floor( $end_timestamp / 300 ) * 300;
-	return strftime('%H:%M', $end_timestamp);
+
+	return $end_timestamp;
+}
+
+function local_sunset_for_date( $timestamp )
+{
+	return strftime('%H:%M', local_sunset_timestamp_for_date($timestamp));
 }
 
 /**

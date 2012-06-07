@@ -181,6 +181,55 @@ class GameSlot extends LeaguerunnerObject
 		return '';
 	}
 
+	/**
+	 * Game end time, for comparison purposes.
+	 *
+	 */
+	function game_end_timestamp()
+	{
+		if( ! $this->date_timestamp ) {
+			return 0;
+		}
+
+		# Calculate the game-end timestamp
+		if( $this->game_end ) {
+			# TODO: doesn't handle games that cross midnight!
+			list($start_hh, $start_mm) = split(':', $this->game_start);
+			$start_decimal = $start_hh + ($start_mm / 60);
+
+			list($end_hh, $end_mm) = split(':', $this->game_end);
+			$end_decimal = $end_hh + ($end_mm / 60);
+
+			$duration_ss = ($end_decimal - $start_decimal) * 3600;
+
+			return $this->date_timestamp + $duration_ss;
+		}
+
+		return local_sunset_timestamp_for_date( $this->date_timestamp );
+	}
+
+	function overlaps_with ( $slot )
+	{
+		$this_start = $this->date_timestamp;
+		$this_end   = $this->game_end_timestamp();
+
+		$slot_start = $slot->date_timestamp;
+		$slot_end   = $slot->game_end_timestamp();
+
+		# $slot game starts during this one
+		if( $slot_start >= $this_start && $slot_start < $this_end ) {
+			return 1;
+		}
+
+		# $slot game ends during this one
+		if( $slot_start < $this_start && $slot_end > $this_start ) {
+			return 1;
+		}
+
+		# Otherwise, no overlap
+		return 0;
+	}
+
 	static function query ( $array = array() )
 	{
 		global $dbh;
