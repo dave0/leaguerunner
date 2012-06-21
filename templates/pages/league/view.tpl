@@ -59,7 +59,7 @@ $(document).ready(function() {
 		aaSorting: [[ 0, "asc" ]],
 		aoColumns: [
 			null,
-			null,
+			{ "sType" : "html" },
 			null,
 			null,
 			null,
