@@ -64,9 +64,14 @@
 	{/if}
 
 	{if $field->site_instructions}
+	<tr><td>Private Instructions:</td>
+	<td>
 	{if session_perm("field/view/`$field->fid`/site_instructions")}
-	<tr><td>Private Instructions:</td><td>{$field->site_instructions}</td></tr>
+		{$field->site_instructions}
+	{else}
+	This site has members-only instructions.  Please log in to Leaguerunner to view them.
 	{/if}
+	</td></tr>
 	{/if}
 
 	{if $other_fields}
