@@ -228,16 +228,6 @@ sub cb_season_day_ratio_coordinators
 
 my %lists = (
 
-	# Ad-hoc lists
-	'summer-yp-league-players' => {
-		callback   => \&cb_league_players,
-		parameters => [ 177 ]
-	},
-	'summer-masters-league-players' => {
-		callback   => \&cb_league_players,
-		parameters => [ 176 ]
-	},
-
 	# opt-in lists.
 	'player-notices' => {
 		callback => sub {
@@ -340,13 +330,13 @@ my %lists = (
 		parameters => [ 'Summer', 'Thursday', 'womens' ],
 	},
 	'summer-sunday-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 213 ],
+		callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Sunday', '4/3' ],
 	},
 	'summer-sunday-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 213 ],
-		moderator_callback => \&cb_league_coordinators,
+		callback   => \&cb_season_day_ratio_captains_coordinators,
+		moderator_callback => \&cb_season_day_ratio_coordinators,
+		parameters => [ 'Summer', 'Sunday', '4/3' ],
 	},
 
 	# Fall League
@@ -406,24 +396,10 @@ my %lists = (
 		parameters => [ 'Fall', 'Thursday', 'womens' ],
 	},
 
-	# TODO:
-	'summer-masters-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 214 ],
-	},
-	'summer-masters-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 214 ],
-		moderator_callback => \&cb_league_coordinators,
-	},
-	'summer-young-professionals-captains' => {
-		callback   => \&cb_league_captains_coordinators,
-		parameters => [ 177 ],
-		moderator_callback => \&cb_league_coordinators,
-	},
-	'summer-young-professionals-coordinators' => {
-		callback => \&cb_league_coordinators,
-		parameters => [ 177 ],
+	# Winter league
+	'winter-coordinators' => {
+		callback   => \&cb_season_coordinators,
+		parameters => [ 'Winter' ],
 	},
 
 );
@@ -493,6 +469,7 @@ sub list_sync_members
 	system( $mm_sync_members, qw( --goodbye-msg=no --welcome-msg=no --digest=no --notifyadmin=no -f ), $tmpfilename, $listinfo->{name} ) == 0 or die("$mm_sync_members failed");
 }
 
+# TODO: use "moderators from other list" feature?
 sub list_sync_moderators
 {
 	my ($listinfo) = @_;
