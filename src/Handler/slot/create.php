@@ -64,7 +64,7 @@ class slot_create extends FieldHandler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			info_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		for( $i = 0; $i < $edit['repeat_for']; $i++) {
@@ -95,8 +95,6 @@ class slot_create extends FieldHandler
 		$this->smarty->assign('field',      $this->field);
 		$this->smarty->assign('start_date', $datestamp);
 
-		// TODO: replace getOptionsFromTimeRange with smarty plugin
-		// TODO: implement for each field a usual_start_time to use as the start_time value
 		$this->smarty->assign('start_time', '18:30');
 		$this->smarty->assign('end_time', '---');
 		$this->smarty->assign('start_end_times', getOptionsFromTimeRange(0000,2400,5) );
@@ -110,7 +108,6 @@ class slot_create extends FieldHandler
 		}
 		$this->smarty->assign('leagues', $leagues);
 
-		// TODO: perhaps have a repeat_until date instead?
 		$this->smarty->assign('repeat_options', getOptionsFromRange(1,24));
 
 		return true;
@@ -120,7 +117,7 @@ class slot_create extends FieldHandler
 	{
 		$dataInvalid = $this->isDataInvalid( $edit );
 		if($dataInvalid) {
-			error_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
+			info_exit($dataInvalid . "<br>Please use your back button to return to the form, fix these errors, and try again");
 		}
 
 		$this->smarty->assign('start_date', $datestamp);

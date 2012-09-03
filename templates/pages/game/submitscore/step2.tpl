@@ -12,7 +12,7 @@ uses, we need your feedback.  Do there appear to be any changes to the field
 <input type="radio" name="enable_textarea" value="Yes" /> Yes
 <input type="radio" name="enable_textarea" value="No" /> No
 
-<div id="fieldreport"><textarea id="fieldreport_text" wrap="virtual" cols="70" rows="5" name="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
+<div id="fieldreport"><textarea id="fieldreport_text" wrap="virtual" cols="60" rows="10" name="edit[field_report]"></textarea><div class="description">Please enter a description of any issues, or leave blank if there is nothing to report</div></div>
 <p>
 
 {hidden_fields fields=$hidden_fields}

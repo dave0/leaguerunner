@@ -30,7 +30,7 @@ class registration_addpayment extends RegistrationHandler
 		}
 		$dataInvalid = $payment->validate();
 		if( $dataInvalid ) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		switch($edit['step']) {

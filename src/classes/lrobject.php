@@ -24,8 +24,23 @@ class LeaguerunnerObject
 		}
 
 		$this->touch ($key);
-		$this->{$key} = $value;
+		$this->{$key} = trim(stripslashes($value));
 		return true;
+	}
+
+	/**
+	 * Get a particular field.
+	 */
+	function get ( $key )
+	{
+		// TODO: check that key is in fact a valid key before doing this
+
+		// No need to set it if it already has the same value
+		if( array_key_exists( $key, get_object_vars( $this ) ) ) {
+			return $this->{$key};
+		}
+
+		return null;
 	}
 
 	/**

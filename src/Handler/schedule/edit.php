@@ -39,7 +39,7 @@ class schedule_edit extends schedule_view
 		return $rc;
 	}
 
-	function generateForm ()
+	function generateForm()
 	{
 		// Grab data for pulldowns if we need an edit form
 		$teams = $this->league->teams_as_array();

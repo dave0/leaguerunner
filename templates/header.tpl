@@ -2,10 +2,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-    <title>{$title|default:$app_name}</title>
-    {include file="components/css.tpl"}
-    {include file="components/javascript.tpl"}
-    <link rel="shortcut icon" href="/suc_logo.ico" />
+	<title>{$title|default:$app_name}</title>
+	{include file="components/css.tpl"}
+	{include file="components/javascript.tpl"}
+	<link rel="shortcut icon" href="/suc_logo.ico" />
 </head>
 <body class="one-sidebar">
 	<div id="page-wrapper">

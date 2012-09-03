@@ -305,10 +305,15 @@ class League extends LeaguerunnerObject
 
 			$test = $sth->execute( $fields_data );
 
+			/** TODO
+			 * PHP 5.2 returns 0 on a successful UPDATE query that doesn't modify anything.
+			 * At minimum, the update sets capt & coord lists to null.
+
 			if($sth->rowCount() < 1) {
 				$err = $sth->errorInfo();
 				error_exit("Error: database not updated: $err[2]");
 			}
+			*/
 		}
 
 		$add_sth = $dbh->prepare('INSERT INTO leaguemembers (league_id, player_id, status) VALUES (?,?,?)');

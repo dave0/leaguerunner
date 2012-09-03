@@ -20,7 +20,7 @@ class team_spirit extends TeamHandler
 
 		// if the person doesn't have permission to see this team's spirit, bail out
 		if( !$lr_session->has_permission('team', 'view', $this->team->team_id, 'spirit') ) {
-			error_exit("You do not have permission to view this team's spirit results");
+			info_exit("You do not have permission to view this team's spirit results");
 		}
 
 		if( $league->display_sotg == 'coordinator_only' && ! $lr_session->is_coordinator_of( $league->league_id ) ) {
@@ -36,7 +36,7 @@ class team_spirit extends TeamHandler
 		$games = Game::load_many( array( 'either_team' => $this->team->team_id, '_order' => 'g.game_date') );
 
 		if( !is_array($games) ) {
-			error_exit('There are no games scheduled for this team');
+			info_exit('There are no games scheduled for this team');
 		}
 		$this->smarty->assign('question_keys',  array_merge( array('full'), $s->question_keys(), array('score_entry_penalty') ));
 		$this->smarty->assign('question_headings', $s->question_headings() );

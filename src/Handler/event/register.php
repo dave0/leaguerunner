@@ -78,7 +78,7 @@ class event_register extends EventHandler
 
 		$dataInvalid = $this->isDataInvalid();
 		if( $dataInvalid ) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->template_name = 'pages/event/register/confirm.tpl';
@@ -92,7 +92,7 @@ class event_register extends EventHandler
 	{
 		$dataInvalid = $this->isDataInvalid();
 		if( $dataInvalid ) {
-			error_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
+			info_exit($dataInvalid . '<br>Please use your back button to return to the form, fix these errors, and try again.');
 		}
 
 		$this->registration = new Registration;

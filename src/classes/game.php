@@ -13,7 +13,7 @@ class Game extends LeaguerunnerObject
 	var $_home_team_object;
 	var $_away_team_object;
 
-	function __construct ( $load_mode = LOAD_RELATED_DATA ) 
+	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
 
 		if( ! $this->_in_database ) {
@@ -390,7 +390,7 @@ class Game extends LeaguerunnerObject
 			return false;
 		}
 
-		$sth = $dbh->prepare('INSERT into schedule (league_id) VALUES(?)'); 
+		$sth = $dbh->prepare('INSERT into schedule (league_id) VALUES(?)');
 		$sth->execute( array($this->league_id) );
 		if( 1 != $sth->rowCount() ) {
 			return false;
@@ -794,6 +794,19 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
+	 * Calculates the win in favour of the lower rated team
+	 */
+	function tie_expected_win($home_rating = null, $away_rating = null)
+	{
+		if (!$home_rating) $home_rating = $this->rating_home;
+		if (!$away_rating) $away_rating = $this->rating_home;
+
+		return ($home_rating >= $away_rating) ?
+			calculate_expected_win($home_rating, $away_rating) :
+			calculate_expected_win($away_rating, $home_rating);
+	}
+
+	/**
 	 * Calculate the value to be added/subtracted from the competing
 	 * teams' ratings.
 	 *
@@ -842,10 +855,10 @@ class Game extends LeaguerunnerObject
 		$change = 0;
 
 		if($this->home_score == $this->away_score) {
-			// TODO FIXME: should treat ties as a win by the lower-rated team, rather than as a home win.
+
 			$winner = $this->home_id;
 			$loser = $this->away_id;
-			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->home_expected_win());
+			$change = $this->$change_calculator($this->home_score, $this->away_score, $this->tie_expected_win());
 		} else if($this->home_score > $this->away_score) {
 			$winner = $this->home_id;
 			$loser = $this->away_id;
@@ -918,7 +931,7 @@ class Game extends LeaguerunnerObject
 	}
 
 	/**
-	 * Calculate the wager ratings change for the result provided. 
+	 * Calculate the wager ratings change for the result provided.
 	 *
 	 * This uses a wagering system, where:
 	 * 	- the final score determines the total amount of the pot.
@@ -1184,9 +1197,8 @@ class Game extends LeaguerunnerObject
 						$this->calculate_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"'$home' wins $h to $a, takes $change rating points from '$away'", 'class'=>"highlight");
 				} else if ($h == $a) {
-					// TODO FIXME: should treat ties as a win by the lower-rated team, rather than as a home win.
 					$change = $this->$change_calculator($h, $a,
-						$this->calculate_expected_win($rating_home, $rating_away));
+						$this->tie_expected_win($rating_home, $rating_away));
 					$current_row[] = array('data' => $change, 'title'=>"Tie $h to $a, '$home' takes $change rating points from '$away'", 'class'=>"highlight");
 				} else {
 					$change = $this->$change_calculator($h, $a,
@@ -1284,7 +1296,7 @@ class Game extends LeaguerunnerObject
 		}
 
 		// TODO FIXME we use both home_team and home_id, away_team and away_id.  Should standardize on one!
-		$sth = $dbh->prepare("SELECT 
+		$sth = $dbh->prepare("SELECT
 			s.*,
 			1 as _in_database,
 			IF(l.tier,CONCAT(l.name,' ',l.tier), l.name) AS league_name,
