@@ -310,6 +310,9 @@ class FormBuilder
 	 */
 	function bulk_set_answers ( $answers )
 	{
+		if( !is_array($answers) ) {
+			return;
+		}
 		while(list($key, $value) = each($answers)) {
 			$this->set_answer( $key, $value );
 		}
