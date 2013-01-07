@@ -104,6 +104,10 @@ class Field extends LeaguerunnerObject
 			}
 		}
 
+		if( $this->parent_fid == $this->fid ) {
+			error_exit("Cannot assign field to be its own parent");
+		}
+
 		$fields      = array();
 		$fields_data = array();
 

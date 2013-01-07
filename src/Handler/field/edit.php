@@ -205,6 +205,11 @@ class field_edit extends FieldHandler
 				return $errors;
 			}
 
+			if( $edit['parent_fid'] == $this->field->fid ) {
+				$errors .= "<li>Field cannot be a parent of itself!";
+				return $errors;
+			}
+
 			return false;
 		}
 
