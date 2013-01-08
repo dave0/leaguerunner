@@ -39,7 +39,7 @@ DTEND;TZID=US/Eastern:{$game->iso8601_local_game_end()}
 
 	TODO: What's with the X- fields?
 *}
-LOCATION:{$game->field->fullname} ({$game->field_code})
+LOCATION:{$game->field->location_street}, {$game->field->location_city}, {$game->field->location_province} ({$game->field_code})
 X-LOCATION-URL:{lr_url path="field/view/`$game->fid`}
 SUMMARY:{$game->home_name|utf8} (home) vs. {$game->away_name|utf8} (away)
 DESCRIPTION:Game {$game->game_id}: {$game->home_name|utf8} (home) vs. {$game->away_name|utf8} (away) at {$game->field->fullname} ({$game->field_code}) on {$game->timestamp|date_format:"%a %b %d %Y"} {$game->game_start} to {$game->display_game_end()}{if $game->opponent->shirt_colour}(they wear {$game->opponent->shirt_colour|utf8})
