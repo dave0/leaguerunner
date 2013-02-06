@@ -53,6 +53,13 @@ class gmaps_edit extends gmaps_view
 		$this->smarty->assign('location_latitude', variable_get('location_latitude', 0));
 		$this->smarty->assign('location_longitude', variable_get('location_longitude', 0));
 
+		// Assume slightly northeast of parent field if no location given.
+		if( ! $this->field->latitude ) {
+			$this->field->latitude = $parent->latitude + 0.0005;
+			$this->field->longitude = $parent->longitude + 0.0005;
+		}
+
+
 		// TODO: wtf isn't this a JSON object?
 		$this->smarty->assign('name',"{$this->field->name} ({$this->field->code}) {$this->field->num}");
 		$this->smarty->assign('address', "{$this->field->location_street}, {$this->field->location_city}");
@@ -64,8 +71,8 @@ class gmaps_edit extends gmaps_view
 		// Find other fields at this site
 		$otherfields = '';
 		$sth = $this->field->find_others_at_site();
-		while( $related = $sth->fetch(PDO::FETCH_OBJ)) {
-			if ($related->fid != $this->field->fid && $related->length) {
+		while( $related = $sth->fetchObject('Field',array(LOAD_OBJECT_ONLY))) {
+			if ($related->fid != $this->field->fid && $related->layout_is_set) {
 				foreach ($this->map_vars as $var) {
 					$otherfields .= "other_{$var}[$related->fid] = {$related->{$var}};\n";
 				}

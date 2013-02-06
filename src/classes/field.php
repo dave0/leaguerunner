@@ -3,6 +3,11 @@ class Field extends LeaguerunnerObject
 {
 	function __construct ( $load_mode = LOAD_RELATED_DATA )
 	{
+		if( $this->latitude ) {
+			// We have a latitude value of our own, so flag the layout as existing
+			$this->layout_is_set = 1;
+		}
+
 		// If we have a parent, override the overridables.
 		if( $this->parent_fid ) {
 			$parent = Field::load( array('fid' => $this->parent_fid) );
@@ -31,6 +36,9 @@ class Field extends LeaguerunnerObject
 			if( ! $this->latitude ) {
 				$this->latitude = $parent->latitude + 0.0005;
 				$this->longitude = $parent->longitude + 0.0005;
+
+				// but flag it as not having layout
+				$this->layout_is_set = 0;
 			}
 
 			if( ! $this->zoom ) {

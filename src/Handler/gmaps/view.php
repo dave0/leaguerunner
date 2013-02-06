@@ -53,8 +53,8 @@ class gmaps_view extends FieldHandler
 		// Find other fields at this site
 		$sth = $this->field->find_others_at_site();
 		$otherfields = '';
-		while( $related = $sth->fetch(PDO::FETCH_OBJ)) {
-			if ($related->fid != $this->field->fid && $related->length) {
+		while( $related = $sth->fetchObject('Field',array(LOAD_OBJECT_ONLY))) {
+			if ($related->fid != $this->field->fid && $related->layout_is_set) {
 				// TODO: wtf isn't this a JSON object?
 				foreach ($this->map_vars as $var) {
 					$otherfields .= "other_{$var}[$related->fid] = {$related->{$var}};\n";
